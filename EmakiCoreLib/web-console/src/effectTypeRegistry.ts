@@ -51,19 +51,6 @@ export const CORE_EFFECT_TYPE_DEFINITIONS: EffectTypeDefinition[] = [
   { type: 'lore_action', label: 'Lore 动作链', fields: [{ key: 'lore_actions', type: 'actions', actionMode: 'lore', label: 'Lore 动作链', defaultValue: [] }] }
 ];
 
-/** Reusable definition: EmakiAttribute attribute map effect. */
-export const EA_ATTRIBUTE_EFFECT_DEFINITION: EffectTypeDefinition = {
-  type: 'ea_attribute',
-  label: 'EA 属性',
-  fields: [{ key: 'ea_attributes', type: 'map', label: 'EA 属性', defaultValue: {} }]
-};
-
-/** Reusable definition: EmakiSkills skill id list effect. */
-export const ES_SKILL_EFFECT_DEFINITION: EffectTypeDefinition = {
-  type: 'es_skill',
-  label: 'ES 技能',
-  fields: [{ key: 'es_skills', type: 'stringList', label: 'ES 技能', defaultValue: [] }]
-};
 
 const _byModule: Record<string, EffectTypeDefinition[]> = {};
 

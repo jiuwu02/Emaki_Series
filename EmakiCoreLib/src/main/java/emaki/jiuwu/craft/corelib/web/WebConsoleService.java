@@ -13,6 +13,11 @@ import java.util.concurrent.ExecutorService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.web.history.WebChangeHistoryService;
+import emaki.jiuwu.craft.corelib.web.insight.WebInsightDependencyGraphService;
+import emaki.jiuwu.craft.corelib.web.insight.WebInsightReferenceService;
+import emaki.jiuwu.craft.corelib.web.insight.WebInsightSearchService;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import java.util.concurrent.Executors;
@@ -37,6 +42,10 @@ public final class WebConsoleService {
     private WebRuntimeLibraryService runtimeLibraryService;
     private WebConsoleRegistry consoleRegistry;
     private WebItemPreviewService itemPreviewService;
+    private WebInsightSearchService insightSearchService;
+    private WebInsightReferenceService insightReferenceService;
+    private WebInsightDependencyGraphService insightDependencyGraphService;
+    private WebChangeHistoryService changeHistoryService;
     private final WebStaticAssets staticAssets = new WebStaticAssets();
     private volatile boolean debugEnabled;
     private volatile boolean debugFrontend;
@@ -63,6 +72,10 @@ public final class WebConsoleService {
             runtimeLibraryService = new WebRuntimeLibraryService(plugin);
             consoleRegistry = new WebConsoleRegistry(plugin);
             itemPreviewService = new WebItemPreviewService();
+            insightSearchService = new WebInsightSearchService(plugin, config);
+            insightReferenceService = new WebInsightReferenceService(plugin, config);
+            insightDependencyGraphService = new WebInsightDependencyGraphService(insightReferenceService);
+            changeHistoryService = new WebChangeHistoryService(plugin, config);
             server = HttpServer.create(new InetSocketAddress(config.host(), config.port()), 0);
             executor = Executors.newFixedThreadPool(4, runnable -> {
                 Thread thread = new Thread(runnable, "emaki-web-console");
@@ -71,6 +84,7 @@ public final class WebConsoleService {
             });
             server.setExecutor(executor);
             createContext("/api/auth/login", post(this::handleLogin));
+            createContext("/api/auth/logout", postAuth(this::handleLogout));
             createContext("/api/session", auth(this::handleSession));
             createContext("/api/modules", auth(this::handleModules));
             createContext("/api/registry", auth(this::handleRegistry));
@@ -84,8 +98,11 @@ public final class WebConsoleService {
             createContext("/api/configs/save", postAuth(this::handleConfigSave));
             createContext("/api/libraries", auth(this::handleLibraries));
             createContext("/api/debug/frontend-error", postAuth(this::handleFrontendError));
+            createContext("/api/debug/frontend-event", postAuth(this::handleFrontendEvent));
+            createContext("/api/debug/frontend-login-event", post(this::handleFrontendLoginEvent));
             createContext("/api/scripts/read", auth(this::handleScriptRead));
             createContext("/api/scripts/save", postAuth(this::handleScriptSave));
+            createContext("/api/scripts/extensions", auth(this::handleScriptExtensions));
             createContext("/api/gui/read", auth(this::handleGuiRead));
             createContext("/api/gui/save", postAuth(this::handleGuiSave));
             createContext("/api/items/read", auth(this::handleItemRead));
@@ -95,6 +112,14 @@ public final class WebConsoleService {
             createContext("/api/items/preview", postAuth(this::handleItemPreview));
             createContext("/api/items/action-types", auth(this::handleItemActionTypes));
             createContext("/api/economy/providers", auth(this::handleEconomyProviders));
+            createContext("/api/insight/search", auth(this::handleInsightSearch));
+            createContext("/api/insight/references", auth(this::handleInsightReferences));
+            createContext("/api/insight/dependency-graph", auth(this::handleInsightDependencyGraph));
+            createContext("/api/history/list", auth(this::handleHistoryList));
+            createContext("/api/history/snapshot", auth(this::handleHistorySnapshot));
+            createContext("/api/history/diff", auth(this::handleHistoryDiff));
+            createContext("/api/history/rollback", postAuth(this::handleHistoryRollback));
+            createContext("/api/plugin/", auth(this::handlePluginApi));
             createContext("/extensions/", this::handleExtensionAsset);
             createContext("/", this::handleStatic);
             server.start();
@@ -140,6 +165,31 @@ public final class WebConsoleService {
         debugBackend = !debugBackend;
         debugEnabled = debugFrontend || debugBackend;
         return debugBackend;
+    }
+
+    public long saveModuleConfigFromPlugin(String moduleId,
+            String path,
+            String kind,
+            String content,
+            Long expectedRevision,
+            String operation,
+            String actor) throws IOException {
+        if (!configWriteAllowed()) {
+            throw new WebPluginApiRequest.WebPluginApiException(403, "当前已关闭 Web 配置写入权限。", Map.of("errorType", "config_write_disabled"));
+        }
+        if (moduleId == null || moduleId.isBlank() || path == null || path.isBlank()) {
+            throw new IOException("缺少 moduleId 或 path");
+        }
+        YamlFiles.load(content == null ? "" : content);
+        WebChangeHistoryService.HistoryTarget target = historyTarget(moduleId, path, normalizeHistoryKind(kind));
+        if (changeHistoryService != null) {
+            changeHistoryService.recordBeforeWrite(target, Texts.isBlank(operation) ? "plugin_api_save" : operation, Texts.isBlank(actor) ? "web" : actor);
+        }
+        return configBrowserService.save(moduleId, path, content, expectedRevision);
+    }
+
+    private boolean configWriteAllowed() {
+        return config != null && config.security() != null && config.security().allowConfigWrite();
     }
 
     private void createContext(String path, WebRoute route) {
@@ -300,8 +350,13 @@ public final class WebConsoleService {
             executor = null;
         }
         WebConsoleRegistry.unregisterModule(plugin);
+        WebPluginApiRegistry.unregister(plugin);
         consoleRegistry = null;
         itemPreviewService = null;
+        insightSearchService = null;
+        insightReferenceService = null;
+        insightDependencyGraphService = null;
+        changeHistoryService = null;
     }
 
     private void handleLogin(WebRequestContext context) throws IOException {
@@ -324,12 +379,17 @@ public final class WebConsoleService {
         context.ok(Map.of("username", session.username(), "expiresAt", session.expiresAt()));
     }
 
+    private void handleLogout(WebRequestContext context) throws IOException {
+        authService.logout(context.exchange());
+        context.ok(Map.of("loggedOut", true));
+    }
+
     private void handleModules(WebRequestContext context) throws IOException {
         context.ok(Map.of("modules", moduleStatusService.modules()));
     }
 
     private boolean requireConfigWriteAllowed(WebRequestContext context) throws IOException {
-        if (config != null && config.security() != null && config.security().allowConfigWrite()) {
+        if (configWriteAllowed()) {
             return true;
         }
         context.error(403, "当前已关闭 Web 配置写入权限。", Map.of("errorType", "config_write_disabled"));
@@ -361,16 +421,48 @@ public final class WebConsoleService {
         String module = context.bodyString("moduleId");
         String filePath = context.bodyString("filePath");
         String path = context.bodyString("path");
+        if (filePath == null || filePath.isBlank()) {
+            filePath = "config.yml";
+        }
         Object value = context.bodyValue("value");
+        Object changesValue = context.bodyValue("changes");
         Long revision = context.revision();
         try {
+            WebChangeHistoryService.HistoryTarget historyTarget = historyTarget(module, filePath, "CONFIG");
+            if (changesValue instanceof List<?> rawChanges) {
+                List<WebConsoleRegistry.RegistryValueChange> changes = registryValueChanges(rawChanges);
+                recordBeforeWrite(historyTarget, "save_nodes", context.session());
+                long nextRevision = consoleRegistry.saveValues(module, filePath, changes, revision);
+                context.ok(Map.of("revision", nextRevision, "savedPaths", changes.stream().map(WebConsoleRegistry.RegistryValueChange::path).toList()));
+                return;
+            }
+            recordBeforeWrite(historyTarget, "save_node", context.session());
             long nextRevision = consoleRegistry.saveValue(module, filePath, path, value, revision);
-            context.ok(Map.of("revision", nextRevision));
+            context.ok(Map.of("revision", nextRevision, "savedPaths", List.of(path)));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
             writeRevisionConflict(context.exchange(), exception);
         } catch (IOException exception) {
             context.badRequest(exception.getMessage());
         }
+    }
+
+    private List<WebConsoleRegistry.RegistryValueChange> registryValueChanges(List<?> rawChanges) throws IOException {
+        List<WebConsoleRegistry.RegistryValueChange> changes = new ArrayList<>();
+        for (Object rawChange : rawChanges) {
+            if (!(rawChange instanceof Map<?, ?> map)) {
+                throw new IOException("批量保存项格式不正确");
+            }
+            Object pathValue = map.get("path");
+            String path = String.valueOf(pathValue == null ? "" : pathValue).trim();
+            if (path.isBlank()) {
+                throw new IOException("批量保存项缺少 path");
+            }
+            changes.add(new WebConsoleRegistry.RegistryValueChange(path, map.get("value")));
+        }
+        if (changes.isEmpty()) {
+            throw new IOException("缺少要保存的配置项");
+        }
+        return changes;
     }
 
     private void handleFileCreate(WebRequestContext context) throws IOException {
@@ -398,7 +490,8 @@ public final class WebConsoleService {
             String treePath = creation.type() == WebConsoleRegistry.WebConsoleFileType.SCRIPT && relative.startsWith(creation.baseDir() + "/")
                     ? relative.substring(creation.baseDir().length() + 1)
                     : relative;
-            context.ok(Map.of("path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", fileRevision(target)));
+            recordCreate(historyTarget(moduleId, treePath, creation.type().kind()), context.session());
+            context.ok(Map.of("path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", WebFileRevisions.revision(target)));
         } catch (Exception exception) {
             context.badRequest(exception.getMessage());
         }
@@ -423,7 +516,8 @@ public final class WebConsoleService {
             }
             Files.createDirectories(target.toPath().getParent());
             Files.writeString(target.toPath(), defaultFileContent(WebConsoleRegistry.WebConsoleFileType.CONFIG), StandardCharsets.UTF_8);
-            context.ok(Map.of("path", relative, "name", relative.substring(relative.lastIndexOf('/') + 1), "revision", fileRevision(target)));
+            recordCreate(historyTarget(moduleId, relative, "CONFIG"), context.session());
+            context.ok(Map.of("path", relative, "name", relative.substring(relative.lastIndexOf('/') + 1), "revision", WebFileRevisions.revision(target)));
         } catch (Exception exception) {
             context.badRequest(exception.getMessage());
         }
@@ -457,6 +551,7 @@ public final class WebConsoleService {
                 context.forbidden("此文件类型不允许删除");
                 return;
             }
+            recordDeleteBackup(historyTarget(moduleId, normalizedPath, treeFileKind(moduleId, fileId)), context.session());
             Files.delete(target.toPath());
             context.ok(Map.of("path", normalizedPath));
         } catch (Exception exception) {
@@ -507,6 +602,7 @@ public final class WebConsoleService {
         String content = context.bodyString("content");
         try {
             YamlFiles.load(content == null ? "" : content);
+            recordBeforeWrite(historyTarget(module, path, "CONFIG"), "save", context.session());
             long revision = configBrowserService.save(module, path, content, expectedRevision);
             context.ok(Map.of("revision", revision));
         } catch (WebConsoleRegistry.RevisionConflictException exception) {
@@ -530,6 +626,35 @@ public final class WebConsoleService {
         context.ok(Map.of("accepted", true));
     }
 
+    private void handleFrontendEvent(WebRequestContext context) throws IOException {
+        logFrontendDebugEvent(
+                context.bodyString("type"),
+                context.bodyString("target"),
+                context.bodyString("label"),
+                context.bodyString("value"),
+                context.bodyString("detail"),
+                context.bodyString("url")
+        );
+        context.ok(Map.of("accepted", true));
+    }
+
+    private void handleFrontendLoginEvent(WebRequestContext context) throws IOException {
+        String type = safeLogValue(context.bodyString("type"), "unknown");
+        if (!type.startsWith("login_")) {
+            context.ok(Map.of("accepted", false));
+            return;
+        }
+        logFrontendDebugEvent(
+                type,
+                context.bodyString("target"),
+                context.bodyString("label"),
+                context.bodyString("value"),
+                context.bodyString("detail"),
+                context.bodyString("url")
+        );
+        context.ok(Map.of("accepted", true));
+    }
+
     private void handleScriptRead(WebRequestContext context) throws IOException {
         String path = context.query("path");
         if (path.isBlank()) {
@@ -548,10 +673,14 @@ public final class WebConsoleService {
                 return;
             }
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
-            context.ok(Map.of("path", path, "content", content, "revision", fileRevision(target)));
+            context.ok(Map.of("path", path, "content", content, "revision", WebFileRevisions.revision(target)));
         } catch (Exception e) {
             context.serverError(e.getMessage());
         }
+    }
+
+    private void handleScriptExtensions(WebRequestContext context) throws IOException {
+        context.ok(Map.of("extensions", plugin.javaScriptExtensionStatus()));
     }
 
     private void handleScriptSave(WebRequestContext context) throws IOException {
@@ -572,16 +701,13 @@ public final class WebConsoleService {
                 context.forbidden("路径不合法");
                 return;
             }
-            if (expectedRevision != null && target.exists()) {
-                long current = fileRevision(target);
-                if (current != 0 && current != expectedRevision) {
-                    writeRevisionConflict(context.exchange(), current);
-                    return;
-                }
-            }
-            java.nio.file.Files.createDirectories(target.toPath().getParent());
-            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            context.ok(Map.of("revision", fileRevision(target)));
+            long current = WebFileRevisions.requireExpected(target, expectedRevision);
+            recordBeforeWrite(changeHistoryService.scriptTarget(path), "save", context.session());
+            Files.createDirectories(target.toPath().getParent());
+            Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
+            context.ok(Map.of("revision", WebFileRevisions.advance(target, current)));
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(context.exchange(), exception);
         } catch (Exception e) {
             context.serverError(e.getMessage());
         }
@@ -614,7 +740,7 @@ public final class WebConsoleService {
             }
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
             YamlSection yaml = YamlFiles.load(content);
-            context.ok(Map.of("moduleId", module, "path", path, "content", content, "data", ConfigNodes.toPlainData(yaml), "revision", fileRevision(target)));
+            context.ok(Map.of("moduleId", module, "path", path, "content", content, "data", ConfigNodes.toPlainData(yaml), "revision", WebFileRevisions.revision(target)));
         } catch (Exception e) {
             context.serverError(e.getMessage());
         }
@@ -638,19 +764,21 @@ public final class WebConsoleService {
         }
         try {
             java.io.File target = safeModuleFile(module, path);
-            if (expectedRevision != null && target.exists()) {
-                long current = fileRevision(target);
-                if (current != 0 && current != expectedRevision) {
-                    writeRevisionConflict(context.exchange(), current);
-                    return;
-                }
+            long current = WebFileRevisions.requireExpected(target, expectedRevision);
+            try {
+                YamlFiles.load(content == null ? "" : content);
+            } catch (Exception exception) {
+                context.badRequest(exception.getMessage());
+                return;
             }
-            YamlFiles.load(content == null ? "" : content);
-            java.nio.file.Files.createDirectories(target.toPath().getParent());
-            java.nio.file.Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
-            context.ok(Map.of("revision", fileRevision(target)));
+            recordBeforeWrite(historyTarget(module, path, normalizeHistoryKind(kind)), "save", context.session());
+            Files.createDirectories(target.toPath().getParent());
+            Files.writeString(target.toPath(), content == null ? "" : content, StandardCharsets.UTF_8);
+            context.ok(Map.of("revision", WebFileRevisions.advance(target, current)));
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(context.exchange(), exception);
         } catch (Exception e) {
-            context.serverError(e.getMessage());
+            context.badRequest(e.getMessage());
         }
     }
 
@@ -664,15 +792,6 @@ public final class WebConsoleService {
 
     private boolean jsonHasKey(String json, String key) {
         return json != null && key != null && java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(WebJson.quote(key)) + "\\s*:").matcher(json).find();
-    }
-
-    private long fileRevision(java.io.File file) {
-        if (!file.exists()) return 0L;
-        try {
-            return java.nio.file.Files.getLastModifiedTime(file.toPath()).toMillis();
-        } catch (IOException ignored) {
-            return 0L;
-        }
     }
 
     private void handleItemPreview(WebRequestContext context) throws IOException {
@@ -708,6 +827,142 @@ public final class WebConsoleService {
         }
     }
 
+    private void handleInsightSearch(WebRequestContext context) throws IOException {
+        String query = context.query("q");
+        if (query.isBlank()) {
+            context.ok(Map.of("query", "", "results", List.of()));
+            return;
+        }
+        try {
+            context.ok(Map.of("query", query, "results", insightSearchService.search(query)));
+        } catch (Exception exception) {
+            context.serverError(exception.getMessage());
+        }
+    }
+
+    private void handleInsightReferences(WebRequestContext context) throws IOException {
+        String idType = context.query("idType");
+        String id = context.query("id");
+        if (idType.isBlank() || id.isBlank()) {
+            context.badRequest("缺少 idType 或 id 参数");
+            return;
+        }
+        try {
+            context.ok(Map.of("idType", idType, "id", id, "references", insightReferenceService.references(idType, id)));
+        } catch (Exception exception) {
+            context.serverError(exception.getMessage());
+        }
+    }
+
+    private void handleInsightDependencyGraph(WebRequestContext context) throws IOException {
+        String idType = context.query("idType");
+        String id = context.query("id");
+        if (idType.isBlank() || id.isBlank()) {
+            context.badRequest("缺少 idType 或 id 参数");
+            return;
+        }
+        int depth = intQuery(context.query("depth"), 1);
+        String direction = context.query("direction");
+        try {
+            context.ok(insightDependencyGraphService.graph(idType, id, depth, direction));
+        } catch (Exception exception) {
+            context.serverError(exception.getMessage());
+        }
+    }
+
+    private void handleHistoryList(WebRequestContext context) throws IOException {
+        try {
+            WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
+            context.ok(Map.of("history", changeHistoryService.list(target), "revision", changeHistoryService.currentRevision(target)));
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handleHistorySnapshot(WebRequestContext context) throws IOException {
+        try {
+            WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
+            context.ok(changeHistoryService.snapshot(target, context.query("id")));
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handleHistoryDiff(WebRequestContext context) throws IOException {
+        try {
+            WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
+            context.ok(changeHistoryService.diffCurrent(target, context.query("id")));
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handleHistoryRollback(WebRequestContext context) throws IOException {
+        if (!requireConfigWriteAllowed(context)) {
+            return;
+        }
+        try {
+            WebChangeHistoryService.HistoryTarget target = historyTarget(context.bodyString("moduleId"), context.bodyString("path"), context.bodyString("kind"));
+            long revision = changeHistoryService.rollback(target, context.bodyString("id"), actor(context.session()), context.revision());
+            context.ok(Map.of("revision", revision));
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(context.exchange(), exception);
+        } catch (WebChangeHistoryService.RollbackForbiddenException exception) {
+            context.forbidden(exception.getMessage());
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void handlePluginApi(WebRequestContext context) throws IOException {
+        String path = context.exchange().getRequestURI().getPath();
+        String relative = path.substring("/api/plugin/".length()).replace('\\', '/');
+        int separator = relative.indexOf('/');
+        if (separator <= 0 || separator + 1 >= relative.length()) {
+            context.notFound("插件 Web API 不存在");
+            return;
+        }
+        String moduleId = relative.substring(0, separator);
+        String routeId = relative.substring(separator + 1);
+        WebPluginApiRegistry.RegisteredRoute route = WebPluginApiRegistry.route(moduleId, routeId);
+        if (route == null || !route.plugin().isEnabled()) {
+            context.notFound("插件 Web API 不存在");
+            return;
+        }
+        try {
+            String body = "POST".equalsIgnoreCase(context.exchange().getRequestMethod()) ? context.body() : "";
+            Map<String, ?> response = route.handler().handle(new WebPluginApiRequest(
+                    moduleId,
+                    routeId,
+                    context.exchange().getRequestMethod(),
+                    body,
+                    configWriteAllowed(),
+                    actor(context.session()),
+                    this
+            ));
+            context.ok(response == null ? Map.of() : response);
+        } catch (WebPluginApiRequest.WebPluginApiException exception) {
+            context.error(exception.status(), exception.getMessage(), exception.details());
+        } catch (WebConsoleRegistry.RevisionConflictException exception) {
+            writeRevisionConflict(context.exchange(), exception);
+        } catch (IOException exception) {
+            context.badRequest(exception.getMessage());
+        } catch (Exception exception) {
+            context.serverError(exception.getMessage());
+        }
+    }
+
+    private int intQuery(String value, int fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
     private void handleEconomyProviders(WebRequestContext context) throws IOException {
         try {
             EconomyManager economyManager = economyManager();
@@ -736,6 +991,60 @@ public final class WebConsoleService {
 
     private static boolean isGlobPath(String path) {
         return path != null && (path.contains("*") || path.contains("?"));
+    }
+
+    private WebChangeHistoryService.HistoryTarget historyTarget(String moduleId, String path, String kind) throws IOException {
+        String normalizedKind = normalizeHistoryKind(kind);
+        if ("SCRIPT".equals(normalizedKind)) {
+            return changeHistoryService.scriptTarget(path);
+        }
+        return changeHistoryService.moduleTarget(moduleId, path, normalizedKind);
+    }
+
+    private void recordBeforeWrite(WebChangeHistoryService.HistoryTarget target, String operation, WebAuthService.Session session) throws IOException {
+        if (changeHistoryService != null) {
+            changeHistoryService.recordBeforeWrite(target, operation, actor(session));
+        }
+    }
+
+    private void recordCreate(WebChangeHistoryService.HistoryTarget target, WebAuthService.Session session) throws IOException {
+        if (changeHistoryService != null) {
+            changeHistoryService.recordCreate(target, actor(session));
+        }
+    }
+
+    private void recordDeleteBackup(WebChangeHistoryService.HistoryTarget target, WebAuthService.Session session) throws IOException {
+        if (changeHistoryService != null) {
+            changeHistoryService.recordDeleteBackup(target, actor(session));
+        }
+    }
+
+    private String actor(WebAuthService.Session session) {
+        return session == null || session.username() == null || session.username().isBlank() ? "web" : session.username();
+    }
+
+    private String normalizeHistoryKind(String kind) {
+        if (kind == null || kind.isBlank()) {
+            return "CONFIG";
+        }
+        return switch (kind.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "GUI" -> "GUI";
+            case "ITEM" -> "ITEM";
+            case "SCRIPT" -> "SCRIPT";
+            case "资源", "RESOURCE" -> "RESOURCE";
+            default -> kind.trim().toUpperCase(java.util.Locale.ROOT);
+        };
+    }
+
+    private String treeFileKind(String moduleId, String fileId) {
+        if (fileId == null || fileId.isBlank()) {
+            return "CONFIG";
+        }
+        String normalized = fileId.toLowerCase(java.util.Locale.ROOT);
+        if (normalized.contains("-script-")) return "SCRIPT";
+        if (normalized.contains("-gui-")) return "GUI";
+        if (normalized.contains("-item-")) return "ITEM";
+        return "CONFIG";
     }
 
     private String resolveTreeFilePath(String moduleId, String fileId, String path) throws IOException {
@@ -936,11 +1245,11 @@ public final class WebConsoleService {
     }
 
     private void writeRevisionConflict(HttpExchange exchange, WebConsoleRegistry.RevisionConflictException exception) throws IOException {
-        WebResponse.json(exchange, 409, Map.of("success", false, "error", exception.getMessage(), "revision", exception.currentRevision(), "errorType", "revision_conflict"));
+        WebResponse.json(exchange, 409, WebFileRevisions.conflictPayload(exception.getMessage(), exception.currentRevision()));
     }
 
     private void writeRevisionConflict(HttpExchange exchange, long currentRevision) throws IOException {
-        WebResponse.json(exchange, 409, Map.of("success", false, "error", "文件已被其他管理员修改，请重载后再保存。", "revision", currentRevision, "errorType", "revision_conflict"));
+        WebResponse.json(exchange, 409, WebFileRevisions.conflictPayload(WebFileRevisions.SAVE_CONFLICT_MESSAGE, currentRevision));
     }
 
     private WebAuthService.Session requireAuth(HttpExchange exchange) throws IOException {
@@ -1031,6 +1340,27 @@ public final class WebConsoleService {
                 "stack", safeLogValue(stack, "-"),
                 "url", safeLogValue(url, "-")
         ));
+    }
+
+    private void logFrontendDebugEvent(String type, String target, String label, String value, String detail, String url) {
+        if (!debugFrontend) {
+            return;
+        }
+        String safeType = safeLogValue(type, "unknown");
+        plugin.messageService().info("web_debug.frontend_event", Map.of(
+                "event", debugEventTypeLabel(safeType),
+                "type", safeType,
+                "target", safeLogValue(target, "-"),
+                "label", safeLogValue(label, "-"),
+                "value", safeLogValue(value, "-"),
+                "detail", safeLogValue(detail, "-"),
+                "url", safeLogValue(url, "-")
+        ));
+    }
+
+    private String debugEventTypeLabel(String type) {
+        String normalized = Texts.toStringSafe(type).toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9_\\-]", "_");
+        return plugin.messageService().messageOrFallback("web_debug.event_type." + normalized, type);
     }
 
     private String debugSideLabel(String side) {

@@ -67,7 +67,7 @@ public final class ActionParsers {
         if (Texts.isBlank(raw)) {
             return -1L;
         }
-        String trimmed = Texts.trim(raw).toLowerCase();
+        String trimmed = Texts.trim(raw).toLowerCase(java.util.Locale.ROOT);
         try {
             if (trimmed.endsWith("ms")) {
                 return Math.max(0L, Math.round(Double.parseDouble(trimmed.substring(0, trimmed.length() - 2)) / 50D));
@@ -128,7 +128,7 @@ public final class ActionParsers {
         if (Texts.isBlank(raw)) {
             return null;
         }
-        String normalized = Texts.trim(raw).replace("minecraft:", "").replace('.', '_').toUpperCase();
+        String normalized = Texts.trim(raw).replace("minecraft:", "").replace('.', '_').toUpperCase(java.util.Locale.ROOT);
         try {
             return Particle.valueOf(normalized);
         } catch (Exception e) {

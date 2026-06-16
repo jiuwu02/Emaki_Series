@@ -5,12 +5,17 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.bukkit.plugin.java.JavaPlugin;
 
-import org.bstats.bukkit.Metrics;
-
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
@@ -26,10 +31,16 @@ import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
+import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
+import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
+import emaki.jiuwu.craft.strengthen.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
+import emaki.jiuwu.craft.strengthen.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.papi.StrengthenPlaceholderExpansion;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
@@ -37,7 +48,9 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
+import emaki.jiuwu.craft.strengthen.service.StrengthenItemLayerPreviewProvider;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
+import emaki.jiuwu.craft.strengthen.service.StrengthenRoutePreviewService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
@@ -52,9 +65,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\ \\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/ /_/\\/_____/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/\\/_/\\/_____/\\/_/ \\/_/
 """;
-    private static final int BSTATS_PLUGIN_ID = 31769
+    private static final int BSTATS_PLUGIN_ID = 31769;
 
-    private Metrics metrics;
+    private BStatsRegistration metrics;
 
     private final StrengthenLifecycleCoordinator lifecycleCoordinator = new StrengthenLifecycleCoordinator();
     private final StrengthenCommandRouter commandRouter = new StrengthenCommandRouter(this);
@@ -81,7 +94,34 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenAttemptService attemptService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
+    private StrengthenRoutePreviewService routePreviewService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
+    private final EmakiStrengthenApi.Bridge strengthenApiBridge = new EmakiStrengthenApi.Bridge() {
+        @Override
+        public boolean canStrengthen(@Nullable ItemStack itemStack) {
+            return attemptService != null && attemptService.canStrengthen(itemStack);
+        }
+
+        @Override
+        public @NotNull StrengthenState readState(@Nullable ItemStack itemStack) {
+            return attemptService.readState(itemStack);
+        }
+
+        @Override
+        public @NotNull AttemptPreview preview(@Nullable Player player, @Nullable AttemptContext context) {
+            return attemptService.preview(player, context);
+        }
+
+        @Override
+        public @NotNull AttemptResult attempt(@Nullable Player player, @Nullable AttemptContext context) {
+            return attemptService.attempt(player, context);
+        }
+
+        @Override
+        public @Nullable ItemStack rebuild(@Nullable ItemStack itemStack) {
+            return attemptService.rebuild(itemStack);
+        }
+    };
 
     public EmakiStrengthenPlugin() {
         super(AppConfig::defaults);
@@ -99,8 +139,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         registerEventHandlers();
         registerWebConsole();
         ensurePlaceholderExpansion();
-        forceEnableBStats();
-        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -111,9 +150,12 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        WebPluginApiRegistry.unregister(this);
+        WebItemLayerPreviewRegistry.unregister(this);
+        EmakiStrengthenApi.uninstall(strengthenApiBridge);
         getServer().getServicesManager().unregisterAll(this);
         if (metrics != null) {
-            metrics.shutdown();
+            metrics.close();
             metrics = null;
         }
         lifecycleCoordinator.shutdown(this);
@@ -146,13 +188,14 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         attemptService = components.attemptService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
+        routePreviewService = new StrengthenRoutePreviewService(this);
         setDebugLogger(new DebugLogger(getLogger(), languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
 
     private void registerApi() {
-        getServer().getServicesManager().register(EmakiStrengthenApi.class, attemptService, this, ServicePriority.Normal);
+        EmakiStrengthenApi.install(strengthenApiBridge);
     }
 
     private void registerCommandHandler() {
@@ -171,6 +214,11 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        WebItemLayerPreviewRegistry.register(this, new StrengthenItemLayerPreviewProvider(this));
+        WebPluginApiRegistry.register(this, "strengthen", "route-preview", request -> {
+            request.requirePost();
+            return routePreviewService.preview(request.string("recipeId"));
+        });
     }
 
     private void ensurePlaceholderExpansion() {
@@ -246,6 +294,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return refreshService;
     }
 
+    public StrengthenRoutePreviewService routePreviewService() {
+        return routePreviewService;
+    }
+
     public StrengthenGuiService strengthenGuiService() {
         return strengthenGuiService;
     }
@@ -260,19 +312,5 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public DebugCommand debugCommand() {
         return debugCommand;
-    }
-
-    private void forceEnableBStats() {
-        java.io.File bStatsFolder = new java.io.File(getDataFolder().getParentFile(), "bStats");
-        if (!bStatsFolder.exists()) {
-            bStatsFolder.mkdirs();
-        }
-        java.io.File configFile = new java.io.File(bStatsFolder, "config.yml");
-        org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configFile);
-        config.set("enabled", true);
-        try {
-            config.save(configFile);
-        } catch (java.io.IOException ignored) {
-        }
     }
 }

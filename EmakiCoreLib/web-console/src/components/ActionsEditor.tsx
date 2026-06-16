@@ -1,7 +1,9 @@
+import { getLocale } from '../i18n';
 import { fieldLabel, optionLabel, type FieldLabelOptions, type OptionLabelOptions } from '../lib/fieldI18n';
 import { textValue } from '../lib/miniMessage';
 import { asList } from '../lib/itemUtils';
 import type { WebEditorField } from '../types';
+import { StringListEditor } from './StringListEditor';
 
 /** Structured editor for CoreLib Name/Lore action lists. */
 export type ActionEntry = { type: string; params: Record<string, unknown> };
@@ -16,6 +18,10 @@ export type ActionsEditorProps = {
   editorFields?: Record<string, WebEditorField>;
   optionPrefix?: string;
 };
+
+function copy(zh: string, en: string): string {
+  return getLocale().startsWith('zh') ? zh : en;
+}
 
 export function ActionsEditor({
   actions,
@@ -63,9 +69,9 @@ export function ActionsEditor({
                 onChange={value => update(i, { type: value, params: {} })}
               />
               <span className="prop-action-controls">
-                <button type="button" onClick={() => moveUp(i)} disabled={i === 0} aria-label={fieldLabel('move_up', { ...labelOptions, fallback: '上移' })}>↑</button>
-                <button type="button" onClick={() => moveDown(i)} disabled={i === actions.length - 1} aria-label={fieldLabel('move_down', { ...labelOptions, fallback: '下移' })}>↓</button>
-                <button type="button" className="prop-action-del" onClick={() => remove(i)} aria-label={fieldLabel('delete', { ...labelOptions, fallback: '删除' })}>×</button>
+                <button type="button" onClick={() => moveUp(i)} disabled={i === 0} aria-label={fieldLabel('move_up', { ...labelOptions, fallback: copy('上移', 'Move up') })}>↑</button>
+                <button type="button" onClick={() => moveDown(i)} disabled={i === actions.length - 1} aria-label={fieldLabel('move_down', { ...labelOptions, fallback: copy('下移', 'Move down') })}>↓</button>
+                <button type="button" className="prop-action-del" onClick={() => remove(i)} aria-label={fieldLabel('delete', { ...labelOptions, fallback: copy('删除', 'Delete') })}>×</button>
               </span>
             </div>
             <div className="prop-action-params">
@@ -75,7 +81,7 @@ export function ActionsEditor({
           </div>
         );
       })}
-      <button type="button" className="prop-add" onClick={add}>+ {fieldLabel(`${mode}_actions.add`, { ...labelOptions, fallback: mode === 'name' ? '添加名称动作' : '添加 Lore 动作' })}</button>
+      <button type="button" className="prop-add" onClick={add}>+ {fieldLabel(`${mode}_actions.add`, { ...labelOptions, fallback: mode === 'name' ? copy('添加名称动作', 'Add name action') : copy('添加 Lore 动作', 'Add lore action') })}</button>
     </div>
   );
 }
@@ -118,7 +124,7 @@ function renderLoreParams(
   }
   const search = requiresSearchPattern(action.type);
   return <>
-    {action.type !== 'delete_line' && <ParamTextarea paramKey="content" rows={2} value={actionTextLines(action.params.content).join('\n')} labelOptions={labelOptions} onChange={value => updateParam(index, 'content', updateTextConfig(action.params.content, value, true))} />}
+    {action.type !== 'delete_line' && <ParamLineList paramKey="content" value={actionTextLines(action.params.content)} labelOptions={labelOptions} onChange={lines => updateParam(index, 'content', updateTextLinesConfig(action.params.content, lines))} />}
     {search && <>
       <ParamInput paramKey="target_pattern" value={actionTextValue(action.params.target_pattern)} labelOptions={labelOptions} onChange={updateTextParam('target_pattern')} />
       <ParamInput paramKey="anchor" value={actionTextValue(action.params.anchor)} labelOptions={labelOptions} onChange={updateTextParam('anchor')} />
@@ -170,6 +176,21 @@ function updateTextConfig(previous: unknown, text: string, multiline = false): u
   return text;
 }
 
+function updateTextLinesConfig(previous: unknown, lines: string[]): unknown {
+  const text = lines.join('\n');
+  if (Array.isArray(previous)) {
+    return lines.map((line, index) => updateTextConfig(previous[index], line));
+  }
+  if (isRecord(previous)) {
+    const valueKey = firstExistingKey(previous, TEXT_VALUE_KEYS);
+    if (valueKey) return { ...previous, [valueKey]: text };
+    const lineKey = firstExistingKey(previous, TEXT_LINE_KEYS);
+    if (lineKey) return { ...previous, [lineKey]: lines };
+    return { ...previous, lines };
+  }
+  return typeof previous === 'string' && lines.length <= 1 ? text : lines;
+}
+
 function firstExistingKey(record: Record<string, unknown>, keys: string[]): string | undefined {
   return keys.find(key => Object.prototype.hasOwnProperty.call(record, key));
 }
@@ -190,7 +211,7 @@ function ParamSelect({ paramKey, value, options, onChange, labelOptions, optionP
   const label = fieldLabel(paramKey, { ...labelOptions, fallback: paramKey });
   return <label className="prop-param-field prop-param-field--type"><span>{label}</span><select value={value} onChange={event => onChange(event.target.value)} aria-label={label}>
     {options.map(option => <option key={option} value={option}>{optionLabel(optionPrefix, option, { ...optionOptions, fallback: option })}</option>)}
-    {!options.length && <option value="">{fieldLabel('none', { ...labelOptions, fallback: '未选择' })}</option>}
+    {!options.length && <option value="">{fieldLabel('none', { ...labelOptions, fallback: copy('未选择', 'None selected') })}</option>}
   </select></label>;
 }
 
@@ -202,6 +223,11 @@ function ParamInput({ paramKey, value, onChange, labelOptions }: { paramKey: str
 function ParamTextarea({ paramKey, value, onChange, labelOptions, rows = 2 }: { paramKey: string; value: string; onChange: (value: string) => void; labelOptions: FieldLabelOptions; rows?: number }) {
   const label = fieldLabel(paramKey, { ...labelOptions, fallback: paramKey });
   return <label className="prop-param-field prop-param-field--wide"><span>{label}</span><textarea rows={rows} value={value} onChange={event => onChange(event.target.value)} aria-label={label} /></label>;
+}
+
+function ParamLineList({ paramKey, value, onChange, labelOptions }: { paramKey: string; value: string[]; onChange: (value: string[]) => void; labelOptions: FieldLabelOptions }) {
+  const label = fieldLabel(paramKey, { ...labelOptions, fallback: paramKey });
+  return <div className="prop-param-field"><span>{label}</span><StringListEditor items={value} onChange={onChange} ariaLabel={label} /></div>;
 }
 
 function requiresSearchPattern(type: string): boolean {

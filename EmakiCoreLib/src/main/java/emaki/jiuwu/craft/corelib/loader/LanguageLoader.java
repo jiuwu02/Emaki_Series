@@ -5,7 +5,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -61,10 +63,11 @@ public final class LanguageLoader {
                 warning("loader.lang_directory_create_failed", Map.of("path", directory.getPath()));
             }
         }
+        Set<String> loggedUpdates = new LinkedHashSet<>();
         File fallbackFile = dataPath(languageDirectory, fallbackLanguage + ".yml").toFile();
         try {
-            YamlFiles.syncVersionedResource(plugin, fallbackFile, bundledPath(fallbackLanguage), "version");
-            syncBundledLanguages();
+            syncVersionedLanguage(fallbackFile, bundledPath(fallbackLanguage), loggedUpdates);
+            syncBundledLanguages(loggedUpdates);
         } catch (IOException exception) {
             warning("loader.bundled_language_load_failed", Map.of("error", Texts.toStringSafe(exception.getMessage())));
         }
@@ -83,7 +86,7 @@ public final class LanguageLoader {
         for (File file : files) {
             String langId = file.getName().replace(".yml", "").replace(".yaml", "");
             try {
-                VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(plugin, file, bundledPath(langId), "version");
+                VersionedYamlFile versionedFile = syncVersionedLanguage(file, bundledPath(langId), loggedUpdates);
                 YamlSection loaded = versionedFile == null || versionedFile.root() == null
                         ? YamlFiles.load(file)
                         : versionedFile.root().copy();
@@ -106,14 +109,38 @@ public final class LanguageLoader {
         return languages.size();
     }
 
-    private void syncBundledLanguages() throws IOException {
+    private void syncBundledLanguages(Set<String> loggedUpdates) throws IOException {
         for (String bundledResource : YamlFiles.listResourcePaths(plugin, bundledDirectory)) {
             String fileName = Path.of(bundledResource).getFileName().toString();
             if (Texts.isBlank(fileName)) {
                 continue;
             }
             File target = dataPath(languageDirectory, fileName).toFile();
-            YamlFiles.syncVersionedResource(plugin, target, bundledResource, "version");
+            syncVersionedLanguage(target, bundledResource, loggedUpdates);
+        }
+    }
+
+    private VersionedYamlFile syncVersionedLanguage(File target, String bundledResource, Set<String> loggedUpdates) throws IOException {
+        VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(plugin, target, bundledResource, "version");
+        logVersionUpdate(target, versionedFile, loggedUpdates);
+        return versionedFile;
+    }
+
+    private void logVersionUpdate(File target, VersionedYamlFile versionedFile, Set<String> loggedUpdates) {
+        if (target == null || versionedFile == null || !versionedFile.versionUpdated()) {
+            return;
+        }
+        String key = target.getAbsolutePath();
+        if (loggedUpdates != null && !loggedUpdates.add(key)) {
+            return;
+        }
+        LogMessages messages = messages();
+        if (messages != null) {
+            messages.info("console.versioned_file_updated", Map.of(
+                    "path", languageDirectory + "/" + target.getName(),
+                    "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                    "new_version", versionedFile.updatedVersion()
+            ));
         }
     }
 

@@ -43,33 +43,41 @@ public final class ScriptRepository {
     }
 
     public void releaseDefaultScripts(Plugin plugin) {
-        Path examplesDir = root.resolve("examples");
+        releaseScriptGroup(plugin, "examples", true, List.of("hello.js"));
+        releaseScriptGroup(plugin, "extensions/global", false, List.of(
+                "js_broadcast_action.js",
+                "js_placeholders.js",
+                "js_event_examples.js"
+        ));
+    }
+
+    public void releaseScriptGroup(Plugin plugin, String directory, boolean skipWhenAnyFileExists, List<String> names) {
+        if (plugin == null || Texts.isBlank(directory) || names == null || names.isEmpty()) {
+            return;
+        }
+        Path targetDir = root.resolve(directory);
         try {
-            Files.createDirectories(examplesDir);
+            Files.createDirectories(targetDir);
         } catch (IOException ignored) {
             return;
         }
-        try (Stream<Path> stream = Files.list(examplesDir)) {
-            if (stream.findAny().isPresent()) {
+        if (skipWhenAnyFileExists) {
+            try (Stream<Path> stream = Files.list(targetDir)) {
+                if (stream.findAny().isPresent()) {
+                    return;
+                }
+            } catch (IOException ignored) {
                 return;
             }
-        } catch (IOException ignored) {
-            return;
         }
-        String[] examples = {
-            "attribute_buff.js",
-            "cooking_reward.js",
-            "forge_success.js",
-            "hello.js",
-            "item_right_click.js",
-            "skills_upgrade_success.js",
-            "strengthen_success.js"
-        };
-        for (String name : examples) {
-            String resourcePath = "scripts/examples/" + name;
+        for (String name : names) {
+            if (Texts.isBlank(name)) {
+                continue;
+            }
+            String resourcePath = "scripts/" + directory + "/" + name;
             try (InputStream input = plugin.getResource(resourcePath)) {
                 if (input == null) continue;
-                Path target = examplesDir.resolve(name);
+                Path target = targetDir.resolve(name);
                 if (!Files.exists(target)) {
                     Files.copy(input, target);
                 }
@@ -100,7 +108,7 @@ public final class ScriptRepository {
         List<String> scripts = new ArrayList<>();
         try (Stream<Path> stream = Files.walk(root)) {
             stream.filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().toLowerCase().endsWith(".js"))
+                    .filter(path -> path.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".js"))
                     .map(path -> normalizeLogicalPath(root.relativize(path.toAbsolutePath().normalize())))
                     .sorted()
                     .forEach(scripts::add);

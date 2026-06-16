@@ -1,16 +1,11 @@
 package emaki.jiuwu.craft.skills.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
-
 /**
- * Entry point for obtaining the {@link EmakiSkillsApi} that EmakiSkills
- * registers with the Bukkit {@code ServicesManager}.
+ * Compatibility helper for the static {@link EmakiSkillsApi} facade.
  *
- * <p>The service only exists after EmakiSkills has enabled, so resolve it
- * lazily rather than caching it during your own plugin's load phase.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiSkillsApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiSkillsApiProvider {
 
@@ -18,11 +13,22 @@ public final class EmakiSkillsApiProvider {
     }
 
     /**
-     * {@return the registered {@link EmakiSkillsApi}, or an empty optional}
-     * Empty when EmakiSkills is absent or has not finished enabling.
+     * Checks whether the static EmakiSkills API bridge is installed.
+     *
+     * @return {@code true} when EmakiSkills is available
      */
-    public static Optional<EmakiSkillsApi> get() {
-        RegisteredServiceProvider<EmakiSkillsApi> provider = Bukkit.getServicesManager().getRegistration(EmakiSkillsApi.class);
-        return provider == null ? Optional.empty() : Optional.ofNullable(provider.getProvider());
+    public static boolean available() {
+        return EmakiSkillsApi.available();
+    }
+
+    /**
+     * Verifies that EmakiSkills is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiSkills API is not available.");
+        }
     }
 }

@@ -1,0 +1,169 @@
+.ea-diagnostics {
+  --text-primary: var(--text);
+  --text-secondary: var(--muted);
+  --border-subtle: var(--line);
+  --surface-card: var(--surface);
+  --surface-input: var(--input);
+  --surface-muted: var(--surface-2);
+  --surface-raised: var(--surface);
+  display: grid;
+  gap: 14px;
+  padding: 14px 18px 28px;
+  color: var(--text);
+}
+
+.ea-diagnostics__grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.ea-card {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.ea-card h3 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+.ea-form {
+  display: grid;
+  gap: 10px;
+}
+
+.ea-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ea-form input {
+  min-height: var(--config-field-control-height, 30px);
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--input);
+  color: var(--text);
+  padding: 5px 8px;
+  outline: none;
+  font: inherit;
+  font-size: 12px;
+}
+
+.ea-form input:focus {
+  border-color: var(--line-2);
+}
+
+.ea-form input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ea-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ea-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.ea-table th,
+.ea-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ea-table th {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.ea-table tr:last-child th,
+.ea-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.ea-muted {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ea-error {
+  color: var(--red);
+}
+
+.ea-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ea-trace {
+  display: grid;
+  gap: 10px;
+}
+
+.ea-trace__item {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  background: var(--surface);
+}
+
+.ea-trace__item strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.ea-trace__stages {
+  margin-top: 8px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+pre.ea-json {
+  max-height: 300px;
+  overflow: auto;
+  background: var(--input);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px;
+  color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 900px) {
+  .ea-diagnostics__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ea-actions .ui-button {
+    min-height: 44px;
+  }
+}

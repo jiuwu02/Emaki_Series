@@ -174,7 +174,7 @@ final class SteamerTickProcessor {
                 && rewardService.completionConditionBlocksOutput(recipe);
         if (!conditionBlocks && !settingsService.steamerDropResult() && canStoreOutcomeInSlot(outputs)) {
             Map<String, Object> storedOutput = outputs.getFirst();
-            String source = String.valueOf(storedOutput.getOrDefault("source", ""));
+            String source = outputSourceShorthand(storedOutput);
             if (Texts.isNotBlank(source)) {
                 ItemStack storedItem = rewardService.createOutputItem(
                         recipe,
@@ -222,7 +222,7 @@ final class SteamerTickProcessor {
         if (output == null || output.isEmpty()) {
             return false;
         }
-        if (ItemSourceUtil.parse(output.get("source")) == null) {
+        if (Texts.isBlank(outputSourceShorthand(output))) {
             return false;
         }
         if (output.containsKey("amount_range")) {
@@ -233,6 +233,15 @@ final class SteamerTickProcessor {
             return false;
         }
         return CookingRuntimeUtil.parseInteger(output.get("amount"), 1) == 1;
+    }
+
+    private String outputSourceShorthand(Map<String, Object> output) {
+        if (output == null || output.isEmpty()) {
+            return "";
+        }
+        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        return shorthand == null ? "" : shorthand;
     }
 
     List<String> combineActions(List<String> left, List<String> right) {
@@ -386,7 +395,8 @@ final class SteamerTickProcessor {
                 Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
                 List<Map<String, Object>> outputs = recipeService.outputs(outcome);
                 if (canStoreOutcomeInSlot(outputs)) {
-                    dropSource = String.valueOf(outputs.getFirst().getOrDefault("source", dropSource));
+                    String outputSource = outputSourceShorthand(outputs.getFirst());
+                    dropSource = Texts.isBlank(outputSource) ? dropSource : outputSource;
                 }
             }
             ItemSource source = ItemSourceUtil.parse(dropSource);

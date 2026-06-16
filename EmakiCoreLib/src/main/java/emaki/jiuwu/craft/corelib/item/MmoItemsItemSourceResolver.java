@@ -65,11 +65,7 @@ final class MmoItemsItemSourceResolver implements ItemSourceResolver {
             if (type == null) {
                 return null;
             }
-            ItemStack itemStack = MMOItems.plugin.getItem(type, key.itemId());
-            if (itemStack == null) {
-                String resolvedItemId = resolveTemplateId(type, key.itemId());
-                itemStack = Texts.isBlank(resolvedItemId) ? null : MMOItems.plugin.getItem(type, resolvedItemId);
-            }
+            ItemStack itemStack = createItem(type, key.itemId(), amount);
             if (itemStack == null) {
                 return null;
             }
@@ -79,6 +75,39 @@ final class MmoItemsItemSourceResolver implements ItemSourceResolver {
         } catch (RuntimeException | LinkageError exception) {
             return null;
         }
+    }
+
+    @Override
+    public String displayName(ItemSource source) {
+        if (!supports(source) || !mmoItemsReady()) {
+            return null;
+        }
+        MmoItemsKey key = MmoItemsKey.parse(source.getIdentifier());
+        if (key == null) {
+            return null;
+        }
+        try {
+            Type type = resolveType(key.typeId());
+            if (type == null) {
+                return null;
+            }
+            ItemStack itemStack = createItem(type, key.itemId(), 1);
+            return itemStack == null || itemStack.getType().isAir() ? null : ItemTextBridge.effectiveNameText(itemStack);
+        } catch (RuntimeException | LinkageError exception) {
+            return null;
+        }
+    }
+
+    private ItemStack createItem(Type type, String itemId, int amount) {
+        ItemStack itemStack = MMOItems.plugin.getItem(type, itemId);
+        if (itemStack == null) {
+            String resolvedItemId = resolveTemplateId(type, itemId);
+            itemStack = Texts.isBlank(resolvedItemId) ? null : MMOItems.plugin.getItem(type, resolvedItemId);
+        }
+        if (itemStack != null) {
+            itemStack.setAmount(Math.max(1, amount));
+        }
+        return itemStack;
     }
 
     private boolean mmoItemsReady() {

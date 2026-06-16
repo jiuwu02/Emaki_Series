@@ -2,23 +2,30 @@ import { getLocale, peekLocaleMessage, t } from '../i18n';
 import { humanizeFieldLabel, lastPathKey } from './fieldI18n';
 import type { RegistryTreeNode, WebRegistryFile, WebRegistryModule } from '../types';
 
-type BuiltinFileCopy = { title: string; comment: string };
+type BuiltinFileCopy = { titleKey: string; commentKey: string };
+
+type ResolvedFileCopy = { title: string; comment: string };
 
 const BUILTIN_FILE_COPY: Record<string, BuiltinFileCopy> = {
-  config: { title: '主配置', comment: '插件主配置文件。' },
-  plugin: { title: '插件描述', comment: 'plugin.yml 插件描述与依赖声明。' },
-  'web-console': { title: 'Web Console 声明', comment: 'Web Console 文件注册表与可编辑资源声明。' },
-  lang: { title: '语言文件', comment: '语言文案文件目录。' },
-  gui: { title: 'GUI 模板', comment: 'GUI 模板文件目录。' },
-  default: { title: '默认模板', comment: '目录内的默认模板文件。' },
-  zh_cn: { title: '中文语言文件', comment: '简体中文语言资源文件。' },
-  en_us: { title: '英文语言文件', comment: 'English language resource file.' }
+  config: { titleKey: 'core.registry.builtin.config.title', commentKey: 'core.registry.builtin.config.comment' },
+  plugin: { titleKey: 'core.registry.builtin.plugin.title', commentKey: 'core.registry.builtin.plugin.comment' },
+  'web-console': { titleKey: 'core.registry.builtin.webConsole.title', commentKey: 'core.registry.builtin.webConsole.comment' },
+  lang: { titleKey: 'core.registry.builtin.lang.title', commentKey: 'core.registry.builtin.lang.comment' },
+  gui: { titleKey: 'core.registry.builtin.gui.title', commentKey: 'core.registry.builtin.gui.comment' },
+  default: { titleKey: 'core.registry.builtin.default.title', commentKey: 'core.registry.builtin.default.comment' },
+  zh_cn: { titleKey: 'core.registry.builtin.zhCn.title', commentKey: 'core.registry.builtin.zhCn.comment' },
+  en_us: { titleKey: 'core.registry.builtin.enUs.title', commentKey: 'core.registry.builtin.enUs.comment' }
 };
 
 const ROOT_PATH_COPY: Record<string, BuiltinFileCopy> = {
-  lang: { title: '语言文件', comment: '语言资源文件目录。' },
-  gui: { title: 'GUI 模板', comment: 'GUI 模板文件目录。' }
+  lang: { titleKey: 'core.registry.root.lang.title', commentKey: 'core.registry.root.lang.comment' },
+  gui: { titleKey: 'core.registry.root.gui.title', commentKey: 'core.registry.root.gui.comment' }
 };
+
+function resolveBuiltinCopy(copy: BuiltinFileCopy | undefined): ResolvedFileCopy | undefined {
+  if (!copy) return undefined;
+  return { title: t(copy.titleKey), comment: t(copy.commentKey) };
+}
 
 export function moduleRegistryNamespace(moduleId: string | undefined): string {
   return String(moduleId ?? '').trim().replace(/[^a-zA-Z0-9_.-]+/g, '').toLowerCase();
@@ -133,12 +140,12 @@ function localizedFileDisplayText(namespace: string, key: string, pathKey: strin
   ].filter(Boolean) as string[]);
 }
 
-function builtinFileDisplay(key: string | undefined): BuiltinFileCopy | undefined {
+function builtinFileDisplay(key: string | undefined): ResolvedFileCopy | undefined {
   if (!key) return undefined;
-  return BUILTIN_FILE_COPY[key.toLowerCase()];
+  return resolveBuiltinCopy(BUILTIN_FILE_COPY[key.toLowerCase()]);
 }
 
-function moduleRootFileDisplay(namespace: string, path: string | undefined): BuiltinFileCopy | undefined {
+function moduleRootFileDisplay(namespace: string, path: string | undefined): ResolvedFileCopy | undefined {
   if (!namespace) return undefined;
   const normalized = String(path ?? '').trim().replace(/\\/g, '/');
   if (!normalized || /[?*]/.test(normalized)) return undefined;
@@ -153,7 +160,7 @@ function moduleRootFileDisplay(namespace: string, path: string | undefined): Bui
   return { title: humanLeaf ? `${title} · ${humanLeaf}` : title, comment };
 }
 
-function pathBasedFileDisplay(path: string | undefined): BuiltinFileCopy | undefined {
+function pathBasedFileDisplay(path: string | undefined): ResolvedFileCopy | undefined {
   const normalized = String(path ?? '').trim().replace(/\\/g, '/');
   if (!normalized) return undefined;
   const segments = normalized.split('/').filter(Boolean);
@@ -163,12 +170,14 @@ function pathBasedFileDisplay(path: string | undefined): BuiltinFileCopy | undef
   const humanLeaf = humanizeFilePath(leaf);
 
   if (root === 'lang') {
-    if (leafKey === 'zh_cn') return { title: '中文语言文件', comment: '简体中文语言资源文件。' };
-    if (leafKey === 'en_us') return { title: '英文语言文件', comment: 'English language resource file.' };
+    if (leafKey === 'zh_cn') return resolveBuiltinCopy(BUILTIN_FILE_COPY.zh_cn);
+    if (leafKey === 'en_us') return resolveBuiltinCopy(BUILTIN_FILE_COPY.en_us);
   }
 
-  if (root in ROOT_PATH_COPY) {
-    const base = ROOT_PATH_COPY[root];
+  const rootCopy = ROOT_PATH_COPY[root];
+  if (rootCopy) {
+    const base = resolveBuiltinCopy(rootCopy);
+    if (!base) return undefined;
     const isPattern = /[?*]/.test(normalized);
     return { title: !isPattern && humanLeaf ? `${base.title} · ${humanLeaf}` : base.title, comment: base.comment };
   }

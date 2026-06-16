@@ -25,6 +25,8 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition> {
 
     private final Map<String, AttributeDefinition> aliasIndex = new LinkedHashMap<>();
+    private final Map<String, AttributeDefinition> runtimeDefinitions = new LinkedHashMap<>();
+    private final Map<String, String> runtimeSources = new LinkedHashMap<>();
     private final List<PatternEntry> orderedPatterns = new ArrayList<>();
     private static final Pattern NUMERIC_CAPTURE_PATTERN = Pattern.compile("^[+-]?\\d+(?:\\.\\d+)?$");
 
@@ -160,9 +162,82 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
 
     @Override
     protected void afterLoad() {
+        List<AttributeDefinition> definitions = rebuildIndexes();
+        logLoadReport(definitions);
+        detectKeyContainmentConflicts(definitions);
+    }
+
+    public boolean registerRuntime(AttributeDefinition definition, String source) {
+        synchronized (stateLock) {
+            if (definition == null || Texts.isBlank(definition.id())) {
+                return false;
+            }
+            String id = normalizeId(definition.id());
+            runtimeDefinitions.put(id, definition);
+            runtimeSources.put(id, Texts.toStringSafe(source));
+            detectKeyContainmentConflicts(rebuildIndexes());
+            return true;
+        }
+    }
+
+    public void clearRuntimeBySource(String source) {
+        synchronized (stateLock) {
+            String safeSource = Texts.toStringSafe(source);
+            if (safeSource.isBlank()) {
+                runtimeDefinitions.clear();
+                runtimeSources.clear();
+                rebuildIndexes();
+                return;
+            }
+            List<String> remove = new ArrayList<>();
+            for (Map.Entry<String, String> entry : runtimeSources.entrySet()) {
+                if (safeSource.equals(entry.getValue())) {
+                    remove.add(entry.getKey());
+                }
+            }
+            for (String id : remove) {
+                runtimeDefinitions.remove(id);
+                runtimeSources.remove(id);
+            }
+            rebuildIndexes();
+        }
+    }
+
+    public void clearRuntime() {
+        synchronized (stateLock) {
+            runtimeDefinitions.clear();
+            runtimeSources.clear();
+            rebuildIndexes();
+        }
+    }
+
+    @Override
+    public Map<String, AttributeDefinition> all() {
+        synchronized (stateLock) {
+            Map<String, AttributeDefinition> merged = new LinkedHashMap<>(items);
+            merged.putAll(runtimeDefinitions);
+            return Map.copyOf(merged);
+        }
+    }
+
+    @Override
+    public AttributeDefinition get(String id) {
+        synchronized (stateLock) {
+            if (Texts.isBlank(id)) {
+                return null;
+            }
+            String normalized = normalizeId(id);
+            AttributeDefinition runtime = runtimeDefinitions.get(normalized);
+            return runtime == null ? items.get(normalized) : runtime;
+        }
+    }
+
+    private List<AttributeDefinition> rebuildIndexes() {
         aliasIndex.clear();
         orderedPatterns.clear();
-        List<AttributeDefinition> definitions = new ArrayList<>(items.values());
+        Map<String, AttributeDefinition> merged = new LinkedHashMap<>(items);
+        merged.putAll(runtimeDefinitions);
+        List<AttributeDefinition> definitions = new ArrayList<>(merged.values());
         definitions.sort((left, right) -> Integer.compare(right.priority(), left.priority()));
         for (AttributeDefinition definition : definitions) {
             aliasIndex.put(definition.id(), definition);
@@ -172,8 +247,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             orderedPatterns.addAll(compilePatterns(definition));
         }
         orderedPatterns.sort(Comparator.comparingInt(PatternEntry::priority).reversed());
-        logLoadReport(definitions);
-        detectKeyContainmentConflicts(definitions);
+        return definitions;
     }
 
     public AttributeDefinition resolve(String id) {

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-cooking</artifactId>
-    <version>3.1.0</version>
+    <version>3.3.0</version>
     <name>EmakiCooking</name>
     <packaging>jar</packaging>
 
@@ -22,11 +22,7 @@
             <artifactId>spigot-api</artifactId>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
+
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib</artifactId>
@@ -53,8 +49,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>dev.lone</groupId>
-            <artifactId>api-itemsadder</artifactId>
+            <groupId>beer.devs</groupId>
+            <artifactId>itemsadder-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -72,10 +68,6 @@
             <groupId>com.github.retrooper</groupId>
             <artifactId>packetevents-spigot</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
         </dependency>
     </dependencies>
 
@@ -110,11 +102,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.basedir}/web-console</workingDirectory>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
                             <executable>npm</executable>
                             <arguments>
                                 <argument>run</argument>
-                                <argument>build</argument>
+                                <argument>build:web:cooking</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -133,7 +125,6 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-cooking-api</include>
-                                    <include>org.bstats:bstats-bukkit</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

@@ -13,7 +13,7 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import org.bstats.bukkit.Metrics;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 
 import emaki.jiuwu.craft.attribute.action.AttributeActions;
 import emaki.jiuwu.craft.attribute.action.AttributeDamageSkillAction;
@@ -32,9 +32,14 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeExtensionLoader;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -43,6 +48,7 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
+import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 
 public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements EmakiServiceRegistry {
 
@@ -54,9 +60,9 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
    \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/\\/_/  \\/_/    \\/_/  \\/_/ /_/\\/_/\\/_____/\\/_____/  \\/_/  \\/_____/
                                                                                                                 
 """;
-    private static final int BSTATS_PLUGIN_ID = 31764
+    private static final int BSTATS_PLUGIN_ID = 31764;
 
-    private Metrics metrics;
+    private BStatsRegistration metrics;
 
     private final AttributeLifecycleCoordinator lifecycleCoordinator = new AttributeLifecycleCoordinator();
 
@@ -75,13 +81,15 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private LanguageLoader languageLoader;
     private MessageService messageService;
     private EmakiAttributeBridge emakiAttributeBridge;
-    private PdcAttributeApi pdcAttributeApi;
+    private PdcAttributeApi.Bridge pdcAttributeApi;
     private AttributeService attributeService;
     private List<Listener> listeners = List.of();
     private AttributeCommand command;
     private MythicBridge mythicBridge;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
+    private JavaScriptDamageHookRegistry javaScriptDamageHookRegistry;
+    private JavaScriptAttributeExtensionLoader javaScriptAttributeExtensionLoader;
     private TaskHandle regenTask;
     private CompletableFuture<Void> reloadFuture;
 
@@ -90,6 +98,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerAttributeBridgeService();
         registerPdcAttributeApi();
+        registerAttributeServiceFacade();
+        registerScriptModule();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         reloadPluginState(true);
         ensureMmoItemsBridge();
@@ -98,19 +108,25 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         ensurePlaceholderExpansion();
         registerSkillScriptActions();
         registerWebConsole();
-        forceEnableBStats();
-        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+        metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        coreLib().scriptModuleRegistry().unregister("attribute");
+        if (javaScriptAttributeExtensionLoader != null) {
+            javaScriptAttributeExtensionLoader.close();
+            javaScriptAttributeExtensionLoader = null;
+        }
+        WebPluginApiRegistry.unregister(this);
         WebConsoleRegistry.unregisterModule(this);
+        PdcAttributeApi.uninstall(pdcAttributeApi);
         Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
         if (metrics != null) {
-            metrics.shutdown();
+            metrics.close();
             metrics = null;
         }
         AdventureSupport.close(this);
@@ -154,6 +170,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public void reloadPluginState(boolean resyncPlayers) {
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
+        reloadJavaScriptAttributeExtensions();
         registerCoreLibActions();
     }
 
@@ -167,6 +184,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         reloadFuture = lifecycleCoordinator.reloadAsync(this, regenTask, resyncPlayers, progressListener)
                 .thenAccept(task -> {
                     regenTask = task;
+                    reloadJavaScriptAttributeExtensions();
                     registerCoreLibActions();
                 })
                 .whenComplete((_, throwable) -> {
@@ -209,8 +227,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         if (pdcAttributeApi == null) {
             return;
         }
-        Bukkit.getServicesManager().unregister(PdcAttributeApi.class, pdcAttributeApi);
-        Bukkit.getServicesManager().register(PdcAttributeApi.class, pdcAttributeApi, this, ServicePriority.Normal);
+        PdcAttributeApi.install(pdcAttributeApi);
         emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi coreApi =
                 (emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi) pdcAttributeApi;
         Bukkit.getServicesManager().unregister(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, coreApi);
@@ -223,6 +240,18 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
         Bukkit.getServicesManager().unregister(EmakiAttributeBridge.class, emakiAttributeBridge);
         Bukkit.getServicesManager().register(EmakiAttributeBridge.class, emakiAttributeBridge, this, ServicePriority.Normal);
+    }
+
+    private void registerAttributeServiceFacade() {
+        if (attributeService == null) {
+            return;
+        }
+        Bukkit.getServicesManager().unregister(AttributeServiceFacade.class, attributeService);
+        Bukkit.getServicesManager().register(AttributeServiceFacade.class, attributeService, this, ServicePriority.Normal);
+    }
+
+    private void registerScriptModule() {
+        coreLib().scriptModuleRegistry().register("attribute", context -> new ScriptAttributeModuleApi(context.actionContext()));
     }
 
     void setConfigModel(AttributeConfig configModel) {
@@ -273,7 +302,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return messageService;
     }
 
-    public PdcAttributeApi pdcAttributeApi() {
+    public PdcAttributeApi.Bridge pdcAttributeApi() {
         return pdcAttributeApi;
     }
 
@@ -301,8 +330,16 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return placeholderExpansion;
     }
 
+    public JavaScriptDamageHookRegistry javaScriptDamageHookRegistry() {
+        return javaScriptDamageHookRegistry;
+    }
+
     public DebugCommand debugCommand() {
         return debugCommand;
+    }
+
+    public EmakiCoreLibPlugin coreLib() {
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
     public java.util.List<emaki.jiuwu.craft.attribute.service.ScalingCurveConfig> scalingCurves() {
@@ -340,12 +377,39 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         AttributeActions.registerAll(coreLibPlugin.actionRegistry(), attributeService);
     }
 
+    private void reloadJavaScriptAttributeExtensions() {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        if (javaScriptAttributeExtensionLoader != null) {
+            javaScriptAttributeExtensionLoader.close();
+        }
+        releaseBundledScripts(coreLibPlugin);
+        if (coreLibPlugin.javaScriptService() == null || attributeService == null) {
+            return;
+        }
+        if (javaScriptDamageHookRegistry == null) {
+            javaScriptDamageHookRegistry = new JavaScriptDamageHookRegistry(this, coreLibPlugin.javaScriptService(), coreLibPlugin.configModel().scriptConfig());
+        }
+        javaScriptAttributeExtensionLoader = new JavaScriptAttributeExtensionLoader(
+                this,
+                coreLibPlugin.javaScriptService(),
+                coreLibPlugin.configModel().scriptConfig(),
+                javaScriptDamageHookRegistry
+        );
+        javaScriptAttributeExtensionLoader.reload();
+    }
+
     private void unregisterCoreLibActions() {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         if (coreLibPlugin.actionRegistry() == null) {
             return;
         }
         AttributeActions.unregisterAll(coreLibPlugin.actionRegistry());
+    }
+
+    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.releaseBundledScripts(this, "extensions/attribute", false, java.util.List.of("js_fire_mastery.js"));
+        coreLibPlugin.releaseBundledScripts(this, "mythic", false, java.util.List.of("mythic_js_damage.js"));
+        coreLibPlugin.releaseBundledScripts(this, "examples", false, java.util.List.of("attribute_buff.js"));
     }
 
     private void registerSkillScriptActions() {
@@ -374,20 +438,34 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
-    }
-
-    private void forceEnableBStats() {
-        java.io.File bStatsFolder = new java.io.File(getDataFolder().getParentFile(), "bStats");
-        if (!bStatsFolder.exists()) {
-            bStatsFolder.mkdirs();
-        }
-        java.io.File configFile = new java.io.File(bStatsFolder, "config.yml");
-        org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configFile);
-        config.set("enabled", true);
-        try {
-            config.save(configFile);
-        } catch (java.io.IOException ignored) {
-        }
+        WebPluginApiRegistry.register(this, "attribute", "source-trace", request -> {
+            request.requirePost();
+            org.bukkit.entity.Player player = Bukkit.getPlayerExact(request.string("player"));
+            if (player == null) {
+                return java.util.Map.of("ok", false, "error", "player_not_found", "player", request.string("player"));
+            }
+            return java.util.Map.of("ok", true, "report", attributeService.attributeTraceService().trace(player, request.string("attributeId")).toMap());
+        });
+        WebPluginApiRegistry.register(this, "attribute", "damage-trace", request -> {
+            request.requirePost();
+            org.bukkit.entity.Player player = Bukkit.getPlayerExact(request.string("player"));
+            if (player == null) {
+                return java.util.Map.of("ok", false, "error", "player_not_found", "player", request.string("player"));
+            }
+            String action = request.string("action");
+            if ("clear".equalsIgnoreCase(action)) {
+                boolean cleared = attributeService.damageTraceService().clear(player.getUniqueId());
+                return java.util.Map.of("ok", true, "cleared", cleared);
+            }
+            java.util.List<java.util.Map<String, Object>> records = attributeService.damageTraceService().list(player.getUniqueId()).stream()
+                    .map(emaki.jiuwu.craft.attribute.model.DamageTraceRecord::toMap)
+                    .toList();
+            return java.util.Map.of(
+                    "ok", true,
+                    "records", records,
+                    "last", records.isEmpty() ? java.util.Map.of() : records.get(0)
+            );
+        });
     }
 
 }

@@ -13,6 +13,7 @@ import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.api.events.NexoItemsLoadedEvent;
 import com.nexomc.nexo.items.ItemBuilder;
 
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class NexoItemSourceResolver
@@ -111,6 +112,23 @@ final class NexoItemSourceResolver
             try {
                 ItemBuilder itemBuilder = Texts.isBlank(identifier) ? null : NexoItems.itemFromId(identifier);
                 return itemBuilder == null ? null : itemBuilder.build();
+            } catch (RuntimeException | LinkageError exception) {
+                return null;
+            }
+        }
+
+        @Override
+        public String displayName(String identifier) {
+            try {
+                ItemBuilder itemBuilder = Texts.isBlank(identifier) ? null : NexoItems.itemFromId(identifier);
+                if (itemBuilder == null) {
+                    return null;
+                }
+                String customName = MiniMessages.serialize(itemBuilder.getCustomName());
+                if (Texts.isNotBlank(customName)) {
+                    return customName;
+                }
+                return MiniMessages.serialize(itemBuilder.getItemName());
             } catch (RuntimeException | LinkageError exception) {
                 return null;
             }

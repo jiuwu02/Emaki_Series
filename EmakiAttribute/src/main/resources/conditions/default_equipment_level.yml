@@ -14,17 +14,17 @@ enabled: false
 # 条件源标识符
 source_id: gem_equipment_level
 
-# 条件组合方式
-condition_type: all_of
-
-# 表达式解析失败时是否视为不满足条件
-invalid_as_failure: true
-
-# 条件列表
-# type: lore_regex → 通过正则表达式匹配物品 Lore
-# pattern: 正则表达式（捕获组 1 的值作为 %value%）
-# condition: 条件表达式
-conditions:
-  - type: lore_regex
-    pattern: "装备等级需求: Lv\\.(\\d+)"
-    condition: "%value% <= %player_level%"
+# 条件块
+condition:
+  # 条件组合方式
+  type: all_of
+  # 表达式解析失败时是否视为不满足条件
+  invalid_as_failure: true
+  # 条件列表
+  # type: lore_regex → 通过正则表达式匹配物品 Lore
+  # pattern: 正则表达式（捕获组 1 的值作为 %value%）
+  # condition: 条件表达式
+  entries:
+    - type: lore_regex
+      pattern: "装备等级需求: Lv\\.(\\d+)"
+      condition: "%value% <= %player_level%"

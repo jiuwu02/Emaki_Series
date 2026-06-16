@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -125,6 +126,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (listener != null) {
                 plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             }
+        }
+        if (plugin.javaScriptDamageHookRegistry() != null) {
+            plugin.getServer().getPluginManager().registerEvents(new JavaScriptDamageHookListener(plugin.javaScriptDamageHookRegistry()), plugin);
         }
         if (plugin.mythicBridge() != null) {
             plugin.getServer().getPluginManager().registerEvents(plugin.mythicBridge(), plugin);
@@ -289,7 +293,11 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             plugin.placeholderExpansion().unregister();
             plugin.setPlaceholderExpansion(null);
         }
-        plugin.messageService().info("console.plugin_stopped");
+        if (plugin.messageService() != null) {
+            plugin.messageService().info("console.plugin_stopped");
+        } else {
+            plugin.getLogger().info("EmakiAttribute stopped.");
+        }
     }
 
     private PluginCommand getPluginCommand(EmakiAttributePlugin plugin) {
@@ -313,6 +321,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                     "version",
                     document -> mergeBundledConfig(document.root(), document.defaults())
             );
+            logVersionUpdate(plugin, "config.yml", versionedFile);
             if (!file.exists()) {
                 plugin.messageService().warning("loader.bundled_resource_missing", Map.of(
                         "type", "配置",
@@ -327,6 +336,17 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             ));
             return AttributeConfig.defaults();
         }
+    }
+
+    private void logVersionUpdate(EmakiAttributePlugin plugin, String relativePath, VersionedYamlFile versionedFile) {
+        if (versionedFile == null || !versionedFile.versionUpdated()) {
+            return;
+        }
+        plugin.messageService().info("console.versioned_file_updated", Map.of(
+                "path", relativePath,
+                "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                "new_version", versionedFile.updatedVersion()
+        ));
     }
 
     private void mergeBundledConfig(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,

@@ -19,14 +19,16 @@ display_name: "切制胡萝卜"
 # 输入食材
 # ============================================================
 # 放在砧板上的原料物品。
+# amount: 每次完成切割需要并消耗的数量；砧板会一次性接收主手整叠并累计数量。
 input:
   item_sources:
     - "minecraft-carrot"
+  amount: 1
 
 # ============================================================
 # 切割参数
 # ============================================================
-# cuts_required: 完成切割所需的点击次数
+# cuts_required: 完成切割所需的点击次数；当为 1 时，可对已放入的一批食材连续切割
 # tool_damage: 每次切割对工具造成的耐久损耗
 cuts_required: 3
 tool_damage: 1
@@ -38,22 +40,24 @@ permission: "emakicooking.recipe.cut_carrot"
 # 完成条件（pass/fail 动作分支）
 # ============================================================
 # condition: 配方完成时评估的条件块（独立于 permission 权限门槛）。
-#   condition_type: 组合方式 all_of / any_of / none_of / at_least / exactly
-#   condition_required_count: 当 condition_type 为 at_least / exactly 时生效
-#   conditions: 条件表达式列表，支持 %player_level% 等花括号变量与比较运算符
-#   pass_actions: 条件成立时执行的动作
-#   fail_actions: 条件不成立时执行的动作
-#   block_output_on_false: 条件不成立时是否阻止产出（默认 false，仅执行 fail 动作，产出照常）
+#   type: 组合方式 all_of / any_of / none_of / at_least / exactly
+#   required_count: 当 type 为 at_least / exactly 时生效
+#   entries: 条件表达式列表，支持 %player_level% 等花括号变量与比较运算符
+#   on_pass.actions: 条件成立时执行的动作
+#   on_fail.actions: 条件不成立时执行的动作
+#   on_fail.block_output: 条件不成立时是否阻止产出（默认 false，仅执行 fail 动作，产出照常）
 # 留空或不配置 condition 块则始终视为成立。玩家离线时同样视为成立。
 condition:
-  condition_type: all_of
-  conditions:
+  type: all_of
+  entries:
     - "%player_level% >= 3"
-  pass_actions:
-    - 'sendmessage text="<green>条件满足，切制成功。</green>"'
-  fail_actions:
-    - 'sendmessage text="<red>等级不足 3 级，无法切出金胡萝卜。</red>"'
-  block_output_on_false: true
+  on_pass:
+    actions:
+      - 'sendmessage text="<green>条件满足，切制成功。</green>"'
+  on_fail:
+    actions:
+      - 'sendmessage text="<red>等级不足 3 级，无法切出金胡萝卜。</red>"'
+    block_output: true
 
 # ============================================================
 # 切割结果

@@ -28,14 +28,16 @@ public record PdcReadRule(String sourceId,
     public Map<String, Object> toMap() {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("source_id", sourceId);
-        map.put("condition_type", conditionType);
+        Map<String, Object> condition = new LinkedHashMap<>();
+        condition.put("type", conditionType);
         if (requiredCount != null) {
-            map.put("required_count", requiredCount);
+            condition.put("required_count", requiredCount);
         }
         if (!conditions.isEmpty()) {
-            map.put("conditions", conditions.stream().map(RuleCondition::toMap).toList());
+            condition.put("entries", conditions.stream().map(RuleCondition::toMap).toList());
         }
-        map.put("invalid_as_failure", invalidAsFailure);
+        condition.put("invalid_as_failure", invalidAsFailure);
+        map.put("condition", condition);
         map.put("schema_version", schemaVersion);
         return map;
     }
@@ -44,18 +46,29 @@ public record PdcReadRule(String sourceId,
         if (map == null) {
             return null;
         }
+        Object condition = ConfigNodes.get(map, "condition");
+        Object entries = firstPresent(ConfigNodes.get(condition, "entries"), ConfigNodes.get(condition, "conditions"));
+        boolean hasConditionBlock = condition != null;
         return new PdcReadRule(
                 ConfigNodes.string(map, "source_id", ""),
-                ConfigNodes.string(map, "condition_type", "all_of"),
-                Numbers.tryParseInt(map.get("required_count"), null),
-                parseConditions(map.get("conditions")),
-                ConfigNodes.bool(map, "invalid_as_failure", true),
+                hasConditionBlock
+                        ? ConfigNodes.string(condition, "type", ConfigNodes.string(condition, "condition_type", "all_of"))
+                        : ConfigNodes.string(map, "condition_type", "all_of"),
+                Numbers.tryParseInt(hasConditionBlock ? ConfigNodes.get(condition, "required_count") : map.get("required_count"), null),
+                parseConditions(hasConditionBlock ? entries : map.get("conditions")),
+                hasConditionBlock
+                        ? ConfigNodes.bool(condition, "invalid_as_failure", true)
+                        : ConfigNodes.bool(map, "invalid_as_failure", true),
                 Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION)
         );
     }
 
     public boolean hasConditions() {
         return !conditions.isEmpty();
+    }
+
+    private static Object firstPresent(Object first, Object second) {
+        return first != null ? first : second;
     }
 
     private static List<RuleCondition> parseConditions(Object raw) {

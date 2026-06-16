@@ -1,16 +1,11 @@
 package emaki.jiuwu.craft.forge.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
-
 /**
- * Entry point for obtaining the {@link EmakiForgeApi} that EmakiForge registers with the
- * Bukkit {@code ServicesManager}.
+ * Compatibility helper for the static {@link EmakiForgeApi} facade.
  *
- * <p>The service only exists after EmakiForge has enabled, so resolve it lazily
- * rather than caching it during your own plugin's load phase.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiForgeApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiForgeApiProvider {
 
@@ -18,11 +13,22 @@ public final class EmakiForgeApiProvider {
     }
 
     /**
-     * {@return the registered {@link EmakiForgeApi}, or an empty optional} Empty when
-     * EmakiForge is absent or has not finished enabling.
+     * Checks whether the static EmakiForge API bridge is installed.
+     *
+     * @return {@code true} when EmakiForge is available
      */
-    public static Optional<EmakiForgeApi> get() {
-        RegisteredServiceProvider<EmakiForgeApi> provider = Bukkit.getServicesManager().getRegistration(EmakiForgeApi.class);
-        return provider == null ? Optional.empty() : Optional.ofNullable(provider.getProvider());
+    public static boolean available() {
+        return EmakiForgeApi.available();
+    }
+
+    /**
+     * Verifies that EmakiForge is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiForge API is not available.");
+        }
     }
 }

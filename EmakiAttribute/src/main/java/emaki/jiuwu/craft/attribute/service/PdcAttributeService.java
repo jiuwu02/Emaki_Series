@@ -36,7 +36,7 @@ import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import me.clip.placeholderapi.PlaceholderAPI;
 
-public final class PdcAttributeService implements PdcAttributeApi, emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi {
+public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi {
 
     private static final Pattern SOURCE_META_PATTERN = Pattern.compile("%source_meta_([a-zA-Z0-9_\\-.]+)%");
     private static final Pattern SOURCE_ATTRIBUTE_PATTERN = Pattern.compile("%source_(?:attr|attribute)_([a-zA-Z0-9_\\-.]+)%");
@@ -303,7 +303,7 @@ public final class PdcAttributeService implements PdcAttributeApi, emaki.jiuwu.c
             case "lore_regex" ->
                 evaluateLoreRegexCondition(player, payload, loreLines, condition);
             default ->
-                ConditionOutcome.invalid("condition_type=" + condition.type());
+                ConditionOutcome.invalid("condition.type=" + condition.type());
         };
     }
 

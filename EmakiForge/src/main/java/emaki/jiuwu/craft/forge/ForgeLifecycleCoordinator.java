@@ -10,11 +10,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.forge.script.ScriptForgeModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
@@ -50,6 +53,9 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     @Override
     public ForgeRuntimeComponents initialize(EmakiForgePlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        registerAssemblyLayer(coreLibPlugin);
+        registerScriptModule(coreLibPlugin);
+        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -200,6 +206,9 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     public void shutdown(EmakiForgePlugin plugin, TaskHandle autoSaveTask) {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        coreLibPlugin.namespaceRegistry().unregister("forge");
+        coreLibPlugin.scriptModuleRegistry().unregister("forge");
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
         }
@@ -272,7 +281,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 numberFormat == null ? "0" : numberFormat.getString("integer", "0"),
                 numberFormat == null ? "0.##%" : numberFormat.getString("percentage", "0.##%"),
                 permission != null && permission.getBoolean("op_bypass", false),
-                condition == null || condition.getBoolean("invalid_as_failure", true),
+                ConditionBlock.fromConfig(condition, true, false).invalidAsFailure(),
                 history == null || history.getBoolean("enabled", true),
                 history == null || history.getBoolean("auto_save", true),
                 history == null ? 6000 : Numbers.tryParseInt(history.get("save_interval"), 6000)
@@ -282,6 +291,18 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private boolean shouldReleaseDefaultData(EmakiForgePlugin plugin) {
         YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
         return configuration.getBoolean("release_default_data", true);
+    }
+
+    private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
+    }
+
+    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.scriptModuleRegistry().register("forge", context -> new ScriptForgeModuleApi());
+    }
+
+    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiForgePlugin plugin) {
+        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("forge_success.js"));
     }
 
 }

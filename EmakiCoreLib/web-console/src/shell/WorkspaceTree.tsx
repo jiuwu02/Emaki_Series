@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type Dispatch, type KeyboardEvent, type SetStateAction } from 'react';
+import { isGlobPath, treeDirtyKey } from '../documentPaths';
 import { getModuleLocaleBundles, t } from '../i18n';
 import { getFileKindLabel } from '../registry';
 import { treeNodeDisplayComment, treeNodeDisplayLabel } from '../lib';
@@ -165,7 +166,8 @@ const TreeRow = memo(function TreeRow({ row, setRowRef, onToggle, onSelect, onOp
     </div>;
   }
 
-  const canSelect = Boolean(node.moduleId && node.fileId && !row.isGlob && !row.isFolder);
+  const childSelectionPath = selectableChildPath(node);
+  const canSelect = Boolean(node.moduleId && node.fileId && !row.isGlob && !row.isFolder && (node.type === 'file' || childSelectionPath !== undefined));
   const rowClass = row.level > 1 ? 'tree-child-row' : 'tree-file-row';
   return <div className={rowClass} role="none" style={rowStyle}>
     {row.level > 1 && <IndentGuide branch={row.isLast ? 'elbow' : 'tee'} />}
@@ -180,13 +182,14 @@ const TreeRow = memo(function TreeRow({ row, setRowRef, onToggle, onSelect, onOp
       data-tree-node-id={row.id}
       onClick={() => {
         if (!canSelect || !node.moduleId || !node.fileId) return;
-        onSelect({ moduleId: node.moduleId, fileId: node.fileId, scriptPath: node.childPath });
+        const selection = { moduleId: node.moduleId, fileId: node.fileId, scriptPath: childSelectionPath };
+        onSelect(selection);
       }}
       disabled={!canSelect}
     >
       <span className="tree-label">{row.displayLabel}</span><DirtyDot dirty={row.dirty} />
     </button>
-    {onDeleteFile && node.childPath && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
+    {onDeleteFile && node.childPath && !isGlobPath(node.childPath) && <button type="button" className="tree-file-action danger" title={t('core.tree.deleteFile')} aria-label={t('core.tree.deleteFile')} onClick={(event) => { event.stopPropagation(); onDeleteFile(node); }}>×</button>}
   </div>;
 });
 
@@ -236,6 +239,7 @@ export function fileKindLabel(kind: string | undefined): string {
   if (upper === 'CONFIG') return t('core.kind.config');
   if (upper === 'GUI') return t('core.kind.gui');
   if (upper === 'ITEM') return t('core.kind.item');
+  if (upper === 'GEM') return t('core.kind.gem');
   const registered = getFileKindLabel(upper);
   if (registered) return registered;
   if (upper === 'SCRIPT') return t('core.kind.script');
@@ -321,7 +325,8 @@ function scrubSvgNode(element: Element): boolean {
 }
 
 function buildTreeIndex(registry: WebRegistry): TreeIndex {
-  const roots = registry.tree?.length ? registry.tree : modulesToTree(registry.modules);
+  const pathIndex = buildGlobChildPathIndex(registry.modules);
+  const roots = registry.tree?.length ? normalizeRegistryTree(registry.tree, pathIndex) : modulesToTree(registry.modules);
   const rootIds = roots.map(node => node.id);
   const nodeById = new Map<string, RegistryTreeNode>();
   const childrenById = new Map<string, RegistryTreeNode[]>();
@@ -367,7 +372,8 @@ function flattenVisibleRows(index: TreeIndex, expanded: Record<string, boolean>,
     const isFolder = node.type === 'folder';
     const isOpen = queryActive ? true : (expanded[node.id] ?? isModule);
     const isGlob = isGlobTreeNode(node);
-    const active = Boolean(node.moduleId && node.fileId && !isGlob && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (node.childPath ?? ''));
+    const childSelectionPath = selectableChildPath(node);
+    const active = Boolean(node.moduleId && node.fileId && !isGlob && selected?.moduleId === node.moduleId && selected.fileId === node.fileId && (selected.scriptPath ?? '') === (childSelectionPath ?? ''));
     const dirty = dirtyNodeIds.has(node.id);
     const displayLabel = treeNodeDisplayLabel(node);
     const displayComment = treeNodeDisplayComment(node);
@@ -411,7 +417,13 @@ function nodeSearchText(node: RegistryTreeNode): string {
 }
 
 function isGlobTreeNode(node: RegistryTreeNode): boolean {
-  return /[*?]/.test(String(node.childPath ?? node.path ?? ''));
+  return isGlobPath(node.childPath) || isGlobPath(node.path);
+}
+
+function selectableChildPath(node: RegistryTreeNode): string | undefined {
+  const childPath = normalizeTreePath(node.childPath);
+  if (childPath && !isGlobPath(childPath)) return childPath;
+  return undefined;
 }
 
 function isEmptyGlobPlaceholder(node: RegistryTreeNode): boolean {
@@ -444,10 +456,6 @@ function isNodeDirty(node: RegistryTreeNode, dirtyKeys: ReadonlySet<string>): bo
   return Boolean(filePath && dirtyKeys.has(treeDirtyKey(node.moduleId, node.fileId, filePath)));
 }
 
-function treeDirtyKey(moduleId: string, fileId: string, filePath: string) {
-  return JSON.stringify([moduleId, fileId, filePath.replace(/\\/g, '/')]);
-}
-
 function indentStyle(level: number): CSSProperties | undefined {
   return level > 0 ? ({ '--tree-level': level } as CSSProperties) : undefined;
 }
@@ -474,6 +482,49 @@ function modulesToTree(modules: WebRegistryModule[]): RegistryTreeNode[] {
   }));
 }
 
+function buildGlobChildPathIndex(modules: WebRegistryModule[]): Map<string, string> {
+  const index = new Map<string, string>();
+  for (const module of modules) {
+    for (const file of module.files) {
+      for (const child of file.children ?? []) {
+        const relativePath = normalizeTreePath(child.relativePath);
+        const fullPath = normalizeTreePath(file.kind?.toUpperCase() === 'SCRIPT' ? child.relativePath : (child.fullPath ?? child.relativePath));
+        if (!relativePath || !fullPath || isGlobPath(fullPath)) continue;
+        const keys = new Set([
+          treeChildPathKey(module.id, file.id, relativePath),
+          treeChildPathKey(module.id, file.id, fullPath),
+          treeChildPathKey(module.id, file.id, leafFileName(relativePath)),
+          treeChildPathKey(module.id, file.id, leafFileName(fullPath))
+        ]);
+        for (const key of keys) index.set(key, fullPath);
+      }
+    }
+  }
+  return index;
+}
+
+function normalizeRegistryTree(nodes: RegistryTreeNode[], pathIndex: Map<string, string>): RegistryTreeNode[] {
+  return nodes.map(node => normalizeRegistryTreeNode(node, pathIndex));
+}
+
+function normalizeRegistryTreeNode(node: RegistryTreeNode, pathIndex: Map<string, string>): RegistryTreeNode {
+  const nextChildren = node.children?.map(child => normalizeRegistryTreeNode(child, pathIndex));
+  let next: RegistryTreeNode = nextChildren ? { ...node, children: nextChildren } : { ...node };
+  if (next.type === 'child' && next.moduleId && next.fileId) {
+    const currentPath = normalizeTreePath(next.childPath ?? next.path);
+    const indexedPath = pathIndex.get(treeChildPathKey(next.moduleId, next.fileId, currentPath))
+      ?? pathIndex.get(treeChildPathKey(next.moduleId, next.fileId, leafFileName(currentPath)))
+      ?? pathIndex.get(treeChildPathKey(next.moduleId, next.fileId, normalizeTreePath(next.label)));
+    const safePath = indexedPath && !isGlobPath(indexedPath) ? indexedPath : (!isGlobPath(currentPath) ? currentPath : '');
+    if (safePath) next = { ...next, path: safePath, childPath: safePath, id: next.id && !isGlobPath(next.id) ? next.id : `${next.fileId}:${safePath}` };
+  }
+  return next;
+}
+
+function treeChildPathKey(moduleId: string | undefined, fileId: string | undefined, path: string | undefined): string {
+  return `${String(moduleId ?? '').toLowerCase()}\u0000${String(fileId ?? '').toLowerCase()}\u0000${normalizeTreePath(path).toLowerCase()}`;
+}
+
 function globChildrenToTree(moduleId: string, file: WebRegistryModule['files'][number]): RegistryTreeNode[] | undefined {
   const children = file.children?.filter(child => !isLanguageFilePath(child.fullPath ?? child.relativePath));
   if (!children?.length) return undefined;
@@ -498,7 +549,8 @@ function globChildrenToTree(moduleId: string, file: WebRegistryModule['files'][n
       }
       siblings = folder.children ?? (folder.children = []);
     }
-    siblings.push({ id: `${file.id}:${childPath}`, label: leafFileName(childPath), type: 'child', moduleId, fileId: file.id, kind: file.kind, path: childPath, childPath });
+    const childNode = { id: `${file.id}:${childPath}`, label: leafFileName(childPath), type: 'child' as const, moduleId, fileId: file.id, kind: file.kind, path: childPath, childPath };
+    siblings.push(childNode);
   }
   return roots;
 }

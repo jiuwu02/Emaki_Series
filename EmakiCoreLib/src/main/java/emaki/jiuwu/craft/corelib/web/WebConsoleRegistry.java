@@ -397,7 +397,7 @@ public final class WebConsoleRegistry {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("moduleId", moduleId);
         result.put("path", relativePath);
-        result.put("revision", fileRevision(file));
+        result.put("revision", WebFileRevisions.revision(file));
         result.put("nodes", nodes);
         return result;
     }
@@ -449,40 +449,51 @@ public final class WebConsoleRegistry {
     }
 
     public long saveValue(String moduleId, String filePath, String path, Object value, Long expectedRevision) throws IOException {
+        return saveValues(moduleId, filePath, List.of(new RegistryValueChange(path, value)), expectedRevision);
+    }
+
+    public long saveValues(String moduleId, String filePath, List<RegistryValueChange> changes, Long expectedRevision) throws IOException {
+        if (changes == null || changes.isEmpty()) {
+            throw new IOException("缺少要保存的配置项");
+        }
+        File file = writableConfigFile(moduleId, filePath);
+        long currentRevision = WebFileRevisions.requireExpected(file, expectedRevision);
+        YamlSection yaml = YamlFiles.load(file);
+        for (RegistryValueChange change : changes) {
+            if (change == null || Texts.isBlank(change.path())) {
+                throw new IOException("配置项路径不能为空");
+            }
+            Object current = yaml.get(change.path());
+            if (current instanceof YamlSection || current instanceof Map<?, ?>) {
+                throw new IOException("分组节点不能直接保存，请修改其子配置项");
+            }
+            yaml.set(change.path(), normalizeIncomingValue(current, change.value()));
+        }
+        YamlFiles.save(file, yaml);
+        return WebFileRevisions.advance(file, currentRevision);
+    }
+
+    private File writableConfigFile(String moduleId, String filePath) throws IOException {
         ModuleRegistration registration = module(moduleId);
         if (registration == null) {
             throw new IOException("模块未注册");
         }
-        File file;
         if (!Texts.isBlank(filePath)) {
             FileRegistration config = configByPath(registration, filePath);
             if (config != null) {
-                file = moduleFile(moduleId, config.relativePath());
-            } else {
-                file = moduleFile(moduleId, filePath);
-                if (!file.exists() || !file.isFile()) {
-                    throw new IOException("文件不存在: " + filePath);
-                }
+                return moduleFile(moduleId, config.relativePath());
             }
-        } else {
-            FileRegistration config = primaryConfig(registration);
-            if (config == null) {
-                throw new IOException("模块未注册可写配置文件");
+            File file = moduleFile(moduleId, filePath);
+            if (!file.exists() || !file.isFile()) {
+                throw new IOException("文件不存在: " + filePath);
             }
-            file = moduleFile(moduleId, config.relativePath());
+            return file;
         }
-        long currentRevision = fileRevision(file);
-        if (expectedRevision != null && currentRevision != expectedRevision) {
-            throw new RevisionConflictException("文件已被其他管理员修改，请重载后再保存。", currentRevision);
+        FileRegistration config = primaryConfig(registration);
+        if (config == null) {
+            throw new IOException("模块未注册可写配置文件");
         }
-        YamlSection yaml = YamlFiles.load(file);
-        Object current = yaml.get(path);
-        if (current instanceof YamlSection || current instanceof Map<?, ?>) {
-            throw new IOException("分组节点不能直接保存，请修改其子配置项");
-        }
-        yaml.set(path, normalizeIncomingValue(current, value));
-        YamlFiles.save(file, yaml);
-        return fileRevision(file);
+        return moduleFile(moduleId, config.relativePath());
     }
 
     private Map<String, Object> fileSnapshot(String moduleId, FileRegistration registration) {
@@ -640,16 +651,7 @@ public final class WebConsoleRegistry {
         if (path.contains("*") || path.contains("?")) {
             return 0L;
         }
-        return fileRevision(moduleFile(moduleId, path));
-    }
-
-    private long fileRevision(File file) {
-        if (!file.exists()) return 0L;
-        try {
-            return java.nio.file.Files.getLastModifiedTime(file.toPath()).toMillis();
-        } catch (IOException ignored) {
-            return 0L;
-        }
+        return WebFileRevisions.revision(moduleFile(moduleId, path));
     }
 
     public static final class RevisionConflictException extends IOException {
@@ -668,6 +670,8 @@ public final class WebConsoleRegistry {
     private static String stringValue(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
+
+    public record RegistryValueChange(String path, Object value) {}
 
     public FileCreationTarget creationTarget(String moduleId, String fileId) throws IOException {
         ModuleRegistration registration = module(moduleId);
@@ -999,6 +1003,26 @@ public final class WebConsoleRegistry {
         return MODULES.containsKey(moduleId);
     }
 
+    public static synchronized List<WebRegisteredFileEntry> registeredFileEntries() {
+        List<WebRegisteredFileEntry> result = new ArrayList<>();
+        for (ModuleRegistration registration : MODULES.values()) {
+            Plugin installed = Bukkit.getPluginManager().getPlugin(registration.id());
+            if (installed == null || !installed.isEnabled()) {
+                continue;
+            }
+            for (FileRegistration file : registration.files()) {
+                result.add(new WebRegisteredFileEntry(
+                        registration.id(),
+                        file.title(),
+                        file.relativePath(),
+                        file.type().kind(),
+                        file.structuredYaml()
+                ));
+            }
+        }
+        return List.copyOf(result);
+    }
+
     private static synchronized List<ModuleRegistration> registeredModules() {
         return List.copyOf(MODULES.values());
     }
@@ -1156,6 +1180,12 @@ public final class WebConsoleRegistry {
         registerNodeComment("EmakiCoreLib", "web_console.config_browser", "文件浏览", "Web Console 文件浏览器大小与扩展名限制。", "object");
         registerNodeComment("EmakiCoreLib", "web_console.config_browser.max_file_size_kb", "文件大小上限", "允许读取的单文件最大大小，单位 KB。", "number");
         registerNodeComment("EmakiCoreLib", "web_console.config_browser.allowed_extensions", "允许扩展名", "文件浏览器允许读取的扩展名列表。", "list");
+        registerNodeComment("EmakiCoreLib", "web_console.history", "变更历史", "Web Console 写入历史、快照保留和删除备份设置。", "object");
+        registerNodeComment("EmakiCoreLib", "web_console.history.enabled", "启用历史", "是否记录 Web Console 写入历史。", "boolean");
+        registerNodeComment("EmakiCoreLib", "web_console.history.max_snapshots_per_file", "单文件快照上限", "每个文件最多保留的历史快照数量。", "number");
+        registerNodeComment("EmakiCoreLib", "web_console.history.max_age_days", "历史保留天数", "历史快照最多保留的天数。", "number");
+        registerNodeComment("EmakiCoreLib", "web_console.history.record_web_writes", "记录写入", "是否记录保存、创建和回滚等 Web 写入操作。", "boolean");
+        registerNodeComment("EmakiCoreLib", "web_console.history.record_delete_backup", "删除备份", "删除文件前是否保留历史备份。", "boolean");
         registerNodeComment("EmakiCoreLib", "action", "动作", "CoreLib Action 全局配置。", "object");
         registerCreatableNode("EmakiCoreLib", "action.templates", "动作模板", "可通过 @template=名称 引用的动作模板映射。", "object");
         registerNodeKeyComment("EmakiCoreLib", "templates", "动作模板", "可通过 @template=名称 引用的动作模板映射，模板值为 CoreLib Action 行列表。", "object");
@@ -1225,7 +1255,7 @@ public final class WebConsoleRegistry {
 
     private static String fileId(String moduleId, FileRegistration registration) {
         return (moduleId + "-" + registration.type().kind() + "-" + registration.relativePath())
-                .toLowerCase()
+                .toLowerCase(java.util.Locale.ROOT)
                 .replace("**/", "")
                 .replace("*", "all")
                 .replace('/', '-')
@@ -1281,6 +1311,7 @@ public final class WebConsoleRegistry {
         KEY
     }
 
+    public record WebRegisteredFileEntry(String moduleId, String title, String relativePath, String kind, boolean structuredYaml) {}
     private record ModuleRegistration(String id, String name, String summary, String tone, String iconSvg, List<FileRegistration> files) {}
     private record EditorRegistration(String moduleId, String editorId, Map<String, Object> descriptor) {}
     private record WebExtensionRegistration(String moduleId, String id, String resourcePath) {}

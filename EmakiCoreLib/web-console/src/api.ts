@@ -1,14 +1,24 @@
+import { isGlobPath } from './documentPaths';
 import { t } from './i18n';
 import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
 
 export type ActionTypesResult = { nameActions: string[]; loreActions: string[] };
 export type EconomyProvidersResult = { providers: string[]; availableProviders: string[] };
-export type RegistrySaveResult = { revision?: number };
+export type InsightSearchResult = { moduleId: string; path: string; kind: string; keyPath: string; matchType: 'definition' | 'reference' | 'text' | 'file' | string; idType: string; id?: string; snippet: string; alias?: boolean; aliasSourceId?: string; aliasTargetId?: string; aliasIdType?: string };
+export type InsightReferenceResult = { moduleId: string; path: string; kind: string; keyPath: string; idType: string; id: string; referenceValue: string; edgeType: string; snippet: string; alias?: boolean; aliasSourceId?: string; aliasTargetId?: string; aliasIdType?: string };
+export type InsightDependencyGraphNode = { key: string; idType: string; id: string; label: string; moduleId: string; path: string; kind: string; role: 'root' | 'reference' | string };
+export type InsightDependencyGraphEdge = { from: string; to: string; edgeType: string; moduleId: string; path: string; kind: string; keyPath: string; snippet: string };
+export type InsightDependencyGraphResult = { idType: string; id: string; depth: number; direction: string; nodes: InsightDependencyGraphNode[]; edges: InsightDependencyGraphEdge[] };
+export type HistoryEntry = { id: string; scope?: string; moduleId: string; path: string; kind: string; operation: string; actor: string; createdAt: number; sourceRevision?: number; size?: number; rollbackAllowed?: boolean; note?: string };
+export type HistorySnapshot = { entry?: HistoryEntry; content: string; rollbackAllowed: boolean };
+export type RegistrySaveResult = { revision?: number; savedPaths?: string[] };
+export type RegistryValueChange = { path: string; value: unknown };
 export type RegistryFileNodesResult = { nodes: WebConfigNode[]; revision?: number; path?: string };
 export type TextDocumentKind = 'CONFIG' | 'GUI' | 'ITEM' | 'SCRIPT' | string;
 export type TextDocumentTarget = { kind: TextDocumentKind; moduleId?: string; path: string };
 export type TextDocument = { moduleId?: string; path: string; content: string; revision?: number };
 export type FrontendErrorReport = { message: string; source: string; detail?: string; stack?: string; url?: string };
+export type FrontendDebugEventReport = { type: string; target?: string; label?: string; value?: string; detail?: string; url?: string };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -31,6 +41,17 @@ export class ApiClient {
   private economyProvidersCache: EconomyProvidersResult | null = null;
 
   constructor(private token: string | null, private onUnauthorized: () => void) { }
+
+  async reportFrontendEvent(event: FrontendDebugEventReport): Promise<void> {
+    try {
+      await this.request('/api/debug/frontend-event', {
+        method: 'POST',
+        body: JSON.stringify(normalizeFrontendDebugEvent(event))
+      });
+    } catch {
+      // 前端交互 debug 不能影响 Web Console 正常使用。
+    }
+  }
 
   async reportFrontendError(error: FrontendErrorReport): Promise<void> {
     try {
@@ -66,6 +87,11 @@ export class ApiClient {
     return data;
   }
 
+  async logout(): Promise<void> {
+    if (!this.token) return;
+    await this.request('/api/auth/logout', { method: 'POST' });
+  }
+
   async modules(): Promise<ModuleStatus[]> {
     const data = await this.request('/api/modules');
     return data.modules;
@@ -77,11 +103,18 @@ export class ApiClient {
   }
 
   async saveRegistryValue(moduleId: string, filePath: string, path: string, value: unknown, revision?: number): Promise<RegistrySaveResult> {
+    return this.saveRegistryValues(moduleId, filePath, [{ path, value }], revision);
+  }
+
+  async saveRegistryValues(moduleId: string, filePath: string, changes: RegistryValueChange[], revision?: number): Promise<RegistrySaveResult> {
     const data = await this.request('/api/registry/save', {
       method: 'POST',
-      body: JSON.stringify({ moduleId, filePath, path, value, revision })
+      body: JSON.stringify({ moduleId, filePath, changes, revision })
     });
-    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
+    return {
+      revision: typeof data.revision === 'number' ? data.revision : undefined,
+      savedPaths: Array.isArray(data.savedPaths) ? data.savedPaths.map(String) : changes.map(change => change.path)
+    };
   }
 
   async registryFileNodes(moduleId: string, path: string): Promise<RegistryFileNodesResult> {
@@ -204,8 +237,9 @@ export class ApiClient {
     return { revision: typeof data.revision === 'number' ? data.revision : undefined };
   }
 
-  async previewItem(content: string, previewLevel: number, baseName = '', baseLore: string[] = []): Promise<ItemPreviewResult> {
+  async previewItem(content: string, previewLevel: number, baseName = '', baseLore: string[] = [], init: RequestInit = {}): Promise<ItemPreviewResult> {
     const data = await this.request('/api/items/preview', {
+      ...init,
       method: 'POST',
       body: JSON.stringify({ content, previewLevel, baseName, baseLore })
     });
@@ -219,6 +253,63 @@ export class ApiClient {
     return this.actionTypesCache;
   }
 
+  async insightSearch(query: string): Promise<InsightSearchResult[]> {
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+    const data = await this.request(`/api/insight/search?q=${encodeURIComponent(trimmed)}`);
+    return Array.isArray(data.results) ? data.results as InsightSearchResult[] : [];
+  }
+
+  async insightReferences(idType: string, id: string): Promise<InsightReferenceResult[]> {
+    const normalizedType = idType.trim();
+    const normalizedId = id.trim();
+    if (!normalizedType || !normalizedId) return [];
+    const data = await this.request(`/api/insight/references?idType=${encodeURIComponent(normalizedType)}&id=${encodeURIComponent(normalizedId)}`);
+    return Array.isArray(data.references) ? data.references as InsightReferenceResult[] : [];
+  }
+
+  async historyList(moduleId: string, path: string, kind: string): Promise<{ history: HistoryEntry[]; revision?: number }> {
+    const params = new URLSearchParams({ module: moduleId, path, kind });
+    const data = await this.request(`/api/history/list?${params.toString()}`);
+    return { history: Array.isArray(data.history) ? data.history as HistoryEntry[] : [], revision: typeof data.revision === 'number' ? data.revision : undefined };
+  }
+
+  async historySnapshot(moduleId: string, path: string, kind: string, id: string): Promise<HistorySnapshot> {
+    const params = new URLSearchParams({ module: moduleId, path, kind, id });
+    const data = await this.request(`/api/history/snapshot?${params.toString()}`);
+    return { entry: data.entry as HistoryEntry | undefined, content: String(data.content ?? ''), rollbackAllowed: Boolean(data.rollbackAllowed) };
+  }
+
+  async historyDiff(moduleId: string, path: string, kind: string, id: string): Promise<{ diff: string; rollbackAllowed: boolean }> {
+    const params = new URLSearchParams({ module: moduleId, path, kind, id });
+    const data = await this.request(`/api/history/diff?${params.toString()}`);
+    return { diff: String(data.diff ?? ''), rollbackAllowed: Boolean(data.rollbackAllowed) };
+  }
+
+  async historyRollback(moduleId: string, path: string, kind: string, id: string, revision?: number): Promise<{ revision?: number }> {
+    const data = await this.request('/api/history/rollback', {
+      method: 'POST',
+      body: JSON.stringify({ moduleId, path, kind, id, revision })
+    });
+    return { revision: typeof data.revision === 'number' ? data.revision : undefined };
+  }
+
+  async insightDependencyGraph(idType: string, id: string, options: { depth?: number; direction?: string } = {}): Promise<InsightDependencyGraphResult> {
+    const normalizedType = idType.trim();
+    const normalizedId = id.trim();
+    if (!normalizedType || !normalizedId) return { idType: normalizedType, id: normalizedId, depth: 1, direction: options.direction ?? 'both', nodes: [], edges: [] };
+    const params = new URLSearchParams({ idType: normalizedType, id: normalizedId, depth: String(options.depth ?? 1), direction: options.direction ?? 'both' });
+    const data = await this.request(`/api/insight/dependency-graph?${params.toString()}`);
+    return {
+      idType: String(data.idType ?? normalizedType),
+      id: String(data.id ?? normalizedId),
+      depth: typeof data.depth === 'number' ? data.depth : 1,
+      direction: String(data.direction ?? options.direction ?? 'both'),
+      nodes: Array.isArray(data.nodes) ? data.nodes as InsightDependencyGraphNode[] : [],
+      edges: Array.isArray(data.edges) ? data.edges as InsightDependencyGraphEdge[] : []
+    };
+  }
+
   async economyProviders(): Promise<EconomyProvidersResult> {
     if (this.economyProvidersCache) return this.economyProvidersCache;
     const data = await this.request('/api/economy/providers');
@@ -227,6 +318,16 @@ export class ApiClient {
       availableProviders: normalizeOptions(data.availableProviders, ['auto'])
     };
     return this.economyProvidersCache;
+  }
+
+  async pluginApi(moduleId: string, routeId: string, body: Record<string, unknown> = {}, init: RequestInit = {}): Promise<any> {
+    const normalizedModule = encodeURIComponent(moduleId.trim().toLowerCase());
+    const normalizedRoute = routeId.trim().replace(/^\/+|\/+$/g, '').split('/').map(encodeURIComponent).join('/');
+    return this.request(`/api/plugin/${normalizedModule}/${normalizedRoute}`, {
+      ...init,
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
   }
 
   private async request(path: string, init: RequestInit = {}): Promise<any> {
@@ -260,9 +361,6 @@ function normalizeKind(kind: string | undefined): string {
   return String(kind ?? '').toUpperCase();
 }
 
-function isGlobPath(path: string | undefined): boolean {
-  return /[*?]/.test(String(path ?? ''));
-}
 
 function normalizeOptions(value: unknown, fallback: string[]): string[] {
   const raw = Array.isArray(value) ? value : fallback;
@@ -280,8 +378,39 @@ async function parseResponseJson(response: Response): Promise<any> {
   }
 }
 
+export function reportFrontendLoginEvent(event: FrontendDebugEventReport): void {
+  void postDebugEvent('/api/debug/frontend-login-event', normalizeFrontendDebugEvent(event));
+}
+
+function normalizeFrontendDebugEvent(event: FrontendDebugEventReport): Record<string, string> {
+  return {
+    type: trimLogText(event.type, 80),
+    target: trimLogText(event.target, 180),
+    label: trimLogText(event.label, 180),
+    value: trimLogText(event.value, 180),
+    detail: trimLogText(event.detail, 500),
+    url: trimLogText(event.url ?? window.location.href, 500)
+  };
+}
+
+async function postDebugEvent(path: string, payload: Record<string, string>, token?: string | null): Promise<void> {
+  try {
+    await fetch(path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload),
+      keepalive: true
+    });
+  } catch {
+    // debug 上报失败不应打断用户操作。
+  }
+}
+
 function trimLogText(value: unknown, maxLength: number): string {
-  const text = String(value ?? '');
+  const text = String(value ?? '').replace(/[\r\n]+/g, ' ').trim();
   return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
 }
 

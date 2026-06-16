@@ -5,7 +5,7 @@ import emaki.jiuwu.craft.forge.model.QualitySettings;
 
 public final class AppConfig extends BaseAppConfig {
 
-    public static final String CURRENT_VERSION = "3.3.0";
+    public static final String CURRENT_VERSION = "4.2.6";
 
     private final boolean releaseDefaultData;
     private final QualitySettings qualitySettings;

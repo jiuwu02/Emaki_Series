@@ -38,7 +38,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase()) {
+        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -64,7 +64,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "open", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase())) {
+                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -74,7 +74,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
-            switch (args[0].toLowerCase()) {
+            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
                 case "inspect", "refresh" -> completePlayers(result, args[1]);
                 case "setstar" -> {
                     int maxStar = plugin.recipeLoader().all().values().stream()
@@ -89,7 +89,7 @@ final class StrengthenCommandRouter implements TabExecutor {
                     }
                 }
                 case "givecatalyst" -> plugin.recipeLoader().materialCatalog().keySet().stream()
-                        .filter(id -> id.startsWith(args[1].toLowerCase()))
+                        .filter(id -> id.startsWith(args[1].toLowerCase(java.util.Locale.ROOT)))
                         .forEach(result::add);
                 default -> {
                 }
@@ -97,9 +97,9 @@ final class StrengthenCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 3) {
-            switch (args[0].toLowerCase()) {
+            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
                 case "setstar" -> plugin.recipeLoader().all().keySet().stream()
-                        .filter(id -> id.startsWith(args[2].toLowerCase()))
+                        .filter(id -> id.startsWith(args[2].toLowerCase(java.util.Locale.ROOT)))
                         .forEach(result::add);
                 case "givecatalyst" -> {
                     for (String amount : List.of("1", "8", "16", "32", "64")) {
@@ -330,7 +330,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     private void completePlayers(List<String> result, String prefix) {
         Bukkit.getOnlinePlayers().stream()
                 .map(Player::getName)
-                .filter(name -> name.toLowerCase().startsWith(prefix.toLowerCase()))
+                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
                 .forEach(result::add);
     }
 

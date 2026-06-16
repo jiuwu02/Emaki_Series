@@ -12,7 +12,8 @@ public record WebConsoleConfig(
         boolean publicAccessWarning,
         Auth auth,
         Security security,
-        ConfigBrowser configBrowser
+        ConfigBrowser configBrowser,
+        History history
 ) {
 
     public static WebConsoleConfig defaults() {
@@ -23,7 +24,8 @@ public record WebConsoleConfig(
                 true,
                 new Auth("admin", "change-me", 60),
                 new Security(false, 256, List.of()),
-                new ConfigBrowser(512, List.of(".yml", ".yaml", ".json", ".txt"))
+                new ConfigBrowser(512, List.of(".yml", ".yaml", ".json", ".txt")),
+                new History(true, 50, 30, true, true)
         );
     }
 
@@ -35,6 +37,7 @@ public record WebConsoleConfig(
         YamlSection authSection = section.getSection("auth");
         YamlSection securitySection = section.getSection("security");
         YamlSection browserSection = section.getSection("config_browser");
+        YamlSection historySection = section.getSection("history");
         return new WebConsoleConfig(
                 section.getBoolean("enabled", defaults.enabled()),
                 safeString(section.getString("host", defaults.host()), defaults.host()),
@@ -42,7 +45,8 @@ public record WebConsoleConfig(
                 section.getBoolean("public_access_warning", defaults.publicAccessWarning()),
                 Auth.fromConfig(authSection, defaults.auth()),
                 Security.fromConfig(securitySection, defaults.security()),
-                ConfigBrowser.fromConfig(browserSection, defaults.configBrowser())
+                ConfigBrowser.fromConfig(browserSection, defaults.configBrowser()),
+                History.fromConfig(historySection, defaults.history())
         );
     }
 
@@ -108,8 +112,24 @@ public record WebConsoleConfig(
                     List.copyOf(extensions.stream()
                             .map(String::trim)
                             .filter(value -> !value.isEmpty())
-                            .map(value -> value.startsWith(".") ? value.toLowerCase() : "." + value.toLowerCase())
+                            .map(value -> value.startsWith(".") ? value.toLowerCase(java.util.Locale.ROOT) : "." + value.toLowerCase(java.util.Locale.ROOT))
                             .toList())
+            );
+        }
+    }
+
+    public record History(boolean enabled, int maxSnapshotsPerFile, int maxAgeDays, boolean recordWebWrites, boolean recordDeleteBackup) {
+
+        static History fromConfig(YamlSection section, History defaults) {
+            if (section == null) {
+                return defaults;
+            }
+            return new History(
+                    section.getBoolean("enabled", defaults.enabled()),
+                    Math.max(1, section.getInt("max_snapshots_per_file", defaults.maxSnapshotsPerFile())),
+                    Math.max(1, section.getInt("max_age_days", defaults.maxAgeDays())),
+                    section.getBoolean("record_web_writes", defaults.recordWebWrites()),
+                    section.getBoolean("record_delete_backup", defaults.recordDeleteBackup())
             );
         }
     }

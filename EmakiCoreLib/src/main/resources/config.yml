@@ -8,7 +8,11 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.1.0"
+version: "4.3.0"
+
+# 语言文件 ID，对应 lang/<language>.yml。
+# 例如："zh_CN"、"en_US"。
+language: "zh_CN"
 
 web_console:
   # 内置 Web 管理台，默认关闭。启用前请修改 auth.password。
@@ -31,12 +35,18 @@ web_console:
       - ".yaml"
       - ".json"
       - ".txt"
+  history:
+    enabled: true
+    max_snapshots_per_file: 50
+    max_age_days: 30
+    record_web_writes: true
+    record_delete_backup: true
 
 action:
   # 在配方或动作列表中通过 @template=名称 引用
   templates:
-    # forge_success_common:
-    #   - 'sendmessage text="<green>成功获得 %forge_result_item_name%</green>"'
+    # reward_success_common:
+    #   - 'sendmessage text="<green>成功获得 %result_item_name%</green>"'
     #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
 
 script:
@@ -57,6 +67,8 @@ script:
     root: "scripts"
     create_directories:
       - "global"
+      - "mythic"
+      - "extensions/global"
       - "templates"
       - "examples"
   action:
@@ -86,6 +98,13 @@ script:
       - "javascript"
     allow_action_dispatch: true
     max_action_depth: 3
+  server_api:
+    enabled: true
+    allow_type_access: false
+    allowed_type_prefixes:
+      - "org.bukkit."
+      - "io.papermc.paper."
+    allow_console_command: false
   debug:
     log_script_load: true
     log_script_execute: false

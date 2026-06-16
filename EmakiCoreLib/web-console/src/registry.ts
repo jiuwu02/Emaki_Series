@@ -17,6 +17,8 @@ import * as i18n from './i18n';
 import * as itemFieldRegistry from './itemFieldRegistry';
 import * as effectTypeRegistry from './effectTypeRegistry';
 import * as economyConfig from './economyConfig';
+import * as pluginKit from './pluginKit';
+import { ItemEditorSurface } from './ItemEditorSurface';
 import type { EditorChange } from './components';
 import type { WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus } from './types';
 
@@ -36,6 +38,22 @@ export type SourceDocumentAdapter = {
   defaultContent?: (context: SourceDocumentAdapterContext & { name: string; path: string }) => string;
   language?: 'yaml' | 'javascript' | 'text' | string;
 };
+
+export type SurfaceOutlineItem = {
+  path: string;
+  label: string;
+  type: string;
+  childCount: number;
+  changedCount: number;
+  changed: boolean;
+};
+
+export type SurfaceOutlineState = {
+  title: string;
+  subtitle: string;
+  items: SurfaceOutlineItem[];
+  emptyText?: string;
+} | null;
 
 export type SurfaceToolbarState = {
   title?: ReactNode;
@@ -72,6 +90,7 @@ export type SurfaceProps = {
   editor?: WebEditorDescriptor;
   onReload?: () => void;
   setToolbar?: (state: SurfaceToolbarState | null) => void;
+  setOutline?: (state: SurfaceOutlineState) => void;
   showLocalChrome?: boolean;
 };
 
@@ -183,9 +202,10 @@ type ConfigFileSchemaRegistration = {
   fields: ConfigMetaFieldEntry[];
 };
 
-export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previewKit & typeof i18n & typeof itemFieldRegistry & typeof effectTypeRegistry & typeof economyConfig & {
+export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previewKit & typeof i18n & typeof itemFieldRegistry & typeof effectTypeRegistry & typeof economyConfig & typeof pluginKit & {
   apiVersion: string;
   React: typeof React;
+  ItemEditorSurface: typeof ItemEditorSurface;
   registerSurface: typeof registerSurface;
   getSurface: typeof getSurface;
   getAllSurfaces: typeof getAllSurfaces;
@@ -498,13 +518,40 @@ export function applyConfigRegistryOverrides(registry: WebRegistry): WebRegistry
 export function applyConfigNodeOverrides(moduleId: string, nodes: WebConfigNode[], filePath?: string): WebConfigNode[] {
   const existing = nodes.map(node => applySingleConfigNodeOverride(moduleId, node));
   const schemaFields = dedupeConfigSchemaFields(configSchemaFieldsForFile(moduleId, filePath));
-  if (!schemaFields.length) return existing;
-  const virtualNodes = schemaFields.flatMap(field => createVirtualConfigNodesFromField(moduleId, field));
+  let merged = existing;
+  if (schemaFields.length) {
+    const virtualNodes = dedupeVirtualNodes(schemaFields.flatMap(field => createVirtualConfigNodesFromField(moduleId, field)));
+    const schemaPaths = virtualNodes.map(node => node.path);
+    const existingPaths = new Set(merged.map(node => node.path));
+    const missing = virtualNodes.filter(node => !existingPaths.has(node.path));
+    if (missing.length) merged = mergeMissingConfigNodes(merged, missing, schemaPaths);
+  }
+  return mergeSchemaObjectChildNodes(moduleId, merged);
+}
+
+function mergeSchemaObjectChildNodes(moduleId: string, nodes: WebConfigNode[]): WebConfigNode[] {
+  const virtualNodes = dedupeVirtualNodes(nodes.flatMap(node => createVirtualConfigNodesFromObjectItemFields(moduleId, node)));
+  if (!virtualNodes.length) return nodes;
   const schemaPaths = virtualNodes.map(node => node.path);
-  const existingPaths = new Set(existing.map(node => node.path));
+  const existingPaths = new Set(nodes.map(node => node.path));
   const missing = virtualNodes.filter(node => !existingPaths.has(node.path));
-  if (!missing.length) return existing;
-  return mergeMissingConfigNodes(existing, missing, schemaPaths);
+  return missing.length ? mergeMissingConfigNodes(nodes, missing, schemaPaths) : nodes;
+}
+
+function createVirtualConfigNodesFromObjectItemFields(moduleId: string, node: WebConfigNode): WebConfigNode[] {
+  if (node.type !== 'object' || !node.itemFields?.length) return [];
+  const nodes = node.itemFields.flatMap(field => {
+    if (!field?.path) return [];
+    const childPath = `${node.path}.${field.path}`;
+    return createVirtualConfigNodesFromField(moduleId, [
+      childPath,
+      field.label ?? lastConfigPathKey(field.path).replace(/[_-]+/g, ' '),
+      field.comment ?? '',
+      String(field.type ?? 'text'),
+      field
+    ]);
+  });
+  return dedupeVirtualNodes(nodes);
 }
 
 export function standardGuiFields(entries: StandardGuiFieldEntry[] = []): Record<string, WebEditorField> {
@@ -565,7 +612,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
@@ -758,8 +805,10 @@ function virtualConfigNode(moduleId: string, path: string, label: string, commen
 
 function mergeMissingConfigNodes(existing: WebConfigNode[], missing: WebConfigNode[], order: string[]): WebConfigNode[] {
   const result = [...existing];
+  const resultPaths = new Set(result.map(node => node.path));
   const pathIndex = () => new Map(result.map((node, index) => [node.path, index]));
   for (const node of missing) {
+    if (!node.path || resultPaths.has(node.path)) continue;
     const orderIndex = order.indexOf(node.path);
     const indexes = pathIndex();
     let insertAt = result.length;
@@ -780,6 +829,7 @@ function mergeMissingConfigNodes(existing: WebConfigNode[], missing: WebConfigNo
       }
     }
     result.splice(insertAt, 0, node);
+    resultPaths.add(node.path);
   }
   return result;
 }

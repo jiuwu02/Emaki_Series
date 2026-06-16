@@ -6,6 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -35,6 +36,8 @@ public final class StrengthenRecipeParser {
         if (Texts.isBlank(id)) {
             return null;
         }
+        ConditionBlock condition = ConditionBlock.fromRoot(section, true, false);
+        ConditionGroup conditionGroup = condition.group();
         return new StrengthenRecipe(
                 id,
                 section.getString("display_name", id),
@@ -45,9 +48,9 @@ public final class StrengthenRecipeParser {
                 parseMatchRule(section.getSection("match")),
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
-                ConditionGroup.fromConfig(section, section.getString("condition_type", "all_of"), Numbers.tryParseInt(section.get("condition_required_count"), 0)),
-                section.getString("condition_type", "all_of"),
-                Numbers.tryParseInt(section.get("condition_required_count"), 0),
+                conditionGroup,
+                conditionGroup.conditionType(),
+                conditionGroup.requiredCount(),
                 parseBranchTree(section.getSection("branch_tree")),
                 section.get("name_actions"),
                 section.get("lore_actions")
@@ -177,7 +180,9 @@ public final class StrengthenRecipeParser {
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),
                     parseActionLines(stageSection.getSection("actions"), "success"),
-                    parseActionLines(stageSection.getSection("actions"), "failure")
+                    parseActionLines(stageSection.getSection("actions"), "failure"),
+                    parseStageDisplayActions(stageSection, "name_action", "name_actions"),
+                    parseStageDisplayActions(stageSection, "lore_action", "lore_actions")
             ));
         }
         return result;
@@ -205,6 +210,38 @@ public final class StrengthenRecipeParser {
 
     static List<String> parseActionLines(YamlSection section, String key) {
         return section == null ? List.of() : section.getStringList(key);
+    }
+
+    static Object parseStageDisplayActions(YamlSection section, String type, String key) {
+        if (section == null) {
+            return null;
+        }
+        List<Object> actions = new ArrayList<>();
+        appendStageDisplayActions(actions, section.get(key));
+        for (Map<?, ?> rawEffect : section.getMapList("effects")) {
+            if (!type.equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+                continue;
+            }
+            appendStageDisplayActions(actions, ConfigNodes.get(rawEffect, key));
+            appendStageDisplayActions(actions, ConfigNodes.get(rawEffect, type));
+        }
+        return actions.isEmpty() ? null : List.copyOf(actions);
+    }
+
+    private static void appendStageDisplayActions(List<Object> actions, Object raw) {
+        if (actions == null || raw == null) {
+            return;
+        }
+        Object plain = ConfigNodes.toPlainData(raw);
+        if (plain instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                if (entry != null) {
+                    actions.add(ConfigNodes.toPlainData(entry));
+                }
+            }
+            return;
+        }
+        actions.add(plain);
     }
 
     static String parseMaterialItem(Object rawEntry) {

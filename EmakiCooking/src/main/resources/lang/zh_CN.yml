@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "3.1.0"
+version: "3.3.0"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
@@ -42,6 +42,7 @@ console:
   plugin_stopped: "<yellow>已关闭</yellow>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
@@ -74,10 +75,11 @@ chopping_board:
   too_fast: "<yellow>操作太快了，请稍等一下。</yellow>"
   wrong_tool: "<yellow>需要手持配置中的厨刀才能切割。</yellow>"
   cannot_cut: "<red>当前放置的食材没有可用的砧板配方。</red>"
+  not_enough_input: "<yellow>砧板上的食材不足，需要 <white>%required%</white> 个，当前 <white>%current%</white> 个。</yellow>"
   progress: "<gray>切割进度: <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
   completed: "<green>砧板处理完成: <yellow>%recipe%</yellow></green>"
-  item_placed: "<gray>已将食材放到砧板上。</gray>"
-  item_returned: "<gray>已从砧板取回食材。</gray>"
+  item_placed: "<gray>已放入 <yellow>%amount%</yellow> 个食材，砧板当前 <yellow>%total%</yellow>/<yellow>%required%</yellow>。</gray>"
+  item_returned: "<gray>已从砧板取回 <yellow>%amount%</yellow> 个食材。</gray>"
   cut_hurt: "<red>切到手了，受到 %damage% 点伤害。</red>"
 
 grinder:
@@ -172,7 +174,9 @@ text_display:
   chopping_board:
     title: "<gold>砧板</gold>"
     placed: "<white>%item%</white>"
+    amount: "<gray>数量 <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
     progress: "<gray>切割 <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
+    hint_add: "<aqua>继续放入食材</aqua>"
     hint_cut: "<aqua>手持厨刀切割</aqua>"
     no_recipe: "<red>无可用配方</red>"
   wok:

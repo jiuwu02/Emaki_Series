@@ -32,7 +32,7 @@ public enum ItemSourceType {
         if (value == null) {
             return null;
         }
-        return switch (value.trim().toLowerCase()) {
+        return switch (value.trim().toLowerCase(java.util.Locale.ROOT)) {
             case "craftengine", "ce" ->
                 CRAFTENGINE;
             case "itemsadder", "ia" ->

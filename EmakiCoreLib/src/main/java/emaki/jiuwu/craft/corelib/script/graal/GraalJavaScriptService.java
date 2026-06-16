@@ -2,10 +2,12 @@ package emaki.jiuwu.craft.corelib.script.graal;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Optional;
 
 import org.bukkit.plugin.Plugin;
@@ -21,6 +23,8 @@ import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
+import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
+import emaki.jiuwu.craft.corelib.script.ScriptModuleRegistry;
 import emaki.jiuwu.craft.corelib.script.ScriptReloadResult;
 import emaki.jiuwu.craft.corelib.script.ScriptRepository;
 import emaki.jiuwu.craft.corelib.script.ScriptSource;
@@ -33,6 +37,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
     private final ScriptConfig config;
     private final ScriptRepository repository;
     private final java.util.function.Supplier<ActionExecutor> actionExecutorSupplier;
+    private final ScriptModuleRegistry moduleRegistry;
     private final Map<String, ScriptSource> sourceCache = new ConcurrentHashMap<>();
     private final Engine engine;
     private boolean closed;
@@ -41,10 +46,19 @@ public final class GraalJavaScriptService implements JavaScriptService {
             ScriptConfig config,
             Path scriptRoot,
             java.util.function.Supplier<ActionExecutor> actionExecutorSupplier) {
+        this(plugin, config, scriptRoot, actionExecutorSupplier, null);
+    }
+
+    public GraalJavaScriptService(Plugin plugin,
+            ScriptConfig config,
+            Path scriptRoot,
+            java.util.function.Supplier<ActionExecutor> actionExecutorSupplier,
+            ScriptModuleRegistry moduleRegistry) {
         this.plugin = plugin;
         this.config = config == null ? ScriptConfig.defaults() : config;
         this.repository = new ScriptRepository(scriptRoot, this.config.security());
         this.actionExecutorSupplier = actionExecutorSupplier;
+        this.moduleRegistry = moduleRegistry == null ? new ScriptModuleRegistry() : moduleRegistry;
         this.engine = Engine.newBuilder()
                 .option("engine.WarnInterpreterOnly", "false")
                 .build();
@@ -53,6 +67,23 @@ public final class GraalJavaScriptService implements JavaScriptService {
 
     @Override
     public ScriptExecutionResult execute(ScriptExecutionRequest request) {
+        if (request == null) {
+            return ScriptExecutionResult.failure("Script request cannot be null.");
+        }
+        return invoke(new ScriptInvocationRequest(
+                request.sourcePlugin(),
+                request.actionContext(),
+                request.scriptPath(),
+                request.functionName(),
+                List.of(request.actionContext()),
+                request.arguments(),
+                request.timeoutMillis(),
+                request.silent()
+        ));
+    }
+
+    @Override
+    public ScriptExecutionResult invoke(ScriptInvocationRequest request) {
         if (!enabled()) {
             return ScriptExecutionResult.failure("JavaScript scripting is disabled.");
         }
@@ -69,19 +100,21 @@ public final class GraalJavaScriptService implements JavaScriptService {
         try (Context context = createContext()) {
             EmakiScriptApi api = new EmakiScriptApi(
                     request.actionContext(),
-                    request.arguments(),
+                    request.namedArguments(),
                     actionExecutorSupplier == null ? null : actionExecutorSupplier.get(),
                     config,
-                    source.logicalPath()
+                    source.logicalPath(),
+                    request.sourcePlugin(),
+                    moduleRegistry
             );
             context.getBindings("js").putMember("emaki", api);
-            context.getBindings("js").putMember("args", request.arguments());
+            context.getBindings("js").putMember("args", request.namedArguments());
             context.eval(Source.newBuilder("js", source.content(), source.logicalPath()).buildLiteral());
             Value function = context.getBindings("js").getMember(functionName);
             if (function == null || !function.canExecute()) {
                 return ScriptExecutionResult.failure("Function not found: " + functionName + " in " + source.logicalPath());
             }
-            Value value = function.execute(request.actionContext());
+            Value value = function.execute(request.arguments().toArray(Object[]::new));
             ScriptExecutionResult result = mapReturnValue(value);
             if (config.debug().logScriptExecute()) {
                 log("Executed script " + source.logicalPath() + "#" + functionName + " in " + ((System.nanoTime() - start) / 1_000_000D) + " ms.");
@@ -180,22 +213,56 @@ public final class GraalJavaScriptService implements JavaScriptService {
         if (value.hasMembers()) {
             boolean success = !value.hasMember("success") || asBoolean(value.getMember("success"), true);
             boolean skipped = value.hasMember("skipped") && asBoolean(value.getMember("skipped"), false);
-            String message = value.hasMember("message") ? Texts.toStringSafe(value.getMember("message").as(Object.class)) : "";
+            String message = value.hasMember("message") ? Texts.toStringSafe(detachValue(value.getMember("message"))) : "";
             Map<String, Object> output = new LinkedHashMap<>();
             if (value.hasMember("output") && value.getMember("output").hasMembers()) {
                 Value rawOutput = value.getMember("output");
                 for (String key : rawOutput.getMemberKeys()) {
-                    output.put(key, rawOutput.getMember(key).as(Object.class));
+                    output.put(key, detachValue(rawOutput.getMember(key)));
                 }
             }
             if (skipped) {
                 return ScriptExecutionResult.skipped(message);
             }
             return success
-                    ? ScriptExecutionResult.success(value.as(Object.class), message, output)
+                    ? ScriptExecutionResult.success(detachValue(value), message, output)
                     : ScriptExecutionResult.failure(Texts.isBlank(message) ? "Script returned failure." : message);
         }
-        return ScriptExecutionResult.success(value.as(Object.class), "");
+        return ScriptExecutionResult.success(detachValue(value), "");
+    }
+
+    private Object detachValue(Value value) {
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        if (value.isHostObject()) {
+            return value.asHostObject();
+        }
+        if (value.hasArrayElements()) {
+            List<Object> result = new ArrayList<>();
+            long size = value.getArraySize();
+            for (long index = 0; index < size; index++) {
+                result.add(detachValue(value.getArrayElement(index)));
+            }
+            return Collections.unmodifiableList(result);
+        }
+        if (value.hasMembers()) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            for (String key : value.getMemberKeys()) {
+                result.put(key, detachValue(value.getMember(key)));
+            }
+            return Collections.unmodifiableMap(result);
+        }
+        if (value.isString()) {
+            return value.asString();
+        }
+        if (value.isBoolean()) {
+            return value.asBoolean();
+        }
+        if (value.isNumber()) {
+            return value.as(Object.class);
+        }
+        return Texts.toStringSafe(value.as(Object.class));
     }
 
     private boolean asBoolean(Value value, boolean fallback) {

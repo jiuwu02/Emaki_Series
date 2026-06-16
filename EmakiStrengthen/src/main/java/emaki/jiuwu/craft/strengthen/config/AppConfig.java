@@ -21,7 +21,7 @@ public final class AppConfig extends BaseAppConfig {
             List<Integer> localBroadcastStars,
             List<Integer> globalBroadcastStars,
             Map<Integer, Double> successRates) {
-        super(language, configVersion, "3.3.0");
+        super(language, configVersion, "4.2.9");
         this.localBroadcastRadius = Math.max(1, localBroadcastRadius);
         this.localBroadcastStars = toStarSet(localBroadcastStars);
         this.globalBroadcastStars = toStarSet(globalBroadcastStars);
@@ -42,7 +42,7 @@ public final class AppConfig extends BaseAppConfig {
         defaults.put(10, 14D);
         defaults.put(11, 8D);
         defaults.put(12, 4D);
-        return new AppConfig("zh_CN", "3.3.0", 48, List.of(8), List.of(10, 12), defaults);
+        return new AppConfig("zh_CN", "4.2.9", 48, List.of(8), List.of(10, 12), defaults);
     }
 
     public int localBroadcastRadius() {

@@ -1,18 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
-import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, MiniText, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor } from './components';
+import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, type ActionEntry } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
+import { isConcretePath, isGlobPath, resolveSurfaceDocumentPath } from './documentPaths';
 import { t, getLocale } from './i18n';
 import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
 import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
-import { getSourceDocumentAdapter, isKind, type SurfaceToolbarState } from './registry';
+import { getSourceDocumentAdapter, isKind, type SurfaceOutlineState, type SurfaceToolbarState } from './registry';
 import { fileDisplayTitle } from './lib';
 import { CORE_ITEM_FIELD_TYPE_SET, standardDisplayActionFields } from './itemFieldKit';
+import { getEffectTypeDefinition } from './effectTypeRegistry';
 import { getItemFieldRenderer, getItemPreviewFallback } from './itemFieldRegistry';
 import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
-type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void; setToolbar?: (state: SurfaceToolbarState | null) => void; showLocalChrome?: boolean };
+type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void; setToolbar?: (state: SurfaceToolbarState | null) => void; setOutline?: (state: SurfaceOutlineState) => void; showLocalChrome?: boolean };
 type PreviewError = { message: string; detail?: string };
 type SnapshotHistory = { undo: AnyMap[]; redo: AnyMap[] };
 const DEFAULT_BASE_NAME = t('core.item.defaultBaseName');
@@ -27,15 +29,21 @@ const EditorContext = React.createContext<{
   economyProviders: string[];
 }>({ moduleId: '', editorFields: {}, changedPaths: new Set(), economyProviders: DEFAULT_ECONOMY_PROVIDERS });
 
-export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload, setToolbar, showLocalChrome = true }: Props) {
+export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload, setToolbar, setOutline, showLocalChrome = true }: Props) {
   const [data, setData] = useState<AnyMap>({});
   const [originalData, setOriginalData] = useState<AnyMap>({});
   const [originalContent, setOriginalContent] = useState('');
+  const [revision, setRevision] = useState<number | undefined>(undefined);
   const [preview, setPreview] = useState<ItemPreviewResult | null>(null);
   const [previewLevel, setPreviewLevel] = useState(1);
   const [previewPending, setPreviewPending] = useState(false);
   const [previewError, setPreviewError] = useState<PreviewError | null>(null);
+  const [layerPreview, setLayerPreview] = useState<AnyMap | null>(null);
+  const [layerPreviewPending, setLayerPreviewPending] = useState(false);
+  const [layerPreviewError, setLayerPreviewError] = useState<string | null>(null);
+  const [layerOptions, setLayerOptions] = useState<AnyMap>({});
   const previewRequestId = useRef(0);
+  const layerPreviewRequestId = useRef(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,15 +55,16 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
   const [economyProviders, setEconomyProviders] = useState<string[]>(DEFAULT_ECONOMY_PROVIDERS);
 
-  const filePath = childPath || file.path;
+  const filePath = useMemo(() => resolveSurfaceFilePath(file, childPath), [file, childPath]);
   const fileTitle = fileDisplayTitle(file);
   const baseName = editor?.baseName ?? DEFAULT_BASE_NAME;
   const baseLore = useMemo(() => editor?.baseLore ?? [DEFAULT_BASE_LORE], [editor?.baseLore]);
   const sections = useMemo(() => editor?.sections?.length ? editor.sections : defaultSections(), [editor]);
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
-  const sourcePath = childPath || file.path;
-  const sourceContext = useMemo(() => ({ module, file, childPath, path: sourcePath, editor }), [module, file, childPath, sourcePath, editor?.id]);
+  const itemLikeKind = isKind(file.kind, 'ITEM') || isKind(file.kind, 'GEM');
+  const resolvedChildPath = childPath && isConcretePath(childPath) ? childPath : (isGlobPath(file.path) && isConcretePath(filePath) ? filePath : undefined);
+  const sourceContext = useMemo(() => ({ module, file, childPath: resolvedChildPath, path: filePath, editor }), [module, file, resolvedChildPath, filePath, editor?.id]);
   const draftContent = useMemo(() => sourceError ? sourceText : serializeItemYaml(data), [sourceError, sourceText, data]);
   const sourceContent = draftContent;
   const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
@@ -71,15 +80,24 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => {
     let cancelled = false;
+    if (!filePath || isGlobPath(filePath)) {
+      setLoading(false);
+      setError(t('core.empty.selectFile'));
+      return;
+    }
     setLoading(true);
     setError(null);
-    api.readTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }).then(doc => {
+    const readDocument = sourceAdapter
+      ? sourceAdapter.read(api, sourceContext)
+      : api.readTextDocument({ kind: file.kind, moduleId: module.id, path: filePath });
+    readDocument.then(doc => {
       if (cancelled) return;
       try {
         const parsed = parseYaml(doc.content) as AnyMap;
         setData(parsed);
         setOriginalData(parsed);
         setOriginalContent(doc.content);
+        setRevision(doc.revision);
         setSourceText(doc.content);
         setSourceError(null);
       } catch (err) {
@@ -87,6 +105,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
         setData({});
         setOriginalData({});
         setOriginalContent(doc.content);
+        setRevision(doc.revision);
         setSourceText(doc.content);
         setSourceError(message);
         void api.reportFrontendError({ message, source: 'item-yaml-parse', detail: `${module.id}/${filePath}` });
@@ -99,7 +118,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [api, module.id, filePath, refreshKey]);
+  }, [api, module.id, file.kind, filePath, refreshKey, sourceAdapter, sourceContext]);
 
   useEffect(() => {
     api.actionTypes().then(setActionTypesResult).catch(err => void api.reportFrontendError({ message: err instanceof Error ? err.message : String(err), source: 'item-action-types', detail: module.id }));
@@ -108,7 +127,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => {
     if (loading) return;
-    if (!isKind(file.kind, 'ITEM')) {
+    if (!itemLikeKind) {
       previewRequestId.current += 1;
       setPreview(null);
       setPreviewPending(false);
@@ -123,14 +142,15 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setPreviewError(null);
     setPreviewPending(true);
     let active = true;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      api.previewItem(content, requestedLevel, baseName, previewBaseLore)
+      api.previewItem(content, requestedLevel, baseName, previewBaseLore, { signal: controller.signal })
         .then(nextPreview => {
           if (!active || previewRequestId.current !== requestId) return;
           setPreview(nextPreview);
         })
         .catch(err => {
-          if (!active || previewRequestId.current !== requestId) return;
+          if (!active || previewRequestId.current !== requestId || isAbortError(err)) return;
           setPreviewError(previewErrorFromUnknown(err));
           setPreview(localItemPreview(module.id, editor?.id, file.kind, data, requestedLevel, baseName, previewBaseLore));
         })
@@ -138,8 +158,8 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
           if (active && previewRequestId.current === requestId) setPreviewPending(false);
         });
     }, 300);
-    return () => { active = false; window.clearTimeout(timer); };
-  }, [api, data, sourceContent, previewLevel, loading, baseName, baseLore, file.kind]);
+    return () => { active = false; window.clearTimeout(timer); controller.abort(); };
+  }, [api, data, sourceContent, previewLevel, loading, baseName, baseLore, file.kind, itemLikeKind]);
 
   useEffect(() => {
     const levels = configuredPreviewLevels(data, preview);
@@ -149,6 +169,41 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     }
     if (!levels.includes(previewLevel)) setPreviewLevel(levels[0]);
   }, [data, preview, previewLevel]);
+
+  useEffect(() => {
+    const previewConfig = asRecord(editor?.preview);
+    const layeredRoute = textValue(previewConfig.layeredRoute);
+    if (loading || !itemLikeKind || !layeredRoute) {
+      layerPreviewRequestId.current += 1;
+      setLayerPreview(null);
+      setLayerPreviewPending(false);
+      setLayerPreviewError(null);
+      return;
+    }
+    const layeredModule = textValue(previewConfig.layeredModule || module.id);
+    const requestId = layerPreviewRequestId.current + 1;
+    layerPreviewRequestId.current = requestId;
+    setLayerPreviewPending(true);
+    setLayerPreviewError(null);
+    let active = true;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      api.pluginApi(layeredModule, layeredRoute, { content: sourceContent, itemId: textValue(data.id), path: filePath, layers: layerOptions }, { signal: controller.signal })
+        .then(result => {
+          if (!active || layerPreviewRequestId.current !== requestId) return;
+          setLayerPreview(compactLayerPreview(result));
+        })
+        .catch(err => {
+          if (!active || layerPreviewRequestId.current !== requestId || isAbortError(err)) return;
+          setLayerPreview(null);
+          setLayerPreviewError(err instanceof Error ? err.message : String(err));
+        })
+        .finally(() => {
+          if (active && layerPreviewRequestId.current === requestId) setLayerPreviewPending(false);
+        });
+    }, 350);
+    return () => { active = false; window.clearTimeout(timer); controller.abort(); };
+  }, [api, data, editor?.preview, file.kind, itemLikeKind, filePath, layerOptions, loading, module.id, sourceContent]);
 
   const setField = (path: string, value: unknown) => {
     setData(prev => {
@@ -204,8 +259,9 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setError(null);
     try {
       const content = sourceContent;
-      await (sourceAdapter?.save(api, sourceContext, content) ?? api.saveTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }, content));
+      const result = await (sourceAdapter?.save(api, sourceContext, content, revision) ?? api.saveTextDocument({ kind: file.kind, moduleId: module.id, path: filePath }, content, revision));
       setOriginalContent(content);
+      setRevision(result.revision ?? revision);
       setOriginalData(data);
       setSourceText(content);
       setHistory({ undo: [], redo: [] });
@@ -243,6 +299,18 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   useEffect(() => () => setToolbar?.(null), [setToolbar]);
 
+  useEffect(() => {
+    if (!setOutline) return;
+    setOutline({
+      title: localizedEditorTitle(editor, fileTitle ?? t('core.item.editorTitle')),
+      subtitle: `${module.id}/${filePath}`,
+      emptyText: t('core.outline.empty'),
+      items: sections.map((section, index) => itemSectionOutline(module.id, section, index, changedPaths))
+    });
+    return () => setOutline(null);
+  }, [setOutline, editor?.title, editor?.titleKey, fileTitle, module.id, filePath, sections, changedPaths]);
+
+  if (isGlobPath(filePath)) return <div className="ie-surface"><InlineError>{t('core.empty.selectFile')}</InlineError></div>;
   if (loading) return <div className="ie-surface"><div className="ie-loading" role="status"><div className="ie-skeleton" aria-label={t('core.item.loadingAria')}><div className="ie-skeleton-line" style={{ width: '60%' }} /><div className="ie-skeleton-line" style={{ width: '80%' }} /><div className="ie-skeleton-line" style={{ width: '45%' }} /><div className="ie-skeleton-line" style={{ width: '70%' }} /></div></div></div>;
   if (error && !data) return <div className="ie-surface"><InlineError>{error}</InlineError>{onReload && <Button size="sm" onClick={onReload}>{t('core.action.retry')}</Button>}</div>;
 
@@ -275,20 +343,27 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       <EditorContext.Provider value={editorContext}>
         <ChangedPathsProvider changedPaths={changedPaths}>
         <div className="ie-workbench">
-          <GenericPreviewPane moduleId={module.id} editor={editor} data={data} preview={preview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
+          <div className="ie-preview-stack">
+            <div className="ie-preview ie-preview-combined" role="complementary" aria-label={t('core.item.previewAria')}>
+              <GenericPreviewPane moduleId={module.id} fileKind={file.kind} editor={editor} data={data} preview={preview} layerPreview={layerPreview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
+              <LayeredPreviewPane preview={layerPreview} pending={layerPreviewPending} error={layerPreviewError} options={layerOptions} onOptionsChange={setLayerOptions} />
+              <RenameMigrationPane api={api} editor={editor} moduleId={module.id} currentId={textValue(data.id)} sourceError={sourceError} dirty={semanticDirty} onApplied={() => { setToast({ tone: 'ok', text: uiCopy('重命名迁移已应用', 'Rename migration applied') }); onReload?.(); }} />
+            </div>
+          </div>
           <div className="ie-props-scroll">
             <div className="ie-props">
-              {sections.map(section => (
-                <CollapsibleSection
-                  key={section.title}
-                  title={localizedSectionTitle(module.id, section)}
-                  comment={localizedSectionComment(module.id, section)}
-                  collapsible={section.collapsible ?? true}
-                  defaultCollapsed={editorSectionDefaultCollapsed(section, data)}
-                  storageKey={`core:item-section:${editor?.id ?? file.editorId ?? file.kind}:${section.title}`}
-                >
-                  {section.fields.map(field => <FieldEditor key={field.path} field={field} data={data} originalData={originalData} setField={setField} actionTypesResult={actionTypesResult} editorId={editor?.id ?? file.editorId} />)}
-                </CollapsibleSection>
+              {sections.map((section, sectionIndex) => (
+                <div className="ie-outline-anchor" data-config-node-path={itemSectionPath(section, sectionIndex)} key={section.title || sectionIndex}>
+                  <CollapsibleSection
+                    title={localizedSectionTitle(module.id, section)}
+                    comment={localizedSectionComment(module.id, section)}
+                    collapsible={section.collapsible ?? true}
+                    defaultCollapsed={editorSectionDefaultCollapsed(section, data)}
+                    storageKey={`core:item-section:${editor?.id ?? file.editorId ?? file.kind}:${section.title}`}
+                  >
+                    {section.fields.map(field => <div className="ie-outline-anchor" data-config-node-path={field.path} key={field.path}><FieldEditor field={field} data={data} originalData={originalData} setField={setField} actionTypesResult={actionTypesResult} editorId={editor?.id ?? file.editorId} /></div>)}
+                  </CollapsibleSection>
+                </div>
               ))}
             </div>
           </div>
@@ -297,6 +372,10 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       </EditorContext.Provider>
     </div>
   );
+}
+
+function resolveSurfaceFilePath(file: WebRegistryFile, childPath?: string): string {
+  return resolveSurfaceDocumentPath(file, childPath) ?? '';
 }
 
 function FieldEditor({ field, data, originalData, setField, actionTypesResult, editorId }: { field: WebEditorField; data: AnyMap; originalData: AnyMap; setField: (path: string, value: unknown) => void; actionTypesResult: ActionTypesResult | null; editorId?: string }) {
@@ -410,58 +489,140 @@ function TextInput({ id, value, onChange, placeholder }: { id?: string; value: u
   return <input id={id} type="text" value={textValue(value)} onChange={event => onChange(event.target.value)} placeholder={placeholder} />;
 }
 
-function KvTable({ entries, onChange, valuePlaceholder = t('core.kv.value'), addKeyPrefix = 'key' }: { entries: Array<{ key: string; value: unknown }>; onChange: (entries: Array<{ key: string; value: unknown }>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
-  const update = (index: number, field: 'key' | 'value', value: string) => {
-    const next = [...entries];
-    next[index] = field === 'key' ? { ...next[index], key: value } : { ...next[index], value: parseLooseScalar(value) };
-    onChange(next);
-  };
-  const remove = (index: number) => onChange(entries.filter((_, itemIndex) => itemIndex !== index));
-  const add = () => onChange([...entries, { key: nextUniqueKey(entries.map(entry => entry.key), addKeyPrefix), value: 0 }]);
-  return <div className="prop-kv" role="list" aria-label={t('core.kv.aria')}>
-    {entries.map((entry, index) => <div className="prop-kv-row" key={index} role="listitem">
-      <input type="text" value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder={t('core.kv.key')} aria-label={`${t('core.kv.key')} ${index + 1}`} />
-      <input type="text" value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={valuePlaceholder} aria-label={`${t('core.kv.value')} ${index + 1}`} />
-      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
-    </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ {t('core.kv.add')}</button>
-  </div>;
-}
-
-function MapEditor({ value, onChange, valuePlaceholder, addKeyPrefix }: { value: unknown; onChange: (value: Record<string, unknown>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
+function MapEditor({ value, onChange, valuePlaceholder, addKeyPrefix = 'key' }: { value: unknown; onChange: (value: Record<string, unknown>) => void; valuePlaceholder?: string; addKeyPrefix?: string }) {
   const entries = Object.entries(asRecord(value)).map(([key, entry]) => ({ key, value: entry }));
-  return <KvTable entries={entries} valuePlaceholder={valuePlaceholder} addKeyPrefix={addKeyPrefix} onChange={nextEntries => {
-    const next: AnyMap = {};
-    nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
-    onChange(next);
-  }} />;
-}
-
-function NumberListEditor({ items, onChange }: { items: number[]; onChange: (items: number[]) => void }) {
-  const update = (index: number, value: number | undefined) => onChange(items.map((item, itemIndex) => itemIndex === index ? value ?? 0 : item));
-  const remove = (index: number) => onChange(items.filter((_, itemIndex) => itemIndex !== index));
-  return <div className="prop-kv" role="list">
-    {items.map((item, index) => <div className="prop-kv-row prop-kv-row--single" key={index} role="listitem">
-      <input type="number" value={String(item)} onChange={event => update(index, event.target.value === '' ? undefined : Number(event.target.value))} aria-label={t('core.list.numberAria', { index: index + 1 })} />
-      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={t('core.config.deleteItem', { index: index + 1 })}>×</button>
-    </div>)}
-    <button type="button" className="prop-add" onClick={() => onChange([...items, 0])}>+ {t('core.config.addItem')}</button>
-  </div>;
+  return <KvTable
+    entries={entries}
+    valuePlaceholder={valuePlaceholder}
+    parseValue={parseLooseScalar}
+    createEntry={currentEntries => ({ key: nextUniqueKey(currentEntries.map(entry => entry.key), addKeyPrefix), value: 0 })}
+    onChange={nextEntries => {
+      const next: AnyMap = {};
+      nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
+      onChange(next);
+    }}
+  />;
 }
 
 function GenericObjectEditor({ value, reservedKeys, onChange }: { value: unknown; reservedKeys?: string[]; onChange: (value: AnyMap) => void }) {
   const reserved = new Set(reservedKeys ?? []);
   const entries = Object.entries(asRecord(value)).filter(([key]) => !reserved.has(key)).map(([key, entry]) => ({ key, value: entry }));
-  return <PropRow label="字段" wide><KvTable entries={entries} onChange={nextEntries => {
-    const next: AnyMap = {};
-    nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
-    onChange(next);
-  }} /></PropRow>;
+  return <PropRow label={uiCopy('字段', 'Fields')} wide><KvTable
+    entries={entries}
+    parseValue={parseLooseScalar}
+    createEntry={currentEntries => ({ key: nextUniqueKey(currentEntries.map(entry => entry.key), 'key'), value: 0 })}
+    onChange={nextEntries => {
+      const next: AnyMap = {};
+      nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
+      onChange(next);
+    }}
+  /></PropRow>;
 }
 
 function resolvePreviewBaseLore(data: AnyMap, fallback: string[]): string[] {
   const configuredLore = asStringList(data.lore);
   return configuredLore.length > 0 ? configuredLore : fallback;
+}
+
+function compactLayerPreview(value: unknown): AnyMap | null {
+  const preview = asRecord(value);
+  if (!Object.keys(preview).length) return null;
+  return cleanObject({
+    ok: preview.ok === true,
+    itemId: textValue(preview.itemId),
+    final: compactLayerItemPreview(preview.final),
+    setPreview: compactSetPreview(preview.setPreview),
+    layers: asList(preview.layers).map(compactLayerRow),
+    availableLayers: asStringList(preview.availableLayers),
+    warnings: asList(preview.warnings).map(asRecord)
+  });
+}
+
+function compactLayerRow(value: unknown): AnyMap {
+  const layer = asRecord(value);
+  return cleanObject({
+    id: textValue(layer.id),
+    available: layer.available === true,
+    reason: textValue(layer.reason),
+    status: textValue(layer.status),
+    enabled: layer.enabled !== false,
+    applied: layer.applied === true,
+    selected: asRecord(layer.selected),
+    options: compactLayerOptions(layer.id, layer.options),
+    preview: compactLayerItemPreview(layer.preview)
+  });
+}
+
+function compactLayerItemPreview(value: unknown): AnyMap {
+  const preview = asRecord(value);
+  return cleanObject({
+    id: textValue(preview.id),
+    available: preview.available === true,
+    reason: textValue(preview.reason),
+    displayName: textValue(preview.displayName),
+    lore: asStringList(preview.lore)
+  });
+}
+
+function compactSetPreview(value: unknown): AnyMap {
+  const preview = asRecord(value);
+  return cleanObject({
+    available: preview.available === true,
+    reason: textValue(preview.reason),
+    setId: textValue(preview.setId),
+    pieceId: textValue(preview.pieceId),
+    active: preview.active,
+    total: preview.total,
+    lore: asStringList(preview.lore)
+  });
+}
+
+function compactLayerOptions(layerId: unknown, value: unknown): AnyMap {
+  const options = asRecord(value);
+  const id = textValue(layerId).toLowerCase();
+  if (id === 'strengthen') return cleanObject({
+    recipeId: textValue(options.recipeId),
+    recipes: asList(options.recipes).map(entry => {
+      const recipe = asRecord(entry);
+      return cleanObject({ id: textValue(recipe.id), displayName: textValue(recipe.displayName) });
+    }),
+    currentStar: options.currentStar,
+    currentTemper: options.currentTemper,
+    selectedStar: options.selectedStar,
+    selectedTemper: options.selectedTemper,
+    maxStar: options.maxStar,
+    maxTemper: options.maxTemper,
+    stars: asList(options.stars).map(Number).filter(Number.isFinite)
+  });
+  if (id === 'gem') return cleanObject({
+    templateId: textValue(options.templateId),
+    selectedSlot: options.selectedSlot,
+    selectedGemId: textValue(options.selectedGemId),
+    selectedLevel: options.selectedLevel,
+    selectedInlay: options.selectedInlay,
+    slots: asList(options.slots).map(entry => {
+      const slot = asRecord(entry);
+      return cleanObject({ index: slot.index, type: textValue(slot.type), displayName: textValue(slot.displayName), opened: slot.opened === true, assigned: slot.assigned === true });
+    }),
+    gems: asList(options.gems).map(entry => {
+      const gem = asRecord(entry);
+      return cleanObject({
+        id: textValue(gem.id),
+        displayName: textValue(gem.displayName),
+        type: textValue(gem.type),
+        level: gem.level,
+        maxLevel: gem.maxLevel,
+        actionCount: gem.actionCount,
+        nameActionCount: gem.nameActionCount,
+        loreActionCount: gem.loreActionCount
+      });
+    })
+  });
+  return {};
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
 }
 
 function uiCopy(zh: string, en: string): string {
@@ -487,6 +648,23 @@ function localizedEditorTitle(editor: WebEditorDescriptor | undefined, fallback:
   return textValue(editor?.titleKey) ? t(textValue(editor?.titleKey), undefined, fallback) : textValue(editor?.title, fallback);
 }
 
+function itemSectionPath(section: WebEditorSection, index: number): string {
+  const raw = textValue((section as AnyMap).titleKey) || section.title || `section-${index + 1}`;
+  return `section:${raw}`;
+}
+
+function itemSectionOutline(moduleId: string, section: WebEditorSection, index: number, changedPaths: Set<string>) {
+  const changedCount = section.fields.reduce((count, field) => count + (isChangedFieldPath(field.path, changedPaths) ? 1 : 0), 0);
+  return {
+    path: itemSectionPath(section, index),
+    label: localizedSectionTitle(moduleId, section),
+    type: 'section',
+    childCount: section.fields.length,
+    changedCount,
+    changed: changedCount > 0
+  };
+}
+
 function localizedSectionTitle(moduleId: string, section: WebEditorSection): string {
   const key = textValue((section as AnyMap).titleKey);
   return key ? t(key, undefined, section.title) : fieldLabel(section.title, { moduleId, namespace: moduleId, fallback: section.title });
@@ -502,51 +680,353 @@ function localItemPreview(moduleId: string, editorId: string | undefined, kind: 
   const pluginFallback = getItemPreviewFallback(moduleId, editorId, kind);
   const pluginPreview = pluginFallback?.({ data, previewLevel, baseName, baseLore, moduleId, editorId, kind });
   if (pluginPreview) return pluginPreview;
-  const displayName = textValue(data.display_name ?? data.item_name ?? data.id, baseName);
-  const lore = resolvePreviewBaseLore(data, baseLore);
+  const variables = asRecord(data.variables);
+  const displayName = renderLocalTemplate(textValue(data.display_name ?? data.item_name ?? data.id, baseName), variables);
+  const lore = resolvePreviewBaseLore(data, baseLore).map(line => renderLocalTemplate(line, variables));
+  const textPreview = applyLocalDisplayActions(displayName, lore, collectDisplayActions(data, 'name_actions', 'name_action', 'name_action', previewLevel), collectDisplayActions(data, 'lore_actions', 'lore_action', 'lore_action', previewLevel), variables);
   const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
   return {
     kind: 'generic_item',
     id: textValue(data.id),
     material,
-    baseName,
-    baseLore,
-    displayName,
-    lore,
-    variables: asRecord(data.variables),
-    nameSteps: [],
-    loreSteps: [],
+    baseName: displayName,
+    baseLore: lore,
+    displayName: textPreview.name,
+    lore: textPreview.lore,
+    variables,
+    nameSteps: textPreview.nameSteps,
+    loreSteps: textPreview.loreSteps,
     level: undefined,
     levels: []
   };
 }
 
-function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; previewPending: boolean; previewError: PreviewError | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
+function collectDisplayActions(data: AnyMap, topKey: string, effectType: string, effectKey: string, previewLevel: number): ActionEntry[] {
+  const actions: ActionEntry[] = [];
+  actions.push(...parseActionList(data[topKey]));
+  for (const effect of collectPreviewEffectRows(data, previewLevel)) {
+    const row = asRecord(effect);
+    if (textValue(row.type).toLowerCase() !== effectType) continue;
+    actions.push(...parseActionList(row[topKey]));
+    actions.push(...parseActionList(row[effectKey]));
+  }
+  return actions;
+}
+
+function collectPreviewEffectRows(data: AnyMap, previewLevel: number): AnyMap[] {
+  const effects: AnyMap[] = [];
+  const addEffects = (value: unknown) => effects.push(...asList(value).map(asRecord));
+  addEffects(data.effects);
+
+  const upgradeLevels = asRecord(asRecord(data.upgrade).levels);
+  const requestedLevel = asRecord(upgradeLevels[String(previewLevel)]);
+  if (Object.keys(requestedLevel).length) addEffects(requestedLevel.effects);
+
+  const starStages = asRecord(data.stars);
+  const requestedStar = asRecord(starStages[String(previewLevel)]);
+  if (Object.keys(requestedStar).length) addEffects(requestedStar.effects);
+
+  const branchTree = asRecord(data.branch_tree);
+  const branchRootStar = asRecord(asRecord(branchTree.stars)[String(previewLevel)]);
+  if (Object.keys(branchRootStar).length) addEffects(branchRootStar.effects);
+
+  collectNestedDisplayEffects(data, effects, new Set(['effects', 'upgrade', 'stars', 'branch_tree']), 0);
+  return effects;
+}
+
+function collectNestedDisplayEffects(value: unknown, output: AnyMap[], skippedRootKeys: Set<string>, depth: number) {
+  if (depth > 6) return;
+  if (Array.isArray(value)) {
+    value.forEach(entry => collectNestedDisplayEffects(entry, output, new Set(), depth + 1));
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (depth === 0 && skippedRootKeys.has(key)) continue;
+    if (key === 'effects') output.push(...asList(entry).map(asRecord));
+    else collectNestedDisplayEffects(entry, output, new Set(), depth + 1);
+  }
+}
+
+function applyLocalDisplayActions(baseName: string, baseLore: string[], nameActions: ActionEntry[], loreActions: ActionEntry[], variables: AnyMap): { name: string; lore: string[]; nameSteps: ItemPreviewResult['nameSteps']; loreSteps: ItemPreviewResult['loreSteps'] } {
+  let name = baseName;
+  const nameSteps: ItemPreviewResult['nameSteps'] = [];
+  for (const action of nameActions) {
+    const before = name;
+    const value = localActionValue(action, variables);
+    if (action.type === 'replace') name = value;
+    else if (action.type === 'prepend_prefix') name = `${value}${name}`;
+    else if (action.type === 'append_suffix') name = `${name}${value}`;
+    else if (action.type === 'replace_text' || action.type === 'replace_text_all') {
+      const anchor = localActionAnchor(action, variables);
+      const replacement = renderLocalTemplate(firstActionText(action.params, ['replacement', 'value', 'content', 'text']), variables);
+      if (anchor) name = action.type === 'replace_text_all' ? name.split(anchor).join(replacement) : name.replace(anchor, replacement);
+    } else if (action.type === 'regex_replace') name = localRegexReplace(name, actionTextValue(action.params.regex_pattern), renderLocalTemplate(actionTextValue(action.params.replacement), variables));
+    nameSteps.push({ action: action.type, value, before, after: name, result: name });
+  }
+
+  const lore = [...baseLore];
+  const loreSteps: ItemPreviewResult['loreSteps'] = [];
+  for (const action of loreActions) {
+    const before = [...lore];
+    const content = localActionContent(action, variables);
+    const anchor = localActionAnchor(action, variables);
+    applyLocalLoreAction(lore, action, content, anchor, variables);
+    loreSteps.push({ action: action.type, anchor, content, before, after: [...lore] });
+  }
+  return { name, lore, nameSteps, loreSteps };
+}
+
+function localActionValue(action: ActionEntry, variables: AnyMap): string {
+  return renderLocalTemplate(firstActionText(action.params, ['value', 'content', 'text', 'template', 'name', 'replacement']), variables);
+}
+
+function localActionContent(action: ActionEntry, variables: AnyMap): string[] {
+  const lines = actionTextLines(action.params.content ?? action.params.lines ?? action.params.values ?? action.params.text ?? action.params.value);
+  return lines.filter(line => line.length > 0).map(line => renderLocalTemplate(line, variables));
+}
+
+function localActionAnchor(action: ActionEntry, variables: AnyMap): string {
+  return renderLocalTemplate(firstActionText(action.params, ['target_pattern', 'anchor', 'search', 'pattern']), variables);
+}
+
+function firstActionText(params: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(params, key)) {
+      const text = actionTextValue(params[key]);
+      if (text || params[key] != null) return text;
+    }
+  }
+  return '';
+}
+
+function actionTextLines(value: unknown): string[] {
+  if (value == null || value === '') return [];
+  if (Array.isArray(value)) return value.flatMap(actionTextLines);
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    for (const key of ['content', 'lines', 'values', 'candidates']) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return actionTextLines(record[key]);
+    }
+    for (const key of ['value', 'text', 'template', 'expression', 'formula']) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return actionTextLines(record[key]);
+    }
+    return [];
+  }
+  const text = textValue(value);
+  return text.includes('\n') ? text.split('\n') : [text];
+}
+
+function actionTextValue(value: unknown): string {
+  const scalar = textValue(value);
+  if (scalar || value == null) return scalar;
+  if (Array.isArray(value)) return actionTextLines(value).join('\n');
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    for (const key of ['value', 'text', 'template', 'expression', 'formula']) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return actionTextValue(record[key]);
+    }
+    for (const key of ['content', 'lines', 'values', 'candidates']) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return actionTextLines(record[key]).join('\n');
+    }
+  }
+  return String(value);
+}
+
+function applyLocalLoreAction(lore: string[], action: ActionEntry, content: string[], anchor: string, variables: AnyMap) {
+  switch (action.type) {
+    case 'prepend':
+      lore.unshift(...content);
+      break;
+    case 'insert_above':
+    case 'search_insert_above':
+      lore.splice(findLocalLoreIndex(lore, anchor, false), 0, ...content);
+      break;
+    case 'insert_below':
+    case 'search_insert_below':
+    case 'search_insert':
+      lore.splice(findLocalLoreIndex(lore, anchor, true), 0, ...content);
+      break;
+    case 'replace_line': {
+      const index = lore.findIndex(line => anchor && line.includes(anchor));
+      if (index >= 0) lore.splice(index, 1, content[0] ?? '');
+      break;
+    }
+    case 'replace_text':
+    case 'replace_text_all': {
+      if (!anchor) break;
+      const replacement = content[0] ?? '';
+      const replaceAll = action.type === 'replace_text_all';
+      for (let i = 0; i < lore.length; i += 1) {
+        if (lore[i].includes(anchor)) {
+          lore[i] = replaceAll ? lore[i].split(anchor).join(replacement) : lore[i].replace(anchor, replacement);
+          if (!replaceAll) break;
+        }
+      }
+      break;
+    }
+    case 'delete_line':
+      for (let i = lore.length - 1; i >= 0; i -= 1) if (anchor && lore[i].includes(anchor)) lore.splice(i, 1);
+      break;
+    case 'regex_replace':
+      for (let i = 0; i < lore.length; i += 1) lore[i] = localRegexReplace(lore[i], actionTextValue(action.params.regex_pattern), renderLocalTemplate(actionTextValue(action.params.replacement), variables));
+      break;
+    case 'append':
+    default:
+      lore.push(...content);
+      break;
+  }
+}
+
+function findLocalLoreIndex(lore: string[], anchor: string, below: boolean): number {
+  if (!anchor) return below ? lore.length : 0;
+  const index = lore.findIndex(line => line.includes(anchor));
+  return index < 0 ? lore.length : index + (below ? 1 : 0);
+}
+
+function localRegexReplace(value: string, pattern: string, replacement: string): string {
+  if (!pattern) return value;
+  try { return value.replace(new RegExp(pattern, 'g'), replacement); } catch { return value; }
+}
+
+function renderLocalTemplate(value: string, variables: AnyMap): string {
+  return textValue(value).replace(/\{([^{}]+)\}/g, (_, key) => textValue(variables[textValue(key).trim()], `{${key}}`));
+}
+
+type TooltipSection = { title: string; lines: string[] };
+type SetDraftPreview = { id: string; name: string; lore: string[]; pieces: number; thresholds: number; active: number };
+
+function isSetEditor(fileKind: string | undefined, editor?: WebEditorDescriptor): boolean {
+  return textValue(fileKind).toUpperCase() === 'SET' || textValue(editor?.id).toLowerCase().includes(':set');
+}
+
+function buildSetDraftPreview(data: AnyMap): SetDraftPreview {
+  const pieces = Object.entries(asRecord(data.pieces)).map(([key, value]) => ({ key, value: asRecord(value) }));
+  const thresholds = Object.entries(asRecord(data.thresholds)).map(([key, value]) => ({ key, value: asRecord(value) })).sort((left, right) => Number(left.key) - Number(right.key));
+  const active = pieces.length ? 1 : 0;
+  const loreConfig = asRecord(data.lore);
+  const id = textValue(data.id, 'set');
+  const name = textValue(data.display_name, id);
+  const base = { set_id: id, set_name: name, active: String(active), total: String(pieces.length) };
+  const lore: string[] = [];
+  addOptionalLine(lore, replaceSetTemplate(textValue(loreConfig.header, '<dark_gray>—— %set_name% <gray>(%active%/%total%)</gray> ——</dark_gray>'), base));
+  for (const piece of pieces) {
+    const pieceId = textValue(piece.key);
+    const equipped = pieces.indexOf(piece) < active;
+    const display = textValue(piece.value.display || piece.value.item || pieceId, pieceId);
+    const row = { ...base, piece: display, piece_id: pieceId, slot: textValue(piece.value.slot) };
+    addOptionalLine(lore, replaceSetTemplate(textValue(equipped ? loreConfig.equipped_format : loreConfig.missing_format, equipped ? '<green>✔ %piece%</green>' : '<gray>✘ %piece%</gray>'), row));
+  }
+  const separator = textValue(loreConfig.separator);
+  if (separator) lore.push(separator);
+  for (const threshold of thresholds) {
+    const required = Math.max(1, Number(threshold.key) || 1);
+    const isActive = active >= required;
+    const lines = asStringList(threshold.value.lore);
+    const format = textValue(isActive ? loreConfig.active_threshold_format : loreConfig.inactive_threshold_format, isActive ? '<green>%line%</green>' : '<dark_gray>%line%</dark_gray>');
+    for (const line of lines) addOptionalLine(lore, replaceSetTemplate(format, { ...base, threshold: String(required), line }));
+  }
+  return {
+    id,
+    name,
+    lore,
+    pieces: pieces.length,
+    thresholds: thresholds.length,
+    active
+  };
+}
+
+function SetPreviewSummary({ preview }: { preview: SetDraftPreview | null }) {
+  return <div className="ie-preview-summary-grid" aria-label={uiCopy('套装摘要', 'Set summary')}>
+    <div className="ie-preview-stat"><strong>{preview?.pieces ?? 0}</strong><span>{uiCopy('部件', 'Pieces')}</span></div>
+    <div className="ie-preview-stat"><strong>{preview?.thresholds ?? 0}</strong><span>{uiCopy('阈值', 'Thresholds')}</span></div>
+    <div className="ie-preview-stat"><strong>{preview?.active ?? 0}</strong><span>{uiCopy('预览已装备', 'Active')}</span></div>
+  </div>;
+}
+
+function addOptionalLine(lines: string[], line: string) {
+  if (line !== '') lines.push(line);
+}
+
+function replaceSetTemplate(template: string, values: Record<string, string>): string {
+  let result = template;
+  for (const [key, rawValue] of Object.entries(values)) {
+    const value = rawValue ?? '';
+    result = result.split(`%${key}%`).join(value).split(`{${key}}`).join(value);
+  }
+  return result;
+}
+
+function buildPreviewEffectSections(preview: ItemPreviewResult | null, moduleId: string): TooltipSection[] {
+  const lines = summarizeEffectList(asList(preview?.effects).map(asRecord), moduleId);
+  return lines.length ? [{ title: uiCopy('效果', 'Effects'), lines }] : [];
+}
+
+function summarizeEffectList(effects: AnyMap[], moduleId: string): string[] {
+  return effects.flatMap(effect => {
+    const type = textValue(effect.type);
+    if (!type) return [];
+    const definition = getEffectTypeDefinition(moduleId, type);
+    const fields = definition?.fields?.length ? definition.fields.map(field => field.key) : Object.keys(effect).filter(key => key !== 'type' && key !== 'source');
+    const payload = asRecord(effect.payload);
+    const parts = fields.flatMap(key => {
+      const value = effect[key] ?? payload[key];
+      if (!hasPreviewValue(value)) return [];
+      return [`${fieldLabel(key, { moduleId, namespace: moduleId, fallback: humanizeFieldLabel(key) })} ${previewValue(value)}`];
+    });
+    return [`${effectLabel(type, moduleId)}${parts.length ? `: ${parts.join(' · ')}` : ''}`];
+  });
+}
+
+function effectLabel(type: string, moduleId: string): string {
+  const definition = getEffectTypeDefinition(moduleId, type);
+  return optionLabel('effect', type, { moduleId, namespace: moduleId, fallback: definition?.label ?? humanizeFieldLabel(type) });
+}
+
+function hasPreviewValue(value: unknown): boolean {
+  if (value == null || value === '') return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value as Record<string, unknown>).length > 0;
+  return true;
+}
+
+function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPreview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; fileKind?: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; layerPreview: AnyMap | null; previewPending: boolean; previewError: PreviewError | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
+  const isSetPreview = isSetEditor(fileKind, editor);
+  const setDraftPreview = isSetPreview ? buildSetDraftPreview(data) : null;
   const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
   const material = materialFromItemSource(source || data.material || preview?.material);
   const levels = configuredPreviewLevels(data, preview);
-  const hasLevels = levels.length > 0;
+  const hasLevels = !isSetPreview && levels.length > 0;
   const [, refreshTextureOrder] = useState(0);
-  const urls = materialUrls(material);
+  const urls = isSetPreview ? [] : materialUrls(material);
   const [imgFailed, setImgFailed] = useState(false);
   const previewResultLevel = Number(preview?.level);
   const previewMatchesLevel = !hasLevels || !Number.isFinite(previewResultLevel) || previewResultLevel === previewLevel;
   const livePreview = previewMatchesLevel ? preview : null;
-  const resultName = textValue(livePreview?.displayName);
-  const resultLore = livePreview ? asStringList(livePreview.lore) : [];
-  const status = previewError ? { tone: 'failed' as const, text: t('core.item.preview.failedTitle') } : previewStatus(livePreview, previewPending);
+  const finalPreview = asRecord(layerPreview?.final);
+  const finalName = textValue(finalPreview.displayName);
+  const finalLore = asStringList(finalPreview.lore);
+  const setLayerPreview = asRecord(layerPreview?.setPreview);
+  const resultName = setDraftPreview?.name ?? (finalName || textValue(livePreview?.displayName));
+  const resultLore = setDraftPreview?.lore ?? (finalLore.length ? finalLore : livePreview ? asStringList(livePreview.lore) : []);
+  const previewConfig = asRecord(editor?.preview);
+  const showEffectSummary = previewConfig.showEffectSummary === true;
+  const effectSections = setDraftPreview || !showEffectSummary ? [] : buildPreviewEffectSections(livePreview, moduleId);
+  const setSection = !isSetPreview && setLayerPreview.available && !finalLore.length ? [{ title: uiCopy('套装 Lore', 'Set Lore'), lines: asStringList(setLayerPreview.lore) }] : [];
+  const status = isSetPreview ? { tone: 'live' as const, text: uiCopy('草稿预览', 'Draft preview') } : previewError ? { tone: 'failed' as const, text: t('core.item.preview.failedTitle') } : previewStatus(livePreview, previewPending);
   useEffect(() => setImgFailed(false), [material]);
   useEffect(() => subscribeTextureBases(() => { setImgFailed(false); refreshTextureOrder((version) => version + 1); }), []);
 
   return (
-    <div className="ie-preview" role="complementary" aria-label={t('core.item.previewAria')}>
-      <div className="ie-preview-icon">
+    <section className={`ie-preview-section ie-preview-primary${isSetPreview ? ' ie-preview--set' : ''}`} aria-label={t('core.item.previewAria')}>
+      {isSetPreview ? <SetPreviewSummary preview={setDraftPreview} /> : <div className="ie-preview-icon">
         {urls.length > 0 && !imgFailed ? <img src={urls[0]} alt={material || t('core.item.iconAlt')} onError={e => { const target = e.currentTarget; const next = urls[urls.indexOf(target.src) + 1]; if (next) target.src = next; else setImgFailed(true); }} /> : <span className="ie-preview-fallback">{materialShortName(material) || '?'}</span>}
-      </div>
+      </div>}
       <div className="ie-preview-meta">
-        <span className="ie-preview-kind">{previewKindLabel(livePreview, moduleId, editor)}</span>
-        {Boolean(livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(livePreview?.id ?? data.id)}</code>}
-        <span className="ie-preview-source">{displaySource(source || material)}</span>
+        <span className="ie-preview-kind">{setDraftPreview ? uiCopy('套装预览', 'Set preview') : previewKindLabel(livePreview, moduleId, editor)}</span>
+        {Boolean(setDraftPreview?.id || livePreview?.id || data.id) && <code className="ie-preview-id">{textValue(setDraftPreview?.id ?? livePreview?.id ?? data.id)}</code>}
+        {!isSetPreview && <span className="ie-preview-source">{displaySource(source || material)}</span>}
+        {!isSetPreview && Boolean(setLayerPreview.setId) && <span className="ie-preview-source">{uiCopy('套装', 'Set')}: {textValue(setLayerPreview.setId)} / {textValue(setLayerPreview.pieceId)}</span>}
         <span className={`ie-preview-status ${status.tone}`}>{status.text}</span>
       </div>
       {previewError && <InlineError className="ie-preview-error">
@@ -565,19 +1045,288 @@ function GenericPreviewPane({ moduleId, editor, data, preview, previewPending, p
         <p className="ie-level-hint">{t('core.item.preview.levelHint')}</p>
       </div>}
       <div className="ie-preview-compare">
-        <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
+        <PreviewTooltipBlock title={uiCopy('最终预览', 'Final preview')} name={resultName} lore={resultLore} sections={[...setSection, ...effectSections]} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
       </div>
-    </div>
+    </section>
   );
 }
 
-function PreviewTooltipBlock({ title, name, lore, emptyText, refreshing }: { title: string; name: string; lore: string[]; emptyText: string; refreshing?: boolean }) {
+function RenameMigrationPane({ api, editor, moduleId, currentId, sourceError, dirty, onApplied }: { api: ApiClient; editor?: WebEditorDescriptor; moduleId: string; currentId: string; sourceError: string | null; dirty: boolean; onApplied: () => void }) {
+  const config = asRecord(editor?.rename);
+  const previewRoute = textValue(config.previewRoute);
+  const applyRoute = textValue(config.applyRoute);
+  const apiModule = textValue(config.module || config.moduleId || 'item');
+  const [newId, setNewId] = useState('');
+  const [mode, setMode] = useState('replace_and_alias');
+  const [preview, setPreview] = useState<AnyMap | null>(null);
+  const [pending, setPending] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const disabledReason = sourceError ? uiCopy('当前 YAML 解析失败，请先修复。', 'The current YAML failed to parse. Fix it first.') : dirty ? uiCopy('当前文件有未保存改动，请先保存。', 'The current file has unsaved changes. Save it first.') : '';
+  const normalizedNewId = newId.trim();
+
+  useEffect(() => {
+    setNewId('');
+    setPreview(null);
+    setError(null);
+  }, [currentId]);
+
+  if (!previewRoute || !applyRoute || !currentId) return null;
+
+  const runPreview = async () => {
+    if (!normalizedNewId || disabledReason) return;
+    setPending(true);
+    setError(null);
+    try {
+      const result = await api.pluginApi(apiModule, previewRoute, { oldId: currentId, newId: normalizedNewId });
+      setPreview(asRecord(result));
+    } catch (err) {
+      setPreview(null);
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const apply = async () => {
+    if (!preview || !normalizedNewId || disabledReason) return;
+    setApplying(true);
+    setError(null);
+    try {
+      await api.pluginApi(apiModule, applyRoute, {
+        oldId: currentId,
+        newId: normalizedNewId,
+        mode,
+        revisions: renameRevisionMap(preview, moduleId)
+      });
+      setPreview(null);
+      onApplied();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const files = asList(preview?.files).map(asRecord);
+  const replacementCount = Number(preview?.replacementCount ?? 0);
+  const newExists = preview ? Boolean(preview.newExists) : false;
+  const aliasExists = preview ? Boolean(preview.aliasExists) : false;
+  const canApply = Boolean(preview && normalizedNewId && !disabledReason && (newExists || mode === 'alias_only'));
+
+  return <section className="ie-preview-section ie-rename-pane" aria-label={uiCopy('物品 ID 重命名迁移', 'Item ID rename migration')}>
+    <div className="ie-preview-meta">
+      <span className="ie-preview-kind">{uiCopy('ID 重命名迁移', 'ID rename migration')}</span>
+      <code className="ie-preview-id">{currentId}</code>
+      <span className={`ie-preview-status ${pending || applying ? 'syncing' : error ? 'failed' : preview ? 'live' : 'syncing'}`}>{pending ? uiCopy('预览中', 'Previewing') : applying ? uiCopy('应用中', 'Applying') : error ? uiCopy('失败', 'Failed') : preview ? uiCopy('已预览', 'Preview ready') : uiCopy('待预览', 'Not previewed')}</span>
+    </div>
+    <div className="ie-rename-form">
+      <label>
+        <span>{uiCopy('新 ID', 'New ID')}</span>
+        <input value={newId} onChange={event => { setNewId(event.target.value); setPreview(null); }} placeholder="flame_sword" disabled={Boolean(disabledReason) || pending || applying} />
+      </label>
+      <label>
+        <span>{uiCopy('处理方式', 'Mode')}</span>
+        <select value={mode} onChange={event => setMode(event.target.value)} disabled={pending || applying}>
+          <option value="replace_and_alias">{uiCopy('替换引用并保留 alias', 'Replace references and keep alias')}</option>
+          <option value="replace_only">{uiCopy('仅替换引用', 'Replace references only')}</option>
+          <option value="alias_only">{uiCopy('仅保留 alias', 'Keep alias only')}</option>
+        </select>
+      </label>
+      {disabledReason && <MiniText value={disabledReason} />}
+      <div className="ie-rename-actions">
+        <Button size="sm" onClick={runPreview} disabled={!normalizedNewId || Boolean(disabledReason) || pending || applying}>{pending ? uiCopy('预览中…', 'Previewing…') : uiCopy('预览影响', 'Preview impact')}</Button>
+        <Button size="sm" variant="primary" onClick={apply} disabled={!canApply || applying}>{applying ? uiCopy('应用中…', 'Applying…') : uiCopy('应用迁移', 'Apply migration')}</Button>
+      </div>
+    </div>
+    {error && <InlineError className="ie-preview-error">{error}</InlineError>}
+    {preview && <div className="ie-rename-summary">
+      <div><strong>{replacementCount}</strong><span>{uiCopy('处引用将被替换', 'references will be replaced')}</span></div>
+      <div><strong>{files.length}</strong><span>{uiCopy('个文件受影响', 'files affected')}</span></div>
+      <div><strong>{newExists ? uiCopy('存在', 'Exists') : uiCopy('不存在', 'Missing')}</strong><span>{uiCopy('目标 ID', 'Target ID')}</span></div>
+      <div><strong>{aliasExists ? uiCopy('已存在', 'Already exists') : uiCopy('将创建', 'Will be created')}</strong><span>{uiCopy('旧 ID alias', 'Old ID alias')}</span></div>
+    </div>}
+    {preview && !newExists && mode !== 'alias_only' && <InlineError className="ie-preview-error">{uiCopy('目标物品 ID 尚不存在。请先保存新 ID 的物品定义，或改用“仅保留 alias”。', 'The target item ID does not exist yet. Save the item definition with the new ID first, or use “Keep alias only”.')}</InlineError>}
+    {files.length > 0 && <div className="ie-layer-list">
+      {files.slice(0, 8).map(file => <div className="ie-layer-row" key={`${textValue(file.moduleId)}:${textValue(file.path)}`}>
+        <div><strong>{textValue(file.moduleId)}</strong><p><code>{textValue(file.path)}</code></p></div>
+        <span className="ie-preview-status syncing">{uiCopy(`${Number(file.replacements ?? 0)} 处`, `${Number(file.replacements ?? 0)} refs`)}</span>
+      </div>)}
+      {files.length > 8 && <MiniText value={uiCopy(`另有 ${files.length - 8} 个文件未展开显示。`, `${files.length - 8} more files are hidden.`)} />}
+    </div>}
+  </section>;
+}
+
+function renameRevisionMap(preview: AnyMap, moduleId: string): Record<string, number> {
+  const revisions: Record<string, number> = {};
+  for (const file of asList(preview.files).map(asRecord)) {
+    const fileModule = textValue(file.moduleId);
+    const path = textValue(file.path);
+    const revision = Number(file.revision ?? 0);
+    if (fileModule && path && revision > 0) revisions[`${fileModule}:${path}`] = revision;
+  }
+  const aliasRevision = Number(preview.aliasRevision ?? 0);
+  if (aliasRevision > 0) revisions[`${moduleId}:id_aliases.yml`] = aliasRevision;
+  return revisions;
+}
+
+function LayeredPreviewPane({ preview, pending, error, options, onOptionsChange }: { preview: AnyMap | null; pending: boolean; error: string | null; options: AnyMap; onOptionsChange: (options: AnyMap) => void }) {
+  if (!preview && !pending && !error) return null;
+  const layers = asList(preview?.layers).map(asRecord);
+  const updateLayerOption = (layerId: string, key: string, value: unknown) => {
+    const current = asRecord(options[layerId]);
+    onOptionsChange({ ...options, [layerId]: { ...current, [key]: value } });
+  };
+  return <section className="ie-preview-section ie-layer-preview" aria-label={uiCopy('分层预览', 'Layered preview')}>
+    <div className="ie-preview-meta">
+      <span className="ie-preview-kind">{uiCopy('分层预览', 'Layered preview')}</span>
+      <span className={`ie-preview-status ${pending ? 'syncing' : error ? 'failed' : 'live'}`}>{pending ? uiCopy('同步中', 'Syncing') : error ? uiCopy('失败', 'Failed') : uiCopy('已同步', 'Synced')}</span>
+    </div>
+    {error && <InlineError className="ie-preview-error">{error}</InlineError>}
+    {layers.length > 0 && <div className="ie-layer-list">
+      {layers.map(layer => <LayerPreviewRow key={textValue(layer.id)} layer={layer} layerOptions={asRecord(options[textValue(layer.id)])} onOptionChange={updateLayerOption} />)}
+    </div>}
+  </section>;
+}
+
+function LayerPreviewRow({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const layerId = textValue(layer.id);
+  const reason = textValue(layer.reason || layer.message);
+  return <div className={`ie-layer-row ${layer.available ? '' : 'is-unavailable'}`}>
+    <div className="ie-layer-main">
+      <div className="ie-layer-heading"><strong>{layerLabel(layerId)}</strong><span className={`ie-preview-status ${layer.available ? 'live' : 'failed'}`}>{layer.available ? uiCopy('可用', 'Available') : uiCopy('不可用', 'Unavailable')}</span></div>
+      {reason && <p>{reason}</p>}
+      <LayerPreviewControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />
+    </div>
+  </div>;
+}
+
+function LayerPreviewControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const layerId = textValue(layer.id);
+  if (layerId === 'strengthen') return <StrengthenLayerControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />;
+  if (!layer.available) return null;
+  if (layerId === 'gem') return <GemLayerControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />;
+  return null;
+}
+
+function LayerApplyToggle({ layerId, layer, layerOptions, onOptionChange }: { layerId: string; layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const enabled = optionBoolean(layerOptions.enabled ?? layer.enabled, layer.enabled !== false);
+  return <div className="ie-layer-toggle" role="group" aria-label={uiCopy(`${layerLabel(layerId)}是否参与最终预览`, `Whether ${layerLabel(layerId)} participates in final preview`)}>
+    <span>{uiCopy('最终预览', 'Final preview')}</span>
+    <button type="button" className={enabled ? '' : 'active'} onClick={() => onOptionChange(layerId, 'enabled', false)} aria-pressed={!enabled}>{uiCopy('不参与', 'Exclude')}</button>
+    <button type="button" className={enabled ? 'active' : ''} onClick={() => onOptionChange(layerId, 'enabled', true)} aria-pressed={enabled}>{uiCopy('参与', 'Include')}</button>
+  </div>;
+}
+
+function StrengthenLayerControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const layerId = textValue(layer.id);
+  const layerConfig = asRecord(layer.options);
+  const selected = asRecord(layer.selected);
+  const details = asRecord(layer.details);
+  const recipes = asList(layerConfig.recipes).map(asRecord).filter(recipe => textValue(recipe.id));
+  const selectedRecipeId = textValue(layerOptions.recipeId) || textValue(selected.recipeId) || textValue(layerConfig.recipeId) || textValue(details.recipeId);
+  const selectedRecipe = recipes.find(recipe => textValue(recipe.id) === selectedRecipeId);
+  const stars = asList(layerConfig.stars).map(value => Number(value)).filter(value => Number.isFinite(value) && value > 0);
+  const maxStar = Math.max(1, Number(layerConfig.maxStar || Math.max(1, ...stars)) || 1);
+  const starChoices = stars.length ? stars : (layer.available ? Array.from({ length: maxStar }, (_, index) => index + 1) : []);
+  const selectedStar = String(layerOptions.star ?? selected.star ?? layerConfig.selectedStar ?? starChoices[0] ?? '');
+  const maxTemper = Math.max(0, Number(layerConfig.maxTemper || 0) || 0);
+  const selectedTemper = String(layerOptions.temper ?? selected.temper ?? layerConfig.selectedTemper ?? 0);
+  if (!recipes.length && !layer.available) return null;
+  return <div className="ie-layer-controls">
+    <LayerApplyToggle layerId={layerId} layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />
+    {recipes.length > 0 && <label><span>{uiCopy('强化配方', 'Strengthen recipe')}</span><select value={selectedRecipeId} onChange={event => onOptionChange(layerId, 'recipeId', event.target.value)}>
+      <option value="">{uiCopy('自动匹配', 'Auto match')}</option>
+      {recipes.map(recipe => <option key={textValue(recipe.id)} value={textValue(recipe.id)}>{recipeLabel(recipe)}</option>)}
+    </select></label>}
+    {selectedRecipeId && <span className="ie-layer-current">{uiCopy('当前配方', 'Current recipe')}: <code>{selectedRecipeId}</code>{selectedRecipe && textValue(selectedRecipe.displayName) ? ` · ${textValue(selectedRecipe.displayName)}` : ''}</span>}
+    {starChoices.length > 0 && <label><span>{uiCopy('星级', 'Stars')}</span><select value={selectedStar} onChange={event => onOptionChange(layerId, 'star', Number(event.target.value))}>{starChoices.map(star => <option key={star} value={star}>{uiCopy(`${star} 星`, `${star} star`)}</option>)}</select></label>}
+    {maxTemper > 0 && <label><span>{uiCopy('淬炼', 'Temper')}</span><select value={selectedTemper} onChange={event => onOptionChange(layerId, 'temper', Number(event.target.value))}>{Array.from({ length: maxTemper + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}</select></label>}
+  </div>;
+}
+
+function recipeLabel(recipe: AnyMap): string {
+  return textValue(recipe.id);
+}
+
+function GemLayerControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const layerId = textValue(layer.id);
+  const layerConfig = asRecord(layer.options);
+  const selected = asRecord(layer.selected);
+  const details = asRecord(layer.details);
+  const slots = asList(layerConfig.slots).map(asRecord);
+  const gems = asList(layerConfig.gems).map(asRecord).filter(gem => textValue(gem.id));
+  const selectedSlot = String(layerOptions.slot ?? selected.slot ?? layerConfig.selectedSlot ?? (slots[0]?.index ?? -1));
+  const selectedGemId = textValue(layerOptions.gemId ?? selected.gemId ?? layerConfig.selectedGemId ?? gems[0]?.id);
+  const currentGem = gems.find(gem => textValue(gem.id) === selectedGemId) || gems[0];
+  const shouldInlay = gems.length > 0 && optionBoolean(layerOptions.inlay ?? selected.inlay ?? layerConfig.selectedInlay, Boolean(selectedGemId || currentGem));
+  const maxLevel = Math.max(1, Number(currentGem?.maxLevel || currentGem?.level || 1) || 1);
+  const selectedLevel = String(layerOptions.level ?? selected.level ?? layerConfig.selectedLevel ?? currentGem?.level ?? 1);
+  const activeResonances = asList(details.activeResonances).map(asRecord).filter(resonance => textValue(resonance.id));
+  const actionCount = Number(currentGem?.actionCount ?? 0) || 0;
+  const nameActionCount = Number(currentGem?.nameActionCount ?? 0) || 0;
+  const loreActionCount = Number(currentGem?.loreActionCount ?? 0) || 0;
+  const badges = [
+    textValue(currentGem?.type) ? uiCopy(`类型：${textValue(currentGem?.type)}`, `Type: ${textValue(currentGem?.type)}`) : '',
+    nameActionCount > 0 ? uiCopy(`名称动作 ${nameActionCount}`, `Name actions ${nameActionCount}`) : '',
+    loreActionCount > 0 ? uiCopy(`Lore 动作 ${loreActionCount}`, `Lore actions ${loreActionCount}`) : '',
+    actionCount > 0 ? uiCopy(`触发动作 ${actionCount}`, `Trigger actions ${actionCount}`) : '',
+    activeResonances.length > 0 ? uiCopy(`已激活共鸣 ${activeResonances.length}`, `Active resonances ${activeResonances.length}`) : ''
+  ].filter((badge): badge is string => Boolean(badge));
+  if (!slots.length && !gems.length) return null;
+  return <div className="ie-layer-controls">
+    <LayerApplyToggle layerId={layerId} layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />
+    {slots.length > 0 && <label><span>{uiCopy('槽位', 'Slot')}</span><select value={selectedSlot} onChange={event => onOptionChange(layerId, 'slot', Number(event.target.value))}>{slots.map(slot => <option key={textValue(slot.index)} value={textValue(slot.index)}>{slotLabel(slot)}</option>)}</select></label>}
+    {gems.length > 0 && <div className="ie-layer-toggle" role="group" aria-label={uiCopy('是否镶嵌宝石', 'Whether to inlay a gem')}>
+      <span>{uiCopy('是否镶嵌', 'Gem inlay')}</span>
+      <button type="button" className={shouldInlay ? '' : 'active'} onClick={() => onOptionChange(layerId, 'inlay', false)} aria-pressed={!shouldInlay}>{uiCopy('不镶嵌', 'Do not inlay')}</button>
+      <button type="button" className={shouldInlay ? 'active' : ''} onClick={() => onOptionChange(layerId, 'inlay', true)} aria-pressed={shouldInlay}>{uiCopy('镶嵌', 'Inlay')}</button>
+    </div>}
+    {gems.length > 0 && shouldInlay && <label><span>{uiCopy('宝石', 'Gem')}</span><select value={selectedGemId} onChange={event => onOptionChange(layerId, 'gemId', event.target.value)}>{gems.map(gem => <option key={textValue(gem.id)} value={textValue(gem.id)}>{textValue(gem.displayName || gem.id)}</option>)}</select></label>}
+    {gems.length > 0 && shouldInlay && <label><span>{uiCopy('等级', 'Level')}</span><select value={selectedLevel} onChange={event => onOptionChange(layerId, 'level', Number(event.target.value))}>{Array.from({ length: maxLevel }, (_, index) => index + 1).map(level => <option key={level} value={level}>{uiCopy(`${level} 级`, `Level ${level}`)}</option>)}</select></label>}
+    {gems.length > 0 && shouldInlay && currentGem && <span className="ie-layer-current">{uiCopy('当前宝石', 'Current gem')}: <code>{textValue(currentGem.id)}</code>{textValue(currentGem.displayName) ? ` · ${textValue(currentGem.displayName)}` : ''}</span>}
+    {gems.length > 0 && shouldInlay && badges.length > 0 && <div className="ie-layer-badges">{badges.map(badge => <span key={badge}>{badge}</span>)}</div>}
+    {gems.length > 0 && shouldInlay && activeResonances.length > 0 && <div className="ie-layer-resonances">
+      {activeResonances.map(resonance => <span key={textValue(resonance.id)}>{uiCopy('共鸣', 'Resonance')}: <code>{textValue(resonance.id)}</code>{textValue(resonance.displayName) ? ` · ${textValue(resonance.displayName)}` : ''}{textValue(resonance.exclusiveGroup) ? ` · ${uiCopy('互斥组', 'Exclusive group')} ${textValue(resonance.exclusiveGroup)}` : ''}{textValue(resonance.patternText) ? ` · ${uiCopy('依赖', 'Depends on')} ${textValue(resonance.patternText)}` : ''}</span>)}
+    </div>}
+  </div>;
+}
+
+function optionBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const normalized = textValue(value).trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (['true', '1', 'yes', 'y', 'on', 'inlay', 'enabled'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n', 'off', 'none', 'disabled'].includes(normalized)) return false;
+  return fallback;
+}
+
+function slotLabel(slot: AnyMap): string {
+  const index = textValue(slot.index);
+  const name = textValue(slot.displayName || slot.type);
+  const tags = [slot.opened ? uiCopy('已开', 'Open') : uiCopy('未开', 'Closed'), slot.assigned ? uiCopy('已镶嵌', 'Inlaid') : uiCopy('空', 'Empty')].join(' · ');
+  return `#${index} ${name} (${tags})`;
+}
+
+function layerLabel(id: string): string {
+  if (id === 'strengthen') return uiCopy('Strengthen 强化层', 'Strengthen layer');
+  if (id === 'gem') return uiCopy('Gem 宝石层', 'Gem layer');
+  return id || 'Layer';
+}
+
+function PreviewTooltipBlock({ title, name, lore, sections, emptyText, refreshing }: { title: string; name: string; lore: string[]; sections?: TooltipSection[]; emptyText: string; refreshing?: boolean }) {
+  const visibleSections = (sections ?? []).filter(section => section.lines.length > 0);
   return <div className="ie-preview-tooltip-block">
     <div className="ie-tooltip-label">{title}</div>
     <div className={`ie-tooltip${refreshing ? ' is-refreshing' : ''}`}>
       {name ? <div className="ie-tooltip-name"><MiniText value={name} /></div> : null}
       {lore.map((line, i) => <div className="ie-tooltip-line" key={i}><MiniText value={line} /></div>)}
-      {!name && !lore.length && <span className="ie-tooltip-empty">{emptyText}</span>}
+      {visibleSections.map(section => <div className="ie-tooltip-section" key={section.title}>
+        <div className="ie-tooltip-section-title">{section.title}</div>
+        {section.lines.map((line, index) => <div className="ie-tooltip-line" key={index}><MiniText value={line} /></div>)}
+      </div>)}
+      {!name && !lore.length && !visibleSections.length && <span className="ie-tooltip-empty">{emptyText}</span>}
     </div>
   </div>;
 }

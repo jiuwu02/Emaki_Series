@@ -1,16 +1,11 @@
 package emaki.jiuwu.craft.gem.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
-
 /**
- * Entry point for obtaining the {@link EmakiGemApi} that EmakiGem registers with the
- * Bukkit {@code ServicesManager}.
+ * Compatibility helper for the static {@link EmakiGemApi} facade.
  *
- * <p>The service only exists after EmakiGem has enabled, so resolve it lazily
- * rather than caching it during your own plugin's load phase.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiGemApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiGemApiProvider {
 
@@ -18,11 +13,22 @@ public final class EmakiGemApiProvider {
     }
 
     /**
-     * {@return the registered {@link EmakiGemApi}, or an empty optional} Empty when
-     * EmakiGem is absent or has not finished enabling.
+     * Checks whether the static EmakiGem API bridge is installed.
+     *
+     * @return {@code true} when EmakiGem is available
      */
-    public static Optional<EmakiGemApi> get() {
-        RegisteredServiceProvider<EmakiGemApi> provider = Bukkit.getServicesManager().getRegistration(EmakiGemApi.class);
-        return provider == null ? Optional.empty() : Optional.ofNullable(provider.getProvider());
+    public static boolean available() {
+        return EmakiGemApi.available();
+    }
+
+    /**
+     * Verifies that EmakiGem is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiGem API is not available.");
+        }
     }
 }

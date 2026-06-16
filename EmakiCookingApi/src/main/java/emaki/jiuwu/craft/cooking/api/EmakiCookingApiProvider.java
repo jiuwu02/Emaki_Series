@@ -1,16 +1,11 @@
 package emaki.jiuwu.craft.cooking.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
-
 /**
- * Entry point for obtaining the {@link EmakiCookingApi} that EmakiCooking registers with the
- * Bukkit {@code ServicesManager}.
+ * Compatibility helper for the static {@link EmakiCookingApi} facade.
  *
- * <p>The service only exists after EmakiCooking has enabled, so resolve it lazily
- * rather than caching it during your own plugin's load phase.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiCookingApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiCookingApiProvider {
 
@@ -18,11 +13,22 @@ public final class EmakiCookingApiProvider {
     }
 
     /**
-     * {@return the registered {@link EmakiCookingApi}, or an empty optional} Empty when
-     * EmakiCooking is absent or has not finished enabling.
+     * Checks whether the static EmakiCooking API bridge is installed.
+     *
+     * @return {@code true} when EmakiCooking is available
      */
-    public static Optional<EmakiCookingApi> get() {
-        RegisteredServiceProvider<EmakiCookingApi> provider = Bukkit.getServicesManager().getRegistration(EmakiCookingApi.class);
-        return provider == null ? Optional.empty() : Optional.ofNullable(provider.getProvider());
+    public static boolean available() {
+        return EmakiCookingApi.available();
+    }
+
+    /**
+     * Verifies that EmakiCooking is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiCooking API is not available.");
+        }
     }
 }

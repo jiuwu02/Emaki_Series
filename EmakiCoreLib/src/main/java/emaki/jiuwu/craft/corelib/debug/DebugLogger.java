@@ -118,7 +118,7 @@ public final class DebugLogger {
         if (Texts.isBlank(module)) {
             return false;
         }
-        boolean added = enabledModules.add(module.toLowerCase());
+        boolean added = enabledModules.add(module.toLowerCase(java.util.Locale.ROOT));
         refreshGlobalState();
         return added;
     }
@@ -127,7 +127,7 @@ public final class DebugLogger {
         if (Texts.isBlank(module)) {
             return false;
         }
-        boolean removed = enabledModules.remove(module.toLowerCase());
+        boolean removed = enabledModules.remove(module.toLowerCase(java.util.Locale.ROOT));
         refreshGlobalState();
         return removed;
     }
@@ -136,7 +136,7 @@ public final class DebugLogger {
         if (Texts.isBlank(module)) {
             return false;
         }
-        String normalized = module.toLowerCase();
+        String normalized = module.toLowerCase(java.util.Locale.ROOT);
         if (enabledModules.remove(normalized)) {
             refreshGlobalState();
             return false;

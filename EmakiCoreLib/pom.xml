@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.1.0</version>
+    <version>4.3.0</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -30,6 +30,13 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib-api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-bstats-runtime</artifactId>
+            <version>${project.version}</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
@@ -102,8 +109,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>dev.lone</groupId>
-            <artifactId>api-itemsadder</artifactId>
+            <groupId>beer.devs</groupId>
+            <artifactId>itemsadder-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -145,10 +152,6 @@
             <artifactId>js</artifactId>
             <type>pom</type>
         </dependency>
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -182,13 +185,38 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.basedir}/web-console</workingDirectory>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
                             <executable>npm</executable>
                             <arguments>
                                 <argument>run</argument>
-                                <argument>build</argument>
+                                <argument>build:web:core</argument>
                             </arguments>
                             <skip>${skip.web.console}</skip>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.8.1</version>
+                <executions>
+                    <execution>
+                        <id>copy-bstats-runtime</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>emaki.jiuwu.craft</groupId>
+                                    <artifactId>emaki-bstats-runtime</artifactId>
+                                    <version>${project.version}</version>
+                                    <outputDirectory>${project.build.outputDirectory}/runtime-libraries/emaki/jiuwu/craft/emaki-bstats-runtime/${project.version}</outputDirectory>
+                                    <destFileName>emaki-bstats-runtime-${project.version}.jar</destFileName>
+                                </artifactItem>
+                            </artifactItems>
                         </configuration>
                     </execution>
                 </executions>
@@ -219,11 +247,9 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <relocations combine.self="override"/>
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-corelib-api</include>
-                                    <include>org.bstats:bstats-bukkit</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

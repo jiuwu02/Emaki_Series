@@ -10,7 +10,8 @@
     "EmakiStrengthen/web-console",
     "EmakiCooking/web-console",
     "EmakiAttribute/web-console",
-    "EmakiItem/web-console"
+    "EmakiItem/web-console",
+    "EmakiLevel/web-console"
   ],
   "scripts": {
     "build:web": "npm run build --workspaces --if-present",
@@ -21,7 +22,8 @@
     "build:web:strengthen": "npm run build -w emakistrengthen-web-console-extension",
     "build:web:cooking": "npm run build -w emakicooking-web-console-extension",
     "build:web:attribute": "npm run build -w emakiattribute-web-console-extension",
-    "build:web:item": "npm run build -w emakiitem-web-console-extension"
+    "build:web:item": "npm run build -w emakiitem-web-console-extension",
+    "build:web:level": "npm run build -w emakilevel-web-console-extension"
   },
   "dependencies": {
     "react": "latest",

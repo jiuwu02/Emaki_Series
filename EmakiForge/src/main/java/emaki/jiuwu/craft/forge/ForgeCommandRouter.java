@@ -31,7 +31,7 @@ final class ForgeCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase()) {
+        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -58,7 +58,7 @@ final class ForgeCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "forge", "book", "reload", "list", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase())) {
+                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -69,7 +69,7 @@ final class ForgeCommandRouter implements TabExecutor {
         }
         if (args.length == 2 && "list".equalsIgnoreCase(args[0])) {
             for (String sub : List.of("recipe")) {
-                if (sub.startsWith(args[1].toLowerCase())) {
+                if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -123,7 +123,7 @@ final class ForgeCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        switch (args[1].toLowerCase()) {
+        switch (args[1].toLowerCase(java.util.Locale.ROOT)) {
             case "recipe", "recipes" -> {
                 plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipes_header", Map.of("count", plugin.recipeLoader().all().size())));
                 plugin.recipeLoader().all().forEach((id, recipe)

@@ -9,7 +9,7 @@
 
 # version is maintained by resource sync
 
-version: "4.1.0"
+version: "4.3.0"
 
 # General messages
 general:
@@ -75,6 +75,7 @@ console:
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data generation</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_config_read_error: "<yellow>Failed to read or update config, using defaults: <red>%error%</red>"
   directory_created: "<green>Created directory <yellow>%path%</yellow>"
   directory_create_failed: "<yellow>Failed to create directory <red>%path%</red>"
@@ -191,7 +192,7 @@ loader:
   recipe_unknown_action_template:
     "<yellow>Unknown template <red>%template%</red>
     in recipe %recipe%: %file%, phase %phase%, line %line%</yellow>"
-  recipe_invalid_condition_type: "<yellow>Invalid condition_type in recipe
+  recipe_invalid_condition_mode: "<yellow>Invalid condition.type in recipe
     %recipe%: %file% -> <red>%value%</red>. Allowed values:
     <gray>%allowed%</gray>, loading rejected.</yellow>"
 

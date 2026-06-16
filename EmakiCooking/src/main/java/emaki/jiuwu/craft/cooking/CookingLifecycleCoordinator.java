@@ -10,7 +10,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.cooking.script.ScriptCookingModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
@@ -66,6 +68,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     @Override
     public CookingRuntimeComponents initialize(EmakiCookingPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        registerAssemblyLayer(coreLibPlugin);
+        registerScriptModule(coreLibPlugin);
+        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -337,5 +342,17 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         List<String> files = new ArrayList<>(YamlFiles.listResourcePaths(plugin, "recipes"));
         files.addAll(YamlFiles.listResourcePaths(plugin, "item_adjustments"));
         return List.copyOf(files);
+    }
+
+    private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("cooking", 10000, "Cooking"));
+    }
+
+    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.scriptModuleRegistry().register("cooking", context -> new ScriptCookingModuleApi());
+    }
+
+    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiCookingPlugin plugin) {
+        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("cooking_reward.js"));
     }
 }

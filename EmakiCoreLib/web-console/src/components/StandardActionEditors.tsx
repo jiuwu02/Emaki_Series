@@ -169,10 +169,12 @@ export function StandardEffectsEditor({ value, onChange, path, moduleId, namespa
       const definition = getEffectTypeDefinition(moduleId, type);
       const opened = expanded.has(index);
       return <div className={`prop-level-item${opened ? ' expanded' : ''}`} key={index} role="listitem">
-        <div className="prop-level-head" role="button" tabIndex={0} onClick={() => toggle(index)} onKeyDown={event => toggleByKeyboard(event, () => toggle(index))} aria-expanded={opened} aria-controls={`std-effect-body-${index}`}>
-          <span className="prop-level-summary"><span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> #{index + 1}</span>{effectTypeLabel(type, definition, moduleId)}</span>
+        <div className="prop-level-head">
+          <button type="button" className="prop-level-toggle" onClick={() => toggle(index)} aria-expanded={opened} aria-controls={`std-effect-body-${index}`}>
+            <span className="prop-level-summary"><span className="prop-level-badge"><DisclosureChevron open={opened} className="prop-level-arrow" /> #{index + 1}</span>{effectTypeLabel(type, definition, moduleId)}</span>
+          </button>
           <span className="prop-level-rate">{effectSummary(effect, definition)}</span>
-          <span className="prop-action-controls" onClick={stopEvent} onKeyDown={stopEvent}>
+          <span className="prop-action-controls">
             <button type="button" onClick={() => moveEffect(index, -1)} disabled={index === 0} aria-label={t('core.field.move_up')}>↑</button>
             <button type="button" onClick={() => moveEffect(index, 1)} disabled={index === effects.length - 1} aria-label={t('core.field.move_down')}>↓</button>
             <button type="button" className="prop-action-del" onClick={() => removeEffect(index)} aria-label={t('core.field.delete')}>×</button>
@@ -271,20 +273,12 @@ function GenericKeyValueEditor({ value, reservedKeys, onChange }: { value: unkno
     nextEntries.forEach(entry => { if (entry.key.trim()) next[entry.key.trim()] = entry.value; });
     onChange(next);
   };
-  const update = (index: number, field: 'key' | 'value', raw: string) => {
-    const next = entries.map((entry, itemIndex) => itemIndex === index ? (field === 'key' ? { ...entry, key: raw } : { ...entry, value: parseLooseScalar(raw) }) : entry);
-    commit(next);
-  };
-  const remove = (index: number) => commit(entries.filter((_, itemIndex) => itemIndex !== index));
-  const add = () => commit([...entries, { key: nextUniqueKey(entries.map(entry => entry.key), 'key'), value: '' }]);
-  return <div className="prop-kv" role="list">
-    {entries.map((entry, index) => <div className="prop-kv-row" key={index} role="listitem">
-      <input type="text" value={entry.key} onChange={event => update(index, 'key', event.target.value)} placeholder={t('core.kv.key')} aria-label={`${t('core.kv.key')} ${index + 1}`} />
-      <input type="text" value={entry.value == null ? '' : String(entry.value)} onChange={event => update(index, 'value', event.target.value)} placeholder={t('core.kv.value')} aria-label={`${t('core.kv.value')} ${index + 1}`} />
-      <button type="button" className="prop-kv-del" onClick={() => remove(index)} aria-label={t('core.kv.delete', { index: index + 1 })}>×</button>
-    </div>)}
-    <button type="button" className="prop-add" onClick={add}>+ {t('core.kv.add')}</button>
-  </div>;
+  return <KvTable
+    entries={entries}
+    parseValue={parseLooseScalar}
+    createEntry={currentEntries => ({ key: nextUniqueKey(currentEntries.map(entry => entry.key), 'key'), value: '' })}
+    onChange={commit}
+  />;
 }
 
 function effectSummary(effect: Record<string, unknown>, definition: EffectTypeDefinition | undefined): string {
@@ -313,16 +307,6 @@ function joinPath(...parts: Array<string | number | undefined>): string | undefi
 
 function cleanObject<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== '')) as T;
-}
-
-function stopEvent(event: React.SyntheticEvent) {
-  event.stopPropagation();
-}
-
-function toggleByKeyboard(event: React.KeyboardEvent, action: () => void) {
-  if (event.key !== 'Enter' && event.key !== ' ') return;
-  event.preventDefault();
-  action();
 }
 
 function parseLooseScalar(value: string): unknown {

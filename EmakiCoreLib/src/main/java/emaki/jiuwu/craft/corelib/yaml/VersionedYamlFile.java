@@ -12,8 +12,20 @@ public final class VersionedYamlFile {
     private final YamlDocument document;
     private final BoostedYamlSection root;
     private final BoostedYamlSection defaults;
+    private final boolean versionUpdated;
+    private final String previousVersion;
+    private final String updatedVersion;
 
     public VersionedYamlFile(File file, String resourcePath, YamlDocument document) {
+        this(file, resourcePath, document, false, "", "");
+    }
+
+    public VersionedYamlFile(File file,
+            String resourcePath,
+            YamlDocument document,
+            boolean versionUpdated,
+            String previousVersion,
+            String updatedVersion) {
         this.file = file;
         this.resourcePath = resourcePath;
         this.document = document;
@@ -21,6 +33,9 @@ public final class VersionedYamlFile {
         this.defaults = document == null || document.getDefaults() == null
                 ? null
                 : new BoostedYamlSection(document.getDefaults());
+        this.versionUpdated = versionUpdated;
+        this.previousVersion = previousVersion == null ? "" : previousVersion;
+        this.updatedVersion = updatedVersion == null ? "" : updatedVersion;
     }
 
     public File file() {
@@ -49,6 +64,18 @@ public final class VersionedYamlFile {
 
     public String bundledVersion(String key) {
         return defaults == null ? "" : defaults.getString(key, "");
+    }
+
+    public boolean versionUpdated() {
+        return versionUpdated;
+    }
+
+    public String previousVersion() {
+        return previousVersion;
+    }
+
+    public String updatedVersion() {
+        return updatedVersion;
     }
 
     public void save() throws IOException {

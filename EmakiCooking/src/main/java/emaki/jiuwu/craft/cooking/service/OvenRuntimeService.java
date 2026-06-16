@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -99,8 +100,9 @@ public final class OvenRuntimeService implements Listener {
         for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.OVEN).entrySet()) {
             StationCoordinates coordinates = entry.getKey();
             OvenState state = codec.readState(entry.getValue());
+            ItemSource stationSource = stateStore.stationSource(entry.getValue());
             Block block = coordinates.block();
-            if (state == null || block == null || !blockMatcher.matches(block, StationType.OVEN)) {
+            if (state == null || !blockMatcher.matches(block, StationType.OVEN, stationSource)) {
                 guiController.closeOpenInventories(coordinates, true);
                 removeState(coordinates, true);
                 continue;
@@ -132,10 +134,11 @@ public final class OvenRuntimeService implements Listener {
         if (block == null || player == null || !interaction.mainHand()) {
             return false;
         }
-        if (!blockMatcher.matches(block, StationType.OVEN)) {
+        if (!blockMatcher.matches(interaction, StationType.OVEN)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, interaction.stationSource());
         ItemStack hand = player.getInventory().getItemInMainHand();
         CookingSettingsService.OvenFuelRule fuelRule = matchFuelRule(hand);
         if (fuelRule != null && settingsService.matchesInteraction(StationType.OVEN, CookingSettingsService.INTERACTION_FUEL, interaction)) {
@@ -167,10 +170,11 @@ public final class OvenRuntimeService implements Listener {
 
     public boolean handleBreak(StationBreakContext context) {
         Block block = context.block();
-        if (block == null || !blockMatcher.matches(block, StationType.OVEN)) {
+        if (block == null || !blockMatcher.matches(context, StationType.OVEN)) {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        stateStore.rememberStationSource(coordinates, context.stationSource());
         OvenGuiHolder openHolder = guiController.findOpenSession(coordinates);
         OvenState state = openHolder == null
                 ? loadStateOrEmpty(coordinates)
@@ -364,7 +368,8 @@ public final class OvenRuntimeService implements Listener {
     private void processStation(StationCoordinates coordinates, long now) {
         Block block = coordinates == null ? null : coordinates.block();
         OvenState state = loadStateOrEmpty(coordinates);
-        if (block == null || !blockMatcher.matches(block, StationType.OVEN)) {
+        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        if (block == null || !blockMatcher.matches(block, StationType.OVEN, stationSource)) {
             guiController.closeOpenInventories(coordinates, true);
             removeState(coordinates, true);
             activeStations.remove(coordinates);
@@ -502,8 +507,7 @@ public final class OvenRuntimeService implements Listener {
     }
 
     private String itemDisplayName(ItemStack itemStack) {
-        ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
-        String displayName = itemSourceService.displayName(source);
+        String displayName = EmakiCoreLibApi.itemDisplayName(itemStack);
         return Texts.isBlank(displayName)
                 ? (itemStack == null || itemStack.getType() == null ? "" : itemStack.getType().name())
                 : displayName;

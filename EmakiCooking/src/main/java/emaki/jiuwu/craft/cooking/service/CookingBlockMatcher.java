@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.cooking.service;
 
+import emaki.jiuwu.craft.cooking.model.StationBreakContext;
+import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import org.bukkit.block.Block;
 
@@ -27,12 +29,34 @@ public final class CookingBlockMatcher {
         this.nexoBlockBridge = nexoBlockBridge;
     }
 
-    public boolean matches(Block block, StationType stationType) {
-        if (block == null || stationType == null) {
+    public boolean matches(StationInteraction interaction, StationType stationType) {
+        if (interaction == null) {
             return false;
         }
-        ItemSource source = settingsService.stationBlockSource(stationType);
-        return matches(block, source);
+        return matches(interaction.block(), stationType, interaction.stationSource());
+    }
+
+    public boolean matches(StationBreakContext context, StationType stationType) {
+        if (context == null) {
+            return false;
+        }
+        return matches(context.block(), stationType, context.stationSource());
+    }
+
+    public boolean matches(Block block, StationType stationType) {
+        return matches(block, stationType, null);
+    }
+
+    public boolean matches(Block block, StationType stationType, ItemSource stationSource) {
+        if (stationType == null) {
+            return false;
+        }
+        for (ItemSource source : settingsService.stationBlockSources(stationType)) {
+            if (matches(block, source) || sourceMatches(source, stationSource)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean matches(Block block, ItemSource source) {
@@ -46,6 +70,10 @@ public final class CookingBlockMatcher {
             case NEXO -> nexoBlockBridge != null && nexoBlockBridge.matches(block, source.getIdentifier());
             default -> false;
         };
+    }
+
+    private boolean sourceMatches(ItemSource expected, ItemSource actual) {
+        return ItemSourceUtil.matches(expected, actual);
     }
 
     public boolean place(Block block, ItemSource source) {

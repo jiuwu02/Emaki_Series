@@ -57,7 +57,7 @@ public final class ExceptionHandler {
         if (messages == null) {
             return;
         }
-        String messageKey = "error." + exception.errorCode().toLowerCase().replace("_", ".");
+        String messageKey = "error." + exception.errorCode().toLowerCase(java.util.Locale.ROOT).replace("_", ".");
         String userMessage = messages.message(messageKey, toPlaceholderMap(exception.context()));
         if (Texts.isBlank(userMessage) || userMessage.equals(messageKey)) {
             userMessage = messages.message("error.generic", toPlaceholderMap(exception.context()));

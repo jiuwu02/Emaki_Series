@@ -1,0 +1,744 @@
+.surface-summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.surface-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--input);
+  color: var(--subtle-readable);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+
+.surface-summary-chip.kind {
+  border-color: var(--accent-soft);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.surface-summary-chip.action {
+  cursor: pointer;
+  border-color: var(--changed-line);
+  background: var(--changed-bg);
+  color: var(--changed-ink);
+}
+
+.surface-summary-chip.action:hover,
+.surface-summary-chip.action:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--accent-dim);
+  outline: none;
+}
+
+.surface-summary.dirty .surface-summary-copy strong {
+  color: var(--text);
+}
+
+.extension-health {
+  display: grid;
+  gap: 8px;
+  padding: 10px 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.extension-health-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.extension-health-copy strong {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.extension-health-copy p {
+  margin: 0;
+  color: var(--subtle-readable);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.extension-health-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.extension-health-count {
+  color: var(--subtle-readable);
+  font-size: 11px;
+}
+
+.extension-health-list {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.extension-health-list code {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 5px 7px;
+  color: var(--muted);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.extension-health-more {
+  color: var(--subtle-readable);
+  font-size: 10px;
+}
+
+.extension-health--loading .extension-health-copy strong,
+.extension-health--loading .extension-health-copy p,
+.extension-health--ok .extension-health-copy strong,
+.extension-health--ok .extension-health-copy p,
+.extension-health--failed .extension-health-copy strong,
+.extension-health--failed .extension-health-copy p {
+  color: inherit;
+}
+
+.extension-health--loading {
+  background: color-mix(in oklch, var(--surface) 92%, var(--input) 8%);
+  color: var(--subtle-readable);
+}
+
+.extension-health--ok {
+  background: color-mix(in oklch, var(--surface) 94%, var(--input) 6%);
+  color: var(--muted);
+}
+
+.extension-health--failed {
+  background: color-mix(in oklch, var(--surface) 88%, var(--danger-soft) 12%);
+  border-bottom-color: var(--danger-line, var(--warning-line));
+  color: var(--danger-ink);
+}
+
+.extension-health--failed .extension-health-copy strong {
+  color: var(--danger-ink);
+}
+
+.extension-health--failed .extension-health-copy p {
+  color: var(--danger-ink);
+}
+
+.head-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.head-actions button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.head-actions button:hover:not(:disabled) {
+  border-color: var(--line-2);
+  color: var(--text);
+  transform: scale(1.04);
+}
+
+.head-actions button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.head-actions button:disabled {
+  opacity: 1;
+  background: var(--surface-2);
+  color: var(--subtle-readable);
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.head-actions button.primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.head-actions button.primary:disabled {
+  background: var(--surface-2);
+  color: var(--subtle-readable);
+  border-color: var(--line);
+}
+
+.head-actions button.primary.save-ready {
+  box-shadow: 0 0 0 1px var(--accent-soft), 0 10px 26px oklch(20% 0.03 var(--accent-hue) / .18);
+  animation: save-ready-pop 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.head-actions button.primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: var(--bg);
+}
+
+@keyframes save-ready-pop {
+  0% {
+    transform: scale(.94);
+  }
+
+  60% {
+    transform: scale(1.045);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.editor-shell {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-shell.single {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.config-surface {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex: 1 1 auto;
+  background: var(--surface);
+}
+
+.config-surface input,
+.config-surface select,
+.config-surface textarea {
+  min-height: var(--config-field-control-height);
+  line-height: var(--config-field-text-line-height);
+}
+
+.config-preview-zone {
+  display: grid;
+  gap: 7px;
+  padding: 9px 18px 9px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.config-preview-shell {
+  display: grid;
+  gap: 8px;
+}
+
+.config-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.config-preview-head h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+
+.config-preview-head p {
+  margin: 1px 0 0;
+  max-width: 58ch;
+  color: var(--subtle-readable);
+  font-size: 11px;
+  line-height: 1.18;
+}
+
+.config-preview-head code,
+.config-item-preview-head code {
+  color: var(--accent);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 10px;
+}
+
+.preview-metric-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preview-metric {
+  display: grid;
+  gap: 2px;
+  min-width: 78px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  animation: reload-confirm-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.surface-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.surface-head h2 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+.surface-head p {
+  color: var(--subtle-readable);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.editor-chrome {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.editor-chrome-title {
+  min-width: 0;
+}
+
+.editor-chrome-title h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-chrome-actions {
+  flex: none;
+}
+
+.editor-save-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.editor-shortcut-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.editor-shortcut-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--subtle-readable);
+  cursor: pointer;
+  transition: color .12s, border-color .12s, background .12s;
+}
+
+.editor-shortcut-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.editor-shortcut-button:hover,
+.editor-shortcut-wrap:focus-within .editor-shortcut-button {
+  color: var(--accent);
+  border-color: var(--line-2);
+  background: var(--surface-2);
+}
+
+.editor-shortcut-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.editor-shortcut-popover strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.editor-shortcut-popover dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.editor-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.editor-shortcut-row dt,
+.editor-shortcut-row dd {
+  margin: 0;
+}
+
+.editor-shortcut-row dd {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.editor-shortcut-row kbd {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--input);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.editor-change-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(420px, calc(100vw - 32px));
+  border: 1px solid var(--line-2);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.editor-change-popover strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.editor-change-popover p {
+  color: var(--subtle-readable);
+  font-size: 11px;
+}
+
+.editor-change-list {
+  display: grid;
+  gap: 5px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.editor-change-row {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line);
+  background: var(--input);
+  border-radius: 5px;
+  padding: 6px 7px;
+}
+
+.editor-change-row>code {
+  color: var(--accent);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.editor-change-row>span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.editor-change-diff {
+  display: grid;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.editor-change-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.editor-change-value b {
+  flex-shrink: 0;
+  width: 10px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.editor-change-value code {
+  font-size: inherit;
+  color: inherit;
+}
+
+.editor-change-value.before {
+  background: var(--diff-remove-bg);
+  border: 1px solid var(--diff-remove-line);
+  color: var(--diff-remove-text);
+}
+
+.editor-change-value.after {
+  background: var(--diff-add-bg);
+  border: 1px solid var(--diff-add-line);
+  color: var(--diff-add-text);
+}
+
+.source-diff {
+  display: grid;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--code-gutter);
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 11px;
+}
+
+.source-diff.compact {
+  max-height: 220px;
+  font-size: 10px;
+}
+
+.field-value-diff {
+  margin-top: 4px;
+  max-height: 180px;
+}
+
+.field-value-diff.compact {
+  max-height: 160px;
+}
+
+.source-diff-line {
+  display: grid;
+  grid-template-columns: 46px 18px minmax(0, 1fr);
+  min-width: 0;
+  border-bottom: 1px solid color-mix(in oklch, var(--line) 65%, transparent);
+}
+
+.field-value-diff .source-diff-line {
+  grid-template-columns: 32px 16px minmax(0, 1fr);
+}
+
+.source-diff-line:last-child {
+  border-bottom: 0;
+}
+
+.source-diff-line.add {
+  background: var(--diff-add-bg);
+  color: var(--diff-add-text);
+}
+
+.source-diff-line.remove {
+  background: var(--diff-remove-bg);
+  color: var(--diff-remove-text);
+}
+
+.source-diff-line.context {
+  color: var(--subtle-readable);
+}
+
+.source-diff-no,
+.source-diff-sign,
+.source-diff-text {
+  min-width: 0;
+  padding: 2px 6px;
+  color: inherit;
+  font-size: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.source-diff-no,
+.source-diff-sign {
+  color: var(--subtle-readable);
+  text-align: right;
+  background: color-mix(in oklch, var(--input) 70%, transparent);
+  user-select: none;
+}
+
+.source-diff-text {
+  text-align: left;
+}
+
+.source-diff-more {
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--subtle-readable);
+  background: var(--input);
+  font-size: 11px;
+}
+
+@keyframes reload-confirm-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.editor-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--overlay);
+}
+
+.editor-source-modal {
+  width: min(900px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.editor-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px 11px;
+  border-bottom: 1px solid var(--line);
+  background: var(--input);
+}
+
+.editor-modal-head span {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.editor-modal-head h3 {
+  margin-top: 3px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.editor-source-error {
+  border-top: 1px solid var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--red);
+  padding: 8px 16px;
+  font-size: 11px;
+}
+
+.editor-source-error-line {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--danger-line);
+  border-radius: 4px;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 10px;
+  color: var(--danger-ink);
+}
+
+.reload-confirm-dialog,
+.file-action-dialog,
+.config-create-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 32px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  animation: reload-confirm-in 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.diff-dialog,
+.config-create-dialog {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.file-action-dialog.danger {
+  border-color: var(--danger-line);
+}
+
+.reload-confirm-head {
+  display: grid;
+  gap: 3px;
+  padding: 15px 16px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--input);
+}
+
+.reload-confirm-head span {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.file-action-dialog.danger .reload-confirm-head span {
+  color: var(--danger-ink);
+}
+
+.reload-confirm-head h3 {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}

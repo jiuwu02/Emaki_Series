@@ -13,11 +13,11 @@ enabled: true
 # 条件源标识符（对应 EmakiStrengthen 写入的 PDC 数据）
 source_id: "strengthen"
 
-# 条件组合方式
-condition_type: "all_of"
-
-# 表达式解析失败时是否视为不满足条件
-invalid_as_failure: true
-
-# 条件列表（空列表表示无额外条件）
-conditions: []
+# 条件块（空 entries 表示无额外条件）
+condition:
+  # 条件组合方式
+  type: "all_of"
+  # 表达式解析失败时是否视为不满足条件
+  invalid_as_failure: true
+  # 条件列表
+  entries: []

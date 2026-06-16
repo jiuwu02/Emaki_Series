@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.1.0"
+version: "4.3.0"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -18,12 +18,35 @@ console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
   plugin_stopped: "<yellow>Stopped</yellow>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   economy_bridge_ready: "<gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
+  bstats_registered: "<gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"
+  bstats_register_failed: "<yellow>bStats metrics registration failed and was skipped: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
+  bstats_closed: "<gray>bStats metrics closed: <aqua>%plugin%</aqua></gray>"
+  bstats_close_failed: "<yellow>Failed to close bStats metrics: <aqua>%plugin%</aqua> <dark_gray>(%error%)</dark_gray></yellow>"
+  bstats_config_directory_create_failed: "<yellow>Failed to create bStats config directory: %path%</yellow>"
+  bstats_config_write_failed: "<yellow>Failed to write bStats config: %path% (%error%)</yellow>"
   script_engine_disabled: "<gray>Script engine disabled</gray>"
   script_engine_ready: "<gray>Script engine enabled (GraalJS)</gray>"
   script_engine_failed: "<red>Script engine initialization failed: %error%</red>"
   scripts_loaded: "<gray>Loaded <yellow>%count%</yellow> scripts</gray>"
+  mythic_js_bridge_ready: "<gray>MythicMobs JavaScript skill bridge is ready</gray>"
+  mythic_js_script_missing: "<yellow>MythicMobs JavaScript skill <aqua>%mechanic%</aqua> is missing the script parameter</yellow>"
+  js_extension_no_result: "no result"
+  js_extension_load_failed: "<red>Failed to load JavaScript global extension: <gray>%script%</gray> (%error%)</red>"
+  js_extensions_loaded: "<gray>Loaded <yellow>%count%</yellow> JavaScript global extension script(s), actions=<yellow>%actions%</yellow>, placeholders=<yellow>%placeholders%</yellow>, events=<yellow>%events%</yellow></gray>"
+  js_extension_directory_create_failed: "<red>Failed to create JavaScript global extension directory: %error%</red>"
+  js_extension_scan_failed: "<red>Failed to scan JavaScript global extensions: %error%</red>"
+  js_action_blank_id: "<yellow>JavaScript action ID is blank: <gray>%script%</gray></yellow>"
+  js_action_registered: "<gray>Registered JavaScript action: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_action_register_failed: "<red>Failed to register JavaScript action: <aqua>%id%</aqua> (%error%)</red>"
+  js_placeholder_blank_id: "<yellow>JavaScript placeholder ID is blank: <gray>%script%</gray></yellow>"
+  js_placeholder_registered: "<gray>Registered JavaScript placeholder: <aqua>%placeholder%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_event_unsupported: "<yellow>Unsupported JavaScript event listener: <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></yellow>"
+  js_event_registered: "<gray>Registered JavaScript event listener: <aqua>%id%</aqua> -> <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_event_listener_failed: "<red>JavaScript event listener failed: <aqua>%id%</aqua> (%error%)</red>"
+  js_event_listener_exception: "<red>JavaScript event listener exception: <aqua>%id%</aqua> (%error%)</red>"
   action_config_load_failed: "<red>Failed to load action config: %error%</red>"
   item_source_bridge_ready: "<gray>Item source connected: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "<gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"
@@ -77,6 +100,16 @@ debug:
 web_debug:
   request: "[WebDebug][%side%] %method% %uri% → %status% (%elapsed%ms) from %remote%"
   frontend_error: "[WebDebug][frontend][ERROR] %message% | source=%source% | detail=%detail% | url=%url% | stack=%stack%"
+  frontend_event: "[WebDebug][frontend][EVENT] %event% | type=%type% | target=%target% | label=%label% | value=%value% | detail=%detail% | url=%url%"
+  event_type:
+    click: "Click"
+    change: "Input changed"
+    submit: "Form submitted"
+    shortcut: "Shortcut"
+    login_submit: "Login submitted"
+    login_success: "Login succeeded"
+    login_failed: "Login failed"
+    logout_submit: "Logout requested"
   enabled_all: "<green>Web Console debug enabled (frontend + backend)</green>"
   enabled_frontend: "<green>Web Console frontend debug enabled (static assets and extension scripts)</green>"
   enabled_backend: "<green>Web Console backend debug enabled (API requests)</green>"
@@ -86,3 +119,26 @@ web_debug:
   disabled_config: "<yellow>Web Console is disabled, so debug logs cannot be enabled. Set web_console.enabled: true in config.yml, then run /emakicorelib reload.</yellow>"
   not_running: "<red>Web Console is not running, so debug logs cannot be enabled. Check the startup log or run /emakicorelib reload.</red>"
   no_permission: "<red>You do not have permission to change Web Console debug mode</red>"
+
+# Command messages
+command:
+  no_permission_web: "<red>You do not have permission to view the Web Console link</red>"
+  no_permission_reload: "<red>You do not have permission to reload EmakiCoreLib</red>"
+  reload_success: "<green>EmakiCoreLib has been reloaded, and the Web Console has restarted with the new configuration</green>"
+  web_address: "<aqua>Web Console address: </aqua><white>%url%</white>"
+  web_bind_hint: "<yellow>The current host is a bind address and usually cannot be accessed directly by clients; a localhost fallback link is provided below</yellow>"
+  web_click_open: "<aqua>Click to open: </aqua><click:open_url:'%url%'><hover:show_text:'<yellow>Click to open the Web Console in your browser</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
+  web_disabled_hint: "<yellow>Hint: web_console.enabled is currently false, so the link may not be reachable</yellow>"
+  web_unsafe_password: "<yellow>Hint: the Web Console password is empty or still using the default value, so the service will refuse to start. Please update web_console.auth.password</yellow>"
+  help_header: "<aqua>EmakiCoreLib commands:</aqua>"
+  help_web: "<green>%root% web</green><gray> - Print a clickable Web Console link</gray>"
+  help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration and the Web Console</gray>"
+  help_webdebug: "<green>%root% webdebug [frontend|backend|all]</green><gray> - Toggle frontend/backend debug logs after the Web Console is enabled</gray>"
+
+# Web Console service logs
+web_console:
+  started: "<gray>Web Console started: <aqua>%url%</aqua></gray>"
+  start_failed: "<red>Failed to start the Web Console</red>"
+  unsafe_password: "<red>The Web Console is enabled but the password is still the default value change-me, so startup was refused. Please update config.yml web_console.auth.password</red>"
+  request_failed: "<red>Failed to handle request: %uri%</red>"
+  yaml_parse_failed: "<red>Failed to parse web-console.yml</red>"

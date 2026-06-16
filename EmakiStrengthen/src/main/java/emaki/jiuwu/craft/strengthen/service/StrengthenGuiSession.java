@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.strengthen.service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.bukkit.entity.Player;
@@ -76,7 +75,7 @@ final class StrengthenGuiSession {
         for (ItemStack itemStack : materialInputs) {
             copy.add(cloneNonAir(itemStack));
         }
-        return Collections.unmodifiableList(copy);
+        return List.copyOf(copy);
     }
 
     public AttemptPreview preview() {

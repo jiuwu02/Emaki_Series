@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ApiClient } from './api';
+import { isGlobPath } from './documentPaths';
 import { getSourceDocumentAdapter, type SurfaceToolbarState } from './registry';
 import type { GuiSlotDefinition, GuiTemplateData, WebRegistryFile, WebRegistryModule } from './types';
 import { buildOccupancy, clampRows, fieldLabel, guiColumns, guiField, guiSlotCount, guiTypeOptions, loreLines, materialShortName, materialUrls, normalizeGuiType, parseSlotList, parseYaml, renderMiniMessageParts, serializeGuiYaml, slotItemText, subscribeTextureBases, supportsRows, textValue, withSlotItem } from './guiEditor';
@@ -31,6 +32,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const [data, setData] = useState<GuiTemplateData | null>(null);
   const [originalData, setOriginalData] = useState<GuiTemplateData | null>(null);
   const [originalText, setOriginalText] = useState('');
+  const [revision, setRevision] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -56,7 +58,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   const inspectorResizeStartW = useRef(380);
   const latestInspectorWidth = useRef(inspectorWidth);
 
-  const path = childPath ?? '';
+  const path = childPath || file.path;
   const fileTitle = fileDisplayTitle(file);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
   const sourcePath = childPath || file.path;
@@ -138,6 +140,11 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
 
   async function reloadGui() {
     if (!path) return;
+    if (isGlobPath(path)) {
+      setError(t('core.empty.selectFile'));
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -147,6 +154,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       setOriginalData(normalizedData);
       const serialized = serializeGuiYaml(normalizedData);
       setOriginalText(serialized);
+      setRevision(doc.revision);
       setSourceText(serialized);
       setSourceError(null);
       setHistory({ undo: [], redo: [] });
@@ -200,8 +208,9 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     try {
       if (sourceError) return;
       const content = draftText;
-      await (sourceAdapter?.save(api, sourceContext, content) ?? api.saveGui(module.id, path, content));
+      const result = await (sourceAdapter?.save(api, sourceContext, content, revision) ?? api.saveGui(module.id, path, content, revision));
       setOriginalText(content);
+      setRevision(result.revision ?? revision);
       setOriginalData(data);
       setSourceText(content);
       setHistory({ undo: [], redo: [] });
@@ -268,7 +277,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
       const currentSlot = (draft.slots ?? {})[key] ?? {};
       let merged: Record<string, unknown> = { ...currentSlot };
       for (const [field, value] of Object.entries(patch)) {
-        if (field === 'item') {
+        if (field === 'item' || field === 'item_source') {
           merged = withSlotItem(merged as GuiSlotDefinition, value) as Record<string, unknown>;
         } else if (value === undefined) delete merged[field];
         else merged[field] = value;
@@ -291,7 +300,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
     if (!selected.length) return;
     const visible = selectedCell ? visibleSlotForCell(selectedCell) : null;
     if (visible?.key) {
-      updateSlot(visible.key, { item: material });
+      updateSlot(visible.key, { item_source: material });
       return;
     }
     createSlot(selected[0], material);
@@ -358,6 +367,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
   useEffect(() => () => setToolbar?.(null), [setToolbar]);
 
   if (!path) return <section className="config-surface empty" role="status">{t('core.gui.selectFile')}</section>;
+  if (isGlobPath(path)) return <section className="config-surface empty" role="status"><InlineError>{t('core.empty.selectFile')}</InlineError></section>;
   if (loading) return <section className="config-surface gui-surface"><div className="gui-loading" role="status">{t('core.gui.loading')}</div></section>;
   if (!data) return <section className="config-surface empty"><InlineError>{error || t('core.gui.unavailable')}</InlineError><Button size="sm" onClick={() => void reloadGui()}>{t('core.action.retry')}</Button></section>;
 
@@ -406,7 +416,7 @@ export function GuiEditorSurface({ module, file, api, childPath, refreshKey = 0,
               onMouseMove={handleSlotMouseMove}
               onMouseLeave={() => { setHovered(null); setTooltipPosition(null); }}
               onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => { event.preventDefault(); const material = event.dataTransfer.getData('text/material'); if (material) { selectSlot(cell.index); const visible = visibleSlotForCell(cell); visible?.key ? updateSlot(visible.key, { item: material }) : createSlot(cell.index, material); } }}
+              onDrop={(event) => { event.preventDefault(); const material = event.dataTransfer.getData('text/material'); if (material) { selectSlot(cell.index); const visible = visibleSlotForCell(cell); visible?.key ? updateSlot(visible.key, { item_source: material }) : createSlot(cell.index, material); } }}
             >
               <SlotIcon slot={visibleSlotForCell(cell)?.slot ?? null} failed={failedImages} setFailed={setFailedImages} />
               <span className="slot-index">{cell.index}</span>
@@ -538,7 +548,7 @@ function SlotInspector({ slotKey, slot, updateSlot, removeSlot, editor, hideHead
   return <div className="slot-form">
     {!hideHeader && <div className="slot-key"><code>{slotKey}</code><button onClick={removeSlot}>{t('core.config.delete')}</button></div>}
     <InspectorPanel title={t('core.gui.slotDefinition')} storageKey="slot-identity"><GuiLabel editor={editor} path="type" fallback={t('core.gui.slotType')}><SlotTypeInput editor={editor} value={slot.type} onChange={(value) => setField('type', value)} /></GuiLabel><GuiLabel editor={editor} path="slots" fallback={t('core.gui.slot')}><DeferredSlotsInput value={slot.slots} onApply={(value) => setField('slots', value)} /></GuiLabel><small>{t('core.gui.slotCount', { count: parseSlotList(slot.slots).length })}</small></InspectorPanel>
-    <InspectorPanel title={t('core.gui.itemSource')} storageKey="slot-item"><GuiLabel editor={editor} path="item" fallback={t('core.gui.item')}><input value={textValue(slotItemText(slot))} onChange={(e) => setField('item', e.target.value)} /></GuiLabel></InspectorPanel>
+    <InspectorPanel title={t('core.gui.itemSource')} storageKey="slot-item"><GuiLabel editor={editor} path="item_source" fallback={t('core.gui.item')}><input value={textValue(slotItemText(slot))} onChange={(e) => setField('item_source', e.target.value)} /></GuiLabel></InspectorPanel>
     <InspectorPanel title={t('core.gui.displayText')} storageKey="slot-display"><GuiLabel editor={editor} path="display_name" fallback={t('core.gui.displayName')}><input value={textValue(slot.display_name)} onChange={(e) => setField('display_name', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="lore" fallback="Lore"><textarea value={loreLines(slot.lore).join('\n')} onChange={(e) => setField('lore', e.target.value.split('\n'))} /></GuiLabel></InspectorPanel>
     <InspectorPanel title={t('core.gui.modelComponents')} storageKey="slot-model" defaultCollapsed><div className="mini-grid-2"><GuiLabel editor={editor} path="item_model" fallback={t('core.gui.itemModel')}><input value={textValue(slot.item_model)} onChange={(e) => setField('item_model', e.target.value)} /></GuiLabel><GuiLabel editor={editor} path="custom_model_data" fallback={t('core.gui.modelData')}><input type="number" value={textValue(slot.custom_model_data)} onChange={(e) => setField('custom_model_data', e.target.value === '' ? undefined : Number(e.target.value))} /></GuiLabel></div><EnchantmentsEditor value={slot.enchantments} onChange={(value) => setField('enchantments', value)} /><HiddenComponentsEditor slot={slot} onChange={(patch) => updateSlot(slotKey, patch)} /></InspectorPanel>
     <InspectorPanel title={t('core.gui.sounds')} storageKey="slot-sounds" defaultCollapsed><SoundsEditor value={slot.sounds} onChange={(value) => setField('sounds', value)} /></InspectorPanel>
@@ -613,7 +623,7 @@ function normalizeSounds(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? { ...(value as Record<string, unknown>) } : {};
 }
 
-const STANDARD_SLOT_FIELDS = new Set(['type', 'slots', 'item', 'display_name', 'lore', 'item_model', 'custom_model_data', 'enchantments', 'hidden_components', 'hide_tooltip', 'tooltip_display', 'sounds']);
+const STANDARD_SLOT_FIELDS = new Set(['type', 'slots', 'item_source', 'item_sources', 'item', 'material', 'display_name', 'lore', 'item_model', 'custom_model_data', 'enchantments', 'hidden_components', 'hide_tooltip', 'tooltip_display', 'sounds']);
 
 function AdvancedFieldsEditor({ slot, editor, onChange }: { slot: GuiSlotDefinition; editor?: import('./types').WebEditorDescriptor; onChange: (patch: Partial<GuiSlotDefinition>) => void }) {
   const extras = Object.entries(slot).filter(([key]) => !STANDARD_SLOT_FIELDS.has(key));

@@ -32,7 +32,7 @@ import emaki.jiuwu.craft.strengthen.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
-public final class StrengthenAttemptService implements EmakiStrengthenApi {
+public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge {
 
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final String OPERATION_NAMESPACE = "strengthen";
@@ -413,9 +413,10 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
     }
 
     private void applyStrengthenOperations(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
-        Object nameActions = recipe.nameActions();
-        Object loreActions = recipe.loreActions();
-        if (nameActions == null && loreActions == null) {
+        Object nameActions = recipe.cumulativeNameActions(state.currentStar(), state.branchPath());
+        Object loreActions = recipe.cumulativeLoreActions(state.currentStar(), state.branchPath());
+        if ((nameActions instanceof List<?> nameList && nameList.isEmpty())
+                && (loreActions instanceof List<?> loreList && loreList.isEmpty())) {
             return;
         }
         String operationId = OPERATION_NAMESPACE + ":" + recipe.id() + ":star_" + state.currentStar();
@@ -427,6 +428,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi {
         variables.put("star", state.currentStar());
         variables.put("temper", state.temperLevel());
         variables.put("max_temper", recipe.limits().maxTemper());
+        operationLedger.revertAll(itemStack, OPERATION_NAMESPACE);
         operationLedger.apply(itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
     }
 

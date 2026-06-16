@@ -195,7 +195,7 @@ public abstract class YamlDirectoryLoader<T> {
                 collectYamlFiles(entry, sink);
                 continue;
             }
-            String name = entry.getName().toLowerCase();
+            String name = entry.getName().toLowerCase(java.util.Locale.ROOT);
             if (name.endsWith(".yml") || name.endsWith(".yaml")) {
                 sink.add(entry);
             }

@@ -42,7 +42,7 @@ public final class CookingRuntimeUtil {
         if (player == null) {
             return;
         }
-        AdventureSupport.sendActionBar(plugin, player, messageService.render(messageService.message(key, replacements)));
+        AdventureSupport.sendActionBar(plugin, player, messageService.message(key, replacements));
     }
 
     static long parseLong(Object raw, long fallback) {

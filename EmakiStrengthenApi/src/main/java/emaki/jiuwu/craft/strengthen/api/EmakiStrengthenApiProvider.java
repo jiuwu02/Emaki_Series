@@ -1,16 +1,11 @@
 package emaki.jiuwu.craft.strengthen.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
-
 /**
- * Entry point for obtaining the {@link EmakiStrengthenApi} that EmakiStrengthen
- * registers with the Bukkit {@code ServicesManager}.
+ * Compatibility helper for the static {@link EmakiStrengthenApi} facade.
  *
- * <p>The service only exists after EmakiStrengthen has enabled, so resolve it
- * lazily rather than caching it during your own plugin's load phase.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiStrengthenApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiStrengthenApiProvider {
 
@@ -18,11 +13,22 @@ public final class EmakiStrengthenApiProvider {
     }
 
     /**
-     * {@return the registered {@link EmakiStrengthenApi}, or an empty optional}
-     * Empty when EmakiStrengthen is absent or has not finished enabling.
+     * Checks whether the static EmakiStrengthen API bridge is installed.
+     *
+     * @return {@code true} when EmakiStrengthen is available
      */
-    public static Optional<EmakiStrengthenApi> get() {
-        RegisteredServiceProvider<EmakiStrengthenApi> provider = Bukkit.getServicesManager().getRegistration(EmakiStrengthenApi.class);
-        return provider == null ? Optional.empty() : Optional.ofNullable(provider.getProvider());
+    public static boolean available() {
+        return EmakiStrengthenApi.available();
+    }
+
+    /**
+     * Verifies that EmakiStrengthen is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiStrengthen API is not available.");
+        }
     }
 }

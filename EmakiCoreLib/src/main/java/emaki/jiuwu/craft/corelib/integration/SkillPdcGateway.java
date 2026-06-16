@@ -33,16 +33,20 @@ public final class SkillPdcGateway {
             return;
         }
         if (normalized.isEmpty()) {
+            if (!hasSkillPayload(itemMeta)) {
+                return;
+            }
             itemMeta.getPersistentDataContainer().remove(SKILL_IDS_KEY);
             itemMeta.getPersistentDataContainer().remove(SKILL_ACTIVE_SLOT_KEY);
-        } else {
-            itemMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, String.join(";", normalized));
-            itemMeta.getPersistentDataContainer().set(
-                    SKILL_ACTIVE_SLOT_KEY,
-                    PersistentDataType.STRING,
-                    EquipmentSlotMatcher.normalizeRequired(activeSlot)
-            );
+            itemStack.setItemMeta(itemMeta);
+            return;
         }
+        itemMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, String.join(";", normalized));
+        itemMeta.getPersistentDataContainer().set(
+                SKILL_ACTIVE_SLOT_KEY,
+                PersistentDataType.STRING,
+                EquipmentSlotMatcher.normalizeRequired(activeSlot)
+        );
         itemStack.setItemMeta(itemMeta);
     }
 
@@ -62,17 +66,27 @@ public final class SkillPdcGateway {
         String raw = originalMeta.getPersistentDataContainer().get(SKILL_IDS_KEY, PersistentDataType.STRING);
         String activeSlot = originalMeta.getPersistentDataContainer().get(SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING);
         if (Texts.isBlank(raw)) {
+            if (!hasSkillPayload(rebuiltMeta)) {
+                return;
+            }
             rebuiltMeta.getPersistentDataContainer().remove(SKILL_IDS_KEY);
             rebuiltMeta.getPersistentDataContainer().remove(SKILL_ACTIVE_SLOT_KEY);
-        } else {
-            rebuiltMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, raw);
-            rebuiltMeta.getPersistentDataContainer().set(
-                    SKILL_ACTIVE_SLOT_KEY,
-                    PersistentDataType.STRING,
-                    EquipmentSlotMatcher.normalizeRequired(activeSlot)
-            );
+            rebuilt.setItemMeta(rebuiltMeta);
+            return;
         }
+        rebuiltMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, raw);
+        rebuiltMeta.getPersistentDataContainer().set(
+                SKILL_ACTIVE_SLOT_KEY,
+                PersistentDataType.STRING,
+                EquipmentSlotMatcher.normalizeRequired(activeSlot)
+        );
         rebuilt.setItemMeta(rebuiltMeta);
+    }
+
+    private boolean hasSkillPayload(ItemMeta itemMeta) {
+        return itemMeta != null
+                && (itemMeta.getPersistentDataContainer().get(SKILL_IDS_KEY, PersistentDataType.STRING) != null
+                || itemMeta.getPersistentDataContainer().get(SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING) != null);
     }
 
     private List<String> normalize(Collection<String> skillIds) {

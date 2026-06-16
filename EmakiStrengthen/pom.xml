@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-strengthen</artifactId>
-    <version>4.1.0</version>
+    <version>4.3.0</version>
     <name>EmakiStrengthen</name>
     <packaging>jar</packaging>
 
@@ -41,10 +41,6 @@
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.bstats</groupId>
-            <artifactId>bstats-bukkit</artifactId>
         </dependency>
     </dependencies>
 
@@ -79,11 +75,11 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <workingDirectory>${project.basedir}/web-console</workingDirectory>
+                            <workingDirectory>${project.basedir}/..</workingDirectory>
                             <executable>npm</executable>
                             <arguments>
                                 <argument>run</argument>
-                                <argument>build</argument>
+                                <argument>build:web:strengthen</argument>
                             </arguments>
                         </configuration>
                     </execution>
@@ -102,7 +98,6 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-strengthen-api</include>
-                                    <include>org.bstats:bstats-bukkit</include>
                                 </includes>
                             </artifactSet>
                             <createDependencyReducedPom>false</createDependencyReducedPom>

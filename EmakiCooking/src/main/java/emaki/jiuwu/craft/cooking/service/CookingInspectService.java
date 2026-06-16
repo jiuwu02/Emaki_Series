@@ -6,6 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -32,7 +33,7 @@ public final class CookingInspectService {
         }
         ItemSource source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? "-" : String.valueOf(ItemSourceUtil.toShorthand(source));
-        String displayName = source == null ? hand.getType().name() : itemSourceService.displayName(source);
+        String displayName = EmakiCoreLibApi.itemDisplayName(hand);
         messageService.sendRaw(sender, messageService.message("command.inspect.header"));
         messageService.sendRaw(sender, messageService.message("command.inspect.line", Map.of("key", "player", "value", player.getName())));
         messageService.sendRaw(sender, messageService.message("command.inspect.line", Map.of("key", "source", "value", shorthand)));

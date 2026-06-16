@@ -147,7 +147,14 @@ public final class YamlFiles {
         }
         versionedFile.root().set(versionKey, bundledVersion);
         versionedFile.save();
-        return versionedFile;
+        return new VersionedYamlFile(
+                versionedFile.file(),
+                versionedFile.resourcePath(),
+                versionedFile.document(),
+                true,
+                runtimeVersion,
+                bundledVersion
+        );
     }
 
     public static void save(File file, YamlSection section) throws IOException {
@@ -342,7 +349,7 @@ public final class YamlFiles {
         if (location == null || resourcePaths == null || Texts.isBlank(normalizedDirectory)) {
             return;
         }
-        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase();
+        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase(java.util.Locale.ROOT);
         if ("file".equals(protocol)) {
             Path root = Path.of(location.toURI());
             scanFileTree(root, normalizedDirectory, resourcePaths);
@@ -357,14 +364,14 @@ public final class YamlFiles {
         if (location == null || resourcePaths == null || Texts.isBlank(normalizedDirectory)) {
             return;
         }
-        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase();
+        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase(java.util.Locale.ROOT);
         if ("file".equals(protocol)) {
             Path root = Path.of(location.toURI());
             if (Files.isDirectory(root)) {
                 scanFileTree(root.resolve(normalizedDirectory), normalizedDirectory, resourcePaths);
                 return;
             }
-            if (root.toString().toLowerCase().endsWith(".jar")) {
+            if (root.toString().toLowerCase(java.util.Locale.ROOT).endsWith(".jar")) {
                 scanJarFile(root, normalizedDirectory, resourcePaths);
             }
             return;
@@ -433,7 +440,7 @@ public final class YamlFiles {
         if (Texts.isBlank(path)) {
             return false;
         }
-        String lower = path.trim().toLowerCase();
+        String lower = path.trim().toLowerCase(java.util.Locale.ROOT);
         return lower.endsWith(".yml") || lower.endsWith(".yaml");
     }
 

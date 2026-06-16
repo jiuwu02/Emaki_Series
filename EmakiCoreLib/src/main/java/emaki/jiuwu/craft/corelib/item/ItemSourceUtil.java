@@ -80,9 +80,29 @@ public final class ItemSourceUtil {
         ItemSourceRegistry.system().registerParser(parser);
     }
 
+    public static void registerParser(String id, ItemSourceParser parser) {
+        ItemSourceRegistry.system().registerParser(id, parser);
+    }
+
+    public static void unregisterParser(String id) {
+        ItemSourceRegistry.system().unregisterParser(id);
+    }
+
+    public static void registerShorthandWriter(ItemSourceType type, java.util.function.Function<ItemSource, String> writer) {
+        ItemSourceRegistry.system().registerShorthandWriter(type, writer);
+    }
+
+    public static void unregisterShorthandWriter(ItemSourceType type) {
+        ItemSourceRegistry.system().unregisterShorthandWriter(type);
+    }
+
     public static String toShorthand(ItemSource source) {
         if (source == null || source.getType() == null || Texts.isBlank(source.getIdentifier())) {
             return null;
+        }
+        String registered = ItemSourceRegistry.system().toShorthand(source);
+        if (Texts.isNotBlank(registered)) {
+            return registered;
         }
         return switch (source.getType()) {
             case MMOITEMS ->
@@ -92,7 +112,7 @@ public final class ItemSourceUtil {
             case NEIGEITEMS ->
                 "neigeitems-" + source.getIdentifier();
             case EMAKIITEM ->
-                "emakiitem-" + source.getIdentifier();
+                null;
             case NEXO ->
                 "nexo-" + source.getIdentifier();
             case CRAFTENGINE ->

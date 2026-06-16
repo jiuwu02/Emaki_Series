@@ -33,7 +33,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendHelp(sender, label);
             return true;
         }
-        return switch (args[0].toLowerCase()) {
+        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender, label);
                 yield true;
@@ -52,14 +52,14 @@ public final class CoreLibCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            String prefix = args[0].toLowerCase();
+            String prefix = args[0].toLowerCase(java.util.Locale.ROOT);
             for (String subCommand : SUB_COMMANDS) {
                 if (subCommand.startsWith(prefix)) {
                     result.add(subCommand);
                 }
             }
         } else if (args.length == 2 && "webdebug".equalsIgnoreCase(args[0])) {
-            String prefix = args[1].toLowerCase();
+            String prefix = args[1].toLowerCase(java.util.Locale.ROOT);
             for (String mode : WEBDEBUG_MODES) {
                 if (mode.startsWith(prefix)) {
                     result.add(mode);
@@ -116,7 +116,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendLang(sender, "web_debug.not_running");
             return true;
         }
-        String mode = args.length >= 2 ? args[1].toLowerCase() : "all";
+        String mode = args.length >= 2 ? args[1].toLowerCase(java.util.Locale.ROOT) : "all";
         switch (mode) {
             case "frontend" -> {
                 boolean enabled = service.toggleDebugFrontend();

@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -126,11 +127,7 @@ final class StrengthenGuiRenderer {
         if (Texts.isBlank(item)) {
             return msg("strengthen.misc.unknown_material");
         }
-        ItemSource source = ItemSourceUtil.parseShorthand(item);
-        if (source == null || plugin.coreItemSourceService() == null) {
-            return item;
-        }
-        String displayName = plugin.coreItemSourceService().displayName(source);
+        String displayName = EmakiCoreLibApi.itemDisplayName(item);
         return Texts.isBlank(displayName) ? item : displayName;
     }
 

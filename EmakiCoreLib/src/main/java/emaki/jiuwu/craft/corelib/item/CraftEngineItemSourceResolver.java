@@ -114,6 +114,11 @@ final class CraftEngineItemSourceResolver
         }
 
         @Override
+        public String displayName(String identifier) {
+            return null;
+        }
+
+        @Override
         public void reset() {
             failureReason = "";
         }

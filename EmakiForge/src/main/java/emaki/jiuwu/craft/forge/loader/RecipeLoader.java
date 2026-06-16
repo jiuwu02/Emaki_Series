@@ -65,7 +65,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             return null;
         }
         if (!SUPPORTED_CONDITION_TYPES.contains(Texts.lower(recipe.conditionType()))) {
-            issue("loader.recipe_invalid_condition_type", Map.of(
+            issue("loader.recipe_invalid_condition_mode", Map.of(
                     "recipe", recipe.id(),
                     "file", file.getName(),
                     "value", recipe.conditionType(),

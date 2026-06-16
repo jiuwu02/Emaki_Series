@@ -6,10 +6,11 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
+import org.bukkit.plugin.java.JavaPlugin;
 
-import org.bstats.bukkit.Metrics;
-
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -26,7 +27,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
-import emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
@@ -64,9 +64,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_____\\ \\_\\ \\_\\\\ \\_\\ \\_\\\\"\\_\\ \\_____\\ 
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/\\/_/\\/_/ \\/_/\\/_/ \\/_/\\/_____/ 
 """;
-    private static final int BSTATS_PLUGIN_ID = 31765
+    private static final int BSTATS_PLUGIN_ID = 31765;
 
-    private Metrics metrics;
+    private BStatsRegistration metrics;
 
     private static final Set<String> DEBUG_MODULES = Set.of("recipe", "stir", "display", "station");
 
@@ -107,7 +107,22 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private OvenRuntimeService ovenRuntimeService;
     private JuicerRuntimeService juicerRuntimeService;
     private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
-    private EmakiCookingApi cookingApi;
+    private final EmakiCookingApi.Bridge cookingApiBridge = new EmakiCookingApi.Bridge() {
+        @Override
+        public String apiVersion() {
+            return getDescription().getVersion();
+        }
+
+        @Override
+        public String pluginName() {
+            return getName();
+        }
+
+        @Override
+        public boolean isReady() {
+            return isEnabled() && recipeService() != null;
+        }
+    };
 
     public EmakiCookingPlugin() {
         super(AppConfig::defaults);
@@ -125,18 +140,17 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerPublicApiService();
         registerWebConsole();
         registerPlaceholderExpansion();
-        forceEnableBStats();
-        metrics = new Metrics(this, BSTATS_PLUGIN_ID);
+        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
     @Override
     public void onDisable() {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        coreLibPlugin.namespaceRegistry().unregister("cooking");
+        coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         WebConsoleRegistry.unregisterModule(this);
-        if (cookingApi != null) {
-            getServer().getServicesManager().unregister(EmakiCookingApi.class, cookingApi);
-            cookingApi = null;
-        }
+        EmakiCookingApi.uninstall(cookingApiBridge);
         if (grinderRuntimeService != null) {
             grinderRuntimeService.shutdown();
         }
@@ -159,7 +173,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             textDisplayService.shutdown();
         }
         if (metrics != null) {
-            metrics.shutdown();
+            metrics.close();
             metrics = null;
         }
         if (messageService != null) {
@@ -251,8 +265,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerPublicApiService() {
-        cookingApi = new DefaultEmakiCookingApi(this);
-        getServer().getServicesManager().register(EmakiCookingApi.class, cookingApi, this, ServicePriority.Normal);
+        EmakiCookingApi.install(cookingApiBridge);
     }
 
     private void registerCraftEngineEventHandlers() {
@@ -429,19 +442,5 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public DebugCommand debugCommand() {
         return debugCommand;
-    }
-
-    private void forceEnableBStats() {
-        java.io.File bStatsFolder = new java.io.File(getDataFolder().getParentFile(), "bStats");
-        if (!bStatsFolder.exists()) {
-            bStatsFolder.mkdirs();
-        }
-        java.io.File configFile = new java.io.File(bStatsFolder, "config.yml");
-        org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(configFile);
-        config.set("enabled", true);
-        try {
-            config.save(configFile);
-        } catch (java.io.IOException ignored) {
-        }
     }
 }

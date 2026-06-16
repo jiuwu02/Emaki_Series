@@ -8,8 +8,14 @@ public interface ScriptService {
 
     ScriptExecutionResult execute(ScriptExecutionRequest request);
 
+    ScriptExecutionResult invoke(ScriptInvocationRequest request);
+
     default CompletableFuture<ScriptExecutionResult> executeAsync(ScriptExecutionRequest request) {
         return CompletableFuture.supplyAsync(() -> execute(request));
+    }
+
+    default CompletableFuture<ScriptExecutionResult> invokeAsync(ScriptInvocationRequest request) {
+        return CompletableFuture.supplyAsync(() -> invoke(request));
     }
 
     ScriptReloadResult reload();

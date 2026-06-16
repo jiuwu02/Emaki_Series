@@ -57,12 +57,14 @@ public final class MythicBridge implements Listener {
     @EventHandler
     public void onMechanicLoad(MythicMechanicLoadEvent event) {
         String name = normalize(event.getMechanicName());
-        if (!isDamageMechanic(name) || event.getConfig() == null) {
+        if (event.getConfig() == null) {
             return;
         }
         SkillExecutor executor = MythicBukkit.inst().getSkillManager();
         File sourceFile = new File(plugin.getDataFolder(), "mythic/" + name + ".yml");
-        event.register(new DamageSkillMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+        if (isDamageMechanic(name)) {
+            event.register(new DamageSkillMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+        }
     }
 
     @EventHandler

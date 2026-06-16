@@ -27,12 +27,12 @@ final class StrengthenPdcAttributeWriter {
         if (itemStack == null || recipe == null || state == null) {
             return;
         }
-        skillPdcGateway.write(itemStack, recipe.cumulativeSkillIds(state.currentStar()));
+        skillPdcGateway.write(itemStack, recipe.cumulativeSkillIds(state.currentStar(), state.branchPath()));
         PdcAttributeGateway gateway = plugin.pdcAttributeGateway();
         if (gateway == null || !gateway.available()) {
             return;
         }
-        Map<String, Double> attributes = recipe.cumulativeAttributes(state.currentStar());
+        Map<String, Double> attributes = recipe.cumulativeAttributes(state.currentStar(), state.branchPath());
         if (attributes.isEmpty()) {
             gateway.clear(itemStack, sourceId);
             return;

@@ -1,16 +1,11 @@
 package emaki.jiuwu.craft.corelib.api;
 
-import java.util.Optional;
-
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.RegisteredServiceProvider;
-
 /**
- * Entry point for obtaining the {@link EmakiCoreLibApi} that EmakiCoreLib registers with the
- * Bukkit {@code ServicesManager}.
+ * Compatibility helper for the static {@link EmakiCoreLibApi} facade.
  *
- * <p>The service only exists after EmakiCoreLib has enabled, so resolve it lazily
- * rather than caching it during your own plugin's load phase.
+ * <p>The public API no longer exposes an instance service. Use
+ * {@link EmakiCoreLibApi} static methods directly and this provider only for
+ * availability checks during migration.
  */
 public final class EmakiCoreLibApiProvider {
 
@@ -18,11 +13,22 @@ public final class EmakiCoreLibApiProvider {
     }
 
     /**
-     * {@return the registered {@link EmakiCoreLibApi}, or an empty optional} Empty when
-     * EmakiCoreLib is absent or has not finished enabling.
+     * Checks whether the static EmakiCoreLib API bridge is installed.
+     *
+     * @return {@code true} when EmakiCoreLib is available
      */
-    public static Optional<EmakiCoreLibApi> get() {
-        RegisteredServiceProvider<EmakiCoreLibApi> provider = Bukkit.getServicesManager().getRegistration(EmakiCoreLibApi.class);
-        return provider == null ? Optional.empty() : Optional.ofNullable(provider.getProvider());
+    public static boolean available() {
+        return EmakiCoreLibApi.available();
+    }
+
+    /**
+     * Verifies that EmakiCoreLib is available.
+     *
+     * @throws IllegalStateException when the static API bridge is not installed
+     */
+    public static void requireAvailable() {
+        if (!available()) {
+            throw new IllegalStateException("EmakiCoreLib API is not available.");
+        }
     }
 }

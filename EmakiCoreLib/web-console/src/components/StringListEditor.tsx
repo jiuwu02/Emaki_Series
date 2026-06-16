@@ -1,24 +1,22 @@
 import { t } from '../i18n';
-import { useStableEntries } from './useStableEntries';
+import { StableListEditor } from './StableListEditor';
 
 /** Editable string list with stable keys. */
-export function StringListEditor({ items, onChange, placeholder }: { items: string[]; onChange: (items: string[]) => void; placeholder?: string }) {
-  const stableRef = useStableEntries(items);
-  const stable = stableRef.current;
-
-  const update = (i: number, v: string) => { const next = [...items]; next[i] = v; onChange(next); };
-  const remove = (i: number) => { stableRef.current.splice(i, 1); onChange(items.filter((_, idx) => idx !== i)); };
-  const add = () => onChange([...items, '']);
-
-  return (
-    <div className="prop-kv" role="list">
-      {stable.map((entry, i) => (
-        <div className="prop-kv-row prop-kv-row--single" key={entry._id} role="listitem">
-          <input type="text" value={entry.data} onChange={e => update(i, e.target.value)} placeholder={placeholder} aria-label={t('core.list.itemAria', { index: i + 1 })} />
-          <button type="button" className="prop-kv-del" onClick={() => remove(i)} aria-label={t('core.config.deleteItem', { index: i + 1 })}>×</button>
-        </div>
-      ))}
-      <button type="button" className="prop-add" onClick={add}>+ {t('core.config.addItem')}</button>
-    </div>
-  );
+export function StringListEditor({ items, onChange, placeholder, ariaLabel, layout = 'block', addFirst = true }: { items: string[]; onChange: (items: string[]) => void; placeholder?: string; ariaLabel?: string; layout?: 'block' | 'inline'; addFirst?: boolean }) {
+  return <StableListEditor
+    items={items}
+    onChange={onChange}
+    createItem={() => ''}
+    className={`prop-kv--string-list prop-kv--string-list-${layout}${addFirst ? '' : ' prop-kv--string-list-add-last'}`}
+    rowClassName="prop-kv-row prop-kv-row--single prop-list-row"
+    addLabel={t('core.config.addItem')}
+    ariaLabel={ariaLabel}
+    addButtonClassName="prop-list-add"
+    addButtonContent="+"
+    addFirst={addFirst}
+    renderItem={({ item, index, update, remove }) => <>
+      <input type="text" value={item} onChange={e => update(e.target.value)} placeholder={placeholder} aria-label={t('core.list.itemAria', { index: index + 1 })} />
+      <button type="button" className="prop-kv-del" onClick={remove} aria-label={t('core.config.deleteItem', { index: index + 1 })}>×</button>
+    </>}
+  />;
 }

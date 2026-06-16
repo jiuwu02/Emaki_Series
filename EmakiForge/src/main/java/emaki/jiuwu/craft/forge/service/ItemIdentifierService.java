@@ -7,6 +7,7 @@ import java.util.Set;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceType;
@@ -65,12 +66,11 @@ public final class ItemIdentifierService {
         if (source == null || source.getType() == null || Texts.isBlank(source.getIdentifier())) {
             return "";
         }
-        ItemSourceService itemSourceService = coreItemSourceService();
-        if (itemSourceService == null) {
-            String shorthand = ItemSourceUtil.toShorthand(source);
-            return Texts.isBlank(shorthand) ? source.getIdentifier() : shorthand;
-        }
-        return itemSourceService.displayName(source);
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        String displayName = EmakiCoreLibApi.itemDisplayName(shorthand);
+        return Texts.isBlank(displayName)
+                ? (Texts.isBlank(shorthand) ? source.getIdentifier() : shorthand)
+                : displayName;
     }
 
     public void validateConfiguredSource(ItemSource source, String location) {

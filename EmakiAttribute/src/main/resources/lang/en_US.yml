@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.1.0"
+version: "4.3.0"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -16,6 +16,7 @@ console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
   plugin_stopped: "<yellow>Stopped</yellow>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>Config load failed: %error%</red>"
   reload_stage_failed: "<yellow>Reload stage %stage% failed: <red>%error%</red></yellow>"
   vanilla_attribute_resolve_failed: "<yellow>Failed to resolve vanilla attribute
@@ -43,6 +44,18 @@ console:
     <yellow>%default_value%</yellow> <dark_gray>|</dark_gray> <gray>Power</gray>
     <yellow>%attribute_power%</yellow>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  js_attribute_extension_no_result: "no result"
+  js_attribute_extension_load_failed: "<yellow>Failed to load JavaScript attribute extension: <white>%script%</white> (<red>%error%</red>)</yellow>"
+  js_attribute_extensions_loaded: "<gray>Loaded <yellow>%count%</yellow> JavaScript attribute extension script(s), damage hooks=<yellow>%damage_hooks%</yellow></gray>"
+  js_attribute_extension_directory_create_failed: "<yellow>Failed to create JavaScript attribute extension directory: <red>%error%</red></yellow>"
+  js_attribute_extension_scan_failed: "<yellow>Failed to scan JavaScript attribute extensions: <red>%error%</red></yellow>"
+  js_attribute_blank_id: "<yellow>JavaScript attribute definition ID cannot be blank: <white>%script%</white></yellow>"
+  js_attribute_registered: "<gray>Registered JavaScript attribute: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_attribute_provider_blank_id: "<yellow>JavaScript attribute provider ID cannot be blank: <white>%script%</white></yellow>"
+  js_attribute_provider_registered: "<gray>Registered JavaScript attribute provider: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_damage_hook_invalid: "<yellow>JavaScript damage hook requires id and function: <white>%script%</white></yellow>"
+  js_damage_hook_registered: "<gray>Registered JavaScript damage hook: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_damage_hook_failed: "<yellow>JavaScript damage hook failed: <aqua>%id%</aqua> (<red>%error%</red>)</yellow>"
 
 loader:
   lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"
@@ -177,11 +190,13 @@ combat_debug:
     "Projectile hit snapshot not found, aborting
     under strict snapshot mode: projectile=%projectile%"
   async_damage_failed: "Async damage resolve failed: %error%"
-  perfect_takeover_applied: "Perfect takeover rewrote vanilla damage in place: cause=%cause%,
+  perfect_takeover_applied:
+    "Perfect takeover rewrote vanilla damage in place: cause=%cause%,
     finalDamage=%final_damage%; absorption/blocking kept, armor mitigation neutralized,
     vanilla side effects still fire."
   perfect_takeover_cancelled: "Perfect takeover resolved to no damage, vanilla event cancelled: cause=%cause%"
-  perfect_side_effects: "Perfect takeover applied EA side effects: finalDamage=%final_damage%,
+  perfect_side_effects:
+    "Perfect takeover applied EA side effects: finalDamage=%final_damage%,
     attackerCooldownTicks=%attacker_cooldown_ticks%"
 
 command:
@@ -260,6 +275,10 @@ command:
     debug:
       "<gray>/emakiattribute debug <status|player|module|all> [...]</gray> Manage
       debug tracking."
+    source: "<gray>/emakiattribute source <player> <attribute></gray> View sources for one attribute."
+    trace:
+      "<gray>/emakiattribute trace <last|list|export|clear> <player></gray> View
+      damage Trace records."
     lint: "<gray>/emakiattribute lint</gray> Check config and resource loading
       issues."
 
