@@ -9,19 +9,21 @@ import emaki.jiuwu.craft.corelib.web.WebConsoleConfig;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record CoreLibConfig(
+        String language,
         Map<String, List<String>> actionTemplates,
         ScriptConfig scriptConfig,
         WebConsoleConfig webConsoleConfig
 ) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig(Map.of(), ScriptConfig.defaults(), WebConsoleConfig.defaults());
+        return new CoreLibConfig("zh_CN", Map.of(), ScriptConfig.defaults(), WebConsoleConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
         if (configuration == null) {
             return defaults();
         }
+        String language = configuration.getString("language", defaults().language());
         YamlSection actionSection = configuration.getSection("action");
         YamlSection templatesSection = actionSection == null ? null : actionSection.getSection("templates");
         Map<String, List<String>> templates = new LinkedHashMap<>();
@@ -31,6 +33,7 @@ public record CoreLibConfig(
             }
         }
         return new CoreLibConfig(
+                language,
                 Map.copyOf(templates),
                 ScriptConfig.fromConfig(configuration.getSection("script")),
                 WebConsoleConfig.fromConfig(configuration.getSection("web_console"))

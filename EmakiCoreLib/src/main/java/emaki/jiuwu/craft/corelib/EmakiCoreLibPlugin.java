@@ -156,11 +156,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onEnable() {
+        ensureBundledFile("config.yml");
+        configModel = loadConfigModel();
         initializeServices();
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         messageService.info("console.plugin_starting");
-        ensureBundledFile("config.yml");
-        configModel = loadConfigModel();
         itemSourceIntegrationCoordinator.initialize();
         reloadActionSystem();
         registerMythicJavaScriptBridge();
@@ -233,6 +233,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public void reloadActionSystem() {
         configModel = loadConfigModel();
+        if (languageLoader != null && configModel != null) {
+            languageLoader.load();
+            languageLoader.setLanguage(configModel.language());
+        }
         reloadWebConsole();
         reloadScriptSystem();
         actionRegistry = new ActionRegistry();
@@ -391,7 +395,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void initializeServices() {
-        languageLoader = new LanguageLoader(this);
+        CoreLibConfig config = configModel == null ? CoreLibConfig.defaults() : configModel;
+        languageLoader = new LanguageLoader(this, "lang", "lang", config.language(), "zh_CN");
         messageService = new MessageService(this, languageLoader);
         bStatsService = new BStatsService(this, messageService);
         debugLogger = new DebugLogger(getLogger(), languageLoader);
@@ -411,17 +416,25 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         try {
             boolean copied = YamlFiles.copyResourceIfMissing(this, relativePath, target);
             if (!copied && !target.exists()) {
-                messageService.warning("loader.bundled_resource_missing", java.util.Map.of(
-                        "type", "资源",
-                        "path", target.getPath(),
-                        "resource", relativePath
-                ));
+                if (messageService != null) {
+                    messageService.warning("loader.bundled_resource_missing", java.util.Map.of(
+                            "type", "资源",
+                            "path", target.getPath(),
+                            "resource", relativePath
+                    ));
+                } else {
+                    getLogger().warning("Bundled resource missing: " + relativePath);
+                }
             }
         } catch (Exception exception) {
-            messageService.warning("loader.bundled_resource_write_failed", java.util.Map.of(
-                    "path", target.getPath(),
-                    "error", String.valueOf(exception.getMessage())
-            ));
+            if (messageService != null) {
+                messageService.warning("loader.bundled_resource_write_failed", java.util.Map.of(
+                        "path", target.getPath(),
+                        "error", String.valueOf(exception.getMessage())
+                ));
+            } else {
+                getLogger().warning("Failed to write bundled resource " + relativePath + ": " + exception.getMessage());
+            }
         }
     }
 
@@ -432,9 +445,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             logVersionUpdate("config.yml", versionedFile);
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
-            messageService.warning("console.action_config_load_failed", java.util.Map.of(
-                    "error", String.valueOf(exception.getMessage())
-            ));
+            if (messageService != null) {
+                messageService.warning("console.action_config_load_failed", java.util.Map.of(
+                        "error", String.valueOf(exception.getMessage())
+                ));
+            } else {
+                getLogger().warning("Failed to load CoreLib config: " + exception.getMessage());
+            }
             return CoreLibConfig.defaults();
         }
     }
@@ -443,11 +460,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (versionedFile == null || !versionedFile.versionUpdated()) {
             return;
         }
-        messageService.info("console.versioned_file_updated", Map.of(
-                "path", relativePath,
-                "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
-                "new_version", versionedFile.updatedVersion()
-        ));
+        if (messageService != null) {
+            messageService.info("console.versioned_file_updated", Map.of(
+                    "path", relativePath,
+                    "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                    "new_version", versionedFile.updatedVersion()
+            ));
+        } else {
+            getLogger().info("Updated bundled file version: " + relativePath + " ("
+                    + (versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion())
+                    + " -> " + versionedFile.updatedVersion() + ")");
+        }
     }
 
     public CoreLibConfig configModel() {
