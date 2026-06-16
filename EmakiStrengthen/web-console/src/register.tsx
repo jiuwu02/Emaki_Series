@@ -56,7 +56,7 @@ export function registerEmakiStrengthenWebConsole(): void {
 
   const branchFields = [
     { path: 'branch_id', label: '分支 ID', comment: '分支唯一标识，root 节点可使用 root。', type: 'text', defaultValue: 'branch' },
-    { path: 'display_name', label: '显示名称', comment: '分支在 GUI 或提示中的显示名称。', type: 'text', defaultValue: '<yellow>新分支</yellow>' },
+    { path: 'display_name', label: '显示名称', comment: '分支在 GUI 或提示中的显示名称。', type: 'text', defaultValue: copy('<yellow>新分支</yellow>', '<yellow>New branch</yellow>') },
     { path: 'fork_after_star', label: '分叉星级', comment: '-1 表示不再分叉；有 children 时表示完成该星级后选择路线。', type: 'number', defaultValue: -1 },
     { path: 'stars', label: '星级阶段', comment: '该分支内的星级阶段。', type: 'object', defaultValue: {} },
     { path: 'children', label: '子分支', comment: '此分支后续可选择的子路线。', type: 'object', defaultValue: {} }

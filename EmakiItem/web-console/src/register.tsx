@@ -362,39 +362,39 @@ export function registerEmakiItemWebConsole(): void {
   registerEditorDescriptor(MODULE, EDITOR_ID, {
     id: EDITOR_ID,
     moduleId: MODULE,
-    title: 'EmakiItem 物品',
+    title: copy('EmakiItem 物品', 'EmakiItem item'),
     titleKey: 'emakiitem.editor.item.title',
-    kindLabel: '物品',
+    kindLabel: copy('物品', 'Item'),
     baseName: copy('<gray>EmakiItem 预览</gray>', '<gray>EmakiItem Preview</gray>'),
     baseLore: [copy('<dark_gray>根据当前 YAML 草稿生成的物品预览</dark_gray>', '<dark_gray>Preview generated from the current YAML draft</dark_gray>')],
     preview: { kindLabels: { generic_item: 'emakiitem.preview.kind.generic_item', default: 'emakiitem.preview.kind.generic_item' }, layeredModule: 'item', layeredRoute: 'preview-layered' },
     rename: { module: 'item', previewRoute: 'rename-preview', applyRoute: 'rename-apply', aliasRoute: 'alias-list' },
     allowedFieldTypes: ['effects', 'attributeModifiers', 'repairMaterials'],
     sections: [
-      { title: '基础信息', titleKey: 'emakiitem.section.basic', fields: fields(['id', 'material', 'equip_slot', 'display_name', 'item_name', 'lore']) },
-      { title: '显示动作链', titleKey: 'emakiitem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: fields(['name_actions', 'lore_actions']) },
-      { title: '更新策略', titleKey: 'emakiitem.section.update', collapsible: true, defaultCollapsed: true, fields: fields(['update.enabled', 'update.version', 'update.preserve_amount', 'update.preserve_damage', 'update.preserve_unknown_attribute_sources', 'update.triggers.join', 'update.triggers.held_change', 'update.triggers.inventory_click', 'update.triggers.inventory_drag', 'update.triggers.pickup', 'update.triggers.interact', 'update.triggers.command']) },
-      { title: '效果与变量', titleKey: 'emakiitem.section.effects', collapsible: true, defaultCollapsed: true, fields: fields(['effects']) },
-      { title: '原版组件', titleKey: 'emakiitem.section.components', collapsible: true, defaultCollapsed: true, fields: fields(['components.custom_model_data', 'components.item_model', 'components.tooltip_style', 'components.enchantments', 'components.item_flags', 'components.hide_tooltip', 'components.unbreakable', 'components.enchantment_glint_override', 'components.max_stack_size', 'components.rarity', 'components.damage', 'components.max_damage', 'components.enchantable', 'components.attribute_modifiers', 'components.raw']) },
-      { title: '套装归属', titleKey: 'emakiitem.section.setBinding', collapsible: true, defaultCollapsed: true, fields: fields(['set.id', 'set.piece']) },
-      { title: '装备条件', titleKey: 'emakiitem.section.conditions', collapsible: true, defaultCollapsed: true, fields: fields(['condition.entries', 'condition.type', 'condition.required_count', 'condition.invalid_as_failure', 'condition.on_fail.message', 'condition.on_pass.actions', 'condition.on_fail.actions']) },
-      { title: '修复配置', titleKey: 'emakiitem.section.repair', collapsible: true, defaultCollapsed: true, fields: fields(['repair.enabled', 'repair.materials', 'repair.economy.enabled', 'repair.economy.restore', 'repair.economy.currencies', 'repair.disabled_display.name_prefix', 'repair.disabled_display.lore_append', 'repair.on_disabled', 'repair.on_repaired']) },
-      { title: '触发动作', titleKey: 'emakiitem.section.actions', collapsible: true, defaultCollapsed: true, fields: fields(['actions.give', 'actions.interact']) }
+      { title: copy('基础信息', 'Basic info'), titleKey: 'emakiitem.section.basic', fields: fields(['id', 'material', 'equip_slot', 'display_name', 'item_name', 'lore']) },
+      { title: copy('显示动作链', 'Display actions'), titleKey: 'emakiitem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: fields(['name_actions', 'lore_actions']) },
+      { title: copy('更新策略', 'Update policy'), titleKey: 'emakiitem.section.update', collapsible: true, defaultCollapsed: true, fields: fields(['update.enabled', 'update.version', 'update.preserve_amount', 'update.preserve_damage', 'update.preserve_unknown_attribute_sources', 'update.triggers.join', 'update.triggers.held_change', 'update.triggers.inventory_click', 'update.triggers.inventory_drag', 'update.triggers.pickup', 'update.triggers.interact', 'update.triggers.command']) },
+      { title: copy('效果与变量', 'Effects and variables'), titleKey: 'emakiitem.section.effects', collapsible: true, defaultCollapsed: true, fields: fields(['effects']) },
+      { title: copy('原版组件', 'Vanilla components'), titleKey: 'emakiitem.section.components', collapsible: true, defaultCollapsed: true, fields: fields(['components.custom_model_data', 'components.item_model', 'components.tooltip_style', 'components.enchantments', 'components.item_flags', 'components.hide_tooltip', 'components.unbreakable', 'components.enchantment_glint_override', 'components.max_stack_size', 'components.rarity', 'components.damage', 'components.max_damage', 'components.enchantable', 'components.attribute_modifiers', 'components.raw']) },
+      { title: copy('套装归属', 'Set binding'), titleKey: 'emakiitem.section.setBinding', collapsible: true, defaultCollapsed: true, fields: fields(['set.id', 'set.piece']) },
+      { title: copy('装备条件', 'Equipment conditions'), titleKey: 'emakiitem.section.conditions', collapsible: true, defaultCollapsed: true, fields: fields(['condition.entries', 'condition.type', 'condition.required_count', 'condition.invalid_as_failure', 'condition.on_fail.message', 'condition.on_pass.actions', 'condition.on_fail.actions']) },
+      { title: copy('修复配置', 'Repair config'), titleKey: 'emakiitem.section.repair', collapsible: true, defaultCollapsed: true, fields: fields(['repair.enabled', 'repair.materials', 'repair.economy.enabled', 'repair.economy.restore', 'repair.economy.currencies', 'repair.disabled_display.name_prefix', 'repair.disabled_display.lore_append', 'repair.on_disabled', 'repair.on_repaired']) },
+      { title: copy('触发动作', 'Trigger actions'), titleKey: 'emakiitem.section.actions', collapsible: true, defaultCollapsed: true, fields: fields(['actions.give', 'actions.interact']) }
     ]
   });
 
   registerEditorDescriptor(MODULE, SET_EDITOR_ID, {
     id: SET_EDITOR_ID,
     moduleId: MODULE,
-    title: 'EmakiItem 套装',
+    title: copy('EmakiItem 套装', 'EmakiItem set'),
     titleKey: 'emakiitem.editor.set.title',
-    kindLabel: '套装',
+    kindLabel: copy('套装', 'Set'),
     allowedFieldTypes: ['setPieces', 'setThresholds'],
     sections: [
-      { title: '基础信息', titleKey: 'emakiitem.section.basic', fields: setFields(['id', 'display_name']) },
-      { title: '套装部件', titleKey: 'emakiitem.section.setPieces', collapsible: true, fields: setFields(['pieces']) },
-      { title: '套装 Lore', titleKey: 'emakiitem.section.setLore', collapsible: true, defaultCollapsed: true, fields: setFields(['lore.header', 'lore.equipped_format', 'lore.missing_format', 'lore.active_threshold_format', 'lore.inactive_threshold_format', 'lore.separator']) },
-      { title: '套装效果', titleKey: 'emakiitem.section.thresholds', collapsible: true, fields: setFields(['thresholds']) }
+      { title: copy('基础信息', 'Basic info'), titleKey: 'emakiitem.section.basic', fields: setFields(['id', 'display_name']) },
+      { title: copy('套装部件', 'Set pieces'), titleKey: 'emakiitem.section.setPieces', collapsible: true, fields: setFields(['pieces']) },
+      { title: copy('套装 Lore', 'Set lore'), titleKey: 'emakiitem.section.setLore', collapsible: true, defaultCollapsed: true, fields: setFields(['lore.header', 'lore.equipped_format', 'lore.missing_format', 'lore.active_threshold_format', 'lore.inactive_threshold_format', 'lore.separator']) },
+      { title: copy('套装效果', 'Set effects'), titleKey: 'emakiitem.section.thresholds', collapsible: true, fields: setFields(['thresholds']) }
     ]
   });
 

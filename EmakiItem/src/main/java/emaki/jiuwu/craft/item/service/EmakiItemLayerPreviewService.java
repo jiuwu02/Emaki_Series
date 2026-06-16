@@ -51,18 +51,30 @@ public final class EmakiItemLayerPreviewService {
                 layers.add(unregisteredLayer(id));
                 continue;
             }
-            WebItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, layerOptionsFor(layerOptions, id));
-            if (result.available() && result.itemStack() != null) {
+            Map<String, Object> options = layerOptionsFor(layerOptions, id);
+            boolean enabled = layerEnabled(options);
+            WebItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, options);
+            boolean applied = enabled && result.available() && result.itemStack() != null;
+            if (applied) {
                 current = result.itemStack();
             }
-            layers.add(result.toLayerMap(itemPreview(id, result.available(), result.reason(), result.itemStack(), result.details())));
+            Map<String, Object> layerMap = result.toLayerMap(itemPreview(id, result.available(), result.reason(), result.itemStack(), result.details()));
+            layerMap.put("enabled", enabled);
+            layerMap.put("applied", applied);
+            layers.add(layerMap);
         }
         for (WebItemLayerPreviewProvider provider : providers.values()) {
-            WebItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, layerOptionsFor(layerOptions, provider.id()));
-            if (result.available() && result.itemStack() != null) {
+            Map<String, Object> options = layerOptionsFor(layerOptions, provider.id());
+            boolean enabled = layerEnabled(options);
+            WebItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, options);
+            boolean applied = enabled && result.available() && result.itemStack() != null;
+            if (applied) {
                 current = result.itemStack();
             }
-            layers.add(result.toLayerMap(itemPreview(provider.id(), result.available(), result.reason(), result.itemStack(), result.details())));
+            Map<String, Object> layerMap = result.toLayerMap(itemPreview(provider.id(), result.available(), result.reason(), result.itemStack(), result.details()));
+            layerMap.put("enabled", enabled);
+            layerMap.put("applied", applied);
+            layers.add(layerMap);
         }
         return mapOf(
                 "ok", true,
@@ -139,6 +151,21 @@ public final class EmakiItemLayerPreviewService {
             providers.put(Texts.lower(provider.id()), provider);
         }
         return providers;
+    }
+
+    private boolean layerEnabled(Map<String, Object> options) {
+        if (options == null || !options.containsKey("enabled")) {
+            return true;
+        }
+        Object value = options.get("enabled");
+        if (value instanceof Boolean flag) {
+            return flag;
+        }
+        if (value instanceof Number number) {
+            return number.intValue() != 0;
+        }
+        String normalized = Texts.lower(value).trim();
+        return !List.of("false", "0", "no", "n", "off", "disabled").contains(normalized);
     }
 
     private Map<String, Object> layerOptionsFor(Map<String, Object> layerOptions, String id) {

@@ -347,7 +347,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
             <div className="ie-preview ie-preview-combined" role="complementary" aria-label={t('core.item.previewAria')}>
               <GenericPreviewPane moduleId={module.id} fileKind={file.kind} editor={editor} data={data} preview={preview} layerPreview={layerPreview} previewPending={previewPending} previewError={previewError} previewLevel={previewLevel} setPreviewLevel={setPreviewLevel} baseName={baseName} baseLore={baseLore as string[]} />
               <LayeredPreviewPane preview={layerPreview} pending={layerPreviewPending} error={layerPreviewError} options={layerOptions} onOptionsChange={setLayerOptions} />
-              <RenameMigrationPane api={api} editor={editor} moduleId={module.id} currentId={textValue(data.id)} sourceError={sourceError} dirty={semanticDirty} onApplied={() => { setToast({ tone: 'ok', text: '重命名迁移已应用' }); onReload?.(); }} />
+              <RenameMigrationPane api={api} editor={editor} moduleId={module.id} currentId={textValue(data.id)} sourceError={sourceError} dirty={semanticDirty} onApplied={() => { setToast({ tone: 'ok', text: uiCopy('重命名迁移已应用', 'Rename migration applied') }); onReload?.(); }} />
             </div>
           </div>
           <div className="ie-props-scroll">
@@ -507,7 +507,7 @@ function MapEditor({ value, onChange, valuePlaceholder, addKeyPrefix = 'key' }: 
 function GenericObjectEditor({ value, reservedKeys, onChange }: { value: unknown; reservedKeys?: string[]; onChange: (value: AnyMap) => void }) {
   const reserved = new Set(reservedKeys ?? []);
   const entries = Object.entries(asRecord(value)).filter(([key]) => !reserved.has(key)).map(([key, entry]) => ({ key, value: entry }));
-  return <PropRow label="字段" wide><KvTable
+  return <PropRow label={uiCopy('字段', 'Fields')} wide><KvTable
     entries={entries}
     parseValue={parseLooseScalar}
     createEntry={currentEntries => ({ key: nextUniqueKey(currentEntries.map(entry => entry.key), 'key'), value: 0 })}
@@ -545,6 +545,8 @@ function compactLayerRow(value: unknown): AnyMap {
     available: layer.available === true,
     reason: textValue(layer.reason),
     status: textValue(layer.status),
+    enabled: layer.enabled !== false,
+    applied: layer.applied === true,
     selected: asRecord(layer.selected),
     options: compactLayerOptions(layer.id, layer.options),
     preview: compactLayerItemPreview(layer.preview)
@@ -597,13 +599,23 @@ function compactLayerOptions(layerId: unknown, value: unknown): AnyMap {
     selectedSlot: options.selectedSlot,
     selectedGemId: textValue(options.selectedGemId),
     selectedLevel: options.selectedLevel,
+    selectedInlay: options.selectedInlay,
     slots: asList(options.slots).map(entry => {
       const slot = asRecord(entry);
       return cleanObject({ index: slot.index, type: textValue(slot.type), displayName: textValue(slot.displayName), opened: slot.opened === true, assigned: slot.assigned === true });
     }),
     gems: asList(options.gems).map(entry => {
       const gem = asRecord(entry);
-      return cleanObject({ id: textValue(gem.id), displayName: textValue(gem.displayName), type: textValue(gem.type), level: gem.level, maxLevel: gem.maxLevel });
+      return cleanObject({
+        id: textValue(gem.id),
+        displayName: textValue(gem.displayName),
+        type: textValue(gem.type),
+        level: gem.level,
+        maxLevel: gem.maxLevel,
+        actionCount: gem.actionCount,
+        nameActionCount: gem.nameActionCount,
+        loreActionCount: gem.loreActionCount
+      });
     })
   });
   return {};
@@ -671,7 +683,7 @@ function localItemPreview(moduleId: string, editorId: string | undefined, kind: 
   const variables = asRecord(data.variables);
   const displayName = renderLocalTemplate(textValue(data.display_name ?? data.item_name ?? data.id, baseName), variables);
   const lore = resolvePreviewBaseLore(data, baseLore).map(line => renderLocalTemplate(line, variables));
-  const textPreview = applyLocalDisplayActions(displayName, lore, collectDisplayActions(data, 'name_actions', 'name_action', 'name_action'), collectDisplayActions(data, 'lore_actions', 'lore_action', 'lore_action'), variables);
+  const textPreview = applyLocalDisplayActions(displayName, lore, collectDisplayActions(data, 'name_actions', 'name_action', 'name_action', previewLevel), collectDisplayActions(data, 'lore_actions', 'lore_action', 'lore_action', previewLevel), variables);
   const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
   return {
     kind: 'generic_item',
@@ -689,16 +701,51 @@ function localItemPreview(moduleId: string, editorId: string | undefined, kind: 
   };
 }
 
-function collectDisplayActions(data: AnyMap, topKey: string, effectType: string, effectKey: string): ActionEntry[] {
+function collectDisplayActions(data: AnyMap, topKey: string, effectType: string, effectKey: string, previewLevel: number): ActionEntry[] {
   const actions: ActionEntry[] = [];
   actions.push(...parseActionList(data[topKey]));
-  for (const effect of asList(data.effects)) {
+  for (const effect of collectPreviewEffectRows(data, previewLevel)) {
     const row = asRecord(effect);
     if (textValue(row.type).toLowerCase() !== effectType) continue;
     actions.push(...parseActionList(row[topKey]));
     actions.push(...parseActionList(row[effectKey]));
   }
   return actions;
+}
+
+function collectPreviewEffectRows(data: AnyMap, previewLevel: number): AnyMap[] {
+  const effects: AnyMap[] = [];
+  const addEffects = (value: unknown) => effects.push(...asList(value).map(asRecord));
+  addEffects(data.effects);
+
+  const upgradeLevels = asRecord(asRecord(data.upgrade).levels);
+  const requestedLevel = asRecord(upgradeLevels[String(previewLevel)]);
+  if (Object.keys(requestedLevel).length) addEffects(requestedLevel.effects);
+
+  const starStages = asRecord(data.stars);
+  const requestedStar = asRecord(starStages[String(previewLevel)]);
+  if (Object.keys(requestedStar).length) addEffects(requestedStar.effects);
+
+  const branchTree = asRecord(data.branch_tree);
+  const branchRootStar = asRecord(asRecord(branchTree.stars)[String(previewLevel)]);
+  if (Object.keys(branchRootStar).length) addEffects(branchRootStar.effects);
+
+  collectNestedDisplayEffects(data, effects, new Set(['effects', 'upgrade', 'stars', 'branch_tree']), 0);
+  return effects;
+}
+
+function collectNestedDisplayEffects(value: unknown, output: AnyMap[], skippedRootKeys: Set<string>, depth: number) {
+  if (depth > 6) return;
+  if (Array.isArray(value)) {
+    value.forEach(entry => collectNestedDisplayEffects(entry, output, new Set(), depth + 1));
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (depth === 0 && skippedRootKeys.has(key)) continue;
+    if (key === 'effects') output.push(...asList(entry).map(asRecord));
+    else collectNestedDisplayEffects(entry, output, new Set(), depth + 1);
+  }
 }
 
 function applyLocalDisplayActions(baseName: string, baseLore: string[], nameActions: ActionEntry[], loreActions: ActionEntry[], variables: AnyMap): { name: string; lore: string[]; nameSteps: ItemPreviewResult['nameSteps']; loreSteps: ItemPreviewResult['loreSteps'] } {
@@ -710,7 +757,11 @@ function applyLocalDisplayActions(baseName: string, baseLore: string[], nameActi
     if (action.type === 'replace') name = value;
     else if (action.type === 'prepend_prefix') name = `${value}${name}`;
     else if (action.type === 'append_suffix') name = `${name}${value}`;
-    else if (action.type === 'regex_replace') name = localRegexReplace(name, textValue(action.params.regex_pattern), renderLocalTemplate(textValue(action.params.replacement), variables));
+    else if (action.type === 'replace_text' || action.type === 'replace_text_all') {
+      const anchor = localActionAnchor(action, variables);
+      const replacement = renderLocalTemplate(firstActionText(action.params, ['replacement', 'value', 'content', 'text']), variables);
+      if (anchor) name = action.type === 'replace_text_all' ? name.split(anchor).join(replacement) : name.replace(anchor, replacement);
+    } else if (action.type === 'regex_replace') name = localRegexReplace(name, actionTextValue(action.params.regex_pattern), renderLocalTemplate(actionTextValue(action.params.replacement), variables));
     nameSteps.push({ action: action.type, value, before, after: name, result: name });
   }
 
@@ -719,7 +770,7 @@ function applyLocalDisplayActions(baseName: string, baseLore: string[], nameActi
   for (const action of loreActions) {
     const before = [...lore];
     const content = localActionContent(action, variables);
-    const anchor = renderLocalTemplate(textValue(action.params.search ?? action.params.anchor ?? action.params.pattern), variables);
+    const anchor = localActionAnchor(action, variables);
     applyLocalLoreAction(lore, action, content, anchor, variables);
     loreSteps.push({ action: action.type, anchor, content, before, after: [...lore] });
   }
@@ -727,13 +778,59 @@ function applyLocalDisplayActions(baseName: string, baseLore: string[], nameActi
 }
 
 function localActionValue(action: ActionEntry, variables: AnyMap): string {
-  return renderLocalTemplate(textValue(action.params.value ?? action.params.content ?? action.params.text ?? action.params.name ?? action.params.replacement), variables);
+  return renderLocalTemplate(firstActionText(action.params, ['value', 'content', 'text', 'template', 'name', 'replacement']), variables);
 }
 
 function localActionContent(action: ActionEntry, variables: AnyMap): string[] {
-  const raw = action.params.content ?? action.params.lines ?? action.params.value ?? action.params.text;
-  const lines = asStringList(raw);
-  return (lines.length ? lines : [textValue(raw)]).filter(line => line.length > 0).map(line => renderLocalTemplate(line, variables));
+  const lines = actionTextLines(action.params.content ?? action.params.lines ?? action.params.values ?? action.params.text ?? action.params.value);
+  return lines.filter(line => line.length > 0).map(line => renderLocalTemplate(line, variables));
+}
+
+function localActionAnchor(action: ActionEntry, variables: AnyMap): string {
+  return renderLocalTemplate(firstActionText(action.params, ['target_pattern', 'anchor', 'search', 'pattern']), variables);
+}
+
+function firstActionText(params: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(params, key)) {
+      const text = actionTextValue(params[key]);
+      if (text || params[key] != null) return text;
+    }
+  }
+  return '';
+}
+
+function actionTextLines(value: unknown): string[] {
+  if (value == null || value === '') return [];
+  if (Array.isArray(value)) return value.flatMap(actionTextLines);
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    for (const key of ['content', 'lines', 'values', 'candidates']) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return actionTextLines(record[key]);
+    }
+    for (const key of ['value', 'text', 'template', 'expression', 'formula']) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return actionTextLines(record[key]);
+    }
+    return [];
+  }
+  const text = textValue(value);
+  return text.includes('\n') ? text.split('\n') : [text];
+}
+
+function actionTextValue(value: unknown): string {
+  const scalar = textValue(value);
+  if (scalar || value == null) return scalar;
+  if (Array.isArray(value)) return actionTextLines(value).join('\n');
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    for (const key of ['value', 'text', 'template', 'expression', 'formula']) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return actionTextValue(record[key]);
+    }
+    for (const key of ['content', 'lines', 'values', 'candidates']) {
+      if (Object.prototype.hasOwnProperty.call(record, key)) return actionTextLines(record[key]).join('\n');
+    }
+  }
+  return String(value);
 }
 
 function applyLocalLoreAction(lore: string[], action: ActionEntry, content: string[], anchor: string, variables: AnyMap) {
@@ -772,7 +869,7 @@ function applyLocalLoreAction(lore: string[], action: ActionEntry, content: stri
       for (let i = lore.length - 1; i >= 0; i -= 1) if (anchor && lore[i].includes(anchor)) lore.splice(i, 1);
       break;
     case 'regex_replace':
-      for (let i = 0; i < lore.length; i += 1) lore[i] = localRegexReplace(lore[i], textValue(action.params.regex_pattern), renderLocalTemplate(textValue(action.params.replacement), variables));
+      for (let i = 0; i < lore.length; i += 1) lore[i] = localRegexReplace(lore[i], actionTextValue(action.params.regex_pattern), renderLocalTemplate(actionTextValue(action.params.replacement), variables));
       break;
     case 'append':
     default:
@@ -912,7 +1009,9 @@ function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPr
   const setLayerPreview = asRecord(layerPreview?.setPreview);
   const resultName = setDraftPreview?.name ?? (finalName || textValue(livePreview?.displayName));
   const resultLore = setDraftPreview?.lore ?? (finalLore.length ? finalLore : livePreview ? asStringList(livePreview.lore) : []);
-  const effectSections = setDraftPreview ? [] : buildPreviewEffectSections(livePreview, moduleId);
+  const previewConfig = asRecord(editor?.preview);
+  const showEffectSummary = previewConfig.showEffectSummary === true;
+  const effectSections = setDraftPreview || !showEffectSummary ? [] : buildPreviewEffectSections(livePreview, moduleId);
   const setSection = !isSetPreview && setLayerPreview.available && !finalLore.length ? [{ title: uiCopy('套装 Lore', 'Set Lore'), lines: asStringList(setLayerPreview.lore) }] : [];
   const status = isSetPreview ? { tone: 'live' as const, text: uiCopy('草稿预览', 'Draft preview') } : previewError ? { tone: 'failed' as const, text: t('core.item.preview.failedTitle') } : previewStatus(livePreview, previewPending);
   useEffect(() => setImgFailed(false), [material]);
@@ -946,7 +1045,7 @@ function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPr
         <p className="ie-level-hint">{t('core.item.preview.levelHint')}</p>
       </div>}
       <div className="ie-preview-compare">
-        <PreviewTooltipBlock title={hasLevels ? t('core.item.preview.resultForLevel', { level: previewLevel }) : t('core.item.preview.result')} name={resultName} lore={resultLore} sections={[...setSection, ...effectSections]} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
+        <PreviewTooltipBlock title={uiCopy('最终预览', 'Final preview')} name={resultName} lore={resultLore} sections={[...setSection, ...effectSections]} refreshing={previewPending} emptyText={previewPending ? t('core.item.preview.syncing') : t('core.item.preview.emptyResult')} />
       </div>
     </section>
   );
@@ -963,7 +1062,7 @@ function RenameMigrationPane({ api, editor, moduleId, currentId, sourceError, di
   const [pending, setPending] = useState(false);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const disabledReason = sourceError ? '当前 YAML 解析失败，请先修复。' : dirty ? '当前文件有未保存改动，请先保存。' : '';
+  const disabledReason = sourceError ? uiCopy('当前 YAML 解析失败，请先修复。', 'The current YAML failed to parse. Fix it first.') : dirty ? uiCopy('当前文件有未保存改动，请先保存。', 'The current file has unsaved changes. Save it first.') : '';
   const normalizedNewId = newId.trim();
 
   useEffect(() => {
@@ -1015,45 +1114,45 @@ function RenameMigrationPane({ api, editor, moduleId, currentId, sourceError, di
   const aliasExists = preview ? Boolean(preview.aliasExists) : false;
   const canApply = Boolean(preview && normalizedNewId && !disabledReason && (newExists || mode === 'alias_only'));
 
-  return <section className="ie-preview-section ie-rename-pane" aria-label="物品 ID 重命名迁移">
+  return <section className="ie-preview-section ie-rename-pane" aria-label={uiCopy('物品 ID 重命名迁移', 'Item ID rename migration')}>
     <div className="ie-preview-meta">
-      <span className="ie-preview-kind">ID 重命名迁移</span>
+      <span className="ie-preview-kind">{uiCopy('ID 重命名迁移', 'ID rename migration')}</span>
       <code className="ie-preview-id">{currentId}</code>
-      <span className={`ie-preview-status ${pending || applying ? 'syncing' : error ? 'failed' : preview ? 'live' : 'syncing'}`}>{pending ? '预览中' : applying ? '应用中' : error ? '失败' : preview ? '已预览' : '待预览'}</span>
+      <span className={`ie-preview-status ${pending || applying ? 'syncing' : error ? 'failed' : preview ? 'live' : 'syncing'}`}>{pending ? uiCopy('预览中', 'Previewing') : applying ? uiCopy('应用中', 'Applying') : error ? uiCopy('失败', 'Failed') : preview ? uiCopy('已预览', 'Preview ready') : uiCopy('待预览', 'Not previewed')}</span>
     </div>
     <div className="ie-rename-form">
       <label>
-        <span>新 ID</span>
+        <span>{uiCopy('新 ID', 'New ID')}</span>
         <input value={newId} onChange={event => { setNewId(event.target.value); setPreview(null); }} placeholder="flame_sword" disabled={Boolean(disabledReason) || pending || applying} />
       </label>
       <label>
-        <span>处理方式</span>
+        <span>{uiCopy('处理方式', 'Mode')}</span>
         <select value={mode} onChange={event => setMode(event.target.value)} disabled={pending || applying}>
-          <option value="replace_and_alias">替换引用并保留 alias</option>
-          <option value="replace_only">仅替换引用</option>
-          <option value="alias_only">仅保留 alias</option>
+          <option value="replace_and_alias">{uiCopy('替换引用并保留 alias', 'Replace references and keep alias')}</option>
+          <option value="replace_only">{uiCopy('仅替换引用', 'Replace references only')}</option>
+          <option value="alias_only">{uiCopy('仅保留 alias', 'Keep alias only')}</option>
         </select>
       </label>
       {disabledReason && <MiniText value={disabledReason} />}
       <div className="ie-rename-actions">
-        <Button size="sm" onClick={runPreview} disabled={!normalizedNewId || Boolean(disabledReason) || pending || applying}>{pending ? '预览中…' : '预览影响'}</Button>
-        <Button size="sm" variant="primary" onClick={apply} disabled={!canApply || applying}>{applying ? '应用中…' : '应用迁移'}</Button>
+        <Button size="sm" onClick={runPreview} disabled={!normalizedNewId || Boolean(disabledReason) || pending || applying}>{pending ? uiCopy('预览中…', 'Previewing…') : uiCopy('预览影响', 'Preview impact')}</Button>
+        <Button size="sm" variant="primary" onClick={apply} disabled={!canApply || applying}>{applying ? uiCopy('应用中…', 'Applying…') : uiCopy('应用迁移', 'Apply migration')}</Button>
       </div>
     </div>
     {error && <InlineError className="ie-preview-error">{error}</InlineError>}
     {preview && <div className="ie-rename-summary">
-      <div><strong>{replacementCount}</strong><span>处引用将被替换</span></div>
-      <div><strong>{files.length}</strong><span>个文件受影响</span></div>
-      <div><strong>{newExists ? '存在' : '不存在'}</strong><span>目标 ID</span></div>
-      <div><strong>{aliasExists ? '已存在' : '将创建'}</strong><span>旧 ID alias</span></div>
+      <div><strong>{replacementCount}</strong><span>{uiCopy('处引用将被替换', 'references will be replaced')}</span></div>
+      <div><strong>{files.length}</strong><span>{uiCopy('个文件受影响', 'files affected')}</span></div>
+      <div><strong>{newExists ? uiCopy('存在', 'Exists') : uiCopy('不存在', 'Missing')}</strong><span>{uiCopy('目标 ID', 'Target ID')}</span></div>
+      <div><strong>{aliasExists ? uiCopy('已存在', 'Already exists') : uiCopy('将创建', 'Will be created')}</strong><span>{uiCopy('旧 ID alias', 'Old ID alias')}</span></div>
     </div>}
-    {preview && !newExists && mode !== 'alias_only' && <InlineError className="ie-preview-error">目标物品 ID 尚不存在。请先保存新 ID 的物品定义，或改用“仅保留 alias”。</InlineError>}
+    {preview && !newExists && mode !== 'alias_only' && <InlineError className="ie-preview-error">{uiCopy('目标物品 ID 尚不存在。请先保存新 ID 的物品定义，或改用“仅保留 alias”。', 'The target item ID does not exist yet. Save the item definition with the new ID first, or use “Keep alias only”.')}</InlineError>}
     {files.length > 0 && <div className="ie-layer-list">
       {files.slice(0, 8).map(file => <div className="ie-layer-row" key={`${textValue(file.moduleId)}:${textValue(file.path)}`}>
         <div><strong>{textValue(file.moduleId)}</strong><p><code>{textValue(file.path)}</code></p></div>
-        <span className="ie-preview-status syncing">{Number(file.replacements ?? 0)} 处</span>
+        <span className="ie-preview-status syncing">{uiCopy(`${Number(file.replacements ?? 0)} 处`, `${Number(file.replacements ?? 0)} refs`)}</span>
       </div>)}
-      {files.length > 8 && <MiniText value={`另有 ${files.length - 8} 个文件未展开显示。`} />}
+      {files.length > 8 && <MiniText value={uiCopy(`另有 ${files.length - 8} 个文件未展开显示。`, `${files.length - 8} more files are hidden.`)} />}
     </div>}
   </section>;
 }
@@ -1074,34 +1173,30 @@ function renameRevisionMap(preview: AnyMap, moduleId: string): Record<string, nu
 function LayeredPreviewPane({ preview, pending, error, options, onOptionsChange }: { preview: AnyMap | null; pending: boolean; error: string | null; options: AnyMap; onOptionsChange: (options: AnyMap) => void }) {
   if (!preview && !pending && !error) return null;
   const layers = asList(preview?.layers).map(asRecord);
-  const finalPreview = asRecord(preview?.final);
   const updateLayerOption = (layerId: string, key: string, value: unknown) => {
     const current = asRecord(options[layerId]);
     onOptionsChange({ ...options, [layerId]: { ...current, [key]: value } });
   };
-  return <section className="ie-preview-section ie-layer-preview" aria-label="分层预览">
+  return <section className="ie-preview-section ie-layer-preview" aria-label={uiCopy('分层预览', 'Layered preview')}>
     <div className="ie-preview-meta">
-      <span className="ie-preview-kind">分层预览</span>
-      <span className={`ie-preview-status ${pending ? 'syncing' : error ? 'failed' : 'live'}`}>{pending ? '同步中' : error ? '失败' : '已同步'}</span>
+      <span className="ie-preview-kind">{uiCopy('分层预览', 'Layered preview')}</span>
+      <span className={`ie-preview-status ${pending ? 'syncing' : error ? 'failed' : 'live'}`}>{pending ? uiCopy('同步中', 'Syncing') : error ? uiCopy('失败', 'Failed') : uiCopy('已同步', 'Synced')}</span>
     </div>
     {error && <InlineError className="ie-preview-error">{error}</InlineError>}
     {layers.length > 0 && <div className="ie-layer-list">
-      {layers.map(layer => <LayerPreviewRow key={textValue(layer.id)} layer={layer} layerOptions={asRecord(options[textValue(layer.id)])} onOptionChange={updateLayerOption} pending={pending} />)}
+      {layers.map(layer => <LayerPreviewRow key={textValue(layer.id)} layer={layer} layerOptions={asRecord(options[textValue(layer.id)])} onOptionChange={updateLayerOption} />)}
     </div>}
-    {finalPreview.displayName || asStringList(finalPreview.lore).length ? <PreviewTooltipBlock title="最终预览" name={textValue(finalPreview.displayName)} lore={asStringList(finalPreview.lore)} emptyText="暂无最终预览" refreshing={pending} /> : null}
   </section>;
 }
 
-function LayerPreviewRow({ layer, layerOptions, onOptionChange, pending }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void; pending: boolean }) {
+function LayerPreviewRow({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
   const layerId = textValue(layer.id);
-  const preview = asRecord(layer.preview);
   const reason = textValue(layer.reason || layer.message);
   return <div className={`ie-layer-row ${layer.available ? '' : 'is-unavailable'}`}>
     <div className="ie-layer-main">
-      <div className="ie-layer-heading"><strong>{layerLabel(layerId)}</strong><span className={`ie-preview-status ${layer.available ? 'live' : 'failed'}`}>{layer.available ? '可用' : '不可用'}</span></div>
+      <div className="ie-layer-heading"><strong>{layerLabel(layerId)}</strong><span className={`ie-preview-status ${layer.available ? 'live' : 'failed'}`}>{layer.available ? uiCopy('可用', 'Available') : uiCopy('不可用', 'Unavailable')}</span></div>
       {reason && <p>{reason}</p>}
       <LayerPreviewControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />
-      {(preview.displayName || asStringList(preview.lore).length) && <PreviewTooltipBlock title="层预览" name={textValue(preview.displayName)} lore={asStringList(preview.lore)} emptyText="暂无层预览" refreshing={pending} />}
     </div>
   </div>;
 }
@@ -1112,6 +1207,15 @@ function LayerPreviewControls({ layer, layerOptions, onOptionChange }: { layer: 
   if (!layer.available) return null;
   if (layerId === 'gem') return <GemLayerControls layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />;
   return null;
+}
+
+function LayerApplyToggle({ layerId, layer, layerOptions, onOptionChange }: { layerId: string; layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
+  const enabled = optionBoolean(layerOptions.enabled ?? layer.enabled, layer.enabled !== false);
+  return <div className="ie-layer-toggle" role="group" aria-label={uiCopy(`${layerLabel(layerId)}是否参与最终预览`, `Whether ${layerLabel(layerId)} participates in final preview`)}>
+    <span>{uiCopy('最终预览', 'Final preview')}</span>
+    <button type="button" className={enabled ? '' : 'active'} onClick={() => onOptionChange(layerId, 'enabled', false)} aria-pressed={!enabled}>{uiCopy('不参与', 'Exclude')}</button>
+    <button type="button" className={enabled ? 'active' : ''} onClick={() => onOptionChange(layerId, 'enabled', true)} aria-pressed={enabled}>{uiCopy('参与', 'Include')}</button>
+  </div>;
 }
 
 function StrengthenLayerControls({ layer, layerOptions, onOptionChange }: { layer: AnyMap; layerOptions: AnyMap; onOptionChange: (layerId: string, key: string, value: unknown) => void }) {
@@ -1130,13 +1234,14 @@ function StrengthenLayerControls({ layer, layerOptions, onOptionChange }: { laye
   const selectedTemper = String(layerOptions.temper ?? selected.temper ?? layerConfig.selectedTemper ?? 0);
   if (!recipes.length && !layer.available) return null;
   return <div className="ie-layer-controls">
-    {recipes.length > 0 && <label><span>强化配方</span><select value={selectedRecipeId} onChange={event => onOptionChange(layerId, 'recipeId', event.target.value)}>
-      <option value="">自动匹配</option>
+    <LayerApplyToggle layerId={layerId} layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />
+    {recipes.length > 0 && <label><span>{uiCopy('强化配方', 'Strengthen recipe')}</span><select value={selectedRecipeId} onChange={event => onOptionChange(layerId, 'recipeId', event.target.value)}>
+      <option value="">{uiCopy('自动匹配', 'Auto match')}</option>
       {recipes.map(recipe => <option key={textValue(recipe.id)} value={textValue(recipe.id)}>{recipeLabel(recipe)}</option>)}
     </select></label>}
-    {selectedRecipeId && <span className="ie-layer-current">当前配方：<code>{selectedRecipeId}</code>{selectedRecipe && textValue(selectedRecipe.displayName) ? ` · ${textValue(selectedRecipe.displayName)}` : ''}</span>}
-    {starChoices.length > 0 && <label><span>星级</span><select value={selectedStar} onChange={event => onOptionChange(layerId, 'star', Number(event.target.value))}>{starChoices.map(star => <option key={star} value={star}>{star} 星</option>)}</select></label>}
-    {maxTemper > 0 && <label><span>淬炼</span><select value={selectedTemper} onChange={event => onOptionChange(layerId, 'temper', Number(event.target.value))}>{Array.from({ length: maxTemper + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}</select></label>}
+    {selectedRecipeId && <span className="ie-layer-current">{uiCopy('当前配方', 'Current recipe')}: <code>{selectedRecipeId}</code>{selectedRecipe && textValue(selectedRecipe.displayName) ? ` · ${textValue(selectedRecipe.displayName)}` : ''}</span>}
+    {starChoices.length > 0 && <label><span>{uiCopy('星级', 'Stars')}</span><select value={selectedStar} onChange={event => onOptionChange(layerId, 'star', Number(event.target.value))}>{starChoices.map(star => <option key={star} value={star}>{uiCopy(`${star} 星`, `${star} star`)}</option>)}</select></label>}
+    {maxTemper > 0 && <label><span>{uiCopy('淬炼', 'Temper')}</span><select value={selectedTemper} onChange={event => onOptionChange(layerId, 'temper', Number(event.target.value))}>{Array.from({ length: maxTemper + 1 }, (_, value) => <option key={value} value={value}>{value}</option>)}</select></label>}
   </div>;
 }
 
@@ -1148,30 +1253,65 @@ function GemLayerControls({ layer, layerOptions, onOptionChange }: { layer: AnyM
   const layerId = textValue(layer.id);
   const layerConfig = asRecord(layer.options);
   const selected = asRecord(layer.selected);
+  const details = asRecord(layer.details);
   const slots = asList(layerConfig.slots).map(asRecord);
-  const gems = asList(layerConfig.gems).map(asRecord);
+  const gems = asList(layerConfig.gems).map(asRecord).filter(gem => textValue(gem.id));
   const selectedSlot = String(layerOptions.slot ?? selected.slot ?? layerConfig.selectedSlot ?? (slots[0]?.index ?? -1));
   const selectedGemId = textValue(layerOptions.gemId ?? selected.gemId ?? layerConfig.selectedGemId ?? gems[0]?.id);
   const currentGem = gems.find(gem => textValue(gem.id) === selectedGemId) || gems[0];
+  const shouldInlay = gems.length > 0 && optionBoolean(layerOptions.inlay ?? selected.inlay ?? layerConfig.selectedInlay, Boolean(selectedGemId || currentGem));
   const maxLevel = Math.max(1, Number(currentGem?.maxLevel || currentGem?.level || 1) || 1);
   const selectedLevel = String(layerOptions.level ?? selected.level ?? layerConfig.selectedLevel ?? currentGem?.level ?? 1);
+  const activeResonances = asList(details.activeResonances).map(asRecord).filter(resonance => textValue(resonance.id));
+  const actionCount = Number(currentGem?.actionCount ?? 0) || 0;
+  const nameActionCount = Number(currentGem?.nameActionCount ?? 0) || 0;
+  const loreActionCount = Number(currentGem?.loreActionCount ?? 0) || 0;
+  const badges = [
+    textValue(currentGem?.type) ? uiCopy(`类型：${textValue(currentGem?.type)}`, `Type: ${textValue(currentGem?.type)}`) : '',
+    nameActionCount > 0 ? uiCopy(`名称动作 ${nameActionCount}`, `Name actions ${nameActionCount}`) : '',
+    loreActionCount > 0 ? uiCopy(`Lore 动作 ${loreActionCount}`, `Lore actions ${loreActionCount}`) : '',
+    actionCount > 0 ? uiCopy(`触发动作 ${actionCount}`, `Trigger actions ${actionCount}`) : '',
+    activeResonances.length > 0 ? uiCopy(`已激活共鸣 ${activeResonances.length}`, `Active resonances ${activeResonances.length}`) : ''
+  ].filter((badge): badge is string => Boolean(badge));
+  if (!slots.length && !gems.length) return null;
   return <div className="ie-layer-controls">
-    {slots.length > 0 && <label><span>槽位</span><select value={selectedSlot} onChange={event => onOptionChange(layerId, 'slot', Number(event.target.value))}>{slots.map(slot => <option key={textValue(slot.index)} value={textValue(slot.index)}>{slotLabel(slot)}</option>)}</select></label>}
-    {gems.length > 0 && <label><span>宝石</span><select value={selectedGemId} onChange={event => onOptionChange(layerId, 'gemId', event.target.value)}>{gems.map(gem => <option key={textValue(gem.id)} value={textValue(gem.id)}>{textValue(gem.displayName || gem.id)}</option>)}</select></label>}
-    {gems.length > 0 && maxLevel > 1 && <label><span>等级</span><select value={selectedLevel} onChange={event => onOptionChange(layerId, 'level', Number(event.target.value))}>{Array.from({ length: maxLevel }, (_, index) => index + 1).map(level => <option key={level} value={level}>{level}</option>)}</select></label>}
+    <LayerApplyToggle layerId={layerId} layer={layer} layerOptions={layerOptions} onOptionChange={onOptionChange} />
+    {slots.length > 0 && <label><span>{uiCopy('槽位', 'Slot')}</span><select value={selectedSlot} onChange={event => onOptionChange(layerId, 'slot', Number(event.target.value))}>{slots.map(slot => <option key={textValue(slot.index)} value={textValue(slot.index)}>{slotLabel(slot)}</option>)}</select></label>}
+    {gems.length > 0 && <div className="ie-layer-toggle" role="group" aria-label={uiCopy('是否镶嵌宝石', 'Whether to inlay a gem')}>
+      <span>{uiCopy('是否镶嵌', 'Gem inlay')}</span>
+      <button type="button" className={shouldInlay ? '' : 'active'} onClick={() => onOptionChange(layerId, 'inlay', false)} aria-pressed={!shouldInlay}>{uiCopy('不镶嵌', 'Do not inlay')}</button>
+      <button type="button" className={shouldInlay ? 'active' : ''} onClick={() => onOptionChange(layerId, 'inlay', true)} aria-pressed={shouldInlay}>{uiCopy('镶嵌', 'Inlay')}</button>
+    </div>}
+    {gems.length > 0 && shouldInlay && <label><span>{uiCopy('宝石', 'Gem')}</span><select value={selectedGemId} onChange={event => onOptionChange(layerId, 'gemId', event.target.value)}>{gems.map(gem => <option key={textValue(gem.id)} value={textValue(gem.id)}>{textValue(gem.displayName || gem.id)}</option>)}</select></label>}
+    {gems.length > 0 && shouldInlay && <label><span>{uiCopy('等级', 'Level')}</span><select value={selectedLevel} onChange={event => onOptionChange(layerId, 'level', Number(event.target.value))}>{Array.from({ length: maxLevel }, (_, index) => index + 1).map(level => <option key={level} value={level}>{uiCopy(`${level} 级`, `Level ${level}`)}</option>)}</select></label>}
+    {gems.length > 0 && shouldInlay && currentGem && <span className="ie-layer-current">{uiCopy('当前宝石', 'Current gem')}: <code>{textValue(currentGem.id)}</code>{textValue(currentGem.displayName) ? ` · ${textValue(currentGem.displayName)}` : ''}</span>}
+    {gems.length > 0 && shouldInlay && badges.length > 0 && <div className="ie-layer-badges">{badges.map(badge => <span key={badge}>{badge}</span>)}</div>}
+    {gems.length > 0 && shouldInlay && activeResonances.length > 0 && <div className="ie-layer-resonances">
+      {activeResonances.map(resonance => <span key={textValue(resonance.id)}>{uiCopy('共鸣', 'Resonance')}: <code>{textValue(resonance.id)}</code>{textValue(resonance.displayName) ? ` · ${textValue(resonance.displayName)}` : ''}{textValue(resonance.exclusiveGroup) ? ` · ${uiCopy('互斥组', 'Exclusive group')} ${textValue(resonance.exclusiveGroup)}` : ''}{textValue(resonance.patternText) ? ` · ${uiCopy('依赖', 'Depends on')} ${textValue(resonance.patternText)}` : ''}</span>)}
+    </div>}
   </div>;
+}
+
+function optionBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const normalized = textValue(value).trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (['true', '1', 'yes', 'y', 'on', 'inlay', 'enabled'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n', 'off', 'none', 'disabled'].includes(normalized)) return false;
+  return fallback;
 }
 
 function slotLabel(slot: AnyMap): string {
   const index = textValue(slot.index);
   const name = textValue(slot.displayName || slot.type);
-  const tags = [slot.opened ? '已开' : '未开', slot.assigned ? '已镶嵌' : '空'].join(' · ');
-  return `#${index} ${name}（${tags}）`;
+  const tags = [slot.opened ? uiCopy('已开', 'Open') : uiCopy('未开', 'Closed'), slot.assigned ? uiCopy('已镶嵌', 'Inlaid') : uiCopy('空', 'Empty')].join(' · ');
+  return `#${index} ${name} (${tags})`;
 }
 
 function layerLabel(id: string): string {
-  if (id === 'strengthen') return 'Strengthen 强化层';
-  if (id === 'gem') return 'Gem 宝石层';
+  if (id === 'strengthen') return uiCopy('Strengthen 强化层', 'Strengthen layer');
+  if (id === 'gem') return uiCopy('Gem 宝石层', 'Gem layer');
   return id || 'Layer';
 }
 

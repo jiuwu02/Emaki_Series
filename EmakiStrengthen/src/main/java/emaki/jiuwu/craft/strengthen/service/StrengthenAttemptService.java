@@ -413,9 +413,10 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     }
 
     private void applyStrengthenOperations(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
-        Object nameActions = recipe.nameActions();
-        Object loreActions = recipe.loreActions();
-        if (nameActions == null && loreActions == null) {
+        Object nameActions = recipe.cumulativeNameActions(state.currentStar(), state.branchPath());
+        Object loreActions = recipe.cumulativeLoreActions(state.currentStar(), state.branchPath());
+        if ((nameActions instanceof List<?> nameList && nameList.isEmpty())
+                && (loreActions instanceof List<?> loreList && loreList.isEmpty())) {
             return;
         }
         String operationId = OPERATION_NAMESPACE + ":" + recipe.id() + ":star_" + state.currentStar();

@@ -201,6 +201,8 @@ public final class StrengthenRecipe {
      * @param economyOverride per-stage economy override; never {@code null}
      * @param successActions  actions run on success
      * @param failureActions  actions run on failure
+     * @param nameActions     name actions applied while the stage is reached
+     * @param loreActions     lore actions applied while the stage is reached
      */
     public record StarStage(int targetStar,
             String name,
@@ -210,7 +212,9 @@ public final class StrengthenRecipe {
             List<StarStageMaterial> materials,
             EconomyOverride economyOverride,
             List<String> successActions,
-            List<String> failureActions) {
+            List<String> failureActions,
+            Object nameActions,
+            Object loreActions) {
 
         /** Canonical constructor; normalizes and copies every collection field. */
         public StarStage {
@@ -222,6 +226,8 @@ public final class StrengthenRecipe {
             economyOverride = economyOverride == null ? new EconomyOverride(List.of()) : economyOverride;
             successActions = normalizeList(successActions);
             failureActions = normalizeList(failureActions);
+            nameActions = ConfigNodes.toPlainData(nameActions);
+            loreActions = ConfigNodes.toPlainData(loreActions);
         }
     }
 
@@ -609,6 +615,48 @@ public final class StrengthenRecipe {
     /** {@return the raw lore-action configuration, or {@code null}} */
     public Object loreActions() {
         return loreActions;
+    }
+
+    /**
+     * Collects recipe-level and reached star-stage name actions up to a star.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @param branchPath  the slash-separated branch path
+     * @return ordered raw name action configs
+     */
+    public List<Object> cumulativeNameActions(int currentStar, String branchPath) {
+        return cumulativeStageActions(currentStar, branchPath, true);
+    }
+
+    /**
+     * Collects recipe-level and reached star-stage lore actions up to a star.
+     *
+     * @param currentStar the inclusive star ceiling
+     * @param branchPath  the slash-separated branch path
+     * @return ordered raw lore action configs
+     */
+    public List<Object> cumulativeLoreActions(int currentStar, String branchPath) {
+        return cumulativeStageActions(currentStar, branchPath, false);
+    }
+
+    private List<Object> cumulativeStageActions(int currentStar, String branchPath, boolean name) {
+        List<Object> result = new ArrayList<>();
+        Object recipeActions = name ? nameActions : loreActions;
+        if (recipeActions != null) {
+            result.add(recipeActions);
+        }
+        List<StarStage> stages = branchTree == null
+                ? reachedStages(currentStar)
+                : branchTree.collectStages(branchPath, currentStar).values().stream()
+                        .sorted(java.util.Comparator.comparingInt(StarStage::targetStar))
+                        .toList();
+        for (StarStage stage : stages) {
+            Object actions = name ? stage.nameActions() : stage.loreActions();
+            if (actions != null) {
+                result.add(actions);
+            }
+        }
+        return List.copyOf(result);
     }
 
     /**

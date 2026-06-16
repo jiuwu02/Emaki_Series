@@ -120,7 +120,6 @@ const CONFIG_LAZY_SECTION_THRESHOLD = 10;
 const OBJECT_LIST_COLLAPSE_THRESHOLD = 10;
 const OBJECT_LIST_INITIAL_ROWS = 30;
 const OBJECT_LIST_ROW_BATCH_SIZE = 30;
-const WORKBENCH_STAGE_TARGET = 720;
 const WORKBENCH_OUTLINE_COLLAPSE_WIDTH = 1180;
 
 type WorkbenchLayout = {
@@ -170,44 +169,17 @@ function useWorkbenchLayout(hasOutline: boolean): WorkbenchLayout {
 
 function resolveWorkbenchLayout(viewportWidth: number, hasOutline: boolean, railRequested: number, outlineRequested: number): Omit<WorkbenchLayout, 'setRailRequested' | 'setOutlineRequested'> {
   const outlineVisible = hasOutline && viewportWidth > WORKBENCH_OUTLINE_COLLAPSE_WIDTH;
-  const minSideWidth = RAIL_MIN + (outlineVisible ? OUTLINE_MIN : 0);
-  const possibleStageWidth = Math.max(0, viewportWidth - minSideWidth);
-  const stageTarget = Math.min(WORKBENCH_STAGE_TARGET, possibleStageWidth);
-  const availableForSidebars = Math.max(minSideWidth, viewportWidth - stageTarget);
-  let railWidth = clampWorkbenchWidth(railRequested, RAIL_MIN, RAIL_MAX, RAIL_DEFAULT);
-  let outlineWidth = outlineVisible ? clampWorkbenchWidth(outlineRequested, OUTLINE_MIN, OUTLINE_MAX, OUTLINE_DEFAULT) : 0;
-
-  if (outlineVisible) {
-    let overflow = railWidth + outlineWidth - availableForSidebars;
-    if (overflow > 0) {
-      const railFlexible = Math.max(0, railWidth - RAIL_MIN);
-      const outlineFlexible = Math.max(0, outlineWidth - OUTLINE_MIN);
-      const totalFlexible = railFlexible + outlineFlexible;
-      if (totalFlexible > 0) {
-        const railShrink = Math.min(railFlexible, overflow * (railFlexible / totalFlexible));
-        railWidth -= railShrink;
-        overflow -= railShrink;
-        const outlineShrink = Math.min(outlineFlexible, overflow);
-        outlineWidth -= outlineShrink;
-      }
-    }
-  } else {
-    railWidth = Math.min(railWidth, Math.max(RAIL_MIN, availableForSidebars));
-  }
-
-  railWidth = Math.round(railWidth);
-  outlineWidth = Math.round(outlineWidth);
-  const stageWidth = Math.max(0, Math.floor(viewportWidth - railWidth - outlineWidth));
-  const stageMinWidth = Math.max(0, Math.floor(Math.min(stageTarget, stageWidth)));
+  const railLimit = Math.max(RAIL_MIN, viewportWidth - (outlineVisible ? OUTLINE_MIN : 0));
+  const railWidth = Math.round(Math.min(clampWorkbenchWidth(railRequested, RAIL_MIN, RAIL_MAX, RAIL_DEFAULT), railLimit));
+  const outlineLimit = Math.max(OUTLINE_MIN, viewportWidth - railWidth);
+  const outlineWidth = outlineVisible ? Math.round(Math.min(clampWorkbenchWidth(outlineRequested, OUTLINE_MIN, OUTLINE_MAX, OUTLINE_DEFAULT), outlineLimit)) : 0;
   return {
     outlineVisible,
     railWidth,
     outlineWidth,
     style: {
       '--rail-width': `${railWidth}px`,
-      '--outline-width': `${outlineWidth}px`,
-      '--stage-width': `${stageWidth}px`,
-      '--stage-min-width': `${stageMinWidth}px`
+      '--outline-width': `${outlineWidth}px`
     } as CSSProperties
   };
 }
@@ -857,7 +829,7 @@ function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, reference
     </div>
     <div className="surface-summary-meta" aria-live="polite">
       {chips.map((chip, index) => <span key={`${chip}-${index}`} className={`surface-summary-chip${chip === fileKind ? ' kind' : ''}`}>{chip}</span>)}
-      {historyTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenHistory(historyTarget)}>{t('core.history.button', undefined, '历史')}</button>}
+      {historyTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenHistory(historyTarget)}>{t('core.history.button', undefined, 'History')}</button>}
       {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenReferences(referenceTarget)}>{t('core.insight.references')}</button>}
       {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenGraph(referenceTarget)}>{t('core.insight.graph')}</button>}
     </div>
@@ -1560,7 +1532,7 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
   // Check registry for a custom surface first
   const registeredSurface = getSurface(file, editor);
   if (extensionSurfacePending(module, file, editor, registeredSurface, pendingExtensionModules)) {
-    return <section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, '正在加载插件编辑器…')}</section>;
+    return <section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, 'Loading plugin editor…')}</section>;
   }
   if (registeredSurface && !isKind(file.kind, 'CONFIG') && !isKind(file.kind, 'SCRIPT')) {
     const SurfaceComponent = registeredSurface.component;
@@ -1570,7 +1542,7 @@ function ConfigSurface({ registry, module, file, drafts, draftHistory, setDraftV
       return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;
     }
     const surfaceChildPath = isGlobPath(file.path) ? surfacePath : scriptPath;
-    return <Suspense fallback={<section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, '正在加载编辑器…')}</section>}><SurfaceComponent module={module} file={file} api={api} childPath={surfaceChildPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} /></Suspense>;
+    return <Suspense fallback={<section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, 'Loading editor…')}</section>}><SurfaceComponent module={module} file={file} api={api} childPath={surfaceChildPath} refreshKey={refreshKey} editor={editor} onReload={onReload} setToolbar={setSurfaceToolbar} setOutline={outlineSetter} showLocalChrome={false} /></Suspense>;
   }
   if (!scriptPath && isGlobPath(file.path)) {
     return <section className="config-surface"><div className="surface-head"><div><h2>{fileDisplayTitle(file)}</h2><p>{fileDisplayComment(file)}</p></div><span className={`file-kind ${String(file.kind).toLowerCase()}`}>{fileKindLabel(file.kind)}</span></div><div className="script-placeholder" role="status">{t('core.empty.selectFile')}</div></section>;

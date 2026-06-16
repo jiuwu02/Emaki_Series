@@ -1,3 +1,4 @@
+import { getLocale } from '../i18n';
 import { fieldLabel, optionLabel, type FieldLabelOptions, type OptionLabelOptions } from '../lib/fieldI18n';
 import { textValue } from '../lib/miniMessage';
 import { asList } from '../lib/itemUtils';
@@ -17,6 +18,10 @@ export type ActionsEditorProps = {
   editorFields?: Record<string, WebEditorField>;
   optionPrefix?: string;
 };
+
+function copy(zh: string, en: string): string {
+  return getLocale().startsWith('zh') ? zh : en;
+}
 
 export function ActionsEditor({
   actions,
@@ -64,9 +69,9 @@ export function ActionsEditor({
                 onChange={value => update(i, { type: value, params: {} })}
               />
               <span className="prop-action-controls">
-                <button type="button" onClick={() => moveUp(i)} disabled={i === 0} aria-label={fieldLabel('move_up', { ...labelOptions, fallback: '上移' })}>↑</button>
-                <button type="button" onClick={() => moveDown(i)} disabled={i === actions.length - 1} aria-label={fieldLabel('move_down', { ...labelOptions, fallback: '下移' })}>↓</button>
-                <button type="button" className="prop-action-del" onClick={() => remove(i)} aria-label={fieldLabel('delete', { ...labelOptions, fallback: '删除' })}>×</button>
+                <button type="button" onClick={() => moveUp(i)} disabled={i === 0} aria-label={fieldLabel('move_up', { ...labelOptions, fallback: copy('上移', 'Move up') })}>↑</button>
+                <button type="button" onClick={() => moveDown(i)} disabled={i === actions.length - 1} aria-label={fieldLabel('move_down', { ...labelOptions, fallback: copy('下移', 'Move down') })}>↓</button>
+                <button type="button" className="prop-action-del" onClick={() => remove(i)} aria-label={fieldLabel('delete', { ...labelOptions, fallback: copy('删除', 'Delete') })}>×</button>
               </span>
             </div>
             <div className="prop-action-params">
@@ -76,7 +81,7 @@ export function ActionsEditor({
           </div>
         );
       })}
-      <button type="button" className="prop-add" onClick={add}>+ {fieldLabel(`${mode}_actions.add`, { ...labelOptions, fallback: mode === 'name' ? '添加名称动作' : '添加 Lore 动作' })}</button>
+      <button type="button" className="prop-add" onClick={add}>+ {fieldLabel(`${mode}_actions.add`, { ...labelOptions, fallback: mode === 'name' ? copy('添加名称动作', 'Add name action') : copy('添加 Lore 动作', 'Add lore action') })}</button>
     </div>
   );
 }
@@ -206,7 +211,7 @@ function ParamSelect({ paramKey, value, options, onChange, labelOptions, optionP
   const label = fieldLabel(paramKey, { ...labelOptions, fallback: paramKey });
   return <label className="prop-param-field prop-param-field--type"><span>{label}</span><select value={value} onChange={event => onChange(event.target.value)} aria-label={label}>
     {options.map(option => <option key={option} value={option}>{optionLabel(optionPrefix, option, { ...optionOptions, fallback: option })}</option>)}
-    {!options.length && <option value="">{fieldLabel('none', { ...labelOptions, fallback: '未选择' })}</option>}
+    {!options.length && <option value="">{fieldLabel('none', { ...labelOptions, fallback: copy('未选择', 'None selected') })}</option>}
   </select></label>;
 }
 

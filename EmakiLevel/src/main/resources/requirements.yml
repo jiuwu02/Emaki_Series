@@ -10,12 +10,60 @@ groups:
       3: 350
       4: 750
       5: 1200
-  profession:
+  combat:
     formula: "floor(60 + 18 * %target_level% + 5 * pow(%target_level%, 2))"
     values:
       2: 80
       3: 160
       4: 300
-  crafting_profession:
+  mining:
+    formula: "floor(60 + 18 * %target_level% + 5 * pow(%target_level%, 2))"
+    values:
+      2: 80
+      3: 160
+      4: 300
+  logging:
+    formula: "floor(60 + 18 * %target_level% + 5 * pow(%target_level%, 2))"
+    values:
+      2: 80
+      3: 160
+      4: 300
+  farming:
+    formula: "floor(60 + 18 * %target_level% + 5 * pow(%target_level%, 2))"
+    values:
+      2: 80
+      3: 160
+      4: 300
+  fishing:
+    formula: "floor(60 + 18 * %target_level% + 5 * pow(%target_level%, 2))"
+    values:
+      2: 80
+      3: 160
+      4: 300
+  gathering:
+    formula: "floor(60 + 18 * %target_level% + 5 * pow(%target_level%, 2))"
+    values:
+      2: 80
+      3: 160
+      4: 300
+  taming:
+    formula: "floor(60 + 18 * %target_level% + 5 * pow(%target_level%, 2))"
+    values:
+      2: 80
+      3: 160
+      4: 300
+  crafting:
+    formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
+    values: {}
+  brewing:
+    formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
+    values: {}
+  cooking:
+    formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
+    values: {}
+  forging:
+    formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
+    values: {}
+  smelting:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
     values: {}

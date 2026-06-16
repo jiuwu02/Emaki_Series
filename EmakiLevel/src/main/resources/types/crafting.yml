@@ -5,7 +5,7 @@ primary: false
 start_level: 1
 max_level: 60
 requirement:
-  group: "crafting_profession"
+  group: "crafting"
 upgrade:
   enabled: true
   auto_upgrade: true

@@ -180,7 +180,9 @@ public final class StrengthenRecipeParser {
                     parseStageMaterials(stageSection.getMapList("materials")),
                     parseEconomyOverride(stageSection.getSection("economy_override")),
                     parseActionLines(stageSection.getSection("actions"), "success"),
-                    parseActionLines(stageSection.getSection("actions"), "failure")
+                    parseActionLines(stageSection.getSection("actions"), "failure"),
+                    parseStageDisplayActions(stageSection, "name_action", "name_actions"),
+                    parseStageDisplayActions(stageSection, "lore_action", "lore_actions")
             ));
         }
         return result;
@@ -208,6 +210,38 @@ public final class StrengthenRecipeParser {
 
     static List<String> parseActionLines(YamlSection section, String key) {
         return section == null ? List.of() : section.getStringList(key);
+    }
+
+    static Object parseStageDisplayActions(YamlSection section, String type, String key) {
+        if (section == null) {
+            return null;
+        }
+        List<Object> actions = new ArrayList<>();
+        appendStageDisplayActions(actions, section.get(key));
+        for (Map<?, ?> rawEffect : section.getMapList("effects")) {
+            if (!type.equals(Texts.lower(ConfigNodes.string(rawEffect, "type", "")))) {
+                continue;
+            }
+            appendStageDisplayActions(actions, ConfigNodes.get(rawEffect, key));
+            appendStageDisplayActions(actions, ConfigNodes.get(rawEffect, type));
+        }
+        return actions.isEmpty() ? null : List.copyOf(actions);
+    }
+
+    private static void appendStageDisplayActions(List<Object> actions, Object raw) {
+        if (actions == null || raw == null) {
+            return;
+        }
+        Object plain = ConfigNodes.toPlainData(raw);
+        if (plain instanceof Iterable<?> iterable) {
+            for (Object entry : iterable) {
+                if (entry != null) {
+                    actions.add(ConfigNodes.toPlainData(entry));
+                }
+            }
+            return;
+        }
+        actions.add(plain);
     }
 
     static String parseMaterialItem(Object rawEntry) {

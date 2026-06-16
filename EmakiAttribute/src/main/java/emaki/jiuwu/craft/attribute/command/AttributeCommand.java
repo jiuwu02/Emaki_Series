@@ -148,7 +148,7 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
-            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
+            return completeDebug(args);
         }
         return result;
     }
@@ -279,18 +279,27 @@ public final class AttributeCommand implements TabExecutor {
             messages().send(sender, "command.debug.no_permission");
             return true;
         }
-        if (args.length >= 3) {
+        if (args.length >= 2) {
             Player target = Bukkit.getPlayerExact(args[1]);
-            String mode = args[2].toLowerCase(Locale.ROOT);
-            if (target != null && List.of("on", "off", "toggle").contains(mode)) {
-                boolean enabled = switch (mode) {
-                    case "on" -> attributeService.setCombatDebug(target, true);
-                    case "off" -> attributeService.setCombatDebug(target, false);
-                    default -> attributeService.toggleCombatDebug(target);
-                };
-                messages().sendRaw(sender, "<gray>[EA]</gray> <aqua>" + target.getName() + "</aqua> 战斗 Trace 已" + (enabled ? "<green>开启</green>" : "<red>关闭</red>"));
+            if (target != null) {
+                String mode = args.length >= 3 ? args[2].toLowerCase(Locale.ROOT) : "toggle";
+                if (List.of("on", "off", "toggle").contains(mode)) {
+                    boolean enabled = switch (mode) {
+                        case "on" -> attributeService.setCombatDebug(target, true);
+                        case "off" -> attributeService.setCombatDebug(target, false);
+                        default -> attributeService.toggleCombatDebug(target);
+                    };
+                    messages().sendRaw(sender, "<gray>[EA]</gray> <aqua>" + target.getName() + "</aqua> 战斗 Trace 已" + (enabled ? "<green>开启</green>" : "<red>关闭</red>"));
+                    return true;
+                }
+                messages().sendRaw(sender, "<red>用法: /ea debug <player> [on|off|toggle]</red>");
                 return true;
             }
+            if (List.of("status", "on", "off", "player", "module").contains(args[1].toLowerCase(Locale.ROOT))) {
+                return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
+            }
+            messages().send(sender, "command.debug.player_not_found", Map.of("player", args[1]));
+            return true;
         }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
@@ -522,6 +531,40 @@ public final class AttributeCommand implements TabExecutor {
 
     private MessageService messages() {
         return plugin.messageService();
+    }
+
+    private List<String> completeDebug(String[] args) {
+        List<String> result = new ArrayList<>();
+        String[] debugArgs = Arrays.copyOfRange(args, 1, args.length);
+        if (debugArgs.length == 1) {
+            result.addAll(plugin.debugCommand().tabComplete(debugArgs));
+            completePlayerNames(result, debugArgs[0]);
+            return distinctMatching(result, debugArgs[0]);
+        }
+        if (debugArgs.length == 2) {
+            Player target = Bukkit.getPlayerExact(debugArgs[0]);
+            if (target != null) {
+                for (String mode : List.of("on", "off", "toggle")) {
+                    if (mode.startsWith(debugArgs[1].toLowerCase(Locale.ROOT))) {
+                        result.add(mode);
+                    }
+                }
+                return result;
+            }
+        }
+        result.addAll(plugin.debugCommand().tabComplete(debugArgs));
+        return result;
+    }
+
+    private List<String> distinctMatching(List<String> values, String prefix) {
+        String lowerPrefix = Texts.toStringSafe(prefix).toLowerCase(Locale.ROOT);
+        LinkedHashSet<String> distinct = new LinkedHashSet<>();
+        for (String value : values) {
+            if (value != null && value.toLowerCase(Locale.ROOT).startsWith(lowerPrefix)) {
+                distinct.add(value);
+            }
+        }
+        return new ArrayList<>(distinct);
     }
 
     private void completePlayerNames(List<String> result, String prefix) {

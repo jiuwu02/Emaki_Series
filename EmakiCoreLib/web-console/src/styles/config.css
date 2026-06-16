@@ -225,11 +225,17 @@
 
 .node-grid {
   display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  container-type: inline-size;
   padding: 0 18px 14px 14px;
 }
 
 .node,
 .node-group {
+  min-width: 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -299,23 +305,23 @@
 }
 
 .node.node-wide:has(.object-list-editor--header-add),
-.node:has(.prop-kv--string-list-block) {
+.node:has(> .node-control > .prop-kv--string-list-block) {
   grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr) auto;
   align-items: center;
 }
 
 .node.node-wide:has(.object-list-editor--header-add) > .node-meta,
-.node:has(.prop-kv--string-list-block) > .node-meta {
+.node:has(> .node-control > .prop-kv--string-list-block) > .node-meta {
   grid-column: 1 / 3;
 }
 
 .node.node-wide:has(.object-list-editor--header-add) > .indent-guide + .node-meta,
-.node:has(.prop-kv--string-list-block) > .indent-guide + .node-meta {
+.node:has(> .node-control > .prop-kv--string-list-block) > .indent-guide + .node-meta {
   grid-column: 2;
 }
 
 .node.node-wide:has(.object-list-editor--header-add) > .node-control,
-.node:has(.prop-kv--string-list-block) > .node-control {
+.node:has(> .node-control > .prop-kv--string-list-block) > .node-control {
   grid-column: 1 / -1;
   grid-row: 2;
   justify-content: stretch;
@@ -323,18 +329,18 @@
 }
 
 .node.node-wide:has(.object-list-editor--header-add) > .indent-guide + .node-meta + .node-control,
-.node:has(.prop-kv--string-list-block) > .indent-guide + .node-meta + .node-control {
+.node:has(> .node-control > .prop-kv--string-list-block) > .indent-guide + .node-meta + .node-control {
   grid-column: 2 / -1;
 }
 
 .node.node-wide:has(.object-list-editor--header-add) .object-list-editor,
-.node:has(.prop-kv--string-list-block) .prop-kv--string-list-block {
+.node > .node-control > .prop-kv--string-list-block {
   position: relative;
   padding-top: 0;
 }
 
 .object-list-header-add,
-.node:has(.prop-kv--string-list-block) .prop-list-add {
+.node > .node-control > .prop-kv--string-list-block > .prop-list-add {
   position: absolute;
   right: 0;
   top: calc(-1 * (var(--config-field-rhythm) + var(--config-field-padding-y)));
@@ -351,7 +357,7 @@
   cursor: pointer;
 }
 
-.node:has(.prop-kv--string-list-block) .prop-list-add {
+.node > .node-control > .prop-kv--string-list-block > .prop-list-add {
   width: var(--config-field-control-height);
   min-width: var(--config-field-control-height);
   height: var(--config-field-control-height);
@@ -360,8 +366,8 @@
 
 .object-list-header-add:hover,
 .object-list-header-add:focus-visible,
-.node:has(.prop-kv--string-list-block) .prop-list-add:hover,
-.node:has(.prop-kv--string-list-block) .prop-list-add:focus-visible {
+.node > .node-control > .prop-kv--string-list-block > .prop-list-add:hover,
+.node > .node-control > .prop-kv--string-list-block > .prop-list-add:focus-visible {
   border-color: var(--accent);
   background: var(--accent-soft);
   outline: none;
@@ -733,6 +739,68 @@
   margin-left: auto;
   color: var(--faint);
   font-size: 10px;
+}
+
+@container (max-width: 720px) {
+  .node {
+    grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .node > .node-meta {
+    grid-column: 1 / -1;
+  }
+
+  .node > .indent-guide + .node-meta {
+    grid-column: 2;
+  }
+
+  .node > .node-control,
+  .node.node-wide > .node-control {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: stretch;
+    margin-top: 4px;
+  }
+
+  .node > .indent-guide + .node-meta + .node-control,
+  .node.node-wide > .indent-guide + .node-meta + .node-control {
+    grid-column: 2;
+  }
+
+  .node-control > * {
+    min-width: 0;
+  }
+
+  .node-section-header {
+    grid-template-columns: var(--hierarchy-guide-width) minmax(0, 1fr) auto;
+  }
+
+  .node-section-actions,
+  .node-section-header:not(:has(> .indent-guide)) .node-section-actions {
+    grid-column: 3;
+    margin-right: 0;
+  }
+
+  .section-meta,
+  .node-section-header:not(:has(> .indent-guide)) .section-meta {
+    grid-column: 2 / -1;
+    justify-self: start;
+    margin: 0 0 var(--config-field-padding-y);
+  }
+}
+
+@container (max-width: 520px) {
+  .node-meta {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+  }
+
+  .node-meta p {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
 }
 
 .switch {

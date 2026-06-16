@@ -7,7 +7,7 @@ primary: false
 start_level: 1
 max_level: 80
 requirement:
-  group: "profession"
+  group: "combat"
   formula: ""
   values: {}
 upgrade:

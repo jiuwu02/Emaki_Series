@@ -122,18 +122,18 @@ public final class ActionBarService {
                 slotDisplay.append(skillName).append(triggerName);
             }
 
-            String slotPlaceholder = "{slot_" + (i + 1) + "}";
-            if (template.contains(slotPlaceholder)) {
-                String slotText;
-                if (binding == null || binding.isEmpty()) {
-                    slotText = messageService.message("gui.slot_empty_short");
-                } else {
-                    String skillName = resolveSkillName(binding.skillId(), defs);
-                    String triggerName = triggerRegistry.getDisplayName(
-                            binding.triggerId() != null ? binding.triggerId() : "");
-                    slotText = skillName + triggerName;
+            String slotText = null;
+            String percentSlotPlaceholder = "%slot_" + (i + 1) + "%";
+            if (template.contains(percentSlotPlaceholder)) {
+                slotText = slotText(binding, defs);
+                template = template.replace(percentSlotPlaceholder, slotText);
+            }
+            String legacySlotPlaceholder = "{slot_" + (i + 1) + "}";
+            if (template.contains(legacySlotPlaceholder)) {
+                if (slotText == null) {
+                    slotText = slotText(binding, defs);
                 }
-                template = template.replace(slotPlaceholder, slotText);
+                template = template.replace(legacySlotPlaceholder, slotText);
             }
         }
 
@@ -147,6 +147,16 @@ public final class ActionBarService {
         template = template.replace("%forced_delay%", delayText);
 
         return template;
+    }
+
+    private String slotText(SkillSlotBinding binding, Map<String, SkillDefinition> defs) {
+        if (binding == null || binding.isEmpty()) {
+            return messageService.message("gui.slot_empty_short");
+        }
+        String skillName = resolveSkillName(binding.skillId(), defs);
+        String triggerName = triggerRegistry.getDisplayName(
+                binding.triggerId() != null ? binding.triggerId() : "");
+        return skillName + triggerName;
     }
 
     private String resolveSkillName(String skillId, Map<String, SkillDefinition> defs) {

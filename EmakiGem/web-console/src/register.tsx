@@ -468,16 +468,16 @@ export function registerEmakiGemWebConsole(): void {
   registerEditorDescriptor(MODULE, 'emakigem:gem', {
     id: 'emakigem:gem',
     moduleId: MODULE,
-    title: '宝石',
+    title: copy('宝石', 'Gem'),
     titleKey: 'emakigem.editor.gem.title',
-    kindLabel: '宝石',
+    kindLabel: copy('宝石', 'Gem'),
     baseName: copy('<gray>预览装备</gray>', '<gray>Preview Equipment</gray>'),
     baseLore: [copy('<gray>原始装备 Lore</gray>', '<gray>Original equipment lore</gray>')],
     preview: { showPipelineSummary: false, kindLabels: { gem: 'emakigem.preview.kind.gem', gem_socket_item: 'emakigem.preview.kind.gem_socket_item', generic_item: 'emakigem.preview.kind.generic_item' } },
     allowedFieldTypes: ['effects', 'cost', 'extractReturn', 'gemUpgrade'],
     sections: [
       {
-        title: '基础信息', titleKey: 'emakigem.section.basic', fields: [
+        title: copy('基础信息', 'Basic info'), titleKey: 'emakigem.section.basic', fields: [
           { path: 'id', label: 'ID', type: 'text' },
           { path: 'display_name', label: '显示名称', type: 'text' },
           { path: 'lore', label: 'Lore', type: 'stringList', wide: true },
@@ -488,23 +488,23 @@ export function registerEmakiGemWebConsole(): void {
           { path: 'socket_compatibility', label: '兼容插槽', type: 'stringList', wide: true }
         ]
       },
-      { title: '效果与变量', titleKey: 'emakigem.section.effects', collapsible: true, defaultCollapsed: true, fields: [{ path: 'effects', label: '宝石效果', type: 'effects', wide: true }] },
+      { title: copy('效果与变量', 'Effects and variables'), titleKey: 'emakigem.section.effects', collapsible: true, defaultCollapsed: true, fields: [{ path: 'effects', label: '宝石效果', type: 'effects', wide: true }] },
       {
-        title: '显示动作链', titleKey: 'emakigem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: [
+        title: copy('显示动作链', 'Display actions'), titleKey: 'emakigem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: [
           { path: 'name_actions', label: '名称动作链', type: 'actions', wide: true },
           { path: 'lore_actions', label: 'Lore 动作链', type: 'actions', wide: true }
         ]
       },
       {
-        title: '费用与返还', titleKey: 'emakigem.section.costReturn', collapsible: true, defaultCollapsed: true, fields: [
+        title: copy('费用与返还', 'Cost and return'), titleKey: 'emakigem.section.costReturn', collapsible: true, defaultCollapsed: true, fields: [
           { path: 'inlay_cost', label: '镶嵌费用', type: 'cost', wide: true },
           { path: 'extract_cost', label: '拆卸费用', type: 'cost', wide: true },
           { path: 'extract_return', label: '拆卸返还', type: 'extractReturn', wide: true }
         ]
       },
-      { title: '升级设置', titleKey: 'emakigem.section.upgrade', collapsible: true, defaultCollapsed: true, fields: [{ path: 'upgrade', label: '升级配置', type: 'gemUpgrade', wide: true }] },
+      { title: copy('升级设置', 'Upgrade settings'), titleKey: 'emakigem.section.upgrade', collapsible: true, defaultCollapsed: true, fields: [{ path: 'upgrade', label: '升级配置', type: 'gemUpgrade', wide: true }] },
       {
-        title: '触发动作', titleKey: 'emakigem.section.gemActions', collapsible: true, defaultCollapsed: true, fields: [
+        title: copy('触发动作', 'Trigger actions'), titleKey: 'emakigem.section.gemActions', collapsible: true, defaultCollapsed: true, fields: [
           { path: 'actions.inlay_success', label: '镶嵌成功动作', type: 'stringList', wide: true },
           { path: 'actions.extract_success', label: '拆卸成功动作', type: 'stringList', wide: true }
         ]
@@ -515,25 +515,25 @@ export function registerEmakiGemWebConsole(): void {
   registerEditorDescriptor(MODULE, 'emakigem:socket-item', {
     id: 'emakigem:socket-item',
     moduleId: MODULE,
-    title: '宝石插槽物品',
+    title: copy('宝石插槽物品', 'Gem socket item'),
     titleKey: 'emakigem.editor.socketItem.title',
-    kindLabel: '宝石插槽物品',
+    kindLabel: copy('宝石插槽物品', 'Gem socket item'),
     baseName: copy('<gray>预览装备</gray>', '<gray>Preview Equipment</gray>'),
     baseLore: [copy('<gray>原始装备 Lore</gray>', '<gray>Original equipment lore</gray>')],
     preview: { showPipelineSummary: false, kindLabels: { gem: 'emakigem.preview.kind.gem', gem_socket_item: 'emakigem.preview.kind.gem_socket_item', generic_item: 'emakigem.preview.kind.generic_item' } },
     allowedFieldTypes: ['gemSlots'],
     sections: [
       {
-        title: '匹配规则', titleKey: 'emakigem.section.matchRules', fields: [
+        title: copy('匹配规则', 'Match rules'), titleKey: 'emakigem.section.matchRules', fields: [
           { path: 'id', label: 'ID', type: 'text' },
           { path: 'match.item_sources', label: '匹配物品来源', type: 'stringList', wide: true },
           { path: 'match.slot_groups', label: '装备分组', type: 'stringList', wide: true },
           { path: 'match.lore_contains', label: 'Lore 包含', type: 'stringList', wide: true }
         ]
       },
-      { title: '插槽结构', titleKey: 'emakigem.section.slots', collapsible: true, defaultCollapsed: true, fields: [{ path: 'slots', label: '插槽列表', type: 'gemSlots', wide: true }] },
+      { title: copy('插槽结构', 'Socket structure'), titleKey: 'emakigem.section.slots', collapsible: true, defaultCollapsed: true, fields: [{ path: 'slots', label: '插槽列表', type: 'gemSlots', wide: true }] },
       {
-        title: '宝石限制', titleKey: 'emakigem.section.gemLimit', collapsible: true, defaultCollapsed: true, fields: [
+        title: copy('宝石限制', 'Gem limits'), titleKey: 'emakigem.section.gemLimit', collapsible: true, defaultCollapsed: true, fields: [
           { path: 'default_open_slots', label: '默认开放插槽', type: 'numberList', wide: true },
           { path: 'allowed_gem_types', label: '允许宝石类型', type: 'stringList', wide: true },
           { path: 'max_same_type', label: '同类型上限', type: 'number' },
@@ -541,13 +541,13 @@ export function registerEmakiGemWebConsole(): void {
         ]
       },
       {
-        title: 'GUI 模板', titleKey: 'emakigem.section.guiTemplate', collapsible: true, defaultCollapsed: true, fields: [
+        title: copy('GUI 模板', 'GUI template'), titleKey: 'emakigem.section.guiTemplate', collapsible: true, defaultCollapsed: true, fields: [
           { path: 'gui.gem_template', label: '镶嵌模板', type: 'text' },
           { path: 'gui.open_template', label: '开槽模板', type: 'text' }
         ]
       },
       {
-        title: '获得装备时', titleKey: 'emakigem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: [
+        title: copy('获得装备时', 'When obtaining equipment'), titleKey: 'emakigem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: [
           { path: 'obtain.name_actions', label: '名称动作链', type: 'actions', wide: true },
           { path: 'obtain.lore_actions', label: 'Lore 动作链', type: 'actions', wide: true },
           { path: 'obtain.actions', label: '获得动作', type: 'stringList', wide: true }

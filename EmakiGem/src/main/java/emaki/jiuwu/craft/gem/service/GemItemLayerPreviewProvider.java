@@ -16,7 +16,9 @@ import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
+import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
+import emaki.jiuwu.craft.gem.model.ResonancePatternEntry;
 
 public final class GemItemLayerPreviewProvider implements WebItemLayerPreviewProvider {
 
@@ -49,7 +51,8 @@ public final class GemItemLayerPreviewProvider implements WebItemLayerPreviewPro
             return WebItemLayerPreviewResult.unavailable(LAYER_ID, "没有任何宝石模板匹配当前 EmakiItem。", Map.of(), Map.of());
         }
         GemState state = plugin.stateService().resolveState(input, itemDefinition);
-        PreviewSelection selection = resolveSelection(request.options(), itemDefinition, state);
+        Map<String, Object> requestOptions = request == null || request.options() == null ? Map.of() : request.options();
+        PreviewSelection selection = resolveSelection(requestOptions, itemDefinition, state);
         GemState previewState = selection.gem() == null
                 ? state
                 : state.withAssignment(selection.slotIndex(), new GemItemInstance(selection.gem().id(), selection.level(), System.currentTimeMillis()));
@@ -76,8 +79,32 @@ public final class GemItemLayerPreviewProvider implements WebItemLayerPreviewPro
             slotIndex = defaultSlot(itemDefinition, state);
         }
         GemDefinition gem = resolveGem(requestOptions, itemDefinition, slotIndex);
+        boolean inlay = parseBoolean(requestOptions.get("inlay"), gem != null);
+        if (!inlay) {
+            return new PreviewSelection(slotIndex, null, 1, false);
+        }
         int level = gem == null ? 1 : Numbers.clamp(Numbers.tryParseInt(requestOptions.get("level"), gem.level()), 1, gem.upgrade().maxLevel());
-        return new PreviewSelection(slotIndex, gem, level);
+        return new PreviewSelection(slotIndex, gem, level, gem != null);
+    }
+
+    private boolean parseBoolean(Object value, boolean fallback) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof Number number) {
+            return number.intValue() != 0;
+        }
+        String normalized = Texts.lower(value).trim();
+        if (normalized.isEmpty()) {
+            return fallback;
+        }
+        if (List.of("true", "1", "yes", "y", "on", "inlay", "enabled").contains(normalized)) {
+            return true;
+        }
+        if (List.of("false", "0", "no", "n", "off", "none", "disabled").contains(normalized)) {
+            return false;
+        }
+        return fallback;
     }
 
     private int defaultSlot(GemItemDefinition itemDefinition, GemState state) {
@@ -124,6 +151,7 @@ public final class GemItemLayerPreviewProvider implements WebItemLayerPreviewPro
         details.put("openedSlotCount", state == null ? 0 : state.openedSlotIndexes().size());
         details.put("inlaidSlotCount", state == null ? 0 : state.socketAssignments().size());
         details.put("allowedGemTypes", itemDefinition.allowedGemTypes());
+        details.put("activeResonances", activeResonances(state));
         if (selection != null && selection.gem() != null) {
             details.put("gemId", selection.gem().id());
             details.put("gemDisplayName", selection.gem().displayNameForLevel(selection.level()));
@@ -140,6 +168,7 @@ public final class GemItemLayerPreviewProvider implements WebItemLayerPreviewPro
         options.put("selectedSlot", selection == null ? -1 : selection.slotIndex());
         options.put("selectedGemId", selection == null || selection.gem() == null ? "" : selection.gem().id());
         options.put("selectedLevel", selection == null ? 1 : selection.level());
+        options.put("selectedInlay", selection != null && selection.inlay());
         options.put("slots", slots(itemDefinition, state));
         options.put("gems", gems(itemDefinition, selection == null ? -1 : selection.slotIndex()));
         return options;
@@ -165,23 +194,89 @@ public final class GemItemLayerPreviewProvider implements WebItemLayerPreviewPro
             if (!compatible(itemDefinition, slotIndex, gem)) {
                 continue;
             }
-            gems.add(Map.of(
-                    "id", gem.id(),
-                    "displayName", gem.displayName(),
-                    "type", gem.gemType(),
-                    "level", gem.level(),
-                    "maxLevel", gem.upgrade().maxLevel()
-            ));
+            Map<String, Object> gemMap = new LinkedHashMap<>();
+            gemMap.put("id", gem.id());
+            gemMap.put("displayName", gem.displayName());
+            gemMap.put("type", gem.gemType());
+            gemMap.put("level", gem.level());
+            gemMap.put("maxLevel", gem.upgrade().maxLevel());
+            gemMap.put("actionCount", gem.inlaySuccessActions().size());
+            gemMap.put("nameActionCount", actionCount(gem.nameActionsForLevel(gem.level())));
+            gemMap.put("loreActionCount", actionCount(gem.loreActionsForLevel(gem.level())));
+            gems.add(gemMap);
         }
         return gems;
     }
 
-    private Map<String, Object> selected(PreviewSelection selection) {
-        if (selection == null || selection.gem() == null) {
-            return Map.of("slot", selection == null ? -1 : selection.slotIndex(), "gemId", "", "level", 1);
+    private List<Map<String, Object>> activeResonances(GemState state) {
+        GemResonanceService resonanceService = plugin.resonanceService();
+        if (state == null || resonanceService == null || state.socketAssignments().isEmpty()) {
+            return List.of();
         }
-        return Map.of("slot", selection.slotIndex(), "gemId", selection.gem().id(), "level", selection.level());
+        List<GemResonanceService.GemEntry> entries = new ArrayList<>();
+        for (GemItemInstance instance : state.socketAssignments().values()) {
+            if (instance == null || Texts.isBlank(instance.gemId())) {
+                continue;
+            }
+            GemDefinition gem = plugin.gemLoader().get(instance.gemId());
+            if (gem != null) {
+                entries.add(new GemResonanceService.GemEntry(gem, instance.level()));
+            }
+        }
+        if (entries.isEmpty()) {
+            return List.of();
+        }
+        List<Map<String, Object>> summaries = new ArrayList<>();
+        for (GemResonanceDefinition resonance : resonanceService.evaluateWithLevels(entries)) {
+            Map<String, Object> summary = new LinkedHashMap<>();
+            summary.put("id", resonance.id());
+            summary.put("displayName", resonance.displayName());
+            summary.put("exclusiveGroup", resonance.exclusiveGroup());
+            summary.put("priority", resonance.priority());
+            summary.put("mode", resonance.chain().mode());
+            summary.put("patternText", patternText(resonance.chain().pattern()));
+            summary.put("actionCount", resonance.effects().actions().size());
+            summary.put("nameActionCount", actionCount(resonance.effects().nameActions()));
+            summary.put("loreActionCount", actionCount(resonance.effects().loreActions()));
+            summaries.add(summary);
+        }
+        return summaries;
     }
 
-    private record PreviewSelection(int slotIndex, GemDefinition gem, int level) {}
+    private String patternText(List<ResonancePatternEntry> pattern) {
+        if (pattern == null || pattern.isEmpty()) {
+            return "";
+        }
+        List<String> parts = new ArrayList<>();
+        for (ResonancePatternEntry entry : pattern) {
+            if (entry == null) {
+                continue;
+            }
+            String target = Texts.isNotBlank(entry.id()) ? entry.id() : Texts.isNotBlank(entry.type()) ? entry.type() : "任意宝石";
+            parts.add(entry.minLevel() > 0 ? target + "≥Lv." + entry.minLevel() : target);
+        }
+        return String.join(" + ", parts);
+    }
+
+    private int actionCount(Object actions) {
+        if (actions == null) {
+            return 0;
+        }
+        if (actions instanceof List<?> list) {
+            return list.size();
+        }
+        if (actions instanceof Map<?, ?> map) {
+            return map.isEmpty() ? 0 : 1;
+        }
+        return Texts.isBlank(actions) ? 0 : 1;
+    }
+
+    private Map<String, Object> selected(PreviewSelection selection) {
+        if (selection == null || selection.gem() == null) {
+            return Map.of("slot", selection == null ? -1 : selection.slotIndex(), "gemId", "", "level", 1, "inlay", false);
+        }
+        return Map.of("slot", selection.slotIndex(), "gemId", selection.gem().id(), "level", selection.level(), "inlay", selection.inlay());
+    }
+
+    private record PreviewSelection(int slotIndex, GemDefinition gem, int level, boolean inlay) {}
 }
