@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,12 +54,16 @@ public final class EmakiItemAssemblyService {
 
     public ItemStack preview(EmakiItemAssemblyRequest request) {
         return measure("assembly-preview", () -> {
-            String cacheKey = requestSignature(request);
+            AssemblyContext context = resolveContext(request);
+            if (context == null || context.baseSource() == null) {
+                return null;
+            }
+            String cacheKey = context.assemblySignature();
             ItemStack cached = previewCache.get(cacheKey);
             if (cached != null) {
                 return cached.clone();
             }
-            ItemStack rendered = renderPreview(request);
+            ItemStack rendered = renderPreview(context);
             if (rendered != null) {
                 previewCache.put(cacheKey, rendered.clone());
             }
@@ -163,8 +168,7 @@ public final class EmakiItemAssemblyService {
         int amount = request.amount() > 0 ? request.amount() : 1;
         List<String> previousActiveLayers = List.of();
         boolean existingIsEmakiItem = request.existingItem() != null && dataManager.isEmakiItem(request.existingItem());
-        String baseCustomName = resolveBaseCustomName(request.existingItem(), existingIsEmakiItem);
-        List<String> baseLore = resolveBaseLore(request.existingItem(), existingIsEmakiItem);
+        Map<String, EmakiItemLayerSnapshot> storedLayers = Map.of();
         List<ItemOperationEntry> operationEntries = resolveOperationEntries(request.existingItem(), existingIsEmakiItem);
         if (existingIsEmakiItem) {
             if (baseSource == null) {
@@ -174,8 +178,17 @@ public final class EmakiItemAssemblyService {
                 amount = dataManager.readBaseAmount(request.existingItem());
             }
             previousActiveLayers = dataManager.readActiveLayers(request.existingItem());
-            mergedLayers.putAll(dataManager.readLayerSnapshots(request.existingItem()));
+            storedLayers = dataManager.readLayerSnapshots(request.existingItem());
+            mergedLayers.putAll(storedLayers);
         }
+        if (baseSource == null && request.existingItem() != null && !request.existingItem().getType().isAir()) {
+            baseSource = itemSourceService.identifyItem(request.existingItem());
+        }
+        if (baseSource == null) {
+            return null;
+        }
+        String baseCustomName = resolveBaseCustomName(request.existingItem(), existingIsEmakiItem, storedLayers, operationEntries);
+        List<String> baseLore = resolveBaseLore(request.existingItem(), existingIsEmakiItem, baseSource, amount, storedLayers, operationEntries);
         for (String namespaceId : request.removedNamespaceIds()) {
             mergedLayers.remove(Texts.normalizeId(namespaceId));
         }
@@ -186,12 +199,6 @@ public final class EmakiItemAssemblyService {
                 }
                 mergedLayers.put(Texts.normalizeId(snapshot.namespaceId()), snapshot);
             }
-        }
-        if (baseSource == null && request.existingItem() != null && !request.existingItem().getType().isAir()) {
-            baseSource = itemSourceService.identifyItem(request.existingItem());
-        }
-        if (baseSource == null) {
-            return null;
         }
         List<String> activeLayers = namespaceRegistry.orderNamespaces(mergedLayers.keySet());
         Map<String, EmakiItemLayerSnapshot> orderedLayers = new LinkedHashMap<>();
@@ -222,11 +229,7 @@ public final class EmakiItemAssemblyService {
         );
     }
 
-    private ItemStack renderPreview(EmakiItemAssemblyRequest request) {
-        AssemblyContext context = resolveContext(request);
-        if (context == null || context.baseSource() == null) {
-            return null;
-        }
+    private ItemStack renderPreview(AssemblyContext context) {
         ItemStack itemStack = itemSourceService.createItem(context.baseSource(), context.amount());
         if (itemStack == null) {
             return null;
@@ -276,52 +279,202 @@ public final class EmakiItemAssemblyService {
         return false;
     }
 
-    private String requestSignature(EmakiItemAssemblyRequest request) {
-        if (request == null) {
-            return "assembly:null";
-        }
-        boolean existingIsEmakiItem = request.existingItem() != null && dataManager.isEmakiItem(request.existingItem());
-        return SignatureUtil.stableSignature(List.of(
-                request.baseSource() == null ? "" : ItemSourceUtil.toShorthand(request.baseSource()),
-                request.amount(),
-                request.existingItem() == null ? "" : ItemSourceUtil.toShorthand(itemSourceService.identifyItem(request.existingItem())),
-                request.existingItem() == null ? "" : resolveBaseCustomName(request.existingItem(), existingIsEmakiItem),
-                request.existingItem() == null ? List.of() : resolveBaseLore(request.existingItem(), existingIsEmakiItem),
-                request.existingItem() == null
-                        ? List.of()
-                        : resolveOperationEntries(request.existingItem(), existingIsEmakiItem)
-                                .stream()
-                                .map(ItemOperationEntry::toMap)
-                                .toList(),
-                request.layerSnapshots() == null ? List.of() : request.layerSnapshots().stream().map(EmakiItemLayerSnapshot::toMap).toList(),
-                request.removedNamespaceIds()
-        ));
-    }
-
-    private String resolveBaseCustomName(ItemStack existingItem, boolean existingIsEmakiItem) {
+    private String resolveBaseCustomName(ItemStack existingItem,
+            boolean existingIsEmakiItem,
+            Map<String, EmakiItemLayerSnapshot> storedLayers,
+            List<ItemOperationEntry> operationEntries) {
         if (existingItem == null) {
             return "";
         }
-        if (existingIsEmakiItem) {
-            return dataManager.readBaseCustomName(existingItem);
+        String currentCustomName = currentCustomName(existingItem);
+        if (!existingIsEmakiItem) {
+            return currentCustomName;
         }
-        ItemMeta itemMeta = existingItem.getItemMeta();
+        String storedCustomName = dataManager.readBaseCustomName(existingItem);
+        if (!hasEmakiNameOverlay(storedLayers, operationEntries)) {
+            return currentCustomName.equals(storedCustomName) ? storedCustomName : currentCustomName;
+        }
+        return storedCustomName;
+    }
+
+    private String currentCustomName(ItemStack itemStack) {
+        if (itemStack == null) {
+            return "";
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
         if (!ItemTextBridge.hasCustomName(itemMeta)) {
             return "";
         }
         return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
     }
 
-    private List<String> resolveBaseLore(ItemStack existingItem, boolean existingIsEmakiItem) {
+    private boolean hasEmakiNameOverlay(Map<String, EmakiItemLayerSnapshot> storedLayers,
+            List<ItemOperationEntry> operationEntries) {
+        if (storedLayers != null) {
+            for (EmakiItemLayerSnapshot snapshot : storedLayers.values()) {
+                EmakiStructuredPresentation presentation = snapshot == null ? null : snapshot.structuredPresentation();
+                if (presentation == null) {
+                    continue;
+                }
+                if (presentation.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE && Texts.isNotBlank(presentation.baseNameTemplate())) {
+                    return true;
+                }
+                if (!presentation.nameContributions().isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        if (operationEntries == null) {
+            return false;
+        }
+        for (ItemOperationEntry entry : operationEntries) {
+            if (entry != null && entry.nameRecords() != null && !entry.nameRecords().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<String> resolveBaseLore(ItemStack existingItem,
+            boolean existingIsEmakiItem,
+            ItemSource baseSource,
+            int amount,
+            Map<String, EmakiItemLayerSnapshot> storedLayers,
+            List<ItemOperationEntry> operationEntries) {
         if (existingItem == null) {
             return List.of();
         }
-        if (existingIsEmakiItem) {
-            List<String> storedLore = dataManager.readBaseLore(existingItem);
-            return storedLore == null || storedLore.isEmpty() ? List.of() : List.copyOf(storedLore);
+        List<String> currentLore = currentLore(existingItem);
+        if (!existingIsEmakiItem) {
+            return currentLore;
         }
-        ItemMeta itemMeta = existingItem.getItemMeta();
+        List<String> storedLore = safeLore(dataManager.readBaseLore(existingItem));
+        List<String> expectedLore = renderExpectedLore(baseSource, amount, storedLore, storedLayers, operationEntries);
+        if (expectedLore == null) {
+            return storedLore;
+        }
+        return inferMergedBaseLore(storedLore, expectedLore, currentLore);
+    }
+
+    private List<String> currentLore(ItemStack itemStack) {
+        if (itemStack == null) {
+            return List.of();
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
         List<String> loreLines = ItemTextBridge.loreLines(itemMeta);
+        return safeLore(loreLines);
+    }
+
+    private List<String> renderExpectedLore(ItemSource baseSource,
+            int amount,
+            List<String> baseLore,
+            Map<String, EmakiItemLayerSnapshot> storedLayers,
+            List<ItemOperationEntry> operationEntries) {
+        if (baseSource == null) {
+            return null;
+        }
+        ItemStack expected = itemSourceService.createItem(baseSource, Math.max(1, amount));
+        if (expected == null) {
+            return null;
+        }
+        applyBaseLore(expected, baseLore);
+        itemRenderService.renderItem(expected, storedLayers == null ? List.of() : storedLayers.values(), null);
+        operationLedger.replay(expected, operationEntries);
+        return currentLore(expected);
+    }
+
+    private List<String> inferMergedBaseLore(List<String> storedBaseLore, List<String> expectedLore, List<String> currentLore) {
+        List<String> safeStored = safeLore(storedBaseLore);
+        List<String> safeExpected = safeLore(expectedLore);
+        List<String> safeCurrent = safeLore(currentLore);
+        if (safeCurrent.equals(safeExpected)) {
+            return safeStored;
+        }
+        if (safeExpected.isEmpty()) {
+            return safeCurrent;
+        }
+        int[] leftMatches = leftmostSubsequenceMatches(safeExpected, safeCurrent);
+        if (leftMatches == null) {
+            return safeStored;
+        }
+        int[] rightMatches = rightmostSubsequenceMatches(safeExpected, safeCurrent);
+        if (!sameMatches(leftMatches, rightMatches)) {
+            return safeStored;
+        }
+        List<String> externalLines = new ArrayList<>();
+        int matchIndex = 0;
+        for (int index = 0; index < safeCurrent.size(); index++) {
+            if (matchIndex < leftMatches.length && leftMatches[matchIndex] == index) {
+                matchIndex++;
+                continue;
+            }
+            externalLines.add(safeCurrent.get(index));
+        }
+        if (externalLines.isEmpty()) {
+            return safeStored;
+        }
+        List<String> merged = new ArrayList<>(safeStored);
+        merged.addAll(externalLines);
+        return List.copyOf(merged);
+    }
+
+    private int[] leftmostSubsequenceMatches(List<String> expected, List<String> current) {
+        int[] matches = new int[expected.size()];
+        int currentIndex = 0;
+        for (int expectedIndex = 0; expectedIndex < expected.size(); expectedIndex++) {
+            String expectedLine = expected.get(expectedIndex);
+            boolean matched = false;
+            while (currentIndex < current.size()) {
+                if (Objects.equals(expectedLine, current.get(currentIndex))) {
+                    matches[expectedIndex] = currentIndex;
+                    currentIndex++;
+                    matched = true;
+                    break;
+                }
+                currentIndex++;
+            }
+            if (!matched) {
+                return null;
+            }
+        }
+        return matches;
+    }
+
+    private int[] rightmostSubsequenceMatches(List<String> expected, List<String> current) {
+        int[] matches = new int[expected.size()];
+        int currentIndex = current.size() - 1;
+        for (int expectedIndex = expected.size() - 1; expectedIndex >= 0; expectedIndex--) {
+            String expectedLine = expected.get(expectedIndex);
+            boolean matched = false;
+            while (currentIndex >= 0) {
+                if (Objects.equals(expectedLine, current.get(currentIndex))) {
+                    matches[expectedIndex] = currentIndex;
+                    currentIndex--;
+                    matched = true;
+                    break;
+                }
+                currentIndex--;
+            }
+            if (!matched) {
+                return null;
+            }
+        }
+        return matches;
+    }
+
+    private boolean sameMatches(int[] first, int[] second) {
+        if (first == null || second == null || first.length != second.length) {
+            return false;
+        }
+        for (int index = 0; index < first.length; index++) {
+            if (first[index] != second[index]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<String> safeLore(List<String> loreLines) {
         return loreLines == null || loreLines.isEmpty() ? List.of() : List.copyOf(loreLines);
     }
 
