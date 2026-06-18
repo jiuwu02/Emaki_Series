@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.3.1"
+version: "4.3.2"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -124,7 +124,15 @@ web_debug:
 command:
   no_permission_web: "<red>You do not have permission to view the Web Console link</red>"
   no_permission_reload: "<red>You do not have permission to reload EmakiCoreLib</red>"
+  no_permission_admin: "<red>You do not have permission to run EmakiCoreLib admin commands</red>"
   reload_success: "<green>EmakiCoreLib has been reloaded, and the Web Console has restarted with the new configuration</green>"
+  reload_failed_precheck: "<red>EmakiCoreLib precheck failed. Reload was cancelled and the previous config is still active</red>"
+  check_no_report: "<yellow>No precheck report is available. Run /corelib check first</yellow>"
+  check_fix_unavailable: "<yellow>This version only supports read-only prechecks; automatic fixes are not enabled yet</yellow>"
+  loop_empty: "<gray>There are no active loop tasks</gray>"
+  loop_header: "<aqua>Active loop tasks: </aqua><yellow>%count%</yellow>"
+  loop_cancelled: "<green>Requested loop task cancellation: <aqua>%key%</aqua></green>"
+  loop_player_cancelled: "<green>Cancelled <yellow>%count%</yellow> loop task(s) for <aqua>%player%</aqua></green>"
   web_address: "<aqua>Web Console address: </aqua><white>%url%</white>"
   web_bind_hint: "<yellow>The current host is a bind address and usually cannot be accessed directly by clients; a localhost fallback link is provided below</yellow>"
   web_click_open: "<aqua>Click to open: </aqua><click:open_url:'%url%'><hover:show_text:'<yellow>Click to open the Web Console in your browser</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
@@ -133,6 +141,8 @@ command:
   help_header: "<aqua>EmakiCoreLib commands:</aqua>"
   help_web: "<green>%root% web</green><gray> - Print a clickable Web Console link</gray>"
   help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration and the Web Console</gray>"
+  help_check: "<green>%root% check [module|report|--fix]</green><gray> - Run config prechecks or show the latest report</gray>"
+  help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - View or cancel loop Action tasks</gray>"
   help_webdebug: "<green>%root% webdebug [frontend|backend|all]</green><gray> - Toggle frontend/backend debug logs after the Web Console is enabled</gray>"
 
 # Web Console service logs

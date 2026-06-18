@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.3.1"
+version: "4.3.2"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -124,7 +124,15 @@ web_debug:
 command:
   no_permission_web: "<red>你没有权限查看 Web Console 链接</red>"
   no_permission_reload: "<red>你没有权限重载 EmakiCoreLib</red>"
+  no_permission_admin: "<red>你没有权限执行 EmakiCoreLib 管理命令</red>"
   reload_success: "<green>EmakiCoreLib 已重载，Web Console 已按新配置重新启动</green>"
+  reload_failed_precheck: "<red>EmakiCoreLib 预检失败，本次重载已取消，旧配置仍保持生效</red>"
+  check_no_report: "<yellow>暂无预检报告，请先执行 /corelib check</yellow>"
+  check_fix_unavailable: "<yellow>当前版本仅支持只读预检，暂未启用自动修复</yellow>"
+  loop_empty: "<gray>当前没有活动循环任务</gray>"
+  loop_header: "<aqua>活动循环任务：</aqua><yellow>%count%</yellow>"
+  loop_cancelled: "<green>已请求取消循环任务: <aqua>%key%</aqua></green>"
+  loop_player_cancelled: "<green>已取消玩家 <aqua>%player%</aqua> 的 <yellow>%count%</yellow> 个循环任务</green>"
   web_address: "<aqua>Web Console 地址：</aqua><white>%url%</white>"
   web_bind_hint: "<yellow>当前 host 是绑定地址，客户端通常不能直接访问；下面提供本机回退链接</yellow>"
   web_click_open: "<aqua>点击打开：</aqua><click:open_url:'%url%'><hover:show_text:'<yellow>点击在浏览器中打开 Web Console</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
@@ -133,6 +141,8 @@ command:
   help_header: "<aqua>EmakiCoreLib 命令：</aqua>"
   help_web: "<green>%root% web</green><gray> - 输出可点击的 Web Console 链接</gray>"
   help_reload: "<green>%root% reload</green><gray> - 重载 CoreLib 配置与 Web Console</gray>"
+  help_check: "<green>%root% check [module|report|--fix]</green><gray> - 执行配置预检或查看最近报告</gray>"
+  help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消循环 Action 任务</gray>"
   help_webdebug: "<green>%root% webdebug [frontend|backend|all]</green><gray> - Web Console 启用后开关前端/后端调试日志</gray>"
 
 # Web Console 服务日志

@@ -1,6 +1,10 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
+import emaki.jiuwu.craft.corelib.action.loop.CancelLoopAction;
+import emaki.jiuwu.craft.corelib.action.loop.LoopActionService;
+import emaki.jiuwu.craft.corelib.action.loop.LoopAsyncAction;
+import emaki.jiuwu.craft.corelib.action.loop.LoopSyncAction;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
@@ -23,6 +27,16 @@ public final class BuiltinActions {
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
             CustomBlockBridge nexoBlockBridge) {
+        registerAll(registry, economyManager, itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, null);
+    }
+
+    public static void registerAll(ActionRegistry registry,
+            EconomyManager economyManager,
+            ItemSourceService itemSourceService,
+            CraftEngineBlockBridge craftEngineBlockBridge,
+            CustomBlockBridge itemsAdderBlockBridge,
+            CustomBlockBridge nexoBlockBridge,
+            LoopActionService loopActionService) {
         registry.register(new SendMessageAction());
         registry.register(new SendTitleAction());
         registry.register(new SendActionBarAction());
@@ -51,6 +65,11 @@ public final class BuiltinActions {
         registry.register(new RunCommandAsOpAction());
         registry.register(new RunCommandAsConsoleAction());
         registry.register(new UseTemplateAction());
+        if (loopActionService != null) {
+            registry.register(new LoopSyncAction(loopActionService));
+            registry.register(new LoopAsyncAction(loopActionService));
+            registry.register(new CancelLoopAction(loopActionService));
+        }
         registry.register(new CastMythicSkillAction());
     }
 }

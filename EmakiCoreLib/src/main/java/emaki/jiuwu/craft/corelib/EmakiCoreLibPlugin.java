@@ -17,6 +17,9 @@ import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
 import emaki.jiuwu.craft.corelib.action.builtin.RunJavaScriptAction;
+import emaki.jiuwu.craft.corelib.action.loop.LoopActionService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckService;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.library.RuntimeLibraryLoader;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
@@ -90,6 +93,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private PlaceholderRegistry placeholderRegistry;
     private EconomyManager economyManager;
     private ActionExecutor actionExecutor;
+    private LoopActionService loopActionService;
+    private ConfigPrecheckService configPrecheckService;
     private JavaScriptService javaScriptService;
     private final ScriptModuleRegistry scriptModuleRegistry = new ScriptModuleRegistry();
     private final PdcService pdcService = new PdcService("emaki_corelib");
@@ -162,7 +167,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         messageService.info("console.plugin_starting");
         itemSourceIntegrationCoordinator.initialize();
-        reloadActionSystem();
+        if (!reloadActionSystem()) {
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         registerMythicJavaScriptBridge();
         registerCommandHandler();
         registerPublicApiService();
@@ -195,6 +203,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (javaScriptActionExtensionLoader != null) {
             javaScriptActionExtensionLoader.close();
             javaScriptActionExtensionLoader = null;
+        }
+        if (loopActionService != null) {
+            loopActionService.cancelAll();
         }
         if (mythicJavaScriptBridge != null) {
             HandlerList.unregisterAll(mythicJavaScriptBridge);
@@ -231,32 +242,49 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return languageLoader;
     }
 
-    public void reloadActionSystem() {
-        configModel = loadConfigModel();
+    public boolean reloadActionSystem() {
+        CoreLibConfig candidateConfig = loadConfigModel();
+        ActionRegistry candidateActionRegistry = new ActionRegistry();
+        ActionTemplateRegistry candidateTemplateRegistry = new ActionTemplateRegistry();
+        PlaceholderRegistry candidatePlaceholderRegistry = new PlaceholderRegistry(this::debugLogger);
+        EconomyManager candidateEconomyManager = new EconomyManager(this);
+        LoopActionService effectiveLoopService = loopActionService == null ? new LoopActionService(this) : loopActionService;
+        candidatePlaceholderRegistry.register(new ActionContextPlaceholderResolver());
+        candidatePlaceholderRegistry.register(new ActionInlineTokenResolver());
+        candidatePlaceholderRegistry.register(new PlaceholderApiResolver());
+        for (var entry : candidateConfig.actionTemplates().entrySet()) {
+            candidateTemplateRegistry.register(entry.getKey(), entry.getValue());
+        }
+        BuiltinActions.registerAll(
+                candidateActionRegistry,
+                candidateEconomyManager,
+                itemSourceService,
+                craftEngineBlockBridge,
+                itemsAdderBlockBridge,
+                nexoBlockBridge,
+                effectiveLoopService
+        );
+        configPrecheckService.configure(candidateActionRegistry, candidateTemplateRegistry);
+        ConfigPrecheckReport report = configPrecheckService.checkAll(candidateConfig);
+        logPrecheckReport(report);
+        if (!report.success()) {
+            return false;
+        }
+        if (loopActionService != null) {
+            loopActionService.cancelAll();
+        }
+        configModel = candidateConfig;
+        actionRegistry = candidateActionRegistry;
+        actionTemplateRegistry = candidateTemplateRegistry;
+        placeholderRegistry = candidatePlaceholderRegistry;
+        economyManager = candidateEconomyManager;
+        loopActionService = effectiveLoopService;
         if (languageLoader != null && configModel != null) {
             languageLoader.load();
             languageLoader.setLanguage(configModel.language());
         }
         reloadWebConsole();
         reloadScriptSystem();
-        actionRegistry = new ActionRegistry();
-        actionTemplateRegistry = new ActionTemplateRegistry();
-        placeholderRegistry = new PlaceholderRegistry(this::debugLogger);
-        economyManager = new EconomyManager(this);
-        placeholderRegistry.register(new ActionContextPlaceholderResolver());
-        placeholderRegistry.register(new ActionInlineTokenResolver());
-        placeholderRegistry.register(new PlaceholderApiResolver());
-        for (var entry : configModel.actionTemplates().entrySet()) {
-            actionTemplateRegistry.register(entry.getKey(), entry.getValue());
-        }
-        BuiltinActions.registerAll(
-                actionRegistry,
-                economyManager,
-                itemSourceService,
-                craftEngineBlockBridge,
-                itemsAdderBlockBridge,
-                nexoBlockBridge
-        );
         if (javaScriptService != null && javaScriptService.enabled()) {
             for (RunJavaScriptAction action : RunJavaScriptAction.createAll(javaScriptService, configModel.scriptConfig())) {
                 actionRegistry.register(action);
@@ -272,7 +300,28 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 asyncTaskScheduler,
                 performanceMonitor
         );
+        loopActionService.configure(configModel.loopConfig(), actionTemplateRegistry, actionRegistry, () -> actionExecutor);
         refreshServiceRegistry();
+        return true;
+    }
+
+    private void logPrecheckReport(ConfigPrecheckReport report) {
+        if (report == null) {
+            return;
+        }
+        for (String line : report.formatLines()) {
+            if (messageService != null) {
+                if (report.success()) {
+                    getLogger().info(line);
+                } else {
+                    getLogger().warning(line);
+                }
+            } else if (report.success()) {
+                getLogger().info(line);
+            } else {
+                getLogger().warning(line);
+            }
+        }
     }
 
     private void reloadScriptSystem() {
@@ -401,6 +450,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         bStatsService = new BStatsService(this, messageService);
         debugLogger = new DebugLogger(getLogger(), languageLoader);
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
+        configPrecheckService = new ConfigPrecheckService();
+        loopActionService = new LoopActionService(this);
+        getServer().getPluginManager().registerEvents(loopActionService, this);
         performanceMonitor = new PerformanceMonitor();
         asyncTaskScheduler = AsyncTaskScheduler.forPlugin(this, "emaki-corelib-async", performanceMonitor);
         asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
@@ -497,6 +549,14 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return actionExecutor;
     }
 
+    public LoopActionService loopActionService() {
+        return loopActionService;
+    }
+
+    public ConfigPrecheckService configPrecheckService() {
+        return configPrecheckService;
+    }
+
     public JavaScriptService javaScriptService() {
         return javaScriptService;
     }
@@ -586,6 +646,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(PlaceholderRegistry.class, placeholderRegistry);
         registerService(EconomyManager.class, economyManager);
         registerService(ActionExecutor.class, actionExecutor);
+        registerService(LoopActionService.class, loopActionService);
+        registerService(ConfigPrecheckService.class, configPrecheckService);
         registerService(JavaScriptService.class, javaScriptService);
         registerService(ScriptService.class, javaScriptService);
         registerService(ScriptModuleRegistry.class, scriptModuleRegistry);

@@ -8,7 +8,7 @@ description: Shared native Java core library for Emaki plugins
 commands:
   emakicorelib:
     description: EmakiCoreLib management command
-    usage: /emakicorelib <help|web|reload>
+    usage: /emakicorelib <help|web|reload|check|debug>
     aliases:
       - corelib
       - emakicore

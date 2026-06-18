@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.3.1"
+version: "4.3.2"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -43,6 +43,16 @@ web_console:
     record_delete_backup: true
 
 action:
+  loop:
+    enabled: true
+    min_sync_interval: 5t
+    min_async_interval: 100ms
+    max_times: 7200
+    max_active_loops_total: 5000
+    max_active_loops_per_player: 16
+    max_active_loops_per_plugin: 1000
+    cancel_player_loops_on_quit: true
+    cancel_plugin_loops_on_disable: true
   # 在配方或动作列表中通过 @template=名称 引用
   templates:
     # reward_success_common:
