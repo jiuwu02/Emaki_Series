@@ -362,7 +362,7 @@ public final class WebConsoleService {
     private void handleLogin(WebRequestContext context) throws IOException {
         String username = context.bodyString("username");
         String password = context.bodyString("password");
-        WebAuthService.LoginResult result = authService.login(username, password);
+        WebAuthService.LoginResult result = authService.login(context.exchange(), username, password);
         if (!result.success()) {
             context.error(401, "账号或密码错误");
             return;

@@ -186,11 +186,12 @@ public final class GraalJavaScriptService implements JavaScriptService {
 
     private Context createContext() {
         ScriptConfig.Engine engineConfig = config.engine();
+        HostAccess hostAccess = engineConfig.allowHostAccess() ? HostAccess.ALL : HostAccess.NONE;
         Context.Builder builder = Context.newBuilder("js")
                 .engine(engine)
                 .allowExperimentalOptions(true)
                 .allowPolyglotAccess(PolyglotAccess.NONE)
-                .allowHostAccess(HostAccess.ALL)
+                .allowHostAccess(hostAccess)
                 .allowHostClassLookup(className -> engineConfig.allowHostClassLookup())
                 .allowCreateThread(engineConfig.allowThreads())
                 .allowNativeAccess(engineConfig.allowNativeAccess())
