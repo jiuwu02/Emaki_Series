@@ -118,7 +118,7 @@ public record DamageContextVariables(Map<String, Object> values) {
      * @param fallback value returned when the key is missing or unparsable
      */
     public double doubleValue(String key, double fallback) {
-        Double value = Numbers.tryParseDouble(get(key), null);
+        Double value = AttributeApiValues.tryParseDouble(get(key), null);
         return value == null ? fallback : value;
     }
 
@@ -221,7 +221,7 @@ public record DamageContextVariables(Map<String, Object> values) {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            normalized.put(AttributeApiValues.normalizeId(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
+            normalized.put(AttributeApiValues.normalizeId(entry.getKey()), AttributeApiValues.toPlainData(entry.getValue()));
         }
         if (normalized.isEmpty()) {
             return Map.of();
@@ -262,7 +262,7 @@ public record DamageContextVariables(Map<String, Object> values) {
             if (AttributeApiValues.isBlank(key) || value == null) {
                 return this;
             }
-            values.put(AttributeApiValues.normalizeId(key), ConfigNodes.toPlainData(value));
+            values.put(AttributeApiValues.normalizeId(key), AttributeApiValues.toPlainData(value));
             return this;
         }
 
