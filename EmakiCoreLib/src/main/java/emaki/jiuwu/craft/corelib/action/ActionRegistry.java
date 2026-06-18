@@ -15,15 +15,15 @@ public final class ActionRegistry {
     private final Map<String, String> owners = new LinkedHashMap<>();
     private final Map<String, String> sources = new LinkedHashMap<>();
 
-    public ActionResult register(Action action) {
+    public synchronized ActionResult register(Action action) {
         return register(null, "", action);
     }
 
-    public ActionResult register(Plugin owner, Action action) {
+    public synchronized ActionResult register(Plugin owner, Action action) {
         return register(owner, "", action);
     }
 
-    public ActionResult register(Plugin owner, String source, Action action) {
+    public synchronized ActionResult register(Plugin owner, String source, Action action) {
         if (action == null || Texts.isBlank(action.id())) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Action id cannot be blank.");
         }
@@ -37,14 +37,14 @@ public final class ActionRegistry {
         return ActionResult.ok();
     }
 
-    public void unregister(String actionId) {
+    public synchronized void unregister(String actionId) {
         String id = Texts.lower(actionId);
         actions.remove(id);
         owners.remove(id);
         sources.remove(id);
     }
 
-    public void unregisterAll(Plugin owner) {
+    public synchronized void unregisterAll(Plugin owner) {
         String key = ownerKey(owner);
         if (Texts.isBlank(key)) {
             return;
@@ -56,7 +56,7 @@ public final class ActionRegistry {
         }
     }
 
-    public void unregisterAllBySource(String source) {
+    public synchronized void unregisterAllBySource(String source) {
         String normalized = Texts.toStringSafe(source);
         if (Texts.isBlank(normalized)) {
             return;
@@ -68,19 +68,19 @@ public final class ActionRegistry {
         }
     }
 
-    public Action get(String actionId) {
+    public synchronized Action get(String actionId) {
         return actions.get(Texts.lower(actionId));
     }
 
-    public String ownerKeyOf(String actionId) {
+    public synchronized String ownerKeyOf(String actionId) {
         return owners.getOrDefault(Texts.lower(actionId), "");
     }
 
-    public String sourceOf(String actionId) {
+    public synchronized String sourceOf(String actionId) {
         return sources.getOrDefault(Texts.lower(actionId), "");
     }
 
-    public List<Action> byCategory(String category) {
+    public synchronized List<Action> byCategory(String category) {
         List<Action> result = new ArrayList<>();
         String normalized = Texts.lower(category);
         for (Action action : actions.values()) {
@@ -91,7 +91,7 @@ public final class ActionRegistry {
         return result;
     }
 
-    public List<Action> byOwner(Plugin owner) {
+    public synchronized List<Action> byOwner(Plugin owner) {
         String key = ownerKey(owner);
         if (Texts.isBlank(key)) {
             return List.of();
@@ -105,7 +105,7 @@ public final class ActionRegistry {
         return List.copyOf(result);
     }
 
-    public List<Action> bySource(String source) {
+    public synchronized List<Action> bySource(String source) {
         String normalized = Texts.toStringSafe(source);
         if (Texts.isBlank(normalized)) {
             return List.of();
@@ -119,15 +119,15 @@ public final class ActionRegistry {
         return List.copyOf(result);
     }
 
-    public Map<String, Action> all() {
+    public synchronized Map<String, Action> all() {
         return Map.copyOf(actions);
     }
 
-    public Map<String, String> owners() {
+    public synchronized Map<String, String> owners() {
         return Map.copyOf(owners);
     }
 
-    public Map<String, String> sources() {
+    public synchronized Map<String, String> sources() {
         return Map.copyOf(sources);
     }
 

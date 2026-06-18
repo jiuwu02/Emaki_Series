@@ -107,6 +107,9 @@ public final class PdcService {
             @Nullable String field,
             @Nullable PersistentDataType<P, C> type,
             C value) {
+        if (partition == null || type == null || field == null) {
+            return;
+        }
         batchMutate(itemStack, container -> container.set(partition.key(field), type, value));
     }
 
@@ -115,6 +118,9 @@ public final class PdcService {
             @Nullable PdcPartition partition,
             @Nullable String field,
             @Nullable PersistentDataType<P, C> type) {
+        if (partition == null || type == null || field == null) {
+            return null;
+        }
         ItemMeta itemMeta = itemMeta(itemStack);
         if (itemMeta == null) {
             return null;
@@ -128,6 +134,9 @@ public final class PdcService {
             @Nullable PdcPartition partition,
             @Nullable String field,
             @Nullable PersistentDataType<P, C> type) {
+        if (partition == null || type == null || field == null) {
+            return false;
+        }
         ItemMeta itemMeta = itemMeta(itemStack);
         if (itemMeta == null) {
             return false;
@@ -136,6 +145,9 @@ public final class PdcService {
     }
 
     public void remove(@Nullable ItemStack itemStack, @Nullable PdcPartition partition, @Nullable String field) {
+        if (partition == null || field == null) {
+            return;
+        }
         batchMutate(itemStack, container -> container.remove(partition.key(field)));
     }
 
@@ -144,7 +156,7 @@ public final class PdcService {
             @Nullable String field,
             @Nullable SnapshotCodec<T> codec,
             T value) {
-        if (codec == null) {
+        if (partition == null || codec == null || field == null) {
             return false;
         }
         batchMutate(itemStack, container -> container.set(partition.key(field), PersistentDataType.STRING, codec.encode(value)));
@@ -156,8 +168,11 @@ public final class PdcService {
             @Nullable PdcPartition partition,
             @Nullable String field,
             @Nullable SnapshotCodec<T> codec) {
+        if (partition == null || codec == null || field == null) {
+            return null;
+        }
         ItemMeta itemMeta = itemMeta(itemStack);
-        if (itemMeta == null || codec == null) {
+        if (itemMeta == null) {
             return null;
         }
         String payload = itemMeta.getPersistentDataContainer().get(partition.key(field), PersistentDataType.STRING);
