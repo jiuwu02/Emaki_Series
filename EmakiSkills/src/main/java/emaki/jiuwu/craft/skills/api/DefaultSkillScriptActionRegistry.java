@@ -7,8 +7,8 @@ import java.util.Map;
 
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class DefaultSkillScriptActionRegistry implements SkillScriptActionRegistry {
@@ -17,20 +17,20 @@ public final class DefaultSkillScriptActionRegistry implements SkillScriptAction
     private final Map<String, Plugin> owners = new LinkedHashMap<>();
 
     @Override
-    public ActionResult register(Plugin owner, SkillScriptAction action) {
+    public SkillActionResult register(Plugin owner, SkillScriptAction action) {
         if (owner == null) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Skill script action owner cannot be null.");
+            return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Skill script action owner cannot be null.");
         }
         if (action == null || Texts.isBlank(action.id())) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Skill script action id cannot be blank.");
+            return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Skill script action id cannot be blank.");
         }
         String id = Texts.normalizeId(action.id());
         if (actions.containsKey(id)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Skill script action already registered: " + id);
+            return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Skill script action already registered: " + id);
         }
         actions.put(id, action);
         owners.put(id, owner);
-        return ActionResult.ok();
+        return SkillActionResult.ok();
     }
 
     @Override

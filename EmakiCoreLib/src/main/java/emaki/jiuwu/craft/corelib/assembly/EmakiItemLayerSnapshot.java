@@ -17,7 +17,8 @@ public record EmakiItemLayerSnapshot(String namespaceId,
                                      List<EmakiStatContribution> stats,
                                      EmakiStructuredPresentation structuredPresentation) {
 
-    public static final SnapshotCodec<EmakiItemLayerSnapshot> CODEC = SnapshotCodec.yaml(
+    public static final SnapshotCodec<EmakiItemLayerSnapshot> CODEC = SnapshotCodec.versionedYaml(
+        1,
         EmakiItemLayerSnapshot::toMap,
         EmakiItemLayerSnapshot::fromMap
     );

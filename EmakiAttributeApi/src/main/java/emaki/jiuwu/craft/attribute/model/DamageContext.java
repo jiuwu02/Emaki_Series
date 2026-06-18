@@ -6,7 +6,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageEvent;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Immutable description of a single damage interaction fed into the
@@ -50,7 +49,7 @@ public record DamageContext(LivingEntity attacker,
      * snapshots/variables.
      */
     public DamageContext          {
-        damageTypeId = Texts.normalizeId(damageTypeId);
+        damageTypeId = AttributeApiValues.normalizeId(damageTypeId);
         sourceDamage = Math.max(0D, sourceDamage);
         baseDamage = Math.max(0D, baseDamage);
         attackerSnapshot = attackerSnapshot == null ? AttributeSnapshot.empty("") : attackerSnapshot;
@@ -160,7 +159,7 @@ public record DamageContext(LivingEntity attacker,
 
     /** {@return the normalized cause id, or an empty string when absent} */
     public String causeId() {
-        return cause == null ? "" : Texts.normalizeId(cause.name());
+        return cause == null ? "" : AttributeApiValues.normalizeId(cause.name());
     }
 
     /** {@return the raw cause enum name, or an empty string when absent} */

@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionExecutionMode;
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
+import emaki.jiuwu.craft.skills.api.SkillActionExecutionMode;
+import emaki.jiuwu.craft.skills.api.SkillActionParameter;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
@@ -25,8 +25,8 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
     private final String id;
     private final String category;
     private final String description;
-    private final List<ActionParameter> parameters;
-    private final ActionExecutionMode executionMode;
+    private final List<SkillActionParameter> parameters;
+    private final SkillActionExecutionMode executionMode;
     private final long timeoutMillis;
     private final String scriptPath;
     private final String executeFunction;
@@ -38,8 +38,8 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
             String id,
             String category,
             String description,
-            List<ActionParameter> parameters,
-            ActionExecutionMode executionMode,
+            List<SkillActionParameter> parameters,
+            SkillActionExecutionMode executionMode,
             long timeoutMillis,
             String scriptPath,
             String executeFunction,
@@ -51,7 +51,7 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
         this.category = Texts.isBlank(category) ? "javascript" : category;
         this.description = Texts.isBlank(description) ? this.id : description;
         this.parameters = parameters == null ? List.of() : List.copyOf(parameters);
-        this.executionMode = executionMode == null ? ActionExecutionMode.SYNC : executionMode;
+        this.executionMode = executionMode == null ? SkillActionExecutionMode.SYNC : executionMode;
         this.timeoutMillis = timeoutMillis <= 0L ? this.scriptConfig.engine().defaultTimeoutMillis() : timeoutMillis;
         this.scriptPath = scriptPath;
         this.executeFunction = Texts.isBlank(executeFunction) ? "execute" : executeFunction;
@@ -74,12 +74,12 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
     }
 
     @Override
-    public List<ActionParameter> parameters() {
+    public List<SkillActionParameter> parameters() {
         return parameters;
     }
 
     @Override
-    public ActionExecutionMode executionMode() {
+    public SkillActionExecutionMode executionMode() {
         return executionMode;
     }
 
@@ -89,8 +89,8 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
     }
 
     @Override
-    public ActionResult validate(Map<String, String> arguments) {
-        ActionResult base = SkillScriptAction.super.validate(arguments);
+    public SkillActionResult validate(Map<String, String> arguments) {
+        SkillActionResult base = SkillScriptAction.super.validate(arguments);
         if (!base.success() || Texts.isBlank(validateFunction)) {
             return base;
         }
@@ -104,16 +104,16 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
                 scriptConfig.clampTimeoutMillis(timeoutMillis),
                 false
         ));
-        return toActionResult(result);
+        return toSkillActionResult(result);
     }
 
     @Override
-    public CompletableFuture<ActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
+    public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
         if (javaScriptService == null || !javaScriptService.enabled()) {
-            return CompletableFuture.completedFuture(ActionResult.failure(ActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable."));
+            return CompletableFuture.completedFuture(SkillActionResult.failure(SkillActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable."));
         }
         ScriptSkillContextApi scriptContext = new ScriptSkillContextApi(context);
-        java.util.function.Supplier<ActionResult> task = () -> toActionResult(javaScriptService.invoke(new ScriptInvocationRequest(
+        java.util.function.Supplier<SkillActionResult> task = () -> toSkillActionResult(javaScriptService.invoke(new ScriptInvocationRequest(
                 plugin,
                 null,
                 scriptPath,
@@ -123,18 +123,18 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
                 scriptConfig.clampTimeoutMillis(timeoutMillis),
                 false
         )));
-        if (executionMode == ActionExecutionMode.ASYNC_IO) {
+        if (executionMode == SkillActionExecutionMode.ASYNC_IO) {
             return CompletableFuture.supplyAsync(task);
         }
         return CompletableFuture.completedFuture(task.get());
     }
 
-    private ActionResult toActionResult(ScriptExecutionResult result) {
+    private SkillActionResult toSkillActionResult(ScriptExecutionResult result) {
         if (result == null) {
-            return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "JavaScript skill action returned no result.");
+            return SkillActionResult.failure(SkillActionErrorType.EXECUTION_EXCEPTION, "JavaScript skill action returned no result.");
         }
         if (result.skipped()) {
-            return ActionResult.skipped(result.message());
+            return SkillActionResult.skipped(result.message());
         }
         if (result.success()) {
             java.util.LinkedHashMap<String, Object> data = new java.util.LinkedHashMap<>(result.output());
@@ -144,9 +144,9 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
             if (Texts.isNotBlank(result.message())) {
                 data.put("message", result.message());
             }
-            return ActionResult.ok(data);
+            return SkillActionResult.ok(data);
         }
-        return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION,
+        return SkillActionResult.failure(SkillActionErrorType.EXECUTION_EXCEPTION,
                 Texts.isBlank(result.message()) ? "JavaScript skill action failed." : result.message());
     }
 }

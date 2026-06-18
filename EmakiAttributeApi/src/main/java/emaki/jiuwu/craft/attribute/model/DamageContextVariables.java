@@ -7,9 +7,6 @@ import java.util.Map;
 
 import org.bukkit.event.entity.EntityDamageEvent;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Immutable, normalized bag of context variables attached to a
@@ -96,10 +93,10 @@ public record DamageContextVariables(Map<String, Object> values) {
      * @param key the variable key (normalized before lookup)
      */
     public Object get(String key) {
-        if (Texts.isBlank(key)) {
+        if (AttributeApiValues.isBlank(key)) {
             return null;
         }
-        return values.get(Texts.normalizeId(key));
+        return values.get(AttributeApiValues.normalizeId(key));
     }
 
     /**
@@ -110,8 +107,8 @@ public record DamageContextVariables(Map<String, Object> values) {
      */
     public String string(String key, String fallback) {
         Object value = get(key);
-        String result = Texts.toStringSafe(value).trim();
-        return Texts.isBlank(result) ? fallback : result;
+        String result = AttributeApiValues.toStringSafe(value).trim();
+        return AttributeApiValues.isBlank(result) ? fallback : result;
     }
 
     /**
@@ -151,14 +148,14 @@ public record DamageContextVariables(Map<String, Object> values) {
             return fallback;
         }
         for (String key : keys) {
-            if (Texts.isBlank(key) || !contains(key)) {
+            if (AttributeApiValues.isBlank(key) || !contains(key)) {
                 continue;
             }
             Object raw = get(key);
             if (raw instanceof Boolean boolValue) {
                 return boolValue;
             }
-            String normalized = Texts.toStringSafe(raw).trim().toLowerCase(Locale.ROOT);
+            String normalized = AttributeApiValues.toStringSafe(raw).trim().toLowerCase(Locale.ROOT);
             if (normalized.isBlank()) {
                 continue;
             }
@@ -195,8 +192,8 @@ public record DamageContextVariables(Map<String, Object> values) {
         if (raw instanceof EntityDamageEvent.DamageCause cause) {
             return cause;
         }
-        String normalized = Texts.normalizeId(String.valueOf(raw));
-        if (Texts.isBlank(normalized)) {
+        String normalized = AttributeApiValues.normalizeId(String.valueOf(raw));
+        if (AttributeApiValues.isBlank(normalized)) {
             return null;
         }
         try {
@@ -212,7 +209,7 @@ public record DamageContextVariables(Map<String, Object> values) {
      * @param key the variable key
      */
     public boolean contains(String key) {
-        return !Texts.isBlank(key) && values.containsKey(Texts.normalizeId(key));
+        return !AttributeApiValues.isBlank(key) && values.containsKey(AttributeApiValues.normalizeId(key));
     }
 
     private static Map<String, Object> normalize(Map<String, ?> values) {
@@ -224,7 +221,7 @@ public record DamageContextVariables(Map<String, Object> values) {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            normalized.put(Texts.normalizeId(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
+            normalized.put(AttributeApiValues.normalizeId(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
         }
         if (normalized.isEmpty()) {
             return Map.of();
@@ -262,10 +259,10 @@ public record DamageContextVariables(Map<String, Object> values) {
          * @return this builder
          */
         public Builder put(String key, Object value) {
-            if (Texts.isBlank(key) || value == null) {
+            if (AttributeApiValues.isBlank(key) || value == null) {
                 return this;
             }
-            values.put(Texts.normalizeId(key), ConfigNodes.toPlainData(value));
+            values.put(AttributeApiValues.normalizeId(key), ConfigNodes.toPlainData(value));
             return this;
         }
 

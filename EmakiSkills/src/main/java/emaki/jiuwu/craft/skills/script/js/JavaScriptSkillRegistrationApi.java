@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.action.ActionExecutionMode;
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
-import emaki.jiuwu.craft.corelib.action.ActionParameterType;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillActionExecutionMode;
+import emaki.jiuwu.craft.skills.api.SkillActionParameter;
+import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -62,7 +62,7 @@ public final class JavaScriptSkillRegistrationApi {
                 value(definition, "execute", "execute"),
                 value(definition, "validate", "")
         );
-        ActionResult result = registry.register(plugin, action);
+        SkillActionResult result = registry.register(plugin, action);
         if (result.success()) {
             registeredIds.add(id);
             plugin.messageService().info("console.js_skill_action_registered", Map.of(
@@ -85,11 +85,11 @@ public final class JavaScriptSkillRegistrationApi {
         }
     }
 
-    private List<ActionParameter> parseParameters(Object raw) {
+    private List<SkillActionParameter> parseParameters(Object raw) {
         if (!(raw instanceof Iterable<?> iterable)) {
             return List.of();
         }
-        List<ActionParameter> parameters = new ArrayList<>();
+        List<SkillActionParameter> parameters = new ArrayList<>();
         for (Object item : iterable) {
             if (!(item instanceof Map<?, ?> map)) {
                 continue;
@@ -98,30 +98,30 @@ public final class JavaScriptSkillRegistrationApi {
             if (Texts.isBlank(name)) {
                 continue;
             }
-            ActionParameterType type = parseParameterType(value(map, "type", "STRING"));
+            SkillActionParameterType type = parseParameterType(value(map, "type", "STRING"));
             boolean required = Boolean.parseBoolean(value(map, "required", "false"));
             String defaultValue = value(map, "defaultValue", "");
             String description = value(map, "description", "");
             parameters.add(required
-                    ? ActionParameter.required(name, type, description)
-                    : ActionParameter.optional(name, type, defaultValue, description));
+                    ? SkillActionParameter.required(name, type, description)
+                    : SkillActionParameter.optional(name, type, defaultValue, description));
         }
         return List.copyOf(parameters);
     }
 
-    private ActionParameterType parseParameterType(String raw) {
+    private SkillActionParameterType parseParameterType(String raw) {
         try {
-            return ActionParameterType.valueOf(Texts.toStringSafe(raw).trim().toUpperCase(java.util.Locale.ROOT));
+            return SkillActionParameterType.valueOf(Texts.toStringSafe(raw).trim().toUpperCase(java.util.Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            return ActionParameterType.STRING;
+            return SkillActionParameterType.STRING;
         }
     }
 
-    private ActionExecutionMode parseExecutionMode(String raw) {
+    private SkillActionExecutionMode parseExecutionMode(String raw) {
         try {
-            return ActionExecutionMode.valueOf(Texts.toStringSafe(raw).trim().toUpperCase(java.util.Locale.ROOT));
+            return SkillActionExecutionMode.valueOf(Texts.toStringSafe(raw).trim().toUpperCase(java.util.Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            return ActionExecutionMode.SYNC;
+            return SkillActionExecutionMode.SYNC;
         }
     }
 

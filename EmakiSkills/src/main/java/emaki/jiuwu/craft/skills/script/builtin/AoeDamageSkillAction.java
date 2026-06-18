@@ -11,26 +11,26 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
-import emaki.jiuwu.craft.corelib.action.ActionParameterType;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillActionParameter;
+import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
 public final class AoeDamageSkillAction extends AbstractSkillScriptAction {
 
     public AoeDamageSkillAction() {
         super("aoe_damage", "combat", "Deal damage to entities in an area.",
-                ActionParameter.required("amount", ActionParameterType.DOUBLE, "Damage amount"),
-                ActionParameter.optional("radius", ActionParameterType.DOUBLE, "5", "Area radius"),
-                ActionParameter.optional("center", ActionParameterType.STRING, "target", "Center point (caster/target/look)"),
-                ActionParameter.optional("shape", ActionParameterType.STRING, "sphere", "Area shape (sphere/cylinder)"),
-                ActionParameter.optional("filter", ActionParameterType.STRING, "hostile", "Target filter (hostile/all)"),
-                ActionParameter.optional("max_targets", ActionParameterType.INTEGER, "20", "Maximum targets"),
-                ActionParameter.optional("exclude_caster", ActionParameterType.STRING, "true", "Exclude caster from targets"));
+                SkillActionParameter.required("amount", SkillActionParameterType.DOUBLE, "Damage amount"),
+                SkillActionParameter.optional("radius", SkillActionParameterType.DOUBLE, "5", "Area radius"),
+                SkillActionParameter.optional("center", SkillActionParameterType.STRING, "target", "Center point (caster/target/look)"),
+                SkillActionParameter.optional("shape", SkillActionParameterType.STRING, "sphere", "Area shape (sphere/cylinder)"),
+                SkillActionParameter.optional("filter", SkillActionParameterType.STRING, "hostile", "Target filter (hostile/all)"),
+                SkillActionParameter.optional("max_targets", SkillActionParameterType.INTEGER, "20", "Maximum targets"),
+                SkillActionParameter.optional("exclude_caster", SkillActionParameterType.STRING, "true", "Exclude caster from targets"));
     }
 
     @Override
-    public CompletableFuture<ActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
+    public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
         double amount = doubleArg(arguments, "amount", 0D);
         double radius = doubleArg(arguments, "radius", 5D);
         int maxTargets = intArg(arguments, "max_targets", 20);
@@ -40,7 +40,7 @@ public final class AoeDamageSkillAction extends AbstractSkillScriptAction {
 
         Location center = resolveCenterLocation(context, arguments);
         if (center == null || center.getWorld() == null) {
-            return completed(ActionResult.ok());
+            return completed(SkillActionResult.ok());
         }
 
         radius = Math.max(0.5D, Math.min(radius, 64D));
@@ -86,7 +86,7 @@ public final class AoeDamageSkillAction extends AbstractSkillScriptAction {
 
         context.putVariable("aoe_hit_count", hitCount);
         context.putSharedValue("aoe_hit_count", hitCount);
-        return completed(ActionResult.ok());
+        return completed(SkillActionResult.ok());
     }
 
     private Location resolveCenterLocation(SkillScriptContext context, Map<String, String> arguments) {

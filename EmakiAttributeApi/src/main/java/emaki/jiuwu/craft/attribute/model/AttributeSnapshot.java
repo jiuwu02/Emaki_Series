@@ -4,8 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
 
 /**
  * Immutable snapshot of an entity's resolved attribute values at a point in
@@ -103,14 +101,14 @@ public record AttributeSnapshot(int schemaVersion,
         }
         Map<String, Double> values = new LinkedHashMap<>();
         Object valuesRaw = map.get("values");
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(valuesRaw).entrySet()) {
-            values.put(entry.getKey().toLowerCase(Locale.ROOT), Numbers.tryParseDouble(entry.getValue(), 0D));
+        for (Map.Entry<String, Object> entry : AttributeApiValues.entries(valuesRaw).entrySet()) {
+            values.put(entry.getKey().toLowerCase(Locale.ROOT), AttributeApiValues.tryParseDouble(entry.getValue(), 0D));
         }
         return new AttributeSnapshot(
-                Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION),
-                ConfigNodes.string(map, "source_signature", ""),
+                AttributeApiValues.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION),
+                AttributeApiValues.string(map, "source_signature", ""),
                 values,
-                Numbers.tryParseLong(map.get("updated_at"), System.currentTimeMillis())
+                AttributeApiValues.tryParseLong(map.get("updated_at"), System.currentTimeMillis())
         );
     }
 }

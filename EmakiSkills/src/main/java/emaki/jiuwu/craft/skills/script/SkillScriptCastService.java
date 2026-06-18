@@ -5,7 +5,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -36,7 +36,7 @@ public final class SkillScriptCastService {
         Map<String, String> variables = variableResolver.resolve(caster, definition, triggerId, invocation, parameters);
         SkillScriptContext context = new SkillScriptContext(plugin, caster, definition, triggerId, invocation, variables);
         context.refreshTargetVariables();
-        CompletableFuture<ActionResult> future = executor.executePhase(context, definition.script(), SkillScriptPhase.CAST)
+        CompletableFuture<SkillActionResult> future = executor.executePhase(context, definition.script(), SkillScriptPhase.CAST)
                 .thenCompose(result -> {
                     if (!result.success() && definition.script().stopOnFailure()) {
                         return CompletableFuture.completedFuture(result);
@@ -45,7 +45,7 @@ public final class SkillScriptCastService {
                     return executor.executePhase(context, definition.script(), next);
                 });
         try {
-            ActionResult result = future.join();
+            SkillActionResult result = future.join();
             if (!result.success()) {
                 executor.executePhase(context, definition.script(), SkillScriptPhase.FAIL).join();
             }

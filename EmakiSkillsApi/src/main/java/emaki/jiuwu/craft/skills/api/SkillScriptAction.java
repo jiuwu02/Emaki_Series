@@ -4,11 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionExecutionMode;
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * A custom action that can be invoked from an EmakiSkills skill script.
@@ -38,7 +33,7 @@ public interface SkillScriptAction {
     }
 
     /** {@return the declared parameters of this action; empty by default} */
-    default List<ActionParameter> parameters() {
+    default List<SkillActionParameter> parameters() {
         return List.of();
     }
 
@@ -52,9 +47,9 @@ public interface SkillScriptAction {
         return false;
     }
 
-    /** {@return how this action is scheduled; defaults to {@link ActionExecutionMode#SYNC}} */
-    default ActionExecutionMode executionMode() {
-        return ActionExecutionMode.SYNC;
+    /** {@return how this action is scheduled; defaults to {@link SkillActionExecutionMode#SYNC}} */
+    default SkillActionExecutionMode executionMode() {
+        return SkillActionExecutionMode.SYNC;
     }
 
     /** {@return the execution timeout in milliseconds; defaults to 30000} */
@@ -69,25 +64,25 @@ public interface SkillScriptAction {
      * type validity. Override for custom validation.
      *
      * @param arguments the raw argument map; {@code null} is treated as empty
-     * @return {@link ActionResult#ok()} when valid, otherwise a failure result
+     * @return {@link SkillActionResult#ok()} when valid, otherwise a failure result
      */
-    default ActionResult validate(Map<String, String> arguments) {
+    default SkillActionResult validate(Map<String, String> arguments) {
         Map<String, String> safeArguments = arguments == null ? Map.of() : arguments;
-        for (ActionParameter parameter : parameters()) {
+        for (SkillActionParameter parameter : parameters()) {
             String value = safeArguments.get(parameter.name());
-            if (Texts.isBlank(value)) {
-                if (parameter.required() && Texts.isBlank(parameter.defaultValue())) {
-                    return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT,
+            if (isBlank(value)) {
+                if (parameter.required() && isBlank(parameter.defaultValue())) {
+                    return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT,
                             "Missing required argument '" + parameter.name() + "' for skill action '" + id() + "'.");
                 }
                 continue;
             }
             if (!parameter.type().isValid(value)) {
-                return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT,
+                return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT,
                         "Invalid value for argument '" + parameter.name() + "' in skill action '" + id() + "': " + value);
             }
         }
-        return ActionResult.ok();
+        return SkillActionResult.ok();
     }
 
     /**
@@ -96,7 +91,11 @@ public interface SkillScriptAction {
      * @param context   the skill-script execution context (caster, target,
      *                  variables, shared state)
      * @param arguments the resolved argument map
-     * @return a future completing with the action's {@link ActionResult}
+     * @return a future completing with the action's {@link SkillActionResult}
      */
-    CompletableFuture<ActionResult> execute(SkillScriptContext context, Map<String, String> arguments);
+    CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments);
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
 }

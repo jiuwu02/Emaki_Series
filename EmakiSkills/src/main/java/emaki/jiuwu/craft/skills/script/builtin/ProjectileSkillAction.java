@@ -15,32 +15,32 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
-import emaki.jiuwu.craft.corelib.action.ActionParameterType;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillActionParameter;
+import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
 public final class ProjectileSkillAction extends AbstractSkillScriptAction {
 
     public ProjectileSkillAction() {
         super("projectile", "combat", "Launch a custom projectile.",
-                ActionParameter.optional("speed", ActionParameterType.DOUBLE, "1.5", "Blocks per tick"),
-                ActionParameter.optional("gravity", ActionParameterType.DOUBLE, "0.05", "Gravity per tick"),
-                ActionParameter.optional("lifetime", ActionParameterType.INTEGER, "60", "Max lifetime in ticks"),
-                ActionParameter.optional("hit_radius", ActionParameterType.DOUBLE, "0.5", "Hit detection radius"),
-                ActionParameter.optional("pierce", ActionParameterType.INTEGER, "0", "Number of entities to pierce through"),
-                ActionParameter.optional("homing", ActionParameterType.STRING, "false", "Enable homing toward target"),
-                ActionParameter.optional("homing_strength", ActionParameterType.DOUBLE, "0.1", "Homing turn strength"),
-                ActionParameter.optional("particle", ActionParameterType.STRING, "FLAME", "Trail particle type"),
-                ActionParameter.optional("damage", ActionParameterType.DOUBLE, "0", "Damage on hit (0 = no damage)"),
-                ActionParameter.optional("direction", ActionParameterType.STRING, "look", "Initial direction (look/target)"));
+                SkillActionParameter.optional("speed", SkillActionParameterType.DOUBLE, "1.5", "Blocks per tick"),
+                SkillActionParameter.optional("gravity", SkillActionParameterType.DOUBLE, "0.05", "Gravity per tick"),
+                SkillActionParameter.optional("lifetime", SkillActionParameterType.INTEGER, "60", "Max lifetime in ticks"),
+                SkillActionParameter.optional("hit_radius", SkillActionParameterType.DOUBLE, "0.5", "Hit detection radius"),
+                SkillActionParameter.optional("pierce", SkillActionParameterType.INTEGER, "0", "Number of entities to pierce through"),
+                SkillActionParameter.optional("homing", SkillActionParameterType.STRING, "false", "Enable homing toward target"),
+                SkillActionParameter.optional("homing_strength", SkillActionParameterType.DOUBLE, "0.1", "Homing turn strength"),
+                SkillActionParameter.optional("particle", SkillActionParameterType.STRING, "FLAME", "Trail particle type"),
+                SkillActionParameter.optional("damage", SkillActionParameterType.DOUBLE, "0", "Damage on hit (0 = no damage)"),
+                SkillActionParameter.optional("direction", SkillActionParameterType.STRING, "look", "Initial direction (look/target)"));
     }
 
     @Override
-    public CompletableFuture<ActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
+    public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
         Player caster = context.caster();
         if (caster == null || !caster.isOnline()) {
-            return completed(ActionResult.ok());
+            return completed(SkillActionResult.ok());
         }
 
         double speed = doubleArg(arguments, "speed", 1.5D);
@@ -130,7 +130,7 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
             }
         }.runTaskTimer(context.plugin(), 0L, 1L);
 
-        return completed(ActionResult.ok());
+        return completed(SkillActionResult.ok());
     }
 
     private Vector resolveDirection(SkillScriptContext context, String mode, Location origin) {

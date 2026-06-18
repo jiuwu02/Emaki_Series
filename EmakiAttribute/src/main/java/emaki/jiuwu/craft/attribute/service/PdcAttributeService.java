@@ -43,7 +43,8 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
     private static final ThreadLocal<DecimalFormat> DECIMAL_FORMAT = ThreadLocal.withInitial(() -> new DecimalFormat("0.######"));
     private static final int PATTERN_CACHE_LIMIT = 512;
     private static final ConcurrentHashMap<String, Pattern> COMPILED_PATTERN_CACHE = new ConcurrentHashMap<>();
-    private static final SnapshotCodec<PdcAttributePayload> PAYLOAD_CODEC = SnapshotCodec.yaml(
+    private static final SnapshotCodec<PdcAttributePayload> PAYLOAD_CODEC = SnapshotCodec.versionedYaml(
+            PdcAttributePayload.CURRENT_SCHEMA_VERSION,
             PdcAttributePayload::toMap,
             PdcAttributePayload::fromMap
     );

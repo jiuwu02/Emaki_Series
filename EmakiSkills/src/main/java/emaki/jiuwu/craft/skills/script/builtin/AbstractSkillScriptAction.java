@@ -8,8 +8,9 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.skills.api.SkillActionParameter;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.api.SkillScriptAction;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
@@ -18,9 +19,9 @@ abstract class AbstractSkillScriptAction implements SkillScriptAction {
     private final String id;
     private final String category;
     private final String description;
-    private final List<ActionParameter> parameters;
+    private final List<SkillActionParameter> parameters;
 
-    AbstractSkillScriptAction(String id, String category, String description, ActionParameter... parameters) {
+    AbstractSkillScriptAction(String id, String category, String description, SkillActionParameter... parameters) {
         this.id = id;
         this.category = category;
         this.description = description;
@@ -43,11 +44,11 @@ abstract class AbstractSkillScriptAction implements SkillScriptAction {
     }
 
     @Override
-    public List<ActionParameter> parameters() {
+    public List<SkillActionParameter> parameters() {
         return parameters;
     }
 
-    protected CompletableFuture<emaki.jiuwu.craft.corelib.action.ActionResult> completed(emaki.jiuwu.craft.corelib.action.ActionResult result) {
+    protected CompletableFuture<SkillActionResult> completed(SkillActionResult result) {
         return CompletableFuture.completedFuture(result);
     }
 

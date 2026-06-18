@@ -5,27 +5,27 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Entity;
 
-import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
-import emaki.jiuwu.craft.corelib.action.ActionParameterType;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
+import emaki.jiuwu.craft.skills.api.SkillActionParameter;
+import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
 public final class IgniteSkillAction extends AbstractSkillScriptAction {
 
     public IgniteSkillAction() {
         super("ignite", "combat", "Ignite target entity.",
-                ActionParameter.required("ticks", ActionParameterType.INTEGER, "Fire ticks"),
-                ActionParameter.optional("target", ActionParameterType.STRING, "target", "Target"));
+                SkillActionParameter.required("ticks", SkillActionParameterType.INTEGER, "Fire ticks"),
+                SkillActionParameter.optional("target", SkillActionParameterType.STRING, "target", "Target"));
     }
 
     @Override
-    public CompletableFuture<ActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
+    public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
         Entity entity = entityTarget(context, arguments);
         if (entity == null) {
-            return completed(ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Ignite target not found."));
+            return completed(SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Ignite target not found."));
         }
         entity.setFireTicks(Math.max(entity.getFireTicks(), intArg(arguments, "ticks", 0)));
-        return completed(ActionResult.ok());
+        return completed(SkillActionResult.ok());
     }
 }
