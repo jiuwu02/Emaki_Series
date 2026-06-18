@@ -260,15 +260,10 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
 
     public CompletableFuture<Void> reloadAsync(EmakiCookingPlugin plugin, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
-        if (scheduler == null) {
-            reload(plugin);
-            return CompletableFuture.completedFuture(null);
-        }
-
-        notifyProgress(progressListener, "Loading configuration files...");
-
-        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "cooking", "config-load", "Loading configs...", progressListener,
+        return runReloadPipelineAsync(scheduler, new ReloadPipelineConfig<Void, Void>(
+                "cooking",
+                "config-load",
+                "Loading configs...",
                 () -> {
                     plugin.languageLoader().load();
                     plugin.appConfigLoader().load();
@@ -279,25 +274,30 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     plugin.ovenRecipeLoader().load();
                     plugin.juicerRecipeLoader().load();
                     plugin.fermentationBarrelRecipeLoader().load();
+                    return null;
                 },
-                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
-        )).thenCompose(_ -> {
-            notifyProgress(progressListener, "Applying configuration...");
-            return scheduler.callSync("cooking-reload-apply", () -> {
-                plugin.languageLoader().setLanguage(plugin.appConfig().language());
-                plugin.settingsService().reload();
-                plugin.choppingBoardRuntimeService().reload();
-                plugin.wokRuntimeService().reload();
-                plugin.grinderRuntimeService().reload();
-                plugin.steamerRuntimeService().reload();
-                plugin.ovenRuntimeService().reload();
-                plugin.juicerRuntimeService().reload();
-                plugin.fermentationBarrelRuntimeService().reload();
-                logStationRecipeCounts(plugin);
-                notifyProgress(progressListener, "Reload complete.");
-                return null;
-            });
-        });
+                "apply",
+                "Applying configuration...",
+                _ -> {
+                    plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                    plugin.settingsService().reload();
+                    plugin.choppingBoardRuntimeService().reload();
+                    plugin.wokRuntimeService().reload();
+                    plugin.grinderRuntimeService().reload();
+                    plugin.steamerRuntimeService().reload();
+                    plugin.ovenRuntimeService().reload();
+                    plugin.juicerRuntimeService().reload();
+                    plugin.fermentationBarrelRuntimeService().reload();
+                    logStationRecipeCounts(plugin);
+                    notifyProgress(progressListener, "Reload complete.");
+                    return null;
+                },
+                null,
+                null,
+                null,
+                (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage()),
+                progressListener
+        ));
     }
 
     private void logStationRecipeCounts(EmakiCookingPlugin plugin) {

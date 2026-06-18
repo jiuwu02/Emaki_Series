@@ -189,7 +189,15 @@ public final class WebConsoleService {
     }
 
     private boolean configWriteAllowed() {
-        return config != null && config.security() != null && config.security().allowConfigWrite();
+        return config != null && config.security() != null && config.security().mode().configWriteAllowed();
+    }
+
+    private boolean scriptWriteAllowed() {
+        return config != null && config.security() != null && config.security().mode().scriptWriteAllowed();
+    }
+
+    private boolean adminAllowed() {
+        return config != null && config.security() != null && config.security().mode().adminAllowed();
     }
 
     private void createContext(String path, WebRoute route) {
@@ -396,6 +404,22 @@ public final class WebConsoleService {
         return false;
     }
 
+    private boolean requireScriptWriteAllowed(WebRequestContext context) throws IOException {
+        if (scriptWriteAllowed()) {
+            return true;
+        }
+        context.error(403, "当前已关闭 Web 脚本写入权限。", Map.of("errorType", "script_write_disabled"));
+        return false;
+    }
+
+    private boolean requireAdminAllowed(WebRequestContext context) throws IOException {
+        if (adminAllowed()) {
+            return true;
+        }
+        context.error(403, "当前已关闭 Web 管理权限。", Map.of("errorType", "admin_action_disabled"));
+        return false;
+    }
+
     private void handleRegistry(WebRequestContext context) throws IOException {
         context.ok(Map.of("registry", consoleRegistry.snapshot()));
     }
@@ -524,7 +548,7 @@ public final class WebConsoleService {
     }
 
     private void handleFileDelete(WebRequestContext context) throws IOException {
-        if (!requireConfigWriteAllowed(context)) {
+        if (!requireAdminAllowed(context)) {
             return;
         }
         String moduleId = context.bodyString("moduleId");
@@ -684,7 +708,7 @@ public final class WebConsoleService {
     }
 
     private void handleScriptSave(WebRequestContext context) throws IOException {
-        if (!requireConfigWriteAllowed(context)) {
+        if (!requireScriptWriteAllowed(context)) {
             return;
         }
         String path = context.bodyString("path");
@@ -898,7 +922,7 @@ public final class WebConsoleService {
     }
 
     private void handleHistoryRollback(WebRequestContext context) throws IOException {
-        if (!requireConfigWriteAllowed(context)) {
+        if (!requireAdminAllowed(context)) {
             return;
         }
         try {
@@ -937,6 +961,8 @@ public final class WebConsoleService {
                     context.exchange().getRequestMethod(),
                     body,
                     configWriteAllowed(),
+                    scriptWriteAllowed(),
+                    adminAllowed(),
                     actor(context.session()),
                     this
             ));

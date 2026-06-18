@@ -23,7 +23,7 @@ public record WebConsoleConfig(
                 38765,
                 true,
                 new Auth("admin", "change-me", 60),
-                new Security(false, 256, List.of()),
+                new Security(SecurityMode.READONLY, false, 256, List.of()),
                 new ConfigBrowser(512, List.of(".yml", ".yaml", ".json", ".txt")),
                 new History(true, 50, 30, true, true)
         );
@@ -79,7 +79,47 @@ public record WebConsoleConfig(
         }
     }
 
-    public record Security(boolean allowConfigWrite, int maxRequestBodyKb, List<String> allowedModules) {
+    public enum SecurityMode {
+        READONLY,
+        CONFIG_WRITE,
+        SCRIPT_WRITE,
+        ADMIN;
+
+        static SecurityMode fromConfig(String raw, boolean legacyConfigWrite) {
+            if (raw == null || raw.isBlank()) {
+                return legacyConfigWrite ? CONFIG_WRITE : READONLY;
+            }
+            return switch (raw.trim().toLowerCase(java.util.Locale.ROOT).replace('_', '-')) {
+                case "config-write", "config_write", "config" -> CONFIG_WRITE;
+                case "script-write", "script_write", "script" -> SCRIPT_WRITE;
+                case "admin" -> ADMIN;
+                case "readonly", "read-only", "read_only" -> READONLY;
+                default -> legacyConfigWrite ? CONFIG_WRITE : READONLY;
+            };
+        }
+
+        public boolean configWriteAllowed() {
+            return this == CONFIG_WRITE || this == SCRIPT_WRITE || this == ADMIN;
+        }
+
+        public boolean scriptWriteAllowed() {
+            return this == SCRIPT_WRITE || this == ADMIN;
+        }
+
+        public boolean adminAllowed() {
+            return this == ADMIN;
+        }
+
+        public String configValue() {
+            return name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
+        }
+    }
+
+    public record Security(SecurityMode mode, boolean allowConfigWrite, int maxRequestBodyKb, List<String> allowedModules) {
+
+        public Security {
+            mode = mode == null ? SecurityMode.READONLY : mode;
+        }
 
         static Security fromConfig(YamlSection section, Security defaults) {
             if (section == null) {
@@ -89,8 +129,11 @@ public record WebConsoleConfig(
             if (modules == null || modules.isEmpty()) {
                 modules = defaults.allowedModules();
             }
+            boolean legacyConfigWrite = section.getBoolean("allow_config_write", defaults.allowConfigWrite());
+            SecurityMode mode = SecurityMode.fromConfig(section.getString("mode", ""), legacyConfigWrite);
             return new Security(
-                    section.getBoolean("allow_config_write", defaults.allowConfigWrite()),
+                    mode,
+                    legacyConfigWrite,
                     Math.max(1, section.getInt("max_request_body_kb", defaults.maxRequestBodyKb())),
                     List.copyOf(modules)
             );

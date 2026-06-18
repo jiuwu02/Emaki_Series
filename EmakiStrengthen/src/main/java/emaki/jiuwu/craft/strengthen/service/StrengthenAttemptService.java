@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -29,6 +30,8 @@ import emaki.jiuwu.craft.strengthen.model.AttemptCost;
 import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.model.StrengthenConditionGroup;
+import emaki.jiuwu.craft.strengthen.model.StrengthenConditionNode;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
@@ -97,7 +100,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                         eligible,
                         reason,
                         stored.hasLayer(),
-                        resolved.baseSource(),
+                        resolved.baseSourceSignature(),
                         resolved.baseSourceSignature(),
                         recipeId,
                         stored.currentStar(),
@@ -174,7 +177,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         StrengthenRecipe recipe = preview.recipe();
         if (recipe != null && !recipe.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
-                    recipe.conditions(),
+                    toCoreConditionGroup(recipe.conditions()),
                     text -> resolvePlaceholders(player, text),
                     true
             );
@@ -233,7 +236,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
 
     public ItemStack applyAdminState(ItemStack itemStack, Integer star, Integer temper, String recipeId) {
         StrengthenState current = readState(itemStack);
-        if (current.baseSource() == null) {
+        if (Texts.isBlank(current.baseSource())) {
             return null;
         }
         String effectiveRecipe = Texts.isNotBlank(recipeId) ? recipeId : current.recipeId();
@@ -256,7 +259,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 System.currentTimeMillis(),
                 current.branchPath()
         );
-        return rebuildWithState(itemStack, updated, readStoredState(itemStack, current.baseSource(), current.baseSourceSignature()).materialsSignature());
+        return rebuildWithState(itemStack, updated, readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()), current.baseSourceSignature()).materialsSignature());
     }
 
     public ItemStack clearStrengthenLayer(ItemStack itemStack) {
@@ -398,7 +401,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         }
         EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(recipe, state, materialsSignature);
         ItemStack rebuilt = itemAssemblyService.preview(new EmakiItemAssemblyRequest(
-                state.baseSource(),
+                ItemSourceUtil.parse(state.baseSource()),
                 Math.max(1, itemStack.getAmount()),
                 itemStack,
                 List.of(snapshot)
@@ -513,6 +516,30 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             }
         }
         return new StarProgress(Set.copyOf(updated), Set.copyOf(newlyReached));
+    }
+
+    private static ConditionGroup toCoreConditionGroup(StrengthenConditionGroup group) {
+        if (group == null) {
+            return ConditionGroup.empty();
+        }
+        List<emaki.jiuwu.craft.corelib.condition.ConditionNode> nodes = new ArrayList<>();
+        for (StrengthenConditionNode node : group.conditions()) {
+            emaki.jiuwu.craft.corelib.condition.ConditionNode converted = toCoreConditionNode(node);
+            if (converted != null) {
+                nodes.add(converted);
+            }
+        }
+        return new ConditionGroup(group.conditionType(), group.requiredCount(), nodes);
+    }
+
+    private static emaki.jiuwu.craft.corelib.condition.ConditionNode toCoreConditionNode(StrengthenConditionNode node) {
+        if (node == null) {
+            return null;
+        }
+        if (node.groupNode()) {
+            return emaki.jiuwu.craft.corelib.condition.ConditionNode.group(toCoreConditionGroup(node.group()));
+        }
+        return new emaki.jiuwu.craft.corelib.condition.ConditionNode(node.type(), node.expression(), null, node.data());
     }
 
     private record StoredState(boolean hasLayer,

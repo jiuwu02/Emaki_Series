@@ -172,25 +172,34 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             boolean resyncPlayers,
             Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
-        if (scheduler == null) {
-            return CompletableFuture.completedFuture(reload(plugin, currentTask, resyncPlayers));
-        }
-        notifyProgress(progressListener, "正在读取语言与配置...");
-        return scheduler.supplyAsync("attribute-reload-bootstrap", () -> {
-            if (plugin.languageLoader() != null) {
-                plugin.languageLoader().load();
-            }
-            return loadConfigModel(plugin);
-        }).thenCompose(configModel -> scheduler.callSync("attribute-reload-config-apply", () -> {
-            plugin.setConfigModel(configModel);
-            if (plugin.attributeService() != null) {
-                plugin.attributeService().reloadConfig(plugin.configModel());
-            }
-            if (plugin.languageLoader() != null) {
-                plugin.languageLoader().setLanguage(plugin.configModel().language());
-            }
-            return configModel;
-        })).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+        return runReloadPipelineAsync(scheduler, new ReloadPipelineConfig<>(
+                "attribute",
+                "bootstrap",
+                "正在读取语言与配置...",
+                () -> {
+                    if (plugin.languageLoader() != null) {
+                        plugin.languageLoader().load();
+                    }
+                    return loadConfigModel(plugin);
+                },
+                "config-apply",
+                "正在应用配置...",
+                configModel -> {
+                    plugin.setConfigModel(configModel);
+                    if (plugin.attributeService() != null) {
+                        plugin.attributeService().reloadConfig(plugin.configModel());
+                    }
+                    if (plugin.languageLoader() != null) {
+                        plugin.languageLoader().setLanguage(plugin.configModel().language());
+                    }
+                    return configModel;
+                },
+                null,
+                null,
+                null,
+                failureHandler(plugin),
+                progressListener
+        )).thenCompose(configModel -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "attribute",
                 "lore_format_registry",
                 "正在加载词条格式...",

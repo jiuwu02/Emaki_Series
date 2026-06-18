@@ -145,45 +145,46 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     public CompletableFuture<TaskHandle> reloadAsync(EmakiForgePlugin plugin, TaskHandle currentTask,
             boolean closeOpenInventories, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
-        if (scheduler == null) {
-            return CompletableFuture.completedFuture(reload(plugin, currentTask, closeOpenInventories));
-        }
-
         if (closeOpenInventories) {
             closeOpenInventories(plugin);
         }
 
-        notifyProgress(progressListener, "Loading configuration files...");
-
-        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "forge", "config-load", "Loading configs...", progressListener,
+        return runReloadPipelineAsync(scheduler, new ReloadPipelineConfig<TaskHandle, TaskHandle>(
+                "forge",
+                "config-load",
+                "Loading configs...",
                 () -> {
                     plugin.languageLoader().load();
                     plugin.appConfigLoader().load();
                     plugin.recipeLoader().load();
                     plugin.guiTemplateLoader().load();
                     plugin.playerDataStore().load();
+                    return currentTask;
                 },
-                currentTask, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
-        )).thenCompose(passedTask -> {
-            notifyProgress(progressListener, "Applying configuration...");
-            return scheduler.callSync("forge-reload-apply", () -> {
-                plugin.languageLoader().setLanguage(plugin.appConfig().language());
-                syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
-                plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
-                plugin.itemIdentifierService().refresh();
-                plugin.forgeService().refreshIndexes();
-                validateConfiguredExternalSources(plugin);
-                if (plugin.itemRefreshService() != null) {
-                    plugin.itemRefreshService().refreshOnlinePlayers();
-                }
-                plugin.messageService().info("console.recipes_loaded", Map.of(
-                        "count", String.valueOf(plugin.recipeLoader().all().size())
-                ));
-                notifyProgress(progressListener, "Reload complete.");
-                return rescheduleAutoSave(plugin, passedTask);
-            });
-        });
+                "apply",
+                "Applying configuration...",
+                passedTask -> {
+                    plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                    syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                    plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+                    plugin.itemIdentifierService().refresh();
+                    plugin.forgeService().refreshIndexes();
+                    validateConfiguredExternalSources(plugin);
+                    if (plugin.itemRefreshService() != null) {
+                        plugin.itemRefreshService().refreshOnlinePlayers();
+                    }
+                    plugin.messageService().info("console.recipes_loaded", Map.of(
+                            "count", String.valueOf(plugin.recipeLoader().all().size())
+                    ));
+                    notifyProgress(progressListener, "Reload complete.");
+                    return rescheduleAutoSave(plugin, passedTask);
+                },
+                null,
+                null,
+                null,
+                (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage()),
+                progressListener
+        ));
     }
 
     public TaskHandle rescheduleAutoSave(EmakiForgePlugin plugin, TaskHandle currentTask) {
@@ -218,9 +219,13 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         if (plugin.playerDataStore() != null && plugin.messageService() != null) {
             plugin.messageService().info("console.saving_player_data");
-            int saved = plugin.playerDataStore().saveAllAsync().join();
-            plugin.playerDataStore().waitForPendingSaves().join();
-            plugin.messageService().info("console.player_data_saved", Map.of("count", saved));
+            try {
+                int saved = plugin.playerDataStore().saveAllAsync().join();
+                plugin.playerDataStore().waitForPendingSaves().join();
+                plugin.messageService().info("console.player_data_saved", Map.of("count", saved));
+            } catch (RuntimeException exception) {
+                plugin.getLogger().log(java.util.logging.Level.WARNING, "[Shutdown] Failed to save player data: " + exception.getMessage(), exception);
+            }
         }
         if (plugin.forgeGuiService() != null) {
             plugin.forgeGuiService().clearAllSessions();

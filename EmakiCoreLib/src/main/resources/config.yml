@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.3.5"
+version: "4.3.6"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -25,6 +25,9 @@ web_console:
     password: "EmakiAdminPassword"
     session_timeout_minutes: 60
   security:
+    # 安全模式：readonly / config-write / script-write / admin。
+    mode: "readonly"
+    # 旧字段兼容：未配置 mode 时，true 会推导为 config-write。
     allow_config_write: false
     max_request_body_kb: 256
     allowed_modules: []

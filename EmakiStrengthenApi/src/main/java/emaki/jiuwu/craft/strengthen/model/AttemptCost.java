@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.strengthen.model;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * A single cost line of a strengthen attempt.
@@ -21,9 +20,9 @@ public record AttemptCost(String provider,
 
     /** Canonical constructor; normalizes text fields and clamps the amount. */
     public AttemptCost {
-        provider = Texts.lower(provider);
-        currencyId = Texts.toStringSafe(currencyId);
-        displayName = Texts.toStringSafe(displayName);
+        provider = StrengthenApiValues.lower(provider);
+        currencyId = StrengthenApiValues.toStringSafe(currencyId);
+        displayName = StrengthenApiValues.toStringSafe(displayName);
         amount = Math.max(0L, amount);
     }
 

@@ -42,7 +42,7 @@ final class StrengthenGuiInteractionController {
         if (itemStack == null) {
             return;
         }
-        if (state.targetItem() == null && attemptService.readState(itemStack).baseSource() != null) {
+        if (state.targetItem() == null && emaki.jiuwu.craft.corelib.text.Texts.isNotBlank(attemptService.readState(itemStack).baseSource())) {
             state.setTargetItem(itemStack);
             event.getClickedInventory().setItem(event.getSlot(), null);
             renderer.refreshGui(state);

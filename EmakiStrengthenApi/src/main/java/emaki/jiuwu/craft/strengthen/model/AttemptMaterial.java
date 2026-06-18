@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.strengthen.model;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Describes one material requirement of a strengthen attempt and how it is
@@ -27,7 +26,7 @@ public record AttemptMaterial(String item,
 
     /** Canonical constructor; normalizes the item id and clamps counts. */
     public AttemptMaterial {
-        item = Texts.toStringSafe(item);
+        item = StrengthenApiValues.toStringSafe(item);
         requiredAmount = requiredAmount == 0 ? 1 : requiredAmount;
         availableAmount = Math.max(0, availableAmount);
         temperBoost = Math.max(0, temperBoost);
