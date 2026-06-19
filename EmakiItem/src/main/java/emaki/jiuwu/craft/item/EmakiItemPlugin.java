@@ -15,6 +15,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -183,10 +185,30 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public void reloadPluginState() {
         lifecycleCoordinator.reload(this);
+        logConfigPrecheckReport();
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
-        return lifecycleCoordinator.reloadAsync(this, null);
+        return lifecycleCoordinator.reloadAsync(this, null)
+                .thenRun(this::logConfigPrecheckReport);
+    }
+
+    private void logConfigPrecheckReport() {
+        ConfigPrecheckReport report = coreLib().configPrecheckService().checkModule(coreLib().configModel(), "item");
+        getLogger().info("[ConfigCheck] item " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
+        for (ConfigPrecheckIssue issue : report.issues()) {
+            logConfigPrecheckIssue(issue);
+        }
+    }
+
+    private void logConfigPrecheckIssue(ConfigPrecheckIssue issue) {
+        if (issue.severity().blocking()) {
+            getLogger().severe("[ConfigCheck] " + issue.format());
+        } else if (issue.severity().name().equals("WARN")) {
+            getLogger().warning("[ConfigCheck] " + issue.format());
+        } else {
+            getLogger().info("[ConfigCheck] " + issue.format());
+        }
     }
 
     private void registerConfigPrecheckContributor() {

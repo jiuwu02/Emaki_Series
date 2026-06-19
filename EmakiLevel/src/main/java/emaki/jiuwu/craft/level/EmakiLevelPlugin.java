@@ -18,6 +18,8 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
@@ -285,6 +287,25 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         levelService.syncAllOnline();
         messages.info("console.types_loaded", Map.of("count", String.valueOf(typeRegistry.all().size())));
         messages.info("console.sources_loaded", Map.of("count", String.valueOf(sourceRuleLoader.rules().size())));
+        logConfigPrecheckReport();
+    }
+
+    private void logConfigPrecheckReport() {
+        ConfigPrecheckReport report = coreLib.configPrecheckService().checkModule(coreLib.configModel(), "level");
+        getLogger().info("[ConfigCheck] level " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
+        for (ConfigPrecheckIssue issue : report.issues()) {
+            logConfigPrecheckIssue(issue);
+        }
+    }
+
+    private void logConfigPrecheckIssue(ConfigPrecheckIssue issue) {
+        if (issue.severity().blocking()) {
+            getLogger().severe("[ConfigCheck] " + issue.format());
+        } else if (issue.severity().name().equals("WARN")) {
+            getLogger().warning("[ConfigCheck] " + issue.format());
+        } else {
+            getLogger().info("[ConfigCheck] " + issue.format());
+        }
     }
 
     private void registerConfigPrecheckContributor() {

@@ -265,7 +265,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 effectiveLoopService
         );
         configPrecheckService.configure(candidateActionRegistry, candidateTemplateRegistry);
-        ConfigPrecheckReport report = configPrecheckService.checkAll(candidateConfig);
+        ConfigPrecheckReport report = configPrecheckService.checkModule(candidateConfig, "corelib");
         logPrecheckReport(report);
         if (!report.success()) {
             return false;

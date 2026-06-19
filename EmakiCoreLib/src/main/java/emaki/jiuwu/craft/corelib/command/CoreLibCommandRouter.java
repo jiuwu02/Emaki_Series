@@ -26,7 +26,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final String PERMISSION_ADMIN = "emakicorelib.admin";
     private static final List<String> SUB_COMMANDS = List.of("help", "web", "webconsole", "url", "link", "reload", "check", "debug", "webdebug");
     private static final List<String> WEBDEBUG_MODES = List.of("frontend", "backend", "all");
-    private static final List<String> CHECK_MODES = List.of("report", "--fix", "corelib");
+    private static final List<String> CHECK_MODES = List.of("report", "--fix");
     private static final List<String> DEBUG_MODES = List.of("loops");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
 
@@ -73,6 +73,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             complete(args[1], WEBDEBUG_MODES, result);
         } else if (args.length == 2 && "check".equalsIgnoreCase(args[0])) {
             complete(args[1], CHECK_MODES, result);
+            complete(args[1], plugin.configPrecheckService().registry().moduleIds(), result);
         } else if (args.length == 2 && "debug".equalsIgnoreCase(args[0])) {
             complete(args[1], DEBUG_MODES, result);
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1])) {

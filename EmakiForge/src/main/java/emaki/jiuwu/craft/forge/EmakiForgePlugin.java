@@ -13,6 +13,8 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -136,11 +138,34 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public void reloadPluginState(boolean closeOpenInventories) {
         autoSaveTask = lifecycleCoordinator.reload(this, autoSaveTask, closeOpenInventories);
+        logConfigPrecheckReport();
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
         return lifecycleCoordinator.reloadAsync(this, autoSaveTask, closeOpenInventories, null)
-                .thenAccept(task -> autoSaveTask = task);
+                .thenAccept(task -> {
+                    autoSaveTask = task;
+                    logConfigPrecheckReport();
+                });
+    }
+
+    private void logConfigPrecheckReport() {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ConfigPrecheckReport report = coreLibPlugin.configPrecheckService().checkModule(coreLibPlugin.configModel(), "forge");
+        getLogger().info("[ConfigCheck] forge " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
+        for (ConfigPrecheckIssue issue : report.issues()) {
+            logConfigPrecheckIssue(issue);
+        }
+    }
+
+    private void logConfigPrecheckIssue(ConfigPrecheckIssue issue) {
+        if (issue.severity().blocking()) {
+            getLogger().severe("[ConfigCheck] " + issue.format());
+        } else if (issue.severity().name().equals("WARN")) {
+            getLogger().warning("[ConfigCheck] " + issue.format());
+        } else {
+            getLogger().info("[ConfigCheck] " + issue.format());
+        }
     }
 
     private void registerConfigPrecheckContributor() {

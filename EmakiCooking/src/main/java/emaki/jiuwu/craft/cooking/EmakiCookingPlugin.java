@@ -12,6 +12,8 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
@@ -135,8 +137,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
-        reloadPluginState();
         registerConfigPrecheckContributor();
+        reloadPluginState();
         registerCommandHandler();
         registerEventHandlers();
         registerPublicApiService();
@@ -187,10 +189,31 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public void reloadPluginState() {
         lifecycleCoordinator.reload(this);
+        logConfigPrecheckReport();
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
-        return lifecycleCoordinator.reloadAsync(this, null);
+        return lifecycleCoordinator.reloadAsync(this, null)
+                .thenRun(this::logConfigPrecheckReport);
+    }
+
+    private void logConfigPrecheckReport() {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ConfigPrecheckReport report = coreLibPlugin.configPrecheckService().checkModule(coreLibPlugin.configModel(), "cooking");
+        getLogger().info("[ConfigCheck] cooking " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
+        for (ConfigPrecheckIssue issue : report.issues()) {
+            logConfigPrecheckIssue(issue);
+        }
+    }
+
+    private void logConfigPrecheckIssue(ConfigPrecheckIssue issue) {
+        if (issue.severity().blocking()) {
+            getLogger().severe("[ConfigCheck] " + issue.format());
+        } else if (issue.severity().name().equals("WARN")) {
+            getLogger().warning("[ConfigCheck] " + issue.format());
+        } else {
+            getLogger().info("[ConfigCheck] " + issue.format());
+        }
     }
 
     private void applyRuntimeComponents(CookingRuntimeComponents components) {
