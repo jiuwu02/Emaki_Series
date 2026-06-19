@@ -15,16 +15,27 @@ import emaki.jiuwu.craft.corelib.script.ScriptModuleRegistry;
 
 public final class EmakiScriptApi {
 
+    @HostAccess.Export
     public final ScriptContextApi context;
+    @HostAccess.Export
     public final ScriptPlayerApi player;
+    @HostAccess.Export
     public final ScriptItemApi item;
+    @HostAccess.Export
     public final ScriptActionApi action;
+    @HostAccess.Export
     public final ScriptLoggerApi logger;
+    @HostAccess.Export
     public final ScriptRandomApi random;
+    @HostAccess.Export
     public final ScriptSharedStateApi state;
+    @HostAccess.Export
     public final ScriptTextApi text;
+    @HostAccess.Export
     public final ScriptCoreLibModuleApi corelib;
+    @HostAccess.Export
     public final ScriptModuleRegistry.ScriptModulesApi modules;
+    @HostAccess.Export
     public final ScriptServerApi server;
 
     private final Plugin sourcePlugin;
@@ -55,6 +66,17 @@ public final class EmakiScriptApi {
             String scriptPath,
             Plugin sourcePlugin,
             ScriptModuleRegistry moduleRegistry) {
+        this(context, arguments, actionExecutor, config, scriptPath, sourcePlugin, moduleRegistry, java.util.Map.of());
+    }
+
+    public EmakiScriptApi(ActionContext context,
+            java.util.Map<String, Object> arguments,
+            ActionExecutor actionExecutor,
+            ScriptConfig config,
+            String scriptPath,
+            Plugin sourcePlugin,
+            ScriptModuleRegistry moduleRegistry,
+            java.util.Map<String, Object> moduleOverrides) {
         ScriptConfig safeConfig = config == null ? ScriptConfig.defaults() : config;
         this.sourcePlugin = sourcePlugin == null && context != null ? context.sourcePlugin() : sourcePlugin;
         this.context = safeConfig.context().exposeContext() ? new ScriptContextApi(context, arguments) : null;
@@ -67,7 +89,7 @@ public final class EmakiScriptApi {
         this.text = safeConfig.context().exposeText() ? new ScriptTextApi() : null;
         this.corelib = new ScriptCoreLibModuleApi();
         this.moduleRegistry = moduleRegistry == null ? new ScriptModuleRegistry() : moduleRegistry;
-        this.moduleContext = new ScriptModuleContext(context, arguments, actionExecutor, safeConfig, scriptPath, this.sourcePlugin);
+        this.moduleContext = new ScriptModuleContext(context, arguments, actionExecutor, safeConfig, scriptPath, this.sourcePlugin, moduleOverrides);
         this.modules = this.moduleRegistry.api(this.moduleContext);
         this.server = safeConfig.serverApi().enabled() ? new ScriptServerApi(this.sourcePlugin, safeConfig) : null;
     }

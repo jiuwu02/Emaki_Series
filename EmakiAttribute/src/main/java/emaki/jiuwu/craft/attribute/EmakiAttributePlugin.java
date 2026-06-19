@@ -436,9 +436,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.releaseBundledScripts(this, "extensions/attribute", false, java.util.List.of("js_fire_mastery.js"));
         coreLibPlugin.releaseBundledScripts(this, "mythic", false, java.util.List.of("mythic_js_damage.js"));
-        coreLibPlugin.releaseBundledScripts(this, "examples", false, java.util.List.of("attribute_buff.js"));
+        coreLibPlugin.releaseBundledScripts(this, "examples", false, java.util.List.of("attribute_buff.js", "js_fire_mastery.js"));
     }
 
     private void registerSkillScriptActions() {

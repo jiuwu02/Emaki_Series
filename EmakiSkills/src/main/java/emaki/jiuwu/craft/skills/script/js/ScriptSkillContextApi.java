@@ -6,6 +6,8 @@ import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.graalvm.polyglot.HostAccess;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.api.script.ScriptServerApi.ScriptEntityApi;
@@ -19,6 +21,7 @@ import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 public final class ScriptSkillContextApi {
 
     private final SkillScriptContext context;
+    @HostAccess.Export
     public final SkillStateApi state;
 
     public ScriptSkillContextApi(SkillScriptContext context) {
@@ -30,41 +33,50 @@ public final class ScriptSkillContextApi {
         return context;
     }
 
+    @HostAccess.Export
     public String skillId() {
         return context == null ? "" : context.skillId();
     }
 
+    @HostAccess.Export
     public String triggerId() {
         return context == null ? "" : context.triggerId();
     }
 
+    @HostAccess.Export
     public String variable(String key) {
         String value = context == null ? null : context.variable(key);
         return value == null ? "" : value;
     }
 
+    @HostAccess.Export
     public void setVariable(String key, Object value) {
         if (context != null) {
             context.putVariable(key, value);
         }
     }
 
+    @HostAccess.Export
     public Map<String, String> variables() {
         return context == null ? Map.of() : context.variables();
     }
 
+    @HostAccess.Export
     public ScriptEntityApi caster() {
         return new ScriptEntityApi(context == null ? null : context.caster());
     }
 
+    @HostAccess.Export
     public ScriptEntityApi target() {
         return new ScriptEntityApi(context == null ? null : context.targetEntity());
     }
 
+    @HostAccess.Export
     public boolean hasTarget() {
         return context != null && context.hasTarget();
     }
 
+    @HostAccess.Export
     public void setTarget(ScriptEntityApi entity) {
         if (context != null) {
             Entity raw = entity == null ? null : entity.entity();
@@ -72,6 +84,7 @@ public final class ScriptSkillContextApi {
         }
     }
 
+    @HostAccess.Export
     public Map<String, Object> targetLocation() {
         if (context == null || context.targetLocation() == null) {
             return Map.of();
@@ -87,6 +100,7 @@ public final class ScriptSkillContextApi {
         );
     }
 
+    @HostAccess.Export
     public boolean runAction(String actionId, Map<String, ?> arguments) {
         if (!(context != null && context.plugin() instanceof EmakiSkillsPlugin plugin) || plugin.coreLib().actionExecutor() == null) {
             return false;
@@ -102,6 +116,7 @@ public final class ScriptSkillContextApi {
         return result != null && result.success() && !result.skipped();
     }
 
+    @HostAccess.Export
     public boolean runActionLine(String line) {
         if (!(context != null && context.plugin() instanceof EmakiSkillsPlugin plugin) || plugin.coreLib().actionExecutor() == null) {
             return false;
@@ -115,10 +130,12 @@ public final class ScriptSkillContextApi {
         return plugin.coreLib().actionExecutor().executeAll(actionContext, java.util.List.of(line), true).join().success();
     }
 
+    @HostAccess.Export
     public boolean castMythic(String mythicSkillId) {
         return castMythic(mythicSkillId, Map.of());
     }
 
+    @HostAccess.Export
     public boolean castMythic(String mythicSkillId, Map<String, ?> parameters) {
         if (!(context != null && context.plugin() instanceof EmakiSkillsPlugin plugin) || plugin.mythicSkillCastService() == null) {
             return false;
@@ -128,10 +145,12 @@ public final class ScriptSkillContextApi {
         return plugin.mythicSkillCastService().cast(context.caster(), mythicSkillId, invocation, new ResolvedSkillParameters(resolved));
     }
 
+    @HostAccess.Export
     public boolean applyDamage(ScriptEntityApi target, String damageTypeId, double baseDamage) {
         return applyDamage(target, damageTypeId, baseDamage, Map.of());
     }
 
+    @HostAccess.Export
     public boolean applyDamage(ScriptEntityApi target, String damageTypeId, double baseDamage, Map<String, ?> damageContext) {
         if (!(context != null && context.plugin() instanceof EmakiSkillsPlugin plugin)) {
             return false;
@@ -202,21 +221,25 @@ public final class ScriptSkillContextApi {
             this.context = context;
         }
 
-            public Object get(String key) {
+        @HostAccess.Export
+        public Object get(String key) {
             return context == null ? null : context.sharedValue(key);
         }
 
-            public void set(String key, Object value) {
+        @HostAccess.Export
+        public void set(String key, Object value) {
             if (context != null) {
                 context.putSharedValue(key, value);
             }
         }
 
-            public boolean has(String key) {
+        @HostAccess.Export
+        public boolean has(String key) {
             return context != null && context.sharedState().containsKey(key);
         }
 
-            public void remove(String key) {
+        @HostAccess.Export
+        public void remove(String key) {
             if (context != null && key != null) {
                 context.sharedState().remove(key);
             }

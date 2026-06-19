@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.graalvm.polyglot.HostAccess;
+
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
@@ -24,6 +26,7 @@ public final class ScriptActionApi {
         this.security = security == null ? ScriptConfig.Security.defaults() : security;
     }
 
+    @HostAccess.Export
     public boolean run(String actionId, Map<String, ?> arguments) {
         if (!canRun(actionId)) {
             return false;
@@ -40,6 +43,7 @@ public final class ScriptActionApi {
         });
     }
 
+    @HostAccess.Export
     public boolean runLine(String line) {
         if (Texts.isBlank(line) || actionExecutor == null || context == null || !security.allowActionDispatch()) {
             return false;

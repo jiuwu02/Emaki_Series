@@ -314,8 +314,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void releaseBundledScripts() {
-        coreLib().releaseBundledScripts(this, "extensions/skills", false, java.util.List.of("js_lightning_strike.js"));
-        coreLib().releaseBundledScripts(this, "examples", false, java.util.List.of("skills_upgrade_success.js"));
+        coreLib().releaseBundledScripts(this, "examples", false, java.util.List.of("skills_upgrade_success.js", "js_lightning_strike.js"));
     }
 
     private void registerWebConsole() {

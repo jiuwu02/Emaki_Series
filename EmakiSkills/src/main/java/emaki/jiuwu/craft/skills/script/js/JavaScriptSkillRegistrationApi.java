@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.graalvm.polyglot.HostAccess;
+
 import emaki.jiuwu.craft.skills.api.SkillActionExecutionMode;
 import emaki.jiuwu.craft.skills.api.SkillActionParameter;
 import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
@@ -39,6 +41,7 @@ public final class JavaScriptSkillRegistrationApi {
         return List.copyOf(registeredIds);
     }
 
+    @HostAccess.Export
     public boolean registerAction(Map<String, ?> definition) {
         if (definition == null || registry == null || javaScriptService == null) {
             return false;
@@ -78,6 +81,7 @@ public final class JavaScriptSkillRegistrationApi {
         return false;
     }
 
+    @HostAccess.Export
     public void unregisterAction(String actionId) {
         if (registry != null) {
             registry.unregister(actionId);

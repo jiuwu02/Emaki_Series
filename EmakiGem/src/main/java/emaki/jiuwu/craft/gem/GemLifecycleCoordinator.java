@@ -61,6 +61,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         registerAssemblyLayer(coreLibPlugin);
         registerScriptModule(coreLibPlugin);
+        releaseBundledScripts(coreLibPlugin, plugin);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -402,5 +403,9 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
 
     private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
         coreLibPlugin.scriptModuleRegistry().register("gem", context -> new ScriptGemModuleApi());
+    }
+
+    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiGemPlugin plugin) {
+        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("gem_status.js"));
     }
 }

@@ -17,13 +17,26 @@ public record ScriptInvocationRequest(Plugin sourcePlugin,
         List<Object> arguments,
         Map<String, Object> namedArguments,
         long timeoutMillis,
-        boolean silent) {
+        boolean silent,
+        Map<String, Object> moduleOverrides) {
+
+    public ScriptInvocationRequest(Plugin sourcePlugin,
+            ActionContext actionContext,
+            String scriptPath,
+            String functionName,
+            List<Object> arguments,
+            Map<String, Object> namedArguments,
+            long timeoutMillis,
+            boolean silent) {
+        this(sourcePlugin, actionContext, scriptPath, functionName, arguments, namedArguments, timeoutMillis, silent, Map.of());
+    }
 
     public ScriptInvocationRequest {
         scriptPath = Texts.trim(scriptPath);
         functionName = Texts.isBlank(functionName) ? "main" : Texts.trim(functionName);
         arguments = arguments == null ? List.of() : List.copyOf(new ArrayList<>(arguments));
         namedArguments = namedArguments == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(namedArguments));
+        moduleOverrides = moduleOverrides == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(moduleOverrides));
         sourcePlugin = sourcePlugin == null && actionContext != null ? actionContext.sourcePlugin() : sourcePlugin;
     }
 

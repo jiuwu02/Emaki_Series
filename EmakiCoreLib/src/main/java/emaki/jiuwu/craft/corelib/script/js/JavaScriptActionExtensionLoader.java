@@ -83,10 +83,11 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                     null,
                     scriptPath,
                     "register",
-                    List.of(api),
+                    List.of(),
                     Map.of("extension", "global", "script", scriptPath),
                     scriptConfig.clampTimeoutMillis(scriptConfig.engine().defaultTimeoutMillis()),
-                    false
+                    false,
+                    Map.of("corelib", api)
             ));
             if (result != null && result.success() && !result.skipped()) {
                 registeredIds.addAll(api.registeredIds());

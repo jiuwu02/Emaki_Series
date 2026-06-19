@@ -105,7 +105,8 @@ public final class GraalJavaScriptService implements JavaScriptService {
                     config,
                     source.logicalPath(),
                     request.sourcePlugin(),
-                    moduleRegistry
+                    moduleRegistry,
+                    request.moduleOverrides()
             );
             context.getBindings("js").putMember("emaki", api);
             context.getBindings("js").putMember("args", request.namedArguments());
@@ -186,7 +187,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
 
     private Context createContext() {
         ScriptConfig.Engine engineConfig = config.engine();
-        HostAccess hostAccess = engineConfig.allowHostAccess() ? HostAccess.ALL : HostAccess.NONE;
+        HostAccess hostAccess = createHostAccess(engineConfig);
         Context.Builder builder = Context.newBuilder("js")
                 .engine(engine)
                 .allowExperimentalOptions(true)
@@ -197,6 +198,19 @@ public final class GraalJavaScriptService implements JavaScriptService {
                 .allowNativeAccess(engineConfig.allowNativeAccess())
                 .allowIO(engineConfig.allowIo());
         return builder.build();
+    }
+
+    private HostAccess createHostAccess(ScriptConfig.Engine engineConfig) {
+        if (engineConfig.allowHostAccess()) {
+            return HostAccess.ALL;
+        }
+        return HostAccess.newBuilder(HostAccess.EXPLICIT)
+                .allowArrayAccess(true)
+                .allowListAccess(true)
+                .allowMapAccess(true)
+                .allowIterableAccess(true)
+                .allowIteratorAccess(true)
+                .build();
     }
 
     private ScriptExecutionResult mapReturnValue(Value value) {

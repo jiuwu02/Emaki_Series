@@ -249,6 +249,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (plugin.itemSourceService() != null) {
             plugin.itemSourceService().unregisterResolver("emakiitem");
         }
+        coreLibPlugin.scriptModuleRegistry().unregister("item");
         coreLibPlugin.scriptModuleRegistry().unregister("items");
         ItemSourceUtil.unregisterParser("emakiitem");
         ItemSourceUtil.unregisterShorthandWriter(ItemSourceType.EMAKIITEM);
@@ -300,6 +301,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     }
 
     private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
+        coreLibPlugin.scriptModuleRegistry().register("item", context -> new ScriptItemModuleApi(context.actionContext()));
         coreLibPlugin.scriptModuleRegistry().register("items", context -> new ScriptItemModuleApi(context.actionContext()));
     }
 

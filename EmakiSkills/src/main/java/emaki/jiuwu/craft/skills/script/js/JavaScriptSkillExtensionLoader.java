@@ -56,10 +56,11 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
                     null,
                     scriptPath,
                     "register",
-                    List.of(registrationApi),
+                    List.of(),
                     Map.of("extension", "skills", "script", scriptPath),
                     scriptConfig.clampTimeoutMillis(scriptConfig.engine().defaultTimeoutMillis()),
-                    false
+                    false,
+                    Map.of("skills", registrationApi)
             ));
             if (result != null && result.success() && !result.skipped()) {
                 registeredIds.addAll(registrationApi.registeredIds());

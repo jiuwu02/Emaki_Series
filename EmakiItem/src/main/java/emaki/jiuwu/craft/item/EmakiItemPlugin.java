@@ -166,7 +166,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     @Override
     public void onDisable() {
-        coreLib().configPrecheckService().registry().unregister("item");
+        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().unregister("item");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -194,7 +194,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void logConfigPrecheckReport() {
-        ConfigPrecheckReport report = coreLib().configPrecheckService().checkModule(coreLib().configModel(), "item");
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ConfigPrecheckReport report = coreLibPlugin.configPrecheckService().checkModule(coreLibPlugin.configModel(), "item");
         getLogger().info("[ConfigCheck] item " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
         for (ConfigPrecheckIssue issue : report.issues()) {
             logConfigPrecheckIssue(issue);
@@ -212,7 +213,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void registerConfigPrecheckContributor() {
-        coreLib().configPrecheckService().registry().register(new ItemConfigPrecheckContributor(this));
+        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().register(new ItemConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(ItemRuntimeComponents components) {

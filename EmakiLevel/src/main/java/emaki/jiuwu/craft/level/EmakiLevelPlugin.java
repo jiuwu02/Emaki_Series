@@ -66,6 +66,7 @@ import emaki.jiuwu.craft.level.service.LevelTypeRegistry;
 import emaki.jiuwu.craft.level.service.PlayerLevelDataStore;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
 import emaki.jiuwu.craft.level.service.RequirementService;
+import emaki.jiuwu.craft.level.script.ScriptLevelModuleApi;
 
 public final class EmakiLevelPlugin extends JavaPlugin {
 
@@ -221,6 +222,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         registerCommand();
         registerListeners();
         registerApi();
+        registerScriptModule();
+        releaseBundledScripts();
         registerActions();
         registerWebConsole();
         registerPlaceholderExpansion();
@@ -234,6 +237,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     public void onDisable() {
         if (coreLib != null) {
             coreLib.configPrecheckService().registry().unregister("level");
+            coreLib.scriptModuleRegistry().unregister("level");
         }
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -395,6 +399,14 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     private void registerApi() {
         EmakiLevelApi.install(levelApiBridge);
+    }
+
+    private void registerScriptModule() {
+        coreLib.scriptModuleRegistry().register("level", context -> new ScriptLevelModuleApi());
+    }
+
+    private void releaseBundledScripts() {
+        coreLib.releaseBundledScripts(this, "examples", false, List.of("level_status.js"));
     }
 
     private void registerActions() {

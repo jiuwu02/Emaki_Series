@@ -47,10 +47,11 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
                     null,
                     scriptPath,
                     "register",
-                    List.of(api),
+                    List.of(),
                     Map.of("extension", "attribute", "script", scriptPath),
                     scriptConfig.clampTimeoutMillis(scriptConfig.engine().defaultTimeoutMillis()),
-                    false
+                    false,
+                    Map.of("attribute", api)
             ));
             if (result != null && result.success() && !result.skipped()) {
                 registeredProviders.addAll(api.registeredProviders());
