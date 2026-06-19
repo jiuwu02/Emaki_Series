@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
+import emaki.jiuwu.craft.corelib.script.LegacyBundledScriptPolicy;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
@@ -56,7 +57,7 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
                     null,
                     scriptPath,
                     "register",
-                    List.of(),
+                    List.of(registrationApi),
                     Map.of("extension", "skills", "script", scriptPath),
                     scriptConfig.clampTimeoutMillis(scriptConfig.engine().defaultTimeoutMillis()),
                     false,
@@ -111,6 +112,7 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
                     .sorted(Comparator.comparing(Path::toString))
                     .map(path -> toLogicalPath(root, path))
                     .filter(Texts::isNotBlank)
+                    .filter(path -> !LegacyBundledScriptPolicy.shouldSkipAutoLoad(plugin.coreLib().dataPath(scriptConfig.paths().root()), path))
                     .toList();
         } catch (IOException exception) {
             plugin.messageService().warning("console.js_skill_extension_scan_failed", Map.of(

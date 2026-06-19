@@ -63,20 +63,12 @@ public final class ScriptModuleRegistry {
 
         @HostAccess.Export
         public Object get(String id) {
-            String normalizedId = Texts.normalizeId(id);
-            if (Texts.isBlank(normalizedId)) {
-                return new UnavailableScriptModuleApi(id);
-            }
-            Object override = moduleOverrides.get(normalizedId);
-            if (override != null) {
-                return override;
-            }
-            return localCache.computeIfAbsent(normalizedId, key -> registry.create(key, context));
+            return ScriptHostObjectProxy.wrapIfExported(rawModule(id));
         }
 
         @HostAccess.Export
         public boolean available(String id) {
-            Object module = get(id);
+            Object module = rawModule(id);
             if (module instanceof UnavailableScriptModuleApi) {
                 return false;
             }
@@ -87,6 +79,18 @@ public final class ScriptModuleRegistry {
             } catch (ReflectiveOperationException | RuntimeException ignored) {
                 return true;
             }
+        }
+
+        private Object rawModule(String id) {
+            String normalizedId = Texts.normalizeId(id);
+            if (Texts.isBlank(normalizedId)) {
+                return new UnavailableScriptModuleApi(id);
+            }
+            Object override = moduleOverrides.get(normalizedId);
+            if (override != null) {
+                return override;
+            }
+            return localCache.computeIfAbsent(normalizedId, key -> registry.create(key, context));
         }
 
         @HostAccess.Export

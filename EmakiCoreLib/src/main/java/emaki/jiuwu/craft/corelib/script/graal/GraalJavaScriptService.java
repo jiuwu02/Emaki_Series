@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
+import emaki.jiuwu.craft.corelib.script.ScriptHostObjectProxy;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleRegistry;
 import emaki.jiuwu.craft.corelib.script.ScriptReloadResult;
@@ -115,7 +116,9 @@ public final class GraalJavaScriptService implements JavaScriptService {
             if (function == null || !function.canExecute()) {
                 return ScriptExecutionResult.failure("Function not found: " + functionName + " in " + source.logicalPath());
             }
-            Value value = function.execute(request.arguments().toArray(Object[]::new));
+            Value value = function.execute(request.arguments().stream()
+                    .map(ScriptHostObjectProxy::wrapIfExported)
+                    .toArray(Object[]::new));
             ScriptExecutionResult result = mapReturnValue(value);
             if (config.debug().logScriptExecute()) {
                 log("Executed script " + source.logicalPath() + "#" + functionName + " in " + ((System.nanoTime() - start) / 1_000_000D) + " ms.");
