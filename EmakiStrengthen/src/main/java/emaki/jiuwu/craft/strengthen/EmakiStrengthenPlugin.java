@@ -15,7 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
@@ -180,20 +180,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private void logConfigPrecheckReport() {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         ConfigPrecheckReport report = coreLibPlugin.configPrecheckService().checkModule(coreLibPlugin.configModel(), "strengthen");
-        getLogger().info("[ConfigCheck] strengthen " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
-        for (ConfigPrecheckIssue issue : report.issues()) {
-            logConfigPrecheckIssue(issue);
-        }
-    }
-
-    private void logConfigPrecheckIssue(ConfigPrecheckIssue issue) {
-        if (issue.severity().blocking()) {
-            getLogger().severe("[ConfigCheck] " + issue.format());
-        } else if (issue.severity().name().equals("WARN")) {
-            getLogger().warning("[ConfigCheck] " + issue.format());
-        } else {
-            getLogger().info("[ConfigCheck] " + issue.format());
-        }
+        ConfigPrecheckMessages.logReport(messageService(), "strengthen", report);
     }
 
     private void registerConfigPrecheckContributor() {
@@ -219,7 +206,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
         routePreviewService = new StrengthenRoutePreviewService(this);
-        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }

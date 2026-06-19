@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.3.2"
+version: "4.3.8"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -16,6 +16,10 @@ console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
   plugin_stopped: "<yellow>Stopped</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>Config load failed: %error%</red>"
   reload_stage_failed: "<yellow>Reload stage %stage% failed: <red>%error%</red></yellow>"
@@ -284,6 +288,8 @@ command:
 
 # Debug mode messages
 debug:
+  console:
+    line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
   command:
     status_header: "<gold>========== EmakiAttribute Debug Status ==========</gold>"
     status_enabled: "<green>Debug enabled</green>"

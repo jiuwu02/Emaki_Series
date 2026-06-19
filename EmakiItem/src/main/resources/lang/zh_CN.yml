@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.3.1"
+version: "2.3.5"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行这个命令。</red>"
@@ -28,6 +28,9 @@ console:
   plugin_started: "<green>启动完成</green>"
   plugin_stopping: "EmakiItem 正在关闭..."
   plugin_stopped: "<yellow>已关闭</yellow>"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   items_loaded: "<gray>已加载 <yellow>%count%</yellow> 个物品</gray>"
   sets_loaded: "<gray>已加载 <yellow>%count%</yellow> 个套装</gray>"
   bootstrap_start: "正在同步默认资源..."

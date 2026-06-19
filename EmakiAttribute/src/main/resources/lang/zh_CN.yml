@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.3.2"
+version: "4.3.8"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -16,6 +16,10 @@ console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
   plugin_stopped: "<yellow>已关闭</yellow>"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>配置读取失败: %error%</red>"
   reload_stage_failed: "<yellow>重载阶段 %stage% 失败: <red>%error%</red></yellow>"
@@ -261,6 +265,8 @@ command:
 
 # Debug 模式消息
 debug:
+  console:
+    line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
   command:
     status_header: "<gold>========== EmakiAttribute Debug 状态 ==========</gold>"
     status_enabled: "<green>Debug 已开启</green>"

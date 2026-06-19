@@ -10,7 +10,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.skills.script.ScriptSkillsModuleApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -201,20 +201,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void logConfigPrecheckReport() {
         ConfigPrecheckReport report = coreLib().configPrecheckService().checkModule(coreLib().configModel(), "skills");
-        getLogger().info("[ConfigCheck] skills " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
-        for (ConfigPrecheckIssue issue : report.issues()) {
-            logConfigPrecheckIssue(issue);
-        }
-    }
-
-    private void logConfigPrecheckIssue(ConfigPrecheckIssue issue) {
-        if (issue.severity().blocking()) {
-            getLogger().severe("[ConfigCheck] " + issue.format());
-        } else if (issue.severity().name().equals("WARN")) {
-            getLogger().warning("[ConfigCheck] " + issue.format());
-        } else {
-            getLogger().info("[ConfigCheck] " + issue.format());
-        }
+        ConfigPrecheckMessages.logReport(messageService(), "skills", report);
     }
 
     private void registerConfigPrecheckContributor() {
@@ -252,7 +239,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         eaBridge = components.eaBridge();
         externalManaBridge = components.externalManaBridge();
         mythicBridge = components.mythicBridge();
-        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }

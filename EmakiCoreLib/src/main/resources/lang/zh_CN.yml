@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.3.5"
+version: "4.3.13"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -18,6 +18,9 @@ console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
   plugin_stopped: "<yellow>已关闭</yellow>"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   economy_bridge_ready: "<gray>经济桥接已接入: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>已接入方块源: <aqua>%provider%</aqua></gray>"
@@ -69,6 +72,8 @@ action:
 
 # Debug 模式消息
 debug:
+  console:
+    line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
   command:
     status_header: "<gold>========== Debug 状态 ==========</gold>"
     status_enabled: "<green>Debug 已开启</green>"

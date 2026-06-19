@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.3.1"
+version: "2.3.4"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiGem</gradient> ]</gray>"
@@ -26,6 +26,9 @@ general:
 console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data file
     generation.</gray>"

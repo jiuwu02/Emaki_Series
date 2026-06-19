@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.action.loop.LoopTaskSnapshot;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -222,9 +223,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendLang(sender, "command.check_no_report");
             return;
         }
-        for (String line : report.formatLines()) {
-            plugin.messageService().sendRaw(sender, line);
-        }
+        ConfigPrecheckMessages.sendReport(plugin.messageService(), sender, "corelib", report);
     }
 
     private void sendLoopSnapshots(CommandSender sender, List<LoopTaskSnapshot> snapshots) {

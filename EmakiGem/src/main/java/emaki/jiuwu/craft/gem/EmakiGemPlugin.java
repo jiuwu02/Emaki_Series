@@ -14,7 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -174,20 +174,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void logConfigPrecheckReport() {
         ConfigPrecheckReport report = coreLib().configPrecheckService().checkModule(coreLib().configModel(), "gem");
-        getLogger().info("[ConfigCheck] gem " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
-        for (ConfigPrecheckIssue issue : report.issues()) {
-            logConfigPrecheckIssue(issue);
-        }
-    }
-
-    private void logConfigPrecheckIssue(ConfigPrecheckIssue issue) {
-        if (issue.severity().blocking()) {
-            getLogger().severe("[ConfigCheck] " + issue.format());
-        } else if (issue.severity().name().equals("WARN")) {
-            getLogger().warning("[ConfigCheck] " + issue.format());
-        } else {
-            getLogger().info("[ConfigCheck] " + issue.format());
-        }
+        ConfigPrecheckMessages.logReport(messageService(), "gem", report);
     }
 
     private void registerConfigPrecheckContributor() {
@@ -217,7 +204,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         extractService = components.extractService();
         upgradeService = components.upgradeService();
         gemGuiService = components.gemGuiService();
-        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }

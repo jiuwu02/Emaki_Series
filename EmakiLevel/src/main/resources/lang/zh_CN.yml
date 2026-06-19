@@ -1,10 +1,13 @@
-version: "1.1.1"
+version: "1.1.4"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiLevel</gradient> ]</gray>"
 console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
   plugin_stopped: "<yellow>已关闭</yellow>"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   types_loaded: "<gray>已加载 <yellow>%count%</yellow> 个等级类型</gray>"
   sources_loaded: "<gray>已加载 <yellow>%count%</yellow> 条经验来源规则</gray>"
   actions_registered: "<gray>CoreLib Action 已注册</gray>"

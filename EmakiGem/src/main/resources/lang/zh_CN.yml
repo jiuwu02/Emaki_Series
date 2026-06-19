@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.3.1"
+version: "2.3.4"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiGem</gradient> ]</gray>"
@@ -24,6 +24,9 @@ general:
 console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"

@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.3.1"
+version: "2.3.5"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>You do not have permission.</red>"
@@ -28,6 +28,9 @@ console:
   plugin_started: "<green>Started</green>"
   plugin_stopping: "Stopping EmakiItem..."
   plugin_stopped: "<yellow>Stopped</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   items_loaded: "<gray>Loaded <yellow>%count%</yellow> item(s)</gray>"
   sets_loaded: "<gray>Loaded <yellow>%count%</yellow> set(s)</gray>"
   bootstrap_start: "Syncing bundled resources..."

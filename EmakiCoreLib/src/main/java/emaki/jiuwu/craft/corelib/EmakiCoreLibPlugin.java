@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
 import emaki.jiuwu.craft.corelib.action.builtin.RunJavaScriptAction;
 import emaki.jiuwu.craft.corelib.action.loop.LoopActionService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckService;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -306,22 +307,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void logPrecheckReport(ConfigPrecheckReport report) {
-        if (report == null) {
-            return;
-        }
-        for (String line : report.formatLines()) {
-            if (messageService != null) {
-                if (report.success()) {
-                    getLogger().info(line);
-                } else {
-                    getLogger().warning(line);
-                }
-            } else if (report.success()) {
-                getLogger().info(line);
-            } else {
-                getLogger().warning(line);
-            }
-        }
+        ConfigPrecheckMessages.logReport(messageService, "corelib", report);
     }
 
     private void reloadScriptSystem() {
@@ -448,7 +434,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         languageLoader = new LanguageLoader(this, "lang", "lang", config.language(), "zh_CN");
         messageService = new MessageService(this, languageLoader);
         bStatsService = new BStatsService(this, messageService);
-        debugLogger = new DebugLogger(getLogger(), languageLoader);
+        debugLogger = new DebugLogger(this, languageLoader);
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
         configPrecheckService = new ConfigPrecheckService();
         loopActionService = new LoopActionService(this);

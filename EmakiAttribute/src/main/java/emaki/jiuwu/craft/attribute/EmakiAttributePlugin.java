@@ -39,7 +39,7 @@ import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeExtensionLoader;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
@@ -204,20 +204,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     private void logConfigPrecheckReport() {
         ConfigPrecheckReport report = coreLib().configPrecheckService().checkModule(coreLib().configModel(), "attribute");
-        getLogger().info("[ConfigCheck] attribute " + (report.success() ? "passed" : "failed") + ": " + report.issues().size() + " issue(s).");
-        for (ConfigPrecheckIssue issue : report.issues()) {
-            logConfigPrecheckIssue(issue);
-        }
-    }
-
-    private void logConfigPrecheckIssue(ConfigPrecheckIssue issue) {
-        if (issue.severity().blocking()) {
-            getLogger().severe("[ConfigCheck] " + issue.format());
-        } else if (issue.severity().name().equals("WARN")) {
-            getLogger().warning("[ConfigCheck] " + issue.format());
-        } else {
-            getLogger().info("[ConfigCheck] " + issue.format());
-        }
+        ConfigPrecheckMessages.logReport(messageService(), "attribute", report);
     }
 
     private void registerConfigPrecheckContributor() {
@@ -248,7 +235,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         emaki.jiuwu.craft.corelib.loader.LanguageLoader coreLanguageLoader =
                 new emaki.jiuwu.craft.corelib.loader.LanguageLoader(this);
         coreLanguageLoader.load();
-        setDebugLogger(new DebugLogger(getLogger(), coreLanguageLoader));
+        setDebugLogger(new DebugLogger(this, coreLanguageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
     }
 
