@@ -153,7 +153,7 @@ final class JuicerGuiController {
             holder.setSuppressSave(suppressSave);
             Player viewer = Bukkit.getPlayer(holder.viewerId());
             if (viewer != null && viewer.getOpenInventory() != null
-                    && viewer.getOpenInventory().getTopInventory().getHolder() == holder) {
+                    && viewer.getOpenInventory().getTopInventory() == holder.getInventory()) {
                 viewer.closeInventory();
             }
         }
@@ -173,7 +173,7 @@ final class JuicerGuiController {
             holder.setSuppressSave(suppressSave);
             Player viewer = Bukkit.getPlayer(holder.viewerId());
             if (viewer != null && viewer.getOpenInventory() != null
-                    && viewer.getOpenInventory().getTopInventory().getHolder() == holder) {
+                    && viewer.getOpenInventory().getTopInventory() == holder.getInventory()) {
                 viewer.closeInventory();
             } else {
                 openSessions.remove(holder.viewerId(), holder);
@@ -195,11 +195,15 @@ final class JuicerGuiController {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getInventory().getHolder() instanceof JuicerGuiHolder holder)) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        JuicerGuiHolder holder = openSessions.get(player.getUniqueId());
+        if (holder == null || event.getInventory() != holder.getInventory()) {
             return;
         }
         openSessions.remove(holder.viewerId(), holder);
-        if (holder.suppressSave() || !(event.getPlayer() instanceof Player player)) {
+        if (holder.suppressSave()) {
             return;
         }
         JuicerState state = runtimeService.saveInventory(holder.coordinates(), event.getInventory(), player.getUniqueId(), player.getName());
@@ -211,10 +215,13 @@ final class JuicerGuiController {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Inventory topInventory = event.getView().getTopInventory();
-        if (!(topInventory.getHolder() instanceof JuicerGuiHolder holder)) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        Player player = event.getWhoClicked() instanceof Player viewer ? viewer : null;
+        JuicerGuiHolder holder = openSessions.get(player.getUniqueId());
+        if (holder == null || topInventory != holder.getInventory()) {
+            return;
+        }
         if (event.isShiftClick()) {
             event.setCancelled(true);
             return;
@@ -234,10 +241,13 @@ final class JuicerGuiController {
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         Inventory topInventory = event.getView().getTopInventory();
-        if (!(topInventory.getHolder() instanceof JuicerGuiHolder holder)) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        Player player = event.getWhoClicked() instanceof Player viewer ? viewer : null;
+        JuicerGuiHolder holder = openSessions.get(player.getUniqueId());
+        if (holder == null || topInventory != holder.getInventory()) {
+            return;
+        }
         int topSize = topInventory.getSize();
         Set<Integer> ingredientSlots = ingredientSlotSet(topInventory);
         for (Integer rawSlot : event.getRawSlots()) {

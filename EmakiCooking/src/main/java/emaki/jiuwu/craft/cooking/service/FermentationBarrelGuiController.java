@@ -127,7 +127,7 @@ final class FermentationBarrelGuiController {
         for (FermentationBarrelGuiHolder holder : List.copyOf(openSessions.values())) {
             holder.setSuppressSave(suppressSave);
             Player viewer = Bukkit.getPlayer(holder.viewerId());
-            if (viewer != null && viewer.getOpenInventory() != null && viewer.getOpenInventory().getTopInventory().getHolder() == holder) {
+            if (viewer != null && viewer.getOpenInventory() != null && viewer.getOpenInventory().getTopInventory() == holder.getInventory()) {
                 viewer.closeInventory();
             }
         }
@@ -143,7 +143,7 @@ final class FermentationBarrelGuiController {
             }
             holder.setSuppressSave(suppressSave);
             Player viewer = Bukkit.getPlayer(holder.viewerId());
-            if (viewer != null && viewer.getOpenInventory() != null && viewer.getOpenInventory().getTopInventory().getHolder() == holder) {
+            if (viewer != null && viewer.getOpenInventory() != null && viewer.getOpenInventory().getTopInventory() == holder.getInventory()) {
                 viewer.closeInventory();
             } else {
                 openSessions.remove(holder.viewerId(), holder);
@@ -162,11 +162,15 @@ final class FermentationBarrelGuiController {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getInventory().getHolder() instanceof FermentationBarrelGuiHolder holder)) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        FermentationBarrelGuiHolder holder = openSessions.get(player.getUniqueId());
+        if (holder == null || event.getInventory() != holder.getInventory()) {
             return;
         }
         openSessions.remove(holder.viewerId(), holder);
-        if (holder.suppressSave() || !(event.getPlayer() instanceof Player player)) {
+        if (holder.suppressSave()) {
             return;
         }
         runtimeService.saveInventory(holder.coordinates(), event.getInventory(), player.getUniqueId(), player.getName());
@@ -175,7 +179,7 @@ final class FermentationBarrelGuiController {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Inventory top = event.getView().getTopInventory();
-        if (!(top.getHolder() instanceof FermentationBarrelGuiHolder)) {
+        if (!(event.getWhoClicked() instanceof Player player) || !isSessionInventory(player, top)) {
             return;
         }
         if (event.isShiftClick()) {
@@ -191,7 +195,7 @@ final class FermentationBarrelGuiController {
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         Inventory top = event.getView().getTopInventory();
-        if (!(top.getHolder() instanceof FermentationBarrelGuiHolder)) {
+        if (!(event.getWhoClicked() instanceof Player player) || !isSessionInventory(player, top)) {
             return;
         }
         Set<Integer> ingredientSlots = ingredientSlotSet(top);
@@ -215,6 +219,14 @@ final class FermentationBarrelGuiController {
     }
 
     Set<Integer> ingredientSlotSet(Inventory inventory) { return Set.copyOf(ingredientSlots(inventory)); }
+
+    private boolean isSessionInventory(Player player, Inventory inventory) {
+        if (player == null || inventory == null) {
+            return false;
+        }
+        FermentationBarrelGuiHolder holder = openSessions.get(player.getUniqueId());
+        return holder != null && inventory == holder.getInventory();
+    }
 
     String identifySource(ItemStack itemStack) {
         ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);

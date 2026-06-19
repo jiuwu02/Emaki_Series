@@ -147,7 +147,7 @@ final class OvenGuiController {
             holder.setSuppressSave(suppressSave);
             Player viewer = Bukkit.getPlayer(holder.viewerId());
             if (viewer != null && viewer.getOpenInventory() != null
-                    && viewer.getOpenInventory().getTopInventory().getHolder() == holder) {
+                    && viewer.getOpenInventory().getTopInventory() == holder.getInventory()) {
                 viewer.closeInventory();
             }
         }
@@ -167,7 +167,7 @@ final class OvenGuiController {
             holder.setSuppressSave(suppressSave);
             Player viewer = Bukkit.getPlayer(holder.viewerId());
             if (viewer != null && viewer.getOpenInventory() != null
-                    && viewer.getOpenInventory().getTopInventory().getHolder() == holder) {
+                    && viewer.getOpenInventory().getTopInventory() == holder.getInventory()) {
                 viewer.closeInventory();
             } else {
                 openSessions.remove(holder.viewerId(), holder);
@@ -240,14 +240,15 @@ final class OvenGuiController {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getInventory().getHolder() instanceof OvenGuiHolder holder)) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        OvenGuiHolder holder = openSessions.get(player.getUniqueId());
+        if (holder == null || event.getInventory() != holder.getInventory()) {
             return;
         }
         openSessions.remove(holder.viewerId(), holder);
         if (holder.suppressSave()) {
-            return;
-        }
-        if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
         processExcessItems(player, event.getInventory());
@@ -263,10 +264,9 @@ final class OvenGuiController {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Inventory topInventory = event.getView().getTopInventory();
-        if (!(topInventory.getHolder() instanceof OvenGuiHolder)) {
+        if (!(event.getWhoClicked() instanceof Player player) || !isSessionInventory(player, topInventory)) {
             return;
         }
-        Player player = event.getWhoClicked() instanceof Player viewer ? viewer : null;
         if (event.isShiftClick()) {
             event.setCancelled(true);
             return;
@@ -294,10 +294,9 @@ final class OvenGuiController {
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         Inventory topInventory = event.getView().getTopInventory();
-        if (!(topInventory.getHolder() instanceof OvenGuiHolder)) {
+        if (!(event.getWhoClicked() instanceof Player player) || !isSessionInventory(player, topInventory)) {
             return;
         }
-        Player player = event.getWhoClicked() instanceof Player viewer ? viewer : null;
         int topSize = topInventory.getSize();
         Set<Integer> ingredientSlots = ingredientSlotSet(topInventory);
         for (Integer rawSlot : event.getRawSlots()) {
@@ -319,6 +318,14 @@ final class OvenGuiController {
     String identifySource(ItemStack itemStack) {
         ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         return source == null ? "" : Texts.toStringSafe(ItemSourceUtil.toShorthand(source));
+    }
+
+    private boolean isSessionInventory(Player player, Inventory inventory) {
+        if (player == null || inventory == null) {
+            return false;
+        }
+        OvenGuiHolder holder = openSessions.get(player.getUniqueId());
+        return holder != null && inventory == holder.getInventory();
     }
 
     List<Integer> ingredientSlots(Inventory inventory) {
