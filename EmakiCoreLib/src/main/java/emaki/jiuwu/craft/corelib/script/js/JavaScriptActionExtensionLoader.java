@@ -15,7 +15,6 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
-import emaki.jiuwu.craft.corelib.script.LegacyBundledScriptPolicy;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
@@ -84,7 +83,7 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                     null,
                     scriptPath,
                     "register",
-                    List.of(api),
+                    List.of(),
                     Map.of("extension", "global", "script", scriptPath),
                     scriptConfig.clampTimeoutMillis(scriptConfig.engine().defaultTimeoutMillis()),
                     false,
@@ -234,7 +233,6 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                     .sorted(Comparator.comparing(Path::toString))
                     .map(path -> scriptRoot.relativize(path).toString().replace('\\', '/'))
                     .filter(Texts::isNotBlank)
-                    .filter(path -> !LegacyBundledScriptPolicy.shouldSkipAutoLoad(scriptRoot, path))
                     .toList();
         } catch (IOException exception) {
             warning("console.js_extension_scan_failed", Map.of(

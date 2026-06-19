@@ -9,7 +9,6 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
-import emaki.jiuwu.craft.corelib.script.LegacyBundledScriptPolicy;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
@@ -48,7 +47,7 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
                     null,
                     scriptPath,
                     "register",
-                    List.of(api),
+                    List.of(),
                     Map.of("extension", "attribute", "script", scriptPath),
                     scriptConfig.clampTimeoutMillis(scriptConfig.engine().defaultTimeoutMillis()),
                     false,
@@ -114,7 +113,6 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
                     .sorted(Comparator.comparing(Path::toString))
                     .map(path -> scriptRoot.relativize(path).toString().replace('\\', '/'))
                     .filter(Texts::isNotBlank)
-                    .filter(path -> !LegacyBundledScriptPolicy.shouldSkipAutoLoad(scriptRoot, path))
                     .toList();
         } catch (IOException exception) {
             plugin.messageService().warning("console.js_attribute_extension_scan_failed", Map.of(
