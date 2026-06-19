@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
+import emaki.jiuwu.craft.skills.config.SkillsConfigPrecheckContributor;
 import emaki.jiuwu.craft.skills.gui.SkillsGuiService;
 import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
@@ -133,6 +134,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         registerScriptModule();
         if (languageLoader != null) {
             languageLoader.load();
@@ -157,6 +159,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        coreLib().configPrecheckService().registry().unregister("skills");
         coreLib().scriptModuleRegistry().unregister("skills");
         WebConsoleRegistry.unregisterModule(this);
         if (placeholderExpansion != null) {
@@ -188,6 +191,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     public java.util.concurrent.CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories, java.util.function.Consumer<String> progressListener) {
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener)
                 .thenRun(this::reloadJavaScriptSkillExtensions);
+    }
+
+    private void registerConfigPrecheckContributor() {
+        coreLib().configPrecheckService().registry().register(new SkillsConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(SkillsRuntimeComponents components) {

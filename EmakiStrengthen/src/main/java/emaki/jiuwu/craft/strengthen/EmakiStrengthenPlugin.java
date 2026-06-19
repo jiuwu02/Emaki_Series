@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
+import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
@@ -131,6 +132,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
@@ -145,6 +147,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     @Override
     public void onDisable() {
+        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().unregister("strengthen");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -168,6 +171,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null);
+    }
+
+    private void registerConfigPrecheckContributor() {
+        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().register(new StrengthenConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(StrengthenRuntimeComponents components) {

@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -274,6 +275,12 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     plugin.ovenRecipeLoader().load();
                     plugin.juicerRecipeLoader().load();
                     plugin.fermentationBarrelRecipeLoader().load();
+                    ConfigPrecheckReport report = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class)
+                            .configPrecheckService()
+                            .checkModule(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configModel(), "cooking");
+                    if (!report.success()) {
+                        throw new IllegalStateException("Cooking precheck failed: " + String.join("; ", report.formatLines()));
+                    }
                     return null;
                 },
                 "apply",

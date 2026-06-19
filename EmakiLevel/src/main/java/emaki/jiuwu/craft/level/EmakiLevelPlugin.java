@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.level.api.PlayerLevelView;
 import emaki.jiuwu.craft.level.bridge.MythicLevelDropBridge;
 import emaki.jiuwu.craft.level.command.LevelCommand;
 import emaki.jiuwu.craft.level.config.AppConfig;
+import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.listener.BlockSourceListener;
 import emaki.jiuwu.craft.level.listener.BrewingSourceListener;
@@ -211,6 +212,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         initializeServices();
+        registerConfigPrecheckContributor();
         messages.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
@@ -228,6 +230,9 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (coreLib != null) {
+            coreLib.configPrecheckService().registry().unregister("level");
+        }
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -280,6 +285,10 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         levelService.syncAllOnline();
         messages.info("console.types_loaded", Map.of("count", String.valueOf(typeRegistry.all().size())));
         messages.info("console.sources_loaded", Map.of("count", String.valueOf(sourceRuleLoader.rules().size())));
+    }
+
+    private void registerConfigPrecheckContributor() {
+        coreLib.configPrecheckService().registry().register(new LevelConfigPrecheckContributor(this));
     }
 
     private void initializeServices() {

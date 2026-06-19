@@ -29,6 +29,7 @@ import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
+import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
@@ -102,6 +103,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
@@ -116,6 +118,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     @Override
     public void onDisable() {
+        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().unregister("forge");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -138,6 +141,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
         return lifecycleCoordinator.reloadAsync(this, autoSaveTask, closeOpenInventories, null)
                 .thenAccept(task -> autoSaveTask = task);
+    }
+
+    private void registerConfigPrecheckContributor() {
+        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().register(new ForgeConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(ForgeRuntimeComponents components) {

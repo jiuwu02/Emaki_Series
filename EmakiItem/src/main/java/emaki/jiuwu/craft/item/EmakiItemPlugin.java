@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.corelib.web.insight.WebInsightAliasResolver;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
+import emaki.jiuwu.craft.item.config.ItemConfigPrecheckContributor;
 import emaki.jiuwu.craft.item.listener.ItemDurabilityListener;
 import emaki.jiuwu.craft.item.listener.ItemRepairListener;
 import emaki.jiuwu.craft.item.listener.ItemTriggerListener;
@@ -147,6 +148,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
@@ -162,6 +164,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     @Override
     public void onDisable() {
+        coreLib().configPrecheckService().registry().unregister("item");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -184,6 +187,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
         return lifecycleCoordinator.reloadAsync(this, null);
+    }
+
+    private void registerConfigPrecheckContributor() {
+        coreLib().configPrecheckService().registry().register(new ItemConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(ItemRuntimeComponents components) {

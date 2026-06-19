@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
+import emaki.jiuwu.craft.gem.config.GemConfigPrecheckContributor;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
@@ -123,6 +124,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         if (languageLoader != null) {
             languageLoader.load();
             languageLoader.setLanguage(appConfig().language());
@@ -141,6 +143,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     @Override
     public void onDisable() {
+        coreLib().configPrecheckService().registry().unregister("gem");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -163,6 +166,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null);
+    }
+
+    private void registerConfigPrecheckContributor() {
+        coreLib().configPrecheckService().registry().register(new GemConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(GemRuntimeComponents components) {

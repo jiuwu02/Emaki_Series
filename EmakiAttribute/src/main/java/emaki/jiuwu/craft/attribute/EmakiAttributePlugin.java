@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.config.AttributeConfigPrecheckContributor;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -96,6 +97,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     @Override
     public void onEnable() {
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         registerAttributeBridgeService();
         registerPdcAttributeApi();
         registerAttributeServiceFacade();
@@ -115,6 +117,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        coreLib().configPrecheckService().registry().unregister("attribute");
         coreLib().scriptModuleRegistry().unregister("attribute");
         if (javaScriptAttributeExtensionLoader != null) {
             javaScriptAttributeExtensionLoader.close();
@@ -193,6 +196,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
                     }
                 });
         return reloadFuture;
+    }
+
+    private void registerConfigPrecheckContributor() {
+        coreLib().configPrecheckService().registry().register(new AttributeConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(AttributeRuntimeComponents components) {

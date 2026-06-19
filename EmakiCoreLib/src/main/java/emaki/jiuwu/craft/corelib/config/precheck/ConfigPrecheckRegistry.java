@@ -21,6 +21,13 @@ public final class ConfigPrecheckRegistry {
         return contributors.get(Texts.lower(module));
     }
 
+    public void unregister(String module) {
+        if (Texts.isBlank(module)) {
+            return;
+        }
+        contributors.remove(Texts.lower(module));
+    }
+
     public List<ConfigPrecheckContributor> all() {
         return List.copyOf(contributors.values());
     }

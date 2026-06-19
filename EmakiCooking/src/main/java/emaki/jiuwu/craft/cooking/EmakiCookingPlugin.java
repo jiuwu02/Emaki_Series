@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
+import emaki.jiuwu.craft.cooking.config.CookingConfigPrecheckContributor;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
@@ -135,6 +136,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
+        registerConfigPrecheckContributor();
         registerCommandHandler();
         registerEventHandlers();
         registerPublicApiService();
@@ -147,6 +149,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     @Override
     public void onDisable() {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        coreLibPlugin.configPrecheckService().registry().unregister("cooking");
         coreLibPlugin.namespaceRegistry().unregister("cooking");
         coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         WebConsoleRegistry.unregisterModule(this);
@@ -262,6 +265,11 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+    }
+
+    private void registerConfigPrecheckContributor() {
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        coreLibPlugin.configPrecheckService().registry().register(new CookingConfigPrecheckContributor(this));
     }
 
     private void registerPublicApiService() {
