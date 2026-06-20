@@ -13,8 +13,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -120,7 +119,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     @Override
     public void onDisable() {
-        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().unregister("forge");
+        ConfigPrecheckLifecycleSupport.unregister("forge");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -150,13 +149,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void logConfigPrecheckReport() {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        ConfigPrecheckReport report = coreLibPlugin.configPrecheckService().checkModule(coreLibPlugin.configModel(), "forge");
-        ConfigPrecheckMessages.logReport(messageService(), "forge", report);
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "forge");
     }
 
     private void registerConfigPrecheckContributor() {
-        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().register(new ForgeConfigPrecheckContributor(this));
+        ConfigPrecheckLifecycleSupport.register(new ForgeConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(ForgeRuntimeComponents components) {

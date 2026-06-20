@@ -10,8 +10,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.skills.script.ScriptSkillsModuleApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -161,7 +160,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
-        coreLib().configPrecheckService().registry().unregister("skills");
+        ConfigPrecheckLifecycleSupport.unregister("skills");
         coreLib().scriptModuleRegistry().unregister("skills");
         WebConsoleRegistry.unregisterModule(this);
         if (placeholderExpansion != null) {
@@ -200,12 +199,11 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void logConfigPrecheckReport() {
-        ConfigPrecheckReport report = coreLib().configPrecheckService().checkModule(coreLib().configModel(), "skills");
-        ConfigPrecheckMessages.logReport(messageService(), "skills", report);
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "skills");
     }
 
     private void registerConfigPrecheckContributor() {
-        coreLib().configPrecheckService().registry().register(new SkillsConfigPrecheckContributor(this));
+        ConfigPrecheckLifecycleSupport.register(new SkillsConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(SkillsRuntimeComponents components) {

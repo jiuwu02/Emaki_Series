@@ -39,8 +39,7 @@ import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeExtensionLoader;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
@@ -119,7 +118,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
-        coreLib().configPrecheckService().registry().unregister("attribute");
+        ConfigPrecheckLifecycleSupport.unregister("attribute");
         coreLib().scriptModuleRegistry().unregister("attribute");
         if (javaScriptAttributeExtensionLoader != null) {
             javaScriptAttributeExtensionLoader.close();
@@ -203,12 +202,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     }
 
     private void logConfigPrecheckReport() {
-        ConfigPrecheckReport report = coreLib().configPrecheckService().checkModule(coreLib().configModel(), "attribute");
-        ConfigPrecheckMessages.logReport(messageService(), "attribute", report);
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "attribute");
     }
 
     private void registerConfigPrecheckContributor() {
-        coreLib().configPrecheckService().registry().register(new AttributeConfigPrecheckContributor(this));
+        ConfigPrecheckLifecycleSupport.register(new AttributeConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(AttributeRuntimeComponents components) {

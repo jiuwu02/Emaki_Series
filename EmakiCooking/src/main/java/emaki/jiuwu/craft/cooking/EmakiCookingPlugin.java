@@ -12,8 +12,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
@@ -150,8 +149,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     @Override
     public void onDisable() {
+        ConfigPrecheckLifecycleSupport.unregister("cooking");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLibPlugin.configPrecheckService().registry().unregister("cooking");
         coreLibPlugin.namespaceRegistry().unregister("cooking");
         coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         WebConsoleRegistry.unregisterModule(this);
@@ -198,9 +197,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void logConfigPrecheckReport() {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        ConfigPrecheckReport report = coreLibPlugin.configPrecheckService().checkModule(coreLibPlugin.configModel(), "cooking");
-        ConfigPrecheckMessages.logReport(messageService(), "cooking", report);
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "cooking");
     }
 
     private void applyRuntimeComponents(CookingRuntimeComponents components) {
@@ -278,8 +275,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerConfigPrecheckContributor() {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLibPlugin.configPrecheckService().registry().register(new CookingConfigPrecheckContributor(this));
+        ConfigPrecheckLifecycleSupport.register(new CookingConfigPrecheckContributor(this));
     }
 
     private void registerPublicApiService() {

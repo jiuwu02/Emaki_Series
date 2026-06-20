@@ -15,8 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -149,7 +148,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     @Override
     public void onDisable() {
-        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().unregister("strengthen");
+        ConfigPrecheckLifecycleSupport.unregister("strengthen");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -178,13 +177,11 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void logConfigPrecheckReport() {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        ConfigPrecheckReport report = coreLibPlugin.configPrecheckService().checkModule(coreLibPlugin.configModel(), "strengthen");
-        ConfigPrecheckMessages.logReport(messageService(), "strengthen", report);
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "strengthen");
     }
 
     private void registerConfigPrecheckContributor() {
-        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().register(new StrengthenConfigPrecheckContributor(this));
+        ConfigPrecheckLifecycleSupport.register(new StrengthenConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(StrengthenRuntimeComponents components) {

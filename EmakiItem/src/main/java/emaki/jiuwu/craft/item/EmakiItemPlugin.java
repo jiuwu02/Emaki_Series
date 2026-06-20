@@ -15,8 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -166,7 +165,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     @Override
     public void onDisable() {
-        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().unregister("item");
+        ConfigPrecheckLifecycleSupport.unregister("item");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -194,13 +193,11 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void logConfigPrecheckReport() {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        ConfigPrecheckReport report = coreLibPlugin.configPrecheckService().checkModule(coreLibPlugin.configModel(), "item");
-        ConfigPrecheckMessages.logReport(messageService(), "item", report);
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "item");
     }
 
     private void registerConfigPrecheckContributor() {
-        JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configPrecheckService().registry().register(new ItemConfigPrecheckContributor(this));
+        ConfigPrecheckLifecycleSupport.register(new ItemConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(ItemRuntimeComponents components) {
