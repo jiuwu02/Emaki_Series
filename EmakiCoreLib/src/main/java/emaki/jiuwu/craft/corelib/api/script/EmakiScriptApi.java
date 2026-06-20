@@ -86,7 +86,7 @@ public final class EmakiScriptApi {
         this.logger = safeConfig.context().exposeLogger() ? new ScriptLoggerApi(this.sourcePlugin, scriptPath) : null;
         this.random = safeConfig.context().exposeRandom() ? new ScriptRandomApi() : null;
         this.state = safeConfig.context().exposeSharedState() ? new ScriptSharedStateApi(context) : null;
-        this.text = safeConfig.context().exposeText() ? new ScriptTextApi() : null;
+        this.text = safeConfig.context().exposeText() ? new ScriptTextApi(this.sourcePlugin) : null;
         this.corelib = new ScriptCoreLibModuleApi();
         this.moduleRegistry = moduleRegistry == null ? new ScriptModuleRegistry() : moduleRegistry;
         this.moduleContext = new ScriptModuleContext(context, arguments, actionExecutor, safeConfig, scriptPath, this.sourcePlugin, moduleOverrides);

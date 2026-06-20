@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-bstats-runtime</artifactId>
-    <version>4.3.14</version>
+    <version>4.3.15</version>
     <name>EmakiBStatsRuntime</name>
     <packaging>jar</packaging>
 

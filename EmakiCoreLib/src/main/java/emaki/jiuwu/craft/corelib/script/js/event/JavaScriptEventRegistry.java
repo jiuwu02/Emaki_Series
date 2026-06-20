@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
@@ -27,6 +28,7 @@ public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
     private final MessageService messageService;
     private final ScriptConfig scriptConfig;
     private final List<JavaScriptEventSubscription> subscriptions = new ArrayList<>();
+    private final List<Listener> dynamicListeners = new ArrayList<>();
 
     public JavaScriptEventRegistry(Plugin plugin,
             JavaScriptService javaScriptService,
@@ -43,6 +45,9 @@ public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
             return false;
         }
         subscriptions.add(subscription);
+        if (subscription.dynamicEventClassName()) {
+            registerDynamic(subscription);
+        }
         return true;
     }
 
@@ -51,12 +56,47 @@ public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
         subscriptions.removeIf(subscription -> subscription.id().equals(normalized));
     }
 
+    @SuppressWarnings("unchecked")
+    private void registerDynamic(JavaScriptEventSubscription subscription) {
+        if (plugin == null) {
+            return;
+        }
+        try {
+            Class<?> rawClass = Class.forName(subscription.eventType());
+            if (!org.bukkit.event.Event.class.isAssignableFrom(rawClass)) {
+                return;
+            }
+            Class<? extends org.bukkit.event.Event> eventClass = (Class<? extends org.bukkit.event.Event>) rawClass;
+            Listener listener = new Listener() {
+            };
+            dynamicListeners.add(listener);
+            EventExecutor executor = (ignored, event) -> invoke(subscription, event);
+            plugin.getServer().getPluginManager().registerEvent(
+                    eventClass,
+                    listener,
+                    subscription.priority(),
+                    executor,
+                    plugin,
+                    subscription.ignoreCancelled()
+            );
+        } catch (ClassNotFoundException | LinkageError exception) {
+            warning("console.js_event_unsupported", Map.of(
+                    "event", Texts.toStringSafe(subscription.eventType()),
+                    "script", Texts.toStringSafe(subscription.scriptPath())
+            ));
+        }
+    }
+
     public List<JavaScriptEventSubscription> subscriptions() {
         return List.copyOf(subscriptions);
     }
 
     @Override
     public void close() {
+        for (Listener listener : List.copyOf(dynamicListeners)) {
+            org.bukkit.event.HandlerList.unregisterAll(listener);
+        }
+        dynamicListeners.clear();
         subscriptions.clear();
     }
 
@@ -168,7 +208,7 @@ public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
     private void invoke(JavaScriptEventSubscription subscription, org.bukkit.event.Event event) {
         try {
             boolean allowMutation = subscription.priority() != EventPriority.MONITOR;
-            ScriptEventApi eventApi = new ScriptEventApi(subscription.eventType(), event, allowMutation);
+            ScriptEventApi eventApi = new ScriptEventApi(subscription.eventType(), event, allowMutation, scriptConfig.serverApi().allowRawEventAccess());
             ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
                     plugin,
                     null,
@@ -209,9 +249,17 @@ public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
     }
 
     public static boolean isSupported(String eventType) {
-        return switch (Texts.normalizeId(eventType)) {
-            case "player_interact", "player_join", "entity_damage_by_entity" -> true;
-            default -> false;
-        };
+        String normalized = Texts.normalizeId(eventType);
+        if ("player_interact".equals(normalized) || "player_join".equals(normalized) || "entity_damage_by_entity".equals(normalized)) {
+            return true;
+        }
+        if (Texts.isBlank(eventType) || !eventType.contains(".")) {
+            return false;
+        }
+        try {
+            return org.bukkit.event.Event.class.isAssignableFrom(Class.forName(eventType));
+        } catch (ClassNotFoundException | LinkageError exception) {
+            return false;
+        }
     }
 }

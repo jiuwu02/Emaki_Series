@@ -199,10 +199,11 @@ public record ScriptConfig(boolean enabled,
     public record ServerApi(boolean enabled,
             boolean allowTypeAccess,
             List<String> allowedTypePrefixes,
-            boolean allowConsoleCommand) {
+            boolean allowConsoleCommand,
+            boolean allowRawEventAccess) {
 
         public static ServerApi defaults() {
-            return new ServerApi(true, false, List.of("org.bukkit.", "io.papermc.paper."), false);
+            return new ServerApi(true, false, List.of("org.bukkit.", "io.papermc.paper."), false, false);
         }
 
         public static ServerApi fromConfig(YamlSection section) {
@@ -218,7 +219,8 @@ public record ScriptConfig(boolean enabled,
                     section.getBoolean("enabled", defaults.enabled()),
                     section.getBoolean("allow_type_access", defaults.allowTypeAccess()),
                     prefixes.isEmpty() ? defaults.allowedTypePrefixes() : List.copyOf(prefixes),
-                    section.getBoolean("allow_console_command", defaults.allowConsoleCommand())
+                    section.getBoolean("allow_console_command", defaults.allowConsoleCommand()),
+                    section.getBoolean("allow_raw_event_access", defaults.allowRawEventAccess())
             );
         }
     }

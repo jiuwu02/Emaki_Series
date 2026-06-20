@@ -1,4 +1,4 @@
-version: "1.1.4"
+version: "1.1.6"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiLevel</gradient> ]</gray>"
 console:
@@ -80,6 +80,7 @@ failure:
   max_level: "Already at max level"
   not_enough_exp: "Not enough exp"
   invalid_amount: "Invalid amount"
+  daily_cap_reached: "Daily exp cap reached"
   not_enough_money: "Not enough money"
   not_enough_material: "Not enough material"
   invalid_requirement: "Invalid requirement"

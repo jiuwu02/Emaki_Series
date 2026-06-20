@@ -7,7 +7,7 @@
 # ============================================================
 
 # 配置文件版本。仅用于标识当前默认配置结构，不建议手动修改。
-version: "1.1.5"
+version: "1.1.6"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -28,6 +28,34 @@ level:
   default_max_level: 100
   max_auto_upgrade_steps: 10
   keep_total_exp_at_max_level: true
+
+# v1.2 经验倍率活动示例。
+# enabled=true 表示启用倍率计算入口；默认所有倍率均为 1.0，因此不会改变旧行为。
+# 实际入账经验 = 原始经验 * global * types.<type> * reasons.<reason>。
+multipliers:
+  enabled: true
+  global: 1.0
+  types:
+    main: 1.0
+    combat: 1.0
+    cooking: 1.0
+    forging: 1.0
+  reasons:
+    action: 1.0
+    mythic_drop: 1.0
+    event_bonus: 1.0
+
+# v1.2 每日经验上限示例。
+# enabled=true 表示启用每日上限入口；-1 表示不限制，因此默认不会拦截经验。
+# 统计仅保存在本次服务器运行内存中，服务器重启后当日计数会清零。
+daily_caps:
+  enabled: true
+  default_limit: -1
+  types:
+    main: -1
+    combat: -1
+    cooking: -1
+    forging: -1
 
 storage:
   type: "yaml"

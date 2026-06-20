@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.level;
 import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
+import emaki.jiuwu.craft.level.service.LevelExperienceRuleService;
 import emaki.jiuwu.craft.level.service.LevelMessageService;
 import emaki.jiuwu.craft.level.service.LevelPdcService;
 import emaki.jiuwu.craft.level.service.LevelTopService;
@@ -19,6 +20,7 @@ record LevelRuntimeComponents(LevelMessageService messages,
         RequirementService requirementService,
         PlayerLevelDataStore dataStore,
         LevelPdcService pdcService,
+        LevelExperienceRuleService experienceRuleService,
         PlayerLevelService levelService,
         LevelTopService topService) {
 }

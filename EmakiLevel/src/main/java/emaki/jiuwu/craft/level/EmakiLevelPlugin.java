@@ -56,6 +56,7 @@ import emaki.jiuwu.craft.level.papi.LevelPlaceholderExpansion;
 import emaki.jiuwu.craft.level.service.LevelAntiAbuseService;
 import emaki.jiuwu.craft.level.service.LevelAttributeBridge;
 import emaki.jiuwu.craft.level.service.LevelCurveService;
+import emaki.jiuwu.craft.level.service.LevelExperienceRuleService;
 import emaki.jiuwu.craft.level.service.LevelGuiService;
 import emaki.jiuwu.craft.level.service.LevelMessageService;
 import emaki.jiuwu.craft.level.service.LevelPdcService;
@@ -121,6 +122,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private LevelCurveService curveService;
     private PlayerLevelDataStore dataStore;
     private LevelPdcService pdcService;
+    private LevelExperienceRuleService experienceRuleService;
     private LevelAntiAbuseService antiAbuseService;
     private PlayerLevelService levelService;
     private LevelTopService topService;
@@ -279,6 +281,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         requirementService.reload(requirementLoader.config());
         pdcService.enabled(appConfig.pdcEnabled());
         antiAbuseService.config(appConfig);
+        experienceRuleService.config(appConfig);
+        experienceRuleService.clearExpired();
         levelService.config(appConfig);
         if (attributeBridge != null) {
             attributeBridge.config(appConfig);
@@ -340,6 +344,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         curveService = new LevelCurveService(typeRegistry, requirementService);
         dataStore = new PlayerLevelDataStore(this);
         pdcService = new LevelPdcService(appConfig.pdcNamespace(), appConfig.pdcEnabled());
+        experienceRuleService = new LevelExperienceRuleService();
+        experienceRuleService.config(appConfig);
         antiAbuseService = new LevelAntiAbuseService(appConfig);
         attributeBridge = new LevelAttributeBridge(this, typeRegistry, dataStore, appConfig);
         topService = new LevelTopService(dataStore, typeRegistry);
@@ -349,6 +355,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
                 requirementService,
                 dataStore,
                 pdcService,
+                experienceRuleService,
                 coreLib.itemSourceService(),
                 coreLib.economyManager(),
                 coreLib.actionExecutor(),

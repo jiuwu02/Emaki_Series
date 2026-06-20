@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.3.14"
+version: "4.3.15"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -117,7 +117,9 @@ script:
     allowed_type_prefixes:
       - "org.bukkit."
       - "io.papermc.paper."
+      - "net.kyori."
     allow_console_command: false
+    allow_raw_event_access: false
   debug:
     log_script_load: true
     log_script_execute: false

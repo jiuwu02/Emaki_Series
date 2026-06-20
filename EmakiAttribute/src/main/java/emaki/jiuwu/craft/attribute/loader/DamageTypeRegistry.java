@@ -21,6 +21,8 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
     );
     private final AttributeRegistry attributeRegistry;
     private final Map<String, DamageTypeDefinition> aliasIndex = new LinkedHashMap<>();
+    private final Map<String, DamageTypeDefinition> runtimeDefinitions = new LinkedHashMap<>();
+    private final Map<String, String> runtimeSources = new LinkedHashMap<>();
     private volatile String definitionSignature = "";
 
     public DamageTypeRegistry(EmakiAttributePlugin plugin, AttributeRegistry attributeRegistry) {
@@ -104,14 +106,68 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
 
     @Override
     protected void afterLoad() {
-        aliasIndex.clear();
-        for (DamageTypeDefinition definition : items.values()) {
-            aliasIndex.put(definition.id(), definition);
-            for (String alias : definition.aliases()) {
-                aliasIndex.putIfAbsent(normalizeId(alias), definition);
+        rebuildIndexes();
+    }
+
+    public boolean registerRuntime(DamageTypeDefinition definition, String source) {
+        synchronized (stateLock) {
+            if (definition == null || Texts.isBlank(definition.id())) {
+                return false;
             }
+            String id = normalizeId(definition.id());
+            runtimeDefinitions.put(id, definition);
+            runtimeSources.put(id, Texts.toStringSafe(source));
+            rebuildIndexes();
+            return true;
         }
-        definitionSignature = SignatureUtil.stableSignature(items.values());
+    }
+
+    public void clearRuntimeBySource(String source) {
+        synchronized (stateLock) {
+            String safeSource = Texts.toStringSafe(source);
+            if (safeSource.isBlank()) {
+                runtimeDefinitions.clear();
+                runtimeSources.clear();
+                rebuildIndexes();
+                return;
+            }
+            for (String id : java.util.List.copyOf(runtimeSources.keySet())) {
+                if (safeSource.equals(runtimeSources.get(id))) {
+                    runtimeSources.remove(id);
+                    runtimeDefinitions.remove(id);
+                }
+            }
+            rebuildIndexes();
+        }
+    }
+
+    public void clearRuntime() {
+        synchronized (stateLock) {
+            runtimeDefinitions.clear();
+            runtimeSources.clear();
+            rebuildIndexes();
+        }
+    }
+
+    @Override
+    public Map<String, DamageTypeDefinition> all() {
+        synchronized (stateLock) {
+            Map<String, DamageTypeDefinition> merged = new LinkedHashMap<>(items);
+            merged.putAll(runtimeDefinitions);
+            return Map.copyOf(merged);
+        }
+    }
+
+    @Override
+    public DamageTypeDefinition get(String id) {
+        synchronized (stateLock) {
+            if (Texts.isBlank(id)) {
+                return null;
+            }
+            String normalized = normalizeId(id);
+            DamageTypeDefinition runtime = runtimeDefinitions.get(normalized);
+            return runtime == null ? items.get(normalized) : runtime;
+        }
     }
 
     public DamageTypeDefinition resolve(String id) {
@@ -121,6 +177,19 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
             }
             return aliasIndex.get(normalizeId(id));
         }
+    }
+
+    private void rebuildIndexes() {
+        aliasIndex.clear();
+        Map<String, DamageTypeDefinition> merged = new LinkedHashMap<>(items);
+        merged.putAll(runtimeDefinitions);
+        for (DamageTypeDefinition definition : merged.values()) {
+            aliasIndex.put(definition.id(), definition);
+            for (String alias : definition.aliases()) {
+                aliasIndex.putIfAbsent(normalizeId(alias), definition);
+            }
+        }
+        definitionSignature = SignatureUtil.stableSignature(merged.values());
     }
 
     public String definitionSignature() {

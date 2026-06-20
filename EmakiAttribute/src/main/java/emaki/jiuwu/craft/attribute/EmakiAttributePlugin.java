@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeExtensionLoader;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
@@ -91,6 +92,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
     private JavaScriptDamageHookRegistry javaScriptDamageHookRegistry;
+    private JavaScriptDamagePipelineRegistry javaScriptDamagePipelineRegistry;
     private JavaScriptAttributeExtensionLoader javaScriptAttributeExtensionLoader;
     private TaskHandle regenTask;
     private CompletableFuture<Void> reloadFuture;
@@ -348,6 +350,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return javaScriptDamageHookRegistry;
     }
 
+    public JavaScriptDamagePipelineRegistry javaScriptDamagePipelineRegistry() {
+        return javaScriptDamagePipelineRegistry;
+    }
+
     public DebugCommand debugCommand() {
         return debugCommand;
     }
@@ -403,11 +409,15 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         if (javaScriptDamageHookRegistry == null) {
             javaScriptDamageHookRegistry = new JavaScriptDamageHookRegistry(this, coreLibPlugin.javaScriptService(), coreLibPlugin.configModel().scriptConfig());
         }
+        if (javaScriptDamagePipelineRegistry == null) {
+            javaScriptDamagePipelineRegistry = new JavaScriptDamagePipelineRegistry(this, coreLibPlugin.javaScriptService(), coreLibPlugin.configModel().scriptConfig());
+        }
         javaScriptAttributeExtensionLoader = new JavaScriptAttributeExtensionLoader(
                 this,
                 coreLibPlugin.javaScriptService(),
                 coreLibPlugin.configModel().scriptConfig(),
-                javaScriptDamageHookRegistry
+                javaScriptDamageHookRegistry,
+                javaScriptDamagePipelineRegistry
         );
         javaScriptAttributeExtensionLoader.reload();
     }

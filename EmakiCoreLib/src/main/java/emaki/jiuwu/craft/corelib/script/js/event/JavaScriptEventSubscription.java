@@ -9,4 +9,8 @@ public record JavaScriptEventSubscription(String id,
         String scriptPath,
         String functionName,
         long timeoutMillis) {
+
+    public boolean dynamicEventClassName() {
+        return eventType != null && eventType.contains(".");
+    }
 }

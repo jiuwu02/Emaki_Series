@@ -22,16 +22,19 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
     private final JavaScriptService javaScriptService;
     private final ScriptConfig scriptConfig;
     private final JavaScriptDamageHookRegistry damageHookRegistry;
+    private final JavaScriptDamagePipelineRegistry damagePipelineRegistry;
     private final java.util.Set<String> registeredProviders = new java.util.LinkedHashSet<>();
 
     public JavaScriptAttributeExtensionLoader(EmakiAttributePlugin plugin,
             JavaScriptService javaScriptService,
             ScriptConfig scriptConfig,
-            JavaScriptDamageHookRegistry damageHookRegistry) {
+            JavaScriptDamageHookRegistry damageHookRegistry,
+            JavaScriptDamagePipelineRegistry damagePipelineRegistry) {
         this.plugin = plugin;
         this.javaScriptService = javaScriptService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
         this.damageHookRegistry = damageHookRegistry;
+        this.damagePipelineRegistry = damagePipelineRegistry;
     }
 
     public int reload() {
@@ -41,7 +44,7 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
         }
         int loaded = 0;
         for (String scriptPath : scanScripts()) {
-            JavaScriptAttributeRegistrationApi api = new JavaScriptAttributeRegistrationApi(plugin, javaScriptService, scriptConfig, damageHookRegistry, scriptPath);
+            JavaScriptAttributeRegistrationApi api = new JavaScriptAttributeRegistrationApi(plugin, javaScriptService, scriptConfig, damageHookRegistry, damagePipelineRegistry, scriptPath);
             ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
                     plugin,
                     null,
@@ -71,7 +74,8 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
         if (loaded > 0) {
             plugin.messageService().info("console.js_attribute_extensions_loaded", Map.of(
                     "count", String.valueOf(loaded),
-                    "damage_hooks", String.valueOf(damageHookRegistry == null ? 0 : damageHookRegistry.size())
+                    "damage_hooks", String.valueOf(damageHookRegistry == null ? 0 : damageHookRegistry.size()),
+                    "damage_pipelines", String.valueOf(damagePipelineRegistry == null ? 0 : damagePipelineRegistry.size())
             ));
         }
         return loaded;
@@ -88,8 +92,14 @@ public final class JavaScriptAttributeExtensionLoader implements AutoCloseable {
         if (plugin != null && plugin.attributeRegistry() != null) {
             plugin.attributeRegistry().clearRuntime();
         }
+        if (plugin != null && plugin.damageTypeRegistry() != null) {
+            plugin.damageTypeRegistry().clearRuntime();
+        }
         if (damageHookRegistry != null) {
             damageHookRegistry.clear();
+        }
+        if (damagePipelineRegistry != null) {
+            damagePipelineRegistry.clear();
         }
     }
 

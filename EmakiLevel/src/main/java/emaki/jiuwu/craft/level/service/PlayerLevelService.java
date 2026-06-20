@@ -35,6 +35,7 @@ public final class PlayerLevelService {
     private final RequirementService requirementService;
     private final PlayerLevelDataStore dataStore;
     private final LevelPdcService pdcService;
+    private final LevelExperienceRuleService experienceRuleService;
     private final ItemSourceService itemSourceService;
     private final EconomyManager economyManager;
     private final ActionExecutor actionExecutor;
@@ -48,6 +49,7 @@ public final class PlayerLevelService {
             RequirementService requirementService,
             PlayerLevelDataStore dataStore,
             LevelPdcService pdcService,
+            LevelExperienceRuleService experienceRuleService,
             ItemSourceService itemSourceService,
             EconomyManager economyManager,
             ActionExecutor actionExecutor,
@@ -60,6 +62,7 @@ public final class PlayerLevelService {
         this.requirementService = requirementService;
         this.dataStore = dataStore;
         this.pdcService = pdcService;
+        this.experienceRuleService = experienceRuleService == null ? new LevelExperienceRuleService() : experienceRuleService;
         this.itemSourceService = itemSourceService;
         this.economyManager = economyManager;
         this.actionExecutor = actionExecutor;
@@ -71,6 +74,7 @@ public final class PlayerLevelService {
 
     public void config(AppConfig config) {
         this.config = config;
+        experienceRuleService.config(config);
     }
 
     public LevelOperationResult addExp(UUID uuid, String typeId, double amount, String reason) {
@@ -88,6 +92,14 @@ public final class PlayerLevelService {
         if (!type.enabled()) {
             return failure(LevelFailureReason.TYPE_DISABLED, LevelOperationType.ADD_EXP, type.id());
         }
+        LevelExperienceRuleService.LevelExperienceAdjustment adjustment = experienceRuleService.adjust(uuid, type.id(), amount, reason);
+        if (adjustment.actualAmount() <= 0D) {
+            String failureReason = LevelFailureReason.DAILY_CAP_REACHED.equals(adjustment.reason())
+                    ? LevelFailureReason.DAILY_CAP_REACHED
+                    : LevelFailureReason.INVALID_AMOUNT;
+            return failure(failureReason, LevelOperationType.ADD_EXP, type.id()).withData(adjustment.data());
+        }
+        amount = adjustment.actualAmount();
         PlayerLevelData data = dataStore.getOrLoad(uuid, typeRegistry.asMap());
         PlayerLevelEntry entry = data.entry(type.id());
         int oldLevel = entry.level();
@@ -99,7 +111,7 @@ public final class PlayerLevelService {
             }
             sync(uuid, type, entry);
             publishDataChange(data);
-            return LevelOperationResult.success(LevelOperationType.ADD_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
+            return LevelOperationResult.success(LevelOperationType.ADD_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount).withData(adjustment.data());
         }
         entry.exp(entry.exp() + amount);
         entry.totalExp(entry.totalExp() + amount);
@@ -123,7 +135,7 @@ public final class PlayerLevelService {
         }
         sync(uuid, type, entry);
         publishDataChange(data);
-        return LevelOperationResult.success(LevelOperationType.ADD_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
+        return LevelOperationResult.success(LevelOperationType.ADD_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount).withData(adjustment.data());
     }
 
     public LevelOperationResult setExp(UUID uuid, String typeId, double amount, String reason) {

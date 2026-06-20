@@ -50,7 +50,7 @@ console:
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
   js_attribute_extension_no_result: "no result"
   js_attribute_extension_load_failed: "<yellow>Failed to load JavaScript attribute extension: <white>%script%</white> (<red>%error%</red>)</yellow>"
-  js_attribute_extensions_loaded: "<gray>Loaded <yellow>%count%</yellow> JavaScript attribute extension script(s), damage hooks=<yellow>%damage_hooks%</yellow></gray>"
+  js_attribute_extensions_loaded: "<gray>Loaded <yellow>%count%</yellow> JavaScript attribute extension script(s), damage hooks=<yellow>%damage_hooks%</yellow>, damage pipelines=<yellow>%damage_pipelines%</yellow></gray>"
   js_attribute_extension_directory_create_failed: "<yellow>Failed to create JavaScript attribute extension directory: <red>%error%</red></yellow>"
   js_attribute_extension_scan_failed: "<yellow>Failed to scan JavaScript attribute extensions: <red>%error%</red></yellow>"
   js_attribute_blank_id: "<yellow>JavaScript attribute definition ID cannot be blank: <white>%script%</white></yellow>"
@@ -60,6 +60,10 @@ console:
   js_damage_hook_invalid: "<yellow>JavaScript damage hook requires id and function: <white>%script%</white></yellow>"
   js_damage_hook_registered: "<gray>Registered JavaScript damage hook: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
   js_damage_hook_failed: "<yellow>JavaScript damage hook failed: <aqua>%id%</aqua> (<red>%error%</red>)</yellow>"
+  js_damage_type_invalid: "<yellow>Invalid JavaScript damage type definition: <white>%script%</white></yellow>"
+  js_damage_type_registered: "<gray>Registered JavaScript damage type: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_damage_pipeline_invalid: "<yellow>JavaScript damage pipeline requires id and function: <white>%script%</white></yellow>"
+  js_damage_pipeline_registered: "<gray>Registered JavaScript damage pipeline: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
 
 loader:
   lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"

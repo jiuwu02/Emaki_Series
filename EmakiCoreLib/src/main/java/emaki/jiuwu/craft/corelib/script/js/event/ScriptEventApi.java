@@ -25,12 +25,18 @@ public final class ScriptEventApi {
     private final String type;
     private final Event event;
     private final boolean allowMutation;
+    private final boolean allowRawAccess;
     private final Map<String, Object> meta = new LinkedHashMap<>();
 
     public ScriptEventApi(String type, Event event, boolean allowMutation) {
+        this(type, event, allowMutation, false);
+    }
+
+    public ScriptEventApi(String type, Event event, boolean allowMutation, boolean allowRawAccess) {
         this.type = Texts.normalizeId(type);
         this.event = event;
         this.allowMutation = allowMutation;
+        this.allowRawAccess = allowRawAccess;
     }
 
     @HostAccess.Export
@@ -41,6 +47,11 @@ public final class ScriptEventApi {
     @HostAccess.Export
     public String eventClass() {
         return event == null ? "" : event.getClass().getName();
+    }
+
+    @HostAccess.Export
+    public Object raw() {
+        return allowRawAccess ? event : null;
     }
 
     @HostAccess.Export
