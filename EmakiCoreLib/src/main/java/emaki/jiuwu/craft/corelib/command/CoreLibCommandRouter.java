@@ -25,8 +25,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final String PERMISSION_WEB = "emakicorelib.web";
     private static final String PERMISSION_RELOAD = "emakicorelib.reload";
     private static final String PERMISSION_ADMIN = "emakicorelib.admin";
-    private static final List<String> SUB_COMMANDS = List.of("help", "web", "webconsole", "url", "link", "reload", "check", "debug", "webdebug");
+    private static final List<String> SUB_COMMANDS = List.of("help", "web", "webconsole", "url", "link", "reload", "check", "debug", "webdebug", "script");
     private static final List<String> WEBDEBUG_MODES = List.of("frontend", "backend", "all");
+    private static final List<String> SCRIPT_MODES = List.of("list", "inspect", "reload");
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
     private static final List<String> DEBUG_MODES = List.of("loops");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
@@ -53,6 +54,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             case "check" -> handleCheck(sender, args);
             case "debug" -> handleDebug(sender, args);
             case "webdebug" -> handleWebDebug(sender, args);
+            case "script" -> handleScript(sender, args);
             default -> {
                 sendHelp(sender, label);
                 yield true;
@@ -75,6 +77,18 @@ public final class CoreLibCommandRouter implements TabExecutor {
         } else if (args.length == 2 && "check".equalsIgnoreCase(args[0])) {
             complete(args[1], CHECK_MODES, result);
             complete(args[1], plugin.configPrecheckService().registry().moduleIds(), result);
+        } else if (args.length == 2 && "script".equalsIgnoreCase(args[0])) {
+            complete(args[1], SCRIPT_MODES, result);
+        } else if (args.length == 3 && "script".equalsIgnoreCase(args[0]) && "inspect".equalsIgnoreCase(args[1])) {
+            Object scripts = plugin.javaScriptExtensionStatus().get("globalExtensionScripts");
+            if (scripts instanceof Iterable<?> iterable) {
+                for (Object script : iterable) {
+                    String value = Texts.toStringSafe(script);
+                    if (value.startsWith(args[2])) {
+                        result.add(value);
+                    }
+                }
+            }
         } else if (args.length == 2 && "debug".equalsIgnoreCase(args[0])) {
             complete(args[1], DEBUG_MODES, result);
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1])) {
@@ -138,6 +152,26 @@ public final class CoreLibCommandRouter implements TabExecutor {
                 ? plugin.configPrecheckService().checkModule(plugin.configModel(), args[1])
                 : (args.length >= 2 ? plugin.configPrecheckService().lastReport() : plugin.configPrecheckService().checkAll(plugin.configModel()));
         sendReport(sender, report);
+        return true;
+    }
+
+    private boolean handleScript(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            sendLang(sender, "command.no_permission_admin");
+            return true;
+        }
+        String mode = args.length >= 2 ? args[1].toLowerCase(java.util.Locale.ROOT) : "list";
+        switch (mode) {
+            case "reload" -> {
+                if (plugin.reloadActionSystem()) {
+                    sendLang(sender, "command.script_reload_success");
+                } else {
+                    sendLang(sender, "command.reload_failed_precheck");
+                }
+            }
+            case "inspect" -> sendScriptInspect(sender, args.length >= 3 ? args[2] : "");
+            default -> sendScriptList(sender);
+        }
         return true;
     }
 
@@ -218,6 +252,47 @@ public final class CoreLibCommandRouter implements TabExecutor {
         return true;
     }
 
+    private void sendScriptList(CommandSender sender) {
+        Map<String, Object> status = plugin.javaScriptExtensionStatus();
+        Object scripts = status.get("globalExtensionScripts");
+        Object registrations = status.get("registrations");
+        int scriptCount = scripts instanceof java.util.Collection<?> collection ? collection.size() : 0;
+        int registrationCount = registrations instanceof java.util.Collection<?> collection ? collection.size() : 0;
+        sendLang(sender, "command.script_list_header", Map.of("scripts", String.valueOf(scriptCount), "registrations", String.valueOf(registrationCount)));
+        if (scripts instanceof Iterable<?> iterable) {
+            for (Object script : iterable) {
+                plugin.messageService().sendRaw(sender, plugin.messageService().message("command.script_list_item", Map.of("script", Texts.toStringSafe(script))));
+            }
+        }
+    }
+
+    private void sendScriptInspect(CommandSender sender, String scriptPath) {
+        if (Texts.isBlank(scriptPath)) {
+            sendLang(sender, "command.script_inspect_usage");
+            return;
+        }
+        Map<String, Object> status = plugin.javaScriptExtensionStatus();
+        sendLang(sender, "command.script_inspect_header", Map.of("script", scriptPath));
+        Object registrations = status.get("registrations");
+        int count = 0;
+        if (registrations instanceof Iterable<?> iterable) {
+            for (Object raw : iterable) {
+                if (!(raw instanceof Map<?, ?> item) || !scriptPath.equals(Texts.toStringSafe(item.get("script")))) {
+                    continue;
+                }
+                count++;
+                plugin.messageService().sendRaw(sender, plugin.messageService().message("command.script_inspect_registration", Map.of(
+                        "type", Texts.toStringSafe(item.get("type")),
+                        "id", Texts.toStringSafe(item.get("id")),
+                        "duration", Texts.toStringSafe(item.get("durationMillis"))
+                )));
+            }
+        }
+        if (count == 0) {
+            sendLang(sender, "command.script_inspect_empty");
+        }
+    }
+
     private void sendReport(CommandSender sender, ConfigPrecheckReport report) {
         if (report == null) {
             sendLang(sender, "command.check_no_report");
@@ -248,6 +323,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
         sendLang(sender, "command.help_web", Map.of("root", root));
         sendLang(sender, "command.help_reload", Map.of("root", root));
         sendLang(sender, "command.help_check", Map.of("root", root));
+        sendLang(sender, "command.help_script", Map.of("root", root));
         sendLang(sender, "command.help_debug_loops", Map.of("root", root));
         sendLang(sender, "command.help_webdebug", Map.of("root", root));
     }

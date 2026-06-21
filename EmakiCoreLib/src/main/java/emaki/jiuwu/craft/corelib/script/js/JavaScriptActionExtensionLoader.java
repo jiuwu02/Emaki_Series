@@ -19,6 +19,9 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventRegistry;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationSnapshot;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -38,7 +41,11 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
     private final List<JavaScriptPlaceholderResolver> registeredPlaceholders = new ArrayList<>();
     private final List<String> loadedExtensionScripts = new ArrayList<>();
     private final List<Map<String, Object>> recentErrors = new ArrayList<>();
+    private final JavaScriptRegistrationTracker registrationTracker = new JavaScriptRegistrationTracker();
+    private final java.util.function.Supplier<emaki.jiuwu.craft.corelib.debug.DebugLogger> debugLoggerSupplier;
     private JavaScriptEventRegistry eventRegistry;
+    private JavaScriptExpressionFunctionRegistry expressionFunctionRegistry;
+    private JavaScriptConditionRegistry conditionRegistry;
 
     public JavaScriptActionExtensionLoader(Plugin plugin,
             ActionRegistry registry,
@@ -46,7 +53,8 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
             JavaScriptService javaScriptService,
             MessageService messageService,
             ScriptConfig scriptConfig,
-            Path scriptRoot) {
+            Path scriptRoot,
+            java.util.function.Supplier<emaki.jiuwu.craft.corelib.debug.DebugLogger> debugLoggerSupplier) {
         this.plugin = plugin;
         this.registry = registry;
         this.placeholderRegistry = placeholderRegistry;
@@ -54,6 +62,7 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
         this.messageService = messageService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
         this.scriptRoot = scriptRoot;
+        this.debugLoggerSupplier = debugLoggerSupplier;
     }
 
     public int reload() {
@@ -64,6 +73,10 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
             return 0;
         }
         eventRegistry = new JavaScriptEventRegistry(plugin, javaScriptService, messageService, scriptConfig);
+        expressionFunctionRegistry = new JavaScriptExpressionFunctionRegistry(plugin, javaScriptService, scriptConfig, registrationTracker, debugLoggerSupplier);
+        conditionRegistry = new JavaScriptConditionRegistry(plugin, javaScriptService, scriptConfig, registrationTracker, debugLoggerSupplier);
+        emaki.jiuwu.craft.corelib.expression.ExpressionEngine.installJavaScriptFunctionRegistry(expressionFunctionRegistry);
+        emaki.jiuwu.craft.corelib.condition.ConditionEvaluator.installJavaScriptConditionRegistry(conditionRegistry);
         plugin.getServer().getPluginManager().registerEvents(eventRegistry, plugin);
         List<String> scripts = scanScripts();
         int loaded = 0;
@@ -76,7 +89,10 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
                     javaScriptService,
                     messageService,
                     scriptConfig,
-                    scriptPath
+                    scriptPath,
+                    registrationTracker,
+                    expressionFunctionRegistry,
+                    conditionRegistry
             );
             ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
                     plugin,
@@ -124,7 +140,10 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
         snapshot.put("actions", actionSnapshots());
         snapshot.put("placeholders", placeholderSnapshots());
         snapshot.put("events", eventSnapshots());
-        snapshot.put("recentErrors", List.copyOf(recentErrors));
+        snapshot.put("registrations", registrationSnapshots());
+        snapshot.put("expressionFunctions", registrationSnapshots(JavaScriptRegistrationType.EXPRESSION_FUNCTION));
+        snapshot.put("conditions", registrationSnapshots(JavaScriptRegistrationType.CONDITION));
+        snapshot.put("recentErrors", recentErrors());
         return snapshot;
     }
 
@@ -135,6 +154,17 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
             eventRegistry.close();
             eventRegistry = null;
         }
+        if (expressionFunctionRegistry != null) {
+            emaki.jiuwu.craft.corelib.expression.ExpressionEngine.uninstallJavaScriptFunctionRegistry(expressionFunctionRegistry);
+            expressionFunctionRegistry.clear();
+            expressionFunctionRegistry = null;
+        }
+        if (conditionRegistry != null) {
+            emaki.jiuwu.craft.corelib.condition.ConditionEvaluator.uninstallJavaScriptConditionRegistry(conditionRegistry);
+            conditionRegistry.clear();
+            conditionRegistry = null;
+        }
+        registrationTracker.unregisterAll();
         if (placeholderRegistry != null) {
             for (JavaScriptPlaceholderResolver resolver : List.copyOf(registeredPlaceholders)) {
                 placeholderRegistry.unregister(resolver);
@@ -200,6 +230,36 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
             events.add(item);
         }
         return List.copyOf(events);
+    }
+
+    private List<Map<String, Object>> registrationSnapshots() {
+        return registrationSnapshots(null);
+    }
+
+    private List<Map<String, Object>> registrationSnapshots(JavaScriptRegistrationType type) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (JavaScriptRegistrationSnapshot snapshot : registrationTracker.snapshots()) {
+            if (type != null && snapshot.type() != type) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", snapshot.id());
+            item.put("type", snapshot.type().name().toLowerCase(java.util.Locale.ROOT));
+            item.put("owner", snapshot.owner());
+            item.put("script", snapshot.scriptPath());
+            item.put("registeredAt", snapshot.registeredAtMillis());
+            item.put("durationMillis", snapshot.registrationDurationMillis());
+            item.put("metadata", snapshot.metadata());
+            result.add(item);
+        }
+        return List.copyOf(result);
+    }
+
+    private List<Map<String, Object>> recentErrors() {
+        List<Map<String, Object>> combined = new ArrayList<>();
+        combined.addAll(recentErrors);
+        combined.addAll(registrationTracker.recentErrors());
+        return List.copyOf(combined);
     }
 
     private void recordError(String scriptPath, String phase, String message) {

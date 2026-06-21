@@ -20,6 +20,7 @@ public final class ExpressionEngine {
     static final Pattern VARIABLE_PATTERN = Pattern.compile("%([^%\\s]+)%");
     private static final double INTEGER_ROUNDING_EPSILON = 1.0E-9D;
     private static final String DEFAULT_RANDOM_CHARS = "abcdefghijklmnopqrstuvwxyz";
+    private static volatile emaki.jiuwu.craft.corelib.script.js.JavaScriptExpressionFunctionRegistry javaScriptFunctionRegistry;
     private static final Function[] CUSTOM_FUNCTIONS = new Function[]{
         new Function("ceil", 1) {
             @Override
@@ -66,6 +67,20 @@ public final class ExpressionEngine {
     };
 
     private ExpressionEngine() {
+    }
+
+    public static void installJavaScriptFunctionRegistry(emaki.jiuwu.craft.corelib.script.js.JavaScriptExpressionFunctionRegistry registry) {
+        javaScriptFunctionRegistry = registry;
+        clearGlobalCache();
+        clearThreadLocalCache();
+    }
+
+    public static void uninstallJavaScriptFunctionRegistry(emaki.jiuwu.craft.corelib.script.js.JavaScriptExpressionFunctionRegistry registry) {
+        if (javaScriptFunctionRegistry == registry) {
+            javaScriptFunctionRegistry = null;
+            clearGlobalCache();
+            clearThreadLocalCache();
+        }
     }
 
     public static double evaluate(String expression) {
@@ -362,7 +377,7 @@ public final class ExpressionEngine {
         }
         try {
             Expression compiled = ExpressionCache.getOrCompile(prepared,
-                    expr -> new ExpressionBuilder(expr).functions(CUSTOM_FUNCTIONS).build());
+                    expr -> new ExpressionBuilder(expr).functions(expressionFunctions()).build());
             double result = compiled.evaluate();
             if (Double.isNaN(result) || Double.isInfinite(result)) {
                 return NumericEvaluationResult.failure("Numeric expression produced a non-finite result: "
@@ -373,6 +388,22 @@ public final class ExpressionEngine {
             return NumericEvaluationResult.failure("Numeric expression could not be evaluated: "
                     + abbreviate(prepared) + " (" + Texts.toStringSafe(exception.getMessage()) + ")");
         }
+    }
+
+    static List<String> registeredJavaScriptFunctionIds() {
+        emaki.jiuwu.craft.corelib.script.js.JavaScriptExpressionFunctionRegistry registry = javaScriptFunctionRegistry;
+        return registry == null ? List.of() : registry.functionIds();
+    }
+
+    private static Function[] expressionFunctions() {
+        emaki.jiuwu.craft.corelib.script.js.JavaScriptExpressionFunctionRegistry registry = javaScriptFunctionRegistry;
+        if (registry == null) {
+            return CUSTOM_FUNCTIONS;
+        }
+        List<Function> functions = new ArrayList<>();
+        functions.addAll(List.of(CUSTOM_FUNCTIONS));
+        functions.addAll(registry.exp4jFunctions());
+        return functions.toArray(Function[]::new);
     }
 
     private static NumericPreparation prepareNumericExpression(String expression,

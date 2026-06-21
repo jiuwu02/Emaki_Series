@@ -353,7 +353,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 javaScriptService,
                 messageService,
                 configModel.scriptConfig(),
-                dataPath(configModel.scriptConfig().paths().root())
+                dataPath(configModel.scriptConfig().paths().root()),
+                this::debugLogger
         );
         javaScriptActionExtensionLoader.reload();
     }

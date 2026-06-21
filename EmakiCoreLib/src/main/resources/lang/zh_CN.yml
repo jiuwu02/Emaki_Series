@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.3.13"
+version: "4.3.16"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -50,6 +50,12 @@ console:
   js_event_registered: "<gray>已注册 JavaScript 事件监听器: <aqua>%id%</aqua> -> <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
   js_event_listener_failed: "<red>JavaScript 事件监听器执行失败: <aqua>%id%</aqua> (%error%)</red>"
   js_event_listener_exception: "<red>JavaScript 事件监听器异常: <aqua>%id%</aqua> (%error%)</red>"
+  js_expression_blank_id: "<yellow>JavaScript 表达式函数 ID 为空: <gray>%script%</gray></yellow>"
+  js_expression_registered: "<gray>已注册 JavaScript 表达式函数: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_expression_register_failed: "<red>注册 JavaScript 表达式函数失败: <aqua>%id%</aqua></red>"
+  js_condition_blank_id: "<yellow>JavaScript 条件 ID 为空: <gray>%script%</gray></yellow>"
+  js_condition_registered: "<gray>已注册 JavaScript 条件: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_condition_register_failed: "<red>注册 JavaScript 条件失败: <aqua>%id%</aqua></red>"
   action_config_load_failed: "<red>加载动作配置失败: %error%</red>"
   item_source_bridge_ready: "<gray>已接入物品源: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "<gray>已检测到 <aqua>%library%</aqua>，等待物品注册完成: %detail%</gray>"
@@ -147,6 +153,7 @@ command:
   help_web: "<green>%root% web</green><gray> - 输出可点击的 Web Console 链接</gray>"
   help_reload: "<green>%root% reload</green><gray> - 重载 CoreLib 配置与 Web Console</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - 执行配置预检或查看最近报告</gray>"
+  help_script: "<green>%root% script [list|inspect|reload]</green><gray> - 查看或重载 JavaScript 扩展</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消循环 Action 任务</gray>"
   help_webdebug: "<green>%root% webdebug [frontend|backend|all]</green><gray> - Web Console 启用后开关前端/后端调试日志</gray>"
 

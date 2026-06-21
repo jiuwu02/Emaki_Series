@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.3.13"
+version: "4.3.16"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -50,6 +50,12 @@ console:
   js_event_registered: "<gray>Registered JavaScript event listener: <aqua>%id%</aqua> -> <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
   js_event_listener_failed: "<red>JavaScript event listener failed: <aqua>%id%</aqua> (%error%)</red>"
   js_event_listener_exception: "<red>JavaScript event listener exception: <aqua>%id%</aqua> (%error%)</red>"
+  js_expression_blank_id: "<yellow>JavaScript expression function ID is blank: <gray>%script%</gray></yellow>"
+  js_expression_registered: "<gray>Registered JavaScript expression function: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_expression_register_failed: "<red>Failed to register JavaScript expression function: <aqua>%id%</aqua></red>"
+  js_condition_blank_id: "<yellow>JavaScript condition ID is blank: <gray>%script%</gray></yellow>"
+  js_condition_registered: "<gray>Registered JavaScript condition: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
+  js_condition_register_failed: "<red>Failed to register JavaScript condition: <aqua>%id%</aqua></red>"
   action_config_load_failed: "<red>Failed to load action config: %error%</red>"
   item_source_bridge_ready: "<gray>Item source connected: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "<gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"
