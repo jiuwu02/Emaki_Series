@@ -270,8 +270,36 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         getServer().getPluginManager().registerEvents(new ItemRepairListener(this, repairService), this);
     }
 
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("exists", "exists(id)", "exists(\"example_item\")");
+        scriptMethod("create", "create(id, amount)", "create(\"example_item\", 1)");
+        scriptMethod("identify", "identify(itemKey)", "identify(\"item\")");
+        scriptMethod("definitionIds", "definitionIds()", "definitionIds()");
+        scriptMethod("displayName", "displayName(id)", "displayName(\"example_item\")");
+        scriptMethod("registerDefinition", "registerDefinition(definition)", "registerDefinition({ id: \"event_sword\", source: \"minecraft:diamond_sword\" })");
+        scriptMethod("unregisterDefinition", "unregisterDefinition(id)", "unregisterDefinition(\"event_sword\")");
+        scriptMethod("registeredDefinitions", "registeredDefinitions()", "registeredDefinitions()");
+        scriptMethod("registerFactory", "registerFactory(definition)", "registerFactory({ id: \"random_relic\", function: \"createRelic\" })");
+        scriptMethod("unregisterFactory", "unregisterFactory(id)", "unregisterFactory(\"random_relic\")");
+        scriptMethod("registeredFactories", "registeredFactories()", "registeredFactories()");
+        scriptMethod("createFactory", "createFactory(id, amount)", "createFactory(\"random_relic\", 1)");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:item", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
+    }
+
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
         WebInsightAliasRegistry.register(this, new WebInsightAliasResolver() {
             @Override
             public String idType() {

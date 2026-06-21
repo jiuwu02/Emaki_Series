@@ -197,6 +197,31 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
+    }
+
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
+        scriptMethod("pluginName", "pluginName()", "pluginName()");
+        scriptMethod("ready", "ready()", "ready()");
+        scriptMethod("registerForgeRule", "registerForgeRule(definition)", "registerForgeRule({ id: \"moon_phase_bonus\", function: \"modifyForge\" })");
+        scriptMethod("unregisterForgeRule", "unregisterForgeRule(id)", "unregisterForgeRule(\"moon_phase_bonus\")");
+        scriptMethod("registeredForgeRules", "registeredForgeRules()", "registeredForgeRules()");
+        scriptMethod("onResult", "onResult(definition)", "onResult({ id: \"forge_result\", function: \"handleResult\" })");
+        scriptMethod("unregisterResultHook", "unregisterResultHook(id)", "unregisterResultHook(\"forge_result\")");
+        scriptMethod("registeredResultHooks", "registeredResultHooks()", "registeredResultHooks()");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:forge", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
     }
 
     private void registerPublicApiService() {

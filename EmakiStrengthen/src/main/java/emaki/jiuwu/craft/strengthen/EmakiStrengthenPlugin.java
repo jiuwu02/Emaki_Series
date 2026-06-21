@@ -232,8 +232,33 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
     }
 
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("canStrengthen", "canStrengthen(itemKey)", "canStrengthen(\"item\")");
+        scriptMethod("readState", "readState(itemKey)", "readState(\"item\")");
+        scriptMethod("rebuild", "rebuild(itemKey)", "rebuild(\"item\")");
+        scriptMethod("registerChanceRule", "registerChanceRule(definition)", "registerChanceRule({ id: \"vip_bonus\", function: \"modifyChance\" })");
+        scriptMethod("unregisterChanceRule", "unregisterChanceRule(id)", "unregisterChanceRule(\"vip_bonus\")");
+        scriptMethod("registeredChanceRules", "registeredChanceRules()", "registeredChanceRules()");
+        scriptMethod("onResult", "onResult(definition)", "onResult({ id: \"result_reward\", function: \"handleResult\" })");
+        scriptMethod("unregisterResultHook", "unregisterResultHook(id)", "unregisterResultHook(\"result_reward\")");
+        scriptMethod("registeredResultHooks", "registeredResultHooks()", "registeredResultHooks()");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:strengthen", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
+    }
+
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
         WebItemLayerPreviewRegistry.register(this, new StrengthenItemLayerPreviewProvider(this));
         WebPluginApiRegistry.register(this, "strengthen", "route-preview", request -> {
             request.requirePost();

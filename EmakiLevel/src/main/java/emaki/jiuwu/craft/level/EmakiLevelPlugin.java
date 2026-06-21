@@ -423,8 +423,36 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         messages.info("console.actions_registered");
     }
 
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("typeIds", "typeIds()", "typeIds()");
+        scriptMethod("type", "type(typeId)", "type(\"combat\")");
+        scriptMethod("level", "level(playerUuid, typeId)", "level(playerUuid, \"combat\")");
+        scriptMethod("exp", "exp(playerUuid, typeId)", "exp(playerUuid, \"combat\")");
+        scriptMethod("totalExp", "totalExp(playerUuid, typeId)", "totalExp(playerUuid, \"combat\")");
+        scriptMethod("requiredExp", "requiredExp(playerUuid, typeId, targetLevel)", "requiredExp(playerUuid, \"combat\", 10)");
+        scriptMethod("registerExpRule", "registerExpRule(definition)", "registerExpRule({ id: \"weekend_bonus\", function: \"modifyExp\" })");
+        scriptMethod("unregisterExpRule", "unregisterExpRule(id)", "unregisterExpRule(\"weekend_bonus\")");
+        scriptMethod("registeredExpRules", "registeredExpRules()", "registeredExpRules()");
+        scriptMethod("onLevelUp", "onLevelUp(definition)", "onLevelUp({ id: \"level_reward\", function: \"reward\" })");
+        scriptMethod("unregisterLevelUpHook", "unregisterLevelUpHook(id)", "unregisterLevelUpHook(\"level_reward\")");
+        scriptMethod("registeredLevelUpHooks", "registeredLevelUpHooks()", "registeredLevelUpHooks()");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:level", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
+    }
+
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
         WebPluginApiRegistry.register(this, "level", "curve", request -> {
             request.requirePost();
             return curveService.curves(request.stringList("types"), request.integer("fromLevel", 1), request.integer("toLevel", 0));

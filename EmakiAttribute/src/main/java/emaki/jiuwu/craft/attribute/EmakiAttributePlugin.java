@@ -459,8 +459,36 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
     }
 
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("registerSource", "registerSource(sourceId)", "registerSource(\"custom_source\")");
+        scriptMethod("unregisterSource", "unregisterSource(sourceId)", "unregisterSource(\"custom_source\")");
+        scriptMethod("isRegisteredSource", "isRegisteredSource(sourceId)", "isRegisteredSource(\"custom_source\")");
+        scriptMethod("registeredSources", "registeredSources()", "registeredSources()");
+        scriptMethod("read", "read(itemKey, sourceId)", "read(\"item\", \"custom_source\")");
+        scriptMethod("readAll", "readAll(itemKey)", "readAll(\"item\")");
+        scriptMethod("write", "write(itemKey, sourceId, attributes, meta)", "write(\"item\", \"custom_source\", {}, {})");
+        scriptMethod("clear", "clear(itemKey, sourceId)", "clear(\"item\", \"custom_source\")");
+        scriptMethod("clearAll", "clearAll(itemKey)", "clearAll(\"item\")");
+        scriptMethod("applyDamage", "applyDamage(attacker, target, damageTypeId, baseDamage, damageContext)", "applyDamage(attacker, target, \"physical\", 10, {})");
+        scriptMethod("calculateDamage", "calculateDamage(attacker, target, damageTypeId, baseDamage, damageContext)", "calculateDamage(attacker, target, \"physical\", 10, {})");
+        scriptMethod("setDamageTypeOverride", "setDamageTypeOverride(entity, damageTypeId)", "setDamageTypeOverride(entity, \"physical\")");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:attribute", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
+    }
+
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
         WebPluginApiRegistry.register(this, "attribute", "source-trace", request -> {
             request.requirePost();
             org.bukkit.entity.Player player = Bukkit.getPlayerExact(request.string("player"));

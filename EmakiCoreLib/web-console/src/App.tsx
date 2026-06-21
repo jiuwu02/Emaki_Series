@@ -3,7 +3,7 @@ import type { Completion, CompletionContext, CompletionResult, CompletionSource 
 import type { ComponentType } from 'react';
 import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult, type RegistryValueChange } from './api';
 import { loadWebExtensions } from './extensions';
-import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
+import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getJavaScriptCompletionScopes, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, setServerJavaScriptCompletions, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, resolveSurfaceDocumentPath, treeDirtyKey } from './documentPaths';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
@@ -16,7 +16,7 @@ import { Login, OUTLINE_DEFAULT, OUTLINE_MAX, OUTLINE_MIN, OUTLINE_STORAGE_KEY, 
 import { FieldOutlineRail, jumpToConfigNode } from './shell/FieldOutlineRail';
 import { debugInputValue, frontendDebugEvent, interactiveTarget, isFormControl } from './shell/frontendDebug';
 import type { SurfaceOutlineItem, SurfaceOutlineState, SurfaceProps, SurfaceToolbarState } from './registry';
-import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
+import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule, WebScriptCompletionEntry } from './types';
 
 const GuiEditorSurface = lazy(() => import('./GuiEditorSurface').then(module => ({ default: module.GuiEditorSurface })));
 const ItemEditorSurface = lazy(() => import('./ItemEditorSurface').then(module => ({ default: module.ItemEditorSurface })));
@@ -429,6 +429,7 @@ export default function App() {
       const next = await api.registry();
       if (loadSeq !== registryLoadSeq.current) return null;
       setRuntimeEnums(next.runtimeEnums);
+      setServerJavaScriptCompletions(next.scriptCompletions);
       const merged = enhanceRegistry(next);
       setRegistry(merged);
       if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
@@ -3207,7 +3208,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
 
 type ScriptCompletionScope = Record<string, Completion[]>;
 
-const SCRIPT_COMPLETION_SCOPES: ScriptCompletionScope = {
+const BUILTIN_SCRIPT_COMPLETION_SCOPES: ScriptCompletionScope = {
   global: [
     keywordCompletion('function'), keywordCompletion('const'), keywordCompletion('let'), keywordCompletion('var'), keywordCompletion('if'), keywordCompletion('else'), keywordCompletion('for'), keywordCompletion('while'), keywordCompletion('do'), keywordCompletion('switch'), keywordCompletion('case'), keywordCompletion('break'), keywordCompletion('continue'), keywordCompletion('return'), keywordCompletion('try'), keywordCompletion('catch'), keywordCompletion('finally'), keywordCompletion('throw'), keywordCompletion('new'), keywordCompletion('typeof'), keywordCompletion('instanceof'), keywordCompletion('class'), keywordCompletion('extends'), keywordCompletion('async'), keywordCompletion('await'), keywordCompletion('true'), keywordCompletion('false'), keywordCompletion('null'), keywordCompletion('undefined'), keywordCompletion('this'),
     variableCompletion('emaki', 'EmakiScriptApi'), variableCompletion('args', 'Map<String, Object>'), variableCompletion('console', 'Console'), variableCompletion('Math', 'Math'), variableCompletion('JSON', 'JSON'), variableCompletion('Object', 'Object'), variableCompletion('Array', 'Array'), variableCompletion('String', 'String'), variableCompletion('Number', 'Number'), variableCompletion('Date', 'Date'), variableCompletion('RegExp', 'RegExp'), variableCompletion('Map', 'Map'), variableCompletion('Set', 'Set'), variableCompletion('Promise', 'Promise'),
@@ -3235,21 +3236,83 @@ const SCRIPT_COMPLETION_SCOPES: ScriptCompletionScope = {
 };
 
 const scriptCompletionSource: CompletionSource = (context: CompletionContext): CompletionResult | null => {
+  const scope = resolveScriptCompletionScope(context);
+  if (!scope) return null;
+  const { scopeName, partial, from } = scope;
+  if (!context.explicit && scopeName === 'global' && partial.length < 2) return null;
+  const options = scriptCompletionScopes(context.state.doc.toString())[scopeName];
+  if (!options) return null;
+  return {
+    from,
+    validFor: /^[A-Za-z_$][\w$]*$/,
+    options: options.filter(option => option.label.toLowerCase().startsWith(partial.toLowerCase()))
+  };
+};
+
+function scriptCompletionScopes(documentText: string): ScriptCompletionScope {
+  const scopes: ScriptCompletionScope = {};
+  mergeCompletionScopes(scopes, BUILTIN_SCRIPT_COMPLETION_SCOPES);
+  const registered = getJavaScriptCompletionScopes();
+  for (const [scope, entries] of Object.entries(registered)) {
+    const completions = entries.map(scriptCompletionEntryToCompletion);
+    if (!completions.length) continue;
+    scopes[scope] = mergeCompletions(scopes[scope] ?? [], completions);
+  }
+  for (const [alias, moduleId] of Object.entries(scriptModuleAliases(documentText))) {
+    const moduleScope = scopes[`module:${moduleId}`];
+    if (moduleScope) scopes[alias] = mergeCompletions(scopes[alias] ?? [], moduleScope);
+  }
+  return scopes;
+}
+
+function resolveScriptCompletionScope(context: CompletionContext): { scopeName: string; partial: string; from: number } | null {
+  const moduleCall = context.matchBefore(/emaki\.module\(\s*["'][A-Za-z0-9_-]+["']\s*\)\.[A-Za-z_$][\w$]*|emaki\.module\(\s*["'][A-Za-z0-9_-]+["']\s*\)\.?/);
+  if (moduleCall) {
+    const match = moduleCall.text.match(/emaki\.module\(\s*["']([A-Za-z0-9_-]+)["']\s*\)\.(.*)$/) ?? moduleCall.text.match(/emaki\.module\(\s*["']([A-Za-z0-9_-]+)["']\s*\)\.?$/);
+    if (match) {
+      const partial = match[2] ?? '';
+      return { scopeName: `module:${match[1].toLowerCase()}`, partial, from: moduleCall.to - partial.length };
+    }
+  }
   const token = context.matchBefore(/[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.?/);
   if (!token || (token.from === token.to && !context.explicit)) return null;
   const expression = token.text;
   const dotIndex = expression.lastIndexOf('.');
   const scopeName = dotIndex >= 0 ? expression.slice(0, dotIndex) : 'global';
   const partial = dotIndex >= 0 ? expression.slice(dotIndex + 1) : expression;
-  if (!context.explicit && scopeName === 'global' && partial.length < 2) return null;
-  const options = SCRIPT_COMPLETION_SCOPES[scopeName];
-  if (!options) return null;
+  return { scopeName, partial, from: token.to - partial.length };
+}
+
+function mergeCompletionScopes(target: ScriptCompletionScope, source: ScriptCompletionScope): void {
+  for (const [scope, completions] of Object.entries(source)) {
+    target[scope] = mergeCompletions(target[scope] ?? [], completions);
+  }
+}
+
+function mergeCompletions(base: Completion[], incoming: Completion[]): Completion[] {
+  const byLabel = new Map<string, Completion>();
+  [...base, ...incoming].forEach(completion => byLabel.set(completion.label, completion));
+  return [...byLabel.values()];
+}
+
+function scriptCompletionEntryToCompletion(entry: WebScriptCompletionEntry): Completion {
   return {
-    from: token.to - partial.length,
-    validFor: /^[A-Za-z_$][\w$]*$/,
-    options: options.filter(option => option.label.toLowerCase().startsWith(partial.toLowerCase()))
+    label: entry.label,
+    type: entry.type ?? 'function',
+    detail: entry.detail,
+    apply: entry.apply ?? entry.label
   };
-};
+}
+
+function scriptModuleAliases(documentText: string): Record<string, string> {
+  const aliases: Record<string, string> = {};
+  const pattern = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*emaki\.module\(\s*["']([A-Za-z0-9_-]+)["']\s*\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(documentText)) !== null) {
+    aliases[match[1]] = match[2].toLowerCase();
+  }
+  return aliases;
+}
 
 function keywordCompletion(label: string): Completion { return { label, type: 'keyword' }; }
 function variableCompletion(label: string, detail: string): Completion { return { label, type: 'variable', detail }; }

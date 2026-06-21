@@ -231,7 +231,32 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
         WebItemLayerPreviewRegistry.register(this, new GemItemLayerPreviewProvider(this));
+    }
+
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
+        scriptMethod("pluginName", "pluginName()", "pluginName()");
+        scriptMethod("ready", "ready()", "ready()");
+        scriptMethod("registerSocketRule", "registerSocketRule(definition)", "registerSocketRule({ id: \"fire_set_bonus\", function: \"checkSocket\" })");
+        scriptMethod("unregisterSocketRule", "unregisterSocketRule(id)", "unregisterSocketRule(\"fire_set_bonus\")");
+        scriptMethod("registeredSocketRules", "registeredSocketRules()", "registeredSocketRules()");
+        scriptMethod("registerSetBonus", "registerSetBonus(definition)", "registerSetBonus({ id: \"set_bonus\", function: \"bonus\" })");
+        scriptMethod("unregisterSetBonus", "unregisterSetBonus(id)", "unregisterSetBonus(\"set_bonus\")");
+        scriptMethod("registeredSetBonuses", "registeredSetBonuses()", "registeredSetBonuses()");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:gem", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
     }
 
     private void registerPublicApiService() {

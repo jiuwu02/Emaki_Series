@@ -155,6 +155,15 @@ export type WebConsoleExtensionStatus = {
   error?: string;
 };
 
+export type WebScriptCompletionEntry = {
+  moduleId?: string;
+  scope: string;
+  label: string;
+  detail?: string;
+  apply?: string;
+  type?: string;
+};
+
 export type WebGuiType = {
   id: string;
   defaultTitle?: string;
@@ -169,6 +178,7 @@ export type WebRegistry = {
   editors?: Record<string, WebEditorDescriptor>;
   guiTypes?: WebGuiType[];
   runtimeEnums?: Record<string, string[]>;
+  scriptCompletions?: WebScriptCompletionEntry[];
   extensions?: WebConsoleExtension[];
 };
 

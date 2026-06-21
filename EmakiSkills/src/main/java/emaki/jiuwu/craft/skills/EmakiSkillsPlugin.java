@@ -304,6 +304,24 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
+    }
+
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("hasScriptAction", "hasScriptAction(actionId)", "hasScriptAction(\"attribute_damage\")");
+        scriptMethod("registeredScriptActions", "registeredScriptActions()", "registeredScriptActions()");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:skills", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
     }
 
     private void registerScriptModule() {
