@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemComponentsConfig;
 import emaki.jiuwu.craft.item.model.VanillaAttributeModifierConfig;
+import emaki.jiuwu.craft.item.script.js.JavaScriptItemFactoryRegistry;
 
 public final class EmakiItemFactory {
 
@@ -38,16 +39,26 @@ public final class EmakiItemFactory {
     private final EmakiItemLoader loader;
     private final EmakiItemIdResolver idResolver;
     private final EmakiItemPdcWriter pdcWriter;
+    private final JavaScriptItemFactoryRegistry javaScriptFactories;
     private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
     private final ConcurrentHashMap<String, ItemStack> prototypeCache = new ConcurrentHashMap<>();
 
     public EmakiItemFactory(EmakiItemLoader loader, EmakiItemIdResolver idResolver, EmakiItemPdcWriter pdcWriter) {
+        this(loader, idResolver, pdcWriter, null);
+    }
+
+    public EmakiItemFactory(EmakiItemLoader loader, EmakiItemIdResolver idResolver, EmakiItemPdcWriter pdcWriter, JavaScriptItemFactoryRegistry javaScriptFactories) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
+        this.javaScriptFactories = javaScriptFactories;
     }
 
     public ItemStack create(String id, int amount) {
+        ItemStack scripted = javaScriptFactories == null ? null : javaScriptFactories.create(id, amount);
+        if (scripted != null) {
+            return scripted;
+        }
         EmakiItemDefinition definition = idResolver == null ? loader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
             return null;

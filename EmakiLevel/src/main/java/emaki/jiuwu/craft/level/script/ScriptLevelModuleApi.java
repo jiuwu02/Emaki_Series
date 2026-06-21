@@ -6,10 +6,21 @@ import java.util.UUID;
 
 import org.graalvm.polyglot.HostAccess;
 
+import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
+import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.api.LevelTypeView;
 
 public final class ScriptLevelModuleApi {
+
+    private final EmakiLevelPlugin plugin;
+    private final ScriptModuleContext moduleContext;
+
+    public ScriptLevelModuleApi(EmakiLevelPlugin plugin, ScriptModuleContext moduleContext) {
+        this.plugin = plugin;
+        this.moduleContext = moduleContext;
+    }
 
     @HostAccess.Export
     public boolean available() {
@@ -68,6 +79,70 @@ public final class ScriptLevelModuleApi {
         map.put("manualUpgrade", view.manualUpgrade());
         map.put("attributes", view.attributes());
         return map;
+    }
+
+    @HostAccess.Export
+    public boolean registerExpRule(Map<String, ?> definition) {
+        return plugin != null && plugin.javaScriptExpRuleRegistry() != null
+                && plugin.javaScriptExpRuleRegistry().register(moduleContext, definition, tracker());
+    }
+
+    @HostAccess.Export
+    public boolean registerExpRule(String id, Map<String, ?> definition) {
+        Map<String, Object> merged = new LinkedHashMap<>();
+        if (definition != null) {
+            definition.forEach(merged::put);
+        }
+        merged.put("id", id);
+        return registerExpRule(merged);
+    }
+
+    @HostAccess.Export
+    public void unregisterExpRule(String id) {
+        if (plugin != null && plugin.javaScriptExpRuleRegistry() != null) {
+            plugin.javaScriptExpRuleRegistry().unregister(id);
+        }
+    }
+
+    @HostAccess.Export
+    public java.util.List<String> registeredExpRules() {
+        return plugin == null || plugin.javaScriptExpRuleRegistry() == null
+                ? java.util.List.of()
+                : plugin.javaScriptExpRuleRegistry().ids();
+    }
+
+    @HostAccess.Export
+    public boolean onLevelUp(Map<String, ?> definition) {
+        return plugin != null && plugin.javaScriptLevelUpHookRegistry() != null
+                && plugin.javaScriptLevelUpHookRegistry().register(moduleContext, definition, tracker());
+    }
+
+    @HostAccess.Export
+    public boolean onLevelUp(String id, Map<String, ?> definition) {
+        Map<String, Object> merged = new LinkedHashMap<>();
+        if (definition != null) {
+            definition.forEach(merged::put);
+        }
+        merged.put("id", id);
+        return onLevelUp(merged);
+    }
+
+    @HostAccess.Export
+    public void unregisterLevelUpHook(String id) {
+        if (plugin != null && plugin.javaScriptLevelUpHookRegistry() != null) {
+            plugin.javaScriptLevelUpHookRegistry().unregister(id);
+        }
+    }
+
+    @HostAccess.Export
+    public java.util.List<String> registeredLevelUpHooks() {
+        return plugin == null || plugin.javaScriptLevelUpHookRegistry() == null
+                ? java.util.List.of()
+                : plugin.javaScriptLevelUpHookRegistry().ids();
+    }
+
+    private JavaScriptRegistrationTracker tracker() {
+        return plugin == null || plugin.coreLib() == null ? null : plugin.coreLib().javaScriptRegistrationTracker();
     }
 
     private UUID uuid(String raw) {

@@ -9,6 +9,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.item.script.ScriptItemModuleApi;
+import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
+import emaki.jiuwu.craft.item.script.js.JavaScriptItemFactoryRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -62,7 +64,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        registerScriptModule(coreLibPlugin);
+        registerScriptModule(coreLibPlugin, plugin);
         releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -99,9 +101,11 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         EmakiItemLoader itemLoader = new EmakiItemLoader(plugin);
         EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin);
         EmakiItemAliasLoader aliasLoader = new EmakiItemAliasLoader(plugin);
+        JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry = new JavaScriptItemDefinitionRegistry(plugin);
+        JavaScriptItemFactoryRegistry javaScriptFactoryRegistry = new JavaScriptItemFactoryRegistry(plugin, javaScriptDefinitionRegistry);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
-        EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader);
+        EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader, javaScriptDefinitionRegistry);
         EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
         EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin);
         PdcService pdcService = new PdcService("emaki");
@@ -109,7 +113,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         EmakiItemPdcWriter pdcWriter = new EmakiItemPdcWriter(identifier, pdcAttributeGateway, new SkillPdcGateway());
-        EmakiItemFactory itemFactory = new EmakiItemFactory(itemLoader, idResolver, pdcWriter);
+        EmakiItemFactory itemFactory = new EmakiItemFactory(itemLoader, idResolver, pdcWriter, javaScriptFactoryRegistry);
         EmakiItemUpdateService updateService = new EmakiItemUpdateService(
                 itemLoader,
                 idResolver,
@@ -160,7 +164,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 pdcAttributeGateway,
                 pdcService,
                 repairService,
-                repairGuiService
+                repairGuiService,
+                javaScriptDefinitionRegistry,
+                javaScriptFactoryRegistry
         );
     }
 
@@ -300,9 +306,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         return configuration.getBoolean("release_default_data", true);
     }
 
-    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("item", context -> new ScriptItemModuleApi(context.actionContext()));
-        coreLibPlugin.scriptModuleRegistry().register("items", context -> new ScriptItemModuleApi(context.actionContext()));
+    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin, EmakiItemPlugin plugin) {
+        coreLibPlugin.scriptModuleRegistry().register("item", context -> new ScriptItemModuleApi(plugin, context));
+        coreLibPlugin.scriptModuleRegistry().register("items", context -> new ScriptItemModuleApi(plugin, context));
     }
 
     private ItemSource parseEmakiItemSource(String shorthand) {
@@ -324,6 +330,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiItemPlugin plugin) {
-        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("item_right_click.js"));
+        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("item_right_click.js", "item_runtime_definition.js"));
     }
 }

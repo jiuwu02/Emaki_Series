@@ -63,6 +63,8 @@ import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
+import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
+import emaki.jiuwu.craft.item.script.js.JavaScriptItemFactoryRegistry;
 
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -109,6 +111,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private PdcAttributeGateway pdcAttributeGateway;
     private ItemRepairService repairService;
     private ItemRepairGuiService repairGuiService;
+    private JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry;
+    private JavaScriptItemFactoryRegistry javaScriptFactoryRegistry;
     private final EmakiItemApi.Bridge itemApiBridge = new EmakiItemApi.Bridge() {
         @Override
         public boolean exists(String id) {
@@ -127,7 +131,14 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
         @Override
         public @NotNull Set<String> definitionIds() {
-            return itemLoader == null ? Set.of() : itemLoader.all().keySet();
+            java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+            if (itemLoader != null) {
+                ids.addAll(itemLoader.all().keySet());
+            }
+            if (javaScriptDefinitionRegistry != null) {
+                ids.addAll(javaScriptDefinitionRegistry.ids());
+            }
+            return Set.copyOf(ids);
         }
 
         @Override
@@ -177,6 +188,16 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         WebConsoleRegistry.unregisterModule(this);
         WebPluginApiRegistry.unregister(this);
         WebInsightAliasRegistry.unregister(this);
+        if (javaScriptDefinitionRegistry != null) {
+            javaScriptDefinitionRegistry.clear();
+        }
+        if (javaScriptFactoryRegistry != null) {
+            javaScriptFactoryRegistry.clear();
+        }
+        EmakiCoreLibPlugin coreLib = coreLib();
+        if (coreLib != null && coreLib.javaScriptRegistrationTracker() != null) {
+            coreLib.javaScriptRegistrationTracker().unregisterOwner(this);
+        }
         EmakiItemApi.uninstall(itemApiBridge);
         lifecycleCoordinator.shutdown(this);
         AdventureSupport.close(this);
@@ -226,6 +247,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         pdcAttributeGateway = components.pdcAttributeGateway();
         repairService = components.repairService();
         repairGuiService = components.repairGuiService();
+        javaScriptDefinitionRegistry = components.javaScriptDefinitionRegistry();
+        javaScriptFactoryRegistry = components.javaScriptFactoryRegistry();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -402,6 +425,18 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public ItemRepairGuiService repairGuiService() {
         return repairGuiService;
+    }
+
+    public JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry() {
+        return javaScriptDefinitionRegistry;
+    }
+
+    public JavaScriptItemFactoryRegistry javaScriptFactoryRegistry() {
+        return javaScriptFactoryRegistry;
+    }
+
+    public EmakiCoreLibPlugin coreLib() {
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
     public void scheduleAttributeEquipmentSync(Player player) {

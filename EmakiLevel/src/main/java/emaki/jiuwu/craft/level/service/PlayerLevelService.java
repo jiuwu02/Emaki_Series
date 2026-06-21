@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.LevelFailureReason;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
+import emaki.jiuwu.craft.level.script.js.JavaScriptLevelUpHookRegistry;
 
 public final class PlayerLevelService {
 
@@ -36,6 +37,7 @@ public final class PlayerLevelService {
     private final PlayerLevelDataStore dataStore;
     private final LevelPdcService pdcService;
     private final LevelExperienceRuleService experienceRuleService;
+    private final JavaScriptLevelUpHookRegistry javaScriptLevelUpHooks;
     private final ItemSourceService itemSourceService;
     private final EconomyManager economyManager;
     private final ActionExecutor actionExecutor;
@@ -50,6 +52,7 @@ public final class PlayerLevelService {
             PlayerLevelDataStore dataStore,
             LevelPdcService pdcService,
             LevelExperienceRuleService experienceRuleService,
+            JavaScriptLevelUpHookRegistry javaScriptLevelUpHooks,
             ItemSourceService itemSourceService,
             EconomyManager economyManager,
             ActionExecutor actionExecutor,
@@ -63,6 +66,7 @@ public final class PlayerLevelService {
         this.dataStore = dataStore;
         this.pdcService = pdcService;
         this.experienceRuleService = experienceRuleService == null ? new LevelExperienceRuleService() : experienceRuleService;
+        this.javaScriptLevelUpHooks = javaScriptLevelUpHooks;
         this.itemSourceService = itemSourceService;
         this.economyManager = economyManager;
         this.actionExecutor = actionExecutor;
@@ -300,6 +304,19 @@ public final class PlayerLevelService {
         sync(uuid, type, entry);
         publishDataChange(data);
         refreshAttribute(uuid);
+        if (javaScriptLevelUpHooks != null) {
+            javaScriptLevelUpHooks.fire(new JavaScriptLevelUpHookRegistry.LevelUpEvent(
+                    uuid.toString(),
+                    player == null ? "" : player.getName(),
+                    type.id(),
+                    oldLevel,
+                    entry.level(),
+                    oldExp,
+                    entry.exp(),
+                    cause == null ? "levelup" : cause.name().toLowerCase(java.util.Locale.ROOT),
+                    requiredExp
+            ));
+        }
         return LevelOperationResult.success(LevelOperationType.LEVEL_UP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), 1D);
     }
 

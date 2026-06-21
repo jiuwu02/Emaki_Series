@@ -67,6 +67,8 @@ import emaki.jiuwu.craft.level.service.PlayerLevelDataStore;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
 import emaki.jiuwu.craft.level.service.RequirementService;
 import emaki.jiuwu.craft.level.script.ScriptLevelModuleApi;
+import emaki.jiuwu.craft.level.script.js.JavaScriptLevelExpRuleRegistry;
+import emaki.jiuwu.craft.level.script.js.JavaScriptLevelUpHookRegistry;
 
 public final class EmakiLevelPlugin extends JavaPlugin {
 
@@ -123,6 +125,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private PlayerLevelDataStore dataStore;
     private LevelPdcService pdcService;
     private LevelExperienceRuleService experienceRuleService;
+    private JavaScriptLevelExpRuleRegistry javaScriptExpRuleRegistry;
+    private JavaScriptLevelUpHookRegistry javaScriptLevelUpHookRegistry;
     private LevelAntiAbuseService antiAbuseService;
     private PlayerLevelService levelService;
     private LevelTopService topService;
@@ -239,6 +243,15 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         if (coreLib != null) {
             ConfigPrecheckLifecycleSupport.unregister("level");
             coreLib.scriptModuleRegistry().unregister("level");
+            if (coreLib.javaScriptRegistrationTracker() != null) {
+                coreLib.javaScriptRegistrationTracker().unregisterOwner(this);
+            }
+        }
+        if (javaScriptExpRuleRegistry != null) {
+            javaScriptExpRuleRegistry.clear();
+        }
+        if (javaScriptLevelUpHookRegistry != null) {
+            javaScriptLevelUpHookRegistry.clear();
         }
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -344,8 +357,11 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         curveService = new LevelCurveService(typeRegistry, requirementService);
         dataStore = new PlayerLevelDataStore(this);
         pdcService = new LevelPdcService(appConfig.pdcNamespace(), appConfig.pdcEnabled());
+        javaScriptExpRuleRegistry = new JavaScriptLevelExpRuleRegistry(this);
+        javaScriptLevelUpHookRegistry = new JavaScriptLevelUpHookRegistry(this);
         experienceRuleService = new LevelExperienceRuleService();
         experienceRuleService.config(appConfig);
+        experienceRuleService.javaScriptRules(javaScriptExpRuleRegistry);
         antiAbuseService = new LevelAntiAbuseService(appConfig);
         attributeBridge = new LevelAttributeBridge(this, typeRegistry, dataStore, appConfig);
         topService = new LevelTopService(dataStore, typeRegistry);
@@ -356,6 +372,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
                 dataStore,
                 pdcService,
                 experienceRuleService,
+                javaScriptLevelUpHookRegistry,
                 coreLib.itemSourceService(),
                 coreLib.economyManager(),
                 coreLib.actionExecutor(),
@@ -394,11 +411,11 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     }
 
     private void registerScriptModule() {
-        coreLib.scriptModuleRegistry().register("level", context -> new ScriptLevelModuleApi());
+        coreLib.scriptModuleRegistry().register("level", context -> new ScriptLevelModuleApi(this, context));
     }
 
     private void releaseBundledScripts() {
-        coreLib.releaseBundledScripts(this, "examples", false, List.of("level_status.js"));
+        coreLib.releaseBundledScripts(this, "examples", false, List.of("level_status.js", "level_exp_rule.js"));
     }
 
     private void registerActions() {
@@ -494,6 +511,18 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         return levelService;
     }
 
+    public JavaScriptLevelExpRuleRegistry javaScriptExpRuleRegistry() {
+        return javaScriptExpRuleRegistry;
+    }
+
+    public JavaScriptLevelUpHookRegistry javaScriptLevelUpHookRegistry() {
+        return javaScriptLevelUpHookRegistry;
+    }
+
+    public EmakiCoreLibPlugin coreLib() {
+        return coreLib;
+    }
+
     public LevelTopService topService() {
         return topService;
     }
@@ -508,9 +537,5 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     public LevelTopGuiService levelTopGuiService() {
         return levelTopGuiService;
-    }
-
-    public EmakiCoreLibPlugin coreLib() {
-        return coreLib;
     }
 }

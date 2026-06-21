@@ -58,6 +58,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptRepository;
 import emaki.jiuwu.craft.corelib.script.ScriptService;
 import emaki.jiuwu.craft.corelib.script.graal.GraalJavaScriptService;
 import emaki.jiuwu.craft.corelib.script.js.JavaScriptActionExtensionLoader;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
@@ -608,6 +609,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return webConsoleService;
     }
 
+    public JavaScriptRegistrationTracker javaScriptRegistrationTracker() {
+        return javaScriptActionExtensionLoader == null ? null : javaScriptActionExtensionLoader.registrationTracker();
+    }
+
     public java.util.Map<String, Object> javaScriptExtensionStatus() {
         return javaScriptActionExtensionLoader == null ? java.util.Map.of(
                 "enabled", javaScriptService != null && javaScriptService.enabled(),
@@ -615,6 +620,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 "actions", java.util.List.of(),
                 "placeholders", java.util.List.of(),
                 "events", java.util.List.of(),
+                "registrations", java.util.List.of(),
                 "recentErrors", java.util.List.of()
         ) : javaScriptActionExtensionLoader.statusSnapshot();
     }

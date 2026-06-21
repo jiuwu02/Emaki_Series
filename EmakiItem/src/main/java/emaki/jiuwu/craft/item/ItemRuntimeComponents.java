@@ -30,6 +30,8 @@ import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
+import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
+import emaki.jiuwu.craft.item.script.js.JavaScriptItemFactoryRegistry;
 
 record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
@@ -56,7 +58,9 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         PdcAttributeGateway pdcAttributeGateway,
         PdcService pdcService,
         ItemRepairService repairService,
-        ItemRepairGuiService repairGuiService) implements RuntimeComponents {
+        ItemRepairGuiService repairGuiService,
+        JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry,
+        JavaScriptItemFactoryRegistry javaScriptFactoryRegistry) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

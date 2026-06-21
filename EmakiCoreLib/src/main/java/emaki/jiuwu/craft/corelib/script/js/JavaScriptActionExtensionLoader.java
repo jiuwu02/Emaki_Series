@@ -131,6 +131,10 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
         return loaded;
     }
 
+    public JavaScriptRegistrationTracker registrationTracker() {
+        return registrationTracker;
+    }
+
     public Map<String, Object> statusSnapshot() {
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("enabled", javaScriptService != null && javaScriptService.enabled());

@@ -5,5 +5,9 @@ public enum JavaScriptRegistrationType {
     PLACEHOLDER,
     EVENT,
     EXPRESSION_FUNCTION,
-    CONDITION
+    CONDITION,
+    ITEM_DEFINITION,
+    ITEM_FACTORY,
+    LEVEL_EXP_RULE,
+    LEVEL_UP_HOOK
 }
