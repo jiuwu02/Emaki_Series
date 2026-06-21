@@ -1,17 +1,28 @@
-function main(ctx) {
+function register() {
   const cooking = emaki.module("cooking");
-  const recipeId = emaki.context.placeholder("cooking_recipe_id") || emaki.context.placeholder("recipe_id");
-  const stationType = emaki.context.placeholder("cooking_station_type") || emaki.context.placeholder("station_type");
-  if (emaki.player.exists()) {
-    emaki.player.sendMessage("[EmakiJS] 烹饪奖励脚本触发: " + recipeId + " @ " + stationType + " cooking=" + cooking.available());
-  }
+
+  cooking.registerResultRule({
+    id: "example_oven_bonus",
+    station: "oven",
+    function: "modifyCookingResult"
+  });
+
+  cooking.onComplete({
+    id: "example_complete_notice",
+    function: "onCookingComplete"
+  });
+}
+
+function modifyCookingResult(ctx) {
   return {
-    success: true,
-    output: {
-      recipe_id: String(recipeId || ""),
-      station_type: String(stationType || ""),
-      cooking_ready: cooking.ready(),
-      cooking_api: cooking.apiVersion()
-    }
+    extraResults: [{
+      item_sources: "minecraft:cookie",
+      amount: 1
+    }],
+    message: "示例：烤炉产物额外附赠 1 个曲奇"
   };
+}
+
+function onCookingComplete(event) {
+  emaki.logger.info("Cooking complete hook: recipe=" + event.recipeId + ", station=" + event.stationType + ", outputs=" + event.outputs.length);
 }

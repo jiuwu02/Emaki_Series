@@ -1,18 +1,25 @@
-function main(ctx) {
+function register() {
   const forge = emaki.module("forge");
-  const recipeId = emaki.context.placeholder("forge_recipe_id");
-  const quality = emaki.context.placeholder("forge_quality");
-  emaki.logger.info("Forge success script: recipe=" + recipeId + ", quality=" + quality + ", ready=" + forge.ready());
-  if (emaki.player.exists()) {
-    emaki.player.sendMessage("[EmakiJS] 锻造脚本触发，配方: " + recipeId + " 品质: " + quality + " forge=" + forge.available());
-  }
+
+  forge.registerForgeRule({
+    id: "example_moon_bonus",
+    priority: 10,
+    function: "modifyForge"
+  });
+
+  forge.onResult({
+    id: "example_result_notice",
+    function: "onForgeResult"
+  });
+}
+
+function modifyForge(ctx) {
   return {
-    success: true,
-    output: {
-      recipe_id: String(recipeId || ""),
-      quality: String(quality || ""),
-      forge_ready: forge.ready(),
-      forge_api: forge.apiVersion()
-    }
+    successBonus: 3,
+    message: "示例：锻造成功率额外增加 3%"
   };
+}
+
+function onForgeResult(event) {
+  emaki.logger.info("Forge result hook: recipe=" + event.recipeId + ", success=" + event.success + ", quality=" + event.quality);
 }

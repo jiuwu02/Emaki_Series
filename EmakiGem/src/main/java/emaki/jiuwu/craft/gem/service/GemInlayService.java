@@ -20,6 +20,8 @@ import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.model.ResonanceEffects;
+import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSetBonusRegistry;
+import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSocketRuleRegistry;
 
 public final class GemInlayService {
 
@@ -123,6 +125,11 @@ public final class GemInlayService {
         placeholders.put("gem_id", gemDefinition.id());
         placeholders.put("level", instance.level());
         double successChance = resolveSuccessChance(gemDefinition);
+        JavaScriptGemSocketRuleRegistry.Decision socketDecision = applyJavaScriptSocketRules(actor, itemDefinition, slot, slotIndex, gemDefinition, instance, successChance);
+        if (!socketDecision.allowed()) {
+            return new InlayResult(Result.failure(Texts.isBlank(socketDecision.messageKey()) ? "gem.error.condition_not_met" : socketDecision.messageKey(), placeholders), equipment);
+        }
+        successChance = socketDecision.successRate();
         placeholders.put("success_rate", successChance);
 
         String failureAction = Texts.lower(plugin.appConfig().inlaySuccess().failureAction());
@@ -157,6 +164,18 @@ public final class GemInlayService {
         applyGemOperations(rebuilt, gemDefinition, instance, slotIndex, placeholders);
         actionCoordinator.execute(actor, "gem_inlay_success", gemDefinition.inlaySuccessActions(), placeholders);
         return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt);
+    }
+
+    private JavaScriptGemSocketRuleRegistry.Decision applyJavaScriptSocketRules(Player actor,
+            GemItemDefinition itemDefinition,
+            GemItemDefinition.SocketSlot slot,
+            int slotIndex,
+            GemDefinition gemDefinition,
+            GemItemInstance instance,
+            double successChance) {
+        JavaScriptGemSocketRuleRegistry.Decision base = JavaScriptGemSocketRuleRegistry.Decision.from(actor, itemDefinition, slot, slotIndex, gemDefinition, instance, successChance);
+        JavaScriptGemSocketRuleRegistry registry = plugin.javaScriptSocketRuleRegistry();
+        return registry == null ? base : registry.apply(base);
     }
 
     public ExtractDirectResult extractDirect(Player actor,
@@ -338,6 +357,13 @@ public final class GemInlayService {
             }
             String resOperationId = OPERATION_NAMESPACE + ".resonance:" + resonance.id();
             operationLedger.apply(itemStack, resOperationId, OPERATION_NAMESPACE + ".resonance", resNameActions, resLoreActions, Map.of());
+        }
+        JavaScriptGemSetBonusRegistry setBonusRegistry = plugin.javaScriptSetBonusRegistry();
+        if (setBonusRegistry != null) {
+            for (JavaScriptGemSetBonusRegistry.AppliedBonus bonus : setBonusRegistry.evaluate(itemDefinition, state, inlaidGems)) {
+                String jsOperationId = OPERATION_NAMESPACE + ".resonance:js_" + bonus.id();
+                operationLedger.apply(itemStack, jsOperationId, OPERATION_NAMESPACE + ".resonance", bonus.nameActions(), bonus.loreActions(), Map.of());
+            }
         }
     }
 

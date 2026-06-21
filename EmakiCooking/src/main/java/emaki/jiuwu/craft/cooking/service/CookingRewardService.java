@@ -22,7 +22,9 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
+import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingResultRuleRegistry;
 
 public final class CookingRewardService {
 
@@ -67,10 +69,35 @@ public final class CookingRewardService {
                 return;
             }
         }
-        for (Map<String, Object> output : outputs == null ? List.<Map<String, Object>>of() : outputs) {
+        JavaScriptCookingResultRuleRegistry.DeliveryPlan plan = applyJavaScriptResultRules(recipe, player, location, phase, outputs, actions, placeholders);
+        if (plan.cancelled()) {
+            return;
+        }
+        for (Map<String, Object> output : plan.outputs()) {
             deliverOutput(recipe, player, location, dropResult, output, phase, placeholders);
         }
-        executeActions(actions, player, location, phase, defaultPlaceholders(player, location, placeholders));
+        executeActions(plan.actions(), player, location, phase, defaultPlaceholders(player, location, placeholders));
+        fireJavaScriptCompleteHooks(plan);
+    }
+
+    private JavaScriptCookingResultRuleRegistry.DeliveryPlan applyJavaScriptResultRules(RecipeDocument recipe,
+            Player player,
+            Location location,
+            String phase,
+            List<Map<String, Object>> outputs,
+            List<String> actions,
+            Map<String, ?> placeholders) {
+        JavaScriptCookingResultRuleRegistry.DeliveryPlan base = JavaScriptCookingResultRuleRegistry.DeliveryPlan.from(recipe, player, location, phase, outputs, actions, placeholders);
+        if (!(plugin instanceof EmakiCookingPlugin cookingPlugin) || cookingPlugin.javaScriptResultRuleRegistry() == null) {
+            return base;
+        }
+        return cookingPlugin.javaScriptResultRuleRegistry().apply(base);
+    }
+
+    private void fireJavaScriptCompleteHooks(JavaScriptCookingResultRuleRegistry.DeliveryPlan plan) {
+        if (plugin instanceof EmakiCookingPlugin cookingPlugin && cookingPlugin.javaScriptCompleteHookRegistry() != null) {
+            cookingPlugin.javaScriptCompleteHookRegistry().fire(plan);
+        }
     }
 
     public boolean completionConditionPasses(RecipeDocument recipe, Player player) {

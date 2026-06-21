@@ -1,18 +1,28 @@
-function main(ctx) {
+function register() {
   const strengthen = emaki.module("strengthen");
-  const recipeId = emaki.context.placeholder("strengthen_recipe_id");
-  const star = emaki.context.placeholder("star");
-  const temper = emaki.context.placeholder("temper");
-  if (emaki.player.exists()) {
-    emaki.player.sendMessage("[EmakiJS] 强化成功脚本触发: " + recipeId + " 星级=" + star + " 淬炼=" + temper + " strengthen=" + strengthen.available());
+
+  strengthen.registerChanceRule({
+    id: "example_vip_bonus",
+    priority: 10,
+    function: "modifyChance"
+  });
+
+  strengthen.onResult({
+    id: "example_result_notice",
+    function: "onStrengthenResult"
+  });
+}
+
+function modifyChance(ctx) {
+  if (ctx.playerName && ctx.targetStar >= 5) {
+    return {
+      successBonus: 2.5,
+      message: "示例：5 星以上额外增加 2.5% 成功率"
+    };
   }
-  return {
-    success: true,
-    output: {
-      recipe_id: String(recipeId || ""),
-      star: String(star || ""),
-      temper: String(temper || ""),
-      strengthen_available: strengthen.available()
-    }
-  };
+  return {};
+}
+
+function onStrengthenResult(event) {
+  emaki.logger.info("Strengthen result hook: recipe=" + event.recipeId + ", success=" + event.success + ", star=" + event.resultingStar);
 }

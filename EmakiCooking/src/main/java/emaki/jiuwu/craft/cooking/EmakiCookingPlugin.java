@@ -52,6 +52,8 @@ import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
+import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingCompleteHookRegistry;
+import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingResultRuleRegistry;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
@@ -109,6 +111,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private OvenRuntimeService ovenRuntimeService;
     private JuicerRuntimeService juicerRuntimeService;
     private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
+    private JavaScriptCookingResultRuleRegistry javaScriptResultRuleRegistry;
+    private JavaScriptCookingCompleteHookRegistry javaScriptCompleteHookRegistry;
     private final EmakiCookingApi.Bridge cookingApiBridge = new EmakiCookingApi.Bridge() {
         @Override
         public String apiVersion() {
@@ -152,6 +156,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         ConfigPrecheckLifecycleSupport.unregister("cooking");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("cooking");
+        coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(this);
         coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         WebConsoleRegistry.unregisterModule(this);
         EmakiCookingApi.uninstall(cookingApiBridge);
@@ -233,6 +238,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         ovenRuntimeService = components.ovenRuntimeService();
         juicerRuntimeService = components.juicerRuntimeService();
         fermentationBarrelRuntimeService = components.fermentationBarrelRuntimeService();
+        javaScriptResultRuleRegistry = new JavaScriptCookingResultRuleRegistry(this);
+        javaScriptCompleteHookRegistry = new JavaScriptCookingCompleteHookRegistry(this);
         stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
@@ -370,6 +377,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return bootstrapService;
     }
 
+    public EmakiCoreLibPlugin coreLib() {
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
     public ActionExecutor coreActionExecutor() {
         return coreActionExecutor;
     }
@@ -452,6 +463,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public FermentationBarrelRuntimeService fermentationBarrelRuntimeService() {
         return fermentationBarrelRuntimeService;
+    }
+
+    public JavaScriptCookingResultRuleRegistry javaScriptResultRuleRegistry() {
+        return javaScriptResultRuleRegistry;
+    }
+
+    public JavaScriptCookingCompleteHookRegistry javaScriptCompleteHookRegistry() {
+        return javaScriptCompleteHookRegistry;
     }
 
     public DebugCommand debugCommand() {

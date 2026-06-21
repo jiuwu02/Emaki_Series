@@ -232,6 +232,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     public void shutdown(EmakiGemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("gem");
+        coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(plugin);
         coreLibPlugin.scriptModuleRegistry().unregister("gem");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
@@ -402,7 +403,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("gem", context -> new ScriptGemModuleApi());
+        coreLibPlugin.scriptModuleRegistry().register("gem", context -> new ScriptGemModuleApi(JavaPlugin.getPlugin(EmakiGemPlugin.class), context));
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiGemPlugin plugin) {

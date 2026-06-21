@@ -54,6 +54,8 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenItemLayerPreviewProvider;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRoutePreviewService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
+import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenChanceRuleRegistry;
+import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegistry;
 
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
@@ -97,6 +99,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
     private StrengthenRoutePreviewService routePreviewService;
+    private JavaScriptStrengthenChanceRuleRegistry javaScriptChanceRuleRegistry;
+    private JavaScriptStrengthenResultHookRegistry javaScriptResultHookRegistry;
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private final EmakiStrengthenApi.Bridge strengthenApiBridge = new EmakiStrengthenApi.Bridge() {
         @Override
@@ -203,6 +207,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
         routePreviewService = new StrengthenRoutePreviewService(this);
+        javaScriptChanceRuleRegistry = new JavaScriptStrengthenChanceRuleRegistry(this);
+        javaScriptResultHookRegistry = new JavaScriptStrengthenResultHookRegistry(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -272,6 +278,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return bootstrapService;
     }
 
+    public EmakiCoreLibPlugin coreLib() {
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
     public GuiService guiService() {
         return guiService;
     }
@@ -314,6 +324,14 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public StrengthenGuiService strengthenGuiService() {
         return strengthenGuiService;
+    }
+
+    public JavaScriptStrengthenChanceRuleRegistry javaScriptChanceRuleRegistry() {
+        return javaScriptChanceRuleRegistry;
+    }
+
+    public JavaScriptStrengthenResultHookRegistry javaScriptResultHookRegistry() {
+        return javaScriptResultHookRegistry;
     }
 
     public GuiItemBuilder.ItemFactory coreItemFactory() {

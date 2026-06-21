@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenChanceRuleRegistry;
+import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegistry;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
@@ -147,7 +149,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         ChanceCalculator.FailureResolution failure = chanceCalculator.resolveFailure(recipe, state.currentStar(), state.temperLevel(),
                 materials.appliedTemperBonus(), materials.protectionApplied());
         Set<Integer> firstReachStars = collectFirstReach(state.firstReachFlags(), targetStar);
-        return new AttemptPreview(
+        AttemptPreview preview = new AttemptPreview(
                 true,
                 "",
                 state,
@@ -165,13 +167,15 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 materials.requiredMaterials(),
                 materials.optionalMaterials()
         );
+        JavaScriptStrengthenChanceRuleRegistry chanceRuleRegistry = plugin.javaScriptChanceRuleRegistry();
+        return chanceRuleRegistry == null ? preview : chanceRuleRegistry.apply(player, preview);
     }
 
     @Override
     public AttemptResult attempt(Player player, AttemptContext context) {
         AttemptPreview preview = preview(player, context);
         if (!preview.eligible()) {
-            return AttemptResult.failure(preview.errorKey(), preview, replacements(preview, preview.currentStar()));
+            return finishAttempt(player, AttemptResult.failure(preview.errorKey(), preview, replacements(preview, preview.currentStar())));
         }
 
         StrengthenRecipe recipe = preview.recipe();
@@ -182,7 +186,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                     true
             );
             if (!conditionsPassed) {
-                return AttemptResult.failure("strengthen.error.condition_not_met", preview, replacements(preview, preview.currentStar()));
+                return finishAttempt(player, AttemptResult.failure("strengthen.error.condition_not_met", preview, replacements(preview, preview.currentStar())));
             }
         }
 
@@ -210,15 +214,23 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
 
         ItemStack rebuilt = rebuildWithState(context == null ? null : context.targetItem(), updated, buildMaterialsSignature(preview));
         if (rebuilt == null) {
-            return AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, resultStar));
+            return finishAttempt(player, AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, resultStar)));
         }
 
         StrengthenEconomyService.ChargeResult chargeResult = economyService.charge(player, preview.costs());
         if (!chargeResult.success()) {
-            return AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar()));
+            return finishAttempt(player, AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar())));
         }
 
-        return new AttemptResult(success, "", replacements(preview, resultStar), preview, rebuilt, resultStar, resultTemper, progress.newlyReached());
+        return finishAttempt(player, new AttemptResult(success, "", replacements(preview, resultStar), preview, rebuilt, resultStar, resultTemper, progress.newlyReached()));
+    }
+
+    private AttemptResult finishAttempt(Player player, AttemptResult result) {
+        JavaScriptStrengthenResultHookRegistry resultHookRegistry = plugin.javaScriptResultHookRegistry();
+        if (resultHookRegistry != null) {
+            resultHookRegistry.fire(player, result);
+        }
+        return result;
     }
 
     @Override

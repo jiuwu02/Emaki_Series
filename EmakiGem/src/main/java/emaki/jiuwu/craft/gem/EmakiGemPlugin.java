@@ -39,6 +39,8 @@ import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
 import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
 import emaki.jiuwu.craft.gem.papi.GemPlaceholderExpansion;
+import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSetBonusRegistry;
+import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSocketRuleRegistry;
 import emaki.jiuwu.craft.gem.service.GemActionCoordinator;
 import emaki.jiuwu.craft.gem.service.GemEconomyService;
 import emaki.jiuwu.craft.gem.service.GemExtractService;
@@ -98,6 +100,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemGuiService gemGuiService;
     private GemResonanceLoader resonanceLoader;
     private GemResonanceService resonanceService;
+    private JavaScriptGemSocketRuleRegistry javaScriptSocketRuleRegistry;
+    private JavaScriptGemSetBonusRegistry javaScriptSetBonusRegistry;
     private GemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
     private final EmakiGemApi.Bridge gemApiBridge = new EmakiGemApi.Bridge() {
@@ -202,6 +206,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         extractService = components.extractService();
         upgradeService = components.upgradeService();
         gemGuiService = components.gemGuiService();
+        javaScriptSocketRuleRegistry = new JavaScriptGemSocketRuleRegistry(this);
+        javaScriptSetBonusRegistry = new JavaScriptGemSetBonusRegistry(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -343,6 +349,14 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public GemResonanceService resonanceService() {
         return resonanceService;
+    }
+
+    public JavaScriptGemSocketRuleRegistry javaScriptSocketRuleRegistry() {
+        return javaScriptSocketRuleRegistry;
+    }
+
+    public JavaScriptGemSetBonusRegistry javaScriptSetBonusRegistry() {
+        return javaScriptSetBonusRegistry;
     }
 
     public void setResonanceLoader(GemResonanceLoader resonanceLoader) {

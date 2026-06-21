@@ -356,7 +356,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     }
 
     private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("cooking", context -> new ScriptCookingModuleApi());
+        coreLibPlugin.scriptModuleRegistry().register("cooking", context -> new ScriptCookingModuleApi(JavaPlugin.getPlugin(EmakiCookingPlugin.class), context));
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiCookingPlugin plugin) {

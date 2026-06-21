@@ -209,6 +209,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     public void shutdown(EmakiForgePlugin plugin, TaskHandle autoSaveTask) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("forge");
+        coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(plugin);
         coreLibPlugin.scriptModuleRegistry().unregister("forge");
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopping");
@@ -303,7 +304,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("forge", context -> new ScriptForgeModuleApi());
+        coreLibPlugin.scriptModuleRegistry().register("forge", context -> new ScriptForgeModuleApi(JavaPlugin.getPlugin(EmakiForgePlugin.class), context));
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiForgePlugin plugin) {

@@ -128,7 +128,9 @@ public final class ForgeService {
                     }
                 },
                 (playerId, recipeId) -> plugin.playerDataStore().recordCraft(playerId, recipeId),
-                resultPostProcessor::process
+                resultPostProcessor::process,
+                plugin.javaScriptForgeRuleRegistry(),
+                plugin.javaScriptResultHookRegistry()
         );
     }
 

@@ -37,6 +37,8 @@ import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
+import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeResultHookRegistry;
+import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeRuleRegistry;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
@@ -74,6 +76,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
+    private final JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry = new JavaScriptForgeRuleRegistry(this);
+    private final JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry = new JavaScriptForgeResultHookRegistry(this);
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
@@ -239,6 +243,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return bootstrapService;
     }
 
+    public EmakiCoreLibPlugin coreLib() {
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
     public GuiService guiService() {
         return guiService;
     }
@@ -265,6 +273,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public RecipeBookGuiService recipeBookGuiService() {
         return recipeBookGuiService;
+    }
+
+    public JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry() {
+        return javaScriptForgeRuleRegistry;
+    }
+
+    public JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry() {
+        return javaScriptResultHookRegistry;
     }
 
     public DebugCommand debugCommand() {
