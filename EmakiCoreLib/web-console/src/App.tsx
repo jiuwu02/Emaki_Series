@@ -3,10 +3,10 @@ import type { Completion, CompletionContext, CompletionResult, CompletionSource 
 import type { ComponentType } from 'react';
 import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult, type RegistryValueChange } from './api';
 import { loadWebExtensions } from './extensions';
-import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getJavaScriptCompletionScopes, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, setServerJavaScriptCompletions, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
+import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getJavaScriptBlockCatalog, getJavaScriptCompletionScopes, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, setServerJavaScriptBlocks, setServerJavaScriptCompletions, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, resolveSurfaceDocumentPath, treeDirtyKey } from './documentPaths';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
-import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
+import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, ScriptBlockWorkbench, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
 import { UnifiedDiffView, parseUnifiedDiff } from './components/DiffViewer';
 import { useDialogFocus } from './components/useDialogFocus';
 import { useStableEntries } from './components/useStableEntries';
@@ -430,6 +430,7 @@ export default function App() {
       if (loadSeq !== registryLoadSeq.current) return null;
       setRuntimeEnums(next.runtimeEnums);
       setServerJavaScriptCompletions(next.scriptCompletions);
+      setServerJavaScriptBlocks(next.scriptBlockCategories, next.scriptBlocks);
       const merged = enhanceRegistry(next);
       setRegistry(merged);
       if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
@@ -3074,6 +3075,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
   const fileName = scriptPath.split('/').pop() ?? scriptPath;
   const fileTitle = fileDisplayTitle(file);
   const isDirty = content !== savedContent;
+  const scriptBlockCatalog = getJavaScriptBlockCatalog();
   const sourceEditingElement = (target: EventTarget | null) => target instanceof HTMLElement && ['INPUT', 'TEXTAREA'].includes(target.tagName);
 
   useEffect(() => {
@@ -3191,18 +3193,15 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
 
   return <div className="script-editor">
     {error && <InlineError>{error}</InlineError>}
-    <div className="editor-wrapper">
-      <CodeEditor
-        className="script-code-editor"
-        value={content}
-        language="javascript"
-        ariaLabel={t('core.script.editAria', { path: scriptPath })}
-        completionSource={scriptCompletionSource}
-        onChange={handleInput}
-        onSave={save}
-      />
-      <span id="script-editor-help" className="sr-only">{t('core.script.help')}</span>
-    </div>
+    <ScriptBlockWorkbench
+      value={content}
+      categories={scriptBlockCatalog.categories}
+      blocks={scriptBlockCatalog.blocks}
+      ariaLabel={t('core.script.editAria', { path: scriptPath })}
+      completionSource={scriptCompletionSource}
+      onChange={handleInput}
+      onSave={save}
+    />
   </div>;
 }
 
