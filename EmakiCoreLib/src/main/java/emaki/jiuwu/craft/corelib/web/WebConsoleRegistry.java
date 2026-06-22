@@ -283,6 +283,94 @@ public final class WebConsoleRegistry {
         registerJavaScriptMethod(plugin.getName(), scope, label, detail, apply, type);
     }
 
+    public static synchronized void registerJavaScriptModuleApi(String ownerModuleId, String scriptModuleId, Class<?> apiClass) {
+        if (Texts.isBlank(ownerModuleId) || Texts.isBlank(scriptModuleId) || apiClass == null) {
+            return;
+        }
+        String module = scriptModuleId.trim().toLowerCase(java.util.Locale.ROOT);
+        String scope = "module:" + module;
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+        for (java.lang.reflect.Method method : apiClass.getMethods()) {
+            if (!isScriptApiMethod(method) || !seen.add(method.getName() + ":" + method.getParameterCount())) {
+                continue;
+            }
+            String detail = method.getName() + "(" + scriptApiParameterList(method, true) + ")";
+            String apply = method.getName() + "(" + scriptApiParameterList(method, false) + ")";
+            String type = scriptApiMethodType(method);
+            registerJavaScriptMethod(ownerModuleId, scope, method.getName(), detail, apply, type);
+        }
+    }
+
+    public static synchronized void registerJavaScriptModuleApi(JavaPlugin plugin, String scriptModuleId, Class<?> apiClass) {
+        if (plugin == null) {
+            return;
+        }
+        registerJavaScriptModuleApi(plugin.getName(), scriptModuleId, apiClass);
+    }
+
+    private static boolean isScriptApiMethod(java.lang.reflect.Method method) {
+        int modifiers = method.getModifiers();
+        return java.lang.reflect.Modifier.isPublic(modifiers)
+                && !method.isBridge()
+                && !method.isSynthetic()
+                && method.getDeclaringClass() != Object.class
+                && !method.getName().equals("wait")
+                && !method.getName().equals("notify")
+                && !method.getName().equals("notifyAll")
+                && !method.getName().equals("getClass")
+                && !method.getName().equals("hashCode")
+                && !method.getName().equals("equals")
+                && !method.getName().equals("toString");
+    }
+
+    private static String scriptApiParameterList(java.lang.reflect.Method method, boolean namedOnly) {
+        java.lang.reflect.Parameter[] parameters = method.getParameters();
+        List<String> names = new ArrayList<>();
+        for (int index = 0; index < parameters.length; index++) {
+            String name = parameters[index].isNamePresent() ? parameters[index].getName() : "arg" + (index + 1);
+            if (!namedOnly) {
+                names.add(defaultScriptApiArgument(name, parameters[index].getType()));
+            } else {
+                names.add(name);
+            }
+        }
+        return String.join(", ", names);
+    }
+
+    private static String defaultScriptApiArgument(String name, Class<?> type) {
+        String normalized = Texts.toStringSafe(name).toLowerCase(java.util.Locale.ROOT);
+        if (type == boolean.class || type == Boolean.class || normalized.startsWith("enable") || normalized.startsWith("allow")) {
+            return "false";
+        }
+        if (Number.class.isAssignableFrom(type) || type.isPrimitive() && type != boolean.class && type != void.class) {
+            return "0";
+        }
+        if (java.util.Map.class.isAssignableFrom(type) || normalized.contains("definition") || normalized.contains("args")) {
+            return "{}";
+        }
+        if (java.util.Collection.class.isAssignableFrom(type) || type.isArray()) {
+            return "[]";
+        }
+        return "\"" + name + "\"";
+    }
+
+    private static String scriptApiMethodType(java.lang.reflect.Method method) {
+        Class<?> returnType = method.getReturnType();
+        if (returnType == void.class) {
+            return "function";
+        }
+        if (returnType == boolean.class || returnType == Boolean.class) {
+            return "boolean";
+        }
+        if (Number.class.isAssignableFrom(returnType) || returnType.isPrimitive()) {
+            return "number";
+        }
+        if (returnType == String.class || CharSequence.class.isAssignableFrom(returnType)) {
+            return "string";
+        }
+        return "value";
+    }
+
     public static synchronized void registerJavaScriptBlockCategory(String moduleId, String id, String label, String comment, int order) {
         if (Texts.isBlank(moduleId) || Texts.isBlank(id) || Texts.isBlank(label)) {
             return;

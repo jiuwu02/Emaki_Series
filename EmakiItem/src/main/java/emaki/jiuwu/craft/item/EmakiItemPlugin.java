@@ -271,6 +271,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void registerJavaScriptCompletions() {
+        WebConsoleRegistry.registerJavaScriptModuleApi(getName(), "item", emaki.jiuwu.craft.item.script.ScriptItemModuleApi.class);
         scriptMethod("available", "available()", "available()");
         scriptMethod("exists", "exists(id)", "exists(\"example_item\")");
         scriptMethod("create", "create(id, amount)", "create(\"example_item\", 1)");

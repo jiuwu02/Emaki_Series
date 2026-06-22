@@ -233,6 +233,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void registerJavaScriptCompletions() {
+        WebConsoleRegistry.registerJavaScriptModuleApi(getName(), "strengthen", emaki.jiuwu.craft.strengthen.script.ScriptStrengthenModuleApi.class);
         scriptMethod("available", "available()", "available()");
         scriptMethod("canStrengthen", "canStrengthen(itemKey)", "canStrengthen(\"item\")");
         scriptMethod("readState", "readState(itemKey)", "readState(\"item\")");

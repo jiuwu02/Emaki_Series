@@ -308,6 +308,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void registerJavaScriptCompletions() {
+        WebConsoleRegistry.registerJavaScriptModuleApi(getName(), "skills", emaki.jiuwu.craft.skills.script.ScriptSkillsModuleApi.class);
         scriptMethod("available", "available()", "available()");
         scriptMethod("hasScriptAction", "hasScriptAction(actionId)", "hasScriptAction(\"attribute_damage\")");
         scriptMethod("registeredScriptActions", "registeredScriptActions()", "registeredScriptActions()");

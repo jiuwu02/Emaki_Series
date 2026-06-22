@@ -424,6 +424,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     }
 
     private void registerJavaScriptCompletions() {
+        WebConsoleRegistry.registerJavaScriptModuleApi(getName(), "level", emaki.jiuwu.craft.level.script.ScriptLevelModuleApi.class);
         scriptMethod("available", "available()", "available()");
         scriptMethod("typeIds", "typeIds()", "typeIds()");
         scriptMethod("type", "type(typeId)", "type(\"combat\")");

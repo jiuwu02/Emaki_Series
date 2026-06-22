@@ -236,6 +236,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     private void registerJavaScriptCompletions() {
+        WebConsoleRegistry.registerJavaScriptModuleApi(getName(), "gem", emaki.jiuwu.craft.gem.script.ScriptGemModuleApi.class);
         scriptMethod("available", "available()", "available()");
         scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
         scriptMethod("pluginName", "pluginName()", "pluginName()");

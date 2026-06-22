@@ -201,6 +201,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerJavaScriptCompletions() {
+        WebConsoleRegistry.registerJavaScriptModuleApi(getName(), "forge", emaki.jiuwu.craft.forge.script.ScriptForgeModuleApi.class);
         scriptMethod("available", "available()", "available()");
         scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
         scriptMethod("pluginName", "pluginName()", "pluginName()");

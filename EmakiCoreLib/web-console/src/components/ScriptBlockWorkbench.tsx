@@ -1,6 +1,6 @@
-import 'blockly/blocks';
-import 'blockly/msg/zh-hans';
 import * as Blockly from 'blockly/core';
+import * as BlocklyZhHans from 'blockly/msg/zh-hans';
+import 'blockly/blocks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CompletionSource } from '@codemirror/autocomplete';
 import { t } from '../i18n';
@@ -20,8 +20,11 @@ export type ScriptBlockWorkbenchProps = {
 
 type ScriptWorkbenchStatus = 'ready' | 'partial' | 'empty' | 'source' | 'error';
 
+Blockly.setLocale(Object.fromEntries(Object.entries(BlocklyZhHans).filter(([, value]) => typeof value === 'string')) as Record<string, string>);
+
 export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, completionSource, onChange, onSave }: ScriptBlockWorkbenchProps) {
-  const catalog = useMemo(() => normalizeScriptBlockCatalog(categories, blocks), [categories, blocks]);
+  const catalogSignature = stableCatalogSignature(categories, blocks);
+  const catalog = useMemo(() => normalizeScriptBlockCatalog(categories, blocks), [catalogSignature]);
   const toolbox = useMemo(() => createScriptBlocklyToolbox(catalog), [catalog]);
   const blocklyHostRef = useRef<HTMLDivElement | null>(null);
   const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
@@ -124,7 +127,6 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
     window.setTimeout(() => {
       resize();
       selectFirstToolboxCategory(workspace);
-      workspace.cleanUp();
       resize();
       initializingRef.current = false;
     }, 0);
@@ -167,7 +169,6 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
       setStatus(count > 0 ? importResult.rawBlocks > 0 ? 'partial' : 'ready' : value.trim() ? 'source' : 'empty');
       setError(importResult.errors[0] ?? '');
       window.setTimeout(() => {
-        workspace.cleanUp();
         Blockly.svgResize(workspace);
         initializingRef.current = false;
       }, 0);
@@ -249,6 +250,13 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
       <span>{t('core.script.dragHint')}</span>
     </footer>
   </div>;
+}
+
+function stableCatalogSignature(categories: WebScriptBlockCategory[], blocks: WebScriptBlockDefinition[]): string {
+  return JSON.stringify({
+    categories: categories.map(category => [category.id, category.moduleId, category.label, category.comment, category.order]),
+    blocks: blocks.map(block => [block.id, block.categoryId, block.moduleId, block.scope, block.label, block.comment, block.codeTemplate, block.callPattern, block.type, block.order])
+  });
 }
 
 function selectFirstToolboxCategory(workspace: Blockly.WorkspaceSvg): void {
