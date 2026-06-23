@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CompletionSource } from '@codemirror/autocomplete';
 import { t } from '../i18n';
 import type { WebScriptBlockCategory, WebScriptBlockDefinition } from '../types';
-import { createScriptBlocklyToolbox, generateScriptFromWorkspace, loadScriptSourceIntoWorkspace, normalizeScriptBlockCatalog, registerScriptBlocklyBlocks, scriptBlockCount } from '../scriptBlocks';
+import { createScriptBlocklyToolbox, generateScriptFromWorkspace, loadScriptSourceIntoWorkspace, normalizeScriptBlockCatalog, pruneDetachedValueBlocks, registerScriptBlocklyBlocks, scriptBlockCount } from '../scriptBlocks';
 import { CodeEditor } from './CodeEditor';
 
 export type ScriptBlockWorkbenchProps = {
@@ -103,6 +103,7 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
 
     try {
       const importResult = loadScriptSourceIntoWorkspace(workspace, value, catalog);
+      pruneDetachedValueBlocks(workspace);
       const count = scriptBlockCount(workspace);
       const generated = count > 0 ? generateScriptFromWorkspace(workspace) : value;
       setGeneratedCode(generated || value);
@@ -118,11 +119,19 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
     }
 
     workspace.addChangeListener(event => {
-      if (event.isUiEvent || initializingRef.current || synchronizingRef.current || isExternalWorkspaceEvent(event, workspace)) return;
+      if (isExternalWorkspaceEvent(event, workspace)) return;
+      if (event.type === Blockly.Events.BLOCK_DRAG) {
+        const dragEvent = event as { isStart?: boolean };
+        if (dragEvent.isStart) hideToolboxFlyout(workspace);
+        return;
+      }
+      if (event.isUiEvent || initializingRef.current || synchronizingRef.current) return;
+      if (event.type === Blockly.Events.BLOCK_CREATE) hideToolboxFlyout(workspace);
       hasBlockEditsRef.current = true;
       synchronizingRef.current = true;
       try {
         pruneDetachedShadowBlocks(workspace);
+        pruneDetachedValueBlocks(workspace);
       } finally {
         synchronizingRef.current = false;
       }
@@ -174,6 +183,7 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
     initializingRef.current = true;
     try {
       const importResult = loadScriptSourceIntoWorkspace(workspace, value, catalog);
+      pruneDetachedValueBlocks(workspace);
       const count = scriptBlockCount(workspace);
       setGeneratedCode(count > 0 ? generateScriptFromWorkspace(workspace) : value);
       setBlockCount(count);

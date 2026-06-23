@@ -289,13 +289,16 @@ export function createScriptBlocklyToolbox(catalog: ScriptBlockCatalog): Blockly
 
 export function generateScriptFromWorkspace(workspace: Blockly.WorkspaceSvg): string {
   activeModuleUsages = new Map();
+  javascriptGenerator.init(workspace);
   try {
-    let code = javascriptGenerator.workspaceToCode(workspace).replace(/\n{3,}/g, '\n\n').trimEnd();
+    const topBlocks = (workspace.getTopBlocks(true) as Blockly.BlockSvg[]).filter(isScriptTopBlock);
+    const code = topBlocks.map(block => blockToScriptCode(block)).join('\n').replace(/\n{3,}/g, '\n\n').trimEnd();
     const declarations = [...activeModuleUsages.values()]
       .sort((left, right) => left.alias.localeCompare(right.alias))
       .map(usage => `const ${usage.alias} = emaki.module(${JSON.stringify(usage.moduleId)});`);
-    if (declarations.length) code = `${declarations.join('\n')}\n\n${stripDuplicateModuleDeclarations(code)}`.trimEnd();
-    return code ? `${code}\n` : '';
+    const next = declarations.length ? `${declarations.join('\n')}\n\n${stripDuplicateModuleDeclarations(code)}`.trimEnd() : code;
+    const finished = javascriptGenerator.finish(next).trimEnd();
+    return finished ? `${finished}\n` : '';
   } finally {
     activeModuleUsages = null;
   }
@@ -303,6 +306,12 @@ export function generateScriptFromWorkspace(workspace: Blockly.WorkspaceSvg): st
 
 export function scriptBlockCount(workspace: Blockly.WorkspaceSvg | null): number {
   return workspace?.getAllBlocks(false).filter(isUserWorkspaceBlock).length ?? 0;
+}
+
+export function pruneDetachedValueBlocks(workspace: Blockly.WorkspaceSvg): void {
+  for (const block of workspace.getTopBlocks(false) as Blockly.BlockSvg[]) {
+    if (isDetachedValueBlock(block)) block.dispose(false);
+  }
 }
 
 export function loadScriptSourceIntoWorkspace(workspace: Blockly.WorkspaceSvg, source: string, catalog: ScriptBlockCatalog): ScriptSourceImportResult {
@@ -991,7 +1000,7 @@ function variableToolboxBlock(type: 'variables_get' | 'variables_set'): Blockly.
 
 function layoutTopBlocks(workspace: Blockly.WorkspaceSvg): void {
   let y = 24;
-  for (const block of (workspace.getTopBlocks(true) as Blockly.BlockSvg[]).filter(isUserWorkspaceBlock)) {
+  for (const block of (workspace.getTopBlocks(true) as Blockly.BlockSvg[]).filter(isScriptTopBlock)) {
     const position = block.getRelativeToSurfaceXY();
     block.moveBy(24 - position.x, y - position.y);
     block.render();
@@ -1001,6 +1010,20 @@ function layoutTopBlocks(workspace: Blockly.WorkspaceSvg): void {
 
 function isUserWorkspaceBlock(block: Blockly.Block): boolean {
   return typeof block.isShadow !== 'function' || !block.isShadow();
+}
+
+function isScriptTopBlock(block: Blockly.Block): boolean {
+  return isUserWorkspaceBlock(block) && !isDetachedValueBlock(block);
+}
+
+function isDetachedValueBlock(block: Blockly.Block): boolean {
+  return isUserWorkspaceBlock(block) && !block.getParent() && Boolean(block.outputConnection) && !block.previousConnection && !block.nextConnection;
+}
+
+function blockToScriptCode(block: Blockly.Block): string {
+  const generated = javascriptGenerator.blockToCode(block);
+  const code = Array.isArray(generated) ? generated[0] : generated;
+  return String(code || '').trimEnd();
 }
 
 function stripDuplicateModuleDeclarations(source: string): string {
