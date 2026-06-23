@@ -429,7 +429,7 @@ public final class ExpressionEngine {
                 matcher.appendReplacement(buffer, "0");
                 continue;
             }
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(Double.toString(variableResult.value())));
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(Numbers.toPlainString(variableResult.value())));
         }
         matcher.appendTail(buffer);
         return new NumericPreparation(buffer.toString(), issues);

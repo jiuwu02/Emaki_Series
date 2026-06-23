@@ -63,6 +63,13 @@ public final class Numbers {
         return Math.max(min, Math.min(max, value));
     }
 
+    public static String toPlainString(double value) {
+        if (Double.isNaN(value) || Double.isInfinite(value)) {
+            return Double.toString(value);
+        }
+        return java.math.BigDecimal.valueOf(value).toPlainString();
+    }
+
     public static String formatNumber(double value, String pattern) {
         String effectivePattern = Texts.isBlank(pattern) ? "0.##" : pattern;
         try {
