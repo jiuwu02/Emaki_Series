@@ -38,6 +38,9 @@ const VARIABLE_CATEGORY_ID = 'core.variable';
 const TEXT_CATEGORY_ID = 'core.text';
 const NUMBER_CATEGORY_ID = 'core.number';
 const OBJECT_CATEGORY_ID = 'core.object';
+const ARRAY_CATEGORY_ID = 'core.array';
+const EXPRESSION_CATEGORY_ID = 'core.expression';
+const COMMON_API_CATEGORY_ID = 'core.common-api';
 const API_CATEGORY_ID = 'core.api';
 const BLOCK_PREFIX = 'emaki_script_';
 const generatedBlocks = new Map<string, ParsedBlock>();
@@ -50,6 +53,9 @@ const BUILTIN_CATEGORIES: WebScriptBlockCategory[] = [
   { id: TEXT_CATEGORY_ID, label: t('core.script.block.text.category'), order: -60 },
   { id: NUMBER_CATEGORY_ID, label: t('core.script.block.math.category'), order: -50 },
   { id: OBJECT_CATEGORY_ID, label: t('core.script.block.object.category'), order: -40 },
+  { id: ARRAY_CATEGORY_ID, label: t('core.script.block.array.category'), order: -35 },
+  { id: EXPRESSION_CATEGORY_ID, label: t('core.script.block.expression.category'), comment: t('core.script.block.expression.categoryComment'), order: -30 },
+  { id: COMMON_API_CATEGORY_ID, label: t('core.script.block.commonApi.category'), comment: t('core.script.block.commonApi.categoryComment'), order: -20 },
   { id: API_CATEGORY_ID, label: t('core.script.block.api.category'), comment: t('core.script.block.api.categoryComment'), order: 100 }
 ];
 
@@ -60,9 +66,17 @@ const BUILTIN_BLOCK_DEFINITIONS: WebScriptBlockDefinition[] = [
   { id: 'core.variable.assign', categoryId: VARIABLE_CATEGORY_ID, scope: 'core', label: t('core.script.block.assign'), comment: t('core.script.block.assign.tooltip'), codeTemplate: 'target = value;', type: 'statement', order: -80 },
   { id: 'core.logic.ifElse', categoryId: LOGIC_CATEGORY_ID, scope: 'core', label: t('core.script.block.ifElse'), comment: t('core.script.block.ifElse.tooltip'), codeTemplate: 'if (condition) {}', type: 'statement', order: -100 },
   { id: 'core.object.literal', categoryId: OBJECT_CATEGORY_ID, scope: 'core', label: t('core.script.block.objectLiteral'), comment: t('core.script.block.objectLiteral.tooltip'), codeTemplate: '{}', type: 'value', order: -80 },
-  { id: 'core.array.literal', categoryId: OBJECT_CATEGORY_ID, scope: 'core', label: t('core.script.block.arrayLiteral'), comment: t('core.script.block.arrayLiteral.tooltip'), codeTemplate: '[]', type: 'value', order: -70 },
   { id: 'core.property.access', categoryId: OBJECT_CATEGORY_ID, scope: 'core', label: t('core.script.block.propertyAccess'), comment: t('core.script.block.propertyAccess.tooltip'), codeTemplate: 'object.property', type: 'value', order: -60 },
-  { id: 'core.call.value', categoryId: API_CATEGORY_ID, scope: 'core', label: t('core.script.block.callValue'), comment: t('core.script.block.callValue.tooltip'), codeTemplate: 'fn(args)', type: 'value', order: 9000 },
+  { id: 'core.array.literal', categoryId: ARRAY_CATEGORY_ID, scope: 'core', label: t('core.script.block.arrayLiteral'), comment: t('core.script.block.arrayLiteral.tooltip'), codeTemplate: '[]', type: 'value', order: -70 },
+  { id: 'core.index.access', categoryId: ARRAY_CATEGORY_ID, scope: 'core', label: t('core.script.block.indexAccess'), comment: t('core.script.block.indexAccess.tooltip'), codeTemplate: 'object[key]', type: 'value', order: -60 },
+  { id: 'core.expression.value', categoryId: EXPRESSION_CATEGORY_ID, scope: 'core', label: t('core.script.block.expressionValue'), comment: t('core.script.block.expressionValue.tooltip'), codeTemplate: 'value', type: 'value', order: -80 },
+  { id: 'core.call.value', categoryId: EXPRESSION_CATEGORY_ID, scope: 'core', label: t('core.script.block.callValue'), comment: t('core.script.block.callValue.tooltip'), codeTemplate: 'fn(args)', type: 'value', order: 9000 },
+  { id: 'core.player.sendMessage', categoryId: COMMON_API_CATEGORY_ID, scope: 'emaki.player', label: t('core.script.block.playerSendMessage'), comment: t('core.script.block.playerSendMessage.tooltip'), codeTemplate: 'emaki.player.sendMessage(message)', type: 'statement', order: -100 },
+  { id: 'core.logger.info', categoryId: COMMON_API_CATEGORY_ID, scope: 'emaki.logger', label: t('core.script.block.loggerInfo'), comment: t('core.script.block.loggerInfo.tooltip'), codeTemplate: 'emaki.logger.info(message)', type: 'statement', order: -90 },
+  { id: 'core.logger.warn', categoryId: COMMON_API_CATEGORY_ID, scope: 'emaki.logger', label: t('core.script.block.loggerWarn'), comment: t('core.script.block.loggerWarn.tooltip'), codeTemplate: 'emaki.logger.warn(message)', type: 'statement', order: -80 },
+  { id: 'core.logger.error', categoryId: COMMON_API_CATEGORY_ID, scope: 'emaki.logger', label: t('core.script.block.loggerError'), comment: t('core.script.block.loggerError.tooltip'), codeTemplate: 'emaki.logger.error(message)', type: 'statement', order: -70 },
+  { id: 'core.context.placeholder', categoryId: COMMON_API_CATEGORY_ID, scope: 'emaki.context', label: t('core.script.block.contextPlaceholder'), comment: t('core.script.block.contextPlaceholder.tooltip'), codeTemplate: 'emaki.context.placeholder(key)', type: 'string', order: -60 },
+  { id: 'core.player.exists', categoryId: COMMON_API_CATEGORY_ID, scope: 'emaki.player', label: t('core.script.block.playerExists'), comment: t('core.script.block.playerExists.tooltip'), codeTemplate: 'emaki.player.exists()', type: 'boolean', order: -50 },
   { id: 'core.call.statement', categoryId: API_CATEGORY_ID, scope: 'core', label: t('core.script.block.callStatement'), comment: t('core.script.block.callStatement.tooltip'), codeTemplate: 'fn(args);', type: 'statement', order: 9010 }
 ];
 
@@ -71,22 +85,43 @@ export function normalizeScriptBlockCatalog(categories: WebScriptBlockCategory[]
   const blocksById = new Map<string, WebScriptBlockDefinition>();
 
   for (const category of BUILTIN_CATEGORIES) {
-    categoriesById.set(category.id, { ...category });
+    categoriesById.set(categoryKey(category), { ...category, id: normalizeId(category.id) });
+  }
+
+  for (const category of categories) {
+    const id = normalizeId(category.id);
+    const label = String(category.label ?? '').trim();
+    if (!id || !label) continue;
+    const normalized: WebScriptBlockCategory = {
+      moduleId: normalizeModuleId(category.moduleId),
+      id,
+      label,
+      comment: category.comment ? String(category.comment) : undefined,
+      order: safeOrder(category.order)
+    };
+    categoriesById.set(categoryKey(normalized), normalized);
   }
 
   for (const block of [...BUILTIN_BLOCK_DEFINITIONS, ...blocks]) {
     const id = normalizeId(block.id);
     if (!id || !block.scope || !block.label || !block.codeTemplate) continue;
+    const moduleId = normalizeModuleId(block.moduleId);
+    const requestedCategoryId = normalizeId(block.categoryId);
+    const categoryId = block.id.startsWith('core.') ? requestedCategoryId : resolveRegisteredCategoryId(categoriesById, moduleId, requestedCategoryId);
     const next: WebScriptBlockDefinition = {
       ...block,
+      moduleId,
       id,
-      categoryId: block.id.startsWith('core.') ? normalizeId(block.categoryId) : API_CATEGORY_ID,
+      categoryId,
       scope: normalizeScope(block.scope),
+      label: String(block.label).trim(),
+      comment: block.comment ? String(block.comment) : undefined,
+      codeTemplate: String(block.codeTemplate).trim(),
       callPattern: String(block.callPattern || '').trim(),
       type: String(block.type || 'function').trim().toLowerCase(),
       order: safeOrder(block.order)
     };
-    blocksById.set(id, next);
+    blocksById.set(blockKey(next), next);
   }
 
   return {
@@ -117,7 +152,17 @@ export function registerScriptBlocklyBlocks(catalog: ScriptBlockCatalog): void {
 }
 
 export function createScriptBlocklyToolbox(catalog: ScriptBlockCatalog): Blockly.utils.toolbox.ToolboxDefinition {
-  const apiBlocks = catalog.blocks.filter(block => !block.id.startsWith('core.')).sort(sortByOrderAndLabel);
+  const dynamicCategories = catalog.categories
+    .filter(category => !category.id.startsWith('core.'))
+    .map(category => {
+      const categoryBlocks = catalog.blocks
+        .filter(block => !block.id.startsWith('core.') && !isCoveredByCommonApiBlock(block) && block.categoryId === category.id && (!category.moduleId || normalizeModuleId(block.moduleId) === normalizeModuleId(category.moduleId)))
+        .sort(sortByOrderAndLabel);
+      return { category, categoryBlocks };
+    })
+    .filter(entry => entry.categoryBlocks.length > 0);
+  const fallbackApiBlocks = catalog.blocks.filter(block => !block.id.startsWith('core.') && !isCoveredByCommonApiBlock(block) && block.categoryId === API_CATEGORY_ID).sort(sortByOrderAndLabel);
+
   return {
     kind: 'categoryToolbox',
     contents: [
@@ -189,18 +234,53 @@ export function createScriptBlocklyToolbox(catalog: ScriptBlockCatalog): Blockly
         colour: '#0f766e',
         contents: [
           { kind: 'block', type: 'emaki_object_literal' },
-          { kind: 'block', type: 'emaki_array_literal' },
           { kind: 'block', type: 'emaki_property_access' }
         ]
       },
       {
         kind: 'category',
+        name: t('core.script.block.array.category'),
+        colour: '#0f766e',
+        contents: [
+          { kind: 'block', type: 'emaki_array_literal' },
+          { kind: 'block', type: 'emaki_index_access' }
+        ]
+      },
+      {
+        kind: 'category',
+        name: t('core.script.block.expression.category'),
+        colour: '#0369a1',
+        contents: [
+          { kind: 'block', type: 'emaki_expression_value' },
+          { kind: 'block', type: 'emaki_call_value' }
+        ]
+      },
+      {
+        kind: 'category',
+        name: t('core.script.block.commonApi.category'),
+        colour: '#0284c7',
+        contents: [
+          { kind: 'block', type: 'emaki_player_send_message', inputs: { MESSAGE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+          { kind: 'block', type: 'emaki_logger_info', inputs: { MESSAGE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+          { kind: 'block', type: 'emaki_logger_warn', inputs: { MESSAGE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+          { kind: 'block', type: 'emaki_logger_error', inputs: { MESSAGE: { shadow: { type: 'text', fields: { TEXT: '' } } } } },
+          { kind: 'block', type: 'emaki_context_placeholder', inputs: { KEY: { shadow: { type: 'text', fields: { TEXT: 'key' } } } } },
+          { kind: 'block', type: 'emaki_player_exists' }
+        ]
+      },
+      ...dynamicCategories.map(({ category, categoryBlocks }) => ({
+        kind: 'category' as const,
+        name: category.label,
+        colour: '#0369a1',
+        contents: categoryBlocks.map(block => toolboxBlock(block))
+      })),
+      {
+        kind: 'category',
         name: t('core.script.block.api.category'),
         colour: '#0369a1',
         contents: [
-          ...apiBlocks.map(block => toolboxBlock(block)),
-          { kind: 'block', type: 'emaki_call_statement' },
-          { kind: 'block', type: 'emaki_call_value' }
+          ...fallbackApiBlocks.map(block => toolboxBlock(block)),
+          { kind: 'block', type: 'emaki_call_statement' }
         ]
       }
     ]
@@ -222,7 +302,7 @@ export function generateScriptFromWorkspace(workspace: Blockly.WorkspaceSvg): st
 }
 
 export function scriptBlockCount(workspace: Blockly.WorkspaceSvg | null): number {
-  return workspace?.getAllBlocks(false).length ?? 0;
+  return workspace?.getAllBlocks(false).filter(isUserWorkspaceBlock).length ?? 0;
 }
 
 export function loadScriptSourceIntoWorkspace(workspace: Blockly.WorkspaceSvg, source: string, catalog: ScriptBlockCatalog): ScriptSourceImportResult {
@@ -350,6 +430,14 @@ function registerCoreBlocks(): void {
       tooltip: t('core.script.block.propertyAccess.tooltip')
     },
     {
+      type: 'emaki_index_access',
+      message0: `${t('core.script.block.indexAccess')} %1 [ %2 ]`,
+      args0: [{ type: 'input_value', name: 'OBJECT' }, { type: 'input_value', name: 'KEY' }],
+      output: null,
+      colour: '#0f766e',
+      tooltip: t('core.script.block.indexAccess.tooltip')
+    },
+    {
       type: 'emaki_expression_value',
       message0: `${t('core.script.block.expressionValue', undefined, '表达式')} %1`,
       args0: [{ type: 'field_input', name: 'CODE', text: 'value' }],
@@ -373,6 +461,57 @@ function registerCoreBlocks(): void {
       nextStatement: null,
       colour: '#0369a1',
       tooltip: t('core.script.block.callStatement.tooltip')
+    },
+    {
+      type: 'emaki_player_send_message',
+      message0: `${t('core.script.block.playerSendMessage')} %1`,
+      args0: [{ type: 'input_value', name: 'MESSAGE', check: 'String' }],
+      previousStatement: null,
+      nextStatement: null,
+      colour: '#0284c7',
+      tooltip: t('core.script.block.playerSendMessage.tooltip')
+    },
+    {
+      type: 'emaki_logger_info',
+      message0: `${t('core.script.block.loggerInfo')} %1`,
+      args0: [{ type: 'input_value', name: 'MESSAGE', check: 'String' }],
+      previousStatement: null,
+      nextStatement: null,
+      colour: '#0284c7',
+      tooltip: t('core.script.block.loggerInfo.tooltip')
+    },
+    {
+      type: 'emaki_logger_warn',
+      message0: `${t('core.script.block.loggerWarn')} %1`,
+      args0: [{ type: 'input_value', name: 'MESSAGE', check: 'String' }],
+      previousStatement: null,
+      nextStatement: null,
+      colour: '#b45309',
+      tooltip: t('core.script.block.loggerWarn.tooltip')
+    },
+    {
+      type: 'emaki_logger_error',
+      message0: `${t('core.script.block.loggerError')} %1`,
+      args0: [{ type: 'input_value', name: 'MESSAGE', check: 'String' }],
+      previousStatement: null,
+      nextStatement: null,
+      colour: '#be123c',
+      tooltip: t('core.script.block.loggerError.tooltip')
+    },
+    {
+      type: 'emaki_context_placeholder',
+      message0: `${t('core.script.block.contextPlaceholder')} %1`,
+      args0: [{ type: 'input_value', name: 'KEY', check: 'String' }],
+      output: 'String',
+      colour: '#0284c7',
+      tooltip: t('core.script.block.contextPlaceholder.tooltip')
+    },
+    {
+      type: 'emaki_player_exists',
+      message0: t('core.script.block.playerExists'),
+      output: 'Boolean',
+      colour: '#0284c7',
+      tooltip: t('core.script.block.playerExists.tooltip')
     }
   ].filter(definition => !Blockly.Blocks[definition.type]);
 
@@ -396,9 +535,16 @@ function registerCoreBlocks(): void {
   javascriptGenerator.forBlock.emaki_object_literal = block => [String(block.getFieldValue('CODE') || '{}').trim() || '{}', Order.ATOMIC];
   javascriptGenerator.forBlock.emaki_array_literal = block => [String(block.getFieldValue('CODE') || '[]').trim() || '[]', Order.ATOMIC];
   javascriptGenerator.forBlock.emaki_property_access = (block, generator) => [`${generator.valueToCode(block, 'OBJECT', Order.MEMBER) || 'undefined'}.${safeIdentifier(block.getFieldValue('PROPERTY'), 'property')}`, Order.MEMBER];
+  javascriptGenerator.forBlock.emaki_index_access = (block, generator) => [`${generator.valueToCode(block, 'OBJECT', Order.MEMBER) || 'undefined'}[${generator.valueToCode(block, 'KEY', Order.NONE) || 'undefined'}]`, Order.MEMBER];
   javascriptGenerator.forBlock.emaki_expression_value = block => [String(block.getFieldValue('CODE') || 'undefined').trim() || 'undefined', Order.ATOMIC];
   javascriptGenerator.forBlock.emaki_call_value = block => [`${String(block.getFieldValue('CALLEE') || 'fn').trim()}(${String(block.getFieldValue('ARGS') || '').trim()})`, Order.FUNCTION_CALL];
   javascriptGenerator.forBlock.emaki_call_statement = block => `${String(block.getFieldValue('CALLEE') || 'fn').trim()}(${String(block.getFieldValue('ARGS') || '').trim()});\n`;
+  javascriptGenerator.forBlock.emaki_player_send_message = (block, generator) => `emaki.player.sendMessage(${generator.valueToCode(block, 'MESSAGE', Order.NONE) || '""'});\n`;
+  javascriptGenerator.forBlock.emaki_logger_info = (block, generator) => `emaki.logger.info(${generator.valueToCode(block, 'MESSAGE', Order.NONE) || '""'});\n`;
+  javascriptGenerator.forBlock.emaki_logger_warn = (block, generator) => `emaki.logger.warn(${generator.valueToCode(block, 'MESSAGE', Order.NONE) || '""'});\n`;
+  javascriptGenerator.forBlock.emaki_logger_error = (block, generator) => `emaki.logger.error(${generator.valueToCode(block, 'MESSAGE', Order.NONE) || '""'});\n`;
+  javascriptGenerator.forBlock.emaki_context_placeholder = (block, generator) => [`emaki.context.placeholder(${generator.valueToCode(block, 'KEY', Order.NONE) || '"key"'})`, Order.FUNCTION_CALL];
+  javascriptGenerator.forBlock.emaki_player_exists = () => ['emaki.player.exists()', Order.FUNCTION_CALL];
 }
 
 function statementToBlock(workspace: Blockly.WorkspaceSvg, node: any, catalog: ScriptBlockCatalog, aliases: Map<string, string>, errors: string[], x: number, y: number): Blockly.BlockSvg | null {
@@ -441,6 +587,8 @@ function statementToBlock(workspace: Blockly.WorkspaceSvg, node: any, catalog: S
         connectValue(block, 'VALUE', expressionToBlock(workspace, expression.right, catalog, aliases, errors));
         return block;
       }
+      const coreCall = expression?.type === 'CallExpression' ? createCoreCallWorkspaceBlock(workspace, expression, x, y, catalog, aliases, errors, false) : null;
+      if (coreCall) return coreCall;
       const parsed = findRegisteredCall(expression, catalog, aliases, false);
       if (parsed) return createRegisteredWorkspaceBlock(workspace, parsed, x, y, catalog, aliases, errors);
       if (expression?.type === 'CallExpression') {
@@ -489,13 +637,20 @@ function expressionToBlock(workspace: Blockly.WorkspaceSvg, node: any, catalog: 
     case 'Identifier':
       return rawExpressionBlock(workspace, node.name);
     case 'MemberExpression': {
-      if (node.computed) return rawExpressionBlock(workspace, nodeSource(node));
+      if (node.computed) {
+        const block = createBlock(workspace, 'emaki_index_access', 0, 0);
+        connectValue(block, 'OBJECT', expressionToBlock(workspace, node.object, catalog, aliases, errors));
+        connectValue(block, 'KEY', expressionToBlock(workspace, node.property, catalog, aliases, errors));
+        return block;
+      }
       const block = createBlock(workspace, 'emaki_property_access', 0, 0);
       connectValue(block, 'OBJECT', expressionToBlock(workspace, node.object, catalog, aliases, errors));
       block.setFieldValue(node.property?.name || 'property', 'PROPERTY');
       return block;
     }
     case 'CallExpression': {
+      const coreCall = createCoreCallWorkspaceBlock(workspace, node, 0, 0, catalog, aliases, errors, true);
+      if (coreCall) return coreCall;
       const parsed = findRegisteredCall(node, catalog, aliases, true);
       if (parsed) return createRegisteredWorkspaceBlock(workspace, parsed, 0, 0, catalog, aliases, errors);
       const block = createBlock(workspace, 'emaki_call_value', 0, 0);
@@ -587,6 +742,39 @@ function isModuleDeclarationNode(node: any): boolean {
     && nodeSource(declaration.init.callee) === 'emaki.module';
 }
 
+function createCoreCallWorkspaceBlock(workspace: Blockly.WorkspaceSvg, node: any, x: number, y: number, catalog: ScriptBlockCatalog, aliases: Map<string, string>, errors: string[], outputOnly: boolean): Blockly.BlockSvg | null {
+  const callee = nodeSource(node?.callee);
+  const args = node?.arguments ?? [];
+  const connectArg = (block: Blockly.BlockSvg, name: string, index: number) => connectValue(block, name, expressionToBlock(workspace, args[index], catalog, aliases, errors));
+  if (!outputOnly && callee === 'emaki.player.sendMessage') {
+    const block = createBlock(workspace, 'emaki_player_send_message', x, y);
+    connectArg(block, 'MESSAGE', 0);
+    return block;
+  }
+  if (!outputOnly && callee === 'emaki.logger.info') {
+    const block = createBlock(workspace, 'emaki_logger_info', x, y);
+    connectArg(block, 'MESSAGE', 0);
+    return block;
+  }
+  if (!outputOnly && callee === 'emaki.logger.warn') {
+    const block = createBlock(workspace, 'emaki_logger_warn', x, y);
+    connectArg(block, 'MESSAGE', 0);
+    return block;
+  }
+  if (!outputOnly && callee === 'emaki.logger.error') {
+    const block = createBlock(workspace, 'emaki_logger_error', x, y);
+    connectArg(block, 'MESSAGE', 0);
+    return block;
+  }
+  if (outputOnly && callee === 'emaki.context.placeholder') {
+    const block = createBlock(workspace, 'emaki_context_placeholder', x, y);
+    connectArg(block, 'KEY', 0);
+    return block;
+  }
+  if (outputOnly && callee === 'emaki.player.exists') return createBlock(workspace, 'emaki_player_exists', x, y);
+  return null;
+}
+
 function createRegisteredWorkspaceBlock(workspace: Blockly.WorkspaceSvg, match: ParsedBlock & { argumentNodes?: any[]; argumentValues?: string[] }, x: number, y: number, catalog: ScriptBlockCatalog, aliases: Map<string, string>, errors: string[]): Blockly.BlockSvg {
   const block = createBlock(workspace, match.typeName, x, y);
   for (let index = 0; index < match.params.length; index++) {
@@ -630,7 +818,8 @@ function toolboxBlock(block: WebScriptBlockDefinition): Blockly.utils.toolbox.Bl
 }
 
 function parseRegisteredBlock(block: WebScriptBlockDefinition): ParsedBlock {
-  const typeName = `${BLOCK_PREFIX}${normalizeId(block.id).replace(/[^a-z0-9_]+/g, '_')}`;
+  const typeKey = normalizeId(`${normalizeModuleId(block.moduleId) ?? 'global'}:${block.id}`).replace(/[^a-z0-9_]+/g, '_');
+  const typeName = `${BLOCK_PREFIX}${typeKey}`;
   const call = parseCall(block.codeTemplate) || parseCall(block.callPattern || '') || parseCall(`${block.scope}.${block.label}`);
   const kind = String(block.type ?? '').toLowerCase();
   const output = ['value', 'variable', 'property', 'getter', 'status', 'boolean', 'number', 'string', 'expression'].includes(kind);
@@ -647,20 +836,46 @@ function parseRegisteredBlock(block: WebScriptBlockDefinition): ParsedBlock {
 
 function blockJsonDefinition(parsed: ParsedBlock): Record<string, unknown> {
   const params = parsed.params;
-  return {
+  const definition: Record<string, unknown> = {
     type: parsed.typeName,
-    message0: params.length ? `${apiBlockLabel(parsed)} ${params.map((param, index) => `${paramLabel(param, index)} %${index + 1}`).join(' ')}` : `${apiBlockLabel(parsed)} %1`,
-    args0: params.length ? params.map((param, index) => ({ type: 'input_value', name: inputName(index), check: checkForParam(param) })) : [{ type: 'input_dummy' }],
+    message0: params.length ? apiBlockLabel(parsed) : `${apiBlockLabel(parsed)} %1`,
+    args0: params.length ? [] : [{ type: 'input_dummy' }],
     colour: '#0369a1',
     tooltip: parsed.block.comment || parsed.block.codeTemplate,
     ...(parsed.output ? { output: outputCheck(parsed.block.type) } : { previousStatement: null, nextStatement: null })
   };
+  params.forEach((param, index) => {
+    definition[`message${index + 1}`] = `${paramLabel(param, index)} %1`;
+    definition[`args${index + 1}`] = [{ type: 'input_value', name: inputName(index), check: checkForParam(param) }];
+  });
+  return definition;
 }
 
 function apiBlockLabel(parsed: ParsedBlock): string {
-  if (parsed.moduleId) return `${parsed.moduleId}.${parsed.methodName}()`;
+  const friendly = friendlyMethodLabel(parsed);
+  if (friendly) return friendly;
+  if (parsed.moduleId) return `${parsed.moduleId} · ${humanizeMethodName(parsed.methodName)}`;
   const receiver = parsed.receiver && parsed.receiver !== 'global' ? `${parsed.receiver}.` : '';
-  return `${receiver}${parsed.methodName}()`;
+  return `${receiver}${humanizeMethodName(parsed.methodName)}`;
+}
+
+function friendlyMethodLabel(parsed: ParsedBlock): string | null {
+  const moduleName = parsed.moduleId || (parsed.receiver.startsWith('module:') ? parsed.receiver.slice('module:'.length) : '');
+  const prefix = moduleName ? `${moduleName} · ` : '';
+  const label = ({
+    ready: t('core.script.block.api.ready'),
+    available: t('core.script.block.api.available'),
+    pluginName: t('core.script.block.api.pluginName'),
+    apiVersion: t('core.script.block.api.apiVersion')
+  } as Record<string, string | undefined>)[parsed.methodName];
+  return label ? `${prefix}${label}` : null;
+}
+
+function humanizeMethodName(methodName: string): string {
+  if (!methodName) return t('core.script.block.callStatement');
+  const spaced = methodName.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_.:-]+/g, ' ').trim();
+  if (!spaced) return methodName;
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
 function generateRegisteredBlock(block: Blockly.Block, generator: typeof javascriptGenerator, parsed: ParsedBlock): string | [string, number] {
@@ -668,6 +883,13 @@ function generateRegisteredBlock(block: Blockly.Block, generator: typeof javascr
   const receiver = receiverExpression(parsed);
   const call = receiver ? `${receiver}.${parsed.methodName}(${args.join(', ')})` : `${parsed.methodName}(${args.join(', ')})`;
   return parsed.output ? [call, Order.FUNCTION_CALL] : `${call};\n`;
+}
+
+function isCoveredByCommonApiBlock(block: WebScriptBlockDefinition): boolean {
+  const parsed = parseRegisteredBlock(block);
+  const receiver = receiverExpression(parsed);
+  const fullName = receiver ? `${receiver}.${parsed.methodName}` : parsed.methodName;
+  return ['emaki.player.sendMessage', 'emaki.logger.info', 'emaki.logger.warn', 'emaki.logger.error', 'emaki.context.placeholder', 'emaki.player.exists'].includes(fullName);
 }
 
 function findRegisteredCall(node: any, catalog: ScriptBlockCatalog, aliases: Map<string, string>, outputOnly: boolean): (ParsedBlock & { argumentNodes: any[] }) | null {
@@ -744,17 +966,18 @@ function defaultArgument(param: string): string {
   if (/count|amount|number|size|time|tick|delay|level|index|x|y|z|price|value|min|max/.test(normalized)) return '0';
   if (/enabled|visible|active|flag|bool|global|ready|available/.test(normalized)) return 'false';
   if (/player/.test(normalized)) return 'player';
-  if (/definition|object|args|arguments/.test(normalized)) return '{}';
+  if (/definition|object|args|arguments|meta|context|ctx|options|data|payload|source/.test(normalized)) return '{}';
+  if (/player|target|caster|entity|item|inventory|world/.test(normalized)) return normalized.replace(/[^a-zA-Z0-9_$]/g, '') || 'value';
   return 'undefined';
 }
 
 function defaultShadowForParam(param: string): Record<string, unknown> {
   const normalized = param.toLowerCase();
-  if (/count|amount|number|size|time|tick|delay|level|index|x|y|z|price|min|max/.test(normalized)) return { type: 'math_number', fields: { NUM: 0 } };
-  if (/enabled|visible|active|flag|bool|global|ready|available/.test(normalized)) return { type: 'logic_boolean', fields: { BOOL: 'FALSE' } };
-  if (/definition|object|args|arguments/.test(normalized)) return { type: 'emaki_object_literal', fields: { CODE: '{}' } };
+  if (/count|amount|number|size|time|tick|delay|level|index|x|y|z|price|min|max|damage|power/.test(normalized)) return { type: 'math_number', fields: { NUM: 0 } };
+  if (/enabled|visible|active|flag|bool|global|ready|available|exists|success/.test(normalized)) return { type: 'logic_boolean', fields: { BOOL: 'FALSE' } };
+  if (/definition|object|args|arguments|options|data|payload|source/.test(normalized)) return { type: 'emaki_object_literal', fields: { CODE: '{}' } };
   if (/list|array|values/.test(normalized)) return { type: 'emaki_array_literal', fields: { CODE: '[]' } };
-  if (/player/.test(normalized)) return { type: 'emaki_call_value', fields: { CALLEE: 'player', ARGS: '' } };
+  if (/player|target|caster|entity|item|inventory|world|meta|context|ctx/.test(normalized)) return { type: 'emaki_expression_value', fields: { CODE: normalized.replace(/[^a-zA-Z0-9_$]/g, '') || 'value' } };
   return { type: 'text', fields: { TEXT: '' } };
 }
 
@@ -768,12 +991,16 @@ function variableToolboxBlock(type: 'variables_get' | 'variables_set'): Blockly.
 
 function layoutTopBlocks(workspace: Blockly.WorkspaceSvg): void {
   let y = 24;
-  for (const block of workspace.getTopBlocks(true) as Blockly.BlockSvg[]) {
+  for (const block of (workspace.getTopBlocks(true) as Blockly.BlockSvg[]).filter(isUserWorkspaceBlock)) {
     const position = block.getRelativeToSurfaceXY();
     block.moveBy(24 - position.x, y - position.y);
     block.render();
     y += Math.max(112, block.getHeightWidth().height + 36);
   }
+}
+
+function isUserWorkspaceBlock(block: Blockly.Block): boolean {
+  return typeof block.isShadow !== 'function' || !block.isShadow();
 }
 
 function stripDuplicateModuleDeclarations(source: string): string {
@@ -805,6 +1032,20 @@ function nodeSource(node: any): string {
   }
 }
 
+function categoryKey(category: Pick<WebScriptBlockCategory, 'moduleId' | 'id'>): string {
+  return `${normalizeModuleId(category.moduleId) ?? ''}:${normalizeId(category.id)}`;
+}
+
+function blockKey(block: Pick<WebScriptBlockDefinition, 'moduleId' | 'id'>): string {
+  return `${normalizeModuleId(block.moduleId) ?? ''}:${normalizeId(block.id)}`;
+}
+
+function resolveRegisteredCategoryId(categoriesById: Map<string, WebScriptBlockCategory>, moduleId: string | undefined, requestedCategoryId: string): string {
+  if (requestedCategoryId && categoriesById.has(`${moduleId ?? ''}:${requestedCategoryId}`)) return requestedCategoryId;
+  if (requestedCategoryId && categoriesById.has(`:${requestedCategoryId}`)) return requestedCategoryId;
+  return API_CATEGORY_ID;
+}
+
 function inputName(index: number): string {
   return `ARG${index}`;
 }
@@ -816,9 +1057,9 @@ function paramLabel(param: string, index: number): string {
 
 function checkForParam(param: string): string | null {
   const normalized = param.toLowerCase();
-  if (/message|text|name|id|key|path|command|title|label|location|world|type|function/.test(normalized)) return 'String';
-  if (/count|amount|number|size|time|tick|delay|level|index|x|y|z|price|min|max/.test(normalized)) return 'Number';
-  if (/enabled|visible|active|flag|bool|global|ready|available/.test(normalized)) return 'Boolean';
+  if (/message|text|name|id|key|path|command|title|label|type|function/.test(normalized)) return 'String';
+  if (/count|amount|number|size|time|tick|delay|level|index|x|y|z|price|min|max|damage|power/.test(normalized)) return 'Number';
+  if (/enabled|visible|active|flag|bool|global|ready|available|exists|success/.test(normalized)) return 'Boolean';
   return null;
 }
 
@@ -860,6 +1101,11 @@ function normalizeId(id: string | undefined): string {
 function normalizeScope(scope: string | undefined): string {
   const text = String(scope ?? '').trim();
   return text.startsWith('module:') ? `module:${text.slice('module:'.length).trim().toLowerCase()}` : text;
+}
+
+function normalizeModuleId(moduleId: string | undefined): string | undefined {
+  const text = String(moduleId ?? '').trim();
+  return text ? text : undefined;
 }
 
 function safeOrder(order: unknown): number | undefined {

@@ -31,6 +31,7 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
   const onChangeRef = useRef(onChange);
   const initializingRef = useRef(false);
   const hasBlockEditsRef = useRef(false);
+  const synchronizingRef = useRef(false);
   const [generatedCode, setGeneratedCode] = useState(value);
   const [blockCount, setBlockCount] = useState(0);
   const [rawBlockCount, setRawBlockCount] = useState(0);
@@ -80,7 +81,9 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
     workspaceRef.current = workspace;
 
     const emitCode = (writeBack: boolean) => {
+      synchronizingRef.current = true;
       try {
+        pruneDetachedShadowBlocks(workspace);
         const count = scriptBlockCount(workspace);
         const next = generateScriptFromWorkspace(workspace);
         setGeneratedCode(next);
@@ -93,6 +96,8 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
         setStatus('error');
         setError(message);
         setGeneratedCode(t('core.script.generateError', { message }, `// 代码生成出错: ${message}\n`));
+      } finally {
+        synchronizingRef.current = false;
       }
     };
 
@@ -113,10 +118,17 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
     }
 
     workspace.addChangeListener(event => {
-      if (event.isUiEvent || initializingRef.current) return;
+      if (event.isUiEvent || initializingRef.current || synchronizingRef.current || isExternalWorkspaceEvent(event, workspace)) return;
       hasBlockEditsRef.current = true;
+      synchronizingRef.current = true;
+      try {
+        pruneDetachedShadowBlocks(workspace);
+      } finally {
+        synchronizingRef.current = false;
+      }
       setRawBlockCount(countRawBlocks(workspace));
       emitCode(true);
+      if (event.type === Blockly.Events.BLOCK_CREATE) window.setTimeout(() => hideToolboxFlyout(workspace), 0);
     });
 
     const resize = () => Blockly.svgResize(workspace);
@@ -197,7 +209,13 @@ export function ScriptBlockWorkbench({ value, categories, blocks, ariaLabel, com
   function refreshWorkspaceSize() {
     const workspace = workspaceRef.current;
     if (!workspace) return;
-    workspace.cleanUp();
+    synchronizingRef.current = true;
+    try {
+      pruneDetachedShadowBlocks(workspace);
+      workspace.cleanUp();
+    } finally {
+      synchronizingRef.current = false;
+    }
     Blockly.svgResize(workspace);
   }
 
@@ -275,7 +293,31 @@ function selectFirstToolboxCategory(workspace: Blockly.WorkspaceSvg): void {
 }
 
 function countRawBlocks(workspace: Blockly.WorkspaceSvg): number {
-  return workspace.getAllBlocks(false).filter(block => block.type === 'emaki_raw_statement' || block.type === 'emaki_raw_value').length;
+  return workspace.getAllBlocks(false).filter(block => !isShadowBlock(block) && (block.type === 'emaki_raw_statement' || block.type === 'emaki_raw_value')).length;
+}
+
+function isExternalWorkspaceEvent(event: Blockly.Events.Abstract, workspace: Blockly.WorkspaceSvg): boolean {
+  const eventWorkspaceId = (event as { workspaceId?: string }).workspaceId;
+  return Boolean(eventWorkspaceId && eventWorkspaceId !== workspace.id);
+}
+
+function pruneDetachedShadowBlocks(workspace: Blockly.WorkspaceSvg): void {
+  for (const block of workspace.getAllBlocks(false) as Blockly.BlockSvg[]) {
+    if (isShadowBlock(block) && !block.getParent()) block.dispose(false);
+  }
+}
+
+function hideToolboxFlyout(workspace: Blockly.WorkspaceSvg): void {
+  const toolbox = workspace.getToolbox() as unknown as { getFlyout?: () => { hide?: () => void } | null } | null;
+  try {
+    toolbox?.getFlyout?.()?.hide?.();
+  } catch {
+    // 仅收起拖拽后的分类飞出面板；失败时不影响主工作区。
+  }
+}
+
+function isShadowBlock(block: Blockly.Block): boolean {
+  return typeof block.isShadow === 'function' && block.isShadow();
 }
 
 function createThemeFromHost(host: HTMLElement): Blockly.Theme {
