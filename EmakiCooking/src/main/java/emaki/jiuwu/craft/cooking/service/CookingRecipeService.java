@@ -271,7 +271,7 @@ public final class CookingRecipeService {
         if (section != null && !section.isEmpty()) {
             return ConditionBlock.fromConfig(section, true, false);
         }
-        return ConditionBlock.fromLegacyRoot(configuration, true, false);
+        return ConditionBlock.empty();
     }
 
 

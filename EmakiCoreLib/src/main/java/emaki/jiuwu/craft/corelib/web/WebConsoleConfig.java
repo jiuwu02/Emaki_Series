@@ -23,7 +23,7 @@ public record WebConsoleConfig(
                 38765,
                 true,
                 new Auth("admin", "change-me", 60),
-                new Security(SecurityMode.READONLY, false, 256, List.of()),
+                new Security(SecurityMode.READONLY, 256, List.of()),
                 new ConfigBrowser(512, List.of(".yml", ".yaml", ".json", ".txt")),
                 new History(true, 50, 30, true, true)
         );
@@ -85,16 +85,16 @@ public record WebConsoleConfig(
         SCRIPT_WRITE,
         ADMIN;
 
-        static SecurityMode fromConfig(String raw, boolean legacyConfigWrite) {
+        static SecurityMode fromConfig(String raw) {
             if (raw == null || raw.isBlank()) {
-                return legacyConfigWrite ? CONFIG_WRITE : READONLY;
+                return READONLY;
             }
             return switch (raw.trim().toLowerCase(java.util.Locale.ROOT).replace('_', '-')) {
                 case "config-write", "config_write", "config" -> CONFIG_WRITE;
                 case "script-write", "script_write", "script" -> SCRIPT_WRITE;
                 case "admin" -> ADMIN;
                 case "readonly", "read-only", "read_only" -> READONLY;
-                default -> legacyConfigWrite ? CONFIG_WRITE : READONLY;
+                default -> READONLY;
             };
         }
 
@@ -115,7 +115,7 @@ public record WebConsoleConfig(
         }
     }
 
-    public record Security(SecurityMode mode, boolean allowConfigWrite, int maxRequestBodyKb, List<String> allowedModules) {
+    public record Security(SecurityMode mode, int maxRequestBodyKb, List<String> allowedModules) {
 
         public Security {
             mode = mode == null ? SecurityMode.READONLY : mode;
@@ -129,11 +129,9 @@ public record WebConsoleConfig(
             if (modules == null || modules.isEmpty()) {
                 modules = defaults.allowedModules();
             }
-            boolean legacyConfigWrite = section.getBoolean("allow_config_write", defaults.allowConfigWrite());
-            SecurityMode mode = SecurityMode.fromConfig(section.getString("mode", ""), legacyConfigWrite);
+            SecurityMode mode = SecurityMode.fromConfig(section.getString("mode", ""));
             return new Security(
                     mode,
-                    legacyConfigWrite,
                     Math.max(1, section.getInt("max_request_body_kb", defaults.maxRequestBodyKb())),
                     List.copyOf(modules)
             );

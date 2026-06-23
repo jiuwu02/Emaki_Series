@@ -122,18 +122,9 @@ public final class ActionBarService {
                 slotDisplay.append(skillName).append(triggerName);
             }
 
-            String slotText = null;
             String percentSlotPlaceholder = "%slot_" + (i + 1) + "%";
             if (template.contains(percentSlotPlaceholder)) {
-                slotText = slotText(binding, defs);
-                template = template.replace(percentSlotPlaceholder, slotText);
-            }
-            String legacySlotPlaceholder = "{slot_" + (i + 1) + "}";
-            if (template.contains(legacySlotPlaceholder)) {
-                if (slotText == null) {
-                    slotText = slotText(binding, defs);
-                }
-                template = template.replace(legacySlotPlaceholder, slotText);
+                template = template.replace(percentSlotPlaceholder, slotText(binding, defs));
             }
         }
 

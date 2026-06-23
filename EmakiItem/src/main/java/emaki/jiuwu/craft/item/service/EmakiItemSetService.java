@@ -36,7 +36,6 @@ public final class EmakiItemSetService {
     private final EmakiItemFactory itemFactory;
     private final EmakiItemIdentifier identifier;
     private final EmakiItemPdcWriter pdcWriter;
-    private final EmakiItemUpdateService updateService;
     private final ItemSetLoreRenderer loreRenderer;
     private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
     private final java.util.function.Supplier<AppConfig> configSupplier;
@@ -46,7 +45,6 @@ public final class EmakiItemSetService {
             EmakiItemFactory itemFactory,
             EmakiItemIdentifier identifier,
             EmakiItemPdcWriter pdcWriter,
-            EmakiItemUpdateService updateService,
             ItemSetLoreRenderer loreRenderer,
             java.util.function.Supplier<AppConfig> configSupplier) {
         this.itemLoader = itemLoader;
@@ -54,7 +52,6 @@ public final class EmakiItemSetService {
         this.itemFactory = itemFactory;
         this.identifier = identifier;
         this.pdcWriter = pdcWriter;
-        this.updateService = updateService;
         this.loreRenderer = loreRenderer;
         this.configSupplier = configSupplier;
     }
@@ -92,20 +89,16 @@ public final class EmakiItemSetService {
             ItemSetMembership membership = definition.setMembership();
             String existingSignature = identifier.setSignature(original);
             Integer existingLoreLines = identifier.setLoreLines(original);
-            ItemStack updated = prepareForSetRendering(original, definition);
             if (membership.configured()) {
                 EquippedSetState state = states.get(membership.setId());
-                ItemStack rendered = renderSetItem(updated, definition, membership, state);
+                ItemStack rendered = renderSetItem(original, definition, membership, state);
                 if (rendered != original || setPresentationChanged(existingSignature, existingLoreLines, rendered)) {
                     equippedItem.write(player.getInventory(), rendered);
                     changed++;
                 }
             } else if (hasSetPresentation(original)) {
-                ItemStack cleared = clearSetPresentation(updated, definition);
+                ItemStack cleared = clearSetPresentation(original, definition);
                 equippedItem.write(player.getInventory(), cleared);
-                changed++;
-            } else if (updated != original) {
-                equippedItem.write(player.getInventory(), updated);
                 changed++;
             }
         }
@@ -138,8 +131,7 @@ public final class EmakiItemSetService {
                 if (state != null) {
                     String existingSignature = identifier.setSignature(original);
                     Integer existingLoreLines = identifier.setLoreLines(original);
-                    ItemStack updated = prepareForSetRendering(original, definition);
-                    ItemStack rendered = renderSetItem(updated, definition, membership, state);
+                    ItemStack rendered = renderSetItem(original, definition, membership, state);
                     if (rendered != original || setPresentationChanged(existingSignature, existingLoreLines, rendered)) {
                         inventory.setItem(slot, rendered);
                         changed++;
@@ -160,27 +152,14 @@ public final class EmakiItemSetService {
         return changed;
     }
 
-    private ItemStack prepareForSetRendering(ItemStack itemStack, EmakiItemDefinition definition) {
-        if (needsLegacySetNormalization(itemStack)) {
-            return updateService.forceUpdate(itemStack);
-        }
-        return itemStack;
-    }
-
     private ItemStack clearSetPresentation(ItemStack itemStack, EmakiItemDefinition definition) {
-        ItemStack updated = prepareForSetRendering(itemStack, definition);
+        ItemStack updated = itemStack;
         if (definition.setMembership().configured()) {
             itemOperationLedger.revert(updated, setOperationId(definition.setMembership().setId()));
         }
-        if (updated == itemStack) {
-            stripSetLore(updated);
-        }
+        stripSetLore(updated);
         pdcWriter.clearDynamicSet(updated, definition);
         return updated;
-    }
-
-    private boolean needsLegacySetNormalization(ItemStack itemStack) {
-        return Texts.isNotBlank(identifier.setSignature(itemStack)) && identifier.setLoreLines(itemStack) == null;
     }
 
     private boolean hasSetPresentation(ItemStack itemStack) {

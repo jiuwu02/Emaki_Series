@@ -1285,7 +1285,6 @@ public final class WebConsoleRegistry {
         registerNodeComment("EmakiCoreLib", "web_console.auth.session_timeout_minutes", "会话超时", "登录会话超时时间，单位分钟。", "number");
         registerNodeComment("EmakiCoreLib", "web_console.security", "安全", "Web Console 写入权限、模式分级和请求限制。", "object");
         registerNodeComment("EmakiCoreLib", "web_console.security.mode", "安全模式", "Web Console 权限模式：readonly 仅查看，config-write 允许配置写入，script-write 允许脚本写入，admin 允许回滚和删除等管理操作。", "text");
-        registerNodeComment("EmakiCoreLib", "web_console.security.allow_config_write", "允许写配置", "旧字段兼容：未配置 mode 时，true 会推导为 config-write。", "boolean");
         registerNodeComment("EmakiCoreLib", "web_console.security.max_request_body_kb", "请求体上限", "Web Console 请求体最大大小，单位 KB。", "number");
         registerNodeComment("EmakiCoreLib", "web_console.security.allowed_modules", "允许模块", "允许通过 Web Console 访问的模块白名单；留空表示不限制。", "list");
         registerNodeComment("EmakiCoreLib", "web_console.config_browser", "文件浏览", "Web Console 文件浏览器大小与扩展名限制。", "object");

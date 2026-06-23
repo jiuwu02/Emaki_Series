@@ -74,8 +74,8 @@ public final class MythicJavaScriptBridge implements Listener {
             if (plugin == null || plugin.javaScriptService() == null || !plugin.javaScriptService().enabled()) {
                 return false;
             }
-            String script = config.getString("script", config.getString("file", ""));
-            String function = config.getString("function", config.getString("fn", "execute"));
+            String script = config.getString("script", "");
+            String function = config.getString("function", "execute");
             if (Texts.isBlank(script)) {
                 plugin.messageService().warning("console.mythic_js_script_missing", Map.of("mechanic", getTypeName()));
                 return false;
@@ -106,8 +106,8 @@ public final class MythicJavaScriptBridge implements Listener {
         private Map<String, Object> configParameters(SkillMetadata metadata) {
             Map<String, Object> parameters = new LinkedHashMap<>();
             parameters.put("mechanic", getTypeName());
-            put(parameters, "script", config.getString("script", config.getString("file", "")));
-            put(parameters, "function", config.getString("function", config.getString("fn", "execute")));
+            put(parameters, "script", config.getString("script", ""));
+            put(parameters, "function", config.getString("function", "execute"));
             put(parameters, "damage", config.getString("damage", null));
             put(parameters, "base", config.getString("base", null));
             put(parameters, "damage_type", config.getString("damage_type", null));

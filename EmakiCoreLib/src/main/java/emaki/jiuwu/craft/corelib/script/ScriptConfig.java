@@ -116,7 +116,7 @@ public record ScriptConfig(boolean enabled,
     public record Action(String id, List<String> aliases, String defaultFunction, boolean stopOnFailure) {
 
         public static Action defaults() {
-            return new Action("runjs", List.of("runscript", "javascript"), "main", true);
+            return new Action("runjs", List.of(), "main", true);
         }
 
         public static Action fromConfig(YamlSection section) {
@@ -175,7 +175,7 @@ public record ScriptConfig(boolean enabled,
             int maxActionDepth) {
 
         public static Security defaults() {
-            return new Security(List.of("..", ":", "\\"), List.of("runjs", "runscript", "javascript"), true, 3);
+            return new Security(List.of("..", ":", "\\"), List.of("runjs"), true, 3);
         }
 
         public static Security fromConfig(YamlSection section) {

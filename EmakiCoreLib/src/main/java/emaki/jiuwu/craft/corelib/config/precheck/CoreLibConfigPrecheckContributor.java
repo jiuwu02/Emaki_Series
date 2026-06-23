@@ -281,7 +281,7 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
             issues.add(ConfigPrecheckIssue.of(module(), "web_console.security.max_request_body_kb", ConfigPrecheckSeverity.ERROR,
                     "max_request_body_kb must be greater than 0."));
         }
-        if (web.enabled() && web.security().allowConfigWrite() && web.security().allowedModules().isEmpty()) {
+        if (web.enabled() && web.security().mode().configWriteAllowed() && web.security().allowedModules().isEmpty()) {
             issues.add(ConfigPrecheckIssue.of(module(), "web_console.security.allowed_modules", ConfigPrecheckSeverity.WARN,
                     "Config write is enabled without an allowed_modules allowlist."));
         }

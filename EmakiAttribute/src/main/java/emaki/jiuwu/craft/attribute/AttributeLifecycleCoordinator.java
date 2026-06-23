@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -45,7 +44,6 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
-import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
@@ -403,23 +401,12 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
         Set<String> existingCauses = new LinkedHashSet<>();
         boolean changed = false;
-        ListIterator<Object> iterator = runtimeEntries.listIterator();
-        while (iterator.hasNext()) {
-            Object entry = iterator.next();
+        for (Object entry : runtimeEntries) {
             DamageCauseRule rule = DamageCauseRule.fromMap(entry, defaultDamageType);
             if (rule == null) {
                 continue;
             }
             existingCauses.add(rule.cause());
-            if (!isLegacyDefaultDamageCauseRule(entry, rule, defaultDamageType)) {
-                continue;
-            }
-            Object replacement = bundledByCause.get(rule.cause());
-            if (replacement == null) {
-                continue;
-            }
-            iterator.set(ConfigNodes.toPlainData(replacement));
-            changed = true;
         }
         for (Map.Entry<String, Object> bundledEntry : bundledByCause.entrySet()) {
             if (existingCauses.contains(bundledEntry.getKey())) {
@@ -434,37 +421,5 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
         runtime.set("allowed_damage_causes", runtimeEntries);
         return true;
-    }
-
-    private boolean isLegacyDefaultDamageCauseRule(Object entry, DamageCauseRule rule, String defaultDamageType) {
-        if (entry == null || rule == null) {
-            return false;
-        }
-        Map<String, Object> entries = ConfigNodes.entries(entry);
-        if (entries.size() != 4) {
-            return false;
-        }
-        for (String key : entries.keySet()) {
-            String normalizedKey = Texts.normalizeId(key);
-            if (!normalizedKey.equals("cause")
-                    && !normalizedKey.equals("damage_type")
-                    && !normalizedKey.equals("damage")
-                    && !normalizedKey.equals("enabled")) {
-                return false;
-            }
-        }
-        String cause = Texts.normalizeId(ConfigNodes.string(entry, "cause", null));
-        String damageType = Texts.normalizeId(ConfigNodes.string(entry, "damage_type", defaultDamageType));
-        Double damage = Numbers.tryParseDouble(ConfigNodes.get(entry, "damage"), null);
-        if (!cause.equals(rule.cause())) {
-            return false;
-        }
-        if (!damageType.equals(Texts.normalizeId(defaultDamageType))) {
-            return false;
-        }
-        if (damage == null || Math.abs(damage - 1D) > 1.0E-9D) {
-            return false;
-        }
-        return ConfigNodes.contains(entry, "enabled") && ConfigNodes.bool(entry, "enabled", true);
     }
 }

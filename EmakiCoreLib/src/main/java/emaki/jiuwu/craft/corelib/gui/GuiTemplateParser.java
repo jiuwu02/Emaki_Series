@@ -51,7 +51,7 @@ public final class GuiTemplateParser {
     }
 
     private static InventoryType parseInventoryType(YamlSection section) {
-        String configured = section.getString("gui_type", section.getString("inventory_type", "CHEST"));
+        String configured = section.getString("gui_type", "CHEST");
         if (Texts.isBlank(configured)) {
             return InventoryType.CHEST;
         }

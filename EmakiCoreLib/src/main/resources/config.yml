@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.3.20"
+version: "4.3.21"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -27,8 +27,6 @@ web_console:
   security:
     # 安全模式：readonly / config-write / script-write / admin。
     mode: "readonly"
-    # 旧字段兼容：未配置 mode 时，true 会推导为 config-write。
-    allow_config_write: false
     max_request_body_kb: 256
     allowed_modules: []
   config_browser:
@@ -86,9 +84,7 @@ script:
       - "examples"
   action:
     id: "runjs"
-    aliases:
-      - "runscript"
-      - "javascript"
+    aliases: []
     default_function: "main"
     stop_on_failure: true
   context:
@@ -107,8 +103,6 @@ script:
       - "\\"
     denied_actions_from_script:
       - "runjs"
-      - "runscript"
-      - "javascript"
     allow_action_dispatch: true
     max_action_depth: 3
   server_api:

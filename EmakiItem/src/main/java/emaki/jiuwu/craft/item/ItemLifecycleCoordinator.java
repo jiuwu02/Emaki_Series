@@ -127,7 +127,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 itemFactory,
                 identifier,
                 pdcWriter,
-                updateService,
                 new ItemSetLoreRenderer(),
                 plugin::appConfig
         );
