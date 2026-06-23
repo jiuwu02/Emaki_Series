@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.3.12"
+version: "4.3.8"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 

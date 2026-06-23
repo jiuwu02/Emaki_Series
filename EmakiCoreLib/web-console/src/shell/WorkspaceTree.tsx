@@ -326,7 +326,7 @@ function scrubSvgNode(element: Element): boolean {
 
 function buildTreeIndex(registry: WebRegistry): TreeIndex {
   const pathIndex = buildGlobChildPathIndex(registry.modules);
-  const roots = sortTreeNodes(registry.tree?.length ? normalizeRegistryTree(registry.tree, pathIndex) : modulesToTree(registry.modules));
+  const roots = registry.tree?.length ? normalizeRegistryTree(registry.tree, pathIndex) : modulesToTree(registry.modules);
   const rootIds = roots.map(node => node.id);
   const nodeById = new Map<string, RegistryTreeNode>();
   const childrenById = new Map<string, RegistryTreeNode[]>();
@@ -409,20 +409,7 @@ function treeRowAriaLabel(label: string, kindLabel: string, comment: string, isG
 }
 
 function visibleChildren(node: RegistryTreeNode): RegistryTreeNode[] {
-  return sortTreeNodes((node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child)));
-}
-
-function sortTreeNodes(nodes: RegistryTreeNode[]): RegistryTreeNode[] {
-  return [...nodes].sort(compareTreeNodeByDisplayName).map(node => node.children ? { ...node, children: sortTreeNodes(node.children) } : node);
-}
-
-function compareTreeNodeByDisplayName(left: RegistryTreeNode, right: RegistryTreeNode): number {
-  return sortTextForNode(left).localeCompare(sortTextForNode(right), 'zh-CN', { numeric: true, sensitivity: 'base' })
-    || String(left.id).localeCompare(String(right.id), 'zh-CN', { numeric: true, sensitivity: 'base' });
-}
-
-function sortTextForNode(node: RegistryTreeNode): string {
-  return treeNodeDisplayLabel(node) || node.label || leafFileName(node.childPath ?? node.path) || node.id;
+  return (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
 }
 
 function nodeSearchText(node: RegistryTreeNode): string {

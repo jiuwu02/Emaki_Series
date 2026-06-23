@@ -283,7 +283,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerJavaScriptCompletions() {
-        WebConsoleRegistry.registerJavaScriptModuleApi(getName(), "cooking", emaki.jiuwu.craft.cooking.script.ScriptCookingModuleApi.class);
         scriptMethod("available", "available()", "available()");
         scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
         scriptMethod("pluginName", "pluginName()", "pluginName()");

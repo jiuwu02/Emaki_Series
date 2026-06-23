@@ -20,7 +20,7 @@ import * as economyConfig from './economyConfig';
 import * as pluginKit from './pluginKit';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import type { EditorChange } from './components';
-import type { WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus, WebScriptBlockCategory, WebScriptBlockDefinition, WebScriptCompletionEntry } from './types';
+import type { WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus, WebScriptCompletionEntry } from './types';
 
 export type SourceDocumentAdapterContext = {
   module: WebRegistryModule;
@@ -245,10 +245,6 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previe
   registerJavaScriptMethod: typeof registerJavaScriptMethod;
   registerJavaScriptMethods: typeof registerJavaScriptMethods;
   getJavaScriptCompletionScopes: typeof getJavaScriptCompletionScopes;
-  registerJavaScriptBlockCategory: typeof registerJavaScriptBlockCategory;
-  registerJavaScriptBlock: typeof registerJavaScriptBlock;
-  registerJavaScriptBlocks: typeof registerJavaScriptBlocks;
-  getJavaScriptBlockCatalog: typeof getJavaScriptBlockCatalog;
   components: typeof components;
   previewKit: typeof previewKit;
   lib: typeof lib;
@@ -267,10 +263,6 @@ const _sourceAdapters: SourceAdapterRegistration[] = [];
 const _extensionStatuses: WebConsoleExtensionStatus[] = [];
 const _serverJavaScriptCompletions: WebScriptCompletionEntry[] = [];
 const _extensionJavaScriptCompletions: WebScriptCompletionEntry[] = [];
-const _serverJavaScriptBlockCategories: WebScriptBlockCategory[] = [];
-const _extensionJavaScriptBlockCategories: WebScriptBlockCategory[] = [];
-const _serverJavaScriptBlocks: WebScriptBlockDefinition[] = [];
-const _extensionJavaScriptBlocks: WebScriptBlockDefinition[] = [];
 const _configNodeMeta: Record<string, ConfigNodeMetaOverride> = {};
 const _configNodeMetaOrder: Record<string, string[]> = {};
 const _configFileSchemas: ConfigFileSchemaRegistration[] = [];
@@ -456,114 +448,6 @@ function javaScriptCompletionKey(entry: WebScriptCompletionEntry): string {
 
 function copyJavaScriptCompletionEntry(entry: WebScriptCompletionEntry): WebScriptCompletionEntry {
   return { ...entry };
-}
-
-export function setServerJavaScriptBlocks(categories: WebScriptBlockCategory[] | undefined, blocks: WebScriptBlockDefinition[] | undefined): void {
-  _serverJavaScriptBlockCategories.splice(0, _serverJavaScriptBlockCategories.length, ...normalizeJavaScriptBlockCategories(categories ?? []));
-  _serverJavaScriptBlocks.splice(0, _serverJavaScriptBlocks.length, ...normalizeJavaScriptBlocks(blocks ?? []));
-}
-
-export function registerJavaScriptBlockCategory(category: WebScriptBlockCategory): void {
-  const [normalized] = normalizeJavaScriptBlockCategories([category]);
-  if (!normalized) return;
-  const duplicate = _extensionJavaScriptBlockCategories.findIndex(existing => javaScriptBlockCategoryKey(existing) === javaScriptBlockCategoryKey(normalized));
-  if (duplicate >= 0) _extensionJavaScriptBlockCategories.splice(duplicate, 1, normalized);
-  else _extensionJavaScriptBlockCategories.push(normalized);
-}
-
-export function registerJavaScriptBlock(block: WebScriptBlockDefinition): void {
-  const [normalized] = normalizeJavaScriptBlocks([block]);
-  if (!normalized) return;
-  const duplicate = _extensionJavaScriptBlocks.findIndex(existing => javaScriptBlockKey(existing) === javaScriptBlockKey(normalized));
-  if (duplicate >= 0) _extensionJavaScriptBlocks.splice(duplicate, 1, normalized);
-  else _extensionJavaScriptBlocks.push(normalized);
-}
-
-export function registerJavaScriptBlocks(blocks: WebScriptBlockDefinition[]): void {
-  if (!Array.isArray(blocks)) return;
-  blocks.forEach(registerJavaScriptBlock);
-}
-
-export function getJavaScriptBlockCatalog(): { categories: WebScriptBlockCategory[]; blocks: WebScriptBlockDefinition[] } {
-  const categories = new Map<string, WebScriptBlockCategory>();
-  for (const category of [..._serverJavaScriptBlockCategories, ..._extensionJavaScriptBlockCategories]) {
-    categories.set(javaScriptBlockCategoryKey(category), copyJavaScriptBlockCategory(category));
-  }
-  const blocks = new Map<string, WebScriptBlockDefinition>();
-  for (const block of [..._serverJavaScriptBlocks, ..._extensionJavaScriptBlocks]) {
-    blocks.set(javaScriptBlockKey(block), copyJavaScriptBlock(block));
-  }
-  return {
-    categories: [...categories.values()].sort((left, right) => (left.order ?? 0) - (right.order ?? 0) || left.label.localeCompare(right.label)),
-    blocks: [...blocks.values()].sort((left, right) => (left.order ?? 0) - (right.order ?? 0) || left.label.localeCompare(right.label))
-  };
-}
-
-function normalizeJavaScriptBlockCategories(categories: WebScriptBlockCategory[]): WebScriptBlockCategory[] {
-  return categories.flatMap(category => {
-    const id = normalizeJavaScriptBlockId(category?.id);
-    const label = String(category?.label ?? '').trim();
-    if (!id || !label) return [];
-    return [{
-      moduleId: category.moduleId ? String(category.moduleId) : undefined,
-      id,
-      label,
-      comment: category.comment ? String(category.comment) : undefined,
-      order: numberOrUndefined(category.order)
-    }];
-  });
-}
-
-function normalizeJavaScriptBlocks(blocks: WebScriptBlockDefinition[]): WebScriptBlockDefinition[] {
-  return blocks.flatMap(block => {
-    const id = normalizeJavaScriptBlockId(block?.id);
-    const categoryId = normalizeJavaScriptBlockId(block?.categoryId);
-    const scope = normalizeJavaScriptCompletionScope(block?.scope);
-    const label = String(block?.label ?? '').trim();
-    const codeTemplate = String(block?.codeTemplate ?? '').trim();
-    if (!id || !categoryId || !scope || !label || !codeTemplate) return [];
-    return [{
-      moduleId: block.moduleId ? String(block.moduleId) : undefined,
-      id,
-      categoryId,
-      scope,
-      label,
-      comment: block.comment ? String(block.comment) : undefined,
-      codeTemplate,
-      callPattern: block.callPattern ? normalizeJavaScriptCallPattern(block.callPattern) : undefined,
-      type: block.type ? String(block.type) : 'function',
-      order: numberOrUndefined(block.order)
-    }];
-  });
-}
-
-function normalizeJavaScriptBlockId(id: string | undefined): string {
-  return String(id ?? '').trim().toLowerCase().replace(/[^a-z0-9_.:-]+/g, '-');
-}
-
-function normalizeJavaScriptCallPattern(pattern: string | undefined): string {
-  return String(pattern ?? '').trim().toLowerCase();
-}
-
-function javaScriptBlockCategoryKey(category: WebScriptBlockCategory): string {
-  return `${category.moduleId ?? ''}:${category.id}`;
-}
-
-function javaScriptBlockKey(block: WebScriptBlockDefinition): string {
-  return `${block.moduleId ?? ''}:${block.id}`;
-}
-
-function copyJavaScriptBlockCategory(category: WebScriptBlockCategory): WebScriptBlockCategory {
-  return { ...category };
-}
-
-function copyJavaScriptBlock(block: WebScriptBlockDefinition): WebScriptBlockDefinition {
-  return { ...block };
-}
-
-function numberOrUndefined(value: unknown): number | undefined {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : undefined;
 }
 
 export function setRuntimeEnums(enums: Record<string, string[]> | undefined): void {
@@ -790,7 +674,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, registerJavaScriptMethod, registerJavaScriptMethods, getJavaScriptCompletionScopes, registerJavaScriptBlockCategory, registerJavaScriptBlock, registerJavaScriptBlocks, getJavaScriptBlockCatalog, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, registerJavaScriptMethod, registerJavaScriptMethods, getJavaScriptCompletionScopes, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;

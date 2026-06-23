@@ -26,8 +26,6 @@ public final class WebConsoleRegistry {
     private static final Map<String, EditorRegistration> EDITORS = new LinkedHashMap<>();
     private static final Map<String, WebExtensionRegistration> EXTENSIONS = new LinkedHashMap<>();
     private static final Map<String, JavaScriptCompletionRegistration> SCRIPT_COMPLETIONS = new LinkedHashMap<>();
-    private static final Map<String, JavaScriptBlockCategoryRegistration> SCRIPT_BLOCK_CATEGORIES = new LinkedHashMap<>();
-    private static final Map<String, JavaScriptBlockRegistration> SCRIPT_BLOCKS = new LinkedHashMap<>();
     private static final Map<String, NodeMeta> NODE_META = new LinkedHashMap<>();
     private static final Map<String, List<Map<String, Object>>> CREATE_TEMPLATES = new LinkedHashMap<>();
     private static final Map<String, List<Map<String, Object>>> LIST_ITEM_FIELDS = new LinkedHashMap<>();
@@ -74,8 +72,6 @@ public final class WebConsoleRegistry {
         EDITORS.values().removeIf(editor -> moduleId.equals(editor.moduleId()));
         EXTENSIONS.values().removeIf(extension -> moduleId.equals(extension.moduleId()));
         SCRIPT_COMPLETIONS.values().removeIf(completion -> moduleId.equals(completion.moduleId()));
-        SCRIPT_BLOCK_CATEGORIES.values().removeIf(category -> moduleId.equals(category.moduleId()));
-        SCRIPT_BLOCKS.values().removeIf(block -> moduleId.equals(block.moduleId()));
         NODE_META.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
         CREATE_TEMPLATES.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
         LIST_ITEM_FIELDS.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
@@ -263,17 +259,14 @@ public final class WebConsoleRegistry {
         String normalizedScope = normalizeScriptCompletionScope(scope);
         String normalizedLabel = label.trim();
         String key = moduleId + ":" + normalizedScope + ":" + normalizedLabel;
-        String normalizedApply = Texts.isBlank(apply) ? normalizedLabel : apply.trim();
-        String normalizedType = Texts.isBlank(type) ? "function" : type.trim();
         SCRIPT_COMPLETIONS.put(key, new JavaScriptCompletionRegistration(
                 moduleId,
                 normalizedScope,
                 normalizedLabel,
                 Texts.toStringSafe(detail),
-                normalizedApply,
-                normalizedType
+                Texts.isBlank(apply) ? normalizedLabel : apply.trim(),
+                Texts.isBlank(type) ? "function" : type.trim()
         ));
-        registerDefaultJavaScriptBlock(moduleId, normalizedScope, normalizedLabel, Texts.toStringSafe(detail), normalizedApply, normalizedType);
     }
 
     public static synchronized void registerJavaScriptMethod(JavaPlugin plugin, String scope, String label, String detail, String apply, String type) {
@@ -281,250 +274,6 @@ public final class WebConsoleRegistry {
             return;
         }
         registerJavaScriptMethod(plugin.getName(), scope, label, detail, apply, type);
-    }
-
-    public static synchronized void registerJavaScriptModuleApi(String ownerModuleId, String scriptModuleId, Class<?> apiClass) {
-        if (Texts.isBlank(ownerModuleId) || Texts.isBlank(scriptModuleId) || apiClass == null) {
-            return;
-        }
-        String module = scriptModuleId.trim().toLowerCase(java.util.Locale.ROOT);
-        String scope = "module:" + module;
-        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
-        for (java.lang.reflect.Method method : apiClass.getMethods()) {
-            if (!isScriptApiMethod(method) || !seen.add(method.getName() + ":" + method.getParameterCount())) {
-                continue;
-            }
-            String detail = method.getName() + "(" + scriptApiParameterList(method, true) + ")";
-            String apply = method.getName() + "(" + scriptApiParameterList(method, false) + ")";
-            String type = scriptApiMethodType(method);
-            registerJavaScriptMethod(ownerModuleId, scope, method.getName(), detail, apply, type);
-        }
-    }
-
-    public static synchronized void registerJavaScriptModuleApi(JavaPlugin plugin, String scriptModuleId, Class<?> apiClass) {
-        if (plugin == null) {
-            return;
-        }
-        registerJavaScriptModuleApi(plugin.getName(), scriptModuleId, apiClass);
-    }
-
-    private static boolean isScriptApiMethod(java.lang.reflect.Method method) {
-        int modifiers = method.getModifiers();
-        return java.lang.reflect.Modifier.isPublic(modifiers)
-                && !method.isBridge()
-                && !method.isSynthetic()
-                && method.getDeclaringClass() != Object.class
-                && !method.getName().equals("wait")
-                && !method.getName().equals("notify")
-                && !method.getName().equals("notifyAll")
-                && !method.getName().equals("getClass")
-                && !method.getName().equals("hashCode")
-                && !method.getName().equals("equals")
-                && !method.getName().equals("toString");
-    }
-
-    private static String scriptApiParameterList(java.lang.reflect.Method method, boolean namedOnly) {
-        java.lang.reflect.Parameter[] parameters = method.getParameters();
-        List<String> names = new ArrayList<>();
-        for (int index = 0; index < parameters.length; index++) {
-            String name = parameters[index].isNamePresent() ? parameters[index].getName() : "arg" + (index + 1);
-            if (!namedOnly) {
-                names.add(defaultScriptApiArgument(name, parameters[index].getType()));
-            } else {
-                names.add(name);
-            }
-        }
-        return String.join(", ", names);
-    }
-
-    private static String defaultScriptApiArgument(String name, Class<?> type) {
-        String normalized = Texts.toStringSafe(name).toLowerCase(java.util.Locale.ROOT);
-        if (type == boolean.class || type == Boolean.class || normalized.startsWith("enable") || normalized.startsWith("allow")) {
-            return "false";
-        }
-        if (Number.class.isAssignableFrom(type) || type.isPrimitive() && type != boolean.class && type != void.class) {
-            return "0";
-        }
-        if (java.util.Map.class.isAssignableFrom(type) || normalized.contains("definition") || normalized.contains("args")) {
-            return "{}";
-        }
-        if (java.util.Collection.class.isAssignableFrom(type) || type.isArray()) {
-            return "[]";
-        }
-        return "\"" + name + "\"";
-    }
-
-    private static String scriptApiMethodType(java.lang.reflect.Method method) {
-        Class<?> returnType = method.getReturnType();
-        if (returnType == void.class) {
-            return "function";
-        }
-        if (returnType == boolean.class || returnType == Boolean.class) {
-            return "boolean";
-        }
-        if (Number.class.isAssignableFrom(returnType) || returnType.isPrimitive()) {
-            return "number";
-        }
-        if (returnType == String.class || CharSequence.class.isAssignableFrom(returnType)) {
-            return "string";
-        }
-        return "value";
-    }
-
-    public static synchronized void registerJavaScriptBlockCategory(String moduleId, String id, String label, String comment, int order) {
-        if (Texts.isBlank(moduleId) || Texts.isBlank(id) || Texts.isBlank(label)) {
-            return;
-        }
-        String normalizedId = normalizeScriptBlockId(id);
-        String key = moduleId + ":" + normalizedId;
-        SCRIPT_BLOCK_CATEGORIES.put(key, new JavaScriptBlockCategoryRegistration(
-                moduleId,
-                normalizedId,
-                label.trim(),
-                Texts.toStringSafe(comment),
-                order
-        ));
-    }
-
-    public static synchronized void registerJavaScriptBlockCategory(JavaPlugin plugin, String id, String label, String comment, int order) {
-        if (plugin == null) {
-            return;
-        }
-        registerJavaScriptBlockCategory(plugin.getName(), id, label, comment, order);
-    }
-
-    public static synchronized void registerJavaScriptBlock(String moduleId, String id, String categoryId, String scope, String label, String comment, String codeTemplate, String callPattern, String type, int order) {
-        if (Texts.isBlank(moduleId) || Texts.isBlank(id) || Texts.isBlank(categoryId) || Texts.isBlank(scope) || Texts.isBlank(label)) {
-            return;
-        }
-        String normalizedScope = normalizeScriptCompletionScope(scope);
-        String normalizedId = normalizeScriptBlockId(id);
-        String normalizedCategoryId = normalizeScriptBlockId(categoryId);
-        String normalizedLabel = label.trim();
-        String key = moduleId + ":" + normalizedId;
-        SCRIPT_BLOCKS.put(key, new JavaScriptBlockRegistration(
-                moduleId,
-                normalizedId,
-                normalizedCategoryId,
-                normalizedScope,
-                normalizedLabel,
-                Texts.toStringSafe(comment),
-                Texts.isBlank(codeTemplate) ? normalizedLabel : codeTemplate.trim(),
-                Texts.toStringSafe(callPattern).trim(),
-                Texts.isBlank(type) ? "function" : type.trim(),
-                order
-        ));
-    }
-
-    public static synchronized void registerJavaScriptBlock(JavaPlugin plugin, String id, String categoryId, String scope, String label, String comment, String codeTemplate, String callPattern, String type, int order) {
-        if (plugin == null) {
-            return;
-        }
-        registerJavaScriptBlock(plugin.getName(), id, categoryId, scope, label, comment, codeTemplate, callPattern, type, order);
-    }
-
-    private static void registerDefaultJavaScriptBlock(String moduleId, String scope, String label, String detail, String apply, String type) {
-        String group = scriptBlockGroup(label, type);
-        String categoryId = normalizeScriptBlockId(scope + ":" + group);
-        registerJavaScriptBlockCategory(moduleId, categoryId, scriptBlockCategoryLabel(scope, group), scriptBlockCategoryComment(scope, group), scriptBlockCategoryOrder(group));
-        registerJavaScriptBlock(
-                moduleId,
-                normalizeScriptBlockId(scope + ":" + label),
-                categoryId,
-                scope,
-                label,
-                detail,
-                scriptBlockCodeTemplate(scope, label, apply, type),
-                scriptBlockCallPattern(scope, label, type),
-                type,
-                scriptBlockOrder(label, type)
-        );
-    }
-
-    private static String scriptBlockGroup(String label, String type) {
-        String text = Texts.toStringSafe(label).toLowerCase(java.util.Locale.ROOT);
-        String normalizedType = Texts.toStringSafe(type).toLowerCase(java.util.Locale.ROOT);
-        if ("variable".equals(normalizedType) || "property".equals(normalizedType)) {
-            return "context";
-        }
-        if (text.equals("available") || text.equals("ready") || text.equals("apiversion") || text.equals("pluginname")) {
-            return "status";
-        }
-        if (text.startsWith("unregister") || text.startsWith("remove") || text.startsWith("clear")) {
-            return "mutate";
-        }
-        if (text.startsWith("registered") || text.startsWith("exists") || text.startsWith("has") || text.startsWith("is") || text.startsWith("type") || text.startsWith("read") || text.startsWith("get") || text.endsWith("ids")) {
-            return "query";
-        }
-        if (text.startsWith("register") || text.startsWith("on")) {
-            return "register";
-        }
-        return "action";
-    }
-
-    private static String scriptBlockCategoryLabel(String scope, String group) {
-        String prefix = scope.startsWith("module:") ? scope.substring("module:".length()) : scope;
-        String normalizedPrefix = Texts.isBlank(prefix) ? "JavaScript" : prefix;
-        return switch (group) {
-            case "context" -> normalizedPrefix + " · 上下文";
-            case "register" -> normalizedPrefix + " · 注册/钩子";
-            case "query" -> normalizedPrefix + " · 查询";
-            case "mutate" -> normalizedPrefix + " · 修改";
-            case "status" -> normalizedPrefix + " · 状态";
-            default -> normalizedPrefix + " · 动作";
-        };
-    }
-
-    private static String scriptBlockCategoryComment(String scope, String group) {
-        String target = scope.startsWith("module:") ? "插件模块 API" : "Emaki JavaScript API";
-        return switch (group) {
-            case "context" -> target + " 的对象、属性和上下文入口。";
-            case "register" -> target + " 的运行时注册、事件或钩子入口。";
-            case "query" -> target + " 的读取、检查和枚举方法。";
-            case "mutate" -> target + " 的修改、清理或注销方法。";
-            case "status" -> target + " 的可用性与版本状态。";
-            default -> target + " 的常用执行方法。";
-        };
-    }
-
-    private static int scriptBlockCategoryOrder(String group) {
-        return switch (group) {
-            case "context" -> 10;
-            case "status" -> 20;
-            case "register" -> 30;
-            case "query" -> 40;
-            case "mutate" -> 50;
-            default -> 60;
-        };
-    }
-
-    private static int scriptBlockOrder(String label, String type) {
-        String group = scriptBlockGroup(label, type);
-        return scriptBlockCategoryOrder(group) * 100 + Math.abs(Texts.toStringSafe(label).hashCode() % 100);
-    }
-
-    private static String scriptBlockCodeTemplate(String scope, String label, String apply, String type) {
-        String normalizedApply = Texts.isBlank(apply) ? label : apply;
-        if (scope.startsWith("module:")) {
-            String module = scope.substring("module:".length()).trim().toLowerCase(java.util.Locale.ROOT);
-            String alias = module.replaceAll("[^a-zA-Z0-9_$]", "");
-            if (Texts.isBlank(alias)) {
-                alias = "module";
-            }
-            return "const " + alias + " = emaki.module(\"" + module + "\");\n" + alias + "." + normalizedApply + ";";
-        }
-        if ("global".equals(scope)) {
-            return normalizedApply + ";";
-        }
-        return scope + "." + normalizedApply + ";";
-    }
-
-    private static String scriptBlockCallPattern(String scope, String label, String type) {
-        String normalizedType = Texts.toStringSafe(type).toLowerCase(java.util.Locale.ROOT);
-        if ("variable".equals(normalizedType)) {
-            return label;
-        }
-        return scope + "." + label;
     }
 
     public static synchronized void registerNodeComment(String moduleId, String path, String label, String comment, String type) {
@@ -715,8 +464,6 @@ public final class WebConsoleRegistry {
         result.put("guiTypes", guiTypes());
         result.put("runtimeEnums", runtimeEnums());
         result.put("scriptCompletions", javaScriptCompletions());
-        result.put("scriptBlockCategories", javaScriptBlockCategories());
-        result.put("scriptBlocks", javaScriptBlocks());
         result.put("extensions", webExtensions());
         return result;
     }
@@ -1343,7 +1090,8 @@ public final class WebConsoleRegistry {
     private static synchronized List<Map<String, Object>> javaScriptCompletions() {
         List<Map<String, Object>> result = new ArrayList<>();
         for (JavaScriptCompletionRegistration completion : SCRIPT_COMPLETIONS.values()) {
-            if (!isPluginEnabled(completion.moduleId())) {
+            Plugin installed = Bukkit.getPluginManager().getPlugin(completion.moduleId());
+            if (installed == null || !installed.isEnabled()) {
                 continue;
             }
             Map<String, Object> entry = new LinkedHashMap<>();
@@ -1356,50 +1104,6 @@ public final class WebConsoleRegistry {
             result.add(entry);
         }
         return result;
-    }
-
-    private static synchronized List<Map<String, Object>> javaScriptBlockCategories() {
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (JavaScriptBlockCategoryRegistration category : SCRIPT_BLOCK_CATEGORIES.values()) {
-            if (!isPluginEnabled(category.moduleId())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("moduleId", category.moduleId());
-            entry.put("id", category.id());
-            entry.put("label", category.label());
-            entry.put("comment", category.comment());
-            entry.put("order", category.order());
-            result.add(entry);
-        }
-        return result;
-    }
-
-    private static synchronized List<Map<String, Object>> javaScriptBlocks() {
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (JavaScriptBlockRegistration block : SCRIPT_BLOCKS.values()) {
-            if (!isPluginEnabled(block.moduleId())) {
-                continue;
-            }
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("moduleId", block.moduleId());
-            entry.put("id", block.id());
-            entry.put("categoryId", block.categoryId());
-            entry.put("scope", block.scope());
-            entry.put("label", block.label());
-            entry.put("comment", block.comment());
-            entry.put("codeTemplate", block.codeTemplate());
-            entry.put("callPattern", block.callPattern());
-            entry.put("type", block.type());
-            entry.put("order", block.order());
-            result.add(entry);
-        }
-        return result;
-    }
-
-    private static boolean isPluginEnabled(String moduleId) {
-        Plugin installed = Bukkit.getPluginManager().getPlugin(moduleId);
-        return installed != null && installed.isEnabled();
     }
 
     private static boolean isCreatableInventoryType(InventoryType type) {
@@ -1686,10 +1390,6 @@ public final class WebConsoleRegistry {
         return text;
     }
 
-    private static String normalizeScriptBlockId(String id) {
-        return Texts.toStringSafe(id).trim().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9_.:-]+", "-");
-    }
-
     private static String normalizeIcon(String iconSvg) {
         return Texts.isBlank(iconSvg) ? DEFAULT_ICON_SVG : iconSvg;
     }
@@ -1732,8 +1432,6 @@ public final class WebConsoleRegistry {
 
     public record WebRegisteredFileEntry(String moduleId, String title, String relativePath, String kind, boolean structuredYaml) {}
     private record JavaScriptCompletionRegistration(String moduleId, String scope, String label, String detail, String apply, String type) {}
-    private record JavaScriptBlockCategoryRegistration(String moduleId, String id, String label, String comment, int order) {}
-    private record JavaScriptBlockRegistration(String moduleId, String id, String categoryId, String scope, String label, String comment, String codeTemplate, String callPattern, String type, int order) {}
     private record ModuleRegistration(String id, String name, String summary, String tone, String iconSvg, List<FileRegistration> files) {}
     private record EditorRegistration(String moduleId, String editorId, Map<String, Object> descriptor) {}
     private record WebExtensionRegistration(String moduleId, String id, String resourcePath) {}

@@ -164,27 +164,6 @@ export type WebScriptCompletionEntry = {
   type?: string;
 };
 
-export type WebScriptBlockCategory = {
-  moduleId?: string;
-  id: string;
-  label: string;
-  comment?: string;
-  order?: number;
-};
-
-export type WebScriptBlockDefinition = {
-  moduleId?: string;
-  id: string;
-  categoryId: string;
-  scope: string;
-  label: string;
-  comment?: string;
-  codeTemplate: string;
-  callPattern?: string;
-  type?: string;
-  order?: number;
-};
-
 export type WebGuiType = {
   id: string;
   defaultTitle?: string;
@@ -200,8 +179,6 @@ export type WebRegistry = {
   guiTypes?: WebGuiType[];
   runtimeEnums?: Record<string, string[]>;
   scriptCompletions?: WebScriptCompletionEntry[];
-  scriptBlockCategories?: WebScriptBlockCategory[];
-  scriptBlocks?: WebScriptBlockDefinition[];
   extensions?: WebConsoleExtension[];
 };
 

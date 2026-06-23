@@ -460,7 +460,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     }
 
     private void registerJavaScriptCompletions() {
-        WebConsoleRegistry.registerJavaScriptModuleApi(getName(), "attribute", emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi.class);
         scriptMethod("available", "available()", "available()");
         scriptMethod("registerSource", "registerSource(sourceId)", "registerSource(\"custom_source\")");
         scriptMethod("unregisterSource", "unregisterSource(sourceId)", "unregisterSource(\"custom_source\")");
