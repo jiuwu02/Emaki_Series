@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
@@ -44,7 +45,8 @@ public final class EmakiItemConditionChecker {
         ActionContext context = actionService.context(player, definition, trigger, Map.of(), itemStack);
         boolean passes = ConditionEvaluator.evaluate(
                 conditions.block(),
-                text -> placeholderRegistry.resolve(context, text)
+                text -> placeholderRegistry.resolve(context, text),
+                ConditionContext.of(player, itemStack, Map.of("trigger", Texts.toStringSafe(trigger)))
         );
         if (passes) {
             if (!conditions.passActions().isEmpty()) {

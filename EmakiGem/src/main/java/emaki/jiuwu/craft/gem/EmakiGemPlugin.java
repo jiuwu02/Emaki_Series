@@ -60,7 +60,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private static final String ROOT_COMMAND = "emakigem";
 
-    private static final Set<String> DEBUG_MODULES = Set.of("inlay", "socket", "state", "gui");
+    private static final Set<String> DEBUG_MODULES = Set.of("inlay", "socket", "state", "gui", "script");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  __    __

@@ -26,6 +26,7 @@ public record EmakiItemDefinition(String id,
         Map<String, List<String>> actions,
         ItemUpdatePolicy updatePolicy,
         RepairConfig repair,
+        int amount,
         boolean hasRandomElements) {
 
     public EmakiItemDefinition {
@@ -45,6 +46,7 @@ public record EmakiItemDefinition(String id,
         actions = actions == null ? Map.of() : copyActions(actions);
         updatePolicy = updatePolicy == null ? ItemUpdatePolicy.defaults() : updatePolicy;
         repair = repair == null ? RepairConfig.disabled() : repair;
+        amount = Math.max(1, amount);
     }
 
     public String definitionSignature() {

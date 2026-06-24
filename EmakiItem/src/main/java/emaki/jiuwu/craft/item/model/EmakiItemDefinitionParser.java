@@ -66,6 +66,7 @@ public final class EmakiItemDefinitionParser {
                 parseActions(root.getSection("actions")),
                 parseUpdate(root.getSection("update"), id, source),
                 parseRepair(root.getSection("repair")),
+                root.getInt("amount", 1),
                 random
         );
     }

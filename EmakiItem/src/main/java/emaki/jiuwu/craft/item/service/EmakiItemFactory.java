@@ -66,7 +66,9 @@ public final class EmakiItemFactory {
         ItemStack itemStack = definition.hasRandomElements()
                 ? build(definition)
                 : prototypeCache.computeIfAbsent(definition.id(), ignored -> build(definition)).clone();
-        itemStack.setAmount(Math.max(1, Math.min(amount, itemStack.getMaxStackSize())));
+        // amount<=0 视为"未显式指定"，回退到 definition 配置的默认数量；>0 显式覆盖。
+        int resolved = amount > 0 ? amount : definition.amount();
+        itemStack.setAmount(Math.max(1, Math.min(resolved, itemStack.getMaxStackSize())));
         return itemStack;
     }
 

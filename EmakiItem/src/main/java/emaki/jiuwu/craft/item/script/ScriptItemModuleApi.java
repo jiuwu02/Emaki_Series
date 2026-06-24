@@ -37,7 +37,8 @@ public final class ScriptItemModuleApi {
 
     @HostAccess.Export
     public Map<String, Object> create(String id, int amount) {
-        int safeAmount = Math.max(1, Math.min(64, amount));
+        // amount<=0 透传哨兵，交由物品工厂回退到 definition 默认数量；>0 时钳制到 [1,64]。
+        int safeAmount = amount <= 0 ? 0 : Math.min(64, amount);
         return ScriptServiceApiSupport.itemSummary(EmakiItemApi.create(id, safeAmount));
     }
 

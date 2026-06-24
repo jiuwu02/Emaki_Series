@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingResultRuleRegistry;
 
@@ -56,6 +57,7 @@ public final class CookingRewardService {
             Player player,
             Location location,
             boolean dropResult,
+            List<CookingInputIngredient> inputs,
             List<Map<String, Object>> outputs,
             List<String> actions,
             String phase,
@@ -69,7 +71,7 @@ public final class CookingRewardService {
                 return;
             }
         }
-        JavaScriptCookingResultRuleRegistry.DeliveryPlan plan = applyJavaScriptResultRules(recipe, player, location, phase, outputs, actions, placeholders);
+        JavaScriptCookingResultRuleRegistry.DeliveryPlan plan = applyJavaScriptResultRules(recipe, player, location, phase, inputs, outputs, actions, placeholders);
         if (plan.cancelled()) {
             return;
         }
@@ -84,10 +86,11 @@ public final class CookingRewardService {
             Player player,
             Location location,
             String phase,
+            List<CookingInputIngredient> inputs,
             List<Map<String, Object>> outputs,
             List<String> actions,
             Map<String, ?> placeholders) {
-        JavaScriptCookingResultRuleRegistry.DeliveryPlan base = JavaScriptCookingResultRuleRegistry.DeliveryPlan.from(recipe, player, location, phase, outputs, actions, placeholders);
+        JavaScriptCookingResultRuleRegistry.DeliveryPlan base = JavaScriptCookingResultRuleRegistry.DeliveryPlan.from(recipe, player, location, phase, inputs, outputs, actions, placeholders);
         if (!(plugin instanceof EmakiCookingPlugin cookingPlugin) || cookingPlugin.javaScriptResultRuleRegistry() == null) {
             return base;
         }

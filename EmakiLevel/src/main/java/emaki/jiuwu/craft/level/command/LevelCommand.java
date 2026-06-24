@@ -249,8 +249,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             plugin.messages().sendRaw(sender, "<green>PDC synced for " + target.getName() + ".</green>");
             return true;
         }
-        plugin.messages().sendRaw(sender, "<red>/elv debug requirement <type> <level></red>");
-        return true;
+        return plugin.debugCommand().handle(sender, args, plugin.debugMessageService());
     }
 
     private void sendInfoLine(CommandSender sender, LevelTypeConfig type, PlayerLevelEntry entry) {
@@ -330,12 +329,17 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             if (args.length == 2) {
                 addIfStarts(result, "requirement", args[1]);
                 addIfStarts(result, "pdc", args[1]);
+                for (String candidate : plugin.debugCommand().tabComplete(new String[]{args[1]})) {
+                    addIfStarts(result, candidate, args[1]);
+                }
             } else if (args.length == 3 && "requirement".equalsIgnoreCase(args[1])) {
                 completeTypes(result, args[2]);
             } else if (args.length == 3 && "pdc".equalsIgnoreCase(args[1])) {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     addIfStarts(result, player.getName(), args[2]);
                 }
+            } else if (args.length == 3) {
+                result.addAll(plugin.debugCommand().tabComplete(new String[]{args[1], args[2]}));
             }
         }
         return result;

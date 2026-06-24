@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
@@ -108,6 +109,7 @@ final class OvenTickProcessor {
         List<String> actions = combineActions(recipeService.actions(recipe), recipeService.actions(outcome));
         Location rewardLocation = ovenBlock.getLocation().add(0.5D, 1.0D, 0.5D);
         Player player = state.playerUuid() == null ? null : Bukkit.getPlayer(state.playerUuid());
+        List<CookingInputIngredient> inputs = List.of(new CookingInputIngredient(state.slotSources().get(slot), 1));
         Map<String, Object> placeholders = Map.of(
                 "recipe_id", recipe.id(),
                 "station_type", StationType.OVEN.folderName(),
@@ -137,6 +139,7 @@ final class OvenTickProcessor {
                         player,
                         rewardLocation,
                         false,
+                        inputs,
                         List.of(),
                         actions,
                         "cooking_oven_complete",
@@ -151,6 +154,7 @@ final class OvenTickProcessor {
                 player,
                 rewardLocation,
                 settingsService.ovenDropResult(),
+                inputs,
                 outputs,
                 actions,
                 "cooking_oven_complete",

@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -168,7 +169,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 materials.optionalMaterials()
         );
         JavaScriptStrengthenChanceRuleRegistry chanceRuleRegistry = plugin.javaScriptChanceRuleRegistry();
-        return chanceRuleRegistry == null ? preview : chanceRuleRegistry.apply(player, preview);
+        return chanceRuleRegistry == null ? preview
+                : chanceRuleRegistry.apply(player, context, materials.requiredMaterials(), materials.optionalMaterials(), preview);
     }
 
     @Override
@@ -183,7 +185,13 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     toCoreConditionGroup(recipe.conditions()),
                     text -> resolvePlaceholders(player, text),
-                    true
+                    true,
+                    ConditionContext.of(player, context == null ? null : context.targetItem(),
+                            java.util.Map.of(
+                                    "recipeId", recipe.id(),
+                                    "currentStar", preview.currentStar(),
+                                    "targetStar", preview.targetStar(),
+                                    "successRate", preview.successRate()))
             );
             if (!conditionsPassed) {
                 return finishAttempt(player, AttemptResult.failure("strengthen.error.condition_not_met", preview, replacements(preview, preview.currentStar())));

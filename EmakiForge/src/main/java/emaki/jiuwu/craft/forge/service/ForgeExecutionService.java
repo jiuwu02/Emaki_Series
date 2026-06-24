@@ -83,7 +83,7 @@ final class ForgeExecutionService {
                         return buildActionFailure(player, recipe, guiItems, result, preBatch);
                     }
                     if (recipe.hasFailureMechanism()) {
-                        JavaScriptForgeRuleRegistry.Decision decision = applyJavaScriptForgeRules(player, recipe, recipe.successRate());
+                        JavaScriptForgeRuleRegistry.Decision decision = applyJavaScriptForgeRules(player, recipe, guiItems, recipe.successRate());
                         if (decision.cancelled()) {
                             result.setErrorKey("forge.craft.failed");
                             result.setReplacements(Map.of("outcome_type", Texts.isBlank(decision.message()) ? "cancelled" : decision.message()));
@@ -142,7 +142,7 @@ final class ForgeExecutionService {
                 });
     }
 
-    private JavaScriptForgeRuleRegistry.Decision applyJavaScriptForgeRules(Player player, Recipe recipe, double successRate) {
+    private JavaScriptForgeRuleRegistry.Decision applyJavaScriptForgeRules(Player player, Recipe recipe, GuiItems guiItems, double successRate) {
         if (javaScriptForgeRuleRegistry == null) {
             return new JavaScriptForgeRuleRegistry.Decision(
                     recipe == null ? "" : recipe.id(),
@@ -153,10 +153,13 @@ final class ForgeExecutionService {
                     successRate,
                     false,
                     "",
+                    java.util.Map.of(),
+                    List.of(),
+                    List.of(),
                     List.of()
             );
         }
-        return javaScriptForgeRuleRegistry.apply(player, recipe, successRate);
+        return javaScriptForgeRuleRegistry.apply(player, recipe, guiItems, successRate);
     }
 
     private ForgeResult finish(Player player, Recipe recipe, ForgeResult result) {

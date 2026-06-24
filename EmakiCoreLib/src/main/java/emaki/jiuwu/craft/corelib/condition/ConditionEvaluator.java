@@ -74,21 +74,35 @@ public final class ConditionEvaluator {
 
     public static boolean evaluate(ConditionBlock block,
             Function<String, String> placeholderReplacer) {
+        return evaluate(block, placeholderReplacer, ConditionContext.EMPTY);
+    }
+
+    public static boolean evaluate(ConditionBlock block,
+            Function<String, String> placeholderReplacer,
+            ConditionContext context) {
         if (block == null || !block.configured()) {
             return true;
         }
-        return evaluate(block.group(), placeholderReplacer, block.invalidAsFailure());
+        return evaluate(block.group(), placeholderReplacer, block.invalidAsFailure(), context);
     }
 
     public static boolean evaluate(ConditionGroup group,
             Function<String, String> placeholderReplacer,
             boolean invalidAsFailure) {
+        return evaluate(group, placeholderReplacer, invalidAsFailure, ConditionContext.EMPTY);
+    }
+
+    public static boolean evaluate(ConditionGroup group,
+            Function<String, String> placeholderReplacer,
+            boolean invalidAsFailure,
+            ConditionContext context) {
         if (group == null || group.emptyGroup()) {
             return true;
         }
+        ConditionContext safeContext = context == null ? ConditionContext.EMPTY : context;
         List<Boolean> results = new ArrayList<>();
         for (ConditionNode condition : group.conditions()) {
-            Boolean result = evaluateNode(condition, placeholderReplacer, invalidAsFailure);
+            Boolean result = evaluateNode(condition, placeholderReplacer, invalidAsFailure, safeContext);
             if (result == null) {
                 if (invalidAsFailure) {
                     return false;
@@ -108,23 +122,33 @@ public final class ConditionEvaluator {
             Integer requiredCount,
             Function<String, String> placeholderReplacer,
             boolean invalidAsFailure) {
+        return evaluate(conditionsConfig, conditionType, requiredCount, placeholderReplacer, invalidAsFailure, ConditionContext.EMPTY);
+    }
+
+    public static boolean evaluate(Object conditionsConfig,
+            String conditionType,
+            Integer requiredCount,
+            Function<String, String> placeholderReplacer,
+            boolean invalidAsFailure,
+            ConditionContext context) {
         ConditionGroup group = ConfigNodes.asObjectList(conditionsConfig).isEmpty()
                 ? ConditionGroup.empty()
                 : new ConditionGroup(conditionType, requiredCount == null ? 0 : requiredCount, ConditionGroup.parseNodes(conditionsConfig));
-        return evaluate(group, placeholderReplacer, invalidAsFailure);
+        return evaluate(group, placeholderReplacer, invalidAsFailure, context);
     }
 
     private static Boolean evaluateNode(ConditionNode condition,
             Function<String, String> placeholderReplacer,
-            boolean invalidAsFailure) {
+            boolean invalidAsFailure,
+            ConditionContext context) {
         if (condition == null) {
             return null;
         }
         if (condition.groupNode()) {
-            return evaluate(condition.group(), placeholderReplacer, invalidAsFailure);
+            return evaluate(condition.group(), placeholderReplacer, invalidAsFailure, context);
         }
         if (isJavaScriptConditionNode(condition)) {
-            emaki.jiuwu.craft.corelib.script.js.JavaScriptConditionRegistry.ConditionResult result = evaluateJavaScriptCondition(condition);
+            emaki.jiuwu.craft.corelib.script.js.JavaScriptConditionRegistry.ConditionResult result = evaluateJavaScriptCondition(condition, context);
             if (!result.valid()) {
                 return invalidAsFailure ? false : null;
             }
@@ -152,14 +176,34 @@ public final class ConditionEvaluator {
                 || expression.startsWith("condition:");
     }
 
-    private static emaki.jiuwu.craft.corelib.script.js.JavaScriptConditionRegistry.ConditionResult evaluateJavaScriptCondition(ConditionNode condition) {
+    private static emaki.jiuwu.craft.corelib.script.js.JavaScriptConditionRegistry.ConditionResult evaluateJavaScriptCondition(ConditionNode condition,
+            ConditionContext context) {
         emaki.jiuwu.craft.corelib.script.js.JavaScriptConditionRegistry registry = javaScriptConditionRegistry;
         if (registry == null) {
             return emaki.jiuwu.craft.corelib.script.js.JavaScriptConditionRegistry.ConditionResult.invalid("JavaScript condition registry is not available.");
         }
         String id = javaScriptConditionId(condition);
         Map<String, Object> args = javaScriptConditionArgs(condition);
-        return registry.evaluate(id, Map.of("type", condition.type(), "expression", condition.expression()), args);
+        return registry.evaluate(id, buildScriptContext(condition, context), args);
+    }
+
+    private static Map<String, Object> buildScriptContext(ConditionNode condition, ConditionContext context) {
+        Map<String, Object> scriptContext = new java.util.LinkedHashMap<>();
+        scriptContext.put("type", condition.type());
+        scriptContext.put("expression", condition.expression());
+        ConditionContext safeContext = context == null ? ConditionContext.EMPTY : context;
+        if (safeContext.player() != null) {
+            scriptContext.put("playerUuid", safeContext.player().getUniqueId().toString());
+            scriptContext.put("playerName", safeContext.player().getName());
+            scriptContext.put("playerOnline", safeContext.player().isOnline());
+        }
+        if (safeContext.item() != null) {
+            scriptContext.put("item", emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport.itemSummary(safeContext.item()));
+        }
+        if (!safeContext.variables().isEmpty()) {
+            scriptContext.put("variables", Map.copyOf(safeContext.variables()));
+        }
+        return scriptContext;
     }
 
     private static String javaScriptConditionId(ConditionNode condition) {

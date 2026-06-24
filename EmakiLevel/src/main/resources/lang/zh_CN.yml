@@ -1,4 +1,4 @@
-version: "1.1.8"
+version: "1.1.9"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiLevel</gradient> ]</gray>"
 console:
@@ -84,3 +84,18 @@ failure:
   not_enough_money: "金币不足"
   not_enough_material: "材料不足"
   invalid_requirement: "等级需求配置无效"
+debug:
+  command:
+    status_header: "<gold>========== EmakiLevel Debug 状态 ==========</gold>"
+    status_enabled: "<green>Debug 已开启</green>"
+    status_disabled: "<gray>Debug 已关闭</gray>"
+    tracked_players: "<gray>追踪玩家: <yellow>%players%</yellow></gray>"
+    tracked_modules: "<gray>追踪模块: <yellow>%modules%</yellow></gray>"
+    player_added: "<green>已开始追踪玩家: <aqua>%player%</aqua></green>"
+    player_removed: "<yellow>已停止追踪玩家: <aqua>%player%</aqua></yellow>"
+    module_enabled: "<green>已开启模块追踪: <yellow>%module%</yellow></green>"
+    module_disabled: "<yellow>已关闭模块追踪: <gray>%module%</gray></yellow>"
+    all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
+    all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
+    player_not_found: "<red>找不到在线玩家: %player%</red>"
+    available_modules: "<gray>可用模块: <yellow>%modules%</yellow></gray>"

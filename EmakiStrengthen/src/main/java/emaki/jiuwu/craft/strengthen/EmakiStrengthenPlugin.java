@@ -60,7 +60,7 @@ import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegi
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
-    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui");
+    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "script");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __    

@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,8 +20,11 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
@@ -109,10 +113,14 @@ public final class EmakiLevelPlugin extends JavaPlugin {
             "sources/mythicmobs.yml"
     );
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
+    private static final Set<String> DEBUG_MODULES = Set.of("script");
 
     private EmakiCoreLibPlugin coreLib;
     private AppConfig appConfig = AppConfig.defaults();
     private LevelMessageService messages;
+    private DebugLogger debugLogger;
+    private DebugCommand debugCommand;
+    private AbstractMessageService debugMessageService;
     private BootstrapService bootstrapService;
     private LevelTypeLoader typeLoader;
     private RequirementLoader requirementLoader;
@@ -321,6 +329,10 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private void initializeServices() {
         messages = new LevelMessageService(this);
         messages.load(appConfig.language());
+        debugLogger = new DebugLogger(this, coreLib.languageLoader());
+        debugMessageService = new AbstractMessageService(this, messages.message("general.prefix"),
+                messages::message, messages::message);
+        debugCommand = new DebugCommand(debugLogger, DEBUG_MODULES);
         bootstrapService = new BootstrapService(
                 this,
                 messages,
@@ -517,6 +529,18 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     public LevelMessageService messages() {
         return messages;
+    }
+
+    public DebugLogger debugLogger() {
+        return debugLogger;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
+    }
+
+    public AbstractMessageService debugMessageService() {
+        return debugMessageService;
     }
 
     public LevelTypeRegistry typeRegistry() {

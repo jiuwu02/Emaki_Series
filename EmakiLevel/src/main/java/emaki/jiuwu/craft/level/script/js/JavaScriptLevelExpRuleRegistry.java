@@ -86,7 +86,35 @@ public final class JavaScriptLevelExpRuleRegistry {
         for (RuleEntry rule : matchingRules(base.typeId(), base.reason())) {
             current = applyRule(javaScriptService, rule, current);
         }
+        logTraces(current.playerUuid(), current.traces());
         return current;
+    }
+
+    private void logTraces(String playerUuid, List<Map<String, Object>> traces) {
+        if (plugin == null || plugin.debugLogger() == null || traces == null || traces.isEmpty()) {
+            return;
+        }
+        java.util.UUID playerId = parseUuid(playerUuid);
+        if (!plugin.debugLogger().shouldLog("script", playerId)) {
+            return;
+        }
+        for (Map<String, Object> trace : traces) {
+            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
+                    + " | before=" + Texts.toStringSafe(trace.get("before"))
+                    + " | after=" + Texts.toStringSafe(trace.get("after"))
+                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+        }
+    }
+
+    private static java.util.UUID parseUuid(String raw) {
+        if (Texts.isBlank(raw)) {
+            return null;
+        }
+        try {
+            return java.util.UUID.fromString(raw);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 
     private Adjustment applyRule(JavaScriptService javaScriptService, RuleEntry rule, Adjustment current) {

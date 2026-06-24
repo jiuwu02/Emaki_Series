@@ -5,11 +5,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.script.JavaScriptService;
+import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
@@ -40,7 +44,7 @@ public final class JavaScriptCookingCompleteHookRegistry {
         }
         String function = value(definition, "function", value(definition, "execute", "onCookingComplete"));
         HookEntry entry = new HookEntry(id,
-                normalizedSet(definition.containsKey("stations") ? definition.get("stations") : definition.get("station")),
+                normalizedStationSet(definition.containsKey("stations") ? definition.get("stations") : definition.get("station")),
                 normalizedSet(definition.containsKey("recipeIds") ? definition.get("recipeIds") : definition.get("recipes")),
                 function,
                 scriptPath(context),
@@ -95,7 +99,45 @@ public final class JavaScriptCookingCompleteHookRegistry {
             ));
             if (result == null || !result.success()) {
                 plugin.getLogger().warning("[JavaScript] Cooking complete hook '" + hook.id() + "' failed: " + (result == null ? "no result" : result.message()));
+                continue;
             }
+            executeReturnedActions(coreLib, plan, result.returnValue());
+        }
+    }
+
+    private void executeReturnedActions(EmakiCoreLibPlugin coreLib, JavaScriptCookingResultRuleRegistry.DeliveryPlan plan, Object returnValue) {
+        if (!(returnValue instanceof Map<?, ?> map)) {
+            return;
+        }
+        List<String> actions = Texts.asStringList(map.get("actions"));
+        if (actions.isEmpty()) {
+            return;
+        }
+        Player player = resolvePlayer(plan.playerUuid());
+        ActionExecutor actionExecutor = coreLib.actionExecutor();
+        if (actionExecutor == null) {
+            return;
+        }
+        Map<String, String> placeholders = new LinkedHashMap<>();
+        placeholders.put("cooking_recipe_id", Texts.toStringSafe(plan.recipeId()));
+        placeholders.put("cooking_station_type", Texts.toStringSafe(plan.stationType()));
+        ActionContext context = ActionContext.create(plugin, player, "cooking.complete", false)
+                .withPlaceholders(placeholders);
+        actionExecutor.executeAll(context, actions, true).whenComplete((batch, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("[JavaScript] Cooking complete hook actions failed: " + throwable.getMessage());
+            }
+        });
+    }
+
+    private static Player resolvePlayer(String playerUuid) {
+        if (Texts.isBlank(playerUuid)) {
+            return null;
+        }
+        try {
+            return Bukkit.getPlayer(UUID.fromString(playerUuid));
+        } catch (IllegalArgumentException exception) {
+            return null;
         }
     }
 
@@ -133,6 +175,19 @@ public final class JavaScriptCookingCompleteHookRegistry {
             if (Texts.isNotBlank(normalized)) {
                 result.add(normalized);
             }
+        }
+        return Set.copyOf(result);
+    }
+
+    // 工位类型别名：把脚本作者可能写的简写映射到正式枚举 folderName，避免 station 过滤不命中。
+    private static final Map<String, String> STATION_ALIASES = Map.of(
+            "fermenter", "fermentation_barrel",
+            "fermentation", "fermentation_barrel");
+
+    private static Set<String> normalizedStationSet(Object raw) {
+        Set<String> result = new LinkedHashSet<>();
+        for (String station : normalizedSet(raw)) {
+            result.add(STATION_ALIASES.getOrDefault(station, station));
         }
         return Set.copyOf(result);
     }

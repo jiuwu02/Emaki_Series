@@ -8,9 +8,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
@@ -22,6 +24,7 @@ import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTr
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class JavaScriptForgeRuleRegistry {
@@ -78,7 +81,11 @@ public final class JavaScriptForgeRuleRegistry {
     }
 
     public Decision apply(Player player, Recipe recipe, double successRate) {
-        Decision current = Decision.from(player, recipe, successRate);
+        return apply(player, recipe, null, successRate);
+    }
+
+    public Decision apply(Player player, Recipe recipe, GuiItems guiItems, double successRate) {
+        Decision current = Decision.from(player, recipe, guiItems, successRate);
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib == null || coreLib.javaScriptService() == null || !coreLib.javaScriptService().enabled()) {
             return current;
@@ -89,7 +96,24 @@ public final class JavaScriptForgeRuleRegistry {
                 break;
             }
         }
+        logTraces(player, current.traces());
         return current;
+    }
+
+    private void logTraces(Player player, List<Map<String, Object>> traces) {
+        if (plugin == null || traces == null || traces.isEmpty()) {
+            return;
+        }
+        java.util.UUID playerId = player == null ? null : player.getUniqueId();
+        if (plugin.debugLogger() == null || !plugin.debugLogger().shouldLog("script", playerId)) {
+            return;
+        }
+        for (Map<String, Object> trace : traces) {
+            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
+                    + " | before=" + Texts.toStringSafe(trace.get("before"))
+                    + " | after=" + Texts.toStringSafe(trace.get("after"))
+                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+        }
     }
 
     private Decision applyRule(EmakiCoreLibPlugin coreLib, JavaScriptService javaScriptService, RuleEntry rule, Decision current) {
@@ -242,13 +266,19 @@ public final class JavaScriptForgeRuleRegistry {
             double successRate,
             boolean cancelled,
             String message,
+            Map<String, Object> targetItem,
+            List<Map<String, Object>> requiredMaterials,
+            List<Map<String, Object>> optionalMaterials,
             List<Map<String, Object>> traces) {
 
         public Decision {
+            targetItem = targetItem == null ? Map.of() : Map.copyOf(targetItem);
+            requiredMaterials = requiredMaterials == null ? List.of() : List.copyOf(requiredMaterials);
+            optionalMaterials = optionalMaterials == null ? List.of() : List.copyOf(optionalMaterials);
             traces = traces == null ? List.of() : List.copyOf(traces);
         }
 
-        static Decision from(Player player, Recipe recipe, double successRate) {
+        static Decision from(Player player, Recipe recipe, GuiItems guiItems, double successRate) {
             return new Decision(
                     recipe == null ? "" : recipe.id(),
                     recipe == null ? "" : recipe.displayName(),
@@ -258,12 +288,16 @@ public final class JavaScriptForgeRuleRegistry {
                     successRate,
                     false,
                     "",
+                    guiItems == null ? Map.of() : ScriptServiceApiSupport.itemSummary(guiItems.targetItem()),
+                    guiItems == null ? List.of() : slotSummaries(guiItems.requiredMaterials()),
+                    guiItems == null ? List.of() : slotSummaries(guiItems.optionalMaterials()),
                     List.of()
             );
         }
 
         Decision withValues(double successRate, boolean cancelled, String message) {
-            return new Decision(recipeId, recipeName, playerUuid, playerName, originalSuccessRate, successRate, cancelled, Texts.toStringSafe(message), traces);
+            return new Decision(recipeId, recipeName, playerUuid, playerName, originalSuccessRate, successRate, cancelled,
+                    Texts.toStringSafe(message), targetItem, requiredMaterials, optionalMaterials, traces);
         }
 
         Decision withTrace(String ruleId, double before, double after, String message) {
@@ -274,7 +308,25 @@ public final class JavaScriptForgeRuleRegistry {
             trace.put("after", after);
             trace.put("message", Texts.toStringSafe(message));
             updated.add(Map.copyOf(trace));
-            return new Decision(recipeId, recipeName, playerUuid, playerName, originalSuccessRate, successRate, cancelled, this.message, List.copyOf(updated));
+            return new Decision(recipeId, recipeName, playerUuid, playerName, originalSuccessRate, successRate, cancelled,
+                    this.message, targetItem, requiredMaterials, optionalMaterials, List.copyOf(updated));
+        }
+
+        private static List<Map<String, Object>> slotSummaries(Map<Integer, ItemStack> source) {
+            if (source == null || source.isEmpty()) {
+                return List.of();
+            }
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Map.Entry<Integer, ItemStack> entry : source.entrySet()) {
+                ItemStack itemStack = entry.getValue();
+                if (itemStack == null || itemStack.getType().isAir()) {
+                    continue;
+                }
+                Map<String, Object> summary = new LinkedHashMap<>(ScriptServiceApiSupport.itemSummary(itemStack));
+                summary.put("slot", entry.getKey());
+                result.add(Map.copyOf(summary));
+            }
+            return List.copyOf(result);
         }
 
         Map<String, Object> toContext(String ruleId) {
@@ -288,6 +340,9 @@ public final class JavaScriptForgeRuleRegistry {
             map.put("successRate", successRate);
             map.put("cancelled", cancelled);
             map.put("message", message);
+            map.put("targetItem", targetItem);
+            map.put("requiredMaterials", requiredMaterials);
+            map.put("optionalMaterials", optionalMaterials);
             map.put("traces", traces);
             return map;
         }

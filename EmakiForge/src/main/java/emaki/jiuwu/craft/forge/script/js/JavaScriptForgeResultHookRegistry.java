@@ -10,6 +10,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
@@ -96,8 +99,36 @@ public final class JavaScriptForgeResultHookRegistry {
             ));
             if (result == null || !result.success()) {
                 plugin.getLogger().warning("[JavaScript] Forge result hook '" + hook.id() + "' failed: " + (result == null ? "no result" : result.message()));
+                continue;
             }
+            executeReturnedActions(coreLib, player, result.returnValue(), recipe, forgeResult);
         }
+    }
+
+    private void executeReturnedActions(EmakiCoreLibPlugin coreLib, Player player, Object returnValue, Recipe recipe, ForgeResult forgeResult) {
+        if (player == null || !(returnValue instanceof Map<?, ?> map)) {
+            return;
+        }
+        List<String> actions = Texts.asStringList(map.get("actions"));
+        if (actions.isEmpty()) {
+            return;
+        }
+        ActionExecutor actionExecutor = coreLib.actionExecutor();
+        if (actionExecutor == null) {
+            return;
+        }
+        Map<String, String> placeholders = new LinkedHashMap<>();
+        placeholders.put("success", Boolean.toString(forgeResult.success()));
+        placeholders.put("forge_recipe_id", recipe == null ? "" : recipe.id());
+        placeholders.put("forge_quality", Texts.toStringSafe(forgeResult.quality()));
+        placeholders.put("forge_multiplier", Double.toString(forgeResult.multiplier()));
+        ActionContext context = ActionContext.create(plugin, player, "forge.result", false)
+                .withPlaceholders(placeholders);
+        actionExecutor.executeAll(context, actions, true).whenComplete((batch, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("[JavaScript] Forge result hook actions failed: " + throwable.getMessage());
+            }
+        });
     }
 
     private synchronized List<HookEntry> matchingHooks(String recipeId) {
@@ -119,6 +150,7 @@ public final class JavaScriptForgeResultHookRegistry {
         map.put("errorKey", Texts.toStringSafe(result.errorKey()));
         map.put("quality", Texts.toStringSafe(result.quality()));
         map.put("multiplier", result.multiplier());
+        map.put("resultItem", ScriptServiceApiSupport.itemSummary(result.resultItem()));
         map.put("actionFailureReason", Texts.toStringSafe(result.actionFailureReason()));
         map.put("replacements", result.replacements());
         return map;

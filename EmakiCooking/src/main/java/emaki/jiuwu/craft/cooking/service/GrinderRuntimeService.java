@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.cooking.service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -8,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -241,6 +243,7 @@ public final class GrinderRuntimeService {
                 player,
                 rewardLocation,
                 settingsService.grinderDropResult(),
+                List.of(new CookingInputIngredient(state.inputSource(), 1)),
                 recipeService.outputs(recipe),
                 recipeService.actions(recipe),
                 "cooking_grinder_complete",

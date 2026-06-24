@@ -8,7 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.script.JavaScriptService;
+import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
@@ -90,8 +91,38 @@ public final class JavaScriptStrengthenResultHookRegistry {
             ));
             if (execution == null || !execution.success()) {
                 plugin.getLogger().warning("[JavaScript] Strengthen result hook '" + hook.id() + "' failed: " + (execution == null ? "no result" : execution.message()));
+                continue;
             }
+            executeReturnedActions(coreLib, player, execution.returnValue(), result);
         }
+    }
+
+    private void executeReturnedActions(EmakiCoreLibPlugin coreLib, Player player, Object returnValue, AttemptResult result) {
+        if (player == null || !(returnValue instanceof Map<?, ?> map)) {
+            return;
+        }
+        List<String> actions = Texts.asStringList(map.get("actions"));
+        if (actions.isEmpty()) {
+            return;
+        }
+        ActionExecutor actionExecutor = coreLib.actionExecutor();
+        if (actionExecutor == null) {
+            return;
+        }
+        Map<String, String> placeholders = new LinkedHashMap<>();
+        placeholders.put("success", Boolean.toString(result.success()));
+        placeholders.put("strengthen_star", Integer.toString(result.resultingStar()));
+        placeholders.put("strengthen_temper", Integer.toString(result.resultingCrack()));
+        if (result.preview() != null && result.preview().recipe() != null) {
+            placeholders.put("strengthen_recipe_id", result.preview().recipe().id());
+        }
+        ActionContext context = ActionContext.create(plugin, player, "strengthen.result", false)
+                .withPlaceholders(placeholders);
+        actionExecutor.executeAll(context, actions, true).whenComplete((batch, throwable) -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("[JavaScript] Strengthen result hook actions failed: " + throwable.getMessage());
+            }
+        });
     }
 
     private synchronized List<HookEntry> hooks() {
@@ -117,6 +148,8 @@ public final class JavaScriptStrengthenResultHookRegistry {
             map.put("failureStar", result.preview().failureStar());
             map.put("failureTemper", result.preview().failureTemper());
             map.put("protectionApplied", result.preview().protectionApplied());
+            map.put("maxLevel", result.preview().recipe() != null
+                    && result.resultingStar() >= result.preview().recipe().limits().maxStar());
         }
         return map;
     }

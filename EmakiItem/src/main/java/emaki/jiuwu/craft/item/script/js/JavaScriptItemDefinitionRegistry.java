@@ -141,6 +141,7 @@ public final class JavaScriptItemDefinitionRegistry {
                 actionMap(rawDefinition.get("actions")),
                 null,
                 null,
+                intValue(rawDefinition.get("amount"), 1),
                 false
         );
     }
@@ -241,6 +242,17 @@ public final class JavaScriptItemDefinitionRegistry {
             return Texts.isBlank(text) ? null : Integer.parseInt(text);
         } catch (NumberFormatException exception) {
             return null;
+        }
+    }
+
+    private static int intValue(Object raw, int fallback) {
+        if (raw instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(Texts.toStringSafe(raw));
+        } catch (NumberFormatException exception) {
+            return fallback;
         }
     }
 

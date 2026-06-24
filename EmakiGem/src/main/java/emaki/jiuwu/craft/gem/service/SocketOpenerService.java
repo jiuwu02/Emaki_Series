@@ -7,6 +7,7 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -249,7 +250,8 @@ public final class SocketOpenerService {
         return ConditionEvaluator.evaluate(
                 config.conditions(),
                 text -> resolvePlaceholders(player, text),
-                config.invalidAsFailure()
+                config.invalidAsFailure(),
+                ConditionContext.of(player)
         );
     }
 

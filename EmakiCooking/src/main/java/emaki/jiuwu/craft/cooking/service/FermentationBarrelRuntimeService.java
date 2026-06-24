@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -383,7 +384,11 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.fermentationOutcomeForStage(recipe, stage);
-        rewardService.deliver(recipe, player, location, settingsService.fermentationBarrelDropResult(), recipeService.outputs(outcome),
+        List<CookingInputIngredient> inputs = new java.util.ArrayList<>();
+        for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
+            inputs.add(new CookingInputIngredient(entry.getValue(), state.slotAmounts().getOrDefault(entry.getKey(), 1)));
+        }
+        rewardService.deliver(recipe, player, location, settingsService.fermentationBarrelDropResult(), inputs, recipeService.outputs(outcome),
                 recipeService.actions(outcome), "cooking_fermentation_barrel_complete", Map.of("recipe_id", recipe.id(), "station_type", StationType.FERMENTATION_BARREL.folderName(), "stage", stage.name().toLowerCase(java.util.Locale.ROOT)));
     }
 

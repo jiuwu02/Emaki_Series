@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTr
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 
 public final class JavaScriptCookingResultRuleRegistry {
@@ -46,7 +47,7 @@ public final class JavaScriptCookingResultRuleRegistry {
         String function = value(definition, "function", value(definition, "execute", "modifyCookingResult"));
         RuleEntry entry = new RuleEntry(id,
                 intValue(definition.get("priority"), 0),
-                normalizedSet(definition.containsKey("stations") ? definition.get("stations") : definition.get("station")),
+                normalizedStationSet(definition.containsKey("stations") ? definition.get("stations") : definition.get("station")),
                 normalizedSet(definition.containsKey("recipeIds") ? definition.get("recipeIds") : definition.get("recipes")),
                 function,
                 scriptPath(context),
@@ -93,7 +94,33 @@ public final class JavaScriptCookingResultRuleRegistry {
                 break;
             }
         }
+        logTraces(current.playerUuid(), current.traces());
         return current;
+    }
+
+    private void logTraces(String playerUuid, List<Map<String, Object>> traces) {
+        if (plugin == null || traces == null || traces.isEmpty()) {
+            return;
+        }
+        java.util.UUID playerId = parseUuid(playerUuid);
+        if (plugin.debugLogger() == null || !plugin.debugLogger().shouldLog("script", playerId)) {
+            return;
+        }
+        for (Map<String, Object> trace : traces) {
+            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
+                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+        }
+    }
+
+    private static java.util.UUID parseUuid(String raw) {
+        if (Texts.isBlank(raw)) {
+            return null;
+        }
+        try {
+            return java.util.UUID.fromString(raw);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 
     private DeliveryPlan applyRule(EmakiCoreLibPlugin coreLib, JavaScriptService javaScriptService, RuleEntry rule, DeliveryPlan current) {
@@ -202,6 +229,19 @@ public final class JavaScriptCookingResultRuleRegistry {
         return Set.copyOf(result);
     }
 
+    // 工位类型别名：把脚本作者可能写的简写映射到正式枚举 folderName，避免 station 过滤不命中。
+    private static final Map<String, String> STATION_ALIASES = Map.of(
+            "fermenter", "fermentation_barrel",
+            "fermentation", "fermentation_barrel");
+
+    private static Set<String> normalizedStationSet(Object raw) {
+        Set<String> result = new LinkedHashSet<>();
+        for (String station : normalizedSet(raw)) {
+            result.add(STATION_ALIASES.getOrDefault(station, station));
+        }
+        return Set.copyOf(result);
+    }
+
     private static String value(Map<String, ?> map, String key, String fallback) {
         Object value = map == null ? null : map.get(key);
         String text = Texts.toStringSafe(value);
@@ -265,6 +305,7 @@ public final class JavaScriptCookingResultRuleRegistry {
             int x,
             int y,
             int z,
+            List<CookingInputIngredient> inputs,
             List<Map<String, Object>> outputs,
             List<String> actions,
             Map<String, ?> placeholders,
@@ -272,13 +313,14 @@ public final class JavaScriptCookingResultRuleRegistry {
             List<Map<String, Object>> traces) {
 
         public DeliveryPlan {
+            inputs = inputs == null ? List.of() : List.copyOf(inputs);
             outputs = outputs == null ? List.of() : List.copyOf(outputs);
             actions = actions == null ? List.of() : List.copyOf(actions);
             placeholders = placeholders == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(placeholders));
             traces = traces == null ? List.of() : List.copyOf(traces);
         }
 
-        public static DeliveryPlan from(RecipeDocument recipe, Player player, Location location, String phase, List<Map<String, Object>> outputs, List<String> actions, Map<String, ?> placeholders) {
+        public static DeliveryPlan from(RecipeDocument recipe, Player player, Location location, String phase, List<CookingInputIngredient> inputs, List<Map<String, Object>> outputs, List<String> actions, Map<String, ?> placeholders) {
             return new DeliveryPlan(
                     recipe == null ? "" : recipe.id(),
                     recipe == null ? "" : recipe.displayName(),
@@ -290,6 +332,7 @@ public final class JavaScriptCookingResultRuleRegistry {
                     location == null ? 0 : location.getBlockX(),
                     location == null ? 0 : location.getBlockY(),
                     location == null ? 0 : location.getBlockZ(),
+                    inputs,
                     outputs,
                     actions,
                     placeholders,
@@ -299,7 +342,7 @@ public final class JavaScriptCookingResultRuleRegistry {
         }
 
         DeliveryPlan withValues(List<Map<String, Object>> outputs, List<String> actions, boolean cancelled) {
-            return new DeliveryPlan(recipeId, recipeName, stationType, playerUuid, playerName, phase, world, x, y, z, outputs, actions, placeholders, cancelled, traces);
+            return new DeliveryPlan(recipeId, recipeName, stationType, playerUuid, playerName, phase, world, x, y, z, inputs, outputs, actions, placeholders, cancelled, traces);
         }
 
         DeliveryPlan withTrace(String ruleId, String message) {
@@ -308,7 +351,7 @@ public final class JavaScriptCookingResultRuleRegistry {
             trace.put("id", ruleId);
             trace.put("message", Texts.toStringSafe(message));
             updated.add(Map.copyOf(trace));
-            return new DeliveryPlan(recipeId, recipeName, stationType, playerUuid, playerName, phase, world, x, y, z, outputs, actions, placeholders, cancelled, List.copyOf(updated));
+            return new DeliveryPlan(recipeId, recipeName, stationType, playerUuid, playerName, phase, world, x, y, z, inputs, outputs, actions, placeholders, cancelled, List.copyOf(updated));
         }
 
         Map<String, Object> toContext(String ruleId) {
@@ -324,6 +367,7 @@ public final class JavaScriptCookingResultRuleRegistry {
             map.put("x", x);
             map.put("y", y);
             map.put("z", z);
+            map.put("inputs", inputs.stream().map(CookingInputIngredient::toMap).toList());
             map.put("outputs", outputs);
             map.put("actions", actions);
             map.put("placeholders", placeholders);

@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptMode;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -164,7 +165,10 @@ public final class CastAttemptService {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
                     text -> resolvePlaceholders(player, text),
-                    true
+                    true,
+                    ConditionContext.of(player, null, java.util.Map.of(
+                            "skillId", definition.id(),
+                            "triggerId", Texts.toStringSafe(triggerId)))
             );
             if (!conditionsPassed) {
                 return CastAttemptResult.fail(FailureReason.RESOURCE_INSUFFICIENT, "cast.condition_not_met");

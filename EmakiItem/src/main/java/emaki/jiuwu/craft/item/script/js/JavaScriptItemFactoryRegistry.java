@@ -123,7 +123,9 @@ public final class JavaScriptItemFactoryRegistry {
         if (definition == null || plugin.itemFactory() == null) {
             return null;
         }
-        return plugin.itemFactory().rebuildBase(definition, amount);
+        // amount<=0 视为"未显式指定"，回退到工厂返回定义里的默认数量。
+        int resolved = amount > 0 ? amount : definition.amount();
+        return plugin.itemFactory().rebuildBase(definition, resolved);
     }
 
     private synchronized List<FactoryEntry> matchingFactories() {

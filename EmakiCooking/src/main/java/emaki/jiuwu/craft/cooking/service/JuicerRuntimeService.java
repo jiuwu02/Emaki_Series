@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -283,7 +284,7 @@ public final class JuicerRuntimeService implements Listener {
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
-        rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), recipeService.outputs(outcome),
+        rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), List.of(), recipeService.outputs(outcome),
                 recipeService.actions(outcome), "cooking_juicer_serve", Map.of("recipe_id", recipe.id(), "station_type", StationType.JUICER.folderName(), "fluid_id", state.fluidId()));
         state.consumeFluid(servingMl);
         state.setPlayerContext(player.getUniqueId(), player.getName());
@@ -301,7 +302,7 @@ public final class JuicerRuntimeService implements Listener {
     private void completeSlot(Player player, Block block, JuicerState state, int slot, RecipeDocument recipe) {
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
-        rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), recipeService.outputs(outcome),
+        rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), List.of(new CookingInputIngredient(state.slotSources().get(slot), 1)), recipeService.outputs(outcome),
                 recipeService.actions(outcome), "cooking_juicer_complete", Map.of("recipe_id", recipe.id(), "station_type", StationType.JUICER.folderName(), "slot_index", slot));
         state.removeSlot(slot);
     }

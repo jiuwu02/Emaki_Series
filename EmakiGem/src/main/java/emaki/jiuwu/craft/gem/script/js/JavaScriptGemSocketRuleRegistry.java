@@ -95,7 +95,35 @@ public final class JavaScriptGemSocketRuleRegistry {
                 break;
             }
         }
+        logTraces(current.playerUuid(), current.traces());
         return current;
+    }
+
+    private void logTraces(String playerUuid, List<Map<String, Object>> traces) {
+        if (plugin == null || traces == null || traces.isEmpty()) {
+            return;
+        }
+        java.util.UUID playerId = parseUuid(playerUuid);
+        if (plugin.debugLogger() == null || !plugin.debugLogger().shouldLog("script", playerId)) {
+            return;
+        }
+        for (Map<String, Object> trace : traces) {
+            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
+                    + " | before=" + Texts.toStringSafe(trace.get("before"))
+                    + " | after=" + Texts.toStringSafe(trace.get("after"))
+                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+        }
+    }
+
+    private static java.util.UUID parseUuid(String raw) {
+        if (Texts.isBlank(raw)) {
+            return null;
+        }
+        try {
+            return java.util.UUID.fromString(raw);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 
     private Decision applyRule(EmakiCoreLibPlugin coreLib, JavaScriptService javaScriptService, RuleEntry rule, Decision current) {
@@ -256,9 +284,11 @@ public final class JavaScriptGemSocketRuleRegistry {
             double successRate,
             String messageKey,
             String message,
+            List<Map<String, Object>> inlaidGems,
             List<Map<String, Object>> traces) {
 
         public Decision {
+            inlaidGems = inlaidGems == null ? List.of() : List.copyOf(inlaidGems);
             traces = traces == null ? List.of() : List.copyOf(traces);
         }
 
@@ -269,6 +299,17 @@ public final class JavaScriptGemSocketRuleRegistry {
                 GemDefinition gemDefinition,
                 GemItemInstance instance,
                 double successRate) {
+            return from(player, itemDefinition, slot, slotIndex, gemDefinition, instance, successRate, List.of());
+        }
+
+        public static Decision from(Player player,
+                GemItemDefinition itemDefinition,
+                GemItemDefinition.SocketSlot slot,
+                int slotIndex,
+                GemDefinition gemDefinition,
+                GemItemInstance instance,
+                double successRate,
+                List<Map<String, Object>> inlaidGems) {
             return new Decision(
                     player == null ? "" : player.getUniqueId().toString(),
                     player == null ? "" : player.getName(),
@@ -283,13 +324,15 @@ public final class JavaScriptGemSocketRuleRegistry {
                     successRate,
                     "gem.error.condition_not_met",
                     "",
+                    inlaidGems,
                     List.of()
             );
         }
 
         Decision withValues(boolean allowed, double successRate, String messageKey, String message) {
             return new Decision(playerUuid, playerName, itemId, slotIndex, socketType, gemId, gemType, gemLevel,
-                    allowed, originalSuccessRate, successRate, Texts.toStringSafe(messageKey), Texts.toStringSafe(message), traces);
+                    allowed, originalSuccessRate, successRate, Texts.toStringSafe(messageKey), Texts.toStringSafe(message),
+                    inlaidGems, traces);
         }
 
         Decision withTrace(String ruleId, double before, double after, String message) {
@@ -301,7 +344,7 @@ public final class JavaScriptGemSocketRuleRegistry {
             trace.put("message", Texts.toStringSafe(message));
             updated.add(Map.copyOf(trace));
             return new Decision(playerUuid, playerName, itemId, slotIndex, socketType, gemId, gemType, gemLevel,
-                    allowed, originalSuccessRate, successRate, messageKey, this.message, List.copyOf(updated));
+                    allowed, originalSuccessRate, successRate, messageKey, this.message, inlaidGems, List.copyOf(updated));
         }
 
         Map<String, Object> toContext(String ruleId) {
@@ -320,6 +363,8 @@ public final class JavaScriptGemSocketRuleRegistry {
             map.put("successRate", successRate);
             map.put("messageKey", messageKey);
             map.put("message", message);
+            map.put("inlaidGems", inlaidGems);
+            map.put("inlaidGemCount", inlaidGems.size());
             map.put("traces", traces);
             return map;
         }

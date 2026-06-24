@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
@@ -182,7 +183,12 @@ public final class SkillUpgradeService {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
                     text -> resolvePlaceholders(player, text),
-                    true
+                    true,
+                    ConditionContext.of(player, null, java.util.Map.of(
+                            "skillId", definition.id(),
+                            "currentLevel", currentLevel,
+                            "targetLevel", targetLevel,
+                            "maxLevel", maxLevel))
             );
             if (!conditionsPassed) {
                 return UpgradeResult.fail("upgrade.condition_not_met",

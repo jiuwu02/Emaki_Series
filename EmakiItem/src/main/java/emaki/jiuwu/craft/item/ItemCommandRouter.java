@@ -178,13 +178,15 @@ final class ItemCommandRouter implements TabExecutor {
             return true;
         }
         String id = Texts.normalizeId(args[2]);
-        int amount = Math.max(1, Numbers.tryParseInt(args.length >= 4 ? args[3] : null, 1));
-        ItemStack itemStack = plugin.itemFactory().create(id, amount);
+        // 未显式提供数量时传 0（哨兵），交由物品工厂回退到 definition 配置的默认数量。
+        int requestedAmount = args.length >= 4 ? Math.max(1, Numbers.tryParseInt(args[3], 1)) : 0;
+        ItemStack itemStack = plugin.itemFactory().create(id, requestedAmount);
         EmakiItemDefinition definition = plugin.idResolver().resolveDefinition(id);
         if (itemStack == null || definition == null) {
             plugin.messageService().send(sender, "general.item_not_found", Map.of("id", id));
             return true;
         }
+        int amount = itemStack.getAmount();
         Map<Integer, ItemStack> leftovers = target.getInventory().addItem(itemStack);
         leftovers.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
         plugin.actionService().execute(target, definition, "give", Map.of("amount", amount), itemStack);
