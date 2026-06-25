@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTypes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.objecthunter.exp4j.function.Function;
 
@@ -47,7 +47,7 @@ public final class JavaScriptExpressionFunctionRegistry {
         String normalizedId = Texts.normalizeId(id);
         if (Texts.isBlank(normalizedId) || javaScriptService == null) {
             if (tracker != null) {
-                tracker.recordError(scriptPath, JavaScriptRegistrationType.EXPRESSION_FUNCTION, normalizedId, "register", "Expression function id is blank.");
+                tracker.recordError(scriptPath, JavaScriptRegistrationTypes.EXPRESSION_FUNCTION, normalizedId, "register", "Expression function id is blank.");
             }
             return false;
         }
@@ -66,7 +66,7 @@ public final class JavaScriptExpressionFunctionRegistry {
         long started = System.nanoTime();
         boolean tracked = tracker == null || tracker.register(plugin,
                 scriptPath,
-                JavaScriptRegistrationType.EXPRESSION_FUNCTION,
+                JavaScriptRegistrationTypes.EXPRESSION_FUNCTION,
                 normalizedId,
                 elapsedMillis(started),
                 () -> unregister(normalizedId),
@@ -126,7 +126,7 @@ public final class JavaScriptExpressionFunctionRegistry {
             return value;
         } catch (RuntimeException exception) {
             if (tracker != null) {
-                tracker.recordError(function.scriptPath(), JavaScriptRegistrationType.EXPRESSION_FUNCTION, function.id(), function.functionName(), exception.getMessage());
+                tracker.recordError(function.scriptPath(), JavaScriptRegistrationTypes.EXPRESSION_FUNCTION, function.id(), function.functionName(), exception.getMessage());
             }
             debug(function, args, 0D, elapsedMillis(started), exception.getMessage());
             return 0D;

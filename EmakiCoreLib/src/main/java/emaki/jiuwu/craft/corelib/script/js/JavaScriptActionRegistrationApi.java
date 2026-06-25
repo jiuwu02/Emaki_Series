@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventRegistry;
 import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventSubscription;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTypes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class JavaScriptActionRegistrationApi {
@@ -112,7 +112,7 @@ public final class JavaScriptActionRegistrationApi {
         if (result.success()) {
             if (registrationTracker != null && !registrationTracker.register(plugin,
                     scriptPath,
-                    JavaScriptRegistrationType.ACTION,
+                    JavaScriptRegistrationTypes.ACTION,
                     id,
                     elapsedMillis(started),
                     () -> registry.unregister(id),
@@ -166,7 +166,7 @@ public final class JavaScriptActionRegistrationApi {
         placeholderRegistry.register(resolver);
         if (registrationTracker != null && !registrationTracker.register(plugin,
                 scriptPath,
-                JavaScriptRegistrationType.PLACEHOLDER,
+                JavaScriptRegistrationTypes.PLACEHOLDER,
                 id,
                 elapsedMillis(started),
                 () -> placeholderRegistry.unregister(resolver),
@@ -221,7 +221,7 @@ public final class JavaScriptActionRegistrationApi {
         if (registered) {
             if (registrationTracker != null && !registrationTracker.register(plugin,
                     scriptPath,
-                    JavaScriptRegistrationType.EVENT,
+                    JavaScriptRegistrationTypes.EVENT,
                     id,
                     elapsedMillis(started),
                     () -> eventRegistry.unregister(id),

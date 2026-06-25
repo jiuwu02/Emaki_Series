@@ -14,7 +14,6 @@ import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
@@ -23,6 +22,9 @@ import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemState;
 
 public final class JavaScriptGemSetBonusRegistry {
+
+    /** JavaScript registration type id for gem set bonuses (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "gem_set_bonus";
 
     private final EmakiGemPlugin plugin;
     private final Map<String, BonusEntry> bonuses = new LinkedHashMap<>();
@@ -47,7 +49,7 @@ public final class JavaScriptGemSetBonusRegistry {
         bonuses.put(id, entry);
         if (tracker != null && !tracker.register(plugin,
                 scriptPath(context),
-                JavaScriptRegistrationType.GEM_SET_BONUS,
+                REGISTRATION_TYPE,
                 id,
                 elapsedMillis(started),
                 () -> unregister(id),
@@ -141,7 +143,7 @@ public final class JavaScriptGemSetBonusRegistry {
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
         if (tracker != null) {
-            tracker.recordError(scriptPath(context), JavaScriptRegistrationType.GEM_SET_BONUS, id, phase, message);
+            tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
         if (plugin != null) {
             plugin.getLogger().warning("[JavaScript] Gem set bonus registration failed: " + message);

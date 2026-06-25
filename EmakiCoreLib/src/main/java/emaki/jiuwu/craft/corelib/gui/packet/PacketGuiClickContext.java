@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.guipacket;
+package emaki.jiuwu.craft.corelib.gui.packet;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;

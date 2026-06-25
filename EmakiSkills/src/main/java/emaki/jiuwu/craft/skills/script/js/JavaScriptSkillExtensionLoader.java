@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
@@ -24,16 +25,20 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
     private final SkillScriptActionRegistry registry;
     private final JavaScriptService javaScriptService;
     private final ScriptConfig scriptConfig;
+    private final JavaScriptRegistrationTracker registrationTracker;
     private final List<String> registeredIds = new ArrayList<>();
+    private final List<String> registeredScripts = new ArrayList<>();
 
     public JavaScriptSkillExtensionLoader(EmakiSkillsPlugin plugin,
             SkillScriptActionRegistry registry,
             JavaScriptService javaScriptService,
-            ScriptConfig scriptConfig) {
+            ScriptConfig scriptConfig,
+            JavaScriptRegistrationTracker registrationTracker) {
         this.plugin = plugin;
         this.registry = registry;
         this.javaScriptService = javaScriptService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
+        this.registrationTracker = registrationTracker;
     }
 
     public int reload() {
@@ -49,7 +54,8 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
                     registry,
                     javaScriptService,
                     scriptConfig,
-                    scriptPath
+                    scriptPath,
+                    registrationTracker
             );
             ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
                     plugin,
@@ -64,6 +70,9 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
             ));
             if (result != null && result.success() && !result.skipped()) {
                 registeredIds.addAll(registrationApi.registeredIds());
+                if (!registrationApi.registeredIds().isEmpty()) {
+                    registeredScripts.add(scriptPath);
+                }
                 loaded++;
             } else {
                 String message = result == null ? plugin.messageService().message("console.js_skill_extension_no_result") : result.message();
@@ -89,7 +98,13 @@ public final class JavaScriptSkillExtensionLoader implements AutoCloseable {
                 registry.unregister(id);
             }
         }
+        if (registrationTracker != null) {
+            for (String scriptPath : List.copyOf(registeredScripts)) {
+                registrationTracker.unregisterScript(scriptPath);
+            }
+        }
         registeredIds.clear();
+        registeredScripts.clear();
     }
 
     private List<String> scanScripts() {

@@ -15,12 +15,14 @@ import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
 public final class JavaScriptItemFactoryRegistry {
+
+    /** JavaScript registration type id for item factories (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "item_factory";
 
     private final EmakiItemPlugin plugin;
     private final JavaScriptItemDefinitionRegistry definitionRegistry;
@@ -48,7 +50,7 @@ public final class JavaScriptItemFactoryRegistry {
         factories.put(id, new FactoryEntry(id, priority, function, scriptPath(context), timeoutMillis));
         if (tracker != null && !tracker.register(plugin,
                 scriptPath(context),
-                JavaScriptRegistrationType.ITEM_FACTORY,
+                REGISTRATION_TYPE,
                 id,
                 elapsedMillis(started),
                 () -> unregister(id),
@@ -146,7 +148,7 @@ public final class JavaScriptItemFactoryRegistry {
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
         if (tracker != null) {
-            tracker.recordError(scriptPath(context), JavaScriptRegistrationType.ITEM_FACTORY, id, phase, message);
+            tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
         if (plugin != null) {
             plugin.getLogger().warning("[JavaScript] Item factory registration failed: " + message);

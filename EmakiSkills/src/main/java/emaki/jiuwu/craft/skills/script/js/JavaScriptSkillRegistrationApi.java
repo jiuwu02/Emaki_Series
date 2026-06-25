@@ -12,29 +12,36 @@ import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
 import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 
 public final class JavaScriptSkillRegistrationApi {
 
+    /** JavaScript registration type id for skill actions (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "skill_action";
+
     private final EmakiSkillsPlugin plugin;
     private final SkillScriptActionRegistry registry;
     private final JavaScriptService javaScriptService;
     private final ScriptConfig scriptConfig;
     private final String scriptPath;
+    private final JavaScriptRegistrationTracker registrationTracker;
     private final List<String> registeredIds = new ArrayList<>();
 
     public JavaScriptSkillRegistrationApi(EmakiSkillsPlugin plugin,
             SkillScriptActionRegistry registry,
             JavaScriptService javaScriptService,
             ScriptConfig scriptConfig,
-            String scriptPath) {
+            String scriptPath,
+            JavaScriptRegistrationTracker registrationTracker) {
         this.plugin = plugin;
         this.registry = registry;
         this.javaScriptService = javaScriptService;
         this.scriptConfig = scriptConfig == null ? ScriptConfig.defaults() : scriptConfig;
         this.scriptPath = scriptPath;
+        this.registrationTracker = registrationTracker;
     }
 
     public List<String> registeredIds() {
@@ -65,9 +72,20 @@ public final class JavaScriptSkillRegistrationApi {
                 value(definition, "execute", "execute"),
                 value(definition, "validate", "")
         );
+        long started = System.nanoTime();
         SkillActionResult result = registry.register(plugin, action);
         if (result.success()) {
             registeredIds.add(id);
+            if (registrationTracker != null) {
+                long durationMillis = Math.max(0L, (System.nanoTime() - started) / 1_000_000L);
+                registrationTracker.register(plugin,
+                        scriptPath,
+                        REGISTRATION_TYPE,
+                        id,
+                        durationMillis,
+                        null,
+                        Map.of("category", action.category(), "description", action.description()));
+            }
             plugin.messageService().info("console.js_skill_action_registered", Map.of(
                     "id", id,
                     "script", safe(scriptPath)
@@ -85,7 +103,11 @@ public final class JavaScriptSkillRegistrationApi {
     public void unregisterAction(String actionId) {
         if (registry != null) {
             registry.unregister(actionId);
-            registeredIds.remove(Texts.normalizeId(actionId));
+            String normalizedId = Texts.normalizeId(actionId);
+            registeredIds.remove(normalizedId);
+            if (registrationTracker != null) {
+                registrationTracker.unregister(REGISTRATION_TYPE, normalizedId);
+            }
         }
     }
 

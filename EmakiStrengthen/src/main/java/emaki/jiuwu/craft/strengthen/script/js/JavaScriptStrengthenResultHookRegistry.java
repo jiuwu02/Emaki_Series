@@ -15,12 +15,14 @@ import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.AttemptResult;
 
 public final class JavaScriptStrengthenResultHookRegistry {
+
+    /** JavaScript registration type id for strengthen result hooks (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "strengthen_result_hook";
 
     private final EmakiStrengthenPlugin plugin;
     private final Map<String, HookEntry> hooks = new LinkedHashMap<>();
@@ -45,7 +47,7 @@ public final class JavaScriptStrengthenResultHookRegistry {
         hooks.put(id, entry);
         if (tracker != null && !tracker.register(plugin,
                 scriptPath(context),
-                JavaScriptRegistrationType.STRENGTHEN_RESULT_HOOK,
+                REGISTRATION_TYPE,
                 id,
                 elapsedMillis(started),
                 () -> unregister(id),
@@ -156,7 +158,7 @@ public final class JavaScriptStrengthenResultHookRegistry {
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
         if (tracker != null) {
-            tracker.recordError(scriptPath(context), JavaScriptRegistrationType.STRENGTHEN_RESULT_HOOK, id, phase, message);
+            tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
         if (plugin != null) {
             plugin.getLogger().warning("[JavaScript] Strengthen result hook registration failed: " + message);

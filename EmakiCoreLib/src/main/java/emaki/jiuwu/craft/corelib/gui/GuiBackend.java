@@ -8,18 +8,18 @@ import org.bukkit.inventory.ItemStack;
  * Strategy for how a {@link GuiSession} is presented to and synchronised with a
  * player.
  *
- * <p>CoreLib ships only the built-in backend:</p>
+ * <p>CoreLib ships two backends:</p>
  * <ul>
  *   <li>{@link BukkitGuiBackend} — opens a real server-side inventory via
  *       {@code Player#openInventory} and relies on Bukkit inventory events.
  *       This is the default and the fallback.</li>
+ *   <li>The {@code packet} backend (in the {@code gui.packet} package) — sends
+ *       container packets directly (no server-side container), so the same
+ *       window can be re-sized in place without resetting the cursor. It
+ *       requires the optional PacketEvents plugin and is installed into
+ *       {@link GuiBackendRegistry} during CoreLib enable only when PacketEvents
+ *       is present.</li>
  * </ul>
- *
- * <p>Additional backends are provided by optional plugins and registered into
- * {@link GuiBackendRegistry} at runtime. For example EmakiGuiPacket registers a
- * {@code packet} backend that sends container packets directly (no server-side
- * container), so the same window can be re-sized in place without resetting the
- * cursor; it requires PacketEvents.</p>
  *
  * <p>A backend instance is shared across all plugins' {@link GuiService}s. It
  * therefore holds no per-plugin state; per-session routing is reached through

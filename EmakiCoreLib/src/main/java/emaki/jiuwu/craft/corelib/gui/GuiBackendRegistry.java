@@ -10,10 +10,10 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 /**
  * CoreLib-wide registry of {@link GuiBackend} implementations.
  *
- * <p>CoreLib itself only ships the built-in {@code bukkit} backend. Optional
- * backend plugins (e.g. EmakiGuiPacket) register their implementation here at
- * runtime, so the packet protocol code no longer lives inside the core. Every
- * plugin's {@link GuiService} shares the single registry instance owned by
+ * <p>CoreLib ships the built-in {@code bukkit} backend and, when the optional
+ * PacketEvents plugin is present, the {@code packet} backend (installed by
+ * {@code PacketBackendInstaller} during CoreLib enable). Every plugin's
+ * {@link GuiService} shares the single registry instance owned by
  * {@link emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin}.</p>
  *
  * <p>The configured backend name comes from {@code gui.backend} and is resolved
@@ -101,7 +101,7 @@ public final class GuiBackendRegistry {
      *   <li>{@code bukkit} — the built-in backend.</li>
      *   <li>{@code packet} — the registered {@code packet} backend, or a
      *       warn-once fallback to bukkit when no such backend is registered
-     *       (e.g. EmakiGuiPacket not installed).</li>
+     *       (e.g. PacketEvents not installed).</li>
      *   <li>{@code auto} — the first registered non-bukkit backend, or a silent
      *       fallback to bukkit when none is present (mirrors the legacy
      *       factory's auto semantics, which never warned).</li>

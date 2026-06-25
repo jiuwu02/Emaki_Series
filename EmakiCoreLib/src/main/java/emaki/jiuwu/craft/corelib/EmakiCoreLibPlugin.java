@@ -178,6 +178,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerMythicJavaScriptBridge();
         registerCommandHandler();
         registerPublicApiService();
+        installPacketBackend();
         logStartupAudit();
         metrics = registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -579,12 +580,40 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     /**
-     * The CoreLib-wide GUI backend registry. Optional backend plugins such as
-     * EmakiGuiPacket register their implementation here during their own enable
-     * lifecycle.
+     * The CoreLib-wide GUI backend registry. The built-in {@code bukkit} backend
+     * is always available; the optional {@code packet} backend is installed by
+     * {@link #installPacketBackend()} when PacketEvents is present.
      */
     public emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry guiBackendRegistry() {
         return guiBackendRegistry;
+    }
+
+    /**
+     * Installs the built-in packet GUI backend when the optional PacketEvents
+     * plugin is present and enabled.
+     *
+     * <p>The packet backend lives inside CoreLib but depends on PacketEvents,
+     * which CoreLib declares only as a {@code softdepend}. To keep CoreLib's zero
+     * hard-dependency guarantee, the PacketEvents-touching classes are reached
+     * only through {@code PacketBackendInstaller} and only after the PacketEvents
+     * plugin is confirmed loaded, with {@link LinkageError} guarded so a missing
+     * or incompatible PacketEvents never breaks startup. When unavailable the
+     * registry keeps only the Bukkit backend.</p>
+     */
+    private void installPacketBackend() {
+        if (guiBackendRegistry == null) {
+            return;
+        }
+        var packetEvents = getServer().getPluginManager().getPlugin("PacketEvents");
+        if (packetEvents == null || !packetEvents.isEnabled()) {
+            return;
+        }
+        try {
+            emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller.install(this, guiBackendRegistry);
+        } catch (LinkageError | RuntimeException exception) {
+            getLogger().warning("Failed to register the packet GUI backend: " + exception.getMessage()
+                    + ". EmakiCoreLib will use the Bukkit (entity) backend.");
+        }
     }
 
     public AsyncFileService asyncFileService() {

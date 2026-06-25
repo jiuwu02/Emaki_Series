@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventRegistry;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationSnapshot;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTypes;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -145,8 +145,8 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
         snapshot.put("placeholders", placeholderSnapshots());
         snapshot.put("events", eventSnapshots());
         snapshot.put("registrations", registrationSnapshots());
-        snapshot.put("expressionFunctions", registrationSnapshots(JavaScriptRegistrationType.EXPRESSION_FUNCTION));
-        snapshot.put("conditions", registrationSnapshots(JavaScriptRegistrationType.CONDITION));
+        snapshot.put("expressionFunctions", registrationSnapshots(JavaScriptRegistrationTypes.EXPRESSION_FUNCTION));
+        snapshot.put("conditions", registrationSnapshots(JavaScriptRegistrationTypes.CONDITION));
         snapshot.put("recentErrors", recentErrors());
         return snapshot;
     }
@@ -240,15 +240,15 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
         return registrationSnapshots(null);
     }
 
-    private List<Map<String, Object>> registrationSnapshots(JavaScriptRegistrationType type) {
+    private List<Map<String, Object>> registrationSnapshots(String type) {
         List<Map<String, Object>> result = new ArrayList<>();
         for (JavaScriptRegistrationSnapshot snapshot : registrationTracker.snapshots()) {
-            if (type != null && snapshot.type() != type) {
+            if (type != null && !snapshot.type().equals(type)) {
                 continue;
             }
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", snapshot.id());
-            item.put("type", snapshot.type().name().toLowerCase(java.util.Locale.ROOT));
+            item.put("type", snapshot.type());
             item.put("owner", snapshot.owner());
             item.put("script", snapshot.scriptPath());
             item.put("registeredAt", snapshot.registeredAtMillis());

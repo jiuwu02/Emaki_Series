@@ -14,11 +14,13 @@ import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 
 public final class JavaScriptLevelExpRuleRegistry {
+
+    /** JavaScript registration type id for level exp rules (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "level_exp_rule";
 
     private final EmakiLevelPlugin plugin;
     private final Map<String, RuleEntry> rules = new LinkedHashMap<>();
@@ -51,7 +53,7 @@ public final class JavaScriptLevelExpRuleRegistry {
         rules.put(id, entry);
         if (tracker != null && !tracker.register(plugin,
                 scriptPath(context),
-                JavaScriptRegistrationType.LEVEL_EXP_RULE,
+                REGISTRATION_TYPE,
                 id,
                 elapsedMillis(started),
                 () -> unregister(id),
@@ -169,7 +171,7 @@ public final class JavaScriptLevelExpRuleRegistry {
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
         if (tracker != null) {
-            tracker.recordError(scriptPath(context), JavaScriptRegistrationType.LEVEL_EXP_RULE, id, phase, message);
+            tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
         if (plugin != null) {
             plugin.getLogger().warning("[JavaScript] Level exp rule registration failed: " + message);

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.guipacket;
+package emaki.jiuwu.craft.corelib.gui.packet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,9 +56,10 @@ import emaki.jiuwu.craft.corelib.text.MiniMessages;
  * {@link GuiSessionRegistry} carried by the session it opened.</p>
  *
  * <p><b>Caveat:</b> this is protocol-level code that cannot be validated in the
- * build environment. It lives in the optional EmakiGuiPacket plugin and is only
- * active when {@code gui.backend} selects {@code packet}/{@code auto}; the
- * default {@code bukkit} backend is unaffected.</p>
+ * build environment. It only loads when the optional PacketEvents plugin is
+ * present (CoreLib declares it as a soft-dependency) and is only active when
+ * {@code gui.backend} selects {@code packet}/{@code auto}; the default
+ * {@code bukkit} backend is unaffected.</p>
  */
 public final class PacketGuiBackend implements GuiBackend, Listener {
 

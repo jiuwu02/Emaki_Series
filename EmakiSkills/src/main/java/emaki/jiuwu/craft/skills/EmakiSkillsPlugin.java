@@ -293,7 +293,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
                 this,
                 skillScriptActionRegistry,
                 coreLib().javaScriptService(),
-                coreLib().configModel().scriptConfig()
+                coreLib().configModel().scriptConfig(),
+                coreLib().javaScriptRegistrationTracker()
         );
         javaScriptSkillExtensionLoader.reload();
     }

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.script.js.registration;
 
+import java.util.Locale;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -7,7 +8,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 public record JavaScriptRegistrationSnapshot(String owner,
         String scriptPath,
         String id,
-        JavaScriptRegistrationType type,
+        String type,
         long registeredAtMillis,
         long registrationDurationMillis,
         String lastError,
@@ -17,6 +18,7 @@ public record JavaScriptRegistrationSnapshot(String owner,
         owner = Texts.toStringSafe(owner);
         scriptPath = Texts.toStringSafe(scriptPath);
         id = Texts.normalizeId(id);
+        type = Texts.toStringSafe(type).trim().toLowerCase(Locale.ROOT);
         registeredAtMillis = Math.max(0L, registeredAtMillis);
         registrationDurationMillis = Math.max(0L, registrationDurationMillis);
         lastError = Texts.toStringSafe(lastError);

@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
+import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTypes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class JavaScriptConditionRegistry {
@@ -45,7 +45,7 @@ public final class JavaScriptConditionRegistry {
         String normalizedId = Texts.normalizeId(id);
         if (Texts.isBlank(normalizedId) || javaScriptService == null) {
             if (tracker != null) {
-                tracker.recordError(scriptPath, JavaScriptRegistrationType.CONDITION, normalizedId, "register", "Condition id is blank.");
+                tracker.recordError(scriptPath, JavaScriptRegistrationTypes.CONDITION, normalizedId, "register", "Condition id is blank.");
             }
             return false;
         }
@@ -63,7 +63,7 @@ public final class JavaScriptConditionRegistry {
         long started = System.nanoTime();
         boolean tracked = tracker == null || tracker.register(plugin,
                 scriptPath,
-                JavaScriptRegistrationType.CONDITION,
+                JavaScriptRegistrationTypes.CONDITION,
                 normalizedId,
                 elapsedMillis(started),
                 () -> unregister(normalizedId),
@@ -118,7 +118,7 @@ public final class JavaScriptConditionRegistry {
             return evaluated;
         } catch (RuntimeException exception) {
             if (tracker != null) {
-                tracker.recordError(condition.scriptPath(), JavaScriptRegistrationType.CONDITION, condition.id(), condition.functionName(), exception.getMessage());
+                tracker.recordError(condition.scriptPath(), JavaScriptRegistrationTypes.CONDITION, condition.id(), condition.functionName(), exception.getMessage());
             }
             ConditionResult failed = ConditionResult.invalid(exception.getMessage());
             debug(condition, args, failed, elapsedMillis(started), exception.getMessage());

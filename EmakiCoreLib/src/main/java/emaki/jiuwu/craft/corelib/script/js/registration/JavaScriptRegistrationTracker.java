@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.plugin.Plugin;
@@ -17,7 +18,7 @@ public final class JavaScriptRegistrationTracker {
 
     public synchronized boolean register(Plugin owner,
             String scriptPath,
-            JavaScriptRegistrationType type,
+            String type,
             String id,
             long durationMillis,
             Runnable unregisterCallback,
@@ -25,11 +26,12 @@ public final class JavaScriptRegistrationTracker {
         String ownerKey = ownerKey(owner);
         String normalizedScript = normalizeScript(scriptPath);
         String normalizedId = Texts.normalizeId(id);
-        if (Texts.isBlank(normalizedId) || type == null) {
-            recordError(normalizedScript, type, normalizedId, "register", "Registration id or type is blank.");
+        String normalizedType = normalizeType(type);
+        if (Texts.isBlank(normalizedId) || Texts.isBlank(normalizedType)) {
+            recordError(normalizedScript, normalizedType, normalizedId, "register", "Registration id or type is blank.");
             return false;
         }
-        Key key = new Key(type, normalizedId);
+        Key key = new Key(normalizedType, normalizedId);
         Entry existing = entries.get(key);
         if (existing != null) {
             if (!existing.owner.equals(ownerKey) || !existing.scriptPath.equals(normalizedScript)) {
@@ -42,13 +44,26 @@ public final class JavaScriptRegistrationTracker {
         entries.put(key, new Entry(ownerKey,
                 normalizedScript,
                 normalizedId,
-                type,
+                normalizedType,
                 System.currentTimeMillis(),
                 Math.max(0L, durationMillis),
                 unregisterCallback,
                 metadata == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(metadata)),
                 ""));
         return true;
+    }
+
+    public synchronized void unregister(String type, String id) {
+        String normalizedType = normalizeType(type);
+        String normalizedId = Texts.normalizeId(id);
+        if (Texts.isBlank(normalizedType) || Texts.isBlank(normalizedId)) {
+            return;
+        }
+        Key key = new Key(normalizedType, normalizedId);
+        Entry removed = entries.remove(key);
+        if (removed != null) {
+            safeUnregister(removed);
+        }
     }
 
     public synchronized void unregisterScript(String scriptPath) {
@@ -87,7 +102,7 @@ public final class JavaScriptRegistrationTracker {
         return entries.values().stream()
                 .map(Entry::snapshot)
                 .sorted(Comparator.comparing(JavaScriptRegistrationSnapshot::scriptPath)
-                        .thenComparing(snapshot -> snapshot.type().name())
+                        .thenComparing(JavaScriptRegistrationSnapshot::type)
                         .thenComparing(JavaScriptRegistrationSnapshot::id))
                 .toList();
     }
@@ -108,10 +123,10 @@ public final class JavaScriptRegistrationTracker {
                 .toList();
     }
 
-    public synchronized void recordError(String scriptPath, JavaScriptRegistrationType type, String id, String phase, String message) {
+    public synchronized void recordError(String scriptPath, String type, String id, String phase, String message) {
         Map<String, Object> error = new LinkedHashMap<>();
         error.put("script", normalizeScript(scriptPath));
-        error.put("type", type == null ? "" : type.name().toLowerCase(java.util.Locale.ROOT));
+        error.put("type", normalizeType(type));
         error.put("id", Texts.normalizeId(id));
         error.put("phase", Texts.toStringSafe(phase));
         error.put("message", Texts.toStringSafe(message));
@@ -145,8 +160,13 @@ public final class JavaScriptRegistrationTracker {
         return Texts.toStringSafe(scriptPath).replace('\\', '/');
     }
 
-    private record Key(JavaScriptRegistrationType type, String id) {
+    private static String normalizeType(String type) {
+        return Texts.toStringSafe(type).trim().toLowerCase(Locale.ROOT);
+    }
+
+    private record Key(String type, String id) {
         private Key {
+            type = Texts.toStringSafe(type).trim().toLowerCase(Locale.ROOT);
             id = Texts.normalizeId(id);
         }
     }
@@ -154,7 +174,7 @@ public final class JavaScriptRegistrationTracker {
     private record Entry(String owner,
             String scriptPath,
             String id,
-            JavaScriptRegistrationType type,
+            String type,
             long registeredAtMillis,
             long registrationDurationMillis,
             Runnable unregisterCallback,

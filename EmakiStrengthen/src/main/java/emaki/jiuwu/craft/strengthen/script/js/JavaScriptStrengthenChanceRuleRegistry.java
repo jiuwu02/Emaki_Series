@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
@@ -27,6 +26,9 @@ import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 
 public final class JavaScriptStrengthenChanceRuleRegistry {
+
+    /** JavaScript registration type id for strengthen chance rules (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "strengthen_chance_rule";
 
     private final EmakiStrengthenPlugin plugin;
     private final Map<String, RuleEntry> rules = new LinkedHashMap<>();
@@ -57,7 +59,7 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
         rules.put(id, entry);
         if (tracker != null && !tracker.register(plugin,
                 scriptPath(context),
-                JavaScriptRegistrationType.STRENGTHEN_CHANCE_RULE,
+                REGISTRATION_TYPE,
                 id,
                 elapsedMillis(started),
                 () -> unregister(id),
@@ -189,7 +191,7 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
         if (tracker != null) {
-            tracker.recordError(scriptPath(context), JavaScriptRegistrationType.STRENGTHEN_CHANCE_RULE, id, phase, message);
+            tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
         if (plugin != null) {
             plugin.getLogger().warning("[JavaScript] Strengthen chance rule registration failed: " + message);

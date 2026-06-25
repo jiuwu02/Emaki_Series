@@ -10,7 +10,6 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -19,6 +18,9 @@ import emaki.jiuwu.craft.item.model.ItemConditions;
 import emaki.jiuwu.craft.item.model.ItemSetMembership;
 
 public final class JavaScriptItemDefinitionRegistry {
+
+    /** JavaScript registration type id for item definitions (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "item_definition";
 
     private final EmakiItemPlugin plugin;
     private final Map<String, Entry> definitions = new LinkedHashMap<>();
@@ -50,7 +52,7 @@ public final class JavaScriptItemDefinitionRegistry {
         definitions.put(id, new Entry(definition, override, scriptPath(context)));
         if (tracker != null && !tracker.register(plugin,
                 scriptPath(context),
-                JavaScriptRegistrationType.ITEM_DEFINITION,
+                REGISTRATION_TYPE,
                 id,
                 elapsedMillis(started),
                 () -> unregister(id),
@@ -199,7 +201,7 @@ public final class JavaScriptItemDefinitionRegistry {
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
         if (tracker != null) {
-            tracker.recordError(scriptPath(context), JavaScriptRegistrationType.ITEM_DEFINITION, id, phase, message);
+            tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
         if (plugin != null) {
             plugin.getLogger().warning("[JavaScript] Item definition registration failed: " + message);

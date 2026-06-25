@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
@@ -27,6 +26,9 @@ import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
 
 public final class JavaScriptGemSocketRuleRegistry {
+
+    /** JavaScript registration type id for gem socket rules (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "gem_socket_rule";
 
     private final EmakiGemPlugin plugin;
     private final Map<String, RuleEntry> rules = new LinkedHashMap<>();
@@ -57,7 +59,7 @@ public final class JavaScriptGemSocketRuleRegistry {
         rules.put(id, entry);
         if (tracker != null && !tracker.register(plugin,
                 scriptPath(context),
-                JavaScriptRegistrationType.GEM_SOCKET_RULE,
+                REGISTRATION_TYPE,
                 id,
                 elapsedMillis(started),
                 () -> unregister(id),
@@ -181,7 +183,7 @@ public final class JavaScriptGemSocketRuleRegistry {
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
         if (tracker != null) {
-            tracker.recordError(scriptPath(context), JavaScriptRegistrationType.GEM_SOCKET_RULE, id, phase, message);
+            tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
         if (plugin != null) {
             plugin.getLogger().warning("[JavaScript] Gem socket rule registration failed: " + message);

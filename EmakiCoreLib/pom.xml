@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.3.25</version>
+    <version>4.3.26</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -132,6 +132,11 @@
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.retrooper</groupId>
+            <artifactId>packetevents-spigot</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

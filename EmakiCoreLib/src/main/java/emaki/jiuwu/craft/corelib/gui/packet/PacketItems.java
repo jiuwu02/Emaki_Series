@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.guipacket;
+package emaki.jiuwu.craft.corelib.gui.packet;
 
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 
