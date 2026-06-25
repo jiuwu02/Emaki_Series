@@ -3,10 +3,10 @@ package emaki.jiuwu.craft.strengthen.service;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
+import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -37,14 +37,14 @@ final class StrengthenGuiInteractionController {
         return new StrengthenSessionHandler(state);
     }
 
-    private void handleShiftFromPlayerInventory(InventoryClickEvent event, StrengthenGuiSession state) {
-        ItemStack itemStack = StrengthenGuiSession.cloneNonAir(event.getCurrentItem());
+    private void handleShiftFromPlayerInventory(GuiClickContext click, StrengthenGuiSession state) {
+        ItemStack itemStack = StrengthenGuiSession.cloneNonAir(click.currentItem());
         if (itemStack == null) {
             return;
         }
         if (state.targetItem() == null && emaki.jiuwu.craft.corelib.text.Texts.isNotBlank(attemptService.readState(itemStack).baseSource())) {
             state.setTargetItem(itemStack);
-            event.getClickedInventory().setItem(event.getSlot(), null);
+            click.clearClickedSlot();
             renderer.refreshGui(state);
             return;
         }
@@ -53,20 +53,19 @@ final class StrengthenGuiInteractionController {
             return;
         }
         state.setMaterialInput(slotIndex, itemStack);
-        event.getClickedInventory().setItem(event.getSlot(), null);
+        click.clearClickedSlot();
         renderer.refreshGui(state);
     }
 
-    private void handleSlotSwap(InventoryClickEvent event,
+    private void handleSlotSwap(GuiClickContext click,
             StrengthenGuiSession state,
             java.util.function.Supplier<ItemStack> getter,
             java.util.function.Consumer<ItemStack> setter) {
-        Player player = (Player) event.getWhoClicked();
-        ItemStack cursor = StrengthenGuiSession.cloneNonAir(event.getCursor());
+        ItemStack cursor = StrengthenGuiSession.cloneNonAir(click.cursorItem());
         if (cursor != null) {
             ItemStack previous = StrengthenGuiSession.cloneNonAir(getter.get());
             setter.accept(cursor);
-            player.setItemOnCursor(previous);
+            click.setCursor(previous);
             renderer.refreshGui(state);
             return;
         }
@@ -75,16 +74,16 @@ final class StrengthenGuiInteractionController {
             return;
         }
         setter.accept(null);
-        if (event.isShiftClick()) {
-            giveBackToPlayer(player, removed);
+        if (click.isShiftClick()) {
+            giveBackToPlayer(click.viewer(), removed);
         } else {
-            player.setItemOnCursor(removed);
+            click.setCursor(removed);
         }
         renderer.refreshGui(state);
     }
 
-    private void handleMaterialSlotSwap(InventoryClickEvent event, StrengthenGuiSession state, int index) {
-        handleSlotSwap(event, state, () -> state.materialInput(index), itemStack -> state.setMaterialInput(index, itemStack));
+    private void handleMaterialSlotSwap(GuiClickContext click, StrengthenGuiSession state, int index) {
+        handleSlotSwap(click, state, () -> state.materialInput(index), itemStack -> state.setMaterialInput(index, itemStack));
     }
 
     private void handleConfirm(StrengthenGuiSession state) {
@@ -185,19 +184,19 @@ final class StrengthenGuiInteractionController {
         }
 
         @Override
-        public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
+        public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
             if (slot == null || slot.definition() == null) {
                 return;
             }
             String type = Texts.lower(slot.definition().type());
             switch (type) {
-                case "target_item" -> handleSlotSwap(event, state, state::targetItem, state::setTargetItem);
+                case "target_item" -> handleSlotSwap(click, state, state::targetItem, state::setTargetItem);
                 case "confirm" -> handleConfirm(state);
                 default -> {
                     if (type.startsWith("material_input_")) {
                         int index = parseMaterialIndex(type);
                         if (index >= 0) {
-                            handleMaterialSlotSwap(event, state, index);
+                            handleMaterialSlotSwap(click, state, index);
                         }
                     }
                 }
@@ -205,21 +204,21 @@ final class StrengthenGuiInteractionController {
         }
 
         @Override
-        public void onPlayerInventoryClick(GuiSession session, InventoryClickEvent event) {
-            if (!event.isShiftClick()) {
+        public void onPlayerInventoryClick(GuiSession session, GuiClickContext click) {
+            if (!click.isShiftClick()) {
                 return;
             }
-            event.setCancelled(true);
-            handleShiftFromPlayerInventory(event, state);
+            click.setCancelled(true);
+            handleShiftFromPlayerInventory(click, state);
         }
 
         @Override
-        public void onClose(GuiSession session, InventoryCloseEvent event) {
-            ItemStack cursorItem = event != null && event.getPlayer() != null
-                    ? StrengthenGuiSession.cloneNonAir(event.getPlayer().getItemOnCursor())
+        public void onClose(GuiSession session, GuiCloseContext close) {
+            ItemStack cursorItem = close != null && close.player() != null
+                    ? StrengthenGuiSession.cloneNonAir(close.player().getItemOnCursor())
                     : null;
             if (cursorItem != null) {
-                event.getPlayer().setItemOnCursor(null);
+                close.player().setItemOnCursor(null);
             }
             stateManager.remove(state.player());
             if (!state.completed()) {

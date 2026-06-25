@@ -3,10 +3,10 @@ package emaki.jiuwu.craft.item.service;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
+import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -36,14 +36,14 @@ final class ItemRepairGuiInteractionController {
         return new RepairSessionHandler(state);
     }
 
-    private void handleShiftFromPlayerInventory(InventoryClickEvent event, ItemRepairGuiSession state) {
-        ItemStack itemStack = ItemRepairGuiSession.cloneNonAir(event.getCurrentItem());
+    private void handleShiftFromPlayerInventory(GuiClickContext click, ItemRepairGuiSession state) {
+        ItemStack itemStack = ItemRepairGuiSession.cloneNonAir(click.currentItem());
         if (itemStack == null) {
             return;
         }
         if (state.targetItem() == null && definition(itemStack) != null) {
             state.setTargetItem(itemStack);
-            event.getClickedInventory().setItem(event.getSlot(), null);
+            click.clearClickedSlot();
             renderer.refreshGui(state);
             return;
         }
@@ -52,20 +52,19 @@ final class ItemRepairGuiInteractionController {
             return;
         }
         state.setMaterialInput(slotIndex, itemStack);
-        event.getClickedInventory().setItem(event.getSlot(), null);
+        click.clearClickedSlot();
         renderer.refreshGui(state);
     }
 
-    private void handleSlotSwap(InventoryClickEvent event,
+    private void handleSlotSwap(GuiClickContext click,
             ItemRepairGuiSession state,
             java.util.function.Supplier<ItemStack> getter,
             java.util.function.Consumer<ItemStack> setter) {
-        Player player = (Player) event.getWhoClicked();
-        ItemStack cursor = ItemRepairGuiSession.cloneNonAir(event.getCursor());
+        ItemStack cursor = ItemRepairGuiSession.cloneNonAir(click.cursorItem());
         if (cursor != null) {
             ItemStack previous = ItemRepairGuiSession.cloneNonAir(getter.get());
             setter.accept(cursor);
-            player.setItemOnCursor(previous);
+            click.setCursor(previous);
             renderer.refreshGui(state);
             return;
         }
@@ -74,16 +73,16 @@ final class ItemRepairGuiInteractionController {
             return;
         }
         setter.accept(null);
-        if (event.isShiftClick()) {
-            giveBackToPlayer(player, removed);
+        if (click.isShiftClick()) {
+            giveBackToPlayer(click.viewer(), removed);
         } else {
-            player.setItemOnCursor(removed);
+            click.setCursor(removed);
         }
         renderer.refreshGui(state);
     }
 
-    private void handleMaterialSlotSwap(InventoryClickEvent event, ItemRepairGuiSession state, int index) {
-        handleSlotSwap(event, state, () -> state.materialInput(index), itemStack -> state.setMaterialInput(index, itemStack));
+    private void handleMaterialSlotSwap(GuiClickContext click, ItemRepairGuiSession state, int index) {
+        handleSlotSwap(click, state, () -> state.materialInput(index), itemStack -> state.setMaterialInput(index, itemStack));
     }
 
     private void handleMaterialRepair(ItemRepairGuiSession state) {
@@ -186,20 +185,20 @@ final class ItemRepairGuiInteractionController {
         }
 
         @Override
-        public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
+        public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
             if (slot == null || slot.definition() == null) {
                 return;
             }
             String type = Texts.lower(slot.definition().type());
             switch (type) {
-                case "target_item" -> handleSlotSwap(event, state, state::targetItem, state::setTargetItem);
+                case "target_item" -> handleSlotSwap(click, state, state::targetItem, state::setTargetItem);
                 case "material_repair", "confirm" -> handleMaterialRepair(state);
                 case "economy_repair" -> handleEconomyRepair(state);
                 default -> {
                     if (type.startsWith("material_input_")) {
                         int index = parseMaterialIndex(type);
                         if (index >= 0) {
-                            handleMaterialSlotSwap(event, state, index);
+                            handleMaterialSlotSwap(click, state, index);
                         }
                     }
                 }
@@ -207,21 +206,21 @@ final class ItemRepairGuiInteractionController {
         }
 
         @Override
-        public void onPlayerInventoryClick(GuiSession session, InventoryClickEvent event) {
-            if (!event.isShiftClick()) {
+        public void onPlayerInventoryClick(GuiSession session, GuiClickContext click) {
+            if (!click.isShiftClick()) {
                 return;
             }
-            event.setCancelled(true);
-            handleShiftFromPlayerInventory(event, state);
+            click.setCancelled(true);
+            handleShiftFromPlayerInventory(click, state);
         }
 
         @Override
-        public void onClose(GuiSession session, InventoryCloseEvent event) {
-            ItemStack cursorItem = event != null && event.getPlayer() != null
-                    ? ItemRepairGuiSession.cloneNonAir(event.getPlayer().getItemOnCursor())
+        public void onClose(GuiSession session, GuiCloseContext close) {
+            ItemStack cursorItem = close != null && close.player() != null
+                    ? ItemRepairGuiSession.cloneNonAir(close.player().getItemOnCursor())
                     : null;
             if (cursorItem != null) {
-                event.getPlayer().setItemOnCursor(null);
+                close.player().setItemOnCursor(null);
             }
             stateManager.remove(state.player());
             if (!state.completed()) {

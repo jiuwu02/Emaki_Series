@@ -87,7 +87,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                     }
                 }
         );
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
+        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         EquipmentSkillCollector equipmentSkillCollector = new EquipmentSkillCollector(plugin, () -> skillDefinitionLoader.all());
         SkillSourceRegistry skillSourceRegistry = new SkillSourceRegistry();
         TriggerRegistry triggerRegistry = new TriggerRegistry();

@@ -104,7 +104,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry = new JavaScriptItemDefinitionRegistry(plugin);
         JavaScriptItemFactoryRegistry javaScriptFactoryRegistry = new JavaScriptItemFactoryRegistry(plugin, javaScriptDefinitionRegistry);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
+        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader, javaScriptDefinitionRegistry);
         EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
         EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin);

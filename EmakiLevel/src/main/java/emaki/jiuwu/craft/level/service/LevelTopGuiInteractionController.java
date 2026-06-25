@@ -1,8 +1,8 @@
 package emaki.jiuwu.craft.level.service;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
 
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -20,7 +20,7 @@ final class LevelTopGuiInteractionController implements GuiSessionHandler {
     }
 
     @Override
-    public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
+    public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
         if (session == null || slot == null || slot.definition() == null) {
             return;
         }

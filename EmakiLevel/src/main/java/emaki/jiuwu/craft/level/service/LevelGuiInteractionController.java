@@ -3,8 +3,8 @@ package emaki.jiuwu.craft.level.service;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
 
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -28,14 +28,14 @@ final class LevelGuiInteractionController implements GuiSessionHandler {
     }
 
     @Override
-    public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
-        if (session == null || event == null || slot == null || slot.definition() == null) {
+    public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
+        if (session == null || click == null || slot == null || slot.definition() == null) {
             return;
         }
         Player player = session.viewer();
         String type = Texts.lower(slot.definition().type());
         switch (type) {
-            case "level_type" -> handleLevelTypeClick(session, event, slot, player);
+            case "level_type" -> handleLevelTypeClick(session, click, slot, player);
             case "page_prev", "previous_page" -> previousPage(session);
             case "page_next", "next_page" -> nextPage(session);
             case "top_button" -> plugin.levelTopGuiService().open(player, guiService.selectedType(session));
@@ -44,14 +44,14 @@ final class LevelGuiInteractionController implements GuiSessionHandler {
         }
     }
 
-    private void handleLevelTypeClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot, Player player) {
+    private void handleLevelTypeClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot, Player player) {
         LevelTypeConfig type = guiService.typeAt(session, slot);
         if (type == null) {
             return;
         }
         guiService.selectType(session, type.id());
-        if (event.isRightClick()) {
-            if (event.isShiftClick()) {
+        if (click.isRightClick()) {
+            if (click.isShiftClick()) {
                 levelUpMultiple(session, player, type);
             } else {
                 levelUpOnce(session, player, type);

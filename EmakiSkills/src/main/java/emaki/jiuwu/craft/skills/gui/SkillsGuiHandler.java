@@ -4,12 +4,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
+import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
+import emaki.jiuwu.craft.corelib.gui.GuiDragContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -53,8 +53,8 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
     }
 
     @Override
-    public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
-        event.setCancelled(true);
+    public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
+        click.setCancelled(true);
         if (slot == null || slot.definition() == null || slot.definition().type() == null) {
             return;
         }
@@ -62,7 +62,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
         String type = slot.definition().type();
 
         switch (type) {
-            case "active_slot" -> handleActiveSlotClick(session, event, slot, player);
+            case "active_slot" -> handleActiveSlotClick(session, click, slot, player);
             case "skill_pool" -> handleSkillPoolClick(session, slot, player);
             case "cast_mode_toggle" -> handleCastModeToggle(session, player);
             case "refresh" -> handleRefresh(session, player);
@@ -74,25 +74,24 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
     }
 
     @Override
-    public void onPlayerInventoryClick(GuiSession session, InventoryClickEvent event) {
-        if (GuiSessionHandler.isBlockedTransfer(event)) {
-            event.setCancelled(true);
+    public void onPlayerInventoryClick(GuiSession session, GuiClickContext click) {
+        if (click.isBlockedTransfer()) {
+            click.setCancelled(true);
         }
     }
 
     @Override
-    public void onDrag(GuiSession session, InventoryDragEvent event) {
-        event.setCancelled(true);
+    public void onDrag(GuiSession session, GuiDragContext drag) {
     }
 
     @Override
-    public void onClose(GuiSession session, InventoryCloseEvent event) {
+    public void onClose(GuiSession session, GuiCloseContext close) {
         Player player = session.viewer();
         dataStore.save(player);
     }
 
 
-    private void handleActiveSlotClick(GuiSession session, InventoryClickEvent event,
+    private void handleActiveSlotClick(GuiSession session, GuiClickContext click,
             GuiTemplate.ResolvedSlot slot, Player player) {
         int slotIndex = slot.slotIndex();
         PlayerSkillProfile profile = dataStore.get(player);
@@ -104,7 +103,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
             return;
         }
 
-        if (event.isShiftClick()) {
+        if (click.isShiftClick()) {
             player.closeInventory();
             FoliaSchedulerAdapter.runEntityTask(plugin, player, () ->
                     skillsGuiService.openTriggerSelect(player, slotIndex));

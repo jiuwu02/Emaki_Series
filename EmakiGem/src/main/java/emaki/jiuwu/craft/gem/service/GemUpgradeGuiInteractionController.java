@@ -6,14 +6,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
+import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -66,11 +64,11 @@ final class GemUpgradeGuiInteractionController {
         renderer.refreshGui(state);
     }
 
-    private void handleTargetGemClick(GemUpgradeGuiSession state, InventoryClickEvent event) {
-        if (!isCursorExchangeClick(event)) {
+    private void handleTargetGemClick(GemUpgradeGuiSession state, GuiClickContext click) {
+        if (!isCursorExchangeClick(click)) {
             return;
         }
-        ItemStack cursorItem = GemUpgradeGuiSession.cloneNonAir(event.getCursor());
+        ItemStack cursorItem = GemUpgradeGuiSession.cloneNonAir(click.cursorItem());
         ItemStack currentGem = state.targetGem();
         if (cursorItem != null && plugin.itemMatcher().readGemInstance(cursorItem) == null) {
             plugin.messageService().send(state.player(), "gui.upgrade.invalid_gem");
@@ -78,21 +76,19 @@ final class GemUpgradeGuiInteractionController {
         }
         returnAllMaterialItems(state);
         state.setTargetGem(cursorItem);
-        event.getWhoClicked().setItemOnCursor(currentGem);
+        click.setCursor(currentGem);
         scheduleSwitchIfNeeded(state);
     }
 
-    private boolean isCursorExchangeClick(InventoryClickEvent event) {
-        if (event == null) {
+    private boolean isCursorExchangeClick(GuiClickContext click) {
+        if (click == null) {
             return false;
         }
-        ClickType click = event.getClick();
-        return click == ClickType.LEFT
-                || click == ClickType.RIGHT;
+        return (click.isLeftClick() || click.isRightClick()) && !click.isBlockedTransfer();
     }
 
-    private void handleMaterialSlotClick(GemUpgradeGuiSession state, InventoryClickEvent event, int displayIndex) {
-        if (!isCursorExchangeClick(event)) {
+    private void handleMaterialSlotClick(GemUpgradeGuiSession state, GuiClickContext click, int displayIndex) {
+        if (!isCursorExchangeClick(click)) {
             return;
         }
         GemUpgradeService.UpgradePreview preview = preview(state);
@@ -101,13 +97,13 @@ final class GemUpgradeGuiInteractionController {
         }
         GemDefinition.MaterialCost requiredMaterial = preview.upgradeLevel().materials().get(displayIndex);
         ItemStack currentItem = state.materialItem(displayIndex);
-        ItemStack cursorItem = GemUpgradeGuiSession.cloneNonAir(event.getCursor());
+        ItemStack cursorItem = GemUpgradeGuiSession.cloneNonAir(click.cursorItem());
         if (cursorItem == null) {
             if (currentItem == null) {
                 return;
             }
             state.clearMaterialItem(displayIndex);
-            event.getWhoClicked().setItemOnCursor(currentItem);
+            click.setCursor(currentItem);
             renderer.refreshGui(state);
             return;
         }
@@ -119,7 +115,7 @@ final class GemUpgradeGuiInteractionController {
         }
         if (currentItem == null) {
             state.setMaterialItem(displayIndex, cursorItem);
-            event.getWhoClicked().setItemOnCursor(null);
+            click.setCursor(null);
             renderer.refreshGui(state);
             return;
         }
@@ -130,16 +126,16 @@ final class GemUpgradeGuiInteractionController {
             currentItem.setAmount(mergedAmount);
             state.setMaterialItem(displayIndex, currentItem);
             if (remainder <= 0) {
-                event.getWhoClicked().setItemOnCursor(null);
+                click.setCursor(null);
             } else {
                 cursorItem.setAmount(remainder);
-                event.getWhoClicked().setItemOnCursor(cursorItem);
+                click.setCursor(cursorItem);
             }
             renderer.refreshGui(state);
             return;
         }
         state.setMaterialItem(displayIndex, cursorItem);
-        event.getWhoClicked().setItemOnCursor(currentItem);
+        click.setCursor(currentItem);
         renderer.refreshGui(state);
     }
 
@@ -232,28 +228,28 @@ final class GemUpgradeGuiInteractionController {
         return Texts.isBlank(shorthand) ? materialCost.itemSource().getIdentifier() : shorthand;
     }
 
-    private ItemStack resolveClosingTargetGem(GemUpgradeGuiSession state, GuiSession session, InventoryCloseEvent event) {
-        ItemStack inventoryTarget = cloneTargetGemFromInventory(session, event);
+    private ItemStack resolveClosingTargetGem(GemUpgradeGuiSession state, GuiSession session, GuiCloseContext close) {
+        ItemStack inventoryTarget = cloneTargetGemFromInventory(session, close);
         if (inventoryTarget != null) {
             return inventoryTarget;
         }
         return GemUpgradeGuiSession.cloneNonAir(state == null ? null : state.mutableTargetGem());
     }
 
-    private ItemStack cloneTargetGemFromInventory(GuiSession session, InventoryCloseEvent event) {
-        Inventory inventory = event == null ? null : event.getInventory();
-        if (inventory == null || session == null || session.template() == null) {
+    private ItemStack cloneTargetGemFromInventory(GuiSession session, GuiCloseContext close) {
+        if (close == null || session == null || session.template() == null) {
             return null;
         }
+        int topSize = close.topInventorySize();
         for (var slot : session.template().slotsByType("target_gem")) {
             if (slot == null || slot.slots() == null) {
                 continue;
             }
             for (Integer inventorySlot : slot.slots()) {
-                if (inventorySlot == null || inventorySlot < 0 || inventorySlot >= inventory.getSize()) {
+                if (inventorySlot == null || inventorySlot < 0 || inventorySlot >= topSize) {
                     continue;
                 }
-                ItemStack candidate = GemUpgradeGuiSession.cloneNonAir(inventory.getItem(inventorySlot));
+                ItemStack candidate = GemUpgradeGuiSession.cloneNonAir(close.topInventoryItem(inventorySlot));
                 if (candidate == null || plugin.itemMatcher().readGemInstance(candidate) == null) {
                     continue;
                 }
@@ -272,13 +268,13 @@ final class GemUpgradeGuiInteractionController {
         }
 
         @Override
-        public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
+        public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
             if (slot == null || slot.definition() == null) {
                 return;
             }
             switch (Texts.lower(slot.definition().type())) {
-                case "target_gem" -> handleTargetGemClick(state, event);
-                case "material_slot" -> handleMaterialSlotClick(state, event, slot.slotIndex());
+                case "target_gem" -> handleTargetGemClick(state, click);
+                case "material_slot" -> handleMaterialSlotClick(state, click, slot.slotIndex());
                 case "confirm" -> handleConfirm(state);
                 default -> {
                 }
@@ -286,21 +282,21 @@ final class GemUpgradeGuiInteractionController {
         }
 
         @Override
-        public void onPlayerInventoryClick(GuiSession session, InventoryClickEvent event) {
-            if (GuiSessionHandler.isBlockedTransfer(event)) {
-                event.setCancelled(true);
+        public void onPlayerInventoryClick(GuiSession session, GuiClickContext click) {
+            if (click.isBlockedTransfer()) {
+                click.setCancelled(true);
                 return;
             }
             FoliaSchedulerAdapter.runEntityTask(plugin, state.player(), () -> renderer.refreshGui(state));
         }
 
         @Override
-        public void onClose(GuiSession session, InventoryCloseEvent event) {
+        public void onClose(GuiSession session, GuiCloseContext close) {
             if (state.templateSwitching()) {
                 state.setTemplateSwitching(false);
                 return;
             }
-            ItemStack targetGem = resolveClosingTargetGem(state, session, event);
+            ItemStack targetGem = resolveClosingTargetGem(state, session, close);
             Map<Integer, ItemStack> materialItems = new LinkedHashMap<>();
             for (Map.Entry<Integer, ItemStack> entry : state.mutableMaterialItems().entrySet()) {
                 ItemStack cloned = GemUpgradeGuiSession.cloneNonAir(entry.getValue());
@@ -308,11 +304,11 @@ final class GemUpgradeGuiInteractionController {
                     materialItems.put(entry.getKey(), cloned);
                 }
             }
-            ItemStack cursorItem = event != null && event.getPlayer() != null
-                    ? GemUpgradeGuiSession.cloneNonAir(event.getPlayer().getItemOnCursor())
+            ItemStack cursorItem = close != null && close.player() != null
+                    ? GemUpgradeGuiSession.cloneNonAir(close.player().getItemOnCursor())
                     : null;
             if (cursorItem != null) {
-                event.getPlayer().setItemOnCursor(null);
+                close.player().setItemOnCursor(null);
             }
             state.setTargetGem(null);
             state.clearMaterialItems();

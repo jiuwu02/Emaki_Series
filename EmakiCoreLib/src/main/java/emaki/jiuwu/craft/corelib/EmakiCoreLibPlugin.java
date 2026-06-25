@@ -88,6 +88,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private CoreLibConfig configModel = CoreLibConfig.defaults();
     private PerformanceMonitor performanceMonitor;
     private AsyncTaskScheduler asyncTaskScheduler;
+    private emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry guiBackendRegistry;
+    private emaki.jiuwu.craft.corelib.gui.GuiBackend guiBackend;
     private AsyncFileService asyncFileService;
     private AsyncYamlFiles asyncYamlFiles;
     private ActionRegistry actionRegistry;
@@ -217,6 +219,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             javaScriptService.close();
         }
         EmakiCoreLibApi.uninstall(coreLibApiBridge);
+        if (guiBackendRegistry != null) {
+            guiBackendRegistry.shutdownAll();
+            guiBackendRegistry = null;
+            guiBackend = null;
+        }
         if (asyncTaskScheduler != null) {
             asyncTaskScheduler.shutdown(5_000L);
         }
@@ -276,6 +283,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             loopActionService.cancelAll();
         }
         configModel = candidateConfig;
+        if (guiBackendRegistry != null && configModel.guiConfig() != null) {
+            guiBackendRegistry.setConfiguredName(configModel.guiConfig().backend());
+        }
         actionRegistry = candidateActionRegistry;
         actionTemplateRegistry = candidateTemplateRegistry;
         placeholderRegistry = candidatePlaceholderRegistry;
@@ -446,6 +456,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
         asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
         languageLoader.load();
+        guiBackendRegistry = new emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry(messageService);
+        guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
+        guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry);
         itemAssemblyService = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
         itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
         refreshServiceRegistry();
@@ -559,6 +572,19 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public PerformanceMonitor performanceMonitor() {
         return performanceMonitor;
+    }
+
+    public emaki.jiuwu.craft.corelib.gui.GuiBackend guiBackend() {
+        return guiBackend;
+    }
+
+    /**
+     * The CoreLib-wide GUI backend registry. Optional backend plugins such as
+     * EmakiGuiPacket register their implementation here during their own enable
+     * lifecycle.
+     */
+    public emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry guiBackendRegistry() {
+        return guiBackendRegistry;
     }
 
     public AsyncFileService asyncFileService() {

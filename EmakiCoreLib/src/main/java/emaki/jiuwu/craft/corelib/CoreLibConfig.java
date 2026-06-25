@@ -13,11 +13,13 @@ public record CoreLibConfig(
         Map<String, List<String>> actionTemplates,
         LoopConfig loopConfig,
         ScriptConfig scriptConfig,
-        WebConsoleConfig webConsoleConfig
+        WebConsoleConfig webConsoleConfig,
+        GuiConfig guiConfig
 ) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig("zh_CN", Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(), WebConsoleConfig.defaults());
+        return new CoreLibConfig("zh_CN", Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
+                WebConsoleConfig.defaults(), GuiConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -38,8 +40,39 @@ public record CoreLibConfig(
                 Map.copyOf(templates),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 ScriptConfig.fromConfig(configuration.getSection("script")),
-                WebConsoleConfig.fromConfig(configuration.getSection("web_console"))
+                WebConsoleConfig.fromConfig(configuration.getSection("web_console")),
+                GuiConfig.fromConfig(configuration.getSection("gui"))
         );
+    }
+
+    /**
+     * Selects which {@link emaki.jiuwu.craft.corelib.gui.GuiBackend} presents
+     * Emaki menus.
+     *
+     * <ul>
+     *   <li>{@code bukkit} — real server-side inventory (default).</li>
+     *   <li>{@code packet} — packet-driven virtual container (requires
+     *       PacketEvents); cursor survives in-place row-count changes.</li>
+     *   <li>{@code auto} — packet when PacketEvents is present, otherwise
+     *       bukkit.</li>
+     * </ul>
+     */
+    public record GuiConfig(String backend) {
+
+        public GuiConfig {
+            backend = backend == null ? "bukkit" : backend.trim().toLowerCase(java.util.Locale.ROOT);
+        }
+
+        public static GuiConfig defaults() {
+            return new GuiConfig("bukkit");
+        }
+
+        public static GuiConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new GuiConfig(section.getString("backend", defaults().backend()));
+        }
     }
 
     public record LoopConfig(

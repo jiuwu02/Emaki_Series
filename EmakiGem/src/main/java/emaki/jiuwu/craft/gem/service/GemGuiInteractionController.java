@@ -3,11 +3,11 @@ package emaki.jiuwu.craft.gem.service;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
+import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -62,7 +62,7 @@ final class GemGuiInteractionController {
         renderer.refreshGui(state);
     }
 
-    private void handleSocketClick(GemGuiSession state, InventoryClickEvent event, int displayIndex) {
+    private void handleSocketClick(GemGuiSession state, GuiClickContext click, int displayIndex) {
         ItemStack targetItem = state.mutableTargetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         if (itemDefinition == null) {
@@ -75,7 +75,7 @@ final class GemGuiInteractionController {
         GemState currentState = plugin.stateService().resolveState(targetItem, itemDefinition);
         GemItemDefinition.SocketSlot slot = itemDefinition.slots().get(displayIndex);
         int slotIndex = slot.index();
-        ItemStack cursorItem = InventoryItemUtil.cloneNonAir(event.getCursor());
+        ItemStack cursorItem = InventoryItemUtil.cloneNonAir(click.cursorItem());
         if (state.mode() == GemGuiMode.INLAY) {
             if (!currentState.isOpened(slotIndex)) {
                 plugin.messageService().send(state.player(), "gui.gem.open_via_open_gui");
@@ -86,7 +86,7 @@ final class GemGuiInteractionController {
                 return;
             }
             if (isPendingInlaySlot(state, slotIndex) && cursorItem == null) {
-                returnPendingInputToCursor(state, event);
+                returnPendingInputToCursor(state, click);
                 renderer.refreshGui(state);
                 return;
             }
@@ -117,7 +117,7 @@ final class GemGuiInteractionController {
             state.setPendingOperation(new GemGuiSession.PendingOperation(
                     GemGuiSession.PendingType.INLAY,
                     slotIndex,
-                    consumeOneFromCursor(event)
+                    consumeOneFromCursor(click)
             ));
             renderer.refreshGui(state);
             return;
@@ -131,8 +131,8 @@ final class GemGuiInteractionController {
         renderer.refreshGui(state);
     }
 
-    private void handleTargetItemClick(GemGuiSession state, InventoryClickEvent event) {
-        ItemStack cursorItem = InventoryItemUtil.cloneNonAir(event.getCursor());
+    private void handleTargetItemClick(GemGuiSession state, GuiClickContext click) {
+        ItemStack cursorItem = InventoryItemUtil.cloneNonAir(click.cursorItem());
         ItemStack targetItem = state.targetItem();
         if (cursorItem != null && plugin.stateService().resolveItemDefinition(cursorItem) == null) {
             plugin.messageService().send(state.player(), "gui.gem.invalid_target");
@@ -140,7 +140,7 @@ final class GemGuiInteractionController {
         }
         returnPendingInput(state);
         state.setTargetItem(cursorItem);
-        event.getWhoClicked().setItemOnCursor(targetItem);
+        click.setCursor(targetItem);
         scheduleSwitchIfNeeded(state);
     }
 
@@ -231,30 +231,30 @@ final class GemGuiInteractionController {
                 && pendingOperation.inputItem() != null;
     }
 
-    private void returnPendingInputToCursor(GemGuiSession state, InventoryClickEvent event) {
-        if (state == null || event == null) {
+    private void returnPendingInputToCursor(GemGuiSession state, GuiClickContext click) {
+        if (state == null || click == null) {
             return;
         }
         GemGuiSession.PendingOperation pendingOperation = state.pendingOperation();
         ItemStack inputItem = pendingOperation.inputItem();
         state.clearPendingOperation();
         if (inputItem != null && !inputItem.getType().isAir()) {
-            event.getWhoClicked().setItemOnCursor(inputItem);
+            click.setCursor(inputItem);
         }
     }
 
-    private ItemStack consumeOneFromCursor(InventoryClickEvent event) {
-        ItemStack cursorItem = InventoryItemUtil.cloneNonAir(event.getCursor());
+    private ItemStack consumeOneFromCursor(GuiClickContext click) {
+        ItemStack cursorItem = InventoryItemUtil.cloneNonAir(click.cursorItem());
         if (cursorItem == null) {
             return null;
         }
         ItemStack taken = cursorItem.clone();
         taken.setAmount(1);
         if (cursorItem.getAmount() <= 1) {
-            event.getWhoClicked().setItemOnCursor(null);
+            click.setCursor(null);
         } else {
             cursorItem.setAmount(cursorItem.getAmount() - 1);
-            event.getWhoClicked().setItemOnCursor(cursorItem);
+            click.setCursor(cursorItem);
         }
         return taken;
     }
@@ -268,12 +268,12 @@ final class GemGuiInteractionController {
         }
 
         @Override
-        public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
+        public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
             if (slot == null || slot.definition() == null) {
                 return;
             }
             switch (Texts.lower(slot.definition().type())) {
-                case "target_item" -> handleTargetItemClick(state, event);
+                case "target_item" -> handleTargetItemClick(state, click);
                 case "mode_inlay" -> {
                     if (state.mode() != GemGuiMode.INLAY) {
                         returnPendingInput(state);
@@ -288,7 +288,7 @@ final class GemGuiInteractionController {
                     }
                     renderer.refreshGui(state);
                 }
-                case "socket_slot" -> handleSocketClick(state, event, slot.slotIndex());
+                case "socket_slot" -> handleSocketClick(state, click, slot.slotIndex());
                 case "confirm" -> handleConfirm(state);
                 default -> {
                 }
@@ -296,26 +296,26 @@ final class GemGuiInteractionController {
         }
 
         @Override
-        public void onPlayerInventoryClick(GuiSession session, InventoryClickEvent event) {
-            if (GuiSessionHandler.isBlockedTransfer(event)) {
-                event.setCancelled(true);
+        public void onPlayerInventoryClick(GuiSession session, GuiClickContext click) {
+            if (click.isBlockedTransfer()) {
+                click.setCancelled(true);
                 return;
             }
             scheduleRefresh(state);
         }
 
         @Override
-        public void onClose(GuiSession session, InventoryCloseEvent event) {
+        public void onClose(GuiSession session, GuiCloseContext close) {
             if (state.templateSwitching()) {
                 state.setTemplateSwitching(false);
                 return;
             }
-            ItemStack cursorItem = event != null && event.getPlayer() != null
-                    ? InventoryItemUtil.cloneNonAir(event.getPlayer().getItemOnCursor())
+            ItemStack cursorItem = close != null && close.player() != null
+                    ? InventoryItemUtil.cloneNonAir(close.player().getItemOnCursor())
                     : null;
             ItemStack pendingInput = state.pendingOperation().inputItem();
             if (cursorItem != null) {
-                event.getPlayer().setItemOnCursor(null);
+                close.player().setItemOnCursor(null);
             }
             if (state.mutableTargetItem() != null) {
                 InventoryItemUtil.giveOrDrop(state.player(), state.mutableTargetItem());

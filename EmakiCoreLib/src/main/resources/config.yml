@@ -43,6 +43,16 @@ web_console:
     record_web_writes: true
     record_delete_backup: true
 
+# 菜单(GUI)渲染后端
+gui:
+  # 菜单后端类型，决定 Emaki 系列所有菜单如何呈现给玩家：
+  #   bukkit  - 实体菜单。打开真实服务端容器(默认)，行为最稳定，无需任何前置插件。
+  #   packet  - 发包虚拟菜单。直接发送容器封包，刷新不同行数时复用同一窗口，光标不会被重置；
+  #             需要额外安装 EmakiGuiPacket 后端插件(其依赖 PacketEvents)。未安装时自动回退为 bukkit。
+  #   auto    - 安装了 EmakiGuiPacket(packet 后端) 则使用 packet，否则使用 bukkit。
+  # 默认 bukkit：升级 CoreLib 不会改变现有菜单行为，需要时再安装 EmakiGuiPacket 并切换。
+  backend: "bukkit"
+
 action:
   loop:
     enabled: true

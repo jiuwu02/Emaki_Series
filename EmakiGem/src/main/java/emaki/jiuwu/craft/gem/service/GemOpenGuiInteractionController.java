@@ -3,11 +3,11 @@ package emaki.jiuwu.craft.gem.service;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
+import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -51,27 +51,27 @@ final class GemOpenGuiInteractionController {
         renderer.refreshGui(state);
     }
 
-    private void handleTargetItemClick(GemOpenGuiSession state, InventoryClickEvent event) {
-        ItemStack cursorItem = GemOpenGuiSession.cloneNonAir(event.getCursor());
+    private void handleTargetItemClick(GemOpenGuiSession state, GuiClickContext click) {
+        ItemStack cursorItem = GemOpenGuiSession.cloneNonAir(click.cursorItem());
         ItemStack currentTarget = state.targetItem();
         if (cursorItem != null && plugin.stateService().resolveItemDefinition(cursorItem) == null) {
             plugin.messageService().send(state.player(), "gui.open.invalid_target");
             return;
         }
         state.setTargetItem(cursorItem);
-        event.getWhoClicked().setItemOnCursor(currentTarget);
+        click.setCursor(currentTarget);
         scheduleSwitchIfNeeded(state);
     }
 
-    private void handleOpenerItemClick(GemOpenGuiSession state, InventoryClickEvent event) {
-        ItemStack cursorItem = GemOpenGuiSession.cloneNonAir(event.getCursor());
+    private void handleOpenerItemClick(GemOpenGuiSession state, GuiClickContext click) {
+        ItemStack cursorItem = GemOpenGuiSession.cloneNonAir(click.cursorItem());
         ItemStack currentOpener = state.openerItem();
         if (cursorItem != null && !plugin.itemMatcher().isOpenerItem(cursorItem)) {
             plugin.messageService().send(state.player(), "gui.open.invalid_opener");
             return;
         }
         state.setOpenerItem(cursorItem);
-        event.getWhoClicked().setItemOnCursor(currentOpener);
+        click.setCursor(currentOpener);
         renderer.refreshGui(state);
     }
 
@@ -157,13 +157,13 @@ final class GemOpenGuiInteractionController {
         }
 
         @Override
-        public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
+        public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
             if (slot == null || slot.definition() == null) {
                 return;
             }
             switch (Texts.lower(slot.definition().type())) {
-                case "target_item" -> handleTargetItemClick(state, event);
-                case "opener_item" -> handleOpenerItemClick(state, event);
+                case "target_item" -> handleTargetItemClick(state, click);
+                case "opener_item" -> handleOpenerItemClick(state, click);
                 case "socket_slot" -> handleSocketClick(state, slot.slotIndex());
                 case "confirm" -> handleConfirm(state);
                 default -> {
@@ -172,16 +172,16 @@ final class GemOpenGuiInteractionController {
         }
 
         @Override
-        public void onPlayerInventoryClick(GuiSession session, InventoryClickEvent event) {
-            if (GuiSessionHandler.isBlockedTransfer(event)) {
-                event.setCancelled(true);
+        public void onPlayerInventoryClick(GuiSession session, GuiClickContext click) {
+            if (click.isBlockedTransfer()) {
+                click.setCancelled(true);
                 return;
             }
             renderer.refreshGui(state);
         }
 
         @Override
-        public void onClose(GuiSession session, InventoryCloseEvent event) {
+        public void onClose(GuiSession session, GuiCloseContext close) {
             if (state.templateSwitching()) {
                 state.setTemplateSwitching(false);
                 return;

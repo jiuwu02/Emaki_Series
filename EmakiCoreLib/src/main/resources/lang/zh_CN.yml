@@ -14,6 +14,11 @@ version: "4.3.22"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
 
+gui:
+  backend:
+    packet_backend_missing: "<yellow>菜单后端已设置为 packet，但未安装 EmakiGuiPacket 后端插件(或其未成功注册)，已回退为实体菜单(bukkit)。</yellow>"
+    unknown_value: "<yellow>未知的菜单后端配置 <aqua>%value%</aqua>，已使用默认实体菜单(bukkit)。</yellow>"
+
 console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"

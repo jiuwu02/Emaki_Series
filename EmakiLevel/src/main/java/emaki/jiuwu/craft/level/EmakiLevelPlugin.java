@@ -363,7 +363,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         requirementLoader = new RequirementLoader(this);
         sourceRuleLoader = new SourceRuleLoader(this);
         guiTemplateLoader = new GuiTemplateLoader(this);
-        guiService = new GuiService(this, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor());
+        guiService = new GuiService(this, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
         typeRegistry = new LevelTypeRegistry();
         requirementService = new RequirementService();
         curveService = new LevelCurveService(typeRegistry, requirementService);

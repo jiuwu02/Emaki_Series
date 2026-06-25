@@ -14,6 +14,11 @@ version: "4.3.22"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
 
+gui:
+  backend:
+    packet_backend_missing: "<yellow>Menu backend is set to packet, but the EmakiGuiPacket backend plugin is not installed (or failed to register); falling back to the Bukkit (entity) backend.</yellow>"
+    unknown_value: "<yellow>Unknown menu backend <aqua>%value%</aqua>; using the default Bukkit (entity) backend.</yellow>"
+
 console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
