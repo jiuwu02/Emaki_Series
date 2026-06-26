@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "3.3.5"
+version: "3.3.14"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
@@ -31,10 +31,23 @@ command:
       help: "显示帮助信息"
       reload: "重载配置、语言与配方目录"
       inspect: "检查主手物品的 CoreLib 来源标识"
+      nutrition: "查询或调整玩家营养值"
       debug: "管理 Debug 模式"
   inspect:
     header: "<gold>========== 手持物品检查 ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
+
+nutrition:
+  disabled: "<yellow>营养系统当前未启用。</yellow>"
+  usage: "<gray>用法: /ec nutrition get [玩家] [类型] | set|add|remove <玩家> <类型> <数值></gray>"
+  unknown_type: "<red>未知的营养类型: <yellow>%type%</yellow></red>"
+  player_not_found: "<red>找不到在线玩家: <yellow>%player%</yellow></red>"
+  invalid_amount: "<red>无效的数值: <yellow>%amount%</yellow></red>"
+  value: "<gray>%player% 的 <yellow>%type%</yellow> 营养值: <white>%value%</white></gray>"
+  list_header: "<gold>========== %player% 的营养 ==========</gold>"
+  list_line: "<yellow>%type%</yellow> <gray>:</gray> <white>%value%</white><gray>/%max%</gray>"
+  modified: "<green>已更新 %player% 的 <yellow>%type%</yellow> 营养值: <gray>%old% →</gray> <white>%new%</white></green>"
+  modify_failed: "<red>营养值修改失败: <gray>%reason%</gray></red>"
 
 console:
   plugin_starting: "<gray>正在启动...</gray>"
@@ -57,6 +70,8 @@ console:
   station_recipes_loaded: "<gray>已加载%station% <yellow>%count%</yellow> 个配方</gray>"
   block_source_bridge_ready: "<gray>已接入方块源: <aqua>%provider%</aqua></gray>"
   block_source_bridge_unavailable: "<yellow>方块源不可用: %provider% (%error%)</yellow>"
+  nutrition_bridge_ready: "<gray>已接入营养食用源: <aqua>%provider%</aqua></gray>"
+  nutrition_bridge_unavailable: "<yellow>营养食用源不可用: %provider% (%error%)</yellow>"
   station_name:
     chopping_board: "砧板"
     wok: "炒锅"

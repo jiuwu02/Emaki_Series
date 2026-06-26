@@ -1,0 +1,7 @@
+# 营养类型：水果
+# 玩家营养值会被限制在 min ~ max 之间
+id: fruit
+display_name: "水果"
+min: 0
+max: 100
+default: 0

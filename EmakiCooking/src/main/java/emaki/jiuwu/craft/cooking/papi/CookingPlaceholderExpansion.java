@@ -54,7 +54,53 @@ public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
             return String.valueOf(stationRecipeCount(stationType));
         }
 
+        if (normalized.startsWith("nutrition_")) {
+            return nutritionPlaceholder(player, normalized.substring("nutrition_".length()));
+        }
+
         return "";
+    }
+
+    private String nutritionPlaceholder(Player player, String key) {
+        if (player == null || Texts.isBlank(key) || plugin.nutritionService() == null) {
+            return "";
+        }
+        // 组合阈值当前达标类型数量：nutrition_combo_count_<ruleId>
+        if (key.startsWith("combo_count_")) {
+            String ruleId = Texts.normalizeId(key.substring("combo_count_".length()));
+            return plugin.nutritionService().comboThresholds().stream()
+                    .filter(rule -> rule.id().equals(ruleId))
+                    .findFirst()
+                    .map(rule -> String.valueOf(plugin.nutritionService().comboCount(player.getUniqueId(), rule)))
+                    .orElse("");
+        }
+        // 营养上限：nutrition_<type>_max
+        if (key.endsWith("_max")) {
+            String typeId = Texts.normalizeId(key.substring(0, key.length() - "_max".length()));
+            return plugin.nutritionTypeRegistry().type(typeId)
+                    .map(type -> formatValue(type.max()))
+                    .orElse("");
+        }
+        // 营养下限：nutrition_<type>_min
+        if (key.endsWith("_min")) {
+            String typeId = Texts.normalizeId(key.substring(0, key.length() - "_min".length()));
+            return plugin.nutritionTypeRegistry().type(typeId)
+                    .map(type -> formatValue(type.min()))
+                    .orElse("");
+        }
+        // 当前营养值：nutrition_<type>
+        String typeId = Texts.normalizeId(key);
+        if (!plugin.nutritionTypeRegistry().contains(typeId)) {
+            return "";
+        }
+        return formatValue(plugin.nutritionService().value(player.getUniqueId(), typeId));
+    }
+
+    private String formatValue(double value) {
+        if (value == Math.floor(value) && !Double.isInfinite(value)) {
+            return String.valueOf((long) value);
+        }
+        return String.valueOf(value);
     }
 
     private int totalRecipeCount() {

@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.JuicerRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.NutritionTypeLoader;
 import emaki.jiuwu.craft.cooking.loader.OvenRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
@@ -28,7 +29,10 @@ import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
+import emaki.jiuwu.craft.cooking.service.NutritionService;
+import emaki.jiuwu.craft.cooking.service.NutritionTypeRegistry;
 import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
+import emaki.jiuwu.craft.cooking.service.PlayerNutritionDataStore;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
@@ -65,7 +69,11 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         SteamerRuntimeService steamerRuntimeService,
         OvenRuntimeService ovenRuntimeService,
         JuicerRuntimeService juicerRuntimeService,
-        FermentationBarrelRuntimeService fermentationBarrelRuntimeService) implements RuntimeComponents {
+        FermentationBarrelRuntimeService fermentationBarrelRuntimeService,
+        NutritionTypeLoader nutritionTypeLoader,
+        NutritionTypeRegistry nutritionTypeRegistry,
+        PlayerNutritionDataStore nutritionDataStore,
+        NutritionService nutritionService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {
@@ -99,7 +107,11 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(SteamerRuntimeService.class, steamerRuntimeService),
                 RuntimeComponents.component(OvenRuntimeService.class, ovenRuntimeService),
                 RuntimeComponents.component(JuicerRuntimeService.class, juicerRuntimeService),
-                RuntimeComponents.component(FermentationBarrelRuntimeService.class, fermentationBarrelRuntimeService)
+                RuntimeComponents.component(FermentationBarrelRuntimeService.class, fermentationBarrelRuntimeService),
+                RuntimeComponents.component(NutritionTypeLoader.class, nutritionTypeLoader),
+                RuntimeComponents.component(NutritionTypeRegistry.class, nutritionTypeRegistry),
+                RuntimeComponents.component(PlayerNutritionDataStore.class, nutritionDataStore),
+                RuntimeComponents.component(NutritionService.class, nutritionService)
         );
     }
 }

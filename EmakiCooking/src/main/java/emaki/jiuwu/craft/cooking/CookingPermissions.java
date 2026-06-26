@@ -33,4 +33,7 @@ public final class CookingPermissions {
     public static final String WOK_SERVE = "emakicooking.station.wok.serve";
 
     public static final String GRINDER_USE = "emakicooking.station.grinder.use";
+
+    public static final String NUTRITION_USE = "emakicooking.nutrition.use";
+    public static final String NUTRITION_ADMIN = "emakicooking.nutrition.admin";
 }

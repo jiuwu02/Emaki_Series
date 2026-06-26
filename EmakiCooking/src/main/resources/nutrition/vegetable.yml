@@ -1,0 +1,6 @@
+# 营养类型：蔬菜
+id: vegetable
+display_name: "蔬菜"
+min: 0
+max: 100
+default: 0
