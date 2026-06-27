@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-cooking</artifactId>
-    <version>3.3.14</version>
+    <version>3.3.15</version>
     <name>EmakiCooking</name>
     <packaging>jar</packaging>
 

@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.api.event.ForgeCompletedEvent;
 import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -216,6 +217,7 @@ final class ForgeGuiInteractionController {
             String errorKey = result == null || Texts.isBlank(result.errorKey()) ? "forge.error.action_failed" : result.errorKey();
             Map<String, Object> replacements = result == null || result.replacements() == null ? Map.of() : result.replacements();
             returnFailedAttempt(state, errorKey, replacements);
+            fireForgeCompleted(state.player(), activeRecipe, result, false);
             return;
         }
         state.setForgeCompleted(true);
@@ -231,6 +233,20 @@ final class ForgeGuiInteractionController {
         if (firstCraft) {
             plugin.messageService().send(state.player(), "forge.success.first_craft");
         }
+        fireForgeCompleted(state.player(), activeRecipe, result, true);
+    }
+
+    private void fireForgeCompleted(Player player, Recipe recipe, ForgeResult result, boolean success) {
+        if (player == null || recipe == null || !org.bukkit.Bukkit.isPrimaryThread()) {
+            return;
+        }
+        org.bukkit.Bukkit.getPluginManager().callEvent(new ForgeCompletedEvent(
+                player,
+                recipe.id(),
+                success,
+                result == null ? null : result.resultItem(),
+                result == null ? null : result.quality(),
+                result == null ? 1D : result.multiplier()));
     }
 
     private void handleSingleSlotDrag(GuiDragContext drag, ForgeGuiSession state) {

@@ -23,6 +23,7 @@ public record CastAttemptResult(boolean success,
         RESOURCE_INSUFFICIENT,
         MYTHIC_SKILL_NOT_FOUND,
         MYTHIC_CAST_FAILED,
-        TRIGGER_DISABLED
+        TRIGGER_DISABLED,
+        CANCELLED
     }
 }

@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.api.LevelOperationType;
 import emaki.jiuwu.craft.level.api.LevelUpCause;
+import emaki.jiuwu.craft.level.api.event.PlayerExpGainEvent;
+import emaki.jiuwu.craft.level.api.event.PlayerLevelUpEvent;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.LevelFailureReason;
@@ -108,6 +110,16 @@ public final class PlayerLevelService {
         PlayerLevelEntry entry = data.entry(type.id());
         int oldLevel = entry.level();
         double oldExp = entry.exp();
+        Player player = Bukkit.getPlayer(uuid);
+        // addExp 可能被第三方通过公开 API 在异步线程调用；Bukkit 同步事件只能在主线程派发。
+        if (Bukkit.isPrimaryThread()) {
+            PlayerExpGainEvent gainEvent = new PlayerExpGainEvent(player, type.id(), oldLevel, oldExp, amount, reason);
+            Bukkit.getPluginManager().callEvent(gainEvent);
+            if (gainEvent.isCancelled() || gainEvent.getAmount() <= 0D) {
+                return failure(LevelFailureReason.INVALID_AMOUNT, LevelOperationType.ADD_EXP, type.id()).withData(adjustment.data());
+            }
+            amount = gainEvent.getAmount();
+        }
         if (entry.level() >= type.maxLevel()) {
             if (config.keepTotalExpAtMaxLevel()) {
                 entry.totalExp(entry.totalExp() + amount);
@@ -120,7 +132,6 @@ public final class PlayerLevelService {
         entry.exp(entry.exp() + amount);
         entry.totalExp(entry.totalExp() + amount);
         data.markDirty();
-        Player player = Bukkit.getPlayer(uuid);
         executeActions(player, type, "gain", placeholders(type, entry, oldLevel, oldExp, amount, reason));
         boolean auto = autoUpgradeOverride == null ? type.upgrade().autoUpgrade() : autoUpgradeOverride;
         if (auto) {
@@ -316,6 +327,9 @@ public final class PlayerLevelService {
                     cause == null ? "levelup" : cause.name().toLowerCase(java.util.Locale.ROOT),
                     requiredExp
             ));
+        }
+        if (Bukkit.isPrimaryThread()) {
+            Bukkit.getPluginManager().callEvent(new PlayerLevelUpEvent(player, type.id(), oldLevel, entry.level(), cause));
         }
         return LevelOperationResult.success(LevelOperationType.LEVEL_UP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), 1D);
     }

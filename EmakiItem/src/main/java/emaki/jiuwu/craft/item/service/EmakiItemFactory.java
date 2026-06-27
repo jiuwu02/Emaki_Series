@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
+import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemComponentsConfig;
 import emaki.jiuwu.craft.item.model.VanillaAttributeModifierConfig;
@@ -57,7 +58,7 @@ public final class EmakiItemFactory {
     public ItemStack create(String id, int amount) {
         ItemStack scripted = javaScriptFactories == null ? null : javaScriptFactories.create(id, amount);
         if (scripted != null) {
-            return scripted;
+            return fireCreateEvent(id, scripted.getAmount(), scripted);
         }
         EmakiItemDefinition definition = idResolver == null ? loader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
@@ -69,7 +70,18 @@ public final class EmakiItemFactory {
         // amount<=0 视为"未显式指定"，回退到 definition 配置的默认数量；>0 显式覆盖。
         int resolved = amount > 0 ? amount : definition.amount();
         itemStack.setAmount(Math.max(1, Math.min(resolved, itemStack.getMaxStackSize())));
-        return itemStack;
+        return fireCreateEvent(id, itemStack.getAmount(), itemStack);
+    }
+
+    private ItemStack fireCreateEvent(String id, int amount, ItemStack itemStack) {
+        // 物品创建可能由 CoreLib 物品源解析、异步奖励发放等路径触发；
+        // Bukkit 同步事件只能在主线程派发，异步路径下跳过事件以避免 AsyncCatcher。
+        if (!Bukkit.isPrimaryThread()) {
+            return itemStack;
+        }
+        EmakiItemCreateEvent event = new EmakiItemCreateEvent(id, amount, null, itemStack);
+        Bukkit.getPluginManager().callEvent(event);
+        return event.getResult() != null ? event.getResult() : itemStack;
     }
 
     public void clearCache() {

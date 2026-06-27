@@ -28,6 +28,8 @@ import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegi
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
+import emaki.jiuwu.craft.strengthen.api.event.StrengthenAttemptEvent;
+import emaki.jiuwu.craft.strengthen.api.event.StrengthenPreAttemptEvent;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.model.AttemptCost;
 import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
@@ -198,7 +200,24 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             }
         }
 
-        boolean success = ThreadLocalRandom.current().nextDouble(100D) < preview.successRate();
+        double rollSuccessRate = preview.successRate();
+        // attempt 可能通过公开 API 在异步线程调用；Bukkit 同步事件只能在主线程派发。
+        if (Bukkit.isPrimaryThread()) {
+            StrengthenPreAttemptEvent preAttemptEvent = new StrengthenPreAttemptEvent(
+                    player,
+                    context == null ? null : context.targetItem(),
+                    recipe == null ? null : recipe.id(),
+                    preview.currentStar(),
+                    preview.targetStar(),
+                    preview.successRate());
+            Bukkit.getPluginManager().callEvent(preAttemptEvent);
+            if (preAttemptEvent.isCancelled()) {
+                return finishAttempt(player, AttemptResult.failure("strengthen.error.cancelled", preview, replacements(preview, preview.currentStar())));
+            }
+            rollSuccessRate = preAttemptEvent.getSuccessRate();
+        }
+
+        boolean success = ThreadLocalRandom.current().nextDouble(100D) < rollSuccessRate;
         StrengthenState currentState = preview.state();
         int resultStar = success ? preview.targetStar() : preview.failureStar();
         int resultTemper = success ? 0 : preview.failureTemper();
@@ -237,6 +256,9 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         JavaScriptStrengthenResultHookRegistry resultHookRegistry = plugin.javaScriptResultHookRegistry();
         if (resultHookRegistry != null) {
             resultHookRegistry.fire(player, result);
+        }
+        if (Bukkit.isPrimaryThread()) {
+            Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
         }
         return result;
     }

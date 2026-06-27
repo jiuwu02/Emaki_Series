@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.api.event.GemInlayEvent;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
@@ -132,6 +133,17 @@ public final class GemInlayService {
         }
         successChance = socketDecision.successRate();
         placeholders.put("success_rate", successChance);
+
+        GemInlayEvent inlayEvent = new GemInlayEvent(actor, equipment, gemItem, slotIndex, gemDefinition.id(), instance.level(), successChance);
+        // inlayDirect 可能通过公开 API 在异步线程调用；Bukkit 同步事件只能在主线程派发。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            org.bukkit.Bukkit.getPluginManager().callEvent(inlayEvent);
+            if (inlayEvent.isCancelled()) {
+                return new InlayResult(Result.failure("gem.error.condition_not_met", placeholders), equipment);
+            }
+            successChance = inlayEvent.getSuccessChance();
+            placeholders.put("success_rate", successChance);
+        }
 
         String failureAction = Texts.lower(plugin.appConfig().inlaySuccess().failureAction());
         GemEconomyService.ChargeResult chargeResult = null;

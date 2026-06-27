@@ -20,6 +20,8 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.api.event.NutritionThresholdChangeEvent;
+import emaki.jiuwu.craft.cooking.api.event.PlayerNutritionConsumeEvent;
 import emaki.jiuwu.craft.cooking.model.NutritionComboThreshold;
 import emaki.jiuwu.craft.cooking.model.NutritionFoodSource;
 import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
@@ -170,6 +172,15 @@ public final class NutritionService {
         if (source == null) {
             return false;
         }
+        // 进食营养接入点对外开放，可取消；监听器仅在主线程派发时生效（食用监听器均为主线程）。
+        if (Bukkit.isPrimaryThread()) {
+            PlayerNutritionConsumeEvent consumeEvent =
+                    new PlayerNutritionConsumeEvent(player, itemStack, ItemSourceUtil.toShorthand(source));
+            Bukkit.getPluginManager().callEvent(consumeEvent);
+            if (consumeEvent.isCancelled()) {
+                return false;
+            }
+        }
         boolean matched = false;
         for (NutritionFoodSource rule : foodSources) {
             if (!matchesAny(rule.itemSources(), source)) {
@@ -236,10 +247,12 @@ public final class NutritionService {
                     met.add(key);
                     runActions(player, data, rule.onMeetActions(), "cooking.nutrition.single." + rule.id(),
                             singlePlaceholders(type, value, rule.value()));
+                    fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.SINGLE, rule.id(), type.id(), true, value, rule.value(), 0, 0);
                 } else if (!meets && wasMet) {
                     met.remove(key);
                     runActions(player, data, rule.onRecoverActions(), "cooking.nutrition.single." + rule.id() + ".recover",
                             singlePlaceholders(type, value, rule.value()));
+                    fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.SINGLE, rule.id(), type.id(), false, value, rule.value(), 0, 0);
                 }
             }
         }
@@ -268,12 +281,31 @@ public final class NutritionService {
                 met.add(rule.id());
                 runActions(player, data, rule.onMeetActions(), "cooking.nutrition.combo." + rule.id(),
                         comboPlaceholders(count, rule.requiredCount(), rule.value()));
+                fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.COMBO, rule.id(), null, true, 0D, rule.value(), count, rule.requiredCount());
             } else if (!meets && wasMet) {
                 met.remove(rule.id());
                 runActions(player, data, rule.onRecoverActions(), "cooking.nutrition.combo." + rule.id() + ".recover",
                         comboPlaceholders(count, rule.requiredCount(), rule.value()));
+                fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.COMBO, rule.id(), null, false, 0D, rule.value(), count, rule.requiredCount());
             }
         }
+    }
+
+    private void fireThresholdEvent(Player player,
+            NutritionThresholdChangeEvent.Kind kind,
+            String ruleId,
+            String typeId,
+            boolean met,
+            double value,
+            double threshold,
+            int matchedCount,
+            int requiredCount) {
+        // 阈值边沿通知对外开放；Bukkit 同步事件只能在主线程派发，异步路径跳过。
+        if (!Bukkit.isPrimaryThread()) {
+            return;
+        }
+        Bukkit.getPluginManager().callEvent(new NutritionThresholdChangeEvent(
+                player, kind, ruleId, typeId, met, value, threshold, matchedCount, requiredCount));
     }
 
     // ===================== 动作与占位符 =====================

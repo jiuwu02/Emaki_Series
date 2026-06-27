@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
@@ -183,6 +184,13 @@ public final class CastAttemptService {
         ResolvedSkillParameters parameters = skillParameterResolver == null
                 ? ResolvedSkillParameters.empty()
                 : skillParameterResolver.resolve(player, definition, triggerId, invocation);
+        SkillPreCastEvent preCastEvent = new SkillPreCastEvent(player, definition.id(), Texts.toStringSafe(triggerId));
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            org.bukkit.Bukkit.getPluginManager().callEvent(preCastEvent);
+            if (preCastEvent.isCancelled()) {
+                return CastAttemptResult.fail(FailureReason.CANCELLED, "cast.cancelled");
+            }
+        }
         boolean castSuccess = castSkill(player, definition, triggerId, invocation, parameters);
         if (!castSuccess) {
             return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed");
