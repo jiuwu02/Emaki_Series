@@ -77,6 +77,7 @@ repair:
     insufficient_materials: "<red>Not enough repair materials.</red>"
     invalid_restore: "<red>Invalid repair restore amount.</red>"
     already_repaired: "<yellow>This item does not need repair.</yellow>"
+    cancelled: "<yellow>The repair was cancelled.</yellow>"
     economy_disabled: "<red>Economy repair is not enabled for this item.</red>"
     not_repairable: "<red>This item has no repairable durability.</red>"
     economy_provider_unavailable: "<red>Economy service unavailable: <white>%provider%</white> / <white>%currency%</white></red>"

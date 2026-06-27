@@ -206,6 +206,7 @@ upgrade:
     "<green>技能 <white>%skill%</white> 已升级至 <gold>%target_level%</gold>
     级。</green>"
   failed: "<red>技能 <white>%skill%</white> 升级失败，成功率 %success_rate%%。</red>"
+  cancelled: "<yellow>本次技能升级已被取消。</yellow>"
 
 # Debug 模式消息
 debug:

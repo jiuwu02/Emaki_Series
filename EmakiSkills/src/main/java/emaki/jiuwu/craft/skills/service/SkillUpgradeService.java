@@ -28,6 +28,8 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.skills.api.event.SkillPreUpgradeEvent;
+import emaki.jiuwu.craft.skills.api.event.SkillUpgradeEvent;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillUpgradeConfig;
@@ -205,6 +207,19 @@ public final class SkillUpgradeService {
                 preview == null ? 100D : preview.successRate()
         );
 
+        double successRate = preview == null ? 100D : preview.successRate();
+        // 技能升级前对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            SkillPreUpgradeEvent preUpgradeEvent = new SkillPreUpgradeEvent(
+                    player, definition.id(), currentLevel, targetLevel, maxLevel, successRate);
+            org.bukkit.Bukkit.getPluginManager().callEvent(preUpgradeEvent);
+            if (preUpgradeEvent.isCancelled()) {
+                return UpgradeResult.fail("upgrade.cancelled", placeholders, preview);
+            }
+            successRate = preUpgradeEvent.getSuccessRate();
+            placeholders.put("success_rate", successRate);
+        }
+
         CostCheckResult costCheck = checkCosts(player, preview);
         if (!costCheck.success()) {
             placeholders.putAll(costCheck.placeholders());
@@ -217,7 +232,8 @@ public final class SkillUpgradeService {
             return UpgradeResult.fail(chargeResult.messageKey(), placeholders, preview);
         }
 
-        boolean success = roll(preview.successRate());
+        boolean success = roll(successRate);
+        boolean downgraded = !success && "downgrade".equals(Texts.lower(upgrade.failurePenalty()));
         if (success) {
             levelService.setLevel(player, definition, targetLevel);
             dataStore.save(player);
@@ -226,6 +242,7 @@ public final class SkillUpgradeService {
                             ? List.of()
                             : upgrade.levels().get(targetLevel).successActions(),
                     placeholders);
+            fireUpgradeEvent(player, definition, currentLevel, targetLevel, successRate, true, false);
             return UpgradeResult.ok(true, "upgrade.success", placeholders, preview);
         }
 
@@ -236,7 +253,24 @@ public final class SkillUpgradeService {
                         ? List.of()
                         : upgrade.levels().get(targetLevel).failureActions(),
                 placeholders);
+        fireUpgradeEvent(player, definition, currentLevel, downgraded ? Math.max(1, currentLevel - 1) : currentLevel,
+                successRate, false, downgraded);
         return UpgradeResult.ok(false, "upgrade.failed", placeholders, preview);
+    }
+
+    private void fireUpgradeEvent(Player player,
+            SkillDefinition definition,
+            int fromLevel,
+            int toLevel,
+            double successRate,
+            boolean success,
+            boolean downgraded) {
+        // 技能升级结果对外开放，after 通知；仅主线程派发。
+        if (!org.bukkit.Bukkit.isPrimaryThread()) {
+            return;
+        }
+        org.bukkit.Bukkit.getPluginManager().callEvent(new SkillUpgradeEvent(
+                player, definition.id(), fromLevel, toLevel, successRate, success, downgraded));
     }
 
     private List<CurrencyCost> quoteCurrencies(Player player,

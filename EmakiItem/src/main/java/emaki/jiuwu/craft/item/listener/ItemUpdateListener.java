@@ -66,6 +66,7 @@ public final class ItemUpdateListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         pendingRefresh.remove(event.getPlayer().getUniqueId());
+        plugin.setService().clearCachedState(event.getPlayer().getUniqueId());
     }
 
     private void delayed(Player player, String trigger) {

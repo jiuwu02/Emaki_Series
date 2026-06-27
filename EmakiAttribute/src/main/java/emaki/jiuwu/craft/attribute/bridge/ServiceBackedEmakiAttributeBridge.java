@@ -5,6 +5,7 @@ import java.util.Map;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.attribute.api.PlayerResourceConsumeEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
@@ -50,6 +51,20 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
         ResourceDefinition definition = attributeService.resourceDefinitions().get(Texts.normalizeId(resourceId));
         if (definition == null) {
             return false;
+        }
+        // 自定义资源消费对外开放，可取消、可改消费量；bridge 由外部插件调用，线程不定，仅主线程派发。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            PlayerResourceConsumeEvent consumeEvent = new PlayerResourceConsumeEvent(
+                    player, resourceId, amount, state.currentValue(), state.currentMax());
+            org.bukkit.Bukkit.getPluginManager().callEvent(consumeEvent);
+            if (consumeEvent.isCancelled()) {
+                return false;
+            }
+            amount = consumeEvent.getAmount();
+            // 改写后重新校验：消费量非法或超出当前余额则中止。
+            if (amount < 0D || state.currentValue() < amount) {
+                return false;
+            }
         }
         AttributeSnapshot snapshot = attributeService.collectPlayerCombatSnapshot(player);
         attributeService.syncResource(

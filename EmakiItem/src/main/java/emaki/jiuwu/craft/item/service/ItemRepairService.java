@@ -234,6 +234,14 @@ public final class ItemRepairService {
         if (restoreAmount <= 0) {
             return RepairResult.failure("repair.error.invalid_restore", Map.of("material", material.displaySources()));
         }
+        ItemRepairEventResult eventResult = fireRepairEvent(player, definition, equipment, "material", restoreAmount);
+        if (eventResult.cancelled()) {
+            return RepairResult.failure("repair.error.cancelled", Map.of());
+        }
+        restoreAmount = eventResult.restoreAmount();
+        if (restoreAmount <= 0) {
+            return RepairResult.failure("repair.error.invalid_restore", Map.of("material", material.displaySources()));
+        }
         if (!removeProvidedMaterial(providedMaterials, material)) {
             return RepairResult.failure("repair.error.insufficient_materials", Map.of("material", material.displaySources(), "required", material.amount()));
         }
@@ -301,6 +309,14 @@ public final class ItemRepairService {
         if (economyManager == null) {
             return RepairResult.failure("repair.error.economy_provider_unavailable", Map.of());
         }
+        ItemRepairEventResult eventResult = fireRepairEvent(player, definition, equipment, "economy", quote.restoreAmount());
+        if (eventResult.cancelled()) {
+            return RepairResult.failure("repair.error.cancelled", Map.of());
+        }
+        int restoreAmount = eventResult.restoreAmount();
+        if (restoreAmount <= 0) {
+            return RepairResult.failure("repair.error.invalid_restore", Map.of());
+        }
         List<CurrencyQuote> charged = new ArrayList<>();
         for (CurrencyQuote currency : quote.currencies()) {
             ActionResult result = economyManager.remove(player, currency.cost().provider(), currency.cost().currencyId(), currency.amount());
@@ -313,13 +329,37 @@ public final class ItemRepairService {
             }
             charged.add(currency);
         }
-        int restored = applyRepair(equipment, quote.restoreAmount());
+        int restored = applyRepair(equipment, restoreAmount);
         if (restored <= 0) {
             refund(player, charged);
             return RepairResult.failure("repair.error.already_repaired", Map.of());
         }
         triggerRepaired(player, definition, equipment, "economy", restored);
         return RepairResult.success(restored);
+    }
+
+    private record ItemRepairEventResult(boolean cancelled, int restoreAmount) {
+    }
+
+    private ItemRepairEventResult fireRepairEvent(Player player,
+            EmakiItemDefinition definition,
+            ItemStack equipment,
+            String source,
+            int restoreAmount) {
+        // 物品修复对外开放，可取消、可改修复量；在扣费前派发以保证取消即不扣费。
+        if (!org.bukkit.Bukkit.isPrimaryThread()) {
+            return new ItemRepairEventResult(false, restoreAmount);
+        }
+        emaki.jiuwu.craft.item.api.event.ItemRepairEvent event = new emaki.jiuwu.craft.item.api.event.ItemRepairEvent(
+                player,
+                equipment,
+                definition == null ? "" : definition.id(),
+                source,
+                restoreAmount,
+                currentDamage(equipment),
+                maxDamage(equipment));
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        return new ItemRepairEventResult(event.isCancelled(), event.getRestoreAmount());
     }
 
     public void triggerRepaired(Player player,

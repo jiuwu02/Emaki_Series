@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.api.event.GemExtractEvent;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
@@ -76,6 +77,15 @@ public final class GemExtractService {
         }
         if (!evaluateConditions(actor)) {
             return Result.failure("gem.error.condition_not_met", Map.of());
+        }
+        // 拔取宝石对外开放，可取消；命令入口在主线程，仍按统一约定加守卫。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            GemExtractEvent extractEvent = new GemExtractEvent(target, equipment, slotIndex,
+                    gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
+            org.bukkit.Bukkit.getPluginManager().callEvent(extractEvent);
+            if (extractEvent.isCancelled()) {
+                return Result.failure("gem.error.condition_not_met", Map.of());
+            }
         }
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {

@@ -23,7 +23,9 @@ import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.api.LevelOperationType;
 import emaki.jiuwu.craft.level.api.LevelUpCause;
 import emaki.jiuwu.craft.level.api.event.PlayerExpGainEvent;
+import emaki.jiuwu.craft.level.api.event.PlayerLevelChangeEvent;
 import emaki.jiuwu.craft.level.api.event.PlayerLevelUpEvent;
+import emaki.jiuwu.craft.level.api.event.PlayerMaxLevelReachedEvent;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.LevelFailureReason;
@@ -209,6 +211,7 @@ public final class PlayerLevelService {
         sync(uuid, type, entry);
         publishDataChange(data);
         refreshAttribute(uuid);
+        fireLevelChange(uuid, type, oldLevel, entry.level(), LevelOperationType.ADD_LEVEL);
         return LevelOperationResult.success(LevelOperationType.ADD_LEVEL, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
     }
 
@@ -230,6 +233,7 @@ public final class PlayerLevelService {
         sync(uuid, type, entry);
         publishDataChange(data);
         refreshAttribute(uuid);
+        fireLevelChange(uuid, type, oldLevel, entry.level(), LevelOperationType.REMOVE_LEVEL);
         return LevelOperationResult.success(LevelOperationType.REMOVE_LEVEL, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), amount);
     }
 
@@ -248,6 +252,7 @@ public final class PlayerLevelService {
         sync(uuid, type, entry);
         publishDataChange(data);
         refreshAttribute(uuid);
+        fireLevelChange(uuid, type, oldLevel, entry.level(), LevelOperationType.SET_LEVEL);
         return LevelOperationResult.success(LevelOperationType.SET_LEVEL, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), level);
     }
 
@@ -267,6 +272,7 @@ public final class PlayerLevelService {
         sync(uuid, type, entry);
         publishDataChange(data);
         refreshAttribute(uuid);
+        fireLevelChange(uuid, type, oldLevel, entry.level(), LevelOperationType.RESET);
         return LevelOperationResult.success(LevelOperationType.RESET, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), 0D);
     }
 
@@ -330,6 +336,9 @@ public final class PlayerLevelService {
         }
         if (Bukkit.isPrimaryThread()) {
             Bukkit.getPluginManager().callEvent(new PlayerLevelUpEvent(player, type.id(), oldLevel, entry.level(), cause));
+            if (oldLevel < type.maxLevel() && entry.level() >= type.maxLevel()) {
+                Bukkit.getPluginManager().callEvent(new PlayerMaxLevelReachedEvent(player, type.id(), type.maxLevel(), cause));
+            }
         }
         return LevelOperationResult.success(LevelOperationType.LEVEL_UP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), 1D);
     }
@@ -491,6 +500,18 @@ public final class PlayerLevelService {
         if (player != null) {
             attributeRefreshPlayer.accept(player);
         }
+    }
+
+    private void fireLevelChange(UUID uuid, LevelTypeConfig type, int oldLevel, int newLevel, LevelOperationType operationType) {
+        if (oldLevel == newLevel) {
+            return;
+        }
+        // 管理途径的等级变更对外开放，after 通知；管理入口可能经公开 API 在异步线程调用，仅主线程派发。
+        if (!Bukkit.isPrimaryThread()) {
+            return;
+        }
+        Bukkit.getPluginManager().callEvent(new PlayerLevelChangeEvent(
+                Bukkit.getPlayer(uuid), type.id(), oldLevel, newLevel, operationType));
     }
 
     private void publishDataChange(PlayerLevelData data) {

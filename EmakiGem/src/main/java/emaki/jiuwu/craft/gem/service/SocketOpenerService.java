@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.api.event.GemSocketOpenEvent;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.model.SocketOpenerConfig;
@@ -107,6 +108,15 @@ public final class SocketOpenerService {
             return new OpenResult(failureWithActions(actor, opener, itemDefinition, preferredSlotIndex == null ? -1 : preferredSlotIndex,
                     preferredSlotIndex == null ? "command.open.no_available_slot" : "command.open.slot_unavailable", Map.of()), equipment, openerItem);
         }
+        // 开孔对外开放，可取消；openDirect 可能经公开 API 在异步线程调用，事件只在主线程派发。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            GemSocketOpenEvent openEvent = new GemSocketOpenEvent(actor, equipment, openerItem,
+                    opener.id(), resolvedSlotIndex, itemDefinition.id());
+            org.bukkit.Bukkit.getPluginManager().callEvent(openEvent);
+            if (openEvent.isCancelled()) {
+                return new OpenResult(Result.failure("gem.error.condition_not_met", Map.of()), equipment, openerItem);
+            }
+        }
         GemState nextState = currentState.withOpenedSlots(List.of(resolvedSlotIndex));
         ItemStack rebuilt = stateService.applyState(equipment, itemDefinition, nextState);
         if (rebuilt == null) {
@@ -161,6 +171,15 @@ public final class SocketOpenerService {
                     preferredSlotIndex == null ? "command.open.no_available_slot" : "command.open.slot_unavailable",
                     Map.of()
             );
+        }
+        // 开孔对外开放，可取消；命令入口在主线程，仍按统一约定加守卫。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            GemSocketOpenEvent openEvent = new GemSocketOpenEvent(target, equipment, openerItem,
+                    opener.id(), slotIndex, itemDefinition.id());
+            org.bukkit.Bukkit.getPluginManager().callEvent(openEvent);
+            if (openEvent.isCancelled()) {
+                return Result.failure("gem.error.condition_not_met", Map.of());
+            }
         }
         GemState nextState = currentState.withOpenedSlots(List.of(slotIndex));
         ItemStack rebuilt = stateService.applyState(equipment, itemDefinition, nextState);

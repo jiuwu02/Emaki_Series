@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.api.event.ForgeCompletedEvent;
+import emaki.jiuwu.craft.forge.api.event.ForgeStartEvent;
 import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -182,6 +183,14 @@ final class ForgeGuiInteractionController {
             return;
         }
         boolean firstCraft = !plugin.playerDataStore().hasCrafted(state.player().getUniqueId(), activeRecipe.id());
+        // 锻造开始对外开放，可取消；这是异步执行链开始前唯一的主线程节点。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            ForgeStartEvent startEvent = new ForgeStartEvent(state.player(), finalRecipe.id(), firstCraft, finalRecipe.successRate());
+            org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
+            if (startEvent.isCancelled()) {
+                return;
+            }
+        }
         state.setProcessing(true);
         state.setRecipe(finalRecipe);
         state.setPreviewRecipe(finalRecipe);

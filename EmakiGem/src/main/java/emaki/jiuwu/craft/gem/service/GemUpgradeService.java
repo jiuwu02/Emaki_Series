@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.api.event.GemUpgradeEvent;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
@@ -140,6 +141,17 @@ public final class GemUpgradeService {
         GemDefinition.UpgradeConfig upgradeConfig = definition.upgrade();
         int targetLevel = preview.targetLevel();
         GemDefinition.GemUpgradeLevel upgradeLevel = preview.upgradeLevel();
+        double successChance = effectiveSuccessChance(definition, targetLevel, upgradeLevel.successChance());
+        // 宝石升级对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费，物品形态 slotIndex 传 -1。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            GemUpgradeEvent upgradeEvent = new GemUpgradeEvent(player, itemStack, definition.id(),
+                    instance.level(), targetLevel, -1, successChance);
+            org.bukkit.Bukkit.getPluginManager().callEvent(upgradeEvent);
+            if (upgradeEvent.isCancelled()) {
+                return new UpgradeItemResult(Result.failure("gem.error.condition_not_met", Map.of()), itemStack);
+            }
+            successChance = upgradeEvent.getSuccessChance();
+        }
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             List<GemDefinition.CurrencyCost> currencies = new ArrayList<>(effectiveCurrencies(upgradeConfig, upgradeLevel));
@@ -156,7 +168,6 @@ public final class GemUpgradeService {
         placeholders.put("player", player.getName());
         placeholders.put("current_level", instance.level());
         placeholders.put("target_level", targetLevel);
-        double successChance = effectiveSuccessChance(definition, targetLevel, upgradeLevel.successChance());
         placeholders.put("success_rate", successChance);
         if (ThreadLocalRandom.current().nextDouble(100D) >= successChance) {
             ItemStack penalized = applyFailurePenalty(definition, upgradeLevel, itemStack, instance);
@@ -200,6 +211,17 @@ public final class GemUpgradeService {
         GemDefinition.UpgradeConfig upgradeConfig = definition.upgrade();
         int targetLevel = preview.targetLevel();
         GemDefinition.GemUpgradeLevel upgradeLevel = preview.upgradeLevel();
+        double successChance = effectiveSuccessChance(definition, targetLevel, upgradeLevel.successChance());
+        // 宝石升级对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费，传装备与目标槽位。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            GemUpgradeEvent upgradeEvent = new GemUpgradeEvent(target, equipment, definition.id(),
+                    instance.level(), targetLevel, slotIndex, successChance);
+            org.bukkit.Bukkit.getPluginManager().callEvent(upgradeEvent);
+            if (upgradeEvent.isCancelled()) {
+                return Result.failure("gem.error.condition_not_met", Map.of("slot", slotIndex));
+            }
+            successChance = upgradeEvent.getSuccessChance();
+        }
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             List<GemDefinition.CurrencyCost> currencies = new ArrayList<>(effectiveCurrencies(upgradeConfig, upgradeLevel));
@@ -216,7 +238,6 @@ public final class GemUpgradeService {
         placeholders.put("slot", slotIndex);
         placeholders.put("current_level", instance.level());
         placeholders.put("target_level", targetLevel);
-        double successChance = effectiveSuccessChance(definition, targetLevel, upgradeLevel.successChance());
         placeholders.put("success_rate", successChance);
         if (ThreadLocalRandom.current().nextDouble(100D) >= successChance) {
             GemState penalizedState = applyFailurePenalty(definition, upgradeLevel, currentState, slotIndex, instance);

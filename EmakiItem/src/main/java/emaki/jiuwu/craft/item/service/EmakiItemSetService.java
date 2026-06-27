@@ -39,6 +39,8 @@ public final class EmakiItemSetService {
     private final ItemSetLoreRenderer loreRenderer;
     private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
     private final java.util.function.Supplier<AppConfig> configSupplier;
+    // 记录每个玩家上次各套装的激活件数，用于边沿触发 ItemSetBonusChangeEvent，避免每次背包刷新都派发。
+    private final Map<java.util.UUID, Map<String, Integer>> lastActiveCounts = new java.util.concurrent.ConcurrentHashMap<>();
 
     public EmakiItemSetService(EmakiItemLoader itemLoader,
             EmakiItemSetLoader setLoader,
@@ -103,7 +105,54 @@ public final class EmakiItemSetService {
             }
         }
         changed += cleanInventorySetLore(player, states);
+        fireSetBonusChangeEvents(player, states, trigger);
         return changed;
+    }
+
+    private void fireSetBonusChangeEvents(Player player,
+            Map<String, EquippedSetState> states,
+            String trigger) {
+        java.util.UUID uuid = player.getUniqueId();
+        Map<String, Integer> previous = lastActiveCounts.getOrDefault(uuid, Map.of());
+        Map<String, Integer> current = new LinkedHashMap<>();
+        for (Map.Entry<String, EquippedSetState> entry : states.entrySet()) {
+            EquippedSetState state = entry.getValue();
+            if (state != null && state.activeCount() > 0) {
+                current.put(entry.getKey(), state.activeCount());
+            }
+        }
+        // 套装激活件数变化对外开放，after 边沿通知；仅在主线程派发。
+        boolean primaryThread = org.bukkit.Bukkit.isPrimaryThread();
+        Set<String> setIds = new LinkedHashSet<>(previous.keySet());
+        setIds.addAll(current.keySet());
+        for (String setId : setIds) {
+            int oldCount = previous.getOrDefault(setId, 0);
+            int newCount = current.getOrDefault(setId, 0);
+            if (oldCount == newCount) {
+                continue;
+            }
+            if (primaryThread) {
+                EquippedSetState state = states.get(setId);
+                int totalPieces = state != null && state.definition() != null ? state.definition().totalPieces() : 0;
+                List<Integer> activeThresholds = state == null
+                        ? List.of()
+                        : state.activeThresholds().stream().map(ItemSetThreshold::requiredPieces).toList();
+                org.bukkit.Bukkit.getPluginManager().callEvent(new emaki.jiuwu.craft.item.api.event.ItemSetBonusChangeEvent(
+                        player, setId, oldCount, newCount, totalPieces, activeThresholds, trigger));
+            }
+        }
+        if (current.isEmpty()) {
+            lastActiveCounts.remove(uuid);
+        } else {
+            lastActiveCounts.put(uuid, current);
+        }
+    }
+
+    /** Clears cached set state for a player (e.g. on quit) to avoid leaks. */
+    public void clearCachedState(java.util.UUID uuid) {
+        if (uuid != null) {
+            lastActiveCounts.remove(uuid);
+        }
     }
 
     private int cleanInventorySetLore(Player player,

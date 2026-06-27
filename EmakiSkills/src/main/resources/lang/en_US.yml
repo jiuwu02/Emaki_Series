@@ -213,6 +213,7 @@ upgrade:
     <gold>%target_level%</gold>.</green>"
   failed: "<red>Skill <white>%skill%</white> upgrade failed, success rate
     %success_rate%%.</red>"
+  cancelled: "<yellow>The skill upgrade was cancelled.</yellow>"
 
 # Debug mode messages
 debug:

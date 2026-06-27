@@ -7,6 +7,7 @@ import java.util.Set;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.skills.api.event.PlayerSkillSlotChangeEvent;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -74,6 +75,9 @@ public final class PlayerSkillStateService {
         if (current == null) {
             return false;
         }
+        if (fireSlotChange(player, slotIndex, skillId, null, PlayerSkillSlotChangeEvent.Action.EQUIP)) {
+            return false;
+        }
         profile.setBinding(slotIndex, new SkillSlotBinding(slotIndex, skillId, current.triggerId()));
         return true;
     }
@@ -88,6 +92,9 @@ public final class PlayerSkillStateService {
         }
         SkillSlotBinding current = profile.getBinding(slotIndex);
         if (current == null) {
+            return false;
+        }
+        if (fireSlotChange(player, slotIndex, current.skillId(), null, PlayerSkillSlotChangeEvent.Action.UNEQUIP)) {
             return false;
         }
         profile.clearSlot(slotIndex);
@@ -112,8 +119,30 @@ public final class PlayerSkillStateService {
             return false;
         }
 
+        if (fireSlotChange(player, slotIndex, current.skillId(), triggerId, PlayerSkillSlotChangeEvent.Action.BIND_TRIGGER)) {
+            return false;
+        }
+
         profile.setBinding(slotIndex, new SkillSlotBinding(slotIndex, current.skillId(), triggerId));
         return true;
+    }
+
+    /**
+     * Fires the slot change event and returns {@code true} when the change was
+     * cancelled. Only dispatches on the primary thread; off-thread callers
+     * proceed without an event.
+     */
+    private boolean fireSlotChange(Player player,
+            int slotIndex,
+            String skillId,
+            String triggerId,
+            PlayerSkillSlotChangeEvent.Action action) {
+        if (!org.bukkit.Bukkit.isPrimaryThread()) {
+            return false;
+        }
+        PlayerSkillSlotChangeEvent event = new PlayerSkillSlotChangeEvent(player, slotIndex, skillId, triggerId, action);
+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        return event.isCancelled();
     }
 
     public String checkTriggerConflict(Player player, int targetSlot, String triggerId) {

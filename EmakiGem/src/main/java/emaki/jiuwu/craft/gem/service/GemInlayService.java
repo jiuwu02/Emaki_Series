@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.api.event.GemExtractEvent;
 import emaki.jiuwu.craft.gem.api.event.GemInlayEvent;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
@@ -237,6 +238,16 @@ public final class GemInlayService {
         if (!evaluateConditions(actor)) {
             return new ExtractDirectResult(
                     GemExtractService.Result.failure("gem.error.condition_not_met", Map.of()), equipment, null);
+        }
+        // 拔取宝石对外开放，可取消；extractDirect 可能经公开 API 在异步线程调用，事件只在主线程派发。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            GemExtractEvent extractEvent = new GemExtractEvent(actor, equipment, slotIndex,
+                    gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
+            org.bukkit.Bukkit.getPluginManager().callEvent(extractEvent);
+            if (extractEvent.isCancelled()) {
+                return new ExtractDirectResult(
+                        GemExtractService.Result.failure("gem.error.condition_not_met", Map.of()), equipment, null);
+            }
         }
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {

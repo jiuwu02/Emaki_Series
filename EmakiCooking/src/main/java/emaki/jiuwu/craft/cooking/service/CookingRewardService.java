@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.api.event.CookingRecipeCompleteEvent;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingResultRuleRegistry;
@@ -75,8 +76,26 @@ public final class CookingRewardService {
         if (plan.cancelled()) {
             return;
         }
+        // 配方完成产物发放对外开放，可取消、可改是否掉落；这是所有工位的统一出口，仅主线程派发。
+        boolean effectiveDropResult = dropResult;
+        if (recipe != null && org.bukkit.Bukkit.isPrimaryThread()) {
+            CookingRecipeCompleteEvent completeEvent = new CookingRecipeCompleteEvent(
+                    player,
+                    location,
+                    recipe.id(),
+                    recipe.displayName(),
+                    recipe.stationType() == null ? "" : recipe.stationType().folderName(),
+                    phase,
+                    plan.outputs() == null ? 0 : plan.outputs().size(),
+                    dropResult);
+            org.bukkit.Bukkit.getPluginManager().callEvent(completeEvent);
+            if (completeEvent.isCancelled()) {
+                return;
+            }
+            effectiveDropResult = completeEvent.isDropResult();
+        }
         for (Map<String, Object> output : plan.outputs()) {
-            deliverOutput(recipe, player, location, dropResult, output, phase, placeholders);
+            deliverOutput(recipe, player, location, effectiveDropResult, output, phase, placeholders);
         }
         executeActions(plan.actions(), player, location, phase, defaultPlaceholders(player, location, placeholders));
         fireJavaScriptCompleteHooks(plan);
