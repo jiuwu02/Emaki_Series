@@ -18,7 +18,7 @@ public final class BuiltinActions {
     public static void registerAll(ActionRegistry registry,
             EconomyManager economyManager,
             ItemSourceService itemSourceService) {
-        registerAll(registry, economyManager, itemSourceService, null, null, null);
+        registerAll(registry, economyManager, itemSourceService, null, null, null, null, null);
     }
 
     public static void registerAll(ActionRegistry registry,
@@ -27,7 +27,7 @@ public final class BuiltinActions {
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
             CustomBlockBridge nexoBlockBridge) {
-        registerAll(registry, economyManager, itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, null);
+        registerAll(registry, economyManager, itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, null, null);
     }
 
     public static void registerAll(ActionRegistry registry,
@@ -36,6 +36,17 @@ public final class BuiltinActions {
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
             CustomBlockBridge nexoBlockBridge,
+            CustomBlockBridge oraxenBlockBridge) {
+        registerAll(registry, economyManager, itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge, null);
+    }
+
+    public static void registerAll(ActionRegistry registry,
+            EconomyManager economyManager,
+            ItemSourceService itemSourceService,
+            CraftEngineBlockBridge craftEngineBlockBridge,
+            CustomBlockBridge itemsAdderBlockBridge,
+            CustomBlockBridge nexoBlockBridge,
+            CustomBlockBridge oraxenBlockBridge,
             LoopActionService loopActionService) {
         registry.register(new SendMessageAction());
         registry.register(new SendTitleAction());
@@ -50,7 +61,7 @@ public final class BuiltinActions {
         registry.register(new SendItemAction());
         registry.register(new ClearItemAction(itemSourceService));
         registry.register(new DropItemAction(itemSourceService));
-        registry.register(new PlaceBlockAction(itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge));
+        registry.register(new PlaceBlockAction(itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge));
         registry.register(new TeleportAction());
         registry.register(new HealAction());
         registry.register(new DamageAction());

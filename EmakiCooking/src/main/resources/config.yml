@@ -115,6 +115,7 @@ display_adjustments:
 #   - craftengine-emaki:wok
 #   - itemsadder-emaki:wok
 #   - nexo-wok
+#   - oraxen-wok
 stations:
   chopping_board:
     # 砧板方块来源
@@ -251,6 +252,8 @@ stations:
     #   lit_item_sources: [itemsadder-emaki:heater_lit]
     # - item_sources: [nexo-heater]
     #   lit_item_sources: [nexo-heater_lit]
+    # - item_sources: [oraxen-heater]
+    #   lit_item_sources: [oraxen-heater_lit]
     heat_item_sources:
       - minecraft-furnace
       - minecraft-smoker
@@ -421,8 +424,8 @@ nutrition:
   save_interval_seconds: 300
 
   # 食物来源：吃下匹配 item_sources 中任意来源的物品时，按 nutrition 增加对应营养值。
-  # item_sources 支持：minecraft-xxx / craftengine-xxx / itemsadder-xxx / nexo-xxx / mmoitems-xxx / neigeitems-xxx
-  # 原版、CraftEngine、ItemsAdder、Nexo 食物走原版食用事件；MMOItems、NeigeItems 食用走各自接入。
+  # item_sources 支持：minecraft-xxx / craftengine-xxx / itemsadder-xxx / nexo-xxx / oraxen-xxx / mmoitems-xxx / neigeitems-xxx
+  # 原版、CraftEngine、ItemsAdder、Nexo、Oraxen 食物走原版食用事件；MMOItems、NeigeItems 食用走各自接入。
   food_sources:
     - item_sources:
         - minecraft-apple

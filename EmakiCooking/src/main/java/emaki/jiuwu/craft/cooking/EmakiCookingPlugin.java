@@ -104,6 +104,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private CraftEngineBlockBridge craftEngineBlockBridge;
     private CustomBlockBridge itemsAdderBlockBridge;
     private CustomBlockBridge nexoBlockBridge;
+    private CustomBlockBridge oraxenBlockBridge;
     private CookingSettingsService settingsService;
     private CookingBlockMatcher blockMatcher;
     private StationStateStore stationStateStore;
@@ -245,6 +246,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         craftEngineBlockBridge = components.craftEngineBlockBridge();
         itemsAdderBlockBridge = components.itemsAdderBlockBridge();
         nexoBlockBridge = components.nexoBlockBridge();
+        oraxenBlockBridge = components.oraxenBlockBridge();
         settingsService = components.settingsService();
         blockMatcher = components.blockMatcher();
         stationStateStore = components.stationStateStore();
@@ -302,6 +304,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerCraftEngineEventHandlers();
         registerItemsAdderEventHandlers();
         registerNexoEventHandlers();
+        registerOraxenEventHandlers();
         registerNutritionEventHandlers();
     }
 
@@ -420,6 +423,18 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
     }
 
+    private void registerOraxenEventHandlers() {
+        if (stationListener == null || !getServer().getPluginManager().isPluginEnabled("Oraxen")) {
+            return;
+        }
+        try {
+            getServer().getPluginManager().registerEvents(new OraxenCookingStationListener(stationListener), this);
+            messageService.info("console.block_source_bridge_ready", Map.of("provider", "Oraxen"));
+        } catch (LinkageError exception) {
+            messageService.warning("console.block_source_bridge_unavailable", Map.of("provider", "Oraxen", "error", String.valueOf(exception.getMessage())));
+        }
+    }
+
     private void registerPlaceholderExpansion() {
         if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             new CookingPlaceholderExpansion(this).register();
@@ -494,6 +509,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public CustomBlockBridge nexoBlockBridge() {
         return nexoBlockBridge;
+    }
+
+    public CustomBlockBridge oraxenBlockBridge() {
+        return oraxenBlockBridge;
     }
 
     public CookingSettingsService settingsService() {

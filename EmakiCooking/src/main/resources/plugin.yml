@@ -10,6 +10,7 @@ softdepend:
   - CraftEngine
   - ItemsAdder
   - Nexo
+  - Oraxen
   - PacketEvents
   - MMOItems
   - NeigeItems

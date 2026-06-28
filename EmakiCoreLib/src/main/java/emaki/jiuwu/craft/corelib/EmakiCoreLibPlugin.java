@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
+import emaki.jiuwu.craft.corelib.integration.OraxenBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -109,6 +110,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final CraftEngineBlockBridge craftEngineBlockBridge = new CraftEngineBlockBridgeProvider(this);
     private final CustomBlockBridge itemsAdderBlockBridge = new ItemsAdderBlockBridgeProvider(this);
     private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
+    private final CustomBlockBridge oraxenBlockBridge = new OraxenBlockBridgeProvider(this);
     private EmakiItemAssemblyService itemAssemblyService;
     private final emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry layerMigrationRegistry
             = new emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry();
@@ -272,6 +274,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 craftEngineBlockBridge,
                 itemsAdderBlockBridge,
                 nexoBlockBridge,
+                oraxenBlockBridge,
                 effectiveLoopService
         );
         configPrecheckService.configure(candidateActionRegistry, candidateTemplateRegistry);
@@ -411,7 +414,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         for (String providerId : economyManager.availableProviderIds()) {
             messageService.info("console.economy_bridge_ready", Map.of("provider", providerId));
         }
-        for (String blockProvider : new String[]{"CraftEngine", "ItemsAdder", "Nexo"}) {
+        for (String blockProvider : new String[]{"CraftEngine", "ItemsAdder", "Nexo", "Oraxen"}) {
             if (getServer().getPluginManager().isPluginEnabled(blockProvider)) {
                 messageService.info("console.block_source_bridge_ready", Map.of("provider", blockProvider));
             }
@@ -656,6 +659,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return nexoBlockBridge;
     }
 
+    public CustomBlockBridge oraxenBlockBridge() {
+        return oraxenBlockBridge;
+    }
+
     public DebugLogger debugLogger() {
         return debugLogger;
     }
@@ -707,6 +714,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(CraftEngineBlockBridge.class, craftEngineBlockBridge);
         registerService(ItemsAdderBlockBridgeProvider.class, (ItemsAdderBlockBridgeProvider) itemsAdderBlockBridge);
         registerService(NexoBlockBridgeProvider.class, (NexoBlockBridgeProvider) nexoBlockBridge);
+        registerService(OraxenBlockBridgeProvider.class, (OraxenBlockBridgeProvider) oraxenBlockBridge);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
         registerService(emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry.class, layerMigrationRegistry);
         registerService(emaki.jiuwu.craft.corelib.event.EmakiEventBus.class, eventBus);

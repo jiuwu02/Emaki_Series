@@ -295,7 +295,7 @@ export function registerEmakiCookingWebConsole(): void {
   const INTERACTION_OPTIONS = ['left_click', 'right_click', 'shift_left_click', 'shift_right_click'];
 
   const fieldComments: Record<string, [string, string, string] | [string, string, string, { options?: string[]; optionLabelPrefix?: string }]> = {
-    block_item_sources: ['方块来源', '识别为该工位本体方块的 ItemSource 列表，可使用 minecraft-/CraftEngine/ItemsAdder/Nexo 等格式。', 'list'],
+    block_item_sources: ['方块来源', '识别为该工位本体方块的 ItemSource 列表，可使用 minecraft-/CraftEngine/ItemsAdder/Nexo/Oraxen 等格式。', 'list'],
     only_recipe_items: ['只允许配方物', '是否只允许能继续匹配工位配方的物品进入输入。省略时通常继承全局输入规则。', 'boolean'],
     interactions: ['交互绑定', '不同业务动作对应的玩家点击方式，例如 shift_left_click、right_click。', 'object'],
     place_input: ['放入输入', '玩家把输入物品放入工位时使用的交互方式。', 'enum', { options: INTERACTION_OPTIONS, optionLabelPrefix: 'station.interaction' }],

@@ -33,6 +33,7 @@ softdepend:
   - MythicMobs
   - ItemsAdder
   - Nexo
+  - Oraxen
   - NeigeItems
   - CraftEngine
   - PacketEvents

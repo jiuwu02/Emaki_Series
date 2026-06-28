@@ -33,11 +33,13 @@ public final class PlaceBlockAction extends BaseAction {
     private final CraftEngineBlockBridge craftEngineBlockBridge;
     private final CustomBlockBridge itemsAdderBlockBridge;
     private final CustomBlockBridge nexoBlockBridge;
+    private final CustomBlockBridge oraxenBlockBridge;
 
     public PlaceBlockAction(ItemSourceService itemSourceService,
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
-            CustomBlockBridge nexoBlockBridge) {
+            CustomBlockBridge nexoBlockBridge,
+            CustomBlockBridge oraxenBlockBridge) {
         super(
                 "placeblock",
                 "world",
@@ -52,6 +54,7 @@ public final class PlaceBlockAction extends BaseAction {
         this.craftEngineBlockBridge = craftEngineBlockBridge;
         this.itemsAdderBlockBridge = itemsAdderBlockBridge;
         this.nexoBlockBridge = nexoBlockBridge;
+        this.oraxenBlockBridge = oraxenBlockBridge;
     }
 
     @Override
@@ -75,6 +78,7 @@ public final class PlaceBlockAction extends BaseAction {
             case CRAFTENGINE -> placeCustom(context.player(), target, source, craftEngineBlockBridge, "CraftEngine");
             case ITEMSADDER -> placeCustom(context.player(), target, source, itemsAdderBlockBridge, "ItemsAdder");
             case NEXO -> placeCustom(context.player(), target, source, nexoBlockBridge, "Nexo");
+            case ORAXEN -> placeCustom(context.player(), target, source, oraxenBlockBridge, "Oraxen");
             default -> ActionResult.skipped("Item source '" + ItemSourceUtil.toShorthand(source) + "' is not a placeable block source.");
         };
     }

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.3.26</version>
+    <version>4.3.27</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -116,6 +116,17 @@
         <dependency>
             <groupId>com.nexomc</groupId>
             <artifactId>nexo</artifactId>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.th0rgal</groupId>
+            <artifactId>oraxen</artifactId>
             <scope>provided</scope>
             <exclusions>
                 <exclusion>

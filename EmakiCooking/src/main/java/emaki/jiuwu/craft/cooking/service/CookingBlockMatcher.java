@@ -18,15 +18,18 @@ public final class CookingBlockMatcher {
     private final CraftEngineBlockBridge craftEngineBlockBridge;
     private final CustomBlockBridge itemsAdderBlockBridge;
     private final CustomBlockBridge nexoBlockBridge;
+    private final CustomBlockBridge oraxenBlockBridge;
 
     public CookingBlockMatcher(CookingSettingsService settingsService,
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
-            CustomBlockBridge nexoBlockBridge) {
+            CustomBlockBridge nexoBlockBridge,
+            CustomBlockBridge oraxenBlockBridge) {
         this.settingsService = settingsService;
         this.craftEngineBlockBridge = craftEngineBlockBridge;
         this.itemsAdderBlockBridge = itemsAdderBlockBridge;
         this.nexoBlockBridge = nexoBlockBridge;
+        this.oraxenBlockBridge = oraxenBlockBridge;
     }
 
     public boolean matches(StationInteraction interaction, StationType stationType) {
@@ -68,6 +71,7 @@ public final class CookingBlockMatcher {
             case CRAFTENGINE -> craftEngineBlockBridge != null && craftEngineBlockBridge.matches(block, source.getIdentifier());
             case ITEMSADDER -> itemsAdderBlockBridge != null && itemsAdderBlockBridge.matches(block, source.getIdentifier());
             case NEXO -> nexoBlockBridge != null && nexoBlockBridge.matches(block, source.getIdentifier());
+            case ORAXEN -> oraxenBlockBridge != null && oraxenBlockBridge.matches(block, source.getIdentifier());
             default -> false;
         };
     }
@@ -85,6 +89,7 @@ public final class CookingBlockMatcher {
             case CRAFTENGINE -> craftEngineBlockBridge != null && craftEngineBlockBridge.placeBlock(block, source.getIdentifier());
             case ITEMSADDER -> itemsAdderBlockBridge != null && itemsAdderBlockBridge.placeBlock(block, source.getIdentifier());
             case NEXO -> nexoBlockBridge != null && nexoBlockBridge.placeBlock(block, source.getIdentifier());
+            case ORAXEN -> oraxenBlockBridge != null && oraxenBlockBridge.placeBlock(block, source.getIdentifier());
             default -> false;
         };
     }
@@ -101,6 +106,9 @@ public final class CookingBlockMatcher {
         }
         if (nexoBlockBridge != null && nexoBlockBridge.isCustomBlock(block)) {
             return nexoBlockBridge.setLit(block, lit);
+        }
+        if (oraxenBlockBridge != null && oraxenBlockBridge.isCustomBlock(block)) {
+            return oraxenBlockBridge.setLit(block, lit);
         }
         return false;
     }
