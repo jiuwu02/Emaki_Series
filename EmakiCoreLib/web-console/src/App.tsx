@@ -112,15 +112,32 @@ const COLOR_THEMES: { id: ColorTheme; labelKey: string }[] = [
   { id: 'light', labelKey: 'core.theme.light' }
 ];
 const LOCALE_LABELS: Record<string, string> = { 'zh-CN': '简体中文', zh_CN: '简体中文', 'en-US': 'English', en_US: 'English' };
-const CONFIG_INITIAL_GROUPS = 10;
-const CONFIG_GROUP_BATCH_SIZE = 12;
-const CONFIG_SECTION_INITIAL_GROUPS = 8;
-const CONFIG_SECTION_GROUP_BATCH_SIZE = 10;
+// 配置节点分页
+const CONFIG_GROUP_PAGINATION = {
+  initialGroups: 10,
+  batchSize: 12,
+} as const;
+
+// 配置分段分页
+const CONFIG_SECTION_PAGINATION = {
+  initialGroups: 8,
+  batchSize: 10,
+} as const;
+
+// 对象列表渲染
+const OBJECT_LIST_RENDER = {
+  collapseThreshold: 10,
+  initialRows: 30,
+  rowBatchSize: 30,
+} as const;
+
+// 工作区布局
+const WORKBENCH_LAYOUT = {
+  outlineCollapseWidth: 1180,
+} as const;
+
+// 懒加载阈值(被配置分段与对象列表两个域共享,故保留为独立扁平常量)
 const CONFIG_LAZY_SECTION_THRESHOLD = 10;
-const OBJECT_LIST_COLLAPSE_THRESHOLD = 10;
-const OBJECT_LIST_INITIAL_ROWS = 30;
-const OBJECT_LIST_ROW_BATCH_SIZE = 30;
-const WORKBENCH_OUTLINE_COLLAPSE_WIDTH = 1180;
 
 type WorkbenchLayout = {
   outlineVisible: boolean;
@@ -168,7 +185,7 @@ function useWorkbenchLayout(hasOutline: boolean): WorkbenchLayout {
 }
 
 function resolveWorkbenchLayout(viewportWidth: number, hasOutline: boolean, railRequested: number, outlineRequested: number): Omit<WorkbenchLayout, 'setRailRequested' | 'setOutlineRequested'> {
-  const outlineVisible = hasOutline && viewportWidth > WORKBENCH_OUTLINE_COLLAPSE_WIDTH;
+  const outlineVisible = hasOutline && viewportWidth > WORKBENCH_LAYOUT.outlineCollapseWidth;
   const railLimit = Math.max(RAIL_MIN, viewportWidth - (outlineVisible ? OUTLINE_MIN : 0));
   const railWidth = Math.round(Math.min(clampWorkbenchWidth(railRequested, RAIL_MIN, RAIL_MAX, RAIL_DEFAULT), railLimit));
   const outlineLimit = Math.max(OUTLINE_MIN, viewportWidth - railWidth);
@@ -2351,7 +2368,7 @@ const ConfigNodeTree = memo(function ConfigNodeTree({ scope, nodes, outlineTitle
   const scopeDraftKey = useMemo(() => draftSignatureForScope(drafts, scope), [drafts, scope.moduleId, scope.fileId, scope.filePath]);
   const changeState = useMemo(() => buildNodeChangeState(scope, nodes, drafts, sourceEdit?.paths, deletedPaths), [scope.moduleId, scope.fileId, scope.filePath, nodes, scopeDraftKey, sourceEdit?.paths, deletedPaths]);
   const groups = nodeIndex.groupsByParent.get('') ?? [];
-  const visibleCount = useProgressiveCount(groups.length, CONFIG_INITIAL_GROUPS, CONFIG_GROUP_BATCH_SIZE, [scope.moduleId, scope.fileId, scope.filePath, groups.length]);
+  const visibleCount = useProgressiveCount(groups.length, CONFIG_GROUP_PAGINATION.initialGroups, CONFIG_GROUP_PAGINATION.batchSize, [scope.moduleId, scope.fileId, scope.filePath, groups.length]);
   const visibleGroups = groups.slice(0, visibleCount);
   const locale = getLocale();
 
@@ -2474,7 +2491,7 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [shouldRenderBody, setShouldRenderBody] = useState(!defaultCollapsed);
   const bodyTimer = useRef<number | null>(null);
-  const visibleCount = useProgressiveCount(shouldRenderBody && !isCollapsed ? groups.length : 0, CONFIG_SECTION_INITIAL_GROUPS, CONFIG_SECTION_GROUP_BATCH_SIZE, [scope.moduleId, scope.fileId, scope.filePath, node.path, shouldRenderBody, isCollapsed, groups.length]);
+  const visibleCount = useProgressiveCount(shouldRenderBody && !isCollapsed ? groups.length : 0, CONFIG_SECTION_PAGINATION.initialGroups, CONFIG_SECTION_PAGINATION.batchSize, [scope.moduleId, scope.fileId, scope.filePath, node.path, shouldRenderBody, isCollapsed, groups.length]);
   const visibleGroups = groups.slice(0, visibleCount);
   const hasSiblingBranches = groups.length > 1;
   const groupLabel = configNodeDisplayLabel(scope, node);
@@ -2692,11 +2709,11 @@ function ObjectListEditor({ node, items, setValue, moduleId, compact = false, he
   const stableRef = useStableEntries(objectItems);
   const stable = stableRef.current;
   const keys = objectListKeys(node, objectItems);
-  const defaultCollapsedRows = stable.filter(entry => stable.length > OBJECT_LIST_COLLAPSE_THRESHOLD || keys.length > CONFIG_LAZY_SECTION_THRESHOLD || !hasMeaningfulConfigValue(entry.data)).map(entry => entry._id);
-  const largeList = stable.length > OBJECT_LIST_COLLAPSE_THRESHOLD;
+  const defaultCollapsedRows = stable.filter(entry => stable.length > OBJECT_LIST_RENDER.collapseThreshold || keys.length > CONFIG_LAZY_SECTION_THRESHOLD || !hasMeaningfulConfigValue(entry.data)).map(entry => entry._id);
+  const largeList = stable.length > OBJECT_LIST_RENDER.collapseThreshold;
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(defaultCollapsedRows));
   const [emptyExpanded, setEmptyExpanded] = useState(false);
-  const visibleCount = useProgressiveCount(stable.length, OBJECT_LIST_INITIAL_ROWS, OBJECT_LIST_ROW_BATCH_SIZE, [node.path, stable.length]);
+  const visibleCount = useProgressiveCount(stable.length, OBJECT_LIST_RENDER.initialRows, OBJECT_LIST_RENDER.rowBatchSize, [node.path, stable.length]);
   const visibleStable = stable.slice(0, visibleCount);
   const duplicateValues = duplicateUniqueValues(node, objectItems);
 

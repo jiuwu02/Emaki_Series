@@ -61,7 +61,11 @@ public final class LevelTopGuiService {
                 Map.of(
                         KEY_PAGE_INDEX, 0,
                         KEY_TYPE, normalizedType,
-                        KEY_TYPE_DISPLAY_NAME, typeDisplayName(normalizedType)
+                        KEY_TYPE_DISPLAY_NAME, typeDisplayName(normalizedType),
+                        "page", 1,
+                        "current_page", 1,
+                        "total_pages", totalPages(template, normalizedType),
+                        "entry_count", plugin.topService().top(normalizedType, Integer.MAX_VALUE).size()
                 ),
                 (source, amount) -> plugin.coreLib().itemSourceService().createItem(source, amount),
                 renderer::render,
@@ -96,22 +100,31 @@ public final class LevelTopGuiService {
     }
 
     public int pageSize(GuiSession session) {
-        if (session == null || session.template() == null) {
+        return pageSize(session == null ? null : session.template());
+    }
+
+    public int pageSize(GuiTemplate template) {
+        if (template == null) {
             return 0;
         }
         int size = 0;
-        for (GuiSlot slot : session.template().slotsByType("top_entry")) {
+        for (GuiSlot slot : template.slotsByType("top_entry")) {
             size += slot.slots().size();
         }
         return size;
     }
 
     public int totalPages(GuiSession session) {
-        int pageSize = pageSize(session);
+        return totalPages(session == null ? null : session.template(), typeId(session));
+    }
+
+    public int totalPages(GuiTemplate template, String typeId) {
+        int pageSize = pageSize(template);
         if (pageSize <= 0) {
             return 1;
         }
-        int count = plugin.topService().top(typeId(session), Integer.MAX_VALUE).size();
+        String resolvedType = Texts.isBlank(typeId) ? plugin.appConfig().primaryType() : typeId;
+        int count = plugin.topService().top(resolvedType, Integer.MAX_VALUE).size();
         return Math.max(1, (int) Math.ceil((double) count / pageSize));
     }
 

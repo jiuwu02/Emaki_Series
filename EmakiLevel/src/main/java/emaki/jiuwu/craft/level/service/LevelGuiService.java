@@ -68,7 +68,11 @@ public final class LevelGuiService {
                         KEY_PAGE_INDEX, 0,
                         KEY_SELECTED_TYPE, selectedType,
                         KEY_TYPE, selectedType,
-                        KEY_TYPE_DISPLAY_NAME, typeDisplayName(selectedType)
+                        KEY_TYPE_DISPLAY_NAME, typeDisplayName(selectedType),
+                        "page", 1,
+                        "current_page", 1,
+                        "total_pages", totalPages(template),
+                        "type_count", types().size()
                 ),
                 (source, amount) -> plugin.coreLib().itemSourceService().createItem(source, amount),
                 renderer::render,
@@ -114,7 +118,11 @@ public final class LevelGuiService {
     }
 
     public int totalPages(GuiSession session) {
-        int pageSize = pageSize(session);
+        return totalPages(session == null ? null : session.template());
+    }
+
+    public int totalPages(GuiTemplate template) {
+        int pageSize = pageSize(template);
         if (pageSize <= 0) {
             return 1;
         }
@@ -122,11 +130,15 @@ public final class LevelGuiService {
     }
 
     public int pageSize(GuiSession session) {
-        if (session == null || session.template() == null) {
+        return pageSize(session == null ? null : session.template());
+    }
+
+    public int pageSize(GuiTemplate template) {
+        if (template == null) {
             return 0;
         }
         int size = 0;
-        for (GuiSlot slot : session.template().slotsByType("level_type")) {
+        for (GuiSlot slot : template.slotsByType("level_type")) {
             size += slot.slots().size();
         }
         return size;
