@@ -25,7 +25,10 @@ public record AttemptContext(ItemStack targetItem, List<ItemStack> materialInput
         } else {
             List<ItemStack> normalized = new ArrayList<>(materialInputs.size());
             for (ItemStack itemStack : materialInputs) {
-                normalized.add(normalizeItem(itemStack));
+                ItemStack cloned = normalizeItem(itemStack);
+                if (cloned != null) {
+                    normalized.add(cloned);
+                }
             }
             materialInputs = List.copyOf(normalized);
         }

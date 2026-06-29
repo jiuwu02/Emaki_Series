@@ -7,8 +7,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 final class ItemOperationReverter {
 
@@ -26,7 +26,12 @@ final class ItemOperationReverter {
         if (entry == null) {
             return RevertResult.NOT_FOUND;
         }
-        return revertEntry(itemStack, entry);
+        boolean hadName = !entry.nameRecords().isEmpty();
+        revertLore(itemStack, entry);
+        if (hadName) {
+            rebuildName(itemStack);
+        }
+        return new RevertResult(true, 1);
     }
 
     public RevertResult revertAll(ItemStack itemStack, String sourceNamespace) {
@@ -37,68 +42,63 @@ final class ItemOperationReverter {
         if (entries.isEmpty()) {
             return RevertResult.NOT_FOUND;
         }
+        boolean hadName = false;
         for (int i = entries.size() - 1; i >= 0; i--) {
-            revertEntry(itemStack, entries.get(i));
+            ItemOperationEntry entry = entries.get(i);
+            hadName = hadName || !entry.nameRecords().isEmpty();
+            revertLore(itemStack, entry);
+        }
+        if (hadName) {
+            rebuildName(itemStack);
         }
         return new RevertResult(true, entries.size());
     }
 
-    private RevertResult revertEntry(ItemStack itemStack, ItemOperationEntry entry) {
+    private void revertLore(ItemStack itemStack, ItemOperationEntry entry) {
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) {
-            return RevertResult.NOT_FOUND;
-        }
-
-        revertNameOperations(itemStack, itemMeta, entry.nameRecords());
-        revertLoreOperations(itemMeta, entry.loreRecords());
-
-        itemStack.setItemMeta(itemMeta);
-        return new RevertResult(true, 1);
-    }
-
-    private void revertNameOperations(ItemStack itemStack, ItemMeta itemMeta, List<ItemOperationEntry.NameOperationRecord> records) {
-        if (records == null || records.isEmpty()) {
             return;
         }
-        String currentName = ItemTextBridge.hasCustomName(itemMeta)
-                ? MiniMessages.serialize(ItemTextBridge.customName(itemMeta))
-                : "";
-
-        for (int i = records.size() - 1; i >= 0; i--) {
-            ItemOperationEntry.NameOperationRecord record = records.get(i);
-            currentName = revertNameOperation(currentName, record);
-        }
-
-        if (Texts.isNotBlank(currentName)) {
-            ItemTextBridge.customName(itemMeta, MiniMessages.parse(currentName));
-        } else {
-            ItemTextBridge.customName(itemMeta, null);
-        }
+        revertLoreOperations(itemMeta, entry.loreRecords());
+        itemStack.setItemMeta(itemMeta);
     }
 
-    private String revertNameOperation(String currentName, ItemOperationEntry.NameOperationRecord record) {
-        String action = record.action();
-        String renderedValue = record.renderedValue();
-        String originalValue = record.originalValue();
+    /**
+     * Deterministically rebuilds the item name after one or more entries were
+     * removed. The base name is re-derived from the item type (after clearing
+     * the overlaid custom name) so a translatable vanilla name is preserved,
+     * then the name records of every <em>remaining</em> ledger entry are
+     * replayed on top. This keeps name contributions from other namespaces
+     * (e.g. gem prefixes) intact while removing the reverted ones.
+     */
+    private void rebuildName(ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        // Clear the overlaid name so effectiveName resolves the original
+        // (translatable) base name rather than the flattened, suffixed name.
+        ItemTextBridge.customName(itemMeta, null);
+        itemStack.setItemMeta(itemMeta);
 
-        return switch (action) {
-            case "append_suffix" -> {
-                if (Texts.isNotBlank(renderedValue) && currentName.endsWith(renderedValue)) {
-                    yield currentName.substring(0, currentName.length() - renderedValue.length());
+        itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        List<ItemOperationEntry.NameOperationRecord> remainingNameRecords = new ArrayList<>();
+        for (ItemOperationEntry entry : ledger.readAll(itemStack)) {
+            if (entry == null || entry.nameRecords() == null) {
+                continue;
+            }
+            for (ItemOperationEntry.NameOperationRecord record : entry.nameRecords()) {
+                if (record != null) {
+                    remainingNameRecords.add(record);
                 }
-                yield currentName;
             }
-            case "prepend_prefix" -> {
-                if (Texts.isNotBlank(renderedValue) && currentName.startsWith(renderedValue)) {
-                    yield currentName.substring(renderedValue.length());
-                }
-                yield currentName;
-            }
-            case "replace" -> {
-                yield Texts.isNotBlank(originalValue) ? originalValue : currentName;
-            }
-            default -> currentName;
-        };
+        }
+        Component baseName = LedgerNameComposer.resolveBaseName(itemStack, itemMeta);
+        Component result = LedgerNameComposer.composeFromRecords(baseName, remainingNameRecords);
+        LedgerNameComposer.writeName(itemStack, itemMeta, result);
     }
 
     private void revertLoreOperations(ItemMeta itemMeta, List<ItemOperationEntry.LoreOperationRecord> records) {

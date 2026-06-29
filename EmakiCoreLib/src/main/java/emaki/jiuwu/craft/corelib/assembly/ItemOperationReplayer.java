@@ -7,8 +7,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 final class ItemOperationReplayer {
 
@@ -20,50 +20,41 @@ final class ItemOperationReplayer {
         if (itemMeta == null) {
             return;
         }
-        replayNameOperations(itemStack, itemMeta, entries);
-        replayLoreOperations(itemMeta, entries);
-        itemStack.setItemMeta(itemMeta);
+        // Lore is committed via itemMeta first; the name is then injected as a
+        // component so a translatable base name survives instead of being
+        // flattened to a legacy string.
+        boolean loreChanged = replayLoreOperations(itemMeta, entries);
+        if (loreChanged) {
+            itemStack.setItemMeta(itemMeta);
+        }
+        replayNameOperations(itemStack, entries);
     }
 
-    private void replayNameOperations(ItemStack itemStack, ItemMeta itemMeta, List<ItemOperationEntry> entries) {
-        boolean hasRecords = false;
-        String currentName = ItemTextBridge.hasCustomName(itemMeta)
-                ? MiniMessages.serialize(ItemTextBridge.customName(itemMeta))
-                : MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack));
+    private void replayNameOperations(ItemStack itemStack, List<ItemOperationEntry> entries) {
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        List<ItemOperationEntry.NameOperationRecord> nameRecords = new ArrayList<>();
         for (ItemOperationEntry entry : entries) {
             if (entry == null || entry.nameRecords() == null || entry.nameRecords().isEmpty()) {
                 continue;
             }
             for (ItemOperationEntry.NameOperationRecord record : entry.nameRecords()) {
-                if (record == null) {
-                    continue;
+                if (record != null) {
+                    nameRecords.add(record);
                 }
-                hasRecords = true;
-                currentName = replayNameOperation(currentName, record);
             }
         }
-        if (!hasRecords) {
+        if (nameRecords.isEmpty()) {
             return;
         }
-        if (Texts.isNotBlank(currentName)) {
-            ItemTextBridge.customName(itemMeta, MiniMessages.parse(currentName));
-        } else {
-            ItemTextBridge.customName(itemMeta, null);
-        }
+        Component baseName = LedgerNameComposer.resolveBaseName(itemStack, itemMeta);
+        Component result = LedgerNameComposer.composeFromRecords(baseName, nameRecords);
+        LedgerNameComposer.writeName(itemStack, itemMeta, result);
     }
 
-    private String replayNameOperation(String currentName, ItemOperationEntry.NameOperationRecord record) {
-        String action = record.action();
-        String renderedValue = record.renderedValue();
-        return switch (action) {
-            case "replace" -> renderedValue;
-            case "prepend_prefix" -> Texts.isBlank(renderedValue) ? currentName : renderedValue + Texts.toStringSafe(currentName);
-            case "append_suffix" -> Texts.isBlank(renderedValue) ? currentName : Texts.toStringSafe(currentName) + renderedValue;
-            default -> currentName;
-        };
-    }
-
-    private void replayLoreOperations(ItemMeta itemMeta, List<ItemOperationEntry> entries) {
+    private boolean replayLoreOperations(ItemMeta itemMeta, List<ItemOperationEntry> entries) {
         boolean hasRecords = false;
         List<String> currentLore = new ArrayList<>();
         List<String> existingLore = ItemTextBridge.loreLines(itemMeta);
@@ -83,9 +74,10 @@ final class ItemOperationReplayer {
             }
         }
         if (!hasRecords) {
-            return;
+            return false;
         }
         ItemTextBridge.setLoreLines(itemMeta, currentLore.isEmpty() ? null : currentLore);
+        return true;
     }
 
     private void replayLoreOperation(List<String> lore, ItemOperationEntry.LoreOperationRecord record) {
