@@ -28,6 +28,10 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.cooking.model.NutritionComboThreshold;
+import emaki.jiuwu.craft.cooking.model.NutritionCompare;
+import emaki.jiuwu.craft.cooking.model.NutritionFoodSource;
+import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.cooking.model.StationInteractionType;
 import emaki.jiuwu.craft.cooking.model.StationType;
@@ -1022,5 +1026,144 @@ public final class CookingSettingsService {
         String path = "stations." + stationType.folderName() + ".actions." + operation;
         List<String> actions = configuration.getStringList(path);
         return actions == null ? List.of() : actions;
+    }
+
+    // ===================== 营养系统配置 =====================
+
+    public boolean nutritionEnabled() {
+        return configuration.getBoolean("nutrition.enabled", true);
+    }
+
+    public int nutritionSaveIntervalSeconds() {
+        return Math.max(0, configuration.getInt("nutrition.save_interval_seconds", 300));
+    }
+
+    /**
+     * 食物来源规则：吃下匹配来源的物品时按配置增加营养值。
+     */
+    public List<NutritionFoodSource> nutritionFoodSources() {
+        List<NutritionFoodSource> result = new ArrayList<>();
+        for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
+            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
+            List<ItemSource> sources = parseSources(firstPresent(normalized, "item_sources", "item_source", "item", "source"));
+            if (sources.isEmpty()) {
+                continue;
+            }
+            Map<String, Double> nutrition = parseNutritionAmounts(normalized.get("nutrition"));
+            List<String> actions = stringList(normalized.get("actions"));
+            if (nutrition.isEmpty() && actions.isEmpty()) {
+                continue;
+            }
+            result.add(new NutritionFoodSource(sources, nutrition, actions));
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * 单营养类型阈值规则列表。
+     */
+    public List<NutritionSingleThreshold> nutritionSingleThresholds() {
+        List<NutritionSingleThreshold> result = new ArrayList<>();
+        int index = 0;
+        for (Map<?, ?> entry : configuration.getMapList("nutrition.thresholds.single")) {
+            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
+            String id = Texts.toStringSafe(firstPresent(normalized, "id"));
+            if (Texts.isBlank(id)) {
+                id = "single_" + index;
+            }
+            List<String> types = normalizeIds(stringList(firstPresent(normalized, "types", "type")));
+            double value = configurationValueToDouble(normalized.get("value"), 0D);
+            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(firstPresent(normalized, "compare", "operator", "op")));
+            List<String> onMeet = stringList(firstPresent(normalized, "actions", "on_meet", "on_pass"));
+            List<String> onRecover = stringList(firstPresent(normalized, "on_recover", "on_fail", "recover_actions"));
+            if (onMeet.isEmpty() && onRecover.isEmpty()) {
+                index++;
+                continue;
+            }
+            result.add(new NutritionSingleThreshold(id, types, value, compare, onMeet, onRecover));
+            index++;
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * 组合营养阈值规则列表（达标类型数量满足时触发，例如膳食均衡反胃）。
+     */
+    public List<NutritionComboThreshold> nutritionComboThresholds() {
+        List<NutritionComboThreshold> result = new ArrayList<>();
+        int index = 0;
+        for (Map<?, ?> entry : configuration.getMapList("nutrition.thresholds.combo")) {
+            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
+            String id = Texts.toStringSafe(firstPresent(normalized, "id"));
+            if (Texts.isBlank(id)) {
+                id = "combo_" + index;
+            }
+            List<String> types = normalizeIds(stringList(firstPresent(normalized, "types", "type")));
+            double value = configurationValueToDouble(normalized.get("value"), 0D);
+            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(firstPresent(normalized, "compare", "operator", "op")));
+            Integer requiredCount = configurationValueToInt(firstPresent(normalized, "required_count", "count"), 5);
+            List<String> onMeet = stringList(firstPresent(normalized, "actions", "on_meet", "on_pass"));
+            List<String> onRecover = stringList(firstPresent(normalized, "on_recover", "on_fail", "recover_actions"));
+            if (onMeet.isEmpty() && onRecover.isEmpty()) {
+                index++;
+                continue;
+            }
+            result.add(new NutritionComboThreshold(id, types, value, compare,
+                    requiredCount == null ? 5 : requiredCount, onMeet, onRecover));
+            index++;
+        }
+        return List.copyOf(result);
+    }
+
+    private Map<String, Double> parseNutritionAmounts(Object raw) {
+        Map<String, Object> normalized = MapYamlSection.normalizeMap(raw instanceof Map<?, ?> map ? map : Map.of());
+        Map<String, Double> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : normalized.entrySet()) {
+            String typeId = Texts.normalizeId(entry.getKey());
+            if (Texts.isBlank(typeId)) {
+                continue;
+            }
+            Double amount = configurationValueToDouble(entry.getValue(), Double.NaN);
+            if (amount != null && !amount.isNaN()) {
+                result.put(typeId, amount);
+            }
+        }
+        return result;
+    }
+
+    private List<String> stringList(Object raw) {
+        List<String> result = new ArrayList<>();
+        for (Object token : ConfigNodes.asObjectList(raw)) {
+            String value = Texts.toStringSafe(token);
+            if (Texts.isNotBlank(value)) {
+                result.add(value);
+            }
+        }
+        return result;
+    }
+
+    private List<String> normalizeIds(List<String> raw) {
+        List<String> result = new ArrayList<>();
+        for (String token : raw) {
+            String id = Texts.normalizeId(token);
+            if (Texts.isNotBlank(id)) {
+                result.add(id);
+            }
+        }
+        return result;
+    }
+
+    private Double configurationValueToDouble(Object raw, double fallback) {
+        if (raw instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (raw instanceof String text && Texts.isNotBlank(text)) {
+            try {
+                return Double.parseDouble(text.trim());
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 }

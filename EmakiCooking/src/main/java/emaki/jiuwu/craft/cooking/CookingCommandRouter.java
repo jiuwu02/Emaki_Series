@@ -38,6 +38,7 @@ final class CookingCommandRouter implements TabExecutor {
             }
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
+            case "nutrition" -> handleNutrition(sender, args);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -50,7 +51,7 @@ final class CookingCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "reload", "inspect", "debug")) {
+            for (String sub : List.of("help", "reload", "inspect", "nutrition", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -60,10 +61,44 @@ final class CookingCommandRouter implements TabExecutor {
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
+        if ("nutrition".equalsIgnoreCase(args[0])) {
+            return nutritionTabComplete(args);
+        }
         if (args.length == 2) {
             if ("inspect".equalsIgnoreCase(args[0]) && "hand".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
                 result.add("hand");
             }
+            return result;
+        }
+        return result;
+    }
+
+    private List<String> nutritionTabComplete(String[] args) {
+        List<String> result = new ArrayList<>();
+        if (args.length == 2) {
+            for (String sub : List.of("get", "set", "add", "remove")) {
+                if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                    result.add(sub);
+                }
+            }
+            return result;
+        }
+        if (args.length == 3) {
+            String prefix = args[2].toLowerCase(java.util.Locale.ROOT);
+            for (Player online : org.bukkit.Bukkit.getOnlinePlayers()) {
+                if (online.getName().toLowerCase(java.util.Locale.ROOT).startsWith(prefix)) {
+                    result.add(online.getName());
+                }
+            }
+            return result;
+        }
+        if (args.length == 4 && plugin.nutritionTypeRegistry() != null) {
+            String prefix = args[3].toLowerCase(java.util.Locale.ROOT);
+            plugin.nutritionTypeRegistry().all().forEach(type -> {
+                if (type.id().startsWith(prefix)) {
+                    result.add(type.id());
+                }
+            });
             return result;
         }
         return result;
@@ -116,12 +151,130 @@ final class CookingCommandRouter implements TabExecutor {
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.put("inspect hand", plugin.messageService().message("command.help.desc.inspect"));
+        lines.put("nutrition get|set|add|remove", plugin.messageService().message("command.help.desc.nutrition"));
         lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(
                 sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))
         ));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.footer"));
+    }
+
+    private boolean handleNutrition(CommandSender sender, String[] args) {
+        if (plugin.nutritionService() == null) {
+            plugin.messageService().send(sender, "nutrition.disabled");
+            return true;
+        }
+        String action = args.length >= 2 ? args[1].toLowerCase(java.util.Locale.ROOT) : "";
+        return switch (action) {
+            case "get" -> handleNutritionGet(sender, args);
+            case "set", "add", "remove" -> handleNutritionModify(sender, args, action);
+            default -> {
+                plugin.messageService().send(sender, "nutrition.usage");
+                yield true;
+            }
+        };
+    }
+
+    private boolean handleNutritionGet(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(CookingPermissions.NUTRITION_USE)
+                && !sender.hasPermission(CookingPermissions.NUTRITION_ADMIN)
+                && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        // /ec nutrition get [player] [type]
+        Player target;
+        String typeArg;
+        if (args.length >= 3 && org.bukkit.Bukkit.getPlayerExact(args[2]) != null) {
+            target = org.bukkit.Bukkit.getPlayerExact(args[2]);
+            typeArg = args.length >= 4 ? args[3] : null;
+        } else if (sender instanceof Player self) {
+            target = self;
+            typeArg = args.length >= 3 ? args[2] : null;
+        } else {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (typeArg != null) {
+            if (!plugin.nutritionTypeRegistry().contains(typeArg)) {
+                plugin.messageService().send(sender, "nutrition.unknown_type", Map.of("type", typeArg));
+                return true;
+            }
+            double value = plugin.nutritionService().value(target.getUniqueId(), typeArg);
+            plugin.messageService().send(sender, "nutrition.value", Map.of(
+                    "player", target.getName(),
+                    "type", emaki.jiuwu.craft.corelib.text.Texts.normalizeId(typeArg),
+                    "value", formatValue(value)
+            ));
+            return true;
+        }
+        plugin.messageService().send(sender, "nutrition.list_header", Map.of("player", target.getName()));
+        Player finalTarget = target;
+        plugin.nutritionTypeRegistry().all().forEach(type -> plugin.messageService().sendRaw(
+                sender,
+                plugin.messageService().message("nutrition.list_line", Map.of(
+                        "type", type.id(),
+                        "value", formatValue(plugin.nutritionService().value(finalTarget.getUniqueId(), type.id())),
+                        "max", formatValue(type.max())
+                ))
+        ));
+        return true;
+    }
+
+    private boolean handleNutritionModify(CommandSender sender, String[] args, String action) {
+        if (!sender.hasPermission(CookingPermissions.NUTRITION_ADMIN) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        // /ec nutrition <set|add|remove> <player> <type> <value>
+        if (args.length < 5) {
+            plugin.messageService().send(sender, "nutrition.usage");
+            return true;
+        }
+        Player target = org.bukkit.Bukkit.getPlayerExact(args[2]);
+        if (target == null) {
+            plugin.messageService().send(sender, "nutrition.player_not_found", Map.of("player", args[2]));
+            return true;
+        }
+        String typeArg = args[3];
+        if (!plugin.nutritionTypeRegistry().contains(typeArg)) {
+            plugin.messageService().send(sender, "nutrition.unknown_type", Map.of("type", typeArg));
+            return true;
+        }
+        double amount;
+        try {
+            amount = Double.parseDouble(args[4]);
+        } catch (NumberFormatException exception) {
+            plugin.messageService().send(sender, "nutrition.invalid_amount", Map.of("amount", args[4]));
+            return true;
+        }
+        emaki.jiuwu.craft.cooking.model.NutritionOperationResult result = switch (action) {
+            case "set" -> plugin.nutritionService().set(target.getUniqueId(), typeArg, amount);
+            case "add" -> plugin.nutritionService().add(target.getUniqueId(), typeArg, amount);
+            case "remove" -> plugin.nutritionService().remove(target.getUniqueId(), typeArg, amount);
+            default -> null;
+        };
+        if (result == null || !result.success()) {
+            plugin.messageService().send(sender, "nutrition.modify_failed", Map.of(
+                    "reason", result == null ? "unknown" : result.reason()
+            ));
+            return true;
+        }
+        plugin.messageService().send(sender, "nutrition.modified", Map.of(
+                "player", target.getName(),
+                "type", result.typeId(),
+                "old", formatValue(result.oldValue()),
+                "new", formatValue(result.newValue())
+        ));
+        return true;
+    }
+
+    private String formatValue(double value) {
+        if (value == Math.floor(value) && !Double.isInfinite(value)) {
+            return String.valueOf((long) value);
+        }
+        return String.valueOf(value);
     }
 
     private boolean handleDebug(CommandSender sender, String[] args) {

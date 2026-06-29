@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -421,6 +422,9 @@ public final class WokRuntimeService {
                 player,
                 block.getLocation().add(0.5D, 1.0D, 0.5D),
                 settingsService.wokDropResult(),
+                state.ingredients().stream()
+                        .map(ingredient -> new CookingInputIngredient(ingredient.source(), ingredient.amount()))
+                        .toList(),
                 recipeService.outputs(outcome),
                 recipeService.actions(outcome),
                 "cooking_wok_" + branch,
@@ -468,6 +472,7 @@ public final class WokRuntimeService {
                 player,
                 block.getLocation().add(0.5D, 1.0D, 0.5D),
                 dropResult,
+                List.of(),
                 List.of(Map.of("item_sources", List.of(source), "amount", 1)),
                 List.of(),
                 phase,

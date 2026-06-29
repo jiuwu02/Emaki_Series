@@ -15,36 +15,52 @@ public final class ActionRegistry {
     private final Map<String, String> owners = new LinkedHashMap<>();
     private final Map<String, String> sources = new LinkedHashMap<>();
 
-    public ActionResult register(Action action) {
-        return register(null, "", action);
+    public synchronized ActionResult register(Action action) {
+        return registerHandle(null, "", action).result();
     }
 
-    public ActionResult register(Plugin owner, Action action) {
-        return register(owner, "", action);
+    public synchronized ActionResult register(Plugin owner, Action action) {
+        return registerHandle(owner, "", action).result();
     }
 
-    public ActionResult register(Plugin owner, String source, Action action) {
+    public synchronized ActionResult register(Plugin owner, String source, Action action) {
+        return registerHandle(owner, source, action).result();
+    }
+
+    public synchronized ActionRegistration registerHandle(Action action) {
+        return registerHandle(null, "", action);
+    }
+
+    public synchronized ActionRegistration registerHandle(Plugin owner, Action action) {
+        return registerHandle(owner, "", action);
+    }
+
+    public synchronized ActionRegistration registerHandle(Plugin owner, String source, Action action) {
+        String ownerKey = ownerKey(owner);
+        String sourceKey = Texts.toStringSafe(source);
         if (action == null || Texts.isBlank(action.id())) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Action id cannot be blank.");
+            return new ActionRegistration("", ownerKey, sourceKey, false,
+                    ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Action id cannot be blank."));
         }
         String id = Texts.lower(action.id());
         if (actions.containsKey(id)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Action id already registered: " + id);
+            return new ActionRegistration(id, ownerKey, sourceKey, false,
+                    ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Action id already registered: " + id));
         }
         actions.put(id, action);
-        owners.put(id, ownerKey(owner));
-        sources.put(id, Texts.toStringSafe(source));
-        return ActionResult.ok();
+        owners.put(id, ownerKey);
+        sources.put(id, sourceKey);
+        return new ActionRegistration(id, ownerKey, sourceKey, true, ActionResult.ok());
     }
 
-    public void unregister(String actionId) {
+    public synchronized void unregister(String actionId) {
         String id = Texts.lower(actionId);
         actions.remove(id);
         owners.remove(id);
         sources.remove(id);
     }
 
-    public void unregisterAll(Plugin owner) {
+    public synchronized void unregisterAll(Plugin owner) {
         String key = ownerKey(owner);
         if (Texts.isBlank(key)) {
             return;
@@ -56,7 +72,7 @@ public final class ActionRegistry {
         }
     }
 
-    public void unregisterAllBySource(String source) {
+    public synchronized void unregisterAllBySource(String source) {
         String normalized = Texts.toStringSafe(source);
         if (Texts.isBlank(normalized)) {
             return;
@@ -68,19 +84,19 @@ public final class ActionRegistry {
         }
     }
 
-    public Action get(String actionId) {
+    public synchronized Action get(String actionId) {
         return actions.get(Texts.lower(actionId));
     }
 
-    public String ownerKeyOf(String actionId) {
+    public synchronized String ownerKeyOf(String actionId) {
         return owners.getOrDefault(Texts.lower(actionId), "");
     }
 
-    public String sourceOf(String actionId) {
+    public synchronized String sourceOf(String actionId) {
         return sources.getOrDefault(Texts.lower(actionId), "");
     }
 
-    public List<Action> byCategory(String category) {
+    public synchronized List<Action> byCategory(String category) {
         List<Action> result = new ArrayList<>();
         String normalized = Texts.lower(category);
         for (Action action : actions.values()) {
@@ -91,7 +107,7 @@ public final class ActionRegistry {
         return result;
     }
 
-    public List<Action> byOwner(Plugin owner) {
+    public synchronized List<Action> byOwner(Plugin owner) {
         String key = ownerKey(owner);
         if (Texts.isBlank(key)) {
             return List.of();
@@ -105,7 +121,7 @@ public final class ActionRegistry {
         return List.copyOf(result);
     }
 
-    public List<Action> bySource(String source) {
+    public synchronized List<Action> bySource(String source) {
         String normalized = Texts.toStringSafe(source);
         if (Texts.isBlank(normalized)) {
             return List.of();
@@ -119,20 +135,76 @@ public final class ActionRegistry {
         return List.copyOf(result);
     }
 
-    public Map<String, Action> all() {
+    public synchronized Map<String, Action> all() {
         return Map.copyOf(actions);
     }
 
-    public Map<String, String> owners() {
+    public synchronized Map<String, String> owners() {
         return Map.copyOf(owners);
     }
 
-    public Map<String, String> sources() {
+    public synchronized Map<String, String> sources() {
         return Map.copyOf(sources);
+    }
+
+    private synchronized boolean unregisterIfMatches(String actionId, String ownerKey, String source) {
+        String id = Texts.lower(actionId);
+        if (Texts.isBlank(id) || !actions.containsKey(id)) {
+            return false;
+        }
+        if (!Texts.toStringSafe(ownerKey).equals(owners.get(id))) {
+            return false;
+        }
+        if (!Texts.toStringSafe(source).equals(sources.get(id))) {
+            return false;
+        }
+        unregister(id);
+        return true;
     }
 
     private String ownerKey(Plugin owner) {
         return owner == null ? "" : owner.getName();
+    }
+
+    public final class ActionRegistration {
+
+        private final String actionId;
+        private final String ownerKey;
+        private final String source;
+        private final boolean registered;
+        private final ActionResult result;
+
+        private ActionRegistration(String actionId, String ownerKey, String source, boolean registered, ActionResult result) {
+            this.actionId = Texts.lower(actionId);
+            this.ownerKey = Texts.toStringSafe(ownerKey);
+            this.source = Texts.toStringSafe(source);
+            this.registered = registered;
+            this.result = result == null ? ActionResult.ok() : result;
+        }
+
+        public String actionId() {
+            return actionId;
+        }
+
+        public String ownerKey() {
+            return ownerKey;
+        }
+
+        public String source() {
+            return source;
+        }
+
+        public boolean registered() {
+            return registered;
+        }
+
+        public ActionResult result() {
+            return result;
+        }
+
+        public boolean unregister() {
+            return registered && unregisterIfMatches(actionId, ownerKey, source);
+        }
     }
 
 }

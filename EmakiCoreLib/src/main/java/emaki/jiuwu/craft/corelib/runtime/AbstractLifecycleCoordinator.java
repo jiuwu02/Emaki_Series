@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.corelib.runtime;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -47,6 +49,72 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         });
     }
 
+    protected final <L, R> CompletableFuture<R> runReloadPipelineAsync(AsyncTaskScheduler scheduler,
+            ReloadPipelineConfig<L, R> config) {
+        if (config == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        if (scheduler == null) {
+            try {
+                notifyProgress(config.progressListener(), config.loadProgressMessage());
+                L loaded = config.asyncLoad() == null ? null : config.asyncLoad().get();
+                notifyProgress(config.progressListener(), config.applyProgressMessage());
+                R result = config.syncApply() == null ? null : config.syncApply().apply(loaded);
+                if (config.postRefresh() != null) {
+                    notifyProgress(config.progressListener(), config.postRefreshProgressMessage());
+                    config.postRefresh().accept(result);
+                }
+                return CompletableFuture.completedFuture(result);
+            } catch (Exception exception) {
+                handleReloadPipelineFailure(config, config.applyStageName(), exception);
+                return failedFuture(exception);
+            }
+        }
+        String prefix = config.taskPrefix() == null || config.taskPrefix().isBlank() ? "reload" : config.taskPrefix();
+        notifyProgress(config.progressListener(), config.loadProgressMessage());
+        return scheduler.supplyAsync(prefix + "-" + config.loadStageName(), () -> {
+            try {
+                return config.asyncLoad() == null ? null : config.asyncLoad().get();
+            } catch (Exception exception) {
+                handleReloadPipelineFailure(config, config.loadStageName(), exception);
+                throw new java.util.concurrent.CompletionException(exception);
+            }
+        }).thenCompose(loaded -> {
+            notifyProgress(config.progressListener(), config.applyProgressMessage());
+            return scheduler.callSync(prefix + "-" + config.applyStageName(), () -> {
+                try {
+                    R result = config.syncApply() == null ? null : config.syncApply().apply(loaded);
+                    if (config.postRefresh() != null) {
+                        notifyProgress(config.progressListener(), config.postRefreshProgressMessage());
+                        config.postRefresh().accept(result);
+                    }
+                    return result;
+                } catch (Exception exception) {
+                    handleReloadPipelineFailure(config, config.applyStageName(), exception);
+                    throw new java.util.concurrent.CompletionException(exception);
+                }
+            });
+        });
+    }
+
+    private <L, R> void handleReloadPipelineFailure(ReloadPipelineConfig<L, R> config, String stageName, Exception exception) {
+        if (config.rollback() != null) {
+            try {
+                config.rollback().accept(exception);
+            } catch (Exception ignored) {
+            }
+        }
+        if (config.failureHandler() != null) {
+            config.failureHandler().accept(stageName, exception);
+        }
+    }
+
+    private static <T> CompletableFuture<T> failedFuture(Throwable throwable) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        future.completeExceptionally(throwable);
+        return future;
+    }
+
     protected final void syncPdcAttributeRegistration(PdcAttributeGateway gateway, String sourceId) {
         if (gateway == null || sourceId == null || sourceId.isBlank()) {
             return;
@@ -61,6 +129,21 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             Runnable stage,
             T passthrough,
             BiConsumer<String, Exception> failureHandler) {
+
+    }
+
+    public record ReloadPipelineConfig<L, R>(String taskPrefix,
+            String loadStageName,
+            String loadProgressMessage,
+            Supplier<L> asyncLoad,
+            String applyStageName,
+            String applyProgressMessage,
+            Function<L, R> syncApply,
+            String postRefreshProgressMessage,
+            Consumer<R> postRefresh,
+            Consumer<Throwable> rollback,
+            BiConsumer<String, Exception> failureHandler,
+            Consumer<String> progressListener) {
 
     }
 }

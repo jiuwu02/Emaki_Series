@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 final class ItemOperationExecutor {
 
@@ -61,7 +62,8 @@ final class ItemOperationExecutor {
                 + " | loreActions=" + normalizedLoreActions.size()
                 + " | variables=" + summarizeMap(safeVariables));
 
-        List<ItemOperationEntry.NameOperationRecord> nameRecords = executeNameActions(context, itemStack, itemMeta, normalizedNameActions, safeVariables);
+        List<ItemOperationEntry.NameOperationRecord> nameRecords = collectNameRecords(context, itemMeta, normalizedNameActions, safeVariables);
+        LocalNameState nameState = resolveNameState(context, normalizedNameActions, safeVariables);
         List<ItemOperationEntry.LoreOperationRecord> loreRecords = executeLoreActions(context, itemMeta, normalizedLoreActions, safeVariables);
 
         if (nameRecords.isEmpty() && loreRecords.isEmpty()) {
@@ -69,7 +71,13 @@ final class ItemOperationExecutor {
             return ExecutionResult.EMPTY;
         }
 
+        // Lore lives on itemMeta and must be committed first; the name is then
+        // injected as a component so a translatable base name is preserved and
+        // not overwritten by a later setItemMeta.
         itemStack.setItemMeta(itemMeta);
+        if (!nameRecords.isEmpty()) {
+            applyNameState(context, itemStack, nameState);
+        }
 
         ItemOperationEntry entry = new ItemOperationEntry(
                 operationId,
@@ -85,8 +93,7 @@ final class ItemOperationExecutor {
         return new ExecutionResult(true, entry);
     }
 
-    private List<ItemOperationEntry.NameOperationRecord> executeNameActions(ActionContext context,
-            ItemStack itemStack,
+    private List<ItemOperationEntry.NameOperationRecord> collectNameRecords(ActionContext context,
             ItemMeta itemMeta,
             List<Map<String, Object>> operations,
             Map<String, Object> variables) {
@@ -98,9 +105,6 @@ final class ItemOperationExecutor {
         String currentName = ItemTextBridge.hasCustomName(itemMeta)
                 ? MiniMessages.serialize(ItemTextBridge.customName(itemMeta))
                 : "";
-
-        LocalNameState nameState = new LocalNameState();
-        nameOperations.apply(nameState, operations, variables, context, ledger.debugLogger());
 
         for (Map<String, Object> operation : operations) {
             String action = Texts.lower(operation.get("action"));
@@ -116,35 +120,29 @@ final class ItemOperationExecutor {
             }
             records.add(new ItemOperationEntry.NameOperationRecord(action, renderedValue, currentName));
         }
-
-        if (!records.isEmpty()) {
-            applyNameState(context, itemStack, itemMeta, nameState, currentName);
-        }
         return records;
     }
 
-    private void applyNameState(ActionContext context, ItemStack itemStack, ItemMeta itemMeta, LocalNameState nameState, String originalName) {
-        StringBuilder finalName = new StringBuilder();
-        for (String prefix : nameState.prefixes()) {
-            finalName.append(prefix);
+    private LocalNameState resolveNameState(ActionContext context,
+            List<Map<String, Object>> operations,
+            Map<String, Object> variables) {
+        LocalNameState nameState = new LocalNameState();
+        if (operations != null && !operations.isEmpty()) {
+            nameOperations.apply(nameState, operations, variables, context, ledger.debugLogger());
         }
-        if (nameState.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE && Texts.isNotBlank(nameState.baseNameTemplate())) {
-            finalName.append(nameState.baseNameTemplate());
-        } else if (Texts.isNotBlank(originalName)) {
-            finalName.append(originalName);
-        } else {
-            String effectiveName = MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack));
-            finalName.append(effectiveName);
+        return nameState;
+    }
+
+    private void applyNameState(ActionContext context, ItemStack itemStack, LocalNameState nameState) {
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
         }
-        for (String postfix : nameState.postfixes()) {
-            finalName.append(postfix);
-        }
-        String result = finalName.toString();
-        debug(context, "name result | original=" + summarize(originalName) + " | result=" + summarize(result));
-        if (Texts.isNotBlank(result)) {
-            ItemTextBridge.customName(itemMeta, MiniMessages.parse(result));
-            itemStack.setItemMeta(itemMeta);
-        }
+        Component baseName = LedgerNameComposer.resolveBaseName(itemStack, itemMeta);
+        Component result = LedgerNameComposer.composeFromState(nameState, baseName);
+        debug(context, "name result | base=" + summarize(MiniMessages.serialize(baseName))
+                + " | result=" + summarize(MiniMessages.serialize(result)));
+        LedgerNameComposer.writeName(itemStack, itemMeta, result);
     }
 
     private List<ItemOperationEntry.LoreOperationRecord> executeLoreActions(ActionContext context,

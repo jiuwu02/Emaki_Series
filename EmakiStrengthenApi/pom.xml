@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-strengthen-api</artifactId>
-    <version>4.3.0</version>
+    <version>4.4.0</version>
     <name>EmakiStrengthenApi</name>
     <packaging>jar</packaging>
 
@@ -20,12 +20,6 @@
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>emaki.jiuwu.craft</groupId>
-            <artifactId>emaki-corelib</artifactId>
-            <version>${emaki.corelib.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

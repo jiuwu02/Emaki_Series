@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.config.AttributeConfigPrecheckContributor;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -37,7 +38,9 @@ import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeExtensionLoader;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
@@ -89,6 +92,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
     private JavaScriptDamageHookRegistry javaScriptDamageHookRegistry;
+    private JavaScriptDamagePipelineRegistry javaScriptDamagePipelineRegistry;
     private JavaScriptAttributeExtensionLoader javaScriptAttributeExtensionLoader;
     private TaskHandle regenTask;
     private CompletableFuture<Void> reloadFuture;
@@ -96,6 +100,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     @Override
     public void onEnable() {
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         registerAttributeBridgeService();
         registerPdcAttributeApi();
         registerAttributeServiceFacade();
@@ -115,6 +120,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     @Override
     public void onDisable() {
         unregisterCoreLibActions();
+        ConfigPrecheckLifecycleSupport.unregister("attribute");
         coreLib().scriptModuleRegistry().unregister("attribute");
         if (javaScriptAttributeExtensionLoader != null) {
             javaScriptAttributeExtensionLoader.close();
@@ -172,6 +178,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
         reloadJavaScriptAttributeExtensions();
         registerCoreLibActions();
+        logConfigPrecheckReport();
     }
 
     public synchronized CompletableFuture<Void> reloadPluginStateAsync(boolean resyncPlayers, Consumer<String> progressListener) {
@@ -186,6 +193,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
                     regenTask = task;
                     reloadJavaScriptAttributeExtensions();
                     registerCoreLibActions();
+                    logConfigPrecheckReport();
                 })
                 .whenComplete((_, throwable) -> {
                     synchronized (this) {
@@ -193,6 +201,14 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
                     }
                 });
         return reloadFuture;
+    }
+
+    private void logConfigPrecheckReport() {
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "attribute");
+    }
+
+    private void registerConfigPrecheckContributor() {
+        ConfigPrecheckLifecycleSupport.register(new AttributeConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(AttributeRuntimeComponents components) {
@@ -219,7 +235,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         emaki.jiuwu.craft.corelib.loader.LanguageLoader coreLanguageLoader =
                 new emaki.jiuwu.craft.corelib.loader.LanguageLoader(this);
         coreLanguageLoader.load();
-        setDebugLogger(new DebugLogger(getLogger(), coreLanguageLoader));
+        setDebugLogger(new DebugLogger(this, coreLanguageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
     }
 
@@ -334,6 +350,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return javaScriptDamageHookRegistry;
     }
 
+    public JavaScriptDamagePipelineRegistry javaScriptDamagePipelineRegistry() {
+        return javaScriptDamagePipelineRegistry;
+    }
+
     public DebugCommand debugCommand() {
         return debugCommand;
     }
@@ -389,11 +409,15 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         if (javaScriptDamageHookRegistry == null) {
             javaScriptDamageHookRegistry = new JavaScriptDamageHookRegistry(this, coreLibPlugin.javaScriptService(), coreLibPlugin.configModel().scriptConfig());
         }
+        if (javaScriptDamagePipelineRegistry == null) {
+            javaScriptDamagePipelineRegistry = new JavaScriptDamagePipelineRegistry(this, coreLibPlugin.javaScriptService(), coreLibPlugin.configModel().scriptConfig());
+        }
         javaScriptAttributeExtensionLoader = new JavaScriptAttributeExtensionLoader(
                 this,
                 coreLibPlugin.javaScriptService(),
                 coreLibPlugin.configModel().scriptConfig(),
-                javaScriptDamageHookRegistry
+                javaScriptDamageHookRegistry,
+                javaScriptDamagePipelineRegistry
         );
         javaScriptAttributeExtensionLoader.reload();
     }
@@ -407,9 +431,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.releaseBundledScripts(this, "extensions/attribute", false, java.util.List.of("js_fire_mastery.js"));
         coreLibPlugin.releaseBundledScripts(this, "mythic", false, java.util.List.of("mythic_js_damage.js"));
-        coreLibPlugin.releaseBundledScripts(this, "examples", false, java.util.List.of("attribute_buff.js"));
+        coreLibPlugin.releaseBundledScripts(this, "examples", false, java.util.List.of("attribute_buff.js", "js_fire_mastery.js"));
     }
 
     private void registerSkillScriptActions() {
@@ -436,8 +459,36 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         }
     }
 
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("registerSource", "registerSource(sourceId)", "registerSource(\"custom_source\")");
+        scriptMethod("unregisterSource", "unregisterSource(sourceId)", "unregisterSource(\"custom_source\")");
+        scriptMethod("isRegisteredSource", "isRegisteredSource(sourceId)", "isRegisteredSource(\"custom_source\")");
+        scriptMethod("registeredSources", "registeredSources()", "registeredSources()");
+        scriptMethod("read", "read(itemKey, sourceId)", "read(\"item\", \"custom_source\")");
+        scriptMethod("readAll", "readAll(itemKey)", "readAll(\"item\")");
+        scriptMethod("write", "write(itemKey, sourceId, attributes, meta)", "write(\"item\", \"custom_source\", {}, {})");
+        scriptMethod("clear", "clear(itemKey, sourceId)", "clear(\"item\", \"custom_source\")");
+        scriptMethod("clearAll", "clearAll(itemKey)", "clearAll(\"item\")");
+        scriptMethod("applyDamage", "applyDamage(attacker, target, damageTypeId, baseDamage, damageContext)", "applyDamage(attacker, target, \"physical\", 10, {})");
+        scriptMethod("calculateDamage", "calculateDamage(attacker, target, damageTypeId, baseDamage, damageContext)", "calculateDamage(attacker, target, \"physical\", 10, {})");
+        scriptMethod("setDamageTypeOverride", "setDamageTypeOverride(entity, damageTypeId)", "setDamageTypeOverride(entity, \"physical\")");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:attribute", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
+    }
+
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
         WebPluginApiRegistry.register(this, "attribute", "source-trace", request -> {
             request.requirePost();
             org.bukkit.entity.Player player = Bukkit.getPlayerExact(request.string("player"));

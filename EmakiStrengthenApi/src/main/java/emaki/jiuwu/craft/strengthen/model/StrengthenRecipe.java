@@ -7,11 +7,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * A fully resolved strengthen recipe: the rules, economy, limits, per-star
@@ -85,11 +80,11 @@ public final class StrengthenRecipe {
 
         /** Canonical constructor; normalizes fields and defaults the formula. */
         public CurrencyEntry {
-            provider = Texts.lower(provider);
-            currencyId = Texts.toStringSafe(currencyId);
+            provider = StrengthenApiValues.lower(provider);
+            currencyId = StrengthenApiValues.toStringSafe(currencyId);
             baseCost = Math.max(0L, baseCost);
-            costFormula = Texts.isBlank(costFormula) ? "%base_cost%" : Texts.toStringSafe(costFormula);
-            displayName = Texts.toStringSafe(displayName);
+            costFormula = StrengthenApiValues.isBlank(costFormula) ? "%base_cost%" : StrengthenApiValues.toStringSafe(costFormula);
+            displayName = StrengthenApiValues.toStringSafe(displayName);
         }
     }
 
@@ -125,7 +120,7 @@ public final class StrengthenRecipe {
             maxStar = Math.max(1, maxStar);
             maxTemper = Math.max(0, maxTemper);
             temperChanceBonusPerLevel = Math.max(0D, temperChanceBonusPerLevel);
-            successChanceCap = Numbers.clamp(successChanceCap, 0D, 100D);
+            successChanceCap = StrengthenApiValues.clamp(successChanceCap, 0D, 100D);
         }
 
         /** {@return the default limits (maxStar 12, maxTemper 4, +5/level, 90% cap)} */
@@ -145,8 +140,8 @@ public final class StrengthenRecipe {
 
         /** Canonical constructor; normalizes text and clamps the order. */
         public StatLineDefinition {
-            template = Texts.toStringSafe(template);
-            sectionId = Texts.toStringSafe(sectionId);
+            template = StrengthenApiValues.toStringSafe(template);
+            sectionId = StrengthenApiValues.toStringSafe(sectionId);
             sectionOrder = Math.max(0, sectionOrder);
         }
     }
@@ -181,7 +176,7 @@ public final class StrengthenRecipe {
 
         /** Canonical constructor; normalizes the item id and clamps counts. */
         public StarStageMaterial {
-            item = Texts.toStringSafe(item);
+            item = StrengthenApiValues.toStringSafe(item);
             amount = amount == 0 ? 1 : amount;
             temperBoost = Math.max(0, temperBoost);
         }
@@ -218,16 +213,16 @@ public final class StrengthenRecipe {
 
         /** Canonical constructor; normalizes and copies every collection field. */
         public StarStage {
-            name = Texts.toStringSafe(name);
+            name = StrengthenApiValues.toStringSafe(name);
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
             attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
-            skillIds = normalizeList(skillIds).stream().map(Texts::normalizeId).filter(Texts::isNotBlank).distinct().toList();
+            skillIds = normalizeList(skillIds).stream().map(StrengthenApiValues::normalizeId).filter(StrengthenApiValues::isNotBlank).distinct().toList();
             materials = materials == null ? List.of() : List.copyOf(materials);
             economyOverride = economyOverride == null ? new EconomyOverride(List.of()) : economyOverride;
             successActions = normalizeList(successActions);
             failureActions = normalizeList(failureActions);
-            nameActions = ConfigNodes.toPlainData(nameActions);
-            loreActions = ConfigNodes.toPlainData(loreActions);
+            nameActions = StrengthenApiValues.toPlainData(nameActions);
+            loreActions = StrengthenApiValues.toPlainData(loreActions);
         }
     }
 
@@ -240,7 +235,7 @@ public final class StrengthenRecipe {
     private final MatchRule matchRule;
     private final Map<String, StatLineDefinition> statLines;
     private final Map<Integer, StarStage> stars;
-    private final ConditionGroup conditions;
+    private final StrengthenConditionGroup conditions;
     private final String conditionType;
     private final int conditionRequiredCount;
     private final StrengthenBranchNode branchTree;
@@ -272,7 +267,7 @@ public final class StrengthenRecipe {
             MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
-            ConditionGroup conditions,
+            StrengthenConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount) {
         this(id, displayName, guiTemplate, economy, limits, successRates, matchRule, statLines, stars,
@@ -305,7 +300,7 @@ public final class StrengthenRecipe {
             MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
-            ConditionGroup conditions,
+            StrengthenConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount,
             StrengthenBranchNode branchTree) {
@@ -343,27 +338,27 @@ public final class StrengthenRecipe {
             MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
-            ConditionGroup conditions,
+            StrengthenConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount,
             StrengthenBranchNode branchTree,
             Object nameActions,
             Object loreActions) {
-        this.id = Texts.trim(id);
-        this.displayName = Texts.toStringSafe(displayName);
-        this.guiTemplate = Texts.isBlank(guiTemplate) ? "strengthen_gui" : Texts.toStringSafe(guiTemplate);
+        this.id = StrengthenApiValues.trim(id);
+        this.displayName = StrengthenApiValues.toStringSafe(displayName);
+        this.guiTemplate = StrengthenApiValues.isBlank(guiTemplate) ? "strengthen_gui" : StrengthenApiValues.toStringSafe(guiTemplate);
         this.economy = economy == null ? new EconomyConfig(false, List.of()) : economy;
         this.limits = limits == null ? Limits.defaults() : limits;
         this.successRates = successRates == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(successRates));
         this.matchRule = matchRule == null ? new MatchRule(List.of(), List.of(), List.of(), List.of(), List.of(), List.of()) : matchRule;
         this.statLines = statLines == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(statLines));
         this.stars = stars == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stars));
-        this.conditions = conditions == null ? ConditionGroup.empty() : conditions;
-        this.conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
+        this.conditions = conditions == null ? StrengthenConditionGroup.empty() : conditions;
+        this.conditionType = StrengthenApiValues.isBlank(conditionType) ? "all_of" : StrengthenApiValues.lower(conditionType);
         this.conditionRequiredCount = Math.max(0, conditionRequiredCount);
         this.branchTree = branchTree;
-        this.nameActions = ConfigNodes.toPlainData(nameActions);
-        this.loreActions = ConfigNodes.toPlainData(loreActions);
+        this.nameActions = StrengthenApiValues.toPlainData(nameActions);
+        this.loreActions = StrengthenApiValues.toPlainData(loreActions);
     }
 
 
@@ -583,7 +578,7 @@ public final class StrengthenRecipe {
     }
 
     /** {@return the activation conditions of the recipe} */
-    public ConditionGroup conditions() {
+    public StrengthenConditionGroup conditions() {
         return conditions;
     }
 
@@ -751,7 +746,7 @@ public final class StrengthenRecipe {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            String key = Texts.lower(entry.getKey());
+            String key = StrengthenApiValues.lower(entry.getKey());
             Object existing = target.get(key);
             Object incoming = entry.getValue();
             Double existingNum = toDouble(existing);
@@ -777,7 +772,7 @@ public final class StrengthenRecipe {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            String key = Texts.lower(entry.getKey());
+            String key = StrengthenApiValues.lower(entry.getKey());
             double value = resolveNumericValue(entry.getValue(), evalContext);
             resolved.put(key, value);
             evalContext.put(key, value);
@@ -789,20 +784,25 @@ public final class StrengthenRecipe {
         if (rawValues == null || rawValues.isEmpty()) {
             return Map.of();
         }
-        Map<String, Object> normalized = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
-            if (entry.getKey() != null && entry.getValue() != null) {
-                normalized.put(Texts.lower(entry.getKey()), entry.getValue());
-            }
+        Map<String, Object> resolved = new LinkedHashMap<>();
+        Map<String, Object> evalContext = new LinkedHashMap<>();
+        if (context != null) {
+            evalContext.putAll(context);
         }
-        return ExpressionEngine.resolveMixedVariables(normalized, context);
+        for (Map.Entry<String, Object> entry : rawValues.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            String key = StrengthenApiValues.lower(entry.getKey());
+            Object value = StrengthenApiValues.evaluateMixed(entry.getValue(), evalContext);
+            resolved.put(key, value);
+            evalContext.put(key, value);
+        }
+        return Map.copyOf(resolved);
     }
 
     private static double resolveNumericValue(Object raw, Map<String, ?> variables) {
-        if (raw instanceof Number number) {
-            return number.doubleValue();
-        }
-        return ExpressionEngine.evaluateRandomConfig(raw, variables);
+        return StrengthenApiValues.evaluateNumber(raw, variables);
     }
 
     private static Double toDouble(Object value) {
@@ -810,7 +810,7 @@ public final class StrengthenRecipe {
             return number.doubleValue();
         }
         if (value instanceof String text) {
-            return Numbers.tryParseDouble(text, null);
+            return StrengthenApiValues.tryParseDouble(text, null);
         }
         return null;
     }
@@ -821,8 +821,8 @@ public final class StrengthenRecipe {
         }
         List<String> result = new ArrayList<>();
         for (String value : values) {
-            String normalized = Texts.lower(value);
-            if (Texts.isNotBlank(normalized)) {
+            String normalized = StrengthenApiValues.lower(value);
+            if (StrengthenApiValues.isNotBlank(normalized)) {
                 result.add(normalized);
             }
         }
@@ -835,8 +835,8 @@ public final class StrengthenRecipe {
         }
         List<String> result = new ArrayList<>();
         for (String value : values) {
-            String normalized = Texts.stripMiniTags(value);
-            if (Texts.isNotBlank(normalized)) {
+            String normalized = StrengthenApiValues.stripMiniTags(value);
+            if (StrengthenApiValues.isNotBlank(normalized)) {
                 result.add(normalized);
             }
         }
@@ -849,8 +849,8 @@ public final class StrengthenRecipe {
         }
         List<String> result = new ArrayList<>();
         for (String value : values) {
-            String normalized = Texts.toStringSafe(value);
-            if (Texts.isNotBlank(normalized)) {
+            String normalized = StrengthenApiValues.toStringSafe(value);
+            if (StrengthenApiValues.isNotBlank(normalized)) {
                 result.add(normalized);
             }
         }

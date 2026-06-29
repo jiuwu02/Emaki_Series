@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.3.0"
+version: "4.3.23"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -25,7 +25,8 @@ web_console:
     password: "EmakiAdminPassword"
     session_timeout_minutes: 60
   security:
-    allow_config_write: false
+    # 安全模式：readonly / config-write / script-write / admin。
+    mode: "readonly"
     max_request_body_kb: 256
     allowed_modules: []
   config_browser:
@@ -42,7 +43,27 @@ web_console:
     record_web_writes: true
     record_delete_backup: true
 
+# 菜单(GUI)渲染后端
+gui:
+  # 菜单后端类型，决定 Emaki 系列所有菜单如何呈现给玩家：
+  #   bukkit  - 实体菜单。打开真实服务端容器(默认)，行为最稳定，无需任何前置插件。
+  #   packet  - 发包虚拟菜单。直接发送容器封包，刷新不同行数时复用同一窗口，光标不会被重置；
+  #             由 CoreLib 内置，仅需额外安装 PacketEvents。未安装 PacketEvents 时自动回退为 bukkit。
+  #   auto    - 安装了 PacketEvents 则使用 packet 后端，否则使用 bukkit。
+  # 默认 bukkit：升级 CoreLib 不会改变现有菜单行为，需要时再安装 PacketEvents 并切换。
+  backend: "bukkit"
+
 action:
+  loop:
+    enabled: true
+    min_sync_interval: 5t
+    min_async_interval: 100ms
+    max_times: 7200
+    max_active_loops_total: 5000
+    max_active_loops_per_player: 16
+    max_active_loops_per_plugin: 1000
+    cancel_player_loops_on_quit: true
+    cancel_plugin_loops_on_disable: true
   # 在配方或动作列表中通过 @template=名称 引用
   templates:
     # reward_success_common:
@@ -73,9 +94,7 @@ script:
       - "examples"
   action:
     id: "runjs"
-    aliases:
-      - "runscript"
-      - "javascript"
+    aliases: []
     default_function: "main"
     stop_on_failure: true
   context:
@@ -94,8 +113,6 @@ script:
       - "\\"
     denied_actions_from_script:
       - "runjs"
-      - "runscript"
-      - "javascript"
     allow_action_dispatch: true
     max_action_depth: 3
   server_api:
@@ -104,7 +121,9 @@ script:
     allowed_type_prefixes:
       - "org.bukkit."
       - "io.papermc.paper."
+      - "net.kyori."
     allow_console_command: false
+    allow_raw_event_access: false
   debug:
     log_script_load: true
     log_script_execute: false

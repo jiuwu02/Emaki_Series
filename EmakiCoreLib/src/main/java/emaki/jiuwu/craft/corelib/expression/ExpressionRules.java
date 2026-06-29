@@ -9,7 +9,7 @@ final class ExpressionRules {
     static final int MAX_EXPRESSION_LENGTH = 256;
     static final int MAX_NESTED_DEPTH = 10;
 
-    private static final Pattern NON_NUMERIC_EXPRESSION_PATTERN = Pattern.compile("[^0-9.\\s+\\-*/%^(),]");
+    private static final Pattern NON_NUMERIC_EXPRESSION_PATTERN = Pattern.compile("[^0-9.\\s+\\-*/%^(),eE]");
     private static final Pattern DANGEROUS_CHAR_PATTERN = Pattern.compile("[`$\\\\]");
 
     private ExpressionRules() {
@@ -35,6 +35,9 @@ final class ExpressionRules {
                 .replace("min", "")
                 .replace("max", "")
                 .replace("pow", "");
+        for (String functionId : ExpressionEngine.registeredJavaScriptFunctionIds()) {
+            lowered = lowered.replace(Texts.lower(functionId), "");
+        }
         return !NON_NUMERIC_EXPRESSION_PATTERN.matcher(lowered).find();
     }
 }

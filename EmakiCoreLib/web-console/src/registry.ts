@@ -20,7 +20,7 @@ import * as economyConfig from './economyConfig';
 import * as pluginKit from './pluginKit';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import type { EditorChange } from './components';
-import type { WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus } from './types';
+import type { WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus, WebScriptCompletionEntry } from './types';
 
 export type SourceDocumentAdapterContext = {
   module: WebRegistryModule;
@@ -242,6 +242,9 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previe
   registerUniqueListField: typeof registerUniqueListField;
   recordExtensionStatus: typeof recordExtensionStatus;
   getExtensionStatuses: typeof getExtensionStatuses;
+  registerJavaScriptMethod: typeof registerJavaScriptMethod;
+  registerJavaScriptMethods: typeof registerJavaScriptMethods;
+  getJavaScriptCompletionScopes: typeof getJavaScriptCompletionScopes;
   components: typeof components;
   previewKit: typeof previewKit;
   lib: typeof lib;
@@ -258,6 +261,8 @@ const _configPreviews: ConfigPreviewRegistration[] = [];
 const _editorOverrides: Record<string, WebEditorDescriptor> = {};
 const _sourceAdapters: SourceAdapterRegistration[] = [];
 const _extensionStatuses: WebConsoleExtensionStatus[] = [];
+const _serverJavaScriptCompletions: WebScriptCompletionEntry[] = [];
+const _extensionJavaScriptCompletions: WebScriptCompletionEntry[] = [];
 const _configNodeMeta: Record<string, ConfigNodeMetaOverride> = {};
 const _configNodeMetaOrder: Record<string, string[]> = {};
 const _configFileSchemas: ConfigFileSchemaRegistration[] = [];
@@ -386,6 +391,63 @@ export function recordExtensionStatus(status: WebConsoleExtensionStatus): void {
 
 export function getExtensionStatuses(): WebConsoleExtensionStatus[] {
   return [..._extensionStatuses];
+}
+
+export function setServerJavaScriptCompletions(entries: WebScriptCompletionEntry[] | undefined): void {
+  _serverJavaScriptCompletions.splice(0, _serverJavaScriptCompletions.length, ...normalizeJavaScriptCompletions(entries ?? []));
+}
+
+export function registerJavaScriptMethod(entry: WebScriptCompletionEntry): void {
+  const [normalized] = normalizeJavaScriptCompletions([entry]);
+  if (!normalized) return;
+  const duplicate = _extensionJavaScriptCompletions.findIndex(existing => javaScriptCompletionKey(existing) === javaScriptCompletionKey(normalized));
+  if (duplicate >= 0) _extensionJavaScriptCompletions.splice(duplicate, 1, normalized);
+  else _extensionJavaScriptCompletions.push(normalized);
+}
+
+export function registerJavaScriptMethods(entries: WebScriptCompletionEntry[]): void {
+  if (!Array.isArray(entries)) return;
+  entries.forEach(registerJavaScriptMethod);
+}
+
+export function getJavaScriptCompletionScopes(): Record<string, WebScriptCompletionEntry[]> {
+  const scopes: Record<string, WebScriptCompletionEntry[]> = {};
+  for (const entry of [..._serverJavaScriptCompletions, ..._extensionJavaScriptCompletions]) {
+    const bucket = scopes[entry.scope] ?? (scopes[entry.scope] = []);
+    const duplicate = bucket.findIndex(existing => existing.label === entry.label);
+    if (duplicate >= 0) bucket.splice(duplicate, 1, entry);
+    else bucket.push(entry);
+  }
+  return Object.fromEntries(Object.entries(scopes).map(([scope, entries]) => [scope, entries.map(copyJavaScriptCompletionEntry)]));
+}
+
+function normalizeJavaScriptCompletions(entries: WebScriptCompletionEntry[]): WebScriptCompletionEntry[] {
+  return entries.flatMap(entry => {
+    const scope = normalizeJavaScriptCompletionScope(entry?.scope);
+    const label = String(entry?.label ?? '').trim();
+    if (!scope || !label) return [];
+    return [{
+      moduleId: entry.moduleId ? String(entry.moduleId) : undefined,
+      scope,
+      label,
+      detail: entry.detail ? String(entry.detail) : undefined,
+      apply: entry.apply ? String(entry.apply) : label,
+      type: entry.type ? String(entry.type) : 'function'
+    }];
+  });
+}
+
+function normalizeJavaScriptCompletionScope(scope: string | undefined): string {
+  const text = String(scope ?? '').trim();
+  return text.startsWith('module:') ? `module:${text.slice('module:'.length).trim().toLowerCase()}` : text;
+}
+
+function javaScriptCompletionKey(entry: WebScriptCompletionEntry): string {
+  return `${entry.moduleId ?? ''}:${entry.scope}:${entry.label}`;
+}
+
+function copyJavaScriptCompletionEntry(entry: WebScriptCompletionEntry): WebScriptCompletionEntry {
+  return { ...entry };
 }
 
 export function setRuntimeEnums(enums: Record<string, string[]> | undefined): void {
@@ -612,7 +674,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, registerJavaScriptMethod, registerJavaScriptMethods, getJavaScriptCompletionScopes, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;

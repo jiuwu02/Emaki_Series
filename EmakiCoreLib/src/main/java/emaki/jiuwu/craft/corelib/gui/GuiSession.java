@@ -24,7 +24,10 @@ public final class GuiSession implements InventoryHolder {
     private final GuiItemBuilder.ItemFactory itemFactory;
     private final GuiRenderer renderer;
     private final GuiSessionHandler handler;
+    private final GuiBackend backend;
+    private final GuiSessionRegistry registry;
     private final Map<String, Object> replacements = new LinkedHashMap<>();
+    private final String title;
     private Inventory inventory;
 
     GuiSession(Plugin owner,
@@ -33,7 +36,9 @@ public final class GuiSession implements InventoryHolder {
             Map<String, ?> replacements,
             GuiItemBuilder.ItemFactory itemFactory,
             GuiRenderer renderer,
-            GuiSessionHandler handler) {
+            GuiSessionHandler handler,
+            GuiBackend backend,
+            GuiSessionRegistry registry) {
         this.owner = owner;
         this.viewer = viewer;
         this.template = template;
@@ -41,11 +46,13 @@ public final class GuiSession implements InventoryHolder {
         this.renderer = renderer;
         this.handler = handler == null ? new GuiSessionHandler() {
         } : handler;
+        this.backend = backend == null ? new BukkitGuiBackend() : backend;
+        this.registry = registry;
         if (replacements != null) {
             this.replacements.putAll(replacements);
         }
-        String title = resolveTitle(template, this.replacements);
-        this.inventory = createInventory(template, MiniMessages.plain(MiniMessages.parse(title)));
+        this.title = MiniMessages.plain(MiniMessages.parse(resolveTitle(template, this.replacements)));
+        this.inventory = createInventory(template, this.title);
     }
 
     private Inventory createInventory(GuiTemplate template, String title) {
@@ -81,12 +88,11 @@ public final class GuiSession implements InventoryHolder {
     }
 
     public void open() {
-        refresh();
-        viewer.openInventory(inventory);
+        backend.open(this, renderSlots());
     }
 
     public void refresh() {
-        applyRenderedSlots(renderSlots());
+        backend.applySlots(this, renderSlots());
     }
 
     public Map<Integer, ItemStack> renderSlots() {
@@ -148,6 +154,18 @@ public final class GuiSession implements InventoryHolder {
 
     public GuiSessionHandler handler() {
         return handler;
+    }
+
+    public GuiBackend backend() {
+        return backend;
+    }
+
+    public GuiSessionRegistry registry() {
+        return registry;
+    }
+
+    public String title() {
+        return title;
     }
 
     public Map<String, Object> replacements() {

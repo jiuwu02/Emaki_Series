@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
+import emaki.jiuwu.craft.corelib.script.ScriptHostObjectProxy;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleRegistry;
 import emaki.jiuwu.craft.corelib.script.ScriptReloadResult;
@@ -105,7 +106,8 @@ public final class GraalJavaScriptService implements JavaScriptService {
                     config,
                     source.logicalPath(),
                     request.sourcePlugin(),
-                    moduleRegistry
+                    moduleRegistry,
+                    request.moduleOverrides()
             );
             context.getBindings("js").putMember("emaki", api);
             context.getBindings("js").putMember("args", request.namedArguments());
@@ -114,7 +116,9 @@ public final class GraalJavaScriptService implements JavaScriptService {
             if (function == null || !function.canExecute()) {
                 return ScriptExecutionResult.failure("Function not found: " + functionName + " in " + source.logicalPath());
             }
-            Value value = function.execute(request.arguments().toArray(Object[]::new));
+            Value value = function.execute(request.arguments().stream()
+                    .map(ScriptHostObjectProxy::wrapIfExported)
+                    .toArray(Object[]::new));
             ScriptExecutionResult result = mapReturnValue(value);
             if (config.debug().logScriptExecute()) {
                 log("Executed script " + source.logicalPath() + "#" + functionName + " in " + ((System.nanoTime() - start) / 1_000_000D) + " ms.");
@@ -186,16 +190,30 @@ public final class GraalJavaScriptService implements JavaScriptService {
 
     private Context createContext() {
         ScriptConfig.Engine engineConfig = config.engine();
+        HostAccess hostAccess = createHostAccess(engineConfig);
         Context.Builder builder = Context.newBuilder("js")
                 .engine(engine)
                 .allowExperimentalOptions(true)
                 .allowPolyglotAccess(PolyglotAccess.NONE)
-                .allowHostAccess(HostAccess.ALL)
+                .allowHostAccess(hostAccess)
                 .allowHostClassLookup(className -> engineConfig.allowHostClassLookup())
                 .allowCreateThread(engineConfig.allowThreads())
                 .allowNativeAccess(engineConfig.allowNativeAccess())
                 .allowIO(engineConfig.allowIo());
         return builder.build();
+    }
+
+    private HostAccess createHostAccess(ScriptConfig.Engine engineConfig) {
+        if (engineConfig.allowHostAccess()) {
+            return HostAccess.ALL;
+        }
+        return HostAccess.newBuilder(HostAccess.EXPLICIT)
+                .allowArrayAccess(true)
+                .allowListAccess(true)
+                .allowMapAccess(true)
+                .allowIterableAccess(true)
+                .allowIteratorAccess(true)
+                .build();
     }
 
     private ScriptExecutionResult mapReturnValue(Value value) {

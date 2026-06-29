@@ -12,6 +12,8 @@ public final class WebPluginApiRequest {
     private final String method;
     private final String body;
     private final boolean configWriteAllowed;
+    private final boolean scriptWriteAllowed;
+    private final boolean adminAllowed;
     private final String actor;
     private final WebConsoleService webConsoleService;
     private Object parsedBody;
@@ -21,6 +23,8 @@ public final class WebPluginApiRequest {
             String method,
             String body,
             boolean configWriteAllowed,
+            boolean scriptWriteAllowed,
+            boolean adminAllowed,
             String actor,
             WebConsoleService webConsoleService) {
         this.moduleId = moduleId;
@@ -28,6 +32,8 @@ public final class WebPluginApiRequest {
         this.method = method;
         this.body = body == null ? "" : body;
         this.configWriteAllowed = configWriteAllowed;
+        this.scriptWriteAllowed = scriptWriteAllowed;
+        this.adminAllowed = adminAllowed;
         this.actor = actor == null || actor.isBlank() ? "web" : actor;
         this.webConsoleService = webConsoleService;
     }
@@ -149,9 +155,33 @@ public final class WebPluginApiRequest {
         }
     }
 
+    public boolean configWriteAllowed() {
+        return configWriteAllowed;
+    }
+
+    public boolean scriptWriteAllowed() {
+        return scriptWriteAllowed;
+    }
+
+    public boolean adminAllowed() {
+        return adminAllowed;
+    }
+
     public void requireConfigWriteAllowed() throws IOException {
         if (!configWriteAllowed) {
             throw new WebPluginApiException(403, "当前已关闭 Web 配置写入权限。", Map.of("errorType", "config_write_disabled"));
+        }
+    }
+
+    public void requireScriptWriteAllowed() throws IOException {
+        if (!scriptWriteAllowed) {
+            throw new WebPluginApiException(403, "当前已关闭 Web 脚本写入权限。", Map.of("errorType", "script_write_disabled"));
+        }
+    }
+
+    public void requireAdminAllowed() throws IOException {
+        if (!adminAllowed) {
+            throw new WebPluginApiException(403, "当前已关闭 Web 管理权限。", Map.of("errorType", "admin_action_disabled"));
         }
     }
 

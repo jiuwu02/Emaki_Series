@@ -22,7 +22,11 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.api.event.CookingRecipeCompleteEvent;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
+import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingResultRuleRegistry;
 
 public final class CookingRewardService {
 
@@ -54,6 +58,7 @@ public final class CookingRewardService {
             Player player,
             Location location,
             boolean dropResult,
+            List<CookingInputIngredient> inputs,
             List<Map<String, Object>> outputs,
             List<String> actions,
             String phase,
@@ -67,10 +72,54 @@ public final class CookingRewardService {
                 return;
             }
         }
-        for (Map<String, Object> output : outputs == null ? List.<Map<String, Object>>of() : outputs) {
-            deliverOutput(recipe, player, location, dropResult, output, phase, placeholders);
+        JavaScriptCookingResultRuleRegistry.DeliveryPlan plan = applyJavaScriptResultRules(recipe, player, location, phase, inputs, outputs, actions, placeholders);
+        if (plan.cancelled()) {
+            return;
         }
-        executeActions(actions, player, location, phase, defaultPlaceholders(player, location, placeholders));
+        // 配方完成产物发放对外开放，可取消、可改是否掉落；这是所有工位的统一出口，仅主线程派发。
+        boolean effectiveDropResult = dropResult;
+        if (recipe != null && org.bukkit.Bukkit.isPrimaryThread()) {
+            CookingRecipeCompleteEvent completeEvent = new CookingRecipeCompleteEvent(
+                    player,
+                    location,
+                    recipe.id(),
+                    recipe.displayName(),
+                    recipe.stationType() == null ? "" : recipe.stationType().folderName(),
+                    phase,
+                    plan.outputs() == null ? 0 : plan.outputs().size(),
+                    dropResult);
+            org.bukkit.Bukkit.getPluginManager().callEvent(completeEvent);
+            if (completeEvent.isCancelled()) {
+                return;
+            }
+            effectiveDropResult = completeEvent.isDropResult();
+        }
+        for (Map<String, Object> output : plan.outputs()) {
+            deliverOutput(recipe, player, location, effectiveDropResult, output, phase, placeholders);
+        }
+        executeActions(plan.actions(), player, location, phase, defaultPlaceholders(player, location, placeholders));
+        fireJavaScriptCompleteHooks(plan);
+    }
+
+    private JavaScriptCookingResultRuleRegistry.DeliveryPlan applyJavaScriptResultRules(RecipeDocument recipe,
+            Player player,
+            Location location,
+            String phase,
+            List<CookingInputIngredient> inputs,
+            List<Map<String, Object>> outputs,
+            List<String> actions,
+            Map<String, ?> placeholders) {
+        JavaScriptCookingResultRuleRegistry.DeliveryPlan base = JavaScriptCookingResultRuleRegistry.DeliveryPlan.from(recipe, player, location, phase, inputs, outputs, actions, placeholders);
+        if (!(plugin instanceof EmakiCookingPlugin cookingPlugin) || cookingPlugin.javaScriptResultRuleRegistry() == null) {
+            return base;
+        }
+        return cookingPlugin.javaScriptResultRuleRegistry().apply(base);
+    }
+
+    private void fireJavaScriptCompleteHooks(JavaScriptCookingResultRuleRegistry.DeliveryPlan plan) {
+        if (plugin instanceof EmakiCookingPlugin cookingPlugin && cookingPlugin.javaScriptCompleteHookRegistry() != null) {
+            cookingPlugin.javaScriptCompleteHookRegistry().fire(plan);
+        }
     }
 
     public boolean completionConditionPasses(RecipeDocument recipe, Player player) {

@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -29,12 +30,15 @@ import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
+import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
+import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeResultHookRegistry;
+import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeRuleRegistry;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
@@ -72,6 +76,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
+    private final JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry = new JavaScriptForgeRuleRegistry(this);
+    private final JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry = new JavaScriptForgeResultHookRegistry(this);
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
@@ -92,7 +98,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
     };
 
-    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui");
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "script");
 
     public EmakiForgePlugin() {
         super(AppConfig::defaults);
@@ -102,6 +108,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
@@ -116,6 +123,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     @Override
     public void onDisable() {
+        ConfigPrecheckLifecycleSupport.unregister("forge");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -133,11 +141,23 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public void reloadPluginState(boolean closeOpenInventories) {
         autoSaveTask = lifecycleCoordinator.reload(this, autoSaveTask, closeOpenInventories);
+        logConfigPrecheckReport();
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
         return lifecycleCoordinator.reloadAsync(this, autoSaveTask, closeOpenInventories, null)
-                .thenAccept(task -> autoSaveTask = task);
+                .thenAccept(task -> {
+                    autoSaveTask = task;
+                    logConfigPrecheckReport();
+                });
+    }
+
+    private void logConfigPrecheckReport() {
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "forge");
+    }
+
+    private void registerConfigPrecheckContributor() {
+        ConfigPrecheckLifecycleSupport.register(new ForgeConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(ForgeRuntimeComponents components) {
@@ -155,7 +175,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
-        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
@@ -177,6 +197,31 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
+    }
+
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
+        scriptMethod("pluginName", "pluginName()", "pluginName()");
+        scriptMethod("ready", "ready()", "ready()");
+        scriptMethod("registerForgeRule", "registerForgeRule(definition)", "registerForgeRule({ id: \"moon_phase_bonus\", function: \"modifyForge\" })");
+        scriptMethod("unregisterForgeRule", "unregisterForgeRule(id)", "unregisterForgeRule(\"moon_phase_bonus\")");
+        scriptMethod("registeredForgeRules", "registeredForgeRules()", "registeredForgeRules()");
+        scriptMethod("onResult", "onResult(definition)", "onResult({ id: \"forge_result\", function: \"handleResult\" })");
+        scriptMethod("unregisterResultHook", "unregisterResultHook(id)", "unregisterResultHook(\"forge_result\")");
+        scriptMethod("registeredResultHooks", "registeredResultHooks()", "registeredResultHooks()");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:forge", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
     }
 
     private void registerPublicApiService() {
@@ -223,6 +268,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return bootstrapService;
     }
 
+    public EmakiCoreLibPlugin coreLib() {
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
     public GuiService guiService() {
         return guiService;
     }
@@ -249,6 +298,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public RecipeBookGuiService recipeBookGuiService() {
         return recipeBookGuiService;
+    }
+
+    public JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry() {
+        return javaScriptForgeRuleRegistry;
+    }
+
+    public JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry() {
+        return javaScriptResultHookRegistry;
     }
 
     public DebugCommand debugCommand() {

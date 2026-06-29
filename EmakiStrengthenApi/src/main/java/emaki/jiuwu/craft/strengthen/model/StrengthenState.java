@@ -3,8 +3,6 @@ package emaki.jiuwu.craft.strengthen.model;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Immutable snapshot of an item's strengthen progress as read from its stored
@@ -33,7 +31,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 public record StrengthenState(boolean eligible,
         String eligibleReason,
         boolean hasLayer,
-        ItemSource baseSource,
+        String baseSource,
         String baseSourceSignature,
         String recipeId,
         int currentStar,
@@ -65,7 +63,7 @@ public record StrengthenState(boolean eligible,
     public StrengthenState(boolean eligible,
             String eligibleReason,
             boolean hasLayer,
-            ItemSource baseSource,
+            String baseSource,
             String baseSourceSignature,
             String recipeId,
             int currentStar,
@@ -81,6 +79,7 @@ public record StrengthenState(boolean eligible,
 
     /** Canonical constructor; copies milestone flags and clamps fracture level. */
     public StrengthenState {
+        baseSource = StrengthenApiValues.toStringSafe(baseSource);
         milestoneFlags = milestoneFlags == null ? Set.of() : Set.copyOf(new LinkedHashSet<>(milestoneFlags));
         branchPath = branchPath == null ? "" : branchPath;
         fractureLevel = Math.max(0, fractureLevel);
@@ -94,7 +93,7 @@ public record StrengthenState(boolean eligible,
      * @param baseSourceSignature a signature of the base source
      * @return an ineligible {@link StrengthenState}
      */
-    public static StrengthenState ineligible(String eligibleReason, ItemSource baseSource, String baseSourceSignature) {
+    public static StrengthenState ineligible(String eligibleReason, String baseSource, String baseSourceSignature) {
         return new StrengthenState(false, eligibleReason, false, baseSource, baseSourceSignature, "", 0, 0, Set.of(), 0, 0, 0L, "", 0);
     }
 
@@ -115,7 +114,7 @@ public record StrengthenState(boolean eligible,
 
     /** {@return whether a non-blank branch path is selected} */
     public boolean hasBranch() {
-        return Texts.isNotBlank(branchPath);
+        return StrengthenApiValues.isNotBlank(branchPath);
     }
 
     /** {@return whether the item currently has a fracture} */

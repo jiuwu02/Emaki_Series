@@ -189,7 +189,15 @@ public final class WebConsoleService {
     }
 
     private boolean configWriteAllowed() {
-        return config != null && config.security() != null && config.security().allowConfigWrite();
+        return config != null && config.security() != null && config.security().mode().configWriteAllowed();
+    }
+
+    private boolean scriptWriteAllowed() {
+        return config != null && config.security() != null && config.security().mode().scriptWriteAllowed();
+    }
+
+    private boolean adminAllowed() {
+        return config != null && config.security() != null && config.security().mode().adminAllowed();
     }
 
     private void createContext(String path, WebRoute route) {
@@ -228,6 +236,11 @@ public final class WebConsoleService {
     @FunctionalInterface
     private interface ContextRoute {
         void handle(WebRequestContext context) throws IOException;
+    }
+
+    @FunctionalInterface
+    private interface CheckedRouteAction {
+        void run() throws Exception;
     }
 
     private WebRoute post(ContextRoute route) {
@@ -303,6 +316,25 @@ public final class WebConsoleService {
             return WebConsoleService.this.query(exchange, key);
         }
 
+        private String requiredQuery(String key, String message) throws IOException {
+            String value = query(key);
+            if (value.isBlank()) {
+                badRequest(message);
+                return null;
+            }
+            return value;
+        }
+
+        private boolean badRequestIfMissing(String message, String... values) throws IOException {
+            for (String value : values) {
+                if (value == null || value.isBlank()) {
+                    badRequest(message);
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private void ok(Map<String, ?> body) throws IOException {
             WebConsoleService.this.ok(exchange, body);
         }
@@ -362,7 +394,7 @@ public final class WebConsoleService {
     private void handleLogin(WebRequestContext context) throws IOException {
         String username = context.bodyString("username");
         String password = context.bodyString("password");
-        WebAuthService.LoginResult result = authService.login(username, password);
+        WebAuthService.LoginResult result = authService.login(context.exchange(), username, password);
         if (!result.success()) {
             context.error(401, "账号或密码错误");
             return;
@@ -389,11 +421,39 @@ public final class WebConsoleService {
     }
 
     private boolean requireConfigWriteAllowed(WebRequestContext context) throws IOException {
-        if (configWriteAllowed()) {
+        return requirePermission(context, this::configWriteAllowed, "当前已关闭 Web 配置写入权限。", "config_write_disabled");
+    }
+
+    private boolean requireScriptWriteAllowed(WebRequestContext context) throws IOException {
+        return requirePermission(context, this::scriptWriteAllowed, "当前已关闭 Web 脚本写入权限。", "script_write_disabled");
+    }
+
+    private boolean requireAdminAllowed(WebRequestContext context) throws IOException {
+        return requirePermission(context, this::adminAllowed, "当前已关闭 Web 管理权限。", "admin_action_disabled");
+    }
+
+    private boolean requirePermission(WebRequestContext context, java.util.function.BooleanSupplier allowed, String message, String errorType) throws IOException {
+        if (allowed.getAsBoolean()) {
             return true;
         }
-        context.error(403, "当前已关闭 Web 配置写入权限。", Map.of("errorType", "config_write_disabled"));
+        context.error(403, message, Map.of("errorType", errorType));
         return false;
+    }
+
+    private void runBadRequest(WebRequestContext context, CheckedRouteAction action) throws IOException {
+        try {
+            action.run();
+        } catch (Exception exception) {
+            context.badRequest(exception.getMessage());
+        }
+    }
+
+    private void runServerError(WebRequestContext context, CheckedRouteAction action) throws IOException {
+        try {
+            action.run();
+        } catch (Exception exception) {
+            context.serverError(exception.getMessage());
+        }
     }
 
     private void handleRegistry(WebRequestContext context) throws IOException {
@@ -403,15 +463,10 @@ public final class WebConsoleService {
     private void handleRegistryFile(WebRequestContext context) throws IOException {
         String module = context.query("module");
         String path = context.query("path");
-        if (module.isBlank() || path.isBlank()) {
-            context.badRequest("缺少 module 或 path 参数");
+        if (context.badRequestIfMissing("缺少 module 或 path 参数", module, path)) {
             return;
         }
-        try {
-            context.ok(consoleRegistry.fileNodes(module, path));
-        } catch (IOException exception) {
-            context.badRequest(exception.getMessage());
-        }
+        runBadRequest(context, () -> context.ok(consoleRegistry.fileNodes(module, path)));
     }
 
     private void handleRegistrySave(WebRequestContext context) throws IOException {
@@ -473,11 +528,10 @@ public final class WebConsoleService {
         String fileId = context.bodyString("fileId");
         String name = context.bodyString("name");
         String content = context.bodyString("content");
-        if (moduleId.isBlank() || fileId.isBlank() || name.isBlank()) {
-            context.badRequest("缺少 moduleId、fileId 或 name");
+        if (context.badRequestIfMissing("缺少 moduleId、fileId 或 name", moduleId, fileId, name)) {
             return;
         }
-        try {
+        runBadRequest(context, () -> {
             WebConsoleRegistry.FileCreationTarget creation = consoleRegistry.creationTarget(moduleId, fileId);
             String relative = normalizeNewFilePath(creation.baseDir(), creation.extension(), name);
             java.io.File target = safeModuleFile(moduleId, relative);
@@ -492,9 +546,7 @@ public final class WebConsoleService {
                     : relative;
             recordCreate(historyTarget(moduleId, treePath, creation.type().kind()), context.session());
             context.ok(Map.of("path", treePath, "name", treePath.substring(treePath.lastIndexOf('/') + 1), "revision", WebFileRevisions.revision(target)));
-        } catch (Exception exception) {
-            context.badRequest(exception.getMessage());
-        }
+        });
     }
 
     private void handleConfigCreate(WebRequestContext context) throws IOException {
@@ -503,11 +555,10 @@ public final class WebConsoleService {
         }
         String moduleId = firstNonBlank(context.query("module"), context.bodyString("module"), context.bodyString("moduleId"));
         String path = firstNonBlank(context.bodyString("path"), context.query("path"));
-        if (moduleId.isBlank() || path.isBlank()) {
-            context.badRequest("缺少 module 或 path");
+        if (context.badRequestIfMissing("缺少 module 或 path", moduleId, path)) {
             return;
         }
-        try {
+        runBadRequest(context, () -> {
             String relative = normalizeConfigCreatePath(path);
             java.io.File target = safeModuleFile(moduleId, relative);
             if (target.exists()) {
@@ -518,21 +569,18 @@ public final class WebConsoleService {
             Files.writeString(target.toPath(), defaultFileContent(WebConsoleRegistry.WebConsoleFileType.CONFIG), StandardCharsets.UTF_8);
             recordCreate(historyTarget(moduleId, relative, "CONFIG"), context.session());
             context.ok(Map.of("path", relative, "name", relative.substring(relative.lastIndexOf('/') + 1), "revision", WebFileRevisions.revision(target)));
-        } catch (Exception exception) {
-            context.badRequest(exception.getMessage());
-        }
+        });
     }
 
     private void handleFileDelete(WebRequestContext context) throws IOException {
-        if (!requireConfigWriteAllowed(context)) {
+        if (!requireAdminAllowed(context)) {
             return;
         }
         String moduleId = context.bodyString("moduleId");
         String fileId = context.bodyString("fileId");
         String path = context.bodyString("path");
         String confirmPath = context.bodyString("confirmPath");
-        if (moduleId.isBlank() || path.isBlank() || confirmPath.isBlank()) {
-            context.badRequest("缺少 moduleId、path 或 confirmPath");
+        if (context.badRequestIfMissing("缺少 moduleId、path 或 confirmPath", moduleId, path, confirmPath)) {
             return;
         }
         String normalizedPath = path.replace('\\', '/');
@@ -540,7 +588,7 @@ public final class WebConsoleService {
             context.badRequest("确认文本不匹配");
             return;
         }
-        try {
+        runBadRequest(context, () -> {
             String resolvedPath = resolveTreeFilePath(moduleId, fileId, normalizedPath);
             java.io.File target = safeModuleFile(moduleId, resolvedPath);
             if (!target.exists() || !target.isFile()) {
@@ -554,28 +602,18 @@ public final class WebConsoleService {
             recordDeleteBackup(historyTarget(moduleId, normalizedPath, treeFileKind(moduleId, fileId)), context.session());
             Files.delete(target.toPath());
             context.ok(Map.of("path", normalizedPath));
-        } catch (Exception exception) {
-            context.badRequest(exception.getMessage());
-        }
+        });
     }
 
     private void handleConfigTree(WebRequestContext context) throws IOException {
         String module = context.query("module");
-        try {
-            context.ok(Map.of("module", module, "files", configBrowserService.tree(module)));
-        } catch (IOException exception) {
-            context.badRequest(exception.getMessage());
-        }
+        runBadRequest(context, () -> context.ok(Map.of("module", module, "files", configBrowserService.tree(module))));
     }
 
     private void handleConfigRead(WebRequestContext context) throws IOException {
         String module = context.query("module");
         String path = context.query("path");
-        try {
-            context.ok(Map.of("module", module, "file", configBrowserService.read(module, path)));
-        } catch (IOException exception) {
-            context.badRequest(exception.getMessage());
-        }
+        runBadRequest(context, () -> context.ok(Map.of("module", module, "file", configBrowserService.read(module, path))));
     }
 
     private void handleConfigSave(WebRequestContext context) throws IOException {
@@ -586,8 +624,7 @@ public final class WebConsoleService {
         String path = context.bodyString("path");
         String body = context.body();
         Long expectedRevision = context.revision();
-        if (module == null || module.isBlank() || path == null || path.isBlank()) {
-            context.badRequest("缺少 moduleId 或 path");
+        if (context.badRequestIfMissing("缺少 moduleId 或 path", module, path)) {
             return;
         }
         if (!jsonHasKey(body, "content")) {
@@ -656,12 +693,11 @@ public final class WebConsoleService {
     }
 
     private void handleScriptRead(WebRequestContext context) throws IOException {
-        String path = context.query("path");
-        if (path.isBlank()) {
-            context.badRequest("缺少 path 参数");
+        String path = context.requiredQuery("path", "缺少 path 参数");
+        if (path == null) {
             return;
         }
-        try {
+        runServerError(context, () -> {
             java.io.File scriptsRoot = plugin.getDataFolder().toPath().resolve("scripts").toFile();
             java.io.File target = new java.io.File(scriptsRoot, path.replace('/', java.io.File.separatorChar));
             if (!target.exists() || !target.isFile()) {
@@ -674,9 +710,7 @@ public final class WebConsoleService {
             }
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
             context.ok(Map.of("path", path, "content", content, "revision", WebFileRevisions.revision(target)));
-        } catch (Exception e) {
-            context.serverError(e.getMessage());
-        }
+        });
     }
 
     private void handleScriptExtensions(WebRequestContext context) throws IOException {
@@ -684,14 +718,13 @@ public final class WebConsoleService {
     }
 
     private void handleScriptSave(WebRequestContext context) throws IOException {
-        if (!requireConfigWriteAllowed(context)) {
+        if (!requireScriptWriteAllowed(context)) {
             return;
         }
         String path = context.bodyString("path");
         String content = context.bodyString("content");
         Long expectedRevision = context.revision();
-        if (path == null || path.isBlank()) {
-            context.badRequest("缺少 path");
+        if (context.badRequestIfMissing("缺少 path", path)) {
             return;
         }
         try {
@@ -724,15 +757,14 @@ public final class WebConsoleService {
     private void handleYamlRead(WebRequestContext context, String kind) throws IOException {
         String module = context.query("module");
         String path = context.query("path");
-        if (module.isBlank() || path.isBlank()) {
-            context.badRequest("缺少 module 或 path 参数");
+        if (context.badRequestIfMissing("缺少 module 或 path 参数", module, path)) {
             return;
         }
         if (isGlobPath(path)) {
             context.badRequest("不能直接读取 glob 路径，请选择具体文件");
             return;
         }
-        try {
+        runServerError(context, () -> {
             java.io.File target = safeModuleFile(module, path);
             if (!target.exists() || !target.isFile()) {
                 context.notFound(kind + " 文件不存在");
@@ -741,9 +773,7 @@ public final class WebConsoleService {
             String content = java.nio.file.Files.readString(target.toPath(), StandardCharsets.UTF_8);
             YamlSection yaml = YamlFiles.load(content);
             context.ok(Map.of("moduleId", module, "path", path, "content", content, "data", ConfigNodes.toPlainData(yaml), "revision", WebFileRevisions.revision(target)));
-        } catch (Exception e) {
-            context.serverError(e.getMessage());
-        }
+        });
     }
 
     private void handleYamlSave(WebRequestContext context, String kind) throws IOException {
@@ -754,8 +784,7 @@ public final class WebConsoleService {
         String path = context.bodyString("path");
         String content = context.bodyString("content");
         Long expectedRevision = context.revision();
-        if (module.isBlank() || path.isBlank()) {
-            context.badRequest("缺少 moduleId 或 path");
+        if (context.badRequestIfMissing("缺少 moduleId 或 path", module, path)) {
             return;
         }
         if (isGlobPath(path)) {
@@ -820,11 +849,7 @@ public final class WebConsoleService {
     }
 
     private void handleItemActionTypes(WebRequestContext context) throws IOException {
-        try {
-            context.ok(itemPreviewService.actionTypes());
-        } catch (Exception e) {
-            context.serverError(e.getMessage());
-        }
+        runServerError(context, () -> context.ok(itemPreviewService.actionTypes()));
     }
 
     private void handleInsightSearch(WebRequestContext context) throws IOException {
@@ -833,72 +858,52 @@ public final class WebConsoleService {
             context.ok(Map.of("query", "", "results", List.of()));
             return;
         }
-        try {
-            context.ok(Map.of("query", query, "results", insightSearchService.search(query)));
-        } catch (Exception exception) {
-            context.serverError(exception.getMessage());
-        }
+        runServerError(context, () -> context.ok(Map.of("query", query, "results", insightSearchService.search(query))));
     }
 
     private void handleInsightReferences(WebRequestContext context) throws IOException {
         String idType = context.query("idType");
         String id = context.query("id");
-        if (idType.isBlank() || id.isBlank()) {
-            context.badRequest("缺少 idType 或 id 参数");
+        if (context.badRequestIfMissing("缺少 idType 或 id 参数", idType, id)) {
             return;
         }
-        try {
-            context.ok(Map.of("idType", idType, "id", id, "references", insightReferenceService.references(idType, id)));
-        } catch (Exception exception) {
-            context.serverError(exception.getMessage());
-        }
+        runServerError(context, () -> context.ok(Map.of("idType", idType, "id", id, "references", insightReferenceService.references(idType, id))));
     }
 
     private void handleInsightDependencyGraph(WebRequestContext context) throws IOException {
         String idType = context.query("idType");
         String id = context.query("id");
-        if (idType.isBlank() || id.isBlank()) {
-            context.badRequest("缺少 idType 或 id 参数");
+        if (context.badRequestIfMissing("缺少 idType 或 id 参数", idType, id)) {
             return;
         }
         int depth = intQuery(context.query("depth"), 1);
         String direction = context.query("direction");
-        try {
-            context.ok(insightDependencyGraphService.graph(idType, id, depth, direction));
-        } catch (Exception exception) {
-            context.serverError(exception.getMessage());
-        }
+        runServerError(context, () -> context.ok(insightDependencyGraphService.graph(idType, id, depth, direction)));
     }
 
     private void handleHistoryList(WebRequestContext context) throws IOException {
-        try {
+        runBadRequest(context, () -> {
             WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
             context.ok(Map.of("history", changeHistoryService.list(target), "revision", changeHistoryService.currentRevision(target)));
-        } catch (Exception exception) {
-            context.badRequest(exception.getMessage());
-        }
+        });
     }
 
     private void handleHistorySnapshot(WebRequestContext context) throws IOException {
-        try {
+        runBadRequest(context, () -> {
             WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
             context.ok(changeHistoryService.snapshot(target, context.query("id")));
-        } catch (Exception exception) {
-            context.badRequest(exception.getMessage());
-        }
+        });
     }
 
     private void handleHistoryDiff(WebRequestContext context) throws IOException {
-        try {
+        runBadRequest(context, () -> {
             WebChangeHistoryService.HistoryTarget target = historyTarget(context.query("module"), context.query("path"), context.query("kind"));
             context.ok(changeHistoryService.diffCurrent(target, context.query("id")));
-        } catch (Exception exception) {
-            context.badRequest(exception.getMessage());
-        }
+        });
     }
 
     private void handleHistoryRollback(WebRequestContext context) throws IOException {
-        if (!requireConfigWriteAllowed(context)) {
+        if (!requireAdminAllowed(context)) {
             return;
         }
         try {
@@ -937,6 +942,8 @@ public final class WebConsoleService {
                     context.exchange().getRequestMethod(),
                     body,
                     configWriteAllowed(),
+                    scriptWriteAllowed(),
+                    adminAllowed(),
                     actor(context.session()),
                     this
             ));
@@ -964,7 +971,7 @@ public final class WebConsoleService {
     }
 
     private void handleEconomyProviders(WebRequestContext context) throws IOException {
-        try {
+        runServerError(context, () -> {
             EconomyManager economyManager = economyManager();
             List<String> providers = new ArrayList<>();
             providers.add("auto");
@@ -977,12 +984,10 @@ public final class WebConsoleService {
                 availableProviders.addAll(economyManager.availableProviderIds());
             }
             context.ok(Map.of(
-                    "providers", providers.stream().map(String::toLowerCase).distinct().toList(),
-                    "availableProviders", availableProviders.stream().map(String::toLowerCase).distinct().toList()
+                    "providers", providers.stream().map(value -> value.toLowerCase(java.util.Locale.ROOT)).distinct().toList(),
+                    "availableProviders", availableProviders.stream().map(value -> value.toLowerCase(java.util.Locale.ROOT)).distinct().toList()
             ));
-        } catch (Exception e) {
-            context.serverError(e.getMessage());
-        }
+        });
     }
 
     private EconomyManager economyManager() {

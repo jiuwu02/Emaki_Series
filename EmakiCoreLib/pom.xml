@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.3.0</version>
+    <version>4.4.0</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -125,6 +125,17 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>io.th0rgal</groupId>
+            <artifactId>oraxen</artifactId>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>pers.neige.neigeitems</groupId>
             <artifactId>NeigeItems</artifactId>
             <scope>provided</scope>
@@ -132,6 +143,11 @@
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.retrooper</groupId>
+            <artifactId>packetevents-spigot</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

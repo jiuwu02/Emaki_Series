@@ -11,7 +11,7 @@
 # minecraft-iron_axe / mc-iron_axe / v-iron_axe / iron_axe
 # 不再接受 minecraft:iron_axe
 # version 由资源同步维护
-version: "3.3.0"
+version: "3.3.14"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -115,6 +115,7 @@ display_adjustments:
 #   - craftengine-emaki:wok
 #   - itemsadder-emaki:wok
 #   - nexo-wok
+#   - oraxen-wok
 stations:
   chopping_board:
     # 砧板方块来源
@@ -251,6 +252,8 @@ stations:
     #   lit_item_sources: [itemsadder-emaki:heater_lit]
     # - item_sources: [nexo-heater]
     #   lit_item_sources: [nexo-heater_lit]
+    # - item_sources: [oraxen-heater]
+    #   lit_item_sources: [oraxen-heater_lit]
     heat_item_sources:
       - minecraft-furnace
       - minecraft-smoker
@@ -379,3 +382,123 @@ stations:
       collect:
         - 'playsound sound=block.barrel.open volume=0.7 pitch=1.0'
         - 'particle type=HAPPY_VILLAGER count=6 offset_x=0.3 offset_y=0.2 offset_z=0.3'
+
+# ============================================================
+# 营养系统（类膳食均衡 Diet）
+# ============================================================
+# 玩家吃东西增加营养值，营养值到达阈值后执行 CoreLib 动作（加 BUFF 等），
+# 多类营养同时满足后可触发"反胃"并用循环动作持续衰减全部营养。
+#
+# 营养类型在 nutrition/<id>.yml 中定义（默认：水果/蔬菜/蛋白质/糖分/谷物），可自由增删。
+# 营养值会被限制在该类型的 min ~ max 之间。
+#
+# 营养动作（注册在 CoreLib，可在任意动作列表中使用）：
+#   emakicookingaddnutrition type=<类型> amount=<数值或表达式> [target=<玩家>]
+#   emakicookingremovenutrition type=<类型> amount=<数值>
+#   emakicookingsetnutrition type=<类型> amount=<数值>
+#
+# 占位符（需要 PlaceholderAPI）：
+#   %emakicooking_nutrition_<type>%       当前营养值
+#   %emakicooking_nutrition_<type>_max%   营养上限
+#   %emakicooking_nutrition_<type>_min%   营养下限
+#   %emakicooking_nutrition_combo_count_<规则id>%  组合规则当前达标的营养类型数量
+#
+# 反胃 / 持续 BUFF / 衰减都由下方阈值动作 + CoreLib 循环动作（loopsync/cancelloop）拼装。
+# loopsync 的 template 必须在 CoreLib 的 config.yml -> action.loop.templates 中定义。
+# 下面 thresholds 示例引用了 nutrition_decay / nutrition_well_fed 两个模板，
+# 请将以下内容粘贴到 plugins/EmakiCoreLib/config.yml 的 action.loop.templates 下：
+#
+#   nutrition_decay:
+#     - 'emakicookingremovenutrition type=fruit amount=5'
+#     - 'emakicookingremovenutrition type=vegetable amount=5'
+#     - 'emakicookingremovenutrition type=protein amount=5'
+#     - 'emakicookingremovenutrition type=sugar amount=5'
+#     - 'emakicookingremovenutrition type=grain amount=5'
+#     - '@if=%emakicooking_nutrition_fruit% <= 0 cancelloop key=nutrition_overeat:%player_name%'
+#   nutrition_well_fed:
+#     - 'potion type=SATURATION duration=60 amplifier=0'
+nutrition:
+  # 是否启用营养系统
+  enabled: true
+  # 营养数据定时保存间隔（秒）；0 表示只在退出/关服时保存
+  save_interval_seconds: 300
+
+  # 食物来源：吃下匹配 item_sources 中任意来源的物品时，按 nutrition 增加对应营养值。
+  # item_sources 支持：minecraft-xxx / craftengine-xxx / itemsadder-xxx / nexo-xxx / oraxen-xxx / mmoitems-xxx / neigeitems-xxx
+  # 原版、CraftEngine、ItemsAdder、Nexo、Oraxen 食物走原版食用事件；MMOItems、NeigeItems 食用走各自接入。
+  food_sources:
+    - item_sources:
+        - minecraft-apple
+        - minecraft-sweet_berries
+      nutrition:
+        fruit: 20
+    - item_sources:
+        - minecraft-golden_apple
+        - minecraft-enchanted_golden_apple
+      nutrition:
+        fruit: 35
+        sugar: 10
+    - item_sources:
+        - minecraft-carrot
+        - minecraft-potato
+        - minecraft-beetroot
+      nutrition:
+        vegetable: 20
+    - item_sources:
+        - minecraft-cooked_beef
+        - minecraft-cooked_porkchop
+        - minecraft-cooked_chicken
+        - minecraft-cooked_mutton
+      nutrition:
+        protein: 25
+    - item_sources:
+        - minecraft-cake
+        - minecraft-cookie
+        - minecraft-pumpkin_pie
+      nutrition:
+        sugar: 30
+      # 命中后可额外执行 CoreLib 动作（可选）
+      actions:
+        - 'playsound sound=entity.player.burp volume=1.0 pitch=1.0'
+    - item_sources:
+        - minecraft-bread
+        - minecraft-baked_potato
+      nutrition:
+        grain: 25
+
+  thresholds:
+    # 单营养类型阈值：某营养类型满足条件时触发；从满足跌回不满足时触发 on_recover。
+    # types 为空表示适用于全部营养类型。采用边沿触发，不会每次数值变化都重复执行。
+    single:
+      # 示例：任意营养类型 >= 80 时给玩家持续饱和 BUFF（用循环动作实现），跌回 <80 时取消循环
+      - id: well_fed
+        types: []
+        value: 80
+        compare: ">="
+        actions:
+          # 用循环动作持续给 BUFF；key 绑定玩家与营养类型，避免重复
+          - 'loopsync template=nutrition_well_fed times=999999 interval=40t key=nutrition_wellfed:%player_name%:%nutrition_type% mode=replace stop_if_offline=true'
+        on_recover:
+          - 'cancelloop key=nutrition_wellfed:%player_name%:%nutrition_type%'
+
+    # 组合阈值：当满足条件的营养类型数量达到 required_count 时触发（还原膳食均衡"5 大营养满了反胃"）。
+    # required_count 默认 5，可自配，不强制等于营养类型总数。
+    combo:
+      - id: overeat
+        # 参与统计的营养类型；为空表示统计全部营养类型
+        types: []
+        # 每个营养类型达到该值算"已满"
+        value: 100
+        compare: ">="
+        # 需要多少个营养类型同时达到上述值才触发反胃
+        required_count: 5
+        actions:
+          # 反胃提示 + 催吐效果
+          - 'message text=<red>你吃得太撑了，开始反胃……'
+          - 'playsound sound=entity.player.burp volume=1.0 pitch=0.8'
+          - 'potion type=NAUSEA duration=200 amplifier=0'
+          # 启动循环：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0；
+          # stop_if_condition 在所有营养都 <=0 时停止循环（这里以 5 大营养为例）
+          - 'loopsync template=nutrition_decay times=999999 interval=40t key=nutrition_overeat:%player_name% mode=replace stop_if_offline=true'
+        on_recover:
+          - 'cancelloop key=nutrition_overeat:%player_name%'

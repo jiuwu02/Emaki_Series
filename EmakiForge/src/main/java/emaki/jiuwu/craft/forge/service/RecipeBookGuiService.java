@@ -8,11 +8,11 @@ import java.util.UUID;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
+import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -244,7 +244,7 @@ public final class RecipeBookGuiService {
         }
 
         @Override
-        public void onSlotClick(GuiSession session, InventoryClickEvent event, GuiTemplate.ResolvedSlot slot) {
+        public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
             if (slot == null || slot.definition() == null) {
                 return;
             }
@@ -269,7 +269,7 @@ public final class RecipeBookGuiService {
         }
 
         @Override
-        public void onClose(GuiSession session, InventoryCloseEvent event) {
+        public void onClose(GuiSession session, GuiCloseContext close) {
             openBooks.remove(state.player.getUniqueId());
         }
 

@@ -10,7 +10,10 @@ softdepend:
   - CraftEngine
   - ItemsAdder
   - Nexo
+  - Oraxen
   - PacketEvents
+  - MMOItems
+  - NeigeItems
 commands:
   ecooking:
     aliases: [ec]
@@ -60,3 +63,7 @@ permissions:
     default: true
   emakicooking.station.fermentation_barrel.collect:
     default: true
+  emakicooking.nutrition.use:
+    default: true
+  emakicooking.nutrition.admin:
+    default: op

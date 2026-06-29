@@ -43,8 +43,8 @@ public final class ScriptRepository {
     }
 
     public void releaseDefaultScripts(Plugin plugin) {
-        releaseScriptGroup(plugin, "examples", true, List.of("hello.js"));
-        releaseScriptGroup(plugin, "extensions/global", false, List.of(
+        releaseScriptGroup(plugin, "examples", false, List.of(
+                "hello.js",
                 "js_broadcast_action.js",
                 "js_placeholders.js",
                 "js_event_examples.js"

@@ -125,7 +125,50 @@ public final class ScriptServiceApiSupport {
         summary.put("type", itemStack.getType().name().toLowerCase(java.util.Locale.ROOT));
         summary.put("amount", itemStack.getAmount());
         summary.put("displayName", ItemTextBridge.effectiveNamePlain(itemStack));
+        List<String> lore = loreLinesPlain(itemStack);
+        if (!lore.isEmpty()) {
+            summary.put("lore", lore);
+        }
+        Integer customModelData = customModelData(itemStack);
+        if (customModelData != null) {
+            summary.put("customModelData", customModelData);
+        }
         return summary;
+    }
+
+    private static List<String> loreLinesPlain(ItemStack itemStack) {
+        if (itemStack == null || !itemStack.hasItemMeta()) {
+            return List.of();
+        }
+        List<net.kyori.adventure.text.Component> lore = ItemTextBridge.lore(itemStack.getItemMeta());
+        if (lore == null || lore.isEmpty()) {
+            return List.of();
+        }
+        List<String> lines = new ArrayList<>(lore.size());
+        for (net.kyori.adventure.text.Component line : lore) {
+            lines.add(emaki.jiuwu.craft.corelib.text.MiniMessages.plain(line));
+        }
+        return List.copyOf(lines);
+    }
+
+    private static Integer customModelData(ItemStack itemStack) {
+        if (itemStack == null || !itemStack.hasItemMeta()) {
+            return null;
+        }
+        try {
+            org.bukkit.inventory.meta.ItemMeta meta = itemStack.getItemMeta();
+            if (meta == null) {
+                return null;
+            }
+            org.bukkit.inventory.meta.components.CustomModelDataComponent component = meta.getCustomModelDataComponent();
+            List<Float> floats = component == null ? List.of() : component.getFloats();
+            if (floats != null && !floats.isEmpty() && floats.get(0) != null) {
+                return Math.round(floats.get(0));
+            }
+        } catch (RuntimeException | LinkageError ignored) {
+            // 自定义模型数据读取失败时安全跳过该可选字段。
+        }
+        return null;
     }
 
     public static Map<String, Object> payloadToMap(Object payload) {

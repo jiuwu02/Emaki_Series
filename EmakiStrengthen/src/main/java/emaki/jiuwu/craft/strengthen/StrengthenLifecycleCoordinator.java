@@ -69,7 +69,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 new BootstrapHooks() {
                 }
         );
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor());
+        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         StrengthenRecipeResolver recipeResolver = new StrengthenRecipeResolver(
@@ -187,6 +187,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     public void shutdown(EmakiStrengthenPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
+        coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(plugin);
         coreLibPlugin.scriptModuleRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
@@ -260,7 +261,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     }
 
     private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("strengthen", context -> new ScriptStrengthenModuleApi(context.actionContext()));
+        coreLibPlugin.scriptModuleRegistry().register("strengthen", context -> new ScriptStrengthenModuleApi(JavaPlugin.getPlugin(EmakiStrengthenPlugin.class), context));
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiStrengthenPlugin plugin) {

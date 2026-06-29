@@ -10,7 +10,7 @@
 # Emaki Forge 中文语言文件
 
 # version 由资源同步维护
-version: "4.3.0"
+version: "4.3.5"
 
 # 通用消息
 general:
@@ -58,6 +58,9 @@ console:
   plugin_started: "<green>启动完成</green>"
   plugin_stopping: "<gray>正在关闭...</gray>"
   plugin_stopped: "<yellow>已关闭</yellow>"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   config_load_failed: "<red>配置读取失败: %error%</red>"
   checking_config: "<white>正在检查默认配置文件...</white>"
   data_folder_error: "<yellow>无法获取数据目录，已跳过默认文件检查。</yellow>"

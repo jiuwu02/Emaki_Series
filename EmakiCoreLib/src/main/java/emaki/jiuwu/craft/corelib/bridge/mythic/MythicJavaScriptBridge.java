@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.script.ScriptServerApi.ScriptEntityApi;
@@ -73,8 +74,8 @@ public final class MythicJavaScriptBridge implements Listener {
             if (plugin == null || plugin.javaScriptService() == null || !plugin.javaScriptService().enabled()) {
                 return false;
             }
-            String script = config.getString("script", config.getString("file", ""));
-            String function = config.getString("function", config.getString("fn", "execute"));
+            String script = config.getString("script", "");
+            String function = config.getString("function", "execute");
             if (Texts.isBlank(script)) {
                 plugin.messageService().warning("console.mythic_js_script_missing", Map.of("mechanic", getTypeName()));
                 return false;
@@ -105,8 +106,8 @@ public final class MythicJavaScriptBridge implements Listener {
         private Map<String, Object> configParameters(SkillMetadata metadata) {
             Map<String, Object> parameters = new LinkedHashMap<>();
             parameters.put("mechanic", getTypeName());
-            put(parameters, "script", config.getString("script", config.getString("file", "")));
-            put(parameters, "function", config.getString("function", config.getString("fn", "execute")));
+            put(parameters, "script", config.getString("script", ""));
+            put(parameters, "function", config.getString("function", "execute"));
             put(parameters, "damage", config.getString("damage", null));
             put(parameters, "base", config.getString("base", null));
             put(parameters, "damage_type", config.getString("damage_type", null));
@@ -134,30 +135,37 @@ public final class MythicJavaScriptBridge implements Listener {
             this.mechanicName = mechanicName == null ? "" : mechanicName;
         }
 
+        @HostAccess.Export
         public String skillName() {
             return mechanicName;
         }
 
+        @HostAccess.Export
         public String mechanic() {
             return mechanicName;
         }
 
+        @HostAccess.Export
         public double power() {
             return metadata == null ? 0D : metadata.getPower();
         }
 
+        @HostAccess.Export
         public String cause() {
             return metadata == null || metadata.getCause() == null ? "" : metadata.getCause().name();
         }
 
+        @HostAccess.Export
         public ScriptEntityApi caster() {
             return new ScriptEntityApi(resolveEntity(metadata == null || metadata.getCaster() == null ? null : metadata.getCaster().getEntity()));
         }
 
+        @HostAccess.Export
         public ScriptEntityApi trigger() {
             return new ScriptEntityApi(resolveEntity(metadata == null ? null : metadata.getTrigger()));
         }
 
+        @HostAccess.Export
         public List<ScriptEntityApi> entityTargets() {
             if (metadata == null || metadata.getEntityTargets() == null) {
                 return List.of();
@@ -169,6 +177,7 @@ public final class MythicJavaScriptBridge implements Listener {
             return List.copyOf(result);
         }
 
+        @HostAccess.Export
         public ScriptEntityApi firstTarget() {
             List<ScriptEntityApi> targets = entityTargets();
             if (!targets.isEmpty()) {
@@ -177,6 +186,7 @@ public final class MythicJavaScriptBridge implements Listener {
             return trigger();
         }
 
+        @HostAccess.Export
         public Map<String, String> parameters() {
             return metadata == null || metadata.getParameters() == null ? Map.of() : Map.copyOf(metadata.getParameters());
         }

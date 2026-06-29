@@ -8,20 +8,33 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class DebugLogger {
 
     private final Logger logger;
+    private final JavaPlugin plugin;
     private final LanguageLoader languageLoader;
     private final Set<UUID> trackedPlayers = ConcurrentHashMap.newKeySet();
     private final Set<String> enabledModules = ConcurrentHashMap.newKeySet();
     private volatile boolean globalEnabled;
 
     public DebugLogger(Logger logger, LanguageLoader languageLoader) {
+        this(null, logger, languageLoader);
+    }
+
+    public DebugLogger(JavaPlugin plugin, LanguageLoader languageLoader) {
+        this(plugin, plugin == null ? null : plugin.getLogger(), languageLoader);
+    }
+
+    private DebugLogger(JavaPlugin plugin, Logger logger, LanguageLoader languageLoader) {
+        this.plugin = plugin;
         this.logger = Objects.requireNonNull(logger, "logger");
         this.languageLoader = Objects.requireNonNull(languageLoader, "languageLoader");
     }
@@ -51,14 +64,20 @@ public final class DebugLogger {
         String message = replacements == null || replacements.isEmpty()
                 ? template
                 : Texts.formatTemplate(template, replacements);
-        logger.info("[DEBUG][" + Texts.lower(module) + "] " + message);
+        logConsole("debug.console.line", Map.of(
+                "module", Texts.lower(module),
+                "message", message
+        ));
     }
 
     public void logRaw(String module, UUID player, String message) {
         if (!shouldLog(module, player)) {
             return;
         }
-        logger.info("[DEBUG][" + Texts.lower(module) + "] " + Texts.toStringSafe(message));
+        logConsole("debug.console.line", Map.of(
+                "module", Texts.lower(module),
+                "message", Texts.toStringSafe(message)
+        ));
     }
 
     public void logRaw(String module, Player player, String message) {
@@ -165,6 +184,29 @@ public final class DebugLogger {
 
     public boolean isGlobalEnabled() {
         return globalEnabled;
+    }
+
+    private void logConsole(String langKey, Map<String, ?> replacements) {
+        String template = languageLoader.getMessage(langKey);
+        if (Texts.isBlank(template) || langKey.equals(template)) {
+            template = "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%";
+        }
+        String message = replacements == null || replacements.isEmpty()
+                ? template
+                : Texts.formatTemplate(template, replacements);
+        if (plugin != null && plugin.isEnabled()) {
+            AdventureSupport.sendMiniMessage(plugin, Bukkit.getConsoleSender(), withPrefix(message));
+            return;
+        }
+        logger.info(Texts.formatTemplate(message, replacements == null ? Map.of() : replacements));
+    }
+
+    private String withPrefix(String text) {
+        String prefix = languageLoader.getMessage("general.prefix");
+        if (Texts.isBlank(prefix) || "general.prefix".equals(prefix)) {
+            prefix = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiDebug</gradient> ]</gray>";
+        }
+        return prefix + (prefix.endsWith(" ") ? "" : " ") + Texts.toStringSafe(text);
     }
 
     private void refreshGlobalState() {

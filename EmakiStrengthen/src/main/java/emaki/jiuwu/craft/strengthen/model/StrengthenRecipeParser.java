@@ -8,6 +8,7 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+import emaki.jiuwu.craft.corelib.condition.ConditionNode;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -48,13 +49,37 @@ public final class StrengthenRecipeParser {
                 parseMatchRule(section.getSection("match")),
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
-                conditionGroup,
+                toApiConditionGroup(conditionGroup),
                 conditionGroup.conditionType(),
                 conditionGroup.requiredCount(),
                 parseBranchTree(section.getSection("branch_tree")),
                 section.get("name_actions"),
                 section.get("lore_actions")
         );
+    }
+
+    private static StrengthenConditionGroup toApiConditionGroup(ConditionGroup group) {
+        if (group == null) {
+            return StrengthenConditionGroup.empty();
+        }
+        return new StrengthenConditionGroup(
+                group.conditionType(),
+                group.requiredCount(),
+                group.conditions().stream()
+                        .map(StrengthenRecipeParser::toApiConditionNode)
+                        .filter(java.util.Objects::nonNull)
+                        .toList()
+        );
+    }
+
+    private static StrengthenConditionNode toApiConditionNode(ConditionNode node) {
+        if (node == null) {
+            return null;
+        }
+        if (node.groupNode()) {
+            return StrengthenConditionNode.group(toApiConditionGroup(node.group()));
+        }
+        return new StrengthenConditionNode(node.type(), node.expression(), null, node.data());
     }
 
     static EconomyConfig parseEconomy(YamlSection section) {

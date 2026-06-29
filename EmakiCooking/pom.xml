@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-cooking</artifactId>
-    <version>3.3.0</version>
+    <version>3.4.0</version>
     <name>EmakiCooking</name>
     <packaging>jar</packaging>
 
@@ -65,8 +65,34 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>io.th0rgal</groupId>
+            <artifactId>oraxen</artifactId>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
             <groupId>com.github.retrooper</groupId>
             <artifactId>packetevents-spigot</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.Indyuce</groupId>
+            <artifactId>MMOItems-API</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>MythicLib-dist</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>pers.neige.neigeitems</groupId>
+            <artifactId>NeigeItems</artifactId>
             <scope>provided</scope>
         </dependency>
     </dependencies>

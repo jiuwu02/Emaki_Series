@@ -37,7 +37,7 @@ final class PreparedForgeCache {
                 source.qualityTier(),
                 source.quality(),
                 source.multiplier(),
-                source.previewItem()
+                source.previewItem() == null ? null : source.previewItem().clone()
         );
     }
 

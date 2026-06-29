@@ -18,20 +18,29 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
-public final class GuiService implements Listener {
+public final class GuiService implements Listener, GuiSessionRegistry {
 
     private final JavaPlugin plugin;
     private final Map<UUID, GuiSession> sessions = new ConcurrentHashMap<>();
     private final AsyncGuiRenderer asyncGuiRenderer;
+    private final GuiBackend backend;
 
     public GuiService(JavaPlugin plugin,
             AsyncTaskScheduler asyncTaskScheduler,
             PerformanceMonitor performanceMonitor) {
+        this(plugin, asyncTaskScheduler, performanceMonitor, new BukkitGuiBackend());
+    }
+
+    public GuiService(JavaPlugin plugin,
+            AsyncTaskScheduler asyncTaskScheduler,
+            PerformanceMonitor performanceMonitor,
+            GuiBackend backend) {
         this.plugin = plugin;
         this.asyncGuiRenderer = new AsyncGuiRenderer(
                 asyncTaskScheduler,
                 performanceMonitor
         );
+        this.backend = backend == null ? new BukkitGuiBackend() : backend;
     }
 
     public GuiSession open(GuiOpenRequest request) {
@@ -40,17 +49,9 @@ public final class GuiService implements Listener {
         }
         GuiSession existing = sessions.remove(request.viewer().getUniqueId());
         if (existing != null) {
-            existing.viewer().closeInventory();
+            existing.backend().close(existing);
         }
-        GuiSession session = new GuiSession(
-                request.owner(),
-                request.viewer(),
-                request.template(),
-                request.replacements(),
-                request.itemFactory(),
-                request.renderer(),
-                request.handler()
-        );
+        GuiSession session = newSession(request);
         sessions.put(request.viewer().getUniqueId(), session);
         session.open();
         return session;
@@ -65,17 +66,9 @@ public final class GuiService implements Listener {
             UUID viewerId = request.viewer().getUniqueId();
             GuiSession existing = sessions.remove(viewerId);
             if (existing != null) {
-                existing.viewer().closeInventory();
+                existing.backend().close(existing);
             }
-            GuiSession session = new GuiSession(
-                    request.owner(),
-                    request.viewer(),
-                    request.template(),
-                    request.replacements(),
-                    request.itemFactory(),
-                    request.renderer(),
-                    request.handler()
-            );
+            GuiSession session = newSession(request);
             sessions.put(viewerId, session);
             asyncGuiRenderer.prepare(session)
                     .whenComplete((renderedSlots, throwable) -> FoliaSchedulerAdapter.runEntityTask(plugin, request.viewer(), () -> {
@@ -88,12 +81,44 @@ public final class GuiService implements Listener {
                             future.complete(null);
                             return;
                         }
-                        session.applyRenderedSlots(renderedSlots);
-                        request.viewer().openInventory(session.getInventory());
+                        session.backend().open(session, renderedSlots);
                         future.complete(session);
                     }));
         });
         return future;
+    }
+
+    private GuiSession newSession(GuiOpenRequest request) {
+        return new GuiSession(
+                request.owner(),
+                request.viewer(),
+                request.template(),
+                request.replacements(),
+                request.itemFactory(),
+                request.renderer(),
+                request.handler(),
+                resolveBackend(),
+                this
+        );
+    }
+
+    /**
+     * Resolves the concrete backend to bind to a new session.
+     *
+     * <p>{@code coreLib.guiBackend()} hands every {@link GuiService} a
+     * {@link RegistryBackedGuiBackend} proxy. We unwrap it here (rather than in
+     * the constructor) so the backend is resolved at open time — that lets an
+     * optional backend plugin register after CoreLib has enabled. Each session
+     * then keeps the resolved backend for its whole lifetime, which is also why
+     * {@link #isBukkitBacked(GuiSession)} can still {@code instanceof}-test the
+     * real backend. This unwrap is an internal CoreLib detail; the public
+     * {@code GuiService} constructor signature is unchanged.</p>
+     */
+    private GuiBackend resolveBackend() {
+        if (backend instanceof RegistryBackedGuiBackend proxy) {
+            return proxy.resolveActive();
+        }
+        return backend;
     }
 
     public GuiSession getSession(UUID playerId) {
@@ -103,7 +128,19 @@ public final class GuiService implements Listener {
     public void close(UUID playerId) {
         GuiSession session = getSession(playerId);
         if (session != null) {
-            session.viewer().closeInventory();
+            session.backend().close(session);
+        }
+    }
+
+    @Override
+    public GuiSession activeSession(UUID viewerId) {
+        return viewerId == null ? null : sessions.get(viewerId);
+    }
+
+    @Override
+    public void removeSession(UUID viewerId, GuiSession session) {
+        if (viewerId != null && session != null) {
+            sessions.remove(viewerId, session);
         }
     }
 
@@ -112,20 +149,21 @@ public final class GuiService implements Listener {
         if (!(event.getView().getTopInventory().getHolder() instanceof GuiSession session)) {
             return;
         }
-        if (!isManagedSession(session)) {
+        if (!isManagedSession(session) || !isBukkitBacked(session)) {
             return;
         }
         if (event.getClickedInventory() == null) {
             return;
         }
+        GuiClickContext click = new BukkitGuiClickContext(event);
         if (event.getClickedInventory().equals(event.getView().getTopInventory())) {
             event.setCancelled(true);
             GuiTemplate.ResolvedSlot slot = session.template().resolvedSlotAt(event.getRawSlot());
             playClickSound(session, slot, GuiClickType.from(event));
-            session.handler().onSlotClick(session, event, slot);
+            session.handler().onSlotClick(session, click, slot);
             return;
         }
-        session.handler().onPlayerInventoryClick(session, event);
+        session.handler().onPlayerInventoryClick(session, click);
     }
 
     @EventHandler
@@ -133,11 +171,11 @@ public final class GuiService implements Listener {
         if (!(event.getView().getTopInventory().getHolder() instanceof GuiSession session)) {
             return;
         }
-        if (!isManagedSession(session)) {
+        if (!isManagedSession(session) || !isBukkitBacked(session)) {
             return;
         }
         event.setCancelled(true);
-        session.handler().onDrag(session, event);
+        session.handler().onDrag(session, new BukkitGuiDragContext(event));
     }
 
     @EventHandler
@@ -145,11 +183,11 @@ public final class GuiService implements Listener {
         if (!(event.getInventory().getHolder() instanceof GuiSession session)) {
             return;
         }
-        if (!isManagedSession(session)) {
+        if (!isManagedSession(session) || !isBukkitBacked(session)) {
             return;
         }
         sessions.remove(event.getPlayer().getUniqueId(), session);
-        session.handler().onClose(session, event);
+        session.handler().onClose(session, new BukkitGuiCloseContext(event));
     }
 
     @EventHandler
@@ -171,6 +209,10 @@ public final class GuiService implements Listener {
             return false;
         }
         return sessions.get(session.viewer().getUniqueId()) == session;
+    }
+
+    private boolean isBukkitBacked(GuiSession session) {
+        return session.backend() instanceof BukkitGuiBackend;
     }
 
     private void playClickSound(GuiSession session, GuiTemplate.ResolvedSlot slot, GuiClickType clickType) {

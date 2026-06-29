@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "3.3.0"
+version: "3.3.14"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
@@ -31,15 +31,31 @@ command:
       help: "Show help information"
       reload: "Reload configuration, language and recipe directories"
       inspect: "Inspect main-hand item CoreLib source identifier"
+      nutrition: "Query or adjust player nutrition values"
       debug: "Manage Debug mode"
   inspect:
     header: "<gold>========== Held Item Inspection ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
 
+nutrition:
+  disabled: "<yellow>The nutrition system is currently disabled.</yellow>"
+  usage: "<gray>Usage: /ec nutrition get [player] [type] | set|add|remove <player> <type> <value></gray>"
+  unknown_type: "<red>Unknown nutrition type: <yellow>%type%</yellow></red>"
+  player_not_found: "<red>Online player not found: <yellow>%player%</yellow></red>"
+  invalid_amount: "<red>Invalid amount: <yellow>%amount%</yellow></red>"
+  value: "<gray>%player%'s <yellow>%type%</yellow> nutrition: <white>%value%</white></gray>"
+  list_header: "<gold>========== Nutrition of %player% ==========</gold>"
+  list_line: "<yellow>%type%</yellow> <gray>:</gray> <white>%value%</white><gray>/%max%</gray>"
+  modified: "<green>Updated %player%'s <yellow>%type%</yellow> nutrition: <gray>%old% →</gray> <white>%new%</white></green>"
+  modify_failed: "<red>Failed to modify nutrition: <gray>%reason%</gray></red>"
+
 console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
   plugin_stopped: "<yellow>Stopped</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
@@ -55,6 +71,8 @@ console:
   station_recipes_loaded: "<gray>Loaded %station% <yellow>%count%</yellow> recipe(s)</gray>"
   block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
   block_source_bridge_unavailable: "<yellow>Block source unavailable: %provider% (%error%)</yellow>"
+  nutrition_bridge_ready: "<gray>Nutrition consume source connected: <aqua>%provider%</aqua></gray>"
+  nutrition_bridge_unavailable: "<yellow>Nutrition consume source unavailable: %provider% (%error%)</yellow>"
   station_name:
     chopping_board: "Chopping Board"
     wok: "Wok"

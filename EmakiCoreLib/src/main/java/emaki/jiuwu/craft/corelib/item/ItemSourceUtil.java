@@ -115,6 +115,8 @@ public final class ItemSourceUtil {
                 null;
             case NEXO ->
                 "nexo-" + source.getIdentifier();
+            case ORAXEN ->
+                "oraxen-" + source.getIdentifier();
             case CRAFTENGINE ->
                 "craftengine-" + source.getIdentifier();
             case VANILLA ->

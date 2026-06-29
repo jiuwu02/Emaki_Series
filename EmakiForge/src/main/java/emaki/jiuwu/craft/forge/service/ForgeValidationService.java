@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -55,7 +56,9 @@ final class ForgeValidationService {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     recipe.conditions(),
                     text -> replacePlaceholders(player, text),
-                    config.invalidAsFailure()
+                    config.invalidAsFailure(),
+                    ConditionContext.of(player, guiItems == null ? null : guiItems.targetItem(),
+                            java.util.Map.of("recipeId", recipe.id()))
             );
             if (!conditionsPassed) {
                 return ValidationResult.fail("forge.error.condition_not_met");

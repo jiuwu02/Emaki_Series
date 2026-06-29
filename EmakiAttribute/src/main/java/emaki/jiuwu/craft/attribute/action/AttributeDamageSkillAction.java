@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.attribute.action;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -13,11 +12,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
 
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
-import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
-import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
+import emaki.jiuwu.craft.skills.api.SkillActionParameter;
+import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.api.SkillScriptAction;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
@@ -26,12 +25,12 @@ public final class AttributeDamageSkillAction implements SkillScriptAction {
 
     public static final String ID = "attribute_damage";
 
-    private static final List<ActionParameter> PARAMETERS = List.of(
-            ActionParameter.required("amount", ActionParameterType.DOUBLE, "Base damage amount"),
-            ActionParameter.optional("damage_type", ActionParameterType.STRING, "", "Damage type id"),
-            ActionParameter.optional("target", ActionParameterType.STRING, "target", "Target entity"),
-            ActionParameter.optional("cause", ActionParameterType.STRING, "CUSTOM", "Damage cause"),
-            ActionParameter.optional("element", ActionParameterType.STRING, "", "Element tag")
+    private static final List<SkillActionParameter> PARAMETERS = List.of(
+            SkillActionParameter.required("amount", SkillActionParameterType.DOUBLE, "Base damage amount"),
+            SkillActionParameter.optional("damage_type", SkillActionParameterType.STRING, "", "Damage type id"),
+            SkillActionParameter.optional("target", SkillActionParameterType.STRING, "target", "Target entity"),
+            SkillActionParameter.optional("cause", SkillActionParameterType.STRING, "CUSTOM", "Damage cause"),
+            SkillActionParameter.optional("element", SkillActionParameterType.STRING, "", "Element tag")
     );
 
     private final AttributeServiceFacade attributeService;
@@ -56,27 +55,27 @@ public final class AttributeDamageSkillAction implements SkillScriptAction {
     }
 
     @Override
-    public List<ActionParameter> parameters() {
+    public List<SkillActionParameter> parameters() {
         return PARAMETERS;
     }
 
     @Override
-    public CompletableFuture<ActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
+    public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
         if (context == null || context.caster() == null) {
             return CompletableFuture.completedFuture(
-                    ActionResult.failure(ActionErrorType.INVALID_STATE, "Skill action '" + ID + "' requires a caster."));
+                    SkillActionResult.failure(SkillActionErrorType.INVALID_STATE, "Skill action '" + ID + "' requires a caster."));
         }
 
         Entity targetEntity = resolveTarget(context, arguments);
         if (!(targetEntity instanceof LivingEntity target)) {
             return CompletableFuture.completedFuture(
-                    ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Damage target is not a living entity."));
+                    SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Damage target is not a living entity."));
         }
 
         double amount = ActionParsers.parseDouble(arg(arguments, "amount"), 0D);
         if (amount <= 0D) {
             return CompletableFuture.completedFuture(
-                    ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Damage amount must be positive."));
+                    SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Damage amount must be positive."));
         }
 
         String damageTypeId = arg(arguments, "damage_type");
@@ -103,8 +102,8 @@ public final class AttributeDamageSkillAction implements SkillScriptAction {
 
         return CompletableFuture.completedFuture(
                 applied
-                        ? ActionResult.ok(Map.of("damage_type", damageTypeId, "amount", String.valueOf(amount)))
-                        : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to apply attribute damage."));
+                        ? SkillActionResult.ok(Map.of("damage_type", damageTypeId, "amount", String.valueOf(amount)))
+                        : SkillActionResult.failure(SkillActionErrorType.EXECUTION_EXCEPTION, "Failed to apply attribute damage."));
     }
 
     private Entity resolveTarget(SkillScriptContext context, Map<String, String> arguments) {

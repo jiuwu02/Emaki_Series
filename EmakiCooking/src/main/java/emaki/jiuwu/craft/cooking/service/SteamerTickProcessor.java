@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
@@ -164,6 +165,7 @@ final class SteamerTickProcessor {
         List<String> actions = combineActions(recipeService.actions(recipe), recipeService.actions(outcome));
         Location rewardLocation = steamerBlock.getLocation().add(0.5D, 1.0D, 0.5D);
         Player player = state.playerUuid() == null ? null : Bukkit.getPlayer(state.playerUuid());
+        List<CookingInputIngredient> inputs = List.of(new CookingInputIngredient(state.slotSources().get(slot), 1));
         Map<String, Object> placeholders = Map.of(
                 "recipe_id", recipe.id(),
                 "station_type", StationType.STEAMER.folderName(),
@@ -192,6 +194,7 @@ final class SteamerTickProcessor {
                         player,
                         rewardLocation,
                         false,
+                        inputs,
                         List.of(),
                         actions,
                         "cooking_steamer_complete",
@@ -206,6 +209,7 @@ final class SteamerTickProcessor {
                 player,
                 rewardLocation,
                 settingsService.steamerDropResult(),
+                inputs,
                 outputs,
                 actions,
                 "cooking_steamer_complete",

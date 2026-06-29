@@ -14,10 +14,21 @@ public record ScriptModuleContext(ActionContext actionContext,
         ActionExecutor actionExecutor,
         ScriptConfig config,
         String scriptPath,
-        Plugin sourcePlugin) {
+        Plugin sourcePlugin,
+        Map<String, Object> moduleOverrides) {
+
+    public ScriptModuleContext(ActionContext actionContext,
+            Map<String, Object> arguments,
+            ActionExecutor actionExecutor,
+            ScriptConfig config,
+            String scriptPath,
+            Plugin sourcePlugin) {
+        this(actionContext, arguments, actionExecutor, config, scriptPath, sourcePlugin, Map.of());
+    }
 
     public ScriptModuleContext {
         arguments = arguments == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(arguments));
+        moduleOverrides = moduleOverrides == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(moduleOverrides));
         config = config == null ? ScriptConfig.defaults() : config;
         sourcePlugin = sourcePlugin == null && actionContext != null ? actionContext.sourcePlugin() : sourcePlugin;
     }

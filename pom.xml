@@ -57,7 +57,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.3.0</emaki.corelib.version>
+        <emaki.corelib.version>4.4.0</emaki.corelib.version>
         <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
         <adventure.version>4.26.1</adventure.version>
         <adventure.platform.version>4.4.1</adventure.platform.version>
@@ -74,6 +74,7 @@
         <craftengine.version>26.6</craftengine.version>
         <itemsadder.version>4.0.17</itemsadder.version>
         <nexo.version>1.24.0</nexo.version>
+        <oraxen.version>1.217.0</oraxen.version>
         <neigeitems.version>1.21.145</neigeitems.version>
         <packetevents.version>2.12.2</packetevents.version>
         <bstats.version>3.2.1</bstats.version>
@@ -208,6 +209,18 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>io.th0rgal</groupId>
+                <artifactId>oraxen</artifactId>
+                <version>${oraxen.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
                 <groupId>pers.neige.neigeitems</groupId>
                 <artifactId>NeigeItems</artifactId>
                 <version>${neigeitems.version}</version>
@@ -283,6 +296,10 @@
         <repository>
             <id>nexo-releases</id>
             <url>https://repo.nexomc.com/releases/</url>
+        </repository>
+        <repository>
+            <id>oraxen-releases</id>
+            <url>https://repo.oraxen.com/releases/</url>
         </repository>
         <repository>
             <id>codemc-releases</id>

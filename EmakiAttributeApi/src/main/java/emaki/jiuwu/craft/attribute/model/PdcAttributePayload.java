@@ -3,9 +3,6 @@ package emaki.jiuwu.craft.attribute.model;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Immutable attribute payload stored on an item under a single source id.
@@ -37,7 +34,7 @@ public record PdcAttributePayload(String sourceId,
      * stamps {@code updatedAt} when not supplied.
      */
     public PdcAttributePayload {
-        sourceId = Texts.normalizeId(sourceId);
+        sourceId = AttributeApiValues.normalizeId(sourceId);
         attributes = normalizeAttributes(attributes);
         meta = normalizeMeta(meta);
         conditions = normalizeMeta(conditions);
@@ -102,7 +99,7 @@ public record PdcAttributePayload(String sourceId,
         if (conditions == null || conditions.isEmpty() || attributeId == null) {
             return null;
         }
-        return conditions.get(Texts.normalizeId(attributeId));
+        return conditions.get(AttributeApiValues.normalizeId(attributeId));
     }
 
     /** {@return whether this payload's values scale with item durability} */
@@ -136,34 +133,34 @@ public record PdcAttributePayload(String sourceId,
             return null;
         }
         Map<String, Double> attributes = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(map.get("attributes")).entrySet()) {
-            Double value = Numbers.tryParseDouble(entry.getValue(), null);
+        for (Map.Entry<String, Object> entry : AttributeApiValues.entries(map.get("attributes")).entrySet()) {
+            Double value = AttributeApiValues.tryParseDouble(entry.getValue(), null);
             if (value == null) {
                 continue;
             }
-            attributes.put(Texts.normalizeId(entry.getKey()), value);
+            attributes.put(AttributeApiValues.normalizeId(entry.getKey()), value);
         }
         Map<String, String> meta = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(map.get("meta")).entrySet()) {
+        for (Map.Entry<String, Object> entry : AttributeApiValues.entries(map.get("meta")).entrySet()) {
             if (entry.getValue() == null) {
                 continue;
             }
-            meta.put(Texts.normalizeId(entry.getKey()), Texts.toStringSafe(entry.getValue()));
+            meta.put(AttributeApiValues.normalizeId(entry.getKey()), AttributeApiValues.toStringSafe(entry.getValue()));
         }
         Map<String, String> conditions = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(map.get("conditions")).entrySet()) {
+        for (Map.Entry<String, Object> entry : AttributeApiValues.entries(map.get("conditions")).entrySet()) {
             if (entry.getValue() == null) {
                 continue;
             }
-            conditions.put(Texts.normalizeId(entry.getKey()), Texts.toStringSafe(entry.getValue()));
+            conditions.put(AttributeApiValues.normalizeId(entry.getKey()), AttributeApiValues.toStringSafe(entry.getValue()));
         }
         return new PdcAttributePayload(
-                ConfigNodes.string(map, "source_id", ""),
+                AttributeApiValues.string(map, "source_id", ""),
                 attributes,
                 meta,
                 conditions,
-                Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION),
-                Numbers.tryParseLong(map.get("updated_at"), System.currentTimeMillis())
+                AttributeApiValues.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION),
+                AttributeApiValues.tryParseLong(map.get("updated_at"), System.currentTimeMillis())
         );
     }
 
@@ -176,7 +173,7 @@ public record PdcAttributePayload(String sourceId,
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            normalized.put(Texts.normalizeId(entry.getKey()), entry.getValue());
+            normalized.put(AttributeApiValues.normalizeId(entry.getKey()), entry.getValue());
         }
         return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
     }
@@ -190,7 +187,7 @@ public record PdcAttributePayload(String sourceId,
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            normalized.put(Texts.normalizeId(entry.getKey()), entry.getValue());
+            normalized.put(AttributeApiValues.normalizeId(entry.getKey()), entry.getValue());
         }
         return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
     }

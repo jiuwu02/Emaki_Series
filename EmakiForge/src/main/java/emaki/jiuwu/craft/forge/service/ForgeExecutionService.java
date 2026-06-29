@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge.service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -15,6 +16,9 @@ import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.model.ValidationResult;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeResultHookRegistry;
+import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeRuleRegistry;
 
 final class ForgeExecutionService {
 
@@ -27,14 +31,19 @@ final class ForgeExecutionService {
     private final CraftRecorder craftRecorder;
     private final ResultItemPostProcessor resultItemPostProcessor;
     private final ForgeFailureResolver forgeFailureResolver;
+    private final JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry;
+    private final JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry;
 
     ForgeExecutionService(ForgeActionCoordinator actionCoordinator,
             QualityCalculationService qualityCalculationService,
             ForgePlanResolver forgePlanResolver,
             ResultItemGiver resultItemGiver,
             CraftRecorder craftRecorder,
-            ResultItemPostProcessor resultItemPostProcessor) {
-        this(actionCoordinator, qualityCalculationService, forgePlanResolver, resultItemGiver, craftRecorder, resultItemPostProcessor, new ForgeFailureResolver());
+            ResultItemPostProcessor resultItemPostProcessor,
+            JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry,
+            JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry) {
+        this(actionCoordinator, qualityCalculationService, forgePlanResolver, resultItemGiver, craftRecorder, resultItemPostProcessor,
+                new ForgeFailureResolver(), javaScriptForgeRuleRegistry, javaScriptResultHookRegistry);
     }
 
     ForgeExecutionService(ForgeActionCoordinator actionCoordinator,
@@ -43,7 +52,9 @@ final class ForgeExecutionService {
             ResultItemGiver resultItemGiver,
             CraftRecorder craftRecorder,
             ResultItemPostProcessor resultItemPostProcessor,
-            ForgeFailureResolver forgeFailureResolver) {
+            ForgeFailureResolver forgeFailureResolver,
+            JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry,
+            JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry) {
         this.actionCoordinator = actionCoordinator;
         this.qualityCalculationService = qualityCalculationService;
         this.forgePlanResolver = forgePlanResolver;
@@ -51,6 +62,8 @@ final class ForgeExecutionService {
         this.craftRecorder = craftRecorder;
         this.resultItemPostProcessor = resultItemPostProcessor;
         this.forgeFailureResolver = forgeFailureResolver;
+        this.javaScriptForgeRuleRegistry = javaScriptForgeRuleRegistry;
+        this.javaScriptResultHookRegistry = javaScriptResultHookRegistry;
     }
 
     CompletableFuture<ForgeResult> execute(Player player,
@@ -62,7 +75,7 @@ final class ForgeExecutionService {
         if (validation != null && !validation.success()) {
             result.setErrorKey(validation.errorKey());
             result.setReplacements(validation.replacements());
-            return CompletableFuture.completedFuture(result);
+            return CompletableFuture.completedFuture(finish(player, recipe, result));
         }
         return actionCoordinator.executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
                 .thenApply(preBatch -> {
@@ -70,13 +83,20 @@ final class ForgeExecutionService {
                         return buildActionFailure(player, recipe, guiItems, result, preBatch);
                     }
                     if (recipe.hasFailureMechanism()) {
+                        JavaScriptForgeRuleRegistry.Decision decision = applyJavaScriptForgeRules(player, recipe, guiItems, recipe.successRate());
+                        if (decision.cancelled()) {
+                            result.setErrorKey("forge.craft.failed");
+                            result.setReplacements(Map.of("outcome_type", Texts.isBlank(decision.message()) ? "cancelled" : decision.message()));
+                            actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D, result.errorKey(), "cancelled");
+                            return finish(player, recipe, result);
+                        }
                         double roll = ThreadLocalRandom.current().nextDouble(100D);
-                        if (roll >= recipe.successRate()) {
+                        if (roll >= decision.successRate()) {
                             ForgeFailureResolver.ForgeFailureResult failureResult = forgeFailureResolver.resolve(recipe, guiItems, player);
                             result.setErrorKey("forge.craft.failed");
                             result.setReplacements(Map.of("outcome_type", failureResult.outcomeType()));
                             actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D, result.errorKey(), failureResult.outcomeType());
-                            return result;
+                            return finish(player, recipe, result);
                         }
                     }
                     ForgeService.PreparedForge forgePlan = forgePlanResolver.resolve(player, recipe, guiItems, preparedForge);
@@ -84,7 +104,7 @@ final class ForgeExecutionService {
                         result.setErrorKey("forge.error.item_create");
                         result.setReplacements(Map.of());
                         actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D, result.errorKey(), "Unable to prepare forge assembly request.");
-                        return result;
+                        return finish(player, recipe, result);
                     }
                     result.setQuality(forgePlan.quality());
                     result.setMultiplier(forgePlan.multiplier());
@@ -93,7 +113,7 @@ final class ForgeExecutionService {
                         result.setErrorKey("forge.error.item_create");
                         result.setReplacements(Map.of());
                         actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality(), result.multiplier(), result.errorKey(), "Unable to create forge result item.");
-                        return result;
+                        return finish(player, recipe, result);
                     }
                     if (resultItemPostProcessor != null) {
                         resultItemPostProcessor.process(player, recipe, guiItems, forgePlan, resultItem);
@@ -102,7 +122,7 @@ final class ForgeExecutionService {
                         result.setErrorKey("forge.error.item_create");
                         result.setReplacements(Map.of());
                         actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality(), result.multiplier(), result.errorKey(), "Unable to deliver forge result item.");
-                        return result;
+                        return finish(player, recipe, result);
                     }
                     if (player != null) {
                         qualityCalculationService.applyGuaranteeOutcome(
@@ -118,8 +138,35 @@ final class ForgeExecutionService {
                     actionCoordinator.triggerPhase(player, recipe, guiItems, "result", resultItem, result.quality(), result.multiplier(), null, null);
                     actionCoordinator.triggerPhase(player, recipe, guiItems, "success", resultItem, result.quality(), result.multiplier(), null, null);
                     actionCoordinator.triggerQualityActions(player, recipe, guiItems, resultItem, forgePlan.qualityTier(), result.quality(), result.multiplier());
-                    return result;
+                    return finish(player, recipe, result);
                 });
+    }
+
+    private JavaScriptForgeRuleRegistry.Decision applyJavaScriptForgeRules(Player player, Recipe recipe, GuiItems guiItems, double successRate) {
+        if (javaScriptForgeRuleRegistry == null) {
+            return new JavaScriptForgeRuleRegistry.Decision(
+                    recipe == null ? "" : recipe.id(),
+                    recipe == null ? "" : recipe.displayName(),
+                    player == null ? "" : player.getUniqueId().toString(),
+                    player == null ? "" : player.getName(),
+                    successRate,
+                    successRate,
+                    false,
+                    "",
+                    java.util.Map.of(),
+                    List.of(),
+                    List.of(),
+                    List.of()
+            );
+        }
+        return javaScriptForgeRuleRegistry.apply(player, recipe, guiItems, successRate);
+    }
+
+    private ForgeResult finish(Player player, Recipe recipe, ForgeResult result) {
+        if (javaScriptResultHookRegistry != null) {
+            javaScriptResultHookRegistry.fire(player, recipe, result);
+        }
+        return result;
     }
 
     private ForgeResult buildActionFailure(Player player, Recipe recipe, GuiItems guiItems, ForgeResult result, ActionBatchResult batch) {
@@ -145,7 +192,7 @@ final class ForgeExecutionService {
                 result.errorKey(),
                 reason
         );
-        return result;
+        return finish(player, recipe, result);
     }
 
     @FunctionalInterface

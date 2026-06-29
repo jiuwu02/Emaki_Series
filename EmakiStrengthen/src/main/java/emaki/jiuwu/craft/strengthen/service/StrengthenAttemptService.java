@@ -16,19 +16,27 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenChanceRuleRegistry;
+import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegistry;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
+import emaki.jiuwu.craft.strengthen.api.event.StrengthenAttemptEvent;
+import emaki.jiuwu.craft.strengthen.api.event.StrengthenPreAttemptEvent;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.model.AttemptCost;
 import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.model.StrengthenConditionGroup;
+import emaki.jiuwu.craft.strengthen.model.StrengthenConditionNode;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
@@ -97,7 +105,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                         eligible,
                         reason,
                         stored.hasLayer(),
-                        resolved.baseSource(),
+                        resolved.baseSourceSignature(),
                         resolved.baseSourceSignature(),
                         recipeId,
                         stored.currentStar(),
@@ -144,7 +152,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         ChanceCalculator.FailureResolution failure = chanceCalculator.resolveFailure(recipe, state.currentStar(), state.temperLevel(),
                 materials.appliedTemperBonus(), materials.protectionApplied());
         Set<Integer> firstReachStars = collectFirstReach(state.firstReachFlags(), targetStar);
-        return new AttemptPreview(
+        AttemptPreview preview = new AttemptPreview(
                 true,
                 "",
                 state,
@@ -162,28 +170,54 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 materials.requiredMaterials(),
                 materials.optionalMaterials()
         );
+        JavaScriptStrengthenChanceRuleRegistry chanceRuleRegistry = plugin.javaScriptChanceRuleRegistry();
+        return chanceRuleRegistry == null ? preview
+                : chanceRuleRegistry.apply(player, context, materials.requiredMaterials(), materials.optionalMaterials(), preview);
     }
 
     @Override
     public AttemptResult attempt(Player player, AttemptContext context) {
         AttemptPreview preview = preview(player, context);
         if (!preview.eligible()) {
-            return AttemptResult.failure(preview.errorKey(), preview, replacements(preview, preview.currentStar()));
+            return finishAttempt(player, AttemptResult.failure(preview.errorKey(), preview, replacements(preview, preview.currentStar())));
         }
 
         StrengthenRecipe recipe = preview.recipe();
         if (recipe != null && !recipe.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
-                    recipe.conditions(),
+                    toCoreConditionGroup(recipe.conditions()),
                     text -> resolvePlaceholders(player, text),
-                    true
+                    true,
+                    ConditionContext.of(player, context == null ? null : context.targetItem(),
+                            java.util.Map.of(
+                                    "recipeId", recipe.id(),
+                                    "currentStar", preview.currentStar(),
+                                    "targetStar", preview.targetStar(),
+                                    "successRate", preview.successRate()))
             );
             if (!conditionsPassed) {
-                return AttemptResult.failure("strengthen.error.condition_not_met", preview, replacements(preview, preview.currentStar()));
+                return finishAttempt(player, AttemptResult.failure("strengthen.error.condition_not_met", preview, replacements(preview, preview.currentStar())));
             }
         }
 
-        boolean success = ThreadLocalRandom.current().nextDouble(100D) < preview.successRate();
+        double rollSuccessRate = preview.successRate();
+        // attempt 可能通过公开 API 在异步线程调用；Bukkit 同步事件只能在主线程派发。
+        if (Bukkit.isPrimaryThread()) {
+            StrengthenPreAttemptEvent preAttemptEvent = new StrengthenPreAttemptEvent(
+                    player,
+                    context == null ? null : context.targetItem(),
+                    recipe == null ? null : recipe.id(),
+                    preview.currentStar(),
+                    preview.targetStar(),
+                    preview.successRate());
+            Bukkit.getPluginManager().callEvent(preAttemptEvent);
+            if (preAttemptEvent.isCancelled()) {
+                return finishAttempt(player, AttemptResult.failure("strengthen.error.cancelled", preview, replacements(preview, preview.currentStar())));
+            }
+            rollSuccessRate = preAttemptEvent.getSuccessRate();
+        }
+
+        boolean success = ThreadLocalRandom.current().nextDouble(100D) < rollSuccessRate;
         StrengthenState currentState = preview.state();
         int resultStar = success ? preview.targetStar() : preview.failureStar();
         int resultTemper = success ? 0 : preview.failureTemper();
@@ -207,15 +241,26 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
 
         ItemStack rebuilt = rebuildWithState(context == null ? null : context.targetItem(), updated, buildMaterialsSignature(preview));
         if (rebuilt == null) {
-            return AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, resultStar));
+            return finishAttempt(player, AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, resultStar)));
         }
 
         StrengthenEconomyService.ChargeResult chargeResult = economyService.charge(player, preview.costs());
         if (!chargeResult.success()) {
-            return AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar()));
+            return finishAttempt(player, AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar())));
         }
 
-        return new AttemptResult(success, "", replacements(preview, resultStar), preview, rebuilt, resultStar, resultTemper, progress.newlyReached());
+        return finishAttempt(player, new AttemptResult(success, "", replacements(preview, resultStar), preview, rebuilt, resultStar, resultTemper, progress.newlyReached()));
+    }
+
+    private AttemptResult finishAttempt(Player player, AttemptResult result) {
+        JavaScriptStrengthenResultHookRegistry resultHookRegistry = plugin.javaScriptResultHookRegistry();
+        if (resultHookRegistry != null) {
+            resultHookRegistry.fire(player, result);
+        }
+        if (Bukkit.isPrimaryThread()) {
+            Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
+        }
+        return result;
     }
 
     @Override
@@ -233,7 +278,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
 
     public ItemStack applyAdminState(ItemStack itemStack, Integer star, Integer temper, String recipeId) {
         StrengthenState current = readState(itemStack);
-        if (current.baseSource() == null) {
+        if (Texts.isBlank(current.baseSource())) {
             return null;
         }
         String effectiveRecipe = Texts.isNotBlank(recipeId) ? recipeId : current.recipeId();
@@ -256,7 +301,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 System.currentTimeMillis(),
                 current.branchPath()
         );
-        return rebuildWithState(itemStack, updated, readStoredState(itemStack, current.baseSource(), current.baseSourceSignature()).materialsSignature());
+        return rebuildWithState(itemStack, updated, readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()), current.baseSourceSignature()).materialsSignature());
     }
 
     public ItemStack clearStrengthenLayer(ItemStack itemStack) {
@@ -398,7 +443,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         }
         EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(recipe, state, materialsSignature);
         ItemStack rebuilt = itemAssemblyService.preview(new EmakiItemAssemblyRequest(
-                state.baseSource(),
+                ItemSourceUtil.parse(state.baseSource()),
                 Math.max(1, itemStack.getAmount()),
                 itemStack,
                 List.of(snapshot)
@@ -513,6 +558,30 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             }
         }
         return new StarProgress(Set.copyOf(updated), Set.copyOf(newlyReached));
+    }
+
+    private static ConditionGroup toCoreConditionGroup(StrengthenConditionGroup group) {
+        if (group == null) {
+            return ConditionGroup.empty();
+        }
+        List<emaki.jiuwu.craft.corelib.condition.ConditionNode> nodes = new ArrayList<>();
+        for (StrengthenConditionNode node : group.conditions()) {
+            emaki.jiuwu.craft.corelib.condition.ConditionNode converted = toCoreConditionNode(node);
+            if (converted != null) {
+                nodes.add(converted);
+            }
+        }
+        return new ConditionGroup(group.conditionType(), group.requiredCount(), nodes);
+    }
+
+    private static emaki.jiuwu.craft.corelib.condition.ConditionNode toCoreConditionNode(StrengthenConditionNode node) {
+        if (node == null) {
+            return null;
+        }
+        if (node.groupNode()) {
+            return emaki.jiuwu.craft.corelib.condition.ConditionNode.group(toCoreConditionGroup(node.group()));
+        }
+        return new emaki.jiuwu.craft.corelib.condition.ConditionNode(node.type(), node.expression(), null, node.data());
     }
 
     private record StoredState(boolean hasLayer,

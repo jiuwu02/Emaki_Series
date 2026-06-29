@@ -1,7 +1,8 @@
 function main(ctx) {
-  emaki.logger.info("Hello from Emaki JavaScript.");
+  const corelib = emaki.module("corelib");
+  emaki.logger.info("Hello from Emaki JavaScript. CoreLib ready=" + corelib.ready());
   if (emaki.player.exists()) {
-    emaki.player.sendMessage("[EmakiJS] Hello, " + emaki.player.name() + "!");
+    emaki.player.sendMessage("[EmakiJS] Hello, " + emaki.player.name() + "! CoreLib API=" + corelib.apiVersion());
   }
   emaki.state.set("hello_script_executed", true);
   return {
@@ -9,7 +10,9 @@ function main(ctx) {
     message: "hello.js executed",
     output: {
       phase: emaki.context.phase(),
-      plugin: emaki.context.plugin()
+      plugin: emaki.context.plugin(),
+      corelib_ready: corelib.ready(),
+      corelib_api: corelib.apiVersion()
     }
   };
 }

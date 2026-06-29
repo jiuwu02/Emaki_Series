@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.action.ActionResult;
 
 /**
  * Registry through which plugins contribute and manage {@link SkillScriptAction}
@@ -22,10 +21,10 @@ public interface SkillScriptActionRegistry {
      *
      * @param owner  the plugin that owns the action
      * @param action the action to register
-     * @return {@link ActionResult#ok()} on success, otherwise a failure result
+     * @return {@link SkillActionResult#ok()} on success, otherwise a failure result
      *         (e.g. id conflict or invalid action)
      */
-    ActionResult register(Plugin owner, SkillScriptAction action);
+    SkillActionResult register(Plugin owner, SkillScriptAction action);
 
     /**
      * Unregisters the action with the given id.

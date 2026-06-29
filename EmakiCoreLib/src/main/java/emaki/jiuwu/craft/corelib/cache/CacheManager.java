@@ -72,7 +72,7 @@ public final class CacheManager<K, V> {
                 caffeineStats.hitCount(),
                 caffeineStats.missCount(),
                 caffeineStats.evictionCount(),
-                caffeineStats.evictionCount(),
+                0L,
                 caffeineStats.loadCount()
         );
     }

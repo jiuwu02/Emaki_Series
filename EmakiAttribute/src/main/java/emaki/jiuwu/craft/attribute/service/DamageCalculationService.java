@@ -261,6 +261,12 @@ final class DamageCalculationService {
         if (plan == null) {
             return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.empty());
         }
+        DamageResult scripted = service.plugin() == null || service.plugin().javaScriptDamagePipelineRegistry() == null
+                ? null
+                : service.plugin().javaScriptDamagePipelineRegistry().resolve(plan.request().damageContext());
+        if (scripted != null) {
+            return scripted;
+        }
         return service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
     }
 

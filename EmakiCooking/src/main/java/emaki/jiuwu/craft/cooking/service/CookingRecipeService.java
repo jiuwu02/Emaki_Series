@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -257,7 +258,8 @@ public final class CookingRecipeService {
         if (player != null && condition.configured()) {
             return ConditionEvaluator.evaluate(
                     condition,
-                    text -> resolvePlaceholders(player, text)
+                    text -> resolvePlaceholders(player, text),
+                    ConditionContext.of(player, null, java.util.Map.of("recipeId", recipe.id()))
             );
         }
         return true;
@@ -271,7 +273,7 @@ public final class CookingRecipeService {
         if (section != null && !section.isEmpty()) {
             return ConditionBlock.fromConfig(section, true, false);
         }
-        return ConditionBlock.fromLegacyRoot(configuration, true, false);
+        return ConditionBlock.empty();
     }
 
 
@@ -297,7 +299,8 @@ public final class CookingRecipeService {
         }
         return ConditionEvaluator.evaluate(
                 condition,
-                text -> resolvePlaceholders(player, text)
+                text -> resolvePlaceholders(player, text),
+                ConditionContext.of(player, null, java.util.Map.of("recipeId", recipe.id()))
         );
     }
 

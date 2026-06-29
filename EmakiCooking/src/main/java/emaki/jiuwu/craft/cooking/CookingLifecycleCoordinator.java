@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -28,6 +29,7 @@ import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.JuicerRecipeLoader;
+import emaki.jiuwu.craft.cooking.loader.NutritionTypeLoader;
 import emaki.jiuwu.craft.cooking.loader.OvenRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
@@ -40,7 +42,10 @@ import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
+import emaki.jiuwu.craft.cooking.service.NutritionService;
+import emaki.jiuwu.craft.cooking.service.NutritionTypeRegistry;
 import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
+import emaki.jiuwu.craft.cooking.service.PlayerNutritionDataStore;
 import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
@@ -62,7 +67,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
             "recipes/juicer",
             "recipes/fermentation_barrel",
             "item_adjustments",
-            "data/stations"
+            "data/stations",
+            "nutrition",
+            "data/nutrition"
     );
 
     @Override
@@ -105,9 +112,10 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         CraftEngineBlockBridge craftEngineBlockBridge = coreLibPlugin.craftEngineBlockBridge();
         CustomBlockBridge itemsAdderBlockBridge = coreLibPlugin.itemsAdderBlockBridge();
         CustomBlockBridge nexoBlockBridge = coreLibPlugin.nexoBlockBridge();
+        CustomBlockBridge oraxenBlockBridge = coreLibPlugin.oraxenBlockBridge();
         CookingSettingsService settingsService = new CookingSettingsService(plugin);
         settingsService.reload();
-        CookingBlockMatcher blockMatcher = new CookingBlockMatcher(settingsService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge);
+        CookingBlockMatcher blockMatcher = new CookingBlockMatcher(settingsService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge);
         StationStateStore stationStateStore = new StationStateStore(plugin, coreLibPlugin.asyncFileService());
         CookingRecipeService recipeService = new CookingRecipeService(plugin, settingsService);
         ActionExecutor coreActionExecutor = coreLibPlugin.actionExecutor();
@@ -201,6 +209,19 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreLibPlugin.itemSourceService(),
                 textDisplayService
         );
+        NutritionTypeLoader nutritionTypeLoader = new NutritionTypeLoader(plugin);
+        nutritionTypeLoader.load();
+        NutritionTypeRegistry nutritionTypeRegistry = new NutritionTypeRegistry();
+        nutritionTypeRegistry.reload(nutritionTypeLoader.types());
+        PlayerNutritionDataStore nutritionDataStore = new PlayerNutritionDataStore(plugin);
+        NutritionService nutritionService = new NutritionService(
+                plugin,
+                coreActionExecutor,
+                coreLibPlugin.itemSourceService(),
+                settingsService,
+                nutritionTypeRegistry,
+                nutritionDataStore
+        );
         return new CookingRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
@@ -218,6 +239,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 craftEngineBlockBridge,
                 itemsAdderBlockBridge,
                 nexoBlockBridge,
+                oraxenBlockBridge,
                 settingsService,
                 blockMatcher,
                 stationStateStore,
@@ -232,7 +254,11 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 steamerRuntimeService,
                 ovenRuntimeService,
                 juicerRuntimeService,
-                fermentationBarrelRuntimeService
+                fermentationBarrelRuntimeService,
+                nutritionTypeLoader,
+                nutritionTypeRegistry,
+                nutritionDataStore,
+                nutritionService
         );
     }
 
@@ -247,7 +273,10 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         plugin.ovenRecipeLoader().load();
         plugin.juicerRecipeLoader().load();
         plugin.fermentationBarrelRecipeLoader().load();
+        plugin.nutritionTypeLoader().load();
         plugin.settingsService().reload();
+        plugin.nutritionTypeRegistry().reload(plugin.nutritionTypeLoader().types());
+        plugin.nutritionService().reload();
         plugin.choppingBoardRuntimeService().reload();
         plugin.wokRuntimeService().reload();
         plugin.grinderRuntimeService().reload();
@@ -260,15 +289,10 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
 
     public CompletableFuture<Void> reloadAsync(EmakiCookingPlugin plugin, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
-        if (scheduler == null) {
-            reload(plugin);
-            return CompletableFuture.completedFuture(null);
-        }
-
-        notifyProgress(progressListener, "Loading configuration files...");
-
-        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "cooking", "config-load", "Loading configs...", progressListener,
+        return runReloadPipelineAsync(scheduler, new ReloadPipelineConfig<Void, Void>(
+                "cooking",
+                "config-load",
+                "Loading configs...",
                 () -> {
                     plugin.languageLoader().load();
                     plugin.appConfigLoader().load();
@@ -279,25 +303,39 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     plugin.ovenRecipeLoader().load();
                     plugin.juicerRecipeLoader().load();
                     plugin.fermentationBarrelRecipeLoader().load();
+                    plugin.nutritionTypeLoader().load();
+                    ConfigPrecheckReport report = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class)
+                            .configPrecheckService()
+                            .checkModule(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configModel(), "cooking");
+                    if (!report.success()) {
+                        throw new IllegalStateException("Cooking precheck failed: " + String.join("; ", report.formatLines()));
+                    }
+                    return null;
                 },
-                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
-        )).thenCompose(_ -> {
-            notifyProgress(progressListener, "Applying configuration...");
-            return scheduler.callSync("cooking-reload-apply", () -> {
-                plugin.languageLoader().setLanguage(plugin.appConfig().language());
-                plugin.settingsService().reload();
-                plugin.choppingBoardRuntimeService().reload();
-                plugin.wokRuntimeService().reload();
-                plugin.grinderRuntimeService().reload();
-                plugin.steamerRuntimeService().reload();
-                plugin.ovenRuntimeService().reload();
-                plugin.juicerRuntimeService().reload();
-                plugin.fermentationBarrelRuntimeService().reload();
-                logStationRecipeCounts(plugin);
-                notifyProgress(progressListener, "Reload complete.");
-                return null;
-            });
-        });
+                "apply",
+                "Applying configuration...",
+                _ -> {
+                    plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                    plugin.settingsService().reload();
+                    plugin.nutritionTypeRegistry().reload(plugin.nutritionTypeLoader().types());
+                    plugin.nutritionService().reload();
+                    plugin.choppingBoardRuntimeService().reload();
+                    plugin.wokRuntimeService().reload();
+                    plugin.grinderRuntimeService().reload();
+                    plugin.steamerRuntimeService().reload();
+                    plugin.ovenRuntimeService().reload();
+                    plugin.juicerRuntimeService().reload();
+                    plugin.fermentationBarrelRuntimeService().reload();
+                    logStationRecipeCounts(plugin);
+                    notifyProgress(progressListener, "Reload complete.");
+                    return null;
+                },
+                null,
+                null,
+                null,
+                (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage()),
+                progressListener
+        ));
     }
 
     private void logStationRecipeCounts(EmakiCookingPlugin plugin) {
@@ -341,6 +379,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     private List<String> defaultDataFiles(EmakiCookingPlugin plugin) {
         List<String> files = new ArrayList<>(YamlFiles.listResourcePaths(plugin, "recipes"));
         files.addAll(YamlFiles.listResourcePaths(plugin, "item_adjustments"));
+        files.addAll(YamlFiles.listResourcePaths(plugin, "nutrition"));
         return List.copyOf(files);
     }
 
@@ -349,7 +388,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     }
 
     private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("cooking", context -> new ScriptCookingModuleApi());
+        coreLibPlugin.scriptModuleRegistry().register("cooking", context -> new ScriptCookingModuleApi(JavaPlugin.getPlugin(EmakiCookingPlugin.class), context));
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiCookingPlugin plugin) {

@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -36,6 +37,7 @@ import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
+import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
@@ -52,11 +54,13 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenItemLayerPreviewProvider;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRoutePreviewService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
+import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenChanceRuleRegistry;
+import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegistry;
 
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
-    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui");
+    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "script");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __    
@@ -95,6 +99,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
     private StrengthenRoutePreviewService routePreviewService;
+    private JavaScriptStrengthenChanceRuleRegistry javaScriptChanceRuleRegistry;
+    private JavaScriptStrengthenResultHookRegistry javaScriptResultHookRegistry;
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private final EmakiStrengthenApi.Bridge strengthenApiBridge = new EmakiStrengthenApi.Bridge() {
         @Override
@@ -131,6 +137,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
@@ -145,6 +152,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     @Override
     public void onDisable() {
+        ConfigPrecheckLifecycleSupport.unregister("strengthen");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -164,10 +172,20 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public void reloadPluginState(boolean closeOpenInventories) {
         lifecycleCoordinator.reload(this, closeOpenInventories);
+        logConfigPrecheckReport();
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
-        return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null);
+        return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
+                .thenRun(this::logConfigPrecheckReport);
+    }
+
+    private void logConfigPrecheckReport() {
+        ConfigPrecheckLifecycleSupport.logReport(messageService(), "strengthen");
+    }
+
+    private void registerConfigPrecheckContributor() {
+        ConfigPrecheckLifecycleSupport.register(new StrengthenConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(StrengthenRuntimeComponents components) {
@@ -189,7 +207,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
         routePreviewService = new StrengthenRoutePreviewService(this);
-        setDebugLogger(new DebugLogger(getLogger(), languageLoader));
+        javaScriptChanceRuleRegistry = new JavaScriptStrengthenChanceRuleRegistry(this);
+        javaScriptResultHookRegistry = new JavaScriptStrengthenResultHookRegistry(this);
+        setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
@@ -212,8 +232,33 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
     }
 
+    private void registerJavaScriptCompletions() {
+        scriptMethod("available", "available()", "available()");
+        scriptMethod("canStrengthen", "canStrengthen(itemKey)", "canStrengthen(\"item\")");
+        scriptMethod("readState", "readState(itemKey)", "readState(\"item\")");
+        scriptMethod("rebuild", "rebuild(itemKey)", "rebuild(\"item\")");
+        scriptMethod("registerChanceRule", "registerChanceRule(definition)", "registerChanceRule({ id: \"vip_bonus\", function: \"modifyChance\" })");
+        scriptMethod("unregisterChanceRule", "unregisterChanceRule(id)", "unregisterChanceRule(\"vip_bonus\")");
+        scriptMethod("registeredChanceRules", "registeredChanceRules()", "registeredChanceRules()");
+        scriptMethod("onResult", "onResult(definition)", "onResult({ id: \"result_reward\", function: \"handleResult\" })");
+        scriptMethod("unregisterResultHook", "unregisterResultHook(id)", "unregisterResultHook(\"result_reward\")");
+        scriptMethod("registeredResultHooks", "registeredResultHooks()", "registeredResultHooks()");
+    }
+
+    private void scriptMethod(String label, String detail, String apply) {
+        try {
+            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
+                    .invoke(null, getName(), "module:strengthen", label, detail, apply, "function");
+        } catch (NoSuchMethodException ignored) {
+            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
+        } catch (ReflectiveOperationException exception) {
+            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+        }
+    }
+
     private void registerWebConsole() {
         WebConsoleRegistry.registerFromYaml(this);
+        registerJavaScriptCompletions();
         WebItemLayerPreviewRegistry.register(this, new StrengthenItemLayerPreviewProvider(this));
         WebPluginApiRegistry.register(this, "strengthen", "route-preview", request -> {
             request.requirePost();
@@ -258,6 +303,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return bootstrapService;
     }
 
+    public EmakiCoreLibPlugin coreLib() {
+        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
     public GuiService guiService() {
         return guiService;
     }
@@ -300,6 +349,14 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public StrengthenGuiService strengthenGuiService() {
         return strengthenGuiService;
+    }
+
+    public JavaScriptStrengthenChanceRuleRegistry javaScriptChanceRuleRegistry() {
+        return javaScriptChanceRuleRegistry;
+    }
+
+    public JavaScriptStrengthenResultHookRegistry javaScriptResultHookRegistry() {
+        return javaScriptResultHookRegistry;
     }
 
     public GuiItemBuilder.ItemFactory coreItemFactory() {

@@ -6,6 +6,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.api.event.StrengthenTransferEvent;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
@@ -60,6 +61,18 @@ public final class StrengthenTransferService {
         int sourceStar = sourceState.currentStar();
         int transferredStar = (int) Math.floor(sourceStar * request.decayRate());
         transferredStar = Numbers.clamp(transferredStar, 0, targetRecipe.limits().maxStar());
+
+        // 强化转移对外开放，可取消、可改转移星级；转移 GUI 在主线程，仍按统一约定加守卫。
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            StrengthenTransferEvent transferEvent = new StrengthenTransferEvent(
+                    player, source, target, targetState.recipeId(), sourceStar, transferredStar, request.decayRate());
+            org.bukkit.Bukkit.getPluginManager().callEvent(transferEvent);
+            if (transferEvent.isCancelled()) {
+                return TransferResult.failure("strengthen.transfer.cancelled");
+            }
+            // 改写后重新 clamp 到目标配方最大星级，保持与原校验一致。
+            transferredStar = Numbers.clamp(transferEvent.getTransferredStar(), 0, targetRecipe.limits().maxStar());
+        }
 
         if (transferredStar <= 0) {
             return TransferResult.failure("strengthen.transfer.star_too_low");

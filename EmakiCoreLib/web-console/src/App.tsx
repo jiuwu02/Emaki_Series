@@ -3,7 +3,7 @@ import type { Completion, CompletionContext, CompletionResult, CompletionSource 
 import type { ComponentType } from 'react';
 import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult, type RegistryValueChange } from './api';
 import { loadWebExtensions } from './extensions';
-import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
+import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getJavaScriptCompletionScopes, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, setServerJavaScriptCompletions, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, resolveSurfaceDocumentPath, treeDirtyKey } from './documentPaths';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
@@ -16,7 +16,7 @@ import { Login, OUTLINE_DEFAULT, OUTLINE_MAX, OUTLINE_MIN, OUTLINE_STORAGE_KEY, 
 import { FieldOutlineRail, jumpToConfigNode } from './shell/FieldOutlineRail';
 import { debugInputValue, frontendDebugEvent, interactiveTarget, isFormControl } from './shell/frontendDebug';
 import type { SurfaceOutlineItem, SurfaceOutlineState, SurfaceProps, SurfaceToolbarState } from './registry';
-import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule } from './types';
+import type { RegistryTreeNode, WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebConsoleExtension, WebConsoleExtensionStatus, WebEditorDescriptor, WebRegistry, WebRegistryFile, WebRegistryModule, WebScriptCompletionEntry } from './types';
 
 const GuiEditorSurface = lazy(() => import('./GuiEditorSurface').then(module => ({ default: module.GuiEditorSurface })));
 const ItemEditorSurface = lazy(() => import('./ItemEditorSurface').then(module => ({ default: module.ItemEditorSurface })));
@@ -112,15 +112,32 @@ const COLOR_THEMES: { id: ColorTheme; labelKey: string }[] = [
   { id: 'light', labelKey: 'core.theme.light' }
 ];
 const LOCALE_LABELS: Record<string, string> = { 'zh-CN': '简体中文', zh_CN: '简体中文', 'en-US': 'English', en_US: 'English' };
-const CONFIG_INITIAL_GROUPS = 10;
-const CONFIG_GROUP_BATCH_SIZE = 12;
-const CONFIG_SECTION_INITIAL_GROUPS = 8;
-const CONFIG_SECTION_GROUP_BATCH_SIZE = 10;
+// 配置节点分页
+const CONFIG_GROUP_PAGINATION = {
+  initialGroups: 10,
+  batchSize: 12,
+} as const;
+
+// 配置分段分页
+const CONFIG_SECTION_PAGINATION = {
+  initialGroups: 8,
+  batchSize: 10,
+} as const;
+
+// 对象列表渲染
+const OBJECT_LIST_RENDER = {
+  collapseThreshold: 10,
+  initialRows: 30,
+  rowBatchSize: 30,
+} as const;
+
+// 工作区布局
+const WORKBENCH_LAYOUT = {
+  outlineCollapseWidth: 1180,
+} as const;
+
+// 懒加载阈值(被配置分段与对象列表两个域共享,故保留为独立扁平常量)
 const CONFIG_LAZY_SECTION_THRESHOLD = 10;
-const OBJECT_LIST_COLLAPSE_THRESHOLD = 10;
-const OBJECT_LIST_INITIAL_ROWS = 30;
-const OBJECT_LIST_ROW_BATCH_SIZE = 30;
-const WORKBENCH_OUTLINE_COLLAPSE_WIDTH = 1180;
 
 type WorkbenchLayout = {
   outlineVisible: boolean;
@@ -168,7 +185,7 @@ function useWorkbenchLayout(hasOutline: boolean): WorkbenchLayout {
 }
 
 function resolveWorkbenchLayout(viewportWidth: number, hasOutline: boolean, railRequested: number, outlineRequested: number): Omit<WorkbenchLayout, 'setRailRequested' | 'setOutlineRequested'> {
-  const outlineVisible = hasOutline && viewportWidth > WORKBENCH_OUTLINE_COLLAPSE_WIDTH;
+  const outlineVisible = hasOutline && viewportWidth > WORKBENCH_LAYOUT.outlineCollapseWidth;
   const railLimit = Math.max(RAIL_MIN, viewportWidth - (outlineVisible ? OUTLINE_MIN : 0));
   const railWidth = Math.round(Math.min(clampWorkbenchWidth(railRequested, RAIL_MIN, RAIL_MAX, RAIL_DEFAULT), railLimit));
   const outlineLimit = Math.max(OUTLINE_MIN, viewportWidth - railWidth);
@@ -429,6 +446,7 @@ export default function App() {
       const next = await api.registry();
       if (loadSeq !== registryLoadSeq.current) return null;
       setRuntimeEnums(next.runtimeEnums);
+      setServerJavaScriptCompletions(next.scriptCompletions);
       const merged = enhanceRegistry(next);
       setRegistry(merged);
       if (initial) setExpanded(Object.fromEntries(merged.modules.map((m) => [m.id, true])));
@@ -2350,7 +2368,7 @@ const ConfigNodeTree = memo(function ConfigNodeTree({ scope, nodes, outlineTitle
   const scopeDraftKey = useMemo(() => draftSignatureForScope(drafts, scope), [drafts, scope.moduleId, scope.fileId, scope.filePath]);
   const changeState = useMemo(() => buildNodeChangeState(scope, nodes, drafts, sourceEdit?.paths, deletedPaths), [scope.moduleId, scope.fileId, scope.filePath, nodes, scopeDraftKey, sourceEdit?.paths, deletedPaths]);
   const groups = nodeIndex.groupsByParent.get('') ?? [];
-  const visibleCount = useProgressiveCount(groups.length, CONFIG_INITIAL_GROUPS, CONFIG_GROUP_BATCH_SIZE, [scope.moduleId, scope.fileId, scope.filePath, groups.length]);
+  const visibleCount = useProgressiveCount(groups.length, CONFIG_GROUP_PAGINATION.initialGroups, CONFIG_GROUP_PAGINATION.batchSize, [scope.moduleId, scope.fileId, scope.filePath, groups.length]);
   const visibleGroups = groups.slice(0, visibleCount);
   const locale = getLocale();
 
@@ -2473,7 +2491,7 @@ const ConfigNodeSection = memo(function ConfigNodeSection({ scope, node, nodeInd
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [shouldRenderBody, setShouldRenderBody] = useState(!defaultCollapsed);
   const bodyTimer = useRef<number | null>(null);
-  const visibleCount = useProgressiveCount(shouldRenderBody && !isCollapsed ? groups.length : 0, CONFIG_SECTION_INITIAL_GROUPS, CONFIG_SECTION_GROUP_BATCH_SIZE, [scope.moduleId, scope.fileId, scope.filePath, node.path, shouldRenderBody, isCollapsed, groups.length]);
+  const visibleCount = useProgressiveCount(shouldRenderBody && !isCollapsed ? groups.length : 0, CONFIG_SECTION_PAGINATION.initialGroups, CONFIG_SECTION_PAGINATION.batchSize, [scope.moduleId, scope.fileId, scope.filePath, node.path, shouldRenderBody, isCollapsed, groups.length]);
   const visibleGroups = groups.slice(0, visibleCount);
   const hasSiblingBranches = groups.length > 1;
   const groupLabel = configNodeDisplayLabel(scope, node);
@@ -2691,11 +2709,11 @@ function ObjectListEditor({ node, items, setValue, moduleId, compact = false, he
   const stableRef = useStableEntries(objectItems);
   const stable = stableRef.current;
   const keys = objectListKeys(node, objectItems);
-  const defaultCollapsedRows = stable.filter(entry => stable.length > OBJECT_LIST_COLLAPSE_THRESHOLD || keys.length > CONFIG_LAZY_SECTION_THRESHOLD || !hasMeaningfulConfigValue(entry.data)).map(entry => entry._id);
-  const largeList = stable.length > OBJECT_LIST_COLLAPSE_THRESHOLD;
+  const defaultCollapsedRows = stable.filter(entry => stable.length > OBJECT_LIST_RENDER.collapseThreshold || keys.length > CONFIG_LAZY_SECTION_THRESHOLD || !hasMeaningfulConfigValue(entry.data)).map(entry => entry._id);
+  const largeList = stable.length > OBJECT_LIST_RENDER.collapseThreshold;
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(defaultCollapsedRows));
   const [emptyExpanded, setEmptyExpanded] = useState(false);
-  const visibleCount = useProgressiveCount(stable.length, OBJECT_LIST_INITIAL_ROWS, OBJECT_LIST_ROW_BATCH_SIZE, [node.path, stable.length]);
+  const visibleCount = useProgressiveCount(stable.length, OBJECT_LIST_RENDER.initialRows, OBJECT_LIST_RENDER.rowBatchSize, [node.path, stable.length]);
   const visibleStable = stable.slice(0, visibleCount);
   const duplicateValues = duplicateUniqueValues(node, objectItems);
 
@@ -3207,7 +3225,7 @@ function ScriptEditor({ api, scriptPath, module, file, setSurfaceToolbar, setToa
 
 type ScriptCompletionScope = Record<string, Completion[]>;
 
-const SCRIPT_COMPLETION_SCOPES: ScriptCompletionScope = {
+const BUILTIN_SCRIPT_COMPLETION_SCOPES: ScriptCompletionScope = {
   global: [
     keywordCompletion('function'), keywordCompletion('const'), keywordCompletion('let'), keywordCompletion('var'), keywordCompletion('if'), keywordCompletion('else'), keywordCompletion('for'), keywordCompletion('while'), keywordCompletion('do'), keywordCompletion('switch'), keywordCompletion('case'), keywordCompletion('break'), keywordCompletion('continue'), keywordCompletion('return'), keywordCompletion('try'), keywordCompletion('catch'), keywordCompletion('finally'), keywordCompletion('throw'), keywordCompletion('new'), keywordCompletion('typeof'), keywordCompletion('instanceof'), keywordCompletion('class'), keywordCompletion('extends'), keywordCompletion('async'), keywordCompletion('await'), keywordCompletion('true'), keywordCompletion('false'), keywordCompletion('null'), keywordCompletion('undefined'), keywordCompletion('this'),
     variableCompletion('emaki', 'EmakiScriptApi'), variableCompletion('args', 'Map<String, Object>'), variableCompletion('console', 'Console'), variableCompletion('Math', 'Math'), variableCompletion('JSON', 'JSON'), variableCompletion('Object', 'Object'), variableCompletion('Array', 'Array'), variableCompletion('String', 'String'), variableCompletion('Number', 'Number'), variableCompletion('Date', 'Date'), variableCompletion('RegExp', 'RegExp'), variableCompletion('Map', 'Map'), variableCompletion('Set', 'Set'), variableCompletion('Promise', 'Promise'),
@@ -3235,21 +3253,83 @@ const SCRIPT_COMPLETION_SCOPES: ScriptCompletionScope = {
 };
 
 const scriptCompletionSource: CompletionSource = (context: CompletionContext): CompletionResult | null => {
+  const scope = resolveScriptCompletionScope(context);
+  if (!scope) return null;
+  const { scopeName, partial, from } = scope;
+  if (!context.explicit && scopeName === 'global' && partial.length < 2) return null;
+  const options = scriptCompletionScopes(context.state.doc.toString())[scopeName];
+  if (!options) return null;
+  return {
+    from,
+    validFor: /^[A-Za-z_$][\w$]*$/,
+    options: options.filter(option => option.label.toLowerCase().startsWith(partial.toLowerCase()))
+  };
+};
+
+function scriptCompletionScopes(documentText: string): ScriptCompletionScope {
+  const scopes: ScriptCompletionScope = {};
+  mergeCompletionScopes(scopes, BUILTIN_SCRIPT_COMPLETION_SCOPES);
+  const registered = getJavaScriptCompletionScopes();
+  for (const [scope, entries] of Object.entries(registered)) {
+    const completions = entries.map(scriptCompletionEntryToCompletion);
+    if (!completions.length) continue;
+    scopes[scope] = mergeCompletions(scopes[scope] ?? [], completions);
+  }
+  for (const [alias, moduleId] of Object.entries(scriptModuleAliases(documentText))) {
+    const moduleScope = scopes[`module:${moduleId}`];
+    if (moduleScope) scopes[alias] = mergeCompletions(scopes[alias] ?? [], moduleScope);
+  }
+  return scopes;
+}
+
+function resolveScriptCompletionScope(context: CompletionContext): { scopeName: string; partial: string; from: number } | null {
+  const moduleCall = context.matchBefore(/emaki\.module\(\s*["'][A-Za-z0-9_-]+["']\s*\)\.[A-Za-z_$][\w$]*|emaki\.module\(\s*["'][A-Za-z0-9_-]+["']\s*\)\.?/);
+  if (moduleCall) {
+    const match = moduleCall.text.match(/emaki\.module\(\s*["']([A-Za-z0-9_-]+)["']\s*\)\.(.*)$/) ?? moduleCall.text.match(/emaki\.module\(\s*["']([A-Za-z0-9_-]+)["']\s*\)\.?$/);
+    if (match) {
+      const partial = match[2] ?? '';
+      return { scopeName: `module:${match[1].toLowerCase()}`, partial, from: moduleCall.to - partial.length };
+    }
+  }
   const token = context.matchBefore(/[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*\.?/);
   if (!token || (token.from === token.to && !context.explicit)) return null;
   const expression = token.text;
   const dotIndex = expression.lastIndexOf('.');
   const scopeName = dotIndex >= 0 ? expression.slice(0, dotIndex) : 'global';
   const partial = dotIndex >= 0 ? expression.slice(dotIndex + 1) : expression;
-  if (!context.explicit && scopeName === 'global' && partial.length < 2) return null;
-  const options = SCRIPT_COMPLETION_SCOPES[scopeName];
-  if (!options) return null;
+  return { scopeName, partial, from: token.to - partial.length };
+}
+
+function mergeCompletionScopes(target: ScriptCompletionScope, source: ScriptCompletionScope): void {
+  for (const [scope, completions] of Object.entries(source)) {
+    target[scope] = mergeCompletions(target[scope] ?? [], completions);
+  }
+}
+
+function mergeCompletions(base: Completion[], incoming: Completion[]): Completion[] {
+  const byLabel = new Map<string, Completion>();
+  [...base, ...incoming].forEach(completion => byLabel.set(completion.label, completion));
+  return [...byLabel.values()];
+}
+
+function scriptCompletionEntryToCompletion(entry: WebScriptCompletionEntry): Completion {
   return {
-    from: token.to - partial.length,
-    validFor: /^[A-Za-z_$][\w$]*$/,
-    options: options.filter(option => option.label.toLowerCase().startsWith(partial.toLowerCase()))
+    label: entry.label,
+    type: entry.type ?? 'function',
+    detail: entry.detail,
+    apply: entry.apply ?? entry.label
   };
-};
+}
+
+function scriptModuleAliases(documentText: string): Record<string, string> {
+  const aliases: Record<string, string> = {};
+  const pattern = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*emaki\.module\(\s*["']([A-Za-z0-9_-]+)["']\s*\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(documentText)) !== null) {
+    aliases[match[1]] = match[2].toLowerCase();
+  }
+  return aliases;
+}
 
 function keywordCompletion(label: string): Completion { return { label, type: 'keyword' }; }
 function variableCompletion(label: string, detail: string): Completion { return { label, type: 'variable', detail }; }

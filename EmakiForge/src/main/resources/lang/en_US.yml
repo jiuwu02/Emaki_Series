@@ -9,7 +9,7 @@
 
 # version is maintained by resource sync
 
-version: "4.3.0"
+version: "4.3.5"
 
 # General messages
 general:
@@ -57,6 +57,9 @@ console:
   plugin_started: "<green>Started</green>"
   plugin_stopping: "<gray>Shutting down...</gray>"
   plugin_stopped: "<yellow>Stopped</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   config_load_failed: "<red>Failed to load config: %error%</red>"
   checking_config: "<white>Checking default config files...</white>"
   data_folder_error: "<yellow>Unable to access data directory, skipped default

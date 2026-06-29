@@ -10,6 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -235,6 +236,7 @@ public final class ChoppingBoardRuntimeService {
                         player,
                         block.getLocation().add(0.5D, 1.0D, 0.5D),
                         settingsService.choppingDropResult(),
+                        List.of(new CookingInputIngredient(state.inputSource(), inputRequired)),
                         recipeService.outputs(recipe),
                         recipeService.actions(recipe),
                         "cooking_chopping_board_complete",

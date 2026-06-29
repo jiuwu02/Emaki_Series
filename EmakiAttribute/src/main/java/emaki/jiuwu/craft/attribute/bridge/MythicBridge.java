@@ -185,7 +185,7 @@ public final class MythicBridge implements Listener {
             if (attacker == null && metadata.getTrigger() != null) {
                 attacker = resolveLiving(metadata.getTrigger());
             }
-            double baseDamage = config.getDouble("damage", config.getDouble("base", metadata.getPower()));
+            double baseDamage = config.getDouble("damage", metadata.getPower());
             String damageTypeId = config.getString("damage_type", "");
             if (damageTypeId.isBlank() && attacker != null) {
                 damageTypeId = attributeService.consumeDamageTypeOverride(attacker);
@@ -325,9 +325,9 @@ public final class MythicBridge implements Listener {
             this.attributeId = Texts.normalizeId(config.getString("attribute", ""));
             this.resourceId = Texts.normalizeId(config.getString("resource", ""));
             this.field = Texts.normalizeId(config.getString("field", resourceId.isBlank() ? "value" : "current_value"));
-            this.operator = Texts.normalizeId(config.getString("operator", config.getString("compare", ">=")));
-            this.value = config.getDouble("value", config.getDouble("min", 0D));
-            this.value2 = config.getDouble("value_2", config.getDouble("max", value));
+            this.operator = Texts.normalizeId(config.getString("operator", ">="));
+            this.value = config.getDouble("value", 0D);
+            this.value2 = config.getDouble("value_2", value);
         }
 
         @Override

@@ -25,6 +25,7 @@ public final class WebConsoleRegistry {
     private static final Map<String, ModuleRegistration> MODULES = new LinkedHashMap<>();
     private static final Map<String, EditorRegistration> EDITORS = new LinkedHashMap<>();
     private static final Map<String, WebExtensionRegistration> EXTENSIONS = new LinkedHashMap<>();
+    private static final Map<String, JavaScriptCompletionRegistration> SCRIPT_COMPLETIONS = new LinkedHashMap<>();
     private static final Map<String, NodeMeta> NODE_META = new LinkedHashMap<>();
     private static final Map<String, List<Map<String, Object>>> CREATE_TEMPLATES = new LinkedHashMap<>();
     private static final Map<String, List<Map<String, Object>>> LIST_ITEM_FIELDS = new LinkedHashMap<>();
@@ -33,6 +34,7 @@ public final class WebConsoleRegistry {
 
     static {
         registerCommonComments();
+        registerCommonJavaScriptCompletions();
     }
 
     private final JavaPlugin plugin;
@@ -69,6 +71,7 @@ public final class WebConsoleRegistry {
         MODULES.remove(moduleId);
         EDITORS.values().removeIf(editor -> moduleId.equals(editor.moduleId()));
         EXTENSIONS.values().removeIf(extension -> moduleId.equals(extension.moduleId()));
+        SCRIPT_COMPLETIONS.values().removeIf(completion -> moduleId.equals(completion.moduleId()));
         NODE_META.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
         CREATE_TEMPLATES.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
         LIST_ITEM_FIELDS.keySet().removeIf(key -> key.startsWith(moduleId + ":"));
@@ -247,6 +250,30 @@ public final class WebConsoleRegistry {
             return;
         }
         registerScriptFile(plugin.getName(), title, relativePath, comment);
+    }
+
+    public static synchronized void registerJavaScriptMethod(String moduleId, String scope, String label, String detail, String apply, String type) {
+        if (Texts.isBlank(moduleId) || Texts.isBlank(scope) || Texts.isBlank(label)) {
+            return;
+        }
+        String normalizedScope = normalizeScriptCompletionScope(scope);
+        String normalizedLabel = label.trim();
+        String key = moduleId + ":" + normalizedScope + ":" + normalizedLabel;
+        SCRIPT_COMPLETIONS.put(key, new JavaScriptCompletionRegistration(
+                moduleId,
+                normalizedScope,
+                normalizedLabel,
+                Texts.toStringSafe(detail),
+                Texts.isBlank(apply) ? normalizedLabel : apply.trim(),
+                Texts.isBlank(type) ? "function" : type.trim()
+        ));
+    }
+
+    public static synchronized void registerJavaScriptMethod(JavaPlugin plugin, String scope, String label, String detail, String apply, String type) {
+        if (plugin == null) {
+            return;
+        }
+        registerJavaScriptMethod(plugin.getName(), scope, label, detail, apply, type);
     }
 
     public static synchronized void registerNodeComment(String moduleId, String path, String label, String comment, String type) {
@@ -436,6 +463,7 @@ public final class WebConsoleRegistry {
         result.put("editors", editorDescriptors());
         result.put("guiTypes", guiTypes());
         result.put("runtimeEnums", runtimeEnums());
+        result.put("scriptCompletions", javaScriptCompletions());
         result.put("extensions", webExtensions());
         return result;
     }
@@ -1059,6 +1087,25 @@ public final class WebConsoleRegistry {
         return result;
     }
 
+    private static synchronized List<Map<String, Object>> javaScriptCompletions() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (JavaScriptCompletionRegistration completion : SCRIPT_COMPLETIONS.values()) {
+            Plugin installed = Bukkit.getPluginManager().getPlugin(completion.moduleId());
+            if (installed == null || !installed.isEnabled()) {
+                continue;
+            }
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("moduleId", completion.moduleId());
+            entry.put("scope", completion.scope());
+            entry.put("label", completion.label());
+            entry.put("detail", completion.detail());
+            entry.put("apply", completion.apply());
+            entry.put("type", completion.type());
+            result.add(entry);
+        }
+        return result;
+    }
+
     private static boolean isCreatableInventoryType(InventoryType type) {
         if (type == null || type == InventoryType.CHEST) {
             return false;
@@ -1159,6 +1206,69 @@ public final class WebConsoleRegistry {
         }
     }
 
+    private static void registerCommonJavaScriptCompletions() {
+        String core = "EmakiCoreLib";
+        registerJavaScriptMethod(core, "global", "emaki", "EmakiScriptApi", "emaki", "variable");
+        registerJavaScriptMethod(core, "global", "args", "Map<String, Object>", "args", "variable");
+        registerJavaScriptMethod(core, "global", "console", "Console", "console", "variable");
+        registerJavaScriptMethod(core, "emaki", "context", "ScriptContextApi", "context", "property");
+        registerJavaScriptMethod(core, "emaki", "player", "ScriptPlayerApi", "player", "property");
+        registerJavaScriptMethod(core, "emaki", "item", "ScriptItemApi", "item", "property");
+        registerJavaScriptMethod(core, "emaki", "action", "ScriptActionApi", "action", "property");
+        registerJavaScriptMethod(core, "emaki", "logger", "ScriptLoggerApi", "logger", "property");
+        registerJavaScriptMethod(core, "emaki", "random", "ScriptRandomApi", "random", "property");
+        registerJavaScriptMethod(core, "emaki", "state", "ScriptSharedStateApi", "state", "property");
+        registerJavaScriptMethod(core, "emaki", "text", "ScriptTextApi", "text", "property");
+        registerJavaScriptMethod(core, "emaki", "module", "module(id)", "module(\"corelib\")", "function");
+        registerJavaScriptMethod(core, "emaki", "modules", "modules registry", "modules", "property");
+        registerJavaScriptMethod(core, "emaki", "runSync", "runSync(task)", "runSync(task)", "function");
+        registerJavaScriptMethod(core, "emaki", "runSyncAndWait", "runSyncAndWait(task)", "runSyncAndWait(task)", "function");
+        registerJavaScriptMethod(core, "emaki.modules", "get", "get(id)", "get(\"corelib\")", "function");
+        registerJavaScriptMethod(core, "emaki.modules", "ids", "ids()", "ids()", "function");
+        registerJavaScriptMethod(core, "emaki.context", "phase", "phase()", "phase()", "function");
+        registerJavaScriptMethod(core, "emaki.context", "plugin", "plugin()", "plugin()", "function");
+        registerJavaScriptMethod(core, "emaki.context", "placeholder", "placeholder(key)", "placeholder(key)", "function");
+        registerJavaScriptMethod(core, "emaki.context", "attribute", "attribute(key)", "attribute(key)", "function");
+        registerJavaScriptMethod(core, "emaki.context", "arg", "arg(key)", "arg(key)", "function");
+        registerJavaScriptMethod(core, "emaki.context", "placeholders", "placeholders()", "placeholders()", "function");
+        registerJavaScriptMethod(core, "emaki.context", "attributes", "attributes()", "attributes()", "function");
+        registerJavaScriptMethod(core, "emaki.context", "args", "args()", "args()", "function");
+        registerJavaScriptMethod(core, "emaki.player", "exists", "exists()", "exists()", "function");
+        registerJavaScriptMethod(core, "emaki.player", "name", "name()", "name()", "function");
+        registerJavaScriptMethod(core, "emaki.player", "uuid", "uuid()", "uuid()", "function");
+        registerJavaScriptMethod(core, "emaki.player", "world", "world()", "world()", "function");
+        registerJavaScriptMethod(core, "emaki.player", "hasPermission", "hasPermission(permission)", "hasPermission(permission)", "function");
+        registerJavaScriptMethod(core, "emaki.player", "sendMessage", "sendMessage(message)", "sendMessage(message)", "function");
+        registerJavaScriptMethod(core, "emaki.item", "has", "has(attributeKey)", "has(attributeKey)", "function");
+        registerJavaScriptMethod(core, "emaki.item", "type", "type(attributeKey)", "type(attributeKey)", "function");
+        registerJavaScriptMethod(core, "emaki.item", "amount", "amount(attributeKey)", "amount(attributeKey)", "function");
+        registerJavaScriptMethod(core, "emaki.item", "displayName", "displayName(attributeKey)", "displayName(attributeKey)", "function");
+        registerJavaScriptMethod(core, "emaki.action", "run", "run(actionId, arguments)", "run(actionId, arguments)", "function");
+        registerJavaScriptMethod(core, "emaki.action", "runLine", "runLine(line)", "runLine(line)", "function");
+        registerJavaScriptMethod(core, "emaki.logger", "info", "info(message)", "info(message)", "function");
+        registerJavaScriptMethod(core, "emaki.logger", "warn", "warn(message)", "warn(message)", "function");
+        registerJavaScriptMethod(core, "emaki.logger", "error", "error(message)", "error(message)", "function");
+        registerJavaScriptMethod(core, "emaki.random", "integer", "integer(min, max)", "integer(min, max)", "function");
+        registerJavaScriptMethod(core, "emaki.random", "decimal", "decimal()", "decimal()", "function");
+        registerJavaScriptMethod(core, "emaki.random", "chance", "chance(percent)", "chance(percent)", "function");
+        registerJavaScriptMethod(core, "emaki.random", "pick", "pick(values)", "pick(values)", "function");
+        registerJavaScriptMethod(core, "emaki.state", "set", "set(key, value)", "set(key, value)", "function");
+        registerJavaScriptMethod(core, "emaki.state", "get", "get(key)", "get(key)", "function");
+        registerJavaScriptMethod(core, "emaki.state", "has", "has(key)", "has(key)", "function");
+        registerJavaScriptMethod(core, "emaki.state", "remove", "remove(key)", "remove(key)", "function");
+        registerJavaScriptMethod(core, "emaki.text", "string", "string(value)", "string(value)", "function");
+        registerJavaScriptMethod(core, "emaki.text", "blank", "blank(value)", "blank(value)", "function");
+        registerJavaScriptMethod(core, "emaki.text", "notBlank", "notBlank(value)", "notBlank(value)", "function");
+        registerJavaScriptMethod(core, "emaki.text", "lower", "lower(value)", "lower(value)", "function");
+        registerJavaScriptMethod(core, "emaki.text", "normalizeId", "normalizeId(value)", "normalizeId(value)", "function");
+        registerJavaScriptMethod(core, "module:corelib", "available", "available()", "available()", "function");
+        registerJavaScriptMethod(core, "module:corelib", "registerAction", "registerAction(definition)", "registerAction({ id: \"my_action\", function: \"run\" })", "function");
+        registerJavaScriptMethod(core, "module:corelib", "registerPlaceholder", "registerPlaceholder(definition)", "registerPlaceholder({ id: \"my_placeholder\", function: \"value\" })", "function");
+        registerJavaScriptMethod(core, "module:corelib", "registerEvent", "registerEvent(definition)", "registerEvent({ id: \"my_listener\", event: \"PlayerJoinEvent\", function: \"onJoin\" })", "function");
+        registerJavaScriptMethod(core, "module:corelib", "registerExpressionFunction", "registerExpressionFunction(definition)", "registerExpressionFunction({ id: \"my_function\", function: \"calculate\" })", "function");
+        registerJavaScriptMethod(core, "module:corelib", "registerCondition", "registerCondition(definition)", "registerCondition({ id: \"my_condition\", function: \"check\" })", "function");
+    }
+
     private static void registerCommonComments() {
         registerNodeComment("*", "version", "", "", "text");
         registerNodeComment("*", "language", "", "", "text");
@@ -1173,8 +1283,8 @@ public final class WebConsoleRegistry {
         registerNodeComment("EmakiCoreLib", "web_console.auth.username", "用户名", "Web Console 登录用户名。", "text");
         registerNodeComment("EmakiCoreLib", "web_console.auth.password", "密码", "Web Console 登录密码，生产环境必须修改默认值。", "text");
         registerNodeComment("EmakiCoreLib", "web_console.auth.session_timeout_minutes", "会话超时", "登录会话超时时间，单位分钟。", "number");
-        registerNodeComment("EmakiCoreLib", "web_console.security", "安全", "Web Console 写入权限和请求限制。", "object");
-        registerNodeComment("EmakiCoreLib", "web_console.security.allow_config_write", "允许写配置", "是否允许通过 Web Console 保存配置文件。", "boolean");
+        registerNodeComment("EmakiCoreLib", "web_console.security", "安全", "Web Console 写入权限、模式分级和请求限制。", "object");
+        registerNodeComment("EmakiCoreLib", "web_console.security.mode", "安全模式", "Web Console 权限模式：readonly 仅查看，config-write 允许配置写入，script-write 允许脚本写入，admin 允许回滚和删除等管理操作。", "text");
         registerNodeComment("EmakiCoreLib", "web_console.security.max_request_body_kb", "请求体上限", "Web Console 请求体最大大小，单位 KB。", "number");
         registerNodeComment("EmakiCoreLib", "web_console.security.allowed_modules", "允许模块", "允许通过 Web Console 访问的模块白名单；留空表示不限制。", "list");
         registerNodeComment("EmakiCoreLib", "web_console.config_browser", "文件浏览", "Web Console 文件浏览器大小与扩展名限制。", "object");
@@ -1271,6 +1381,14 @@ public final class WebConsoleRegistry {
         return moduleId + ":" + path;
     }
 
+    private static String normalizeScriptCompletionScope(String scope) {
+        String text = Texts.toStringSafe(scope).trim();
+        if (text.startsWith("module:")) {
+            return "module:" + text.substring("module:".length()).trim().toLowerCase(java.util.Locale.ROOT);
+        }
+        return text;
+    }
+
     private static String normalizeIcon(String iconSvg) {
         return Texts.isBlank(iconSvg) ? DEFAULT_ICON_SVG : iconSvg;
     }
@@ -1312,6 +1430,7 @@ public final class WebConsoleRegistry {
     }
 
     public record WebRegisteredFileEntry(String moduleId, String title, String relativePath, String kind, boolean structuredYaml) {}
+    private record JavaScriptCompletionRegistration(String moduleId, String scope, String label, String detail, String apply, String type) {}
     private record ModuleRegistration(String id, String name, String summary, String tone, String iconSvg, List<FileRegistration> files) {}
     private record EditorRegistration(String moduleId, String editorId, Map<String, Object> descriptor) {}
     private record WebExtensionRegistration(String moduleId, String id, String resourcePath) {}

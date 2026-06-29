@@ -1,0 +1,96 @@
+# ============================================================
+# EmakiLevel 主配置文件
+# ============================================================
+# 此文件包含等级系统的全局设置。修改后使用 reload 命令重载。
+#
+# 文件放置位置: plugins/EmakiLevel/config.yml
+# ============================================================
+
+# 配置文件版本。仅用于标识当前默认配置结构，不建议手动修改。
+version: "1.1.8"
+
+# 语言文件 ID，对应 lang/<language>.yml。
+# 例如："zh_CN"、"en_US"。
+language: "zh_CN"
+
+# 是否释放默认数据文件。
+# true：首次启动或缺失数据目录时释放 types/、sources/、gui/ 等默认示例数据。
+# false：只加载已有数据，不再主动释放默认示例。
+# 注意：config.yml 与语言文件不属于这里说的默认数据文件。
+release_default_data: true
+
+# 主等级类型 ID。
+# 玩家未指定等级类型时，默认使用此类型。
+primary_type: "main"
+
+level:
+  default_start_level: 1
+  default_max_level: 100
+  max_auto_upgrade_steps: 10
+  keep_total_exp_at_max_level: true
+
+# v1.2 经验倍率活动示例。
+# enabled=true 表示启用倍率计算入口；默认所有倍率均为 1.0，因此不会改变旧行为。
+# 实际入账经验 = 原始经验 * global * types.<type> * reasons.<reason>。
+multipliers:
+  enabled: true
+  global: 1.0
+  types:
+    main: 1.0
+    combat: 1.0
+    cooking: 1.0
+    forging: 1.0
+  reasons:
+    action: 1.0
+    mythic_drop: 1.0
+    event_bonus: 1.0
+
+# v1.2 每日经验上限示例。
+# enabled=true 表示启用每日上限入口；-1 表示不限制，因此默认不会拦截经验。
+# 统计仅保存在本次服务器运行内存中，服务器重启后当日计数会清零。
+daily_caps:
+  enabled: true
+  default_limit: -1
+  types:
+    main: -1
+    combat: -1
+    cooking: -1
+    forging: -1
+
+storage:
+  type: "yaml"
+  save_on_quit: true
+  save_on_shutdown: true
+
+pdc:
+  enabled: true
+  namespace: "emakilevel"
+  sync_on_join: true
+  sync_on_exp_change: true
+  sync_on_level_change: true
+  sync_on_reload: true
+
+attribute:
+  enabled: true
+  provider_id: "emakilevel"
+
+mythicmobs:
+  enabled: true
+  kill_sources: true
+  drops:
+    enabled: true
+    names:
+      - "emakilevel_exp"
+      - "elv_exp"
+
+anti_abuse:
+  placed_block_tracking: true
+  placed_block_exp: false
+  placed_block_record_ttl_ticks: 864000
+  last_damager_tracking:
+    enabled: true
+    expire_ticks: 200
+
+gui:
+  enabled: true
+  default_template: "level_gui"

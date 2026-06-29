@@ -72,6 +72,13 @@ final class CombatDebugService {
         }
         String safePhase = phase == null || phase.isBlank() ? "TRACE" : phase;
         String safeMessage = message == null ? "" : message;
+        if (service.plugin().messageService() != null) {
+            service.plugin().messageService().info("console.combat_debug_line", Map.of(
+                    "phase", safePhase,
+                    "message", safeMessage
+            ));
+            return;
+        }
         service.plugin().getLogger().info("[CombatDebug][" + safePhase + "] " + safeMessage);
     }
 

@@ -55,9 +55,8 @@ public record ConditionGroup(String conditionType,
                 return new ConditionGroup(defaultType, defaultRequiredCount, List.of());
             }
             return new ConditionGroup(
-                    section.getString("type", section.getString("condition_type", defaultType)),
-                    Numbers.tryParseInt(section.get("required_count"),
-                            Numbers.tryParseInt(section.get("condition_required_count"), defaultRequiredCount)),
+                    section.getString("type", defaultType),
+                    Numbers.tryParseInt(section.get("required_count"), defaultRequiredCount),
                     parseNodes(entries)
             );
         }

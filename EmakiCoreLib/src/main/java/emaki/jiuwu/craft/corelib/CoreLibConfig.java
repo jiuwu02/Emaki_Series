@@ -11,12 +11,15 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 public record CoreLibConfig(
         String language,
         Map<String, List<String>> actionTemplates,
+        LoopConfig loopConfig,
         ScriptConfig scriptConfig,
-        WebConsoleConfig webConsoleConfig
+        WebConsoleConfig webConsoleConfig,
+        GuiConfig guiConfig
 ) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig("zh_CN", Map.of(), ScriptConfig.defaults(), WebConsoleConfig.defaults());
+        return new CoreLibConfig("zh_CN", Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
+                WebConsoleConfig.defaults(), GuiConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -35,8 +38,80 @@ public record CoreLibConfig(
         return new CoreLibConfig(
                 language,
                 Map.copyOf(templates),
+                LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 ScriptConfig.fromConfig(configuration.getSection("script")),
-                WebConsoleConfig.fromConfig(configuration.getSection("web_console"))
+                WebConsoleConfig.fromConfig(configuration.getSection("web_console")),
+                GuiConfig.fromConfig(configuration.getSection("gui"))
         );
+    }
+
+    /**
+     * Selects which {@link emaki.jiuwu.craft.corelib.gui.GuiBackend} presents
+     * Emaki menus.
+     *
+     * <ul>
+     *   <li>{@code bukkit} — real server-side inventory (default).</li>
+     *   <li>{@code packet} — packet-driven virtual container (requires
+     *       PacketEvents); cursor survives in-place row-count changes.</li>
+     *   <li>{@code auto} — packet when PacketEvents is present, otherwise
+     *       bukkit.</li>
+     * </ul>
+     */
+    public record GuiConfig(String backend) {
+
+        public GuiConfig {
+            backend = backend == null ? "bukkit" : backend.trim().toLowerCase(java.util.Locale.ROOT);
+        }
+
+        public static GuiConfig defaults() {
+            return new GuiConfig("bukkit");
+        }
+
+        public static GuiConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new GuiConfig(section.getString("backend", defaults().backend()));
+        }
+    }
+
+    public record LoopConfig(
+            boolean enabled,
+            long minSyncIntervalTicks,
+            long minAsyncIntervalTicks,
+            int maxTimes,
+            int maxActiveLoopsTotal,
+            int maxActiveLoopsPerPlayer,
+            int maxActiveLoopsPerPlugin,
+            boolean cancelPlayerLoopsOnQuit,
+            boolean cancelPluginLoopsOnDisable
+    ) {
+
+        public static LoopConfig defaults() {
+            return new LoopConfig(true, 5L, 2L, 7200, 5000, 16, 1000, true, true);
+        }
+
+        public static LoopConfig fromConfig(YamlSection section) {
+            LoopConfig defaults = defaults();
+            if (section == null) {
+                return defaults;
+            }
+            return new LoopConfig(
+                    section.getBoolean("enabled", defaults.enabled()),
+                    parseTicks(section.getString("min_sync_interval", "5t"), defaults.minSyncIntervalTicks()),
+                    parseTicks(section.getString("min_async_interval", "100ms"), defaults.minAsyncIntervalTicks()),
+                    section.getInt("max_times", defaults.maxTimes()),
+                    section.getInt("max_active_loops_total", defaults.maxActiveLoopsTotal()),
+                    section.getInt("max_active_loops_per_player", defaults.maxActiveLoopsPerPlayer()),
+                    section.getInt("max_active_loops_per_plugin", defaults.maxActiveLoopsPerPlugin()),
+                    section.getBoolean("cancel_player_loops_on_quit", defaults.cancelPlayerLoopsOnQuit()),
+                    section.getBoolean("cancel_plugin_loops_on_disable", defaults.cancelPluginLoopsOnDisable())
+            );
+        }
+
+        private static long parseTicks(String raw, long fallback) {
+            long parsed = emaki.jiuwu.craft.corelib.action.ActionParsers.parseTicks(raw);
+            return parsed < 0L ? fallback : parsed;
+        }
     }
 }
