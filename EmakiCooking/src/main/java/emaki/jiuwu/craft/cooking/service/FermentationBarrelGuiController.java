@@ -160,6 +160,14 @@ final class FermentationBarrelGuiController {
         return null;
     }
 
+    StationCoordinates viewingCoordinates(UUID viewerId) {
+        if (viewerId == null) {
+            return null;
+        }
+        FermentationBarrelGuiHolder holder = openSessions.get(viewerId);
+        return holder == null ? null : holder.coordinates();
+    }
+
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {

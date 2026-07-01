@@ -192,6 +192,14 @@ final class SteamerGuiController implements Listener {
         return null;
     }
 
+    StationCoordinates viewingCoordinates(UUID viewerId) {
+        if (viewerId == null) {
+            return null;
+        }
+        SteamerGuiHolder holder = openSessions.get(viewerId);
+        return holder == null ? null : holder.coordinates();
+    }
+
     SteamerState snapshotInventoryState(StationCoordinates coordinates, Inventory inventory, UUID playerUuid, String playerName) {
         SteamerState previous = runtimeService.loadStateOrEmpty(coordinates);
         SteamerState updated = new SteamerState();

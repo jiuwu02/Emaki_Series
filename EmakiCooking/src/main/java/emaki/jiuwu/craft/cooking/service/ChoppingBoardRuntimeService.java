@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -15,6 +16,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
@@ -339,6 +341,50 @@ public final class ChoppingBoardRuntimeService {
         textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
         stateStore.deleteAsync(coordinates);
         return true;
+    }
+
+    /**
+     * 构建砧板运行态快照。无输入物品时返回空。
+     */
+    public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+        ChoppingBoardState state = readState(stateStore.load(coordinates));
+        if (state == null || !state.hasInputSource()) {
+            return Optional.empty();
+        }
+        Block block = coordinates.block();
+        RecipeDocument recipe = recipeService.findChoppingBoardRecipe(state.inputSource(), null);
+        int target = recipe == null ? 0 : recipeService.choppingCutsRequired(recipe);
+        int current = Math.min(state.cutCount(), target > 0 ? target : state.cutCount());
+        double percent = target > 0 ? Math.min(100.0D, (double) current * 100.0D / (double) target) : 0.0D;
+        return Optional.of(new StationSnapshot(
+                StationType.CHOPPING_BOARD,
+                coordinates.world(), coordinates.x(), coordinates.y(), coordinates.z(),
+                CookingRuntimeUtil.resolveBlockId(plugin, block),
+                "",
+                false,
+                0L,
+                0, 0, 0,
+                plainItemName(state.inputSource()),
+                state.inputSource(),
+                state.inputAmount(),
+                1,
+                recipe == null ? "" : recipe.id(),
+                recipe == null ? "" : recipe.displayName(),
+                current,
+                target,
+                percent,
+                false,
+                "",
+                0,
+                ""
+        ));
+    }
+
+    private String plainItemName(String source) {
+        return MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(source));
     }
 
     private boolean appendInput(Player player, Block block, StationCoordinates coordinates, ChoppingBoardState state, ItemStack hand, long now) {

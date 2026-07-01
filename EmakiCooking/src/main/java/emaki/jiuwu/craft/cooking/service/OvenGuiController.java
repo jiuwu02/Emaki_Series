@@ -187,6 +187,14 @@ final class OvenGuiController {
         return null;
     }
 
+    StationCoordinates viewingCoordinates(UUID viewerId) {
+        if (viewerId == null) {
+            return null;
+        }
+        OvenGuiHolder holder = openSessions.get(viewerId);
+        return holder == null ? null : holder.coordinates();
+    }
+
     OvenState snapshotInventoryState(StationCoordinates coordinates, Inventory inventory, UUID playerUuid, String playerName) {
         OvenState previous = runtimeService.loadStateOrEmpty(coordinates);
         OvenState updated = new OvenState();

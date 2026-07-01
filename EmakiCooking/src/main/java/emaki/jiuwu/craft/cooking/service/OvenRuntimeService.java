@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,6 +14,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
@@ -23,9 +25,11 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -426,6 +430,82 @@ public final class OvenRuntimeService implements Listener {
         OvenState loaded = codec.readState(stateStore.load(coordinates));
         OvenState existing = runtimeStates.putIfAbsent(coordinates, loaded);
         return existing == null ? loaded : existing;
+    }
+
+    /**
+     * 返回该玩家当前打开的烤炉工位坐标，没有则空。
+     */
+    Optional<StationCoordinates> viewingStation(UUID viewerId) {
+        return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
+    }
+
+    /**
+     * 构建烤炉运行态快照。空态返回空。
+     */
+    public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+        OvenState state = loadStateOrEmpty(coordinates);
+        if (state == null || state.isCompletelyEmpty()) {
+            return Optional.empty();
+        }
+        Block block = coordinates.block();
+        Block heatBlock = block == null ? null : block.getRelative(BlockFace.DOWN);
+        long now = System.currentTimeMillis();
+        boolean burning = state.burningUntilMs() > now;
+        long remaining = burning ? (state.burningUntilMs() - now) / 1000L : 0L;
+
+        int totalRequired = 0;
+        int totalProgress = 0;
+        boolean allCompleted = !state.slotSources().isEmpty();
+        String firstSource = "";
+        RecipeDocument firstRecipe = null;
+        for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
+            if (Texts.isBlank(firstSource)) {
+                firstSource = entry.getValue();
+            }
+            RecipeDocument recipe = recipeService.findOvenRecipe(entry.getValue(), null);
+            if (recipe == null) {
+                allCompleted = false;
+                continue;
+            }
+            if (firstRecipe == null) {
+                firstRecipe = recipe;
+            }
+            int required = recipeService.ovenBakeTimeSeconds(recipe);
+            int progress = Math.min(required, state.progressAt(entry.getKey()));
+            totalRequired += required;
+            totalProgress += progress;
+            if (progress < required) {
+                allCompleted = false;
+            }
+        }
+        double percent = totalRequired > 0 ? Math.min(100.0D, (double) totalProgress * 100.0D / (double) totalRequired) : 0.0D;
+        return Optional.of(new StationSnapshot(
+                StationType.OVEN,
+                coordinates.world(), coordinates.x(), coordinates.y(), coordinates.z(),
+                CookingRuntimeUtil.resolveBlockId(plugin, block),
+                CookingRuntimeUtil.resolveBlockId(plugin, heatBlock),
+                burning,
+                remaining,
+                state.heat(),
+                0,
+                0,
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource)),
+                Texts.toStringSafe(firstSource),
+                firstSource.isBlank() ? 0 : 1,
+                state.slotSources().size(),
+                firstRecipe == null ? "" : firstRecipe.id(),
+                firstRecipe == null ? "" : firstRecipe.displayName(),
+                totalProgress,
+                totalRequired,
+                percent,
+                allCompleted && totalRequired > 0,
+                "",
+                0,
+                state.playerName() == null ? "" : state.playerName()
+        ));
     }
 
     private void cacheState(StationCoordinates coordinates, OvenState state) {

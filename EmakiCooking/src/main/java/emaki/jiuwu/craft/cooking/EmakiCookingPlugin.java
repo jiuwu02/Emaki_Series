@@ -50,6 +50,8 @@ import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.cooking.service.CookingStationLocator;
+import emaki.jiuwu.craft.cooking.service.CookingStationTracker;
 import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
@@ -121,6 +123,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private OvenRuntimeService ovenRuntimeService;
     private JuicerRuntimeService juicerRuntimeService;
     private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
+    private CookingStationLocator stationLocator;
+    private CookingStationTracker stationTracker;
     private NutritionTypeLoader nutritionTypeLoader;
     private NutritionTypeRegistry nutritionTypeRegistry;
     private PlayerNutritionDataStore nutritionDataStore;
@@ -269,7 +273,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         nutritionService = components.nutritionService();
         javaScriptResultRuleRegistry = new JavaScriptCookingResultRuleRegistry(this);
         javaScriptCompleteHookRegistry = new JavaScriptCookingCompleteHookRegistry(this);
-        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService);
+        stationTracker = new CookingStationTracker();
+        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService, blockMatcher);
+        stationLocator = new CookingStationLocator(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -289,6 +295,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             return;
         }
         getServer().getPluginManager().registerEvents(stationListener, this);
+        if (stationTracker != null) {
+            getServer().getPluginManager().registerEvents(stationTracker, this);
+        }
         if (steamerRuntimeService != null) {
             getServer().getPluginManager().registerEvents(steamerRuntimeService, this);
         }
@@ -577,6 +586,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public FermentationBarrelRuntimeService fermentationBarrelRuntimeService() {
         return fermentationBarrelRuntimeService;
+    }
+
+    public CookingStationLocator stationLocator() {
+        return stationLocator;
+    }
+
+    public CookingStationTracker stationTracker() {
+        return stationTracker;
     }
 
     public NutritionTypeLoader nutritionTypeLoader() {

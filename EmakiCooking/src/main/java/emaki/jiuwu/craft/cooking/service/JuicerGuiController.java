@@ -193,6 +193,14 @@ final class JuicerGuiController {
         return null;
     }
 
+    StationCoordinates viewingCoordinates(UUID viewerId) {
+        if (viewerId == null) {
+            return null;
+        }
+        JuicerGuiHolder holder = openSessions.get(viewerId);
+        return holder == null ? null : holder.coordinates();
+    }
+
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {

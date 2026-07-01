@@ -3,15 +3,20 @@ package emaki.jiuwu.craft.cooking;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import emaki.jiuwu.craft.cooking.api.event.CookingStationInteractEvent;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationInteractionType;
+import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
+import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
 import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -33,6 +38,7 @@ final class CookingStationListener implements Listener {
     private final OvenRuntimeService ovenRuntimeService;
     private final JuicerRuntimeService juicerRuntimeService;
     private final FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
+    private final CookingBlockMatcher blockMatcher;
     private final Map<String, Long> handledBreaks = new ConcurrentHashMap<>();
 
     CookingStationListener(ChoppingBoardRuntimeService choppingBoardRuntimeService,
@@ -41,7 +47,8 @@ final class CookingStationListener implements Listener {
             SteamerRuntimeService steamerRuntimeService,
             OvenRuntimeService ovenRuntimeService,
             JuicerRuntimeService juicerRuntimeService,
-            FermentationBarrelRuntimeService fermentationBarrelRuntimeService) {
+            FermentationBarrelRuntimeService fermentationBarrelRuntimeService,
+            CookingBlockMatcher blockMatcher) {
         this.choppingBoardRuntimeService = choppingBoardRuntimeService;
         this.wokRuntimeService = wokRuntimeService;
         this.grinderRuntimeService = grinderRuntimeService;
@@ -49,6 +56,7 @@ final class CookingStationListener implements Listener {
         this.ovenRuntimeService = ovenRuntimeService;
         this.juicerRuntimeService = juicerRuntimeService;
         this.fermentationBarrelRuntimeService = fermentationBarrelRuntimeService;
+        this.blockMatcher = blockMatcher;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -77,6 +85,7 @@ final class CookingStationListener implements Listener {
     }
 
     void dispatchInteraction(StationInteraction interaction) {
+        fireInteractEvent(interaction);
         if (choppingBoardRuntimeService.handleInteraction(interaction)) {
             return;
         }
@@ -96,6 +105,50 @@ final class CookingStationListener implements Listener {
             return;
         }
         grinderRuntimeService.handleInteraction(interaction);
+    }
+
+    /**
+     * 命中工位类型时触发 {@link CookingStationInteractEvent}。事件在分发到各工位服务
+     * 之前同步触发，{@code CookingStationTracker} 监听该事件写入"最近交互工位"，因此
+     * 随后进行的配方条件占位符求值即可读到当前工位。事件为只读通知，不影响交互取消。
+     */
+    private void fireInteractEvent(StationInteraction interaction) {
+        if (interaction == null) {
+            return;
+        }
+        Block block = interaction.block();
+        if (block == null || interaction.player() == null) {
+            return;
+        }
+        StationType stationType = resolveStationType(interaction);
+        if (stationType == null) {
+            return;
+        }
+        StationInteractionType interactionType = interaction.type();
+        Bukkit.getPluginManager().callEvent(new CookingStationInteractEvent(
+                interaction.player(),
+                block.getLocation(),
+                stationType.folderName(),
+                interactionType == null ? "" : interactionType.configKey()
+        ));
+    }
+
+    /**
+     * 判定交互命中的工位类型：逐一匹配 7 种工位方块源，命中即返回。纯内存匹配，开销可忽略。
+     *
+     * @param interaction 交互上下文
+     * @return 命中的工位类型；未命中时 null
+     */
+    private StationType resolveStationType(StationInteraction interaction) {
+        if (blockMatcher == null) {
+            return null;
+        }
+        for (StationType type : StationType.values()) {
+            if (blockMatcher.matches(interaction, type)) {
+                return type;
+            }
+        }
+        return null;
     }
 
     void dispatchBreak(StationBreakContext context) {

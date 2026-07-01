@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,13 +14,16 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -371,6 +375,69 @@ public final class JuicerRuntimeService implements Listener {
         JuicerState loaded = codec.readState(stateStore.load(coordinates));
         runtimeStates.putIfAbsent(coordinates, loaded);
         return loaded;
+    }
+
+    /**
+     * 返回该玩家当前打开的榨汁机工位坐标，没有则空。
+     */
+    Optional<StationCoordinates> viewingStation(UUID viewerId) {
+        return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
+    }
+
+    /**
+     * 构建榨汁机运行态快照。空态返回空。榨汁机无热源，进度按累计按压次数计。
+     */
+    public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+        JuicerState state = loadStateOrEmpty(coordinates);
+        if (state == null || state.isCompletelyEmpty()) {
+            return Optional.empty();
+        }
+        Block block = coordinates.block();
+        int totalRequired = 0;
+        int totalProgress = 0;
+        String firstSource = "";
+        RecipeDocument firstRecipe = null;
+        for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
+            if (Texts.isBlank(firstSource)) {
+                firstSource = entry.getValue();
+            }
+            RecipeDocument recipe = recipeService.findJuicerRecipe(entry.getValue(), null);
+            if (recipe == null) {
+                continue;
+            }
+            if (firstRecipe == null) {
+                firstRecipe = recipe;
+            }
+            int required = Math.max(1, recipeService.juicerPressesRequired(recipe));
+            totalRequired += required;
+            totalProgress += Math.min(required, state.progressAt(entry.getKey()));
+        }
+        double percent = totalRequired > 0 ? Math.min(100.0D, (double) totalProgress * 100.0D / (double) totalRequired) : 0.0D;
+        return Optional.of(new StationSnapshot(
+                StationType.JUICER,
+                coordinates.world(), coordinates.x(), coordinates.y(), coordinates.z(),
+                CookingRuntimeUtil.resolveBlockId(plugin, block),
+                "",
+                false,
+                0L,
+                0, 0, 0,
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource)),
+                Texts.toStringSafe(firstSource),
+                firstSource.isBlank() ? 0 : 1,
+                state.slotSources().size(),
+                firstRecipe == null ? "" : firstRecipe.id(),
+                firstRecipe == null ? "" : firstRecipe.displayName(),
+                totalProgress,
+                totalRequired,
+                percent,
+                false,
+                state.hasFluid() ? MiniMessages.plainText(state.fluidDisplayName()) : "",
+                state.fluidAmountMl(),
+                state.playerName() == null ? "" : state.playerName()
+        ));
     }
 
     void removeState(StationCoordinates coordinates, boolean deleteFile) {

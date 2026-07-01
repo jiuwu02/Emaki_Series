@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -13,7 +14,9 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
@@ -21,6 +24,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
@@ -356,6 +360,48 @@ public final class WokRuntimeService {
         }
         clearState(coordinates);
         return true;
+    }
+
+    /**
+     * 构建炒锅运行态快照。无食材时返回空。火力为下方热源实时计算值，不持久化。
+     */
+    public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+        WokState state = readState(stateStore.load(coordinates));
+        if (state == null || !state.hasIngredients()) {
+            return Optional.empty();
+        }
+        Block block = coordinates.block();
+        int heatLevel = block == null ? 0 : resolveHeatLevel(block.getRelative(BlockFace.DOWN));
+        WokIngredientState first = state.ingredients().get(0);
+        RecipeDocument recipe = predictRecipe(state, heatLevel);
+        int target = recipe == null ? 0 : recipeService.wokStirTotalMin(recipe);
+        int current = state.totalStirCount();
+        double percent = target > 0 ? Math.min(100.0D, (double) current * 100.0D / (double) target) : 0.0D;
+        return Optional.of(new StationSnapshot(
+                StationType.WOK,
+                coordinates.world(), coordinates.x(), coordinates.y(), coordinates.z(),
+                CookingRuntimeUtil.resolveBlockId(plugin, block),
+                CookingRuntimeUtil.resolveBlockId(plugin, block == null ? null : block.getRelative(BlockFace.DOWN)),
+                false,
+                0L,
+                heatLevel, 0, 0,
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(first.source())),
+                first.source(),
+                first.amount(),
+                state.ingredients().size(),
+                recipe == null ? "" : recipe.id(),
+                recipe == null ? "" : recipe.displayName(),
+                current,
+                target,
+                percent,
+                false,
+                "",
+                0,
+                ""
+        ));
     }
 
     private void showContents(Player player, WokState state, int heatLevel) {

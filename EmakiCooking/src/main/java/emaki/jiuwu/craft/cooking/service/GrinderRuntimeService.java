@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +15,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
@@ -24,6 +26,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -172,6 +175,48 @@ public final class GrinderRuntimeService {
         stateStore.deleteAsync(coordinates);
         textDisplayService.removeStation(StationType.GRINDER, coordinates);
         return true;
+    }
+
+    /**
+     * 构建研磨机运行态快照。无状态时返回空。研磨机无热源，进度按经过秒数计。
+     */
+    public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+        GrinderState state = readState(stateStore.load(coordinates));
+        if (state == null) {
+            return Optional.empty();
+        }
+        Block block = coordinates.block();
+        RecipeDocument recipe = recipeService.grinderRecipeById(state.recipeId());
+        int target = recipe == null ? 0 : recipeService.grinderTimeSeconds(recipe);
+        int elapsedSeconds = (int) Math.max(0L, (System.currentTimeMillis() - state.startTimeMs()) / 1000L);
+        int current = target > 0 ? Math.min(elapsedSeconds, target) : elapsedSeconds;
+        double percent = target > 0 ? Math.min(100.0D, (double) current * 100.0D / (double) target) : 0.0D;
+        boolean completed = target > 0 && elapsedSeconds >= target;
+        return Optional.of(new StationSnapshot(
+                StationType.GRINDER,
+                coordinates.world(), coordinates.x(), coordinates.y(), coordinates.z(),
+                CookingRuntimeUtil.resolveBlockId(plugin, block),
+                "",
+                false,
+                0L,
+                0, 0, 0,
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(state.inputSource())),
+                state.inputSource(),
+                state.hasInputSource() ? 1 : 0,
+                state.hasInputSource() ? 1 : 0,
+                recipe == null ? "" : recipe.id(),
+                recipe == null ? "" : recipe.displayName(),
+                current,
+                target,
+                percent,
+                completed,
+                "",
+                0,
+                state.playerName() == null ? "" : state.playerName()
+        ));
     }
 
     private void ensureTicker() {

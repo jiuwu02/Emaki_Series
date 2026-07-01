@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,15 +15,18 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -435,6 +439,75 @@ public final class FermentationBarrelRuntimeService implements Listener {
         FermentationBarrelState loaded = codec.readState(stateStore.load(coordinates));
         runtimeStates.putIfAbsent(coordinates, loaded);
         return loaded;
+    }
+
+    /**
+     * 返回该玩家当前打开的发酵桶工位坐标，没有则空。
+     */
+    Optional<StationCoordinates> viewingStation(UUID viewerId) {
+        return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
+    }
+
+    /**
+     * 构建发酵桶运行态快照。空态返回空。发酵桶无热源，进度按发酵时间计。
+     */
+    public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+        FermentationBarrelState state = loadStateOrEmpty(coordinates);
+        if (state == null || state.isCompletelyEmpty()) {
+            return Optional.empty();
+        }
+        Block block = coordinates.block();
+        long now = System.currentTimeMillis();
+        RecipeDocument recipe = recipeService.fermentationBarrelRecipeById(state.activeRecipeId());
+
+        int target = 0;
+        int current = 0;
+        double percent = 0.0D;
+        long remaining = 0L;
+        if (state.completed()) {
+            percent = 100.0D;
+            long total = Math.max(0L, state.finishAtMs() - state.startedAtMs());
+            target = (int) (total / 1000L);
+            current = target;
+        } else if (state.fermenting()) {
+            long total = Math.max(1L, state.finishAtMs() - state.startedAtMs());
+            long done = Math.max(0L, Math.min(total, now - state.startedAtMs()));
+            percent = Math.min(100.0D, (double) done * 100.0D / (double) total);
+            target = (int) (total / 1000L);
+            current = (int) (done / 1000L);
+            remaining = Math.max(0L, (state.finishAtMs() - now) / 1000L);
+        }
+
+        String firstSource = "";
+        for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
+            firstSource = entry.getValue();
+            break;
+        }
+        return Optional.of(new StationSnapshot(
+                StationType.FERMENTATION_BARREL,
+                coordinates.world(), coordinates.x(), coordinates.y(), coordinates.z(),
+                CookingRuntimeUtil.resolveBlockId(plugin, block),
+                "",
+                false,
+                remaining,
+                0, 0, 0,
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource)),
+                Texts.toStringSafe(firstSource),
+                firstSource.isBlank() ? 0 : 1,
+                state.slotSources().size(),
+                recipe == null ? Texts.toStringSafe(state.activeRecipeId()) : recipe.id(),
+                recipe == null ? "" : recipe.displayName(),
+                current,
+                target,
+                percent,
+                state.completed(),
+                "",
+                0,
+                state.playerName() == null ? "" : state.playerName()
+        ));
     }
 
     void removeState(StationCoordinates coordinates, boolean deleteFile) {
