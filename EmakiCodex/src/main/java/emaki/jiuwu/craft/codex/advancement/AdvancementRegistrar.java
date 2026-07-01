@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -33,6 +34,9 @@ public final class AdvancementRegistrar {
     private final Map<String, AdvancementDefinition> byKey = new ConcurrentHashMap<>();
     private final Map<String, String> pageByKey = new ConcurrentHashMap<>();
     private final List<NamespacedKey> registeredKeys = new ArrayList<>();
+    // Ordered snapshot (roots before children) used to rebuild the client-facing
+    // advancement packet on reload; mirrors registeredKeys' insertion order.
+    private final List<RegisteredNode> registeredNodes = new CopyOnWriteArrayList<>();
 
     public AdvancementRegistrar(JavaPlugin plugin,
             AdvancementPageLoader pageLoader,
@@ -92,6 +96,7 @@ public final class AdvancementRegistrar {
         registeredKeys.add(key);
         byKey.put(key.toString(), definition);
         pageByKey.put(key.toString(), page.pageId());
+        registeredNodes.add(new RegisteredNode(key, page, definition, parentKey));
         return true;
     }
 
@@ -109,6 +114,7 @@ public final class AdvancementRegistrar {
         registeredKeys.clear();
         byKey.clear();
         pageByKey.clear();
+        registeredNodes.clear();
     }
 
     /** {@return the definition mapped to a registered advancement key, or {@code null}} */
@@ -155,9 +161,37 @@ public final class AdvancementRegistrar {
         return byKey.size();
     }
 
+    /**
+     * {@return an ordered, immutable snapshot of every registered node (roots before
+     * children), carrying the owning page, definition and resolved parent key}
+     *
+     * <p>Used by the client resync service to rebuild the outgoing advancement packet
+     * from the same data the server registered, without re-reading the loader.
+     */
+    public List<RegisteredNode> registeredNodes() {
+        return List.copyOf(registeredNodes);
+    }
+
     private NamespacedKey keyOf(String pageId, String localId) {
         String path = (pageId + "/" + localId).toLowerCase(java.util.Locale.ROOT)
                 .replaceAll("[^a-z0-9_./-]", "_");
         return new NamespacedKey(plugin, path);
+    }
+
+    /**
+     * A registered advancement node paired with everything needed to rebuild its
+     * client packet holder: the full key, owning page (background/namespace), the
+     * definition (icon/title/frame/flags/coordinates) and the resolved parent key
+     * ({@code null} for a page root).
+     *
+     * @param key        the full advancement key ({@code emakicodex:<page>/<node>})
+     * @param page       the owning page
+     * @param definition the node definition
+     * @param parentKey  the full parent advancement key, or {@code null} for a root
+     */
+    public record RegisteredNode(NamespacedKey key,
+            AdvancementPage page,
+            AdvancementDefinition definition,
+            String parentKey) {
     }
 }

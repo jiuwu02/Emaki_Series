@@ -83,7 +83,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         AdvancementRegistrar registrar = new AdvancementRegistrar(plugin, advancementPageLoader, platform, jsonBuilder);
         AdvancementService advancementService = new AdvancementService(registrar);
         AdvancementPacketGateway advancementPacketGateway =
-                new AdvancementPacketGateway(plugin, registrar, config.packetCoordinates());
+                new AdvancementPacketGateway(plugin, registrar, coreLibPlugin.itemSourceService(),
+                        config.packetCoordinates());
 
         return new CodexRuntimeComponents(
                 appConfigLoader, languageLoader, messageService, bootstrapService, unlockStore,
@@ -118,6 +119,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (config.advancementEnabled()) {
             int registered = plugin.advancementRegistrar().registerAll();
             plugin.messageService().info("console.advancements_registered", Map.of("count", registered));
+            resyncAdvancements(plugin, registered);
         }
 
         if (config.recipeBridgeEnabled() && config.resyncOnReload()) {
@@ -134,6 +136,28 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         Map<String, CodexRecipe> manual = new java.util.LinkedHashMap<>();
         plugin.manualRecipeLoader().all().forEach(manual::put);
         plugin.recipeIndex().merge(manual);
+    }
+
+    /**
+     * After advancements are re-registered on reload, refresh the client advancement
+     * screen for online players. With PacketEvents present the tree is re-pushed live
+     * (no relog needed); without it, we cannot resend runtime advancements, so we tell
+     * admins that online players must reconnect. Silent when no one is online or when
+     * nothing was registered.
+     *
+     * @param plugin     the plugin
+     * @param registered how many advancement nodes were just registered
+     */
+    private void resyncAdvancements(EmakiCodexPlugin plugin, int registered) {
+        if (registered <= 0 || org.bukkit.Bukkit.getOnlinePlayers().isEmpty()) {
+            return;
+        }
+        int result = plugin.advancementPacketGateway().resyncAll();
+        if (result < 0) {
+            plugin.messageService().info("console.advancements_need_relog");
+        } else if (result > 0) {
+            plugin.messageService().info("console.advancements_resynced", Map.of("count", result));
+        }
     }
 
     public TaskHandle rescheduleAutoSave(EmakiCodexPlugin plugin, TaskHandle currentTask) {

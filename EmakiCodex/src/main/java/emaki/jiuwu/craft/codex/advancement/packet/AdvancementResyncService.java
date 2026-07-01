@@ -1,0 +1,190 @@
+package emaki.jiuwu.craft.codex.advancement.packet;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.protocol.advancements.Advancement;
+import com.github.retrooper.packetevents.protocol.advancements.AdvancementDisplay;
+import com.github.retrooper.packetevents.protocol.advancements.AdvancementHolder;
+import com.github.retrooper.packetevents.protocol.advancements.AdvancementType;
+import com.github.retrooper.packetevents.resources.ResourceLocation;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUpdateAdvancements;
+
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+
+import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
+import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
+import emaki.jiuwu.craft.codex.advancement.model.AdvancementFrame;
+import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
+import net.kyori.adventure.text.Component;
+
+/**
+ * Re-pushes EmakiCodex advancements to already-online players after a reload, so the
+ * client advancement screen refreshes without requiring a relog.
+ *
+ * <p>Minecraft only sends the advancement tree to a client at login. Runtime
+ * registration via {@code Bukkit.getUnsafe().loadAdvancement} updates the server
+ * registry but never re-notifies online clients. This service rebuilds the same
+ * client-facing payload from {@link AdvancementRegistrar}'s ordered snapshot and sends
+ * a {@link WrapperPlayServerUpdateAdvancements} with {@code reset=false} (append only,
+ * never clearing vanilla/other-plugin advancements) to each online player.
+ *
+ * <p>This class references PacketEvents types directly, so it is only ever instantiated
+ * by {@link AdvancementPacketGateway} after PacketEvents is confirmed present. When
+ * PacketEvents is absent the class is never loaded, avoiding {@code NoClassDefFoundError},
+ * mirroring the isolation used by the recipe sync channels.
+ */
+public final class AdvancementResyncService {
+
+    private final JavaPlugin plugin;
+    private final AdvancementRegistrar registrar;
+    private final ItemSourceService itemSourceService;
+
+    /**
+     * @param plugin            the owning plugin (logger + key namespace)
+     * @param registrar         the registrar supplying the ordered node snapshot
+     * @param itemSourceService corelib service used to resolve an icon shorthand to an item
+     */
+    public AdvancementResyncService(JavaPlugin plugin,
+            AdvancementRegistrar registrar,
+            ItemSourceService itemSourceService) {
+        this.plugin = plugin;
+        this.registrar = registrar;
+        this.itemSourceService = itemSourceService;
+    }
+
+    /**
+     * Rebuilds the advancement payload once and pushes it to every online player.
+     *
+     * @return the number of players the packet was sent to
+     */
+    public int resyncAll() {
+        List<AdvancementHolder> holders = buildHolders();
+        if (holders.isEmpty()) {
+            return 0;
+        }
+        int sent = 0;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (sendTo(player, holders)) {
+                sent++;
+            }
+        }
+        return sent;
+    }
+
+    /**
+     * Rebuilds the payload and pushes it to a single player (e.g. on demand).
+     *
+     * @param player the target player
+     * @return {@code true} when the packet was sent
+     */
+    public boolean resync(Player player) {
+        List<AdvancementHolder> holders = buildHolders();
+        return !holders.isEmpty() && sendTo(player, holders);
+    }
+
+    private boolean sendTo(Player player, List<AdvancementHolder> holders) {
+        if (player == null || !player.isOnline()) {
+            return false;
+        }
+        try {
+            WrapperPlayServerUpdateAdvancements packet = new WrapperPlayServerUpdateAdvancements(
+                    false, holders, Collections.emptySet(), Collections.emptyMap(), true);
+            PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+            return true;
+        } catch (Throwable throwable) {
+            plugin.getLogger().log(Level.WARNING,
+                    "[Codex] Advancement resync failed for " + player.getName() + ": " + throwable.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Builds one {@link AdvancementHolder} per registered node from the registrar's
+     * ordered snapshot. A single malformed node is skipped rather than aborting the
+     * whole payload, so one bad icon never blocks the rest of the tree.
+     */
+    private List<AdvancementHolder> buildHolders() {
+        List<AdvancementHolder> holders = new ArrayList<>();
+        for (AdvancementRegistrar.RegisteredNode node : registrar.registeredNodes()) {
+            try {
+                holders.add(buildHolder(node));
+            } catch (Throwable throwable) {
+                plugin.getLogger().log(Level.FINE,
+                        "[Codex] Skipped advancement holder " + node.key() + ": " + throwable.getMessage());
+            }
+        }
+        return holders;
+    }
+
+    private AdvancementHolder buildHolder(AdvancementRegistrar.RegisteredNode node) {
+        AdvancementDefinition definition = node.definition();
+        AdvancementPage page = node.page();
+
+        ResourceLocation background = definition.isRoot() && Texts.isNotBlank(page.background())
+                ? new ResourceLocation(page.background()) : null;
+
+        AdvancementDisplay display = new AdvancementDisplay(
+                textComponent(definition.title()),
+                textComponent(definition.description()),
+                resolveIcon(definition.icon()),
+                frameType(definition.frame()),
+                background,
+                definition.showToast(),
+                definition.hidden(),
+                (float) definition.x(),
+                (float) definition.y());
+
+        ResourceLocation parent = Texts.isBlank(node.parentKey()) ? null : new ResourceLocation(node.parentKey());
+        List<List<String>> requirements = List.of(List.of(AdvancementDefinition.CRITERION));
+        Advancement advancement = new Advancement(parent, display, requirements, false);
+        return new AdvancementHolder(new ResourceLocation(node.key().toString()), advancement);
+    }
+
+    private com.github.retrooper.packetevents.protocol.item.ItemStack resolveIcon(String iconShorthand) {
+        ItemStack bukkitIcon = null;
+        if (Texts.isNotBlank(iconShorthand) && itemSourceService != null) {
+            ItemSource source = ItemSourceUtil.parse(iconShorthand);
+            if (source != null) {
+                ItemStack created = itemSourceService.createItem(source, 1);
+                if (created != null && !created.getType().isAir()) {
+                    bukkitIcon = created;
+                }
+            }
+        }
+        if (bukkitIcon == null) {
+            bukkitIcon = new ItemStack(org.bukkit.Material.BOOK);
+        }
+        return SpigotConversionUtil.fromBukkitItemStack(bukkitIcon);
+    }
+
+    private AdvancementType frameType(AdvancementFrame frame) {
+        if (frame == null) {
+            return AdvancementType.TASK;
+        }
+        // Map by name; PacketEvents' enum order differs from the vanilla frame enum.
+        return switch (frame) {
+            case GOAL -> AdvancementType.GOAL;
+            case CHALLENGE -> AdvancementType.CHALLENGE;
+            default -> AdvancementType.TASK;
+        };
+    }
+
+    private Component textComponent(String miniMessage) {
+        return MiniMessages.parse(miniMessage == null ? "" : miniMessage);
+    }
+}

@@ -12,15 +12,22 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 
 /**
- * Channel 2: JEI/REI plugin-message delivery over Bukkit's {@link Messenger}, using
- * the same outgoing channels that the JEIServerProxy project validated
- * ({@code jei:network} / {@code rei:networking}). This is disabled by default because
- * the on-wire frame layout is a private JEI/REI protocol that can only be confirmed
- * against a real client; enabling it lets a server operator test and tune the frame.
+ * Channel 2: an experimental JEI/REI plugin-message channel over Bukkit's
+ * {@link Messenger} ({@code jei:network} / {@code rei:networking}). Disabled by default.
  *
- * <p>The frame written here sends the visible recipe id list as a length-prefixed
- * UTF block. Operators running a client that expects a different layout should adjust
- * {@link #encode(Set)} to match their JEI/REI version.
+ * <p><b>Important — does not fix standard JEI on 1.21.2+.</b> Since Minecraft 1.21.2,
+ * recipes are stored server-side only and are no longer fully synced to the client
+ * (clients receive {@code RecipeDisplayEntry} data via Fabric's {@code fabric-recipe-api-v1}
+ * custom payload, not a whole-table download). A standard, unmodified JEI/REI client does
+ * <i>not</i> listen on {@code jei:network} to rebuild its recipe list, so the simple
+ * length-prefixed frame written here has no effect on such clients — they will still show
+ * an empty recipe list and prompt to "install JEI on the server".
+ *
+ * <p>To make standard JEI display recipes on a 1.21.2+ Spigot server you need either a
+ * dedicated server-side JEI bridge plugin (e.g. JEI Recipe Bridge, which emits the
+ * Fabric/NeoForge-expected payload) or a client-side fallback mod (e.g. JESR). This channel
+ * exists only so an operator running a custom/modified client can test and tune that
+ * client's own private protocol frame via {@link #encode(Set)}.
  */
 public final class JeiMessageChannel implements RecipeSyncChannel {
 

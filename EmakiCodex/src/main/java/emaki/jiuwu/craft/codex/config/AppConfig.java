@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
  */
 public final class AppConfig extends BaseAppConfig {
 
-    public static final String CURRENT_VERSION = "1.0.0";
+    public static final String CURRENT_VERSION = "1.0.1";
 
     private final boolean releaseDefaultData;
 
