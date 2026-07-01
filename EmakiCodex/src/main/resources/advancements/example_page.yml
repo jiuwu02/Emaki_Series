@@ -1,0 +1,73 @@
+# ============================================================
+# EmakiCodex 示例成就页
+# ============================================================
+# 一个文件 = 一个成就页（原版成就标签页）。
+# 新建一页只需在 advancements/ 下新建一个 yml 文件。
+#
+# 成就 key 规则: emakicodex:<page_id>/<成就本地id>
+# 完成条件统一为 impossible，通过 /codex grant 或 codex-grant-advancement action 授予。
+#
+# 节点坐标 x/y（可选）：仅在安装了 PacketEvents 且 config.yml 的
+# advancement.packet-coordinates=true 时生效，用于精确指定节点在成就页 GUI 中的位置。
+# 未装 PacketEvents 时 x/y 被忽略，位置由客户端按 parent 树自动排布。
+# x/y 都为 0 视为“未设置”，该节点回退自动排布；要用坐标建议整页都配，避免节点重叠。
+# ============================================================
+
+# 成就页 id（也作为成就 key 的路径前缀）
+page_id: "example"
+
+# 标签页标题（MiniMessage）
+title: "<gradient:#F59E0B:#EC4899>图鉴示例</gradient>"
+
+# 背景材质路径（支持资源包路径）
+background: "minecraft:textures/gui/advancements/backgrounds/adventure.png"
+
+# 根成就的本地 id（对应下方 advancements 中的 key）
+root: "root"
+
+advancements:
+  root:
+    icon: "minecraft-enchanted_book"
+    title: "<gold>图鉴之路</gold>"
+    description: "<gray>开启你的探索之旅。</gray>"
+    frame: "task"
+    # 根成就不写 parent
+    # 坐标（需 PacketEvents）：根节点在最左，纵向居中
+    x: 0.0
+    y: 1.0
+    toast: false
+    announce: false
+    hidden: false
+    on_complete: []
+
+  first_step:
+    icon: "minecraft-crafting_table"
+    title: "<yellow>初次尝试</yellow>"
+    description: "<gray>解锁基础合成配方。</gray>"
+    frame: "task"
+    parent: "root"
+    # 坐标（需 PacketEvents）：根节点右侧一格
+    x: 1.0
+    y: 1.0
+    toast: true
+    announce: false
+    hidden: false
+    # 完成时执行 corelib action：给玩家发消息 + 解锁一个配方
+    on_complete:
+      - "sendmessage text=<green>你已解锁一个新配方！</green>"
+      - "codex-unlock-recipe recipe=minecraft:diamond_sword"
+
+  challenge:
+    icon: "minecraft-nether_star"
+    title: "<light_purple>终极挑战</light_purple>"
+    description: "<gray>完成一项艰巨的挑战。</gray>"
+    frame: "challenge"
+    parent: "first_step"
+    # 坐标（需 PacketEvents）：再向右一格
+    x: 2.0
+    y: 1.0
+    toast: true
+    announce: true
+    hidden: true
+    on_complete:
+      - "sendmessage text=<gold>恭喜达成终极挑战！</gold>"

@@ -1,0 +1,65 @@
+# ============================================================
+# EmakiCodex 语言文件 - 简体中文
+# ============================================================
+# 支持 MiniMessage 格式。修改后使用 /codex reload 重载。
+# ============================================================
+
+# version 由资源同步维护
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此操作。</red>"
+  player_only: "<red>此命令只能由玩家执行。</red>"
+  player_not_found: "<red>找不到玩家 %player%。</red>"
+  unknown_command: "<red>未知命令，输入 /codex help 查看帮助。</red>"
+  invalid_args: "<red>参数错误，输入 /codex help 查看用法。</red>"
+  reloading: "<gray>正在重载配置...</gray>"
+  reload_success: "<green>配置已重载。</green>"
+  reload_summary: "<gray>已索引配方 %recipes% 条，注册成就 %advancements% 个。</gray>"
+
+command:
+  help:
+    header: "<gold>========== EmakiCodex 帮助 ==========</gold>"
+    footer: "<gold>=====================================</gold>"
+    line: "<yellow>/codex %cmd%</yellow> <gray>- %desc%</gray>"
+    commands:
+      reload: "重载配置、重建配方索引、重注册成就并给全员重发配方"
+      sync: "手动触发配方同步（不填默认自己）"
+      recipe: "列出已索引配方（可按命名空间过滤）"
+      unlock: "给玩家解锁配方"
+      lock: "取消玩家的配方解锁"
+      grant: "授予玩家成就"
+      revoke: "撤销玩家成就"
+      debug: "管理 Debug 模式"
+  sync:
+    done: "<green>已为 %player% 重新同步配方。</green>"
+  recipe:
+    header: "<gold>========== 配方列表 (共 %count% 条) ==========</gold>"
+    line: "<yellow>%id%</yellow> <gray>- %type%</gray>"
+    truncated: "<gray>... 其余 %remaining% 条已省略。</gray>"
+  unlock:
+    done: "<green>已为 %player% 解锁配方 %recipe%（变更: %changed%）。</green>"
+  lock:
+    done: "<green>已为 %player% 锁定配方 %recipe%（变更: %changed%）。</green>"
+  grant:
+    done: "<green>已授予 %player% 成就 %advancement%。</green>"
+  revoke:
+    done: "<green>已撤销 %player% 的成就 %advancement%。</green>"
+  advancement:
+    failed: "<red>成就 %advancement% 未注册或状态无变化。</red>"
+
+console:
+  plugin_starting: "正在启动 EmakiCodex..."
+  plugin_started: "EmakiCodex 已启动。"
+  bootstrap_start: "正在释放默认资源..."
+  bootstrap_skip: "已跳过默认示例数据释放。"
+  bootstrap_complete: "默认资源就绪。"
+  recipes_indexed: "已索引配方 %count% 条。"
+  advancements_registered: "已注册成就 %count% 个。"
+  advancement_packet_enabled: "成就发包坐标注入已启用（PacketEvents）。"
+  advancement_packet_absent: "未检测到 PacketEvents，成就 x/y 坐标不生效，节点位置由客户端自动排布。"
+  saving_unlock_data: "正在保存玩家解锁数据..."
+  unlock_data_saved: "已保存 %count% 名玩家的解锁数据。"
+  unlock_directory_create_failed: "<red>创建解锁数据目录失败: %path%</red>"
+  unlock_save_failed: "<red>保存玩家 %uuid% 解锁数据失败: %error%</red>"
