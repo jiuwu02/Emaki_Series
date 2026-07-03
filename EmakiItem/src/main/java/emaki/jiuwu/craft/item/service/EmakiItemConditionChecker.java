@@ -9,7 +9,6 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
@@ -54,7 +53,7 @@ public final class EmakiItemConditionChecker {
             }
         } else {
             if (Texts.isNotBlank(conditions.denyMessage())) {
-                AdventureSupport.sendMessage(plugin, player, MiniMessages.parse(conditions.denyMessage()));
+                player.sendMessage(MiniMessages.parse(conditions.denyMessage()));
             }
             actionService.executeLines(player, definition, "condition_fail", conditions.failActions(), Map.of(), itemStack);
         }

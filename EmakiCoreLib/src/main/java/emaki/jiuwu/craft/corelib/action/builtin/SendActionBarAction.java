@@ -6,7 +6,6 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 
 public final class SendActionBarAction extends BaseAction {
@@ -21,7 +20,7 @@ public final class SendActionBarAction extends BaseAction {
         if (!playerCheck.success()) {
             return playerCheck;
         }
-        AdventureSupport.sendActionBar(context.sourcePlugin(), context.player(), MiniMessages.parse(stringArg(arguments, "text")));
+        context.player().sendActionBar(MiniMessages.parse(stringArg(arguments, "text")));
         return ActionResult.ok();
     }
 }

@@ -59,10 +59,9 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.4.0</emaki.corelib.version>
-        <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
+        <emaki.corelib.version>4.4.1</emaki.corelib.version>
+        <paper.api.version>1.21.11-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
-        <adventure.platform.version>4.4.1</adventure.platform.version>
         <exp4j.version>0.4.8</exp4j.version>
         <jetbrains.annotations.version>26.1.0</jetbrains.annotations.version>
         <boosted.yaml.version>1.3.7</boosted.yaml.version>
@@ -103,9 +102,9 @@
                 <version>${boosted.yaml.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.spigotmc</groupId>
-                <artifactId>spigot-api</artifactId>
-                <version>${spigot.api.version}</version>
+                <groupId>io.papermc.paper</groupId>
+                <artifactId>paper-api</artifactId>
+                <version>${paper.api.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -117,11 +116,6 @@
                 <groupId>net.kyori</groupId>
                 <artifactId>adventure-text-minimessage</artifactId>
                 <version>${adventure.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>net.kyori</groupId>
-                <artifactId>adventure-platform-bukkit</artifactId>
-                <version>${adventure.platform.version}</version>
             </dependency>
             <dependency>
                 <groupId>net.kyori</groupId>
@@ -270,12 +264,12 @@
 
     <repositories>
         <repository>
-            <id>phoenix</id>
-            <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
         <repository>
-            <id>spigotmc-snapshots</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <id>phoenix</id>
+            <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
         </repository>
         <repository>
             <id>irepo-space</id>

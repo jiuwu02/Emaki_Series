@@ -28,7 +28,6 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
@@ -167,7 +166,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
             metrics = null;
         }
         lifecycleCoordinator.shutdown(this);
-        AdventureSupport.close(this);
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {

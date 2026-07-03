@@ -23,7 +23,7 @@ public final class ConsoleOutputs {
                 .replace("\r\n", "\n")
                 .replace("\r", "\n");
         for (String line : normalized.split("\n", -1)) {
-            AdventureSupport.sendMessage(plugin, plugin.getServer().getConsoleSender(), buildGradientLine(line));
+            plugin.getServer().getConsoleSender().sendMessage(buildGradientLine(line));
         }
     }
 

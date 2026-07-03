@@ -4,9 +4,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.graalvm.polyglot.HostAccess;
 
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 public final class ScriptTextApi {
 
@@ -63,23 +63,28 @@ public final class ScriptTextApi {
     @HostAccess.Export
     public void sendMini(Object target, String miniMessage) {
         CommandSender sender = commandSender(target);
-        if (sourcePlugin != null && sender != null && miniMessage != null) {
-            AdventureSupport.sendMiniMessage(sourcePlugin, sender, miniMessage);
+        if (sourcePlugin != null && sender != null && Texts.isNotBlank(miniMessage)) {
+            sender.sendMessage(MiniMessages.parse(miniMessage));
         }
     }
 
     @HostAccess.Export
     public void broadcastMini(String miniMessage) {
-        if (sourcePlugin != null && miniMessage != null) {
-            AdventureSupport.broadcast(sourcePlugin, MiniMessages.parse(miniMessage));
+        if (sourcePlugin == null || miniMessage == null) {
+            return;
         }
+        Component component = MiniMessages.parse(miniMessage);
+        for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
+            player.sendMessage(component);
+        }
+        Bukkit.getConsoleSender().sendMessage(component);
     }
 
     @HostAccess.Export
     public void actionBar(Object target, String miniMessage) {
         org.bukkit.entity.Player player = player(target);
-        if (sourcePlugin != null && player != null && miniMessage != null) {
-            AdventureSupport.sendActionBar(sourcePlugin, player, miniMessage);
+        if (sourcePlugin != null && player != null && Texts.isNotBlank(miniMessage)) {
+            player.sendActionBar(MiniMessages.parse(miniMessage));
         }
     }
 

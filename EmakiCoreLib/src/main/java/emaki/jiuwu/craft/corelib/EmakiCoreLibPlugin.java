@@ -64,7 +64,6 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.web.WebConsoleService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
@@ -233,7 +232,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         ExpressionEngine.clearGlobalCache();
         ExpressionEngine.clearThreadLocalCache();
         emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer.clearRegexCache();
-        AdventureSupport.close(this);
     }
 
     @Override

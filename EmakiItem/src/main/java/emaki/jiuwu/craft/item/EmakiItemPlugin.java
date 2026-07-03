@@ -28,7 +28,6 @@ import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -200,7 +199,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
         EmakiItemApi.uninstall(itemApiBridge);
         lifecycleCoordinator.shutdown(this);
-        AdventureSupport.close(this);
     }
 
     public void reloadPluginState() {

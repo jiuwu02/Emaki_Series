@@ -10,7 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.PlayerCastTimingState;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
@@ -73,7 +73,7 @@ public final class ActionBarService {
         if (text == null || text.isBlank()) {
             return;
         }
-        AdventureSupport.sendActionBar(plugin, player, text);
+        player.sendActionBar(MiniMessages.parse(text));
     }
 
     public void refreshAll() {

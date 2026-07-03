@@ -13,7 +13,6 @@ import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -144,7 +143,7 @@ final class DamageMessageDispatcher {
         if (Texts.isBlank(rendered)) {
             return;
         }
-        AdventureSupport.sendMiniMessage(service.plugin(), player, rendered);
+        player.sendMessage(MiniMessages.parse(rendered));
     }
 
     private String resolveCauseDisplayName(EntityDamageEvent.DamageCause cause) {

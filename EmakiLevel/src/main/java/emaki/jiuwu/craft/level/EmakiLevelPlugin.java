@@ -25,7 +25,6 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
@@ -288,7 +287,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         if (messages != null) {
             messages.info("console.plugin_stopped");
         }
-        AdventureSupport.close(this);
     }
 
     public void reloadPluginState() {

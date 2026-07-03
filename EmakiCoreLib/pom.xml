@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.4.0</version>
+    <version>4.4.1</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -22,8 +22,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -45,10 +45,6 @@
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-minimessage</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-platform-bukkit</artifactId>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>

@@ -7,7 +7,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -103,11 +103,14 @@ public final class LevelMessageService implements LogMessages {
     }
 
     public void send(CommandSender sender, String key, Map<String, ?> replacements) {
-        AdventureSupport.sendMiniMessage(plugin, sender, message(key, replacements));
+        sendRaw(sender, message(key, replacements));
     }
 
     public void sendRaw(CommandSender sender, String text) {
-        AdventureSupport.sendMiniMessage(plugin, sender, text);
+        if (sender == null || Texts.isBlank(text)) {
+            return;
+        }
+        sender.sendMessage(MiniMessages.parse(text));
     }
 
     @Override
@@ -144,7 +147,7 @@ public final class LevelMessageService implements LogMessages {
         if (Texts.isBlank(text)) {
             return;
         }
-        AdventureSupport.sendMiniMessage(plugin, Bukkit.getConsoleSender(), withPrefix(text));
+        Bukkit.getConsoleSender().sendMessage(MiniMessages.parse(withPrefix(text)));
     }
 
     public String language() {

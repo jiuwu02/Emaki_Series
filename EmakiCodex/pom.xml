@@ -12,14 +12,14 @@
     </parent>
 
     <artifactId>emaki-codex</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <name>EmakiCodex</name>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

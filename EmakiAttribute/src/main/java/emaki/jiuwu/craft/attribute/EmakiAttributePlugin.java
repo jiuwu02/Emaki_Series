@@ -48,7 +48,6 @@ import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
@@ -135,7 +134,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             metrics.close();
             metrics = null;
         }
-        AdventureSupport.close(this);
         regenTask = null;
     }
 

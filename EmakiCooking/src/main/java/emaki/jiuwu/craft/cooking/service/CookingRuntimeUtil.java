@@ -10,7 +10,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -46,7 +46,7 @@ public final class CookingRuntimeUtil {
         if (player == null) {
             return;
         }
-        AdventureSupport.sendActionBar(plugin, player, messageService.message(key, replacements));
+        player.sendActionBar(MiniMessages.parse(messageService.message(key, replacements)));
     }
 
     static long parseLong(Object raw, long fallback) {

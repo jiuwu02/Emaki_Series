@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class DebugLogger {
@@ -195,7 +195,7 @@ public final class DebugLogger {
                 ? template
                 : Texts.formatTemplate(template, replacements);
         if (plugin != null && plugin.isEnabled()) {
-            AdventureSupport.sendMiniMessage(plugin, Bukkit.getConsoleSender(), withPrefix(message));
+            Bukkit.getConsoleSender().sendMessage(MiniMessages.parse(withPrefix(message)));
             return;
         }
         logger.info(Texts.formatTemplate(message, replacements == null ? Map.of() : replacements));
