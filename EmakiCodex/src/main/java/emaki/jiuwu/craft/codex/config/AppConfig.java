@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
  */
 public final class AppConfig extends BaseAppConfig {
 
-    public static final String CURRENT_VERSION = "1.0.1";
+    public static final String CURRENT_VERSION = "1.0.2";
 
     private final boolean releaseDefaultData;
 
@@ -21,7 +21,7 @@ public final class AppConfig extends BaseAppConfig {
     private final List<String> unlockWhitelist;
     private final boolean channelVanillaBook;
     private final boolean channelPacketEvents;
-    private final boolean channelJeiMessage;
+    private final boolean channelJeiBridge;
 
     private final boolean advancementEnabled;
     private final String advancementPlatform;
@@ -43,7 +43,7 @@ public final class AppConfig extends BaseAppConfig {
             List<String> unlockWhitelist,
             boolean channelVanillaBook,
             boolean channelPacketEvents,
-            boolean channelJeiMessage,
+            boolean channelJeiBridge,
             boolean advancementEnabled,
             String advancementPlatform,
             boolean announceDefault,
@@ -61,7 +61,7 @@ public final class AppConfig extends BaseAppConfig {
         this.unlockWhitelist = unlockWhitelist == null ? List.of() : List.copyOf(unlockWhitelist);
         this.channelVanillaBook = channelVanillaBook;
         this.channelPacketEvents = channelPacketEvents;
-        this.channelJeiMessage = channelJeiMessage;
+        this.channelJeiBridge = channelJeiBridge;
         this.advancementEnabled = advancementEnabled;
         this.advancementPlatform = advancementPlatform == null || advancementPlatform.isBlank()
                 ? "unsafe" : advancementPlatform;
@@ -83,9 +83,9 @@ public final class AppConfig extends BaseAppConfig {
                 true,
                 List.of(),
                 List.of("minecraft:crafting_table"),
-                true,
-                true,
-                false,
+                true,   // channelVanillaBook
+                true,   // channelPacketEvents
+                true,   // channelJeiBridge
                 true,
                 "unsafe",
                 false,
@@ -132,8 +132,8 @@ public final class AppConfig extends BaseAppConfig {
         return channelPacketEvents;
     }
 
-    public boolean channelJeiMessage() {
-        return channelJeiMessage;
+    public boolean channelJeiBridge() {
+        return channelJeiBridge;
     }
 
     public boolean advancementEnabled() {

@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.3.9"
+version: "2.4.0"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行这个命令。</red>"

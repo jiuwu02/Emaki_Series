@@ -76,7 +76,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         ItemRefFactory itemRefFactory = new ItemRefFactory(coreLibPlugin.itemSourceService());
         RecipeCollector recipeCollector = new RecipeCollector(itemRefFactory);
         RecipeVisibilityService visibilityService = new RecipeVisibilityService(recipeIndex, unlockStore, config);
-        RecipeSyncGateway syncGateway = new RecipeSyncGateway(plugin, recipeIndex, visibilityService, config);
+        RecipeSyncGateway syncGateway = new RecipeSyncGateway(
+                plugin, recipeIndex, visibilityService, config, plugin::debugLogger);
 
         AdvancementPlatform platform = new UnsafeAdvancementPlatform(plugin.getLogger());
         AdvancementJsonBuilder jsonBuilder = new AdvancementJsonBuilder(coreLibPlugin.itemSourceService());
@@ -114,6 +115,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (config.recipeBridgeEnabled()) {
             rebuildRecipeIndex(plugin);
             plugin.recipeSyncGateway().rebuild(plugin.recipeIndex(), config);
+            reportJeiBridge(plugin);
         }
 
         if (config.advancementEnabled()) {
@@ -128,6 +130,32 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
         plugin.messageService().info("console.recipes_indexed", Map.of("count", plugin.recipeIndex().size()));
         return rescheduleAutoSave(plugin, autoSaveTask);
+    }
+
+    /**
+     * Logs whether the JEI bridge channel resolved on this server platform. When the config
+     * has the channel enabled but NMS reflection missed (e.g. non-Paper server or an unmapped
+     * MC version), the operator gets a precise reason so they know standard JEI won't show
+     * recipes and the other channels still work.
+     *
+     * @param plugin the plugin
+     */
+    private void reportJeiBridge(EmakiCodexPlugin plugin) {
+        AppConfig config = plugin.appConfig();
+        if (!config.channelJeiBridge()) {
+            return;
+        }
+        var channel = plugin.recipeSyncGateway().jeiBridgeChannel();
+        if (channel == null) {
+            return;
+        }
+        if (channel.bridgeAvailable()) {
+            plugin.messageService().info("console.jei_bridge_enabled");
+        } else {
+            String reason = channel.bridgeUnavailableReason();
+            plugin.messageService().info("console.jei_bridge_unavailable",
+                    Map.of("reason", reason == null ? "unknown" : reason));
+        }
     }
 
     private void rebuildRecipeIndex(EmakiCodexPlugin plugin) {
@@ -225,7 +253,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 recipeBridge == null ? List.of() : recipeBridge.getStringList("unlock-whitelist"),
                 clientChannel == null || bool(clientChannel, "vanilla-book", true),
                 clientChannel == null || bool(clientChannel, "packet-emulation", true),
-                clientChannel != null && bool(clientChannel, "jei-message", false),
+                clientChannel == null || bool(clientChannel, "jei-bridge", true),
                 advancement == null || bool(advancement, "enabled", true),
                 advancement == null ? "unsafe" : advancement.getString("platform", "unsafe"),
                 advancement != null && bool(advancement, "announce-default", false),

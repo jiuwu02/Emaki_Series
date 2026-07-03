@@ -5,7 +5,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.1"
+version: "1.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
@@ -56,6 +56,8 @@ console:
   bootstrap_skip: "已跳过默认示例数据释放。"
   bootstrap_complete: "默认资源就绪。"
   recipes_indexed: "已索引配方 %count% 条。"
+  jei_bridge_enabled: "JEI 桥接通道已启用：将按客户端 brand 向 Fabric/NeoForge 版 JEI 下发服务端配方。"
+  jei_bridge_unavailable: "JEI 桥接通道不可用（NMS 反射未命中）：%reason%；标准 JEI 无法显示配方，其余通道不受影响。"
   advancements_registered: "已注册成就 %count% 个。"
   advancements_resynced: "已向 %count% 名在线玩家重新推送成就（PacketEvents），无需重连。"
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"

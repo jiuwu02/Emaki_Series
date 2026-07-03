@@ -5,7 +5,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "1.0.1"
+version: "1.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
@@ -56,6 +56,8 @@ console:
   bootstrap_skip: "Skipped default sample data release."
   bootstrap_complete: "Default resources ready."
   recipes_indexed: "Indexed %count% recipes."
+  jei_bridge_enabled: "JEI bridge channel enabled: server recipes will be sent to Fabric/NeoForge JEI clients per client brand."
+  jei_bridge_unavailable: "JEI bridge channel unavailable (NMS reflection missed): %reason%; standard JEI cannot show recipes, other channels are unaffected."
   advancements_registered: "Registered %count% advancements."
   advancements_resynced: "Re-pushed advancements to %count% online player(s) via PacketEvents; no relog needed."
   advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen."

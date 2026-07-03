@@ -7,7 +7,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.1"
+version: "1.0.2"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -37,16 +37,20 @@ recipe-bridge:
   # 客户端下发通道（探测降级，可叠加）
   client-channel:
     # 通道0：原生配方书 discoverRecipe/undiscoverRecipe（纯 Bukkit，始终可用）
+    # 只影响原版“配方书”，不影响 JEI 右侧列表。
     vanilla-book: true
-    # 通道1：PacketEvents 补发完整配方表（检测到 PacketEvents 才启用）
+    # 通道1：PacketEvents 补发完整配方表（仅对 1.21.1 及以下的旧配方协议有效）
+    # 自 1.21.2 起原版配方协议被重写，此通道对 JEI 不再生效；1.21.2+ 请使用下方 jei-bridge。
     packet-emulation: true
-    # 通道2：JEI/REI plugin-message（实验通道，默认关闭）
-    # 注意：自 Minecraft 1.21.2 起，原版把配方改为“只存服务端”，客户端不再收到完整配方表，
-    # 标准 JEI/REI 客户端因此无法在纯 Spigot 服上显示配方（会提示“请在服务器安装 JEI”）。
-    # 本通道发送的是自定义帧，标准 JEI/REI 客户端并不会据此重建配方，对未改造的原版客户端无效。
-    # 要让标准 JEI 在 1.21.2+ 显示配方，需服务端另装专门的 JEI 桥接插件（如 JEI Recipe Bridge），
-    # 或客户端安装自带兜底配方的 mod（如 JESR）。此开关仅供自建/改造客户端联调其私有协议帧。
-    jei-message: false
+    # 通道2：JEI 桥接（面向 1.21.2+，Paper/Purpur/Folia）
+    # 自 Minecraft 1.21.2 起配方“只存服务端”，标准 JEI/REI 客户端不再收到完整配方表，
+    # 而是根据模组加载器的“配方同步”自定义包重建列表：Fabric 客户端认 fabric:recipe_sync、
+    # NeoForge 客户端认 neoforge:recipe_content。本通道按玩家客户端 brand 分别下发这两种包，
+    # 内容为服务端真实配方（经服务端 NMS 的 StreamCodec 编码），从而让客户端 JEI 正常显示配方。
+    # 实现方式为运行期反射服务端 Mojang 映射 NMS：编译期仍只依赖 spigot-api，无需 paperweight。
+    # 反射未命中（如非 Paper 系服务端、或跨版本命名变更）时本通道自动不可用，其余通道不受影响，
+    # 启动日志会给出具体原因。开启 debug 后按 [DEBUG:JEI:*] 逐步骤输出，便于真机联调。
+    jei-bridge: true
 
 # ------------------------------------------------------------
 # 原版成就

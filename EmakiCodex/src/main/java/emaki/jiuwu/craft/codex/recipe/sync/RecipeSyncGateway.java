@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.recipe.RecipeIndex;
 import emaki.jiuwu.craft.codex.recipe.RecipeVisibilityService;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 
 /**
  * Unified recipe sync entry point. Holds the enabled channels and dispatches a
@@ -20,22 +21,26 @@ import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
  * thread. Channels are probed at build time and again at send time via
  * {@link RecipeSyncChannel#isAvailable()} so a degraded dependency never breaks sync.
  *
- * <p>The vanilla recipe book channel is always present as the baseline; PacketEvents
- * and JEI/REI channels layer on top when enabled and available.
+ * <p>The vanilla recipe book channel is always present as the baseline; the PacketEvents
+ * (legacy 1.21.1-) and the NMS-reflecting JEI bridge (1.21.2+) channels layer on top when
+ * enabled and available.
  */
 public final class RecipeSyncGateway {
 
     private final JavaPlugin plugin;
     private final RecipeVisibilityService visibilityService;
+    private final java.util.function.Supplier<DebugLogger> debugLoggerSupplier;
     private final List<RecipeSyncChannel> channels = new ArrayList<>();
     private volatile AppConfig config;
 
     public RecipeSyncGateway(JavaPlugin plugin,
             RecipeIndex recipeIndex,
             RecipeVisibilityService visibilityService,
-            AppConfig config) {
+            AppConfig config,
+            java.util.function.Supplier<DebugLogger> debugLoggerSupplier) {
         this.plugin = plugin;
         this.visibilityService = visibilityService;
+        this.debugLoggerSupplier = debugLoggerSupplier;
         this.config = config;
         buildChannels(recipeIndex, config);
     }
@@ -52,8 +57,8 @@ public final class RecipeSyncGateway {
                 plugin.getLogger().warning("[Codex] PacketEvents channel unavailable, skipped: " + throwable.getMessage());
             }
         }
-        if (config.channelJeiMessage()) {
-            JeiMessageChannel jei = new JeiMessageChannel(plugin);
+        if (config.channelJeiBridge()) {
+            JeiBridgeChannel jei = new JeiBridgeChannel(plugin, debugLoggerSupplier);
             jei.register();
             channels.add(jei);
         }
@@ -126,6 +131,19 @@ public final class RecipeSyncGateway {
             }
         }
         return ids;
+    }
+
+    /**
+     * {@return the JEI bridge channel if it is built, else {@code null}} Lets the lifecycle
+     * coordinator report whether the NMS reflection bridge resolved on this platform.
+     */
+    public JeiBridgeChannel jeiBridgeChannel() {
+        for (RecipeSyncChannel channel : channels) {
+            if (channel instanceof JeiBridgeChannel jei) {
+                return jei;
+            }
+        }
+        return null;
     }
 
     public void shutdown() {
