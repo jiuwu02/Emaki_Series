@@ -5,7 +5,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "1.0.4"
+version: "1.0.5"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
@@ -16,7 +16,7 @@ general:
   invalid_args: "<red>Invalid arguments. Use /codex help.</red>"
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded.</green>"
-  reload_summary: "<gray>Indexed %recipes% recipes, registered %advancements% advancements.</gray>"
+  reload_summary: "<gray>Registered %advancements% advancements.</gray>"
 
 command:
   help:
@@ -24,24 +24,10 @@ command:
     footer: "<gold>=====================================</gold>"
     line: "<yellow>/codex %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
-      reload: "Reload config, rebuild recipe index, re-register advancements, resync all"
-      sync: "Manually trigger recipe sync (self if omitted)"
-      recipe: "List indexed recipes (optional namespace filter)"
-      unlock: "Unlock a recipe for a player"
-      lock: "Lock a recipe for a player"
+      reload: "Reload config, re-register advancements, resync all"
       grant: "Grant an advancement to a player"
       revoke: "Revoke an advancement from a player"
       debug: "Manage debug mode"
-  sync:
-    done: "<green>Recipes re-synced for %player%.</green>"
-  recipe:
-    header: "<gold>========== Recipes (%count% total) ==========</gold>"
-    line: "<yellow>%id%</yellow> <gray>- %type%</gray>"
-    truncated: "<gray>... %remaining% more omitted.</gray>"
-  unlock:
-    done: "<green>Unlocked recipe %recipe% for %player% (changed: %changed%).</green>"
-  lock:
-    done: "<green>Locked recipe %recipe% for %player% (changed: %changed%).</green>"
   grant:
     done: "<green>Granted advancement %advancement% to %player%.</green>"
   revoke:
@@ -55,15 +41,8 @@ console:
   bootstrap_start: "Releasing default resources..."
   bootstrap_skip: "Skipped default sample data release."
   bootstrap_complete: "Default resources ready."
-  recipes_indexed: "Indexed %count% recipes."
-  jei_bridge_enabled: "JEI bridge channel enabled: server recipes will be sent to Fabric/NeoForge JEI clients per client brand."
-  jei_bridge_unavailable: "JEI bridge channel unavailable (NMS reflection missed): %reason%; standard JEI cannot show recipes, other channels are unaffected."
   advancements_registered: "Registered %count% advancements."
   advancements_resynced: "Re-pushed advancements to %count% online player(s) via PacketEvents; no relog needed."
   advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen."
   advancement_packet_enabled: "Advancement packet coordinate injection enabled (PacketEvents)."
   advancement_packet_absent: "PacketEvents not detected; advancement x/y coordinates are ignored and the client auto-lays-out nodes."
-  saving_unlock_data: "Saving player unlock data..."
-  unlock_data_saved: "Saved unlock data for %count% players."
-  unlock_directory_create_failed: "<red>Failed to create unlock data directory: %path%</red>"
-  unlock_save_failed: "<red>Failed to save unlock data for %uuid%: %error%</red>"

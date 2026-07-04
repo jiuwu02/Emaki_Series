@@ -14,8 +14,8 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
  * listener and the {@link AdvancementResyncService}. The gateway is safe to construct
  * even when PacketEvents is absent: it only touches PacketEvents types inside
  * {@link #register()} / {@link #shutdown()} / {@link #resyncAll()} after probing that the
- * dependency is present, mirroring {@code RecipeSyncGateway}'s isolation pattern so a
- * missing soft-dependency never triggers {@code NoClassDefFoundError}.
+ * dependency is present, so a missing soft-dependency never triggers
+ * {@code NoClassDefFoundError}.
  *
  * <p>The coordinate listener resolves coordinates live from the {@link AdvancementRegistrar},
  * so it is registered once on enable and unregistered once on disable; it does not need to be

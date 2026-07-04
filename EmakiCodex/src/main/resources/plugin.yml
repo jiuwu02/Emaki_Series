@@ -8,8 +8,6 @@ depend:
 softdepend:
   - PlaceholderAPI
   - packetevents
-  - CraftEngine
-  - ItemsAdder
 commands:
   codex:
     aliases: [ecodex]

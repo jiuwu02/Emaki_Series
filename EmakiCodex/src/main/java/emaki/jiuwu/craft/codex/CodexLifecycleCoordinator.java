@@ -13,17 +13,7 @@ import emaki.jiuwu.craft.codex.advancement.UnsafeAdvancementPlatform;
 import emaki.jiuwu.craft.codex.advancement.loader.AdvancementPageLoader;
 import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
 import emaki.jiuwu.craft.codex.config.AppConfig;
-import emaki.jiuwu.craft.codex.recipe.ItemRefFactory;
-import emaki.jiuwu.craft.codex.recipe.RecipeCollector;
-import emaki.jiuwu.craft.codex.recipe.RecipeIndex;
-import emaki.jiuwu.craft.codex.recipe.RecipeVisibilityService;
-import emaki.jiuwu.craft.codex.recipe.loader.ManualRecipeLoader;
-import emaki.jiuwu.craft.codex.recipe.model.CodexRecipe;
-import emaki.jiuwu.craft.codex.recipe.sync.RecipeSyncGateway;
-import emaki.jiuwu.craft.codex.store.PlayerUnlockStore;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -35,15 +25,14 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 /**
  * Builds and reloads EmakiCodex's runtime services, mirroring the EmakiForge lifecycle
- * pattern. Recipe registry access is confined to the main thread; advancement
- * registration and player resync run on reload.
+ * pattern. Advancement registration and player resync run on reload.
  */
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of();
-    private static final List<String> DEFAULT_DATA_FILES = List.of("advancements/example_page.yml", "recipes/example_recipe.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("advancements/example_page.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
 
     @Override
@@ -67,18 +56,9 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     }
                 });
 
-        PlayerUnlockStore unlockStore = new PlayerUnlockStore(plugin, coreLibPlugin::asyncYamlFiles);
-        ManualRecipeLoader manualRecipeLoader = new ManualRecipeLoader(plugin);
         AdvancementPageLoader advancementPageLoader = new AdvancementPageLoader(plugin);
 
         AppConfig config = appConfigLoader.current();
-        RecipeIndex recipeIndex = new RecipeIndex();
-        ItemRefFactory itemRefFactory = new ItemRefFactory(coreLibPlugin.itemSourceService());
-        RecipeCollector recipeCollector = new RecipeCollector(itemRefFactory);
-        RecipeVisibilityService visibilityService = new RecipeVisibilityService(recipeIndex, unlockStore, config);
-        RecipeSyncGateway syncGateway = new RecipeSyncGateway(
-                plugin, recipeIndex, visibilityService, config, plugin::debugLogger);
-
         AdvancementPlatform platform = new UnsafeAdvancementPlatform(plugin.getLogger());
         AdvancementJsonBuilder jsonBuilder = new AdvancementJsonBuilder(coreLibPlugin.itemSourceService());
         AdvancementRegistrar registrar = new AdvancementRegistrar(plugin, advancementPageLoader, platform, jsonBuilder);
@@ -88,82 +68,30 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         config.packetCoordinates());
 
         return new CodexRuntimeComponents(
-                appConfigLoader, languageLoader, messageService, bootstrapService, unlockStore,
-                manualRecipeLoader, advancementPageLoader, recipeIndex, recipeCollector, visibilityService,
-                syncGateway, platform, jsonBuilder, registrar, advancementService, advancementPacketGateway);
+                appConfigLoader, languageLoader, messageService, bootstrapService,
+                advancementPageLoader, platform, jsonBuilder, registrar, advancementService,
+                advancementPacketGateway);
     }
 
     /**
-     * Reloads configs, rebuilds the recipe index from the vanilla registry, re-registers
-     * advancements, and resyncs online players. Runs synchronously on the main thread.
+     * Reloads configs, re-registers advancements, and resyncs online players. Runs
+     * synchronously on the main thread.
      *
      * @param plugin the plugin
-     * @param autoSaveTask the current auto-save task handle
-     * @return the rescheduled auto-save task handle
      */
-    public TaskHandle reload(EmakiCodexPlugin plugin, TaskHandle autoSaveTask) {
+    public void reload(EmakiCodexPlugin plugin) {
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        plugin.manualRecipeLoader().load();
         plugin.advancementPageLoader().load();
-        plugin.unlockStore().load();
 
         AppConfig config = plugin.appConfig();
-        plugin.recipeVisibilityService().updateConfig(config);
-
-        if (config.recipeBridgeEnabled()) {
-            rebuildRecipeIndex(plugin);
-            plugin.recipeSyncGateway().rebuild(plugin.recipeIndex(), config);
-            reportJeiBridge(plugin);
-        }
 
         if (config.advancementEnabled()) {
             int registered = plugin.advancementRegistrar().registerAll();
             plugin.messageService().info("console.advancements_registered", Map.of("count", registered));
             resyncAdvancements(plugin, registered);
         }
-
-        if (config.recipeBridgeEnabled() && config.resyncOnReload()) {
-            plugin.recipeSyncGateway().syncAll();
-        }
-
-        plugin.messageService().info("console.recipes_indexed", Map.of("count", plugin.recipeIndex().size()));
-        return rescheduleAutoSave(plugin, autoSaveTask);
-    }
-
-    /**
-     * Logs whether the JEI bridge channel resolved on this server platform. When the config
-     * has the channel enabled but NMS reflection missed (e.g. non-Paper server or an unmapped
-     * MC version), the operator gets a precise reason so they know standard JEI won't show
-     * recipes and the other channels still work.
-     *
-     * @param plugin the plugin
-     */
-    private void reportJeiBridge(EmakiCodexPlugin plugin) {
-        AppConfig config = plugin.appConfig();
-        if (!config.channelJeiBridge()) {
-            return;
-        }
-        var channel = plugin.recipeSyncGateway().jeiBridgeChannel();
-        if (channel == null) {
-            return;
-        }
-        if (channel.bridgeAvailable()) {
-            plugin.messageService().info("console.jei_bridge_enabled");
-        } else {
-            String reason = channel.bridgeUnavailableReason();
-            plugin.messageService().info("console.jei_bridge_unavailable",
-                    Map.of("reason", reason == null ? "unknown" : reason));
-        }
-    }
-
-    private void rebuildRecipeIndex(EmakiCodexPlugin plugin) {
-        Map<String, CodexRecipe> collected = plugin.recipeCollector().collect();
-        plugin.recipeIndex().replaceAll(collected);
-        Map<String, CodexRecipe> manual = new java.util.LinkedHashMap<>();
-        plugin.manualRecipeLoader().all().forEach(manual::put);
-        plugin.recipeIndex().merge(manual);
     }
 
     /**
@@ -188,28 +116,9 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
     }
 
-    public TaskHandle rescheduleAutoSave(EmakiCodexPlugin plugin, TaskHandle currentTask) {
-        cancelAutoSave(currentTask);
-        AppConfig config = plugin.appConfig();
-        if (config.autoSaveIntervalSeconds() > 0) {
-            return FoliaSchedulerAdapter.runTaskTimer(
-                    plugin,
-                    () -> plugin.unlockStore().saveAllAsync(),
-                    config.autoSaveIntervalTicks(),
-                    config.autoSaveIntervalTicks());
-        }
-        return null;
-    }
-
-    public TaskHandle cancelAutoSave(TaskHandle currentTask) {
-        FoliaSchedulerAdapter.cancelTask(currentTask);
-        return null;
-    }
-
-    public void shutdown(EmakiCodexPlugin plugin, TaskHandle autoSaveTask) {
+    public void shutdown(EmakiCodexPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.actionRegistry().unregisterAll(plugin);
-        cancelAutoSave(autoSaveTask);
 
         if (plugin.appConfig() != null && plugin.appConfig().removeOnDisable() && plugin.advancementRegistrar() != null) {
             plugin.advancementRegistrar().unregisterAll();
@@ -217,59 +126,28 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (plugin.advancementPacketGateway() != null) {
             plugin.advancementPacketGateway().shutdown();
         }
-        if (plugin.recipeSyncGateway() != null) {
-            plugin.recipeSyncGateway().shutdown();
-        }
-        if (plugin.unlockStore() != null && plugin.messageService() != null) {
-            plugin.messageService().info("console.saving_unlock_data");
-            try {
-                int saved = plugin.unlockStore().saveAllAsync().join();
-                plugin.unlockStore().waitForPendingSaves().join();
-                plugin.messageService().info("console.unlock_data_saved", Map.of("count", saved));
-            } catch (RuntimeException exception) {
-                plugin.getLogger().warning("[Codex] Failed to save unlock data on shutdown: " + exception.getMessage());
-            }
-        }
     }
 
     private AppConfig parseAppConfig(YamlSection configuration) {
         if (configuration == null || configuration.getKeys(false).isEmpty()) {
             return AppConfig.defaults();
         }
-        YamlSection recipeBridge = configuration.getSection("recipe-bridge");
-        YamlSection clientChannel = recipeBridge == null ? null : recipeBridge.getSection("client-channel");
         YamlSection advancement = configuration.getSection("advancement");
-        YamlSection storage = configuration.getSection("storage");
 
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
                 configuration.getString("version", AppConfig.CURRENT_VERSION),
                 bool(configuration, "release_default_data", true),
-                recipeBridge == null || bool(recipeBridge, "enabled", true),
-                recipeBridge == null || bool(recipeBridge, "default-unlock-all", true),
-                recipeBridge == null || bool(recipeBridge, "sync-on-join", true),
-                recipeBridge == null || bool(recipeBridge, "resync-on-reload", true),
-                recipeBridge == null ? List.of() : recipeBridge.getStringList("global-blacklist"),
-                recipeBridge == null ? List.of() : recipeBridge.getStringList("unlock-whitelist"),
-                clientChannel == null || bool(clientChannel, "vanilla-book", true),
-                clientChannel == null || bool(clientChannel, "packet-emulation", true),
-                clientChannel == null || bool(clientChannel, "jei-bridge", true),
                 advancement == null || bool(advancement, "enabled", true),
                 advancement == null ? "unsafe" : advancement.getString("platform", "unsafe"),
                 advancement != null && bool(advancement, "announce-default", false),
                 advancement == null || bool(advancement, "remove-on-disable", true),
                 advancement == null || bool(advancement, "packet-coordinates", true),
-                storage == null ? 300 : intOf(storage, "auto-save-interval-seconds", 300),
                 bool(configuration, "op_bypass", false));
     }
 
     private boolean bool(YamlSection section, String path, boolean fallback) {
         Boolean value = section.getBoolean(path, fallback);
-        return value == null ? fallback : value;
-    }
-
-    private int intOf(YamlSection section, String path, int fallback) {
-        Integer value = section.getInt(path, fallback);
         return value == null ? fallback : value;
     }
 

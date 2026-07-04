@@ -5,7 +5,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.4"
+version: "1.0.5"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
@@ -16,7 +16,7 @@ general:
   invalid_args: "<red>参数错误，输入 /codex help 查看用法。</red>"
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载。</green>"
-  reload_summary: "<gray>已索引配方 %recipes% 条，注册成就 %advancements% 个。</gray>"
+  reload_summary: "<gray>已注册成就 %advancements% 个。</gray>"
 
 command:
   help:
@@ -24,24 +24,10 @@ command:
     footer: "<gold>=====================================</gold>"
     line: "<yellow>/codex %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
-      reload: "重载配置、重建配方索引、重注册成就并给全员重发配方"
-      sync: "手动触发配方同步（不填默认自己）"
-      recipe: "列出已索引配方（可按命名空间过滤）"
-      unlock: "给玩家解锁配方"
-      lock: "取消玩家的配方解锁"
+      reload: "重载配置、重注册成就并给全员重发成就"
       grant: "授予玩家成就"
       revoke: "撤销玩家成就"
       debug: "管理 Debug 模式"
-  sync:
-    done: "<green>已为 %player% 重新同步配方。</green>"
-  recipe:
-    header: "<gold>========== 配方列表 (共 %count% 条) ==========</gold>"
-    line: "<yellow>%id%</yellow> <gray>- %type%</gray>"
-    truncated: "<gray>... 其余 %remaining% 条已省略。</gray>"
-  unlock:
-    done: "<green>已为 %player% 解锁配方 %recipe%（变更: %changed%）。</green>"
-  lock:
-    done: "<green>已为 %player% 锁定配方 %recipe%（变更: %changed%）。</green>"
   grant:
     done: "<green>已授予 %player% 成就 %advancement%。</green>"
   revoke:
@@ -55,15 +41,8 @@ console:
   bootstrap_start: "正在释放默认资源..."
   bootstrap_skip: "已跳过默认示例数据释放。"
   bootstrap_complete: "默认资源就绪。"
-  recipes_indexed: "已索引配方 %count% 条。"
-  jei_bridge_enabled: "JEI 桥接通道已启用：将按客户端 brand 向 Fabric/NeoForge 版 JEI 下发服务端配方。"
-  jei_bridge_unavailable: "JEI 桥接通道不可用（NMS 反射未命中）：%reason%；标准 JEI 无法显示配方，其余通道不受影响。"
   advancements_registered: "已注册成就 %count% 个。"
   advancements_resynced: "已向 %count% 名在线玩家重新推送成就（PacketEvents），无需重连。"
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"
   advancement_packet_enabled: "成就发包坐标注入已启用（PacketEvents）。"
   advancement_packet_absent: "未检测到 PacketEvents，成就 x/y 坐标不生效，节点位置由客户端自动排布。"
-  saving_unlock_data: "正在保存玩家解锁数据..."
-  unlock_data_saved: "已保存 %count% 名玩家的解锁数据。"
-  unlock_directory_create_failed: "<red>创建解锁数据目录失败: %path%</red>"
-  unlock_save_failed: "<red>保存玩家 %uuid% 解锁数据失败: %error%</red>"

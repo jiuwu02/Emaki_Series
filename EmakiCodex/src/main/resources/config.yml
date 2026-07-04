@@ -1,56 +1,22 @@
 # ============================================================
 # EmakiCodex 主配置文件
 # ============================================================
-# 配方桥接 + 原版成就编排。修改后使用 /codex reload 重载。
+# 原版成就编排。修改后使用 /codex reload 重载。
 #
 # 文件放置位置: plugins/EmakiCodex/config.yml
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.4"
+version: "1.0.5"
 
 # 语言文件 ID
 language: "zh_CN"
 
-# 是否写入默认示例数据（advancements/、recipes/ 示例文件）
+# 是否写入默认示例数据（advancements/ 示例文件）
 release_default_data: true
 
 # OP 是否绕过权限限制
 op_bypass: false
-
-# ------------------------------------------------------------
-# 配方桥接
-# ------------------------------------------------------------
-recipe-bridge:
-  enabled: true
-  # true=默认所有配方对所有人可见；false=仅显示玩家已解锁的配方
-  default-unlock-all: true
-  # 玩家加入时自动补发配方
-  sync-on-join: true
-  # reload 时给所有在线玩家全量重发完整配方表
-  resync-on-reload: true
-  # 永不桥接的配方 id，支持整个命名空间通配（如 "someplugin:*"）
-  global-blacklist: []
-  # 始终可见的配方 id（无视 default-unlock-all）
-  unlock-whitelist:
-    - "minecraft:crafting_table"
-  # 客户端下发通道（探测降级，可叠加）
-  client-channel:
-    # 通道0：原生配方书 discoverRecipe/undiscoverRecipe（纯 Bukkit，始终可用）
-    # 只影响原版“配方书”，不影响 JEI 右侧列表。
-    vanilla-book: true
-    # 通道1：PacketEvents 补发完整配方表（仅对 1.21.1 及以下的旧配方协议有效）
-    # 自 1.21.2 起原版配方协议被重写，此通道对 JEI 不再生效；1.21.2+ 请使用下方 jei-bridge。
-    packet-emulation: true
-    # 通道2：JEI 桥接（面向 1.21.2+，Paper/Purpur/Folia）
-    # 自 Minecraft 1.21.2 起配方“只存服务端”，标准 JEI/REI 客户端不再收到完整配方表，
-    # 而是根据模组加载器的“配方同步”自定义包重建列表：Fabric 客户端认 fabric:recipe_sync、
-    # NeoForge 客户端认 neoforge:recipe_content。本通道按玩家客户端 brand 分别下发这两种包，
-    # 内容为服务端真实配方（经服务端 NMS 的 StreamCodec 编码），从而让客户端 JEI 正常显示配方。
-    # 实现方式为运行期反射服务端 Mojang 映射 NMS：编译期仍只依赖 spigot-api，无需 paperweight。
-    # 反射未命中（如非 Paper 系服务端、或跨版本命名变更）时本通道自动不可用，其余通道不受影响，
-    # 启动日志会给出具体原因。开启 debug 后按 [DEBUG:JEI:*] 逐步骤输出，便于真机联调。
-    jei-bridge: true
 
 # ------------------------------------------------------------
 # 原版成就
@@ -69,12 +35,5 @@ advancement:
   # 注意：x/y 都为 0 视为“未设置”，该节点回退自动排布。若要用坐标，建议整页所有节点都配 x/y，
   # 避免“部分显式坐标 + 部分自动排布”导致节点重叠。
   packet-coordinates: true
-
-# ------------------------------------------------------------
-# 存储
-# ------------------------------------------------------------
-storage:
-  # 玩家解锁记录自动保存间隔（秒），0 表示关闭定时保存
-  auto-save-interval-seconds: 300
 
 debug: false
