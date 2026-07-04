@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -49,6 +50,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private static final String ROOT_COMMAND = "codex";
     private static final Set<String> DEBUG_MODULES = Set.of("recipe", "advancement", "sync");
+    private static final int BSTATS_PLUGIN_ID = 32376;
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  _____   ______  __  __
@@ -82,6 +84,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private AdvancementListener advancementListener;
     private DebugCommand debugCommand;
     private TaskHandle autoSaveTask;
+    private BStatsRegistration metrics;
 
     private final EmakiCodexApi.Bridge apiBridge = new CodexApiBridge();
 
@@ -100,12 +103,17 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerCommandHandler();
         registerEventHandlers();
         EmakiCodexApi.install(apiBridge);
+        metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
     @Override
     public void onDisable() {
         EmakiCodexApi.uninstall(apiBridge);
+        if (metrics != null) {
+            metrics.close();
+            metrics = null;
+        }
         lifecycleCoordinator.shutdown(this, autoSaveTask);
         autoSaveTask = null;
     }

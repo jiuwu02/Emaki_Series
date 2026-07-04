@@ -45,6 +45,9 @@ dependencies:
     Oraxen:
       load: BEFORE
       required: false
+    EcoItems:
+      load: BEFORE
+      required: false
     NeigeItems:
       load: BEFORE
       required: false

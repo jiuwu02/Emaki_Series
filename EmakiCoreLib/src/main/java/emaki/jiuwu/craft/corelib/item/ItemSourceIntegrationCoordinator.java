@@ -103,6 +103,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
         registerResolverForPlugin("ItemsAdder");
         registerResolverForPlugin("Nexo");
         registerResolverForPlugin("Oraxen");
+        registerResolverForPlugin("EcoItems");
     }
 
     private boolean registerResolverForPlugin(String pluginName) {
@@ -142,6 +143,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
                 case "itemsadder" -> new ItemsAdderItemSourceResolver();
                 case "nexo" -> new NexoItemSourceResolver();
                 case "oraxen" -> new OraxenItemSourceResolver();
+                case "ecoitems" -> new EcoItemsItemSourceResolver();
                 default -> null;
             };
         } catch (LinkageError exception) {
@@ -217,6 +219,8 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
                 "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。";
             case "oraxen" ->
                 "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。";
+            case "ecoitems" ->
+                "插件已启用，但物品注册表尚未就绪，请等待其加载完成。";
             default ->
                 "外部物品注册尚未完成，请等待依赖插件完成加载。";
         });

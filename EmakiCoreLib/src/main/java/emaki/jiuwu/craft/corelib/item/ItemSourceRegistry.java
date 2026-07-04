@@ -103,6 +103,8 @@ public final class ItemSourceRegistry {
         parsers.add(prefixParser("no-", ItemSourceType.NEXO));
         parsers.add(prefixParser("oraxen-", ItemSourceType.ORAXEN));
         parsers.add(prefixParser("ox-", ItemSourceType.ORAXEN));
+        parsers.add(prefixParser("ecoitems-", ItemSourceType.ECOITEMS));
+        parsers.add(prefixParser("eci-", ItemSourceType.ECOITEMS));
         parsers.add(prefixParser("craftengine-", ItemSourceType.CRAFTENGINE));
         parsers.add(prefixParser("ce-", ItemSourceType.CRAFTENGINE));
         parsers.add(prefixParser("minecraft-", ItemSourceType.VANILLA));

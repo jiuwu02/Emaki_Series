@@ -132,7 +132,6 @@ public final class RuntimeLibraryLoader {
     }
 
     private List<RuntimeLibrary> libraries() {
-        String coreVersion = plugin.getDescription().getVersion();
         return List.of(
                 RuntimeLibrary.maven("adventure-api", new LibraryCoordinate("net.kyori", "adventure-api", "4.26.1"),
                         "net.kyori.adventure.text.Component"),
@@ -172,12 +171,7 @@ public final class RuntimeLibraryLoader {
                 RuntimeLibrary.maven("graal-truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", "25.0.3"),
                         "com.oracle.truffle.api.TruffleLanguage"),
                 RuntimeLibrary.maven("graal-icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "25.0.3")),
-                RuntimeLibrary.maven("graal-xz", new LibraryCoordinate("org.graalvm.shadowed", "xz", "25.0.3")),
-                RuntimeLibrary.bundled("bstats-runtime",
-                        new LibraryCoordinate("emaki.jiuwu.craft", "emaki-bstats-runtime", coreVersion),
-                        "runtime-libraries/emaki/jiuwu/craft/emaki-bstats-runtime/" + coreVersion
-                                + "/emaki-bstats-runtime-" + coreVersion + ".jar",
-                        "emaki.jiuwu.craft.runtime.bstats.bukkit.Metrics")
+                RuntimeLibrary.maven("graal-xz", new LibraryCoordinate("org.graalvm.shadowed", "xz", "25.0.3"))
         );
     }
 

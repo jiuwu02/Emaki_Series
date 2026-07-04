@@ -1,13 +1,9 @@
 package emaki.jiuwu.craft.corelib.loader;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 import io.papermc.paper.plugin.loader.PluginClasspathBuilder;
 import io.papermc.paper.plugin.loader.PluginLoader;
-import io.papermc.paper.plugin.loader.library.impl.JarLibrary;
 import io.papermc.paper.plugin.loader.library.impl.MavenLibraryResolver;
 
 import org.eclipse.aether.artifact.DefaultArtifact;
@@ -27,11 +23,10 @@ import org.eclipse.aether.repository.RemoteRepository;
  *
  * <p>All downloadable third-party runtime libraries (Adventure serializers,
  * exp4j, Caffeine, GraalJS/Truffle) are declared through
- * {@link MavenLibraryResolver}. The bStats runtime jar is a locally-relocated
- * artifact that is bundled inside CoreLib's own jar (never published to a
- * remote Maven repository), so it is extracted from the plugin jar and added
- * through {@link JarLibrary}, keeping the existing "single relocated bStats
- * artifact" architecture untouched.</p>
+ * {@link MavenLibraryResolver}. bStats is shaded and relocated directly into
+ * CoreLib's own jar (see the {@code maven-shade-plugin} relocation of
+ * {@code org.bstats} to {@code emaki.jiuwu.craft.runtime.bstats}), so it needs
+ * no loader handling here.</p>
  */
 public final class EmakiCoreLibPluginLoader implements PluginLoader {
 
@@ -50,17 +45,12 @@ public final class EmakiCoreLibPluginLoader implements PluginLoader {
             resolver.addDependency(new Dependency(new DefaultArtifact(coordinate), null));
         }
         classpathBuilder.addLibrary(resolver);
-
-        Path bstatsJar = extractBundledBStatsRuntime(classpathBuilder);
-        if (bstatsJar != null) {
-            classpathBuilder.addLibrary(new JarLibrary(bstatsJar));
-        }
     }
 
     /**
      * Maven coordinates for every downloadable runtime library, mirroring the
-     * legacy {@code RuntimeLibraryLoader.libraries()} list (bStats runtime is
-     * handled separately as a bundled jar).
+     * legacy {@code RuntimeLibraryLoader.libraries()} list. bStats is not listed
+     * here because it is shaded/relocated into CoreLib's own jar.
      */
     private List<String> mavenCoordinates() {
         return List.of(
@@ -92,40 +82,5 @@ public final class EmakiCoreLibPluginLoader implements PluginLoader {
                 "org.graalvm.shadowed:icu4j:25.0.3",
                 "org.graalvm.shadowed:xz:25.0.3"
         );
-    }
-
-    /**
-     * Extracts the relocated bStats runtime jar bundled inside CoreLib's own jar
-     * to the plugin data directory so it can be added as a {@link JarLibrary}.
-     *
-     * @return the extracted jar path, or {@code null} if extraction fails; a
-     *         missing bStats runtime must never break startup.
-     */
-    private Path extractBundledBStatsRuntime(PluginClasspathBuilder classpathBuilder) {
-        var context = classpathBuilder.getContext();
-        String version = context.getConfiguration().getVersion();
-        String internalPath = "runtime-libraries/emaki/jiuwu/craft/emaki-bstats-runtime/"
-                + version + "/emaki-bstats-runtime-" + version + ".jar";
-        Path pluginJar = context.getPluginSource();
-        Path targetDir = context.getDataDirectory().resolve("libraries");
-        Path targetJar = targetDir.resolve("emaki-bstats-runtime-" + version + ".jar");
-        try {
-            if (Files.isRegularFile(targetJar) && Files.size(targetJar) > 0L) {
-                return targetJar;
-            }
-            Files.createDirectories(targetDir);
-            try (var jarFs = java.nio.file.FileSystems.newFileSystem(pluginJar)) {
-                Path source = jarFs.getPath(internalPath);
-                if (!Files.isRegularFile(source)) {
-                    context.getLogger().warn("[LibraryLoader] 随包 bStats runtime 不存在: {}", internalPath);
-                    return null;
-                }
-                Files.copy(source, targetJar, StandardCopyOption.REPLACE_EXISTING);
-            }
-            return targetJar;
-        } catch (Exception exception) {
-            context.getLogger().warn("[LibraryLoader] bStats runtime 释放失败: {}", exception.getMessage());
-            return null;
-        }
     }
 }

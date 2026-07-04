@@ -8,7 +8,8 @@ public enum ItemSourceType {
     MMOITEMS,
     EMAKIITEM,
     NEXO,
-    ORAXEN;
+    ORAXEN,
+    ECOITEMS;
 
     public String displayName() {
         return switch (this) {
@@ -28,6 +29,8 @@ public enum ItemSourceType {
                 "Nexo";
             case ORAXEN ->
                 "Oraxen";
+            case ECOITEMS ->
+                "EcoItems";
         };
     }
 
@@ -50,6 +53,8 @@ public enum ItemSourceType {
                 NEXO;
             case "oraxen", "ox" ->
                 ORAXEN;
+            case "ecoitems", "eco", "eci" ->
+                ECOITEMS;
             case "vanilla", "minecraft", "v" ->
                 VANILLA;
             default ->
