@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.bukkit.command.PluginCommand;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.ServicePriority;
@@ -22,13 +21,13 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckService;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.library.RuntimeLibraryLoader;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bridge.mythic.MythicJavaScriptBridge;
+import emaki.jiuwu.craft.corelib.command.CoreLibBasicCommand;
 import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -161,7 +160,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onLoad() {
-        new RuntimeLibraryLoader(this).load();
+        // Runtime libraries are provided by EmakiCoreLibPluginLoader (declared as
+        // `loader:` in paper-plugin.yml) before this plugin is instantiated. Under
+        // the Paper plugin classloader the legacy RuntimeLibraryLoader's addURL
+        // injection is not applicable, so no library loading happens here.
     }
 
     @Override
@@ -436,11 +438,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     private void registerCommandHandler() {
         commandRouter = new CoreLibCommandRouter(this);
-        PluginCommand pluginCommand = getCommand("emakicorelib");
-        if (pluginCommand != null) {
-            pluginCommand.setExecutor(commandRouter);
-            pluginCommand.setTabCompleter(commandRouter);
-        }
+        // paper-plugin.yml does not support the `commands:` block, so the command
+        // is registered programmatically. The BasicCommand adapter delegates to
+        // the existing router, preserving command name, aliases and permissions.
+        registerCommand(
+                "emakicorelib",
+                "EmakiCoreLib management command",
+                java.util.List.of("corelib", "emakicore"),
+                new CoreLibBasicCommand(commandRouter)
+        );
     }
 
     private void initializeServices() {

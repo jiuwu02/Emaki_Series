@@ -1,0 +1,56 @@
+name: EmakiCoreLib
+main: emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin
+loader: emaki.jiuwu.craft.corelib.loader.EmakiCoreLibPluginLoader
+version: ${project.version}
+api-version: "1.21"
+folia-supported: true
+author: JiuWu
+description: Shared native Java core library for Emaki plugins
+permissions:
+  emakicorelib.admin:
+    description: Allows all EmakiCoreLib administrative commands
+    default: op
+    children:
+      emakicorelib.web: true
+      emakicorelib.reload: true
+  emakicorelib.web:
+    description: Allows viewing the clickable Web Console link
+    default: op
+  emakicorelib.reload:
+    description: Allows reloading EmakiCoreLib configuration and Web Console
+    default: op
+dependencies:
+  server:
+    Vault:
+      load: BEFORE
+      required: false
+    ExcellentEconomy:
+      load: BEFORE
+      required: false
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+    MMOItems:
+      load: BEFORE
+      required: false
+    MythicMobs:
+      load: BEFORE
+      required: false
+    ItemsAdder:
+      load: BEFORE
+      required: false
+    Nexo:
+      load: BEFORE
+      required: false
+    Oraxen:
+      load: BEFORE
+      required: false
+    NeigeItems:
+      load: BEFORE
+      required: false
+    CraftEngine:
+      load: BEFORE
+      required: false
+    PacketEvents:
+      load: BEFORE
+      required: false
