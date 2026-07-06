@@ -29,6 +29,18 @@ public interface AdvancementPlatform {
      */
     boolean remove(NamespacedKey key);
 
+    /**
+     * Removes every advancement currently registered under the given namespace,
+     * applying a single data reload afterwards. This sweeps not only the nodes this
+     * process registered but also any left over on disk from a previous session, so a
+     * subsequent parent-first registration never sees a stale child whose parent was
+     * just removed (which the vanilla loader would report as an orphaned advancement).
+     *
+     * @param namespace the advancement key namespace to purge
+     * @return the number of advancements removed
+     */
+    int removeAll(String namespace);
+
     /** Applies any pending data reload needed for removals to take effect. */
     void reloadData();
 }

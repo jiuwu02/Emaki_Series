@@ -18,6 +18,8 @@
 #                   读取 Lore 时支持单值（物理伤害: 5）与区间（物理伤害: 1-5 / 1~5）。
 #                   区间在每次命中时按 [最小值, 最大值] 随机取本次物理伤害。
 #   attribute_power: 战力权重
+#   tags: 属性标签列表（如 DEBUFF），供 MythicMobs 按标签批量增删临时属性
+#   temporary_stack_mode: 作为临时属性重复施加时的叠加模式（REPLACE 覆盖 / STACK 相加）
 #   description: 属性描述
 #
 # 文件放置位置: plugins/EmakiAttribute/attributes/
@@ -46,5 +48,14 @@ priority: 100
 lore_format_id: default_flat
 
 attribute_power: 1.0
+
+# 属性标签：供 MythicMobs 的 emaki_attribute_add_tag / emaki_attribute_clear_tag 按标签批量操作临时属性。
+tags: []
+
+# 临时属性叠加模式：当同一 effect_id 的临时属性重复施加时的默认行为。
+#   REPLACE（默认）：新数值与新持续时间直接覆盖旧的。
+#   STACK：数值相加，持续时间在剩余时间基础上叠加。
+# 技能显式传入 stack_mode 时以技能为准。
+temporary_stack_mode: REPLACE
 
 description: "Adds flat physical damage."

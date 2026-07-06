@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.codex.advancement.AdvancementService;
 import emaki.jiuwu.craft.codex.advancement.UnsafeAdvancementPlatform;
 import emaki.jiuwu.craft.codex.advancement.loader.AdvancementPageLoader;
 import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
+import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
@@ -66,11 +67,13 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         AdvancementPacketGateway advancementPacketGateway =
                 new AdvancementPacketGateway(plugin, registrar, coreLibPlugin.itemSourceService(),
                         config.packetCoordinates());
+        CodexTriggerService triggerService =
+                new CodexTriggerService(plugin, advancementPageLoader, advancementService);
 
         return new CodexRuntimeComponents(
                 appConfigLoader, languageLoader, messageService, bootstrapService,
                 advancementPageLoader, platform, jsonBuilder, registrar, advancementService,
-                advancementPacketGateway);
+                advancementPacketGateway, triggerService);
     }
 
     /**
@@ -143,6 +146,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 advancement != null && bool(advancement, "announce-default", false),
                 advancement == null || bool(advancement, "remove-on-disable", true),
                 advancement == null || bool(advancement, "packet-coordinates", true),
+                advancement == null || bool(advancement, "triggers-enabled", true),
                 bool(configuration, "op_bypass", false));
     }
 

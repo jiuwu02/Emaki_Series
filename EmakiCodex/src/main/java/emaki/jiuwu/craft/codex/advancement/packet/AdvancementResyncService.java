@@ -45,8 +45,7 @@ import net.kyori.adventure.text.Component;
  *
  * <p>This class references PacketEvents types directly, so it is only ever instantiated
  * by {@link AdvancementPacketGateway} after PacketEvents is confirmed present. When
- * PacketEvents is absent the class is never loaded, avoiding {@code NoClassDefFoundError},
- * mirroring the isolation used by the recipe sync channels.
+ * PacketEvents is absent the class is never loaded, avoiding {@code NoClassDefFoundError}.
  */
 public final class AdvancementResyncService {
 

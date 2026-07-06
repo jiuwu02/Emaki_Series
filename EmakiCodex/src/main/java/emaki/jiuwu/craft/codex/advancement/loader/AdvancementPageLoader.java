@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.codex.advancement.loader;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
@@ -9,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementFrame;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
+import emaki.jiuwu.craft.codex.advancement.model.AdvancementTrigger;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -72,7 +75,27 @@ public final class AdvancementPageLoader extends YamlDirectoryLoader<Advancement
         boolean toast = Boolean.TRUE.equals(node.getBoolean("toast", true));
         boolean announce = Boolean.TRUE.equals(node.getBoolean("announce", false));
         return new AdvancementDefinition(localId, icon, title, description, frame,
-                x, y, parent, hidden, toast, announce, node.getStringList("on_complete"));
+                x, y, parent, hidden, toast, announce,
+                node.getStringList("on_complete"), parseTriggers(node));
+    }
+
+    private List<AdvancementTrigger> parseTriggers(YamlSection node) {
+        List<Map<?, ?>> raw = node.getMapList("triggers");
+        if (raw == null || raw.isEmpty()) {
+            return List.of();
+        }
+        List<AdvancementTrigger> triggers = new ArrayList<>();
+        for (Map<?, ?> entry : raw) {
+            if (entry == null) {
+                continue;
+            }
+            String event = Texts.toStringSafe(entry.get("event"));
+            if (Texts.isBlank(event)) {
+                continue;
+            }
+            triggers.add(new AdvancementTrigger(event, Texts.toStringSafe(entry.get("condition"))));
+        }
+        return List.copyOf(triggers);
     }
 
     private double doubleOf(YamlSection node, String path, double fallback) {

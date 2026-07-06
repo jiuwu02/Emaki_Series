@@ -6,6 +6,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
+import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class ScriptAttributeDefinitionParser {
@@ -32,7 +33,9 @@ final class ScriptAttributeDefinitionParser {
                 string(definition, "loreFormatId", string(definition, "lore_format_id", "")),
                 stringList(definition.containsKey("lorePatterns") ? definition.get("lorePatterns") : definition.get("lore_patterns")),
                 string(definition, "description", ""),
-                number(definition.get("attributePower"), number(definition.get("attribute_power"), 1D))
+                number(definition.get("attributePower"), number(definition.get("attribute_power"), 1D)),
+                stringList(definition.containsKey("tags") ? definition.get("tags") : definition.get("tag")),
+                enumValue(TemporaryStackMode.class, string(definition, "temporaryStackMode", string(definition, "temporary_stack_mode", "REPLACE")), TemporaryStackMode.REPLACE)
         );
     }
 

@@ -112,14 +112,40 @@ public final class AdvancementPacketGateway {
             return -1;
         }
         try {
-            if (resyncService == null) {
-                resyncService = new AdvancementResyncService(plugin, registrar, itemSourceService);
-            }
-            return resyncService.resyncAll();
+            return resyncService().resyncAll();
         } catch (Throwable throwable) {
             plugin.getLogger().warning("[Codex] Advancement resync skipped: " + throwable.getMessage());
             return -1;
         }
+    }
+
+    /**
+     * Re-pushes all registered EmakiCodex advancements to a single player so their client
+     * advancement screen shows the runtime tree immediately on join, without waiting for a
+     * relog or reload. No-op when PacketEvents is absent (the client still receives the
+     * vanilla auto-sent tree, just without coordinate injection).
+     *
+     * @param player the target player
+     * @return {@code true} when the packet was sent
+     */
+    public boolean resync(org.bukkit.entity.Player player) {
+        if (player == null || !isPacketEventsPresent()) {
+            return false;
+        }
+        try {
+            return resyncService().resync(player);
+        } catch (Throwable throwable) {
+            plugin.getLogger().warning("[Codex] Advancement resync skipped for "
+                    + player.getName() + ": " + throwable.getMessage());
+            return false;
+        }
+    }
+
+    private AdvancementResyncService resyncService() {
+        if (resyncService == null) {
+            resyncService = new AdvancementResyncService(plugin, registrar, itemSourceService);
+        }
+        return resyncService;
     }
 
     private boolean isPacketEventsPresent() {

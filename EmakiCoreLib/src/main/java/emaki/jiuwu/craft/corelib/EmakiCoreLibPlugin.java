@@ -157,6 +157,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     };
     private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
     private MythicJavaScriptBridge mythicJavaScriptBridge;
+    private emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher gameplayEventPublisher;
 
     @Override
     public void onLoad() {
@@ -219,6 +220,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             HandlerList.unregisterAll(mythicJavaScriptBridge);
             mythicJavaScriptBridge = null;
         }
+        if (gameplayEventPublisher != null) {
+            HandlerList.unregisterAll(gameplayEventPublisher);
+            gameplayEventPublisher = null;
+        }
+        eventBus.clear();
         if (javaScriptService != null) {
             javaScriptService.close();
         }
@@ -469,6 +475,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry);
         itemAssemblyService = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
         itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
+        gameplayEventPublisher = new emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher(
+                this, eventBus, () -> configModel == null ? null : configModel.gameplayEventConfig());
+        getServer().getPluginManager().registerEvents(gameplayEventPublisher, this);
         refreshServiceRegistry();
     }
 
@@ -536,6 +545,16 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public CoreLibConfig configModel() {
         return configModel;
+    }
+
+    /**
+     * The shared cross-plugin event bus. Emaki plugins subscribe here (e.g. to
+     * {@link emaki.jiuwu.craft.corelib.event.gameplay.GameplayEvent} subtypes published by
+     * {@link emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher}) instead of
+     * registering their own duplicate Bukkit listeners.
+     */
+    public emaki.jiuwu.craft.corelib.event.EmakiEventBus eventBus() {
+        return eventBus;
     }
 
     public ActionRegistry actionRegistry() {

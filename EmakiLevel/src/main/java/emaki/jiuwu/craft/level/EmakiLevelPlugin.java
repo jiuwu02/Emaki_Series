@@ -42,14 +42,8 @@ import emaki.jiuwu.craft.level.command.LevelCommand;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
-import emaki.jiuwu.craft.level.listener.BlockSourceListener;
-import emaki.jiuwu.craft.level.listener.BrewingSourceListener;
-import emaki.jiuwu.craft.level.listener.CombatSourceListener;
-import emaki.jiuwu.craft.level.listener.CraftingSourceListener;
-import emaki.jiuwu.craft.level.listener.FishingSourceListener;
+import emaki.jiuwu.craft.level.listener.LevelGameplaySubscriber;
 import emaki.jiuwu.craft.level.listener.PlayerDataListener;
-import emaki.jiuwu.craft.level.listener.SmeltingSourceListener;
-import emaki.jiuwu.craft.level.listener.TamingSourceListener;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
@@ -141,6 +135,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private LevelTopGuiService levelTopGuiService;
     private LevelAttributeBridge attributeBridge;
     private MythicLevelDropBridge mythicDropBridge;
+    private LevelGameplaySubscriber gameplaySubscriber;
     private LevelPlaceholderExpansion placeholderExpansion;
     private BStatsRegistration metrics;
     private final EmakiLevelApi.Bridge levelApiBridge = new EmakiLevelApi.Bridge() {
@@ -270,6 +265,10 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         if (mythicDropBridge != null) {
             HandlerList.unregisterAll(mythicDropBridge);
             mythicDropBridge = null;
+        }
+        if (gameplaySubscriber != null) {
+            gameplaySubscriber.unsubscribe();
+            gameplaySubscriber = null;
         }
         WebConsoleRegistry.unregisterModule(this);
         WebPluginApiRegistry.unregister(this);
@@ -407,13 +406,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(new PlayerDataListener(this), this);
-        getServer().getPluginManager().registerEvents(new CombatSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new BlockSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new FishingSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new CraftingSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new BrewingSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new SmeltingSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new TamingSourceListener(this), this);
+        gameplaySubscriber = new LevelGameplaySubscriber(this);
+        gameplaySubscriber.subscribe(coreLib.eventBus());
     }
 
     private void registerApi() {

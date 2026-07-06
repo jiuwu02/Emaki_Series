@@ -7,7 +7,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.5"
+version: "1.0.11"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -35,5 +35,9 @@ advancement:
   # 注意：x/y 都为 0 视为“未设置”，该节点回退自动排布。若要用坐标，建议整页所有节点都配 x/y，
   # 避免“部分显式坐标 + 部分自动排布”导致节点重叠。
   packet-coordinates: true
+  # 事件触发器：玩家完成配置的游戏事件（且满足条件）时自动授予成就。
+  # true=启用；false=关闭后成就只能通过 /codex grant 命令或 codex-grant-advancement 动作手动授予。
+  # 具体在每个成就节点下用 triggers 配置，见 advancements/ 示例文件。
+  triggers-enabled: true
 
 debug: false

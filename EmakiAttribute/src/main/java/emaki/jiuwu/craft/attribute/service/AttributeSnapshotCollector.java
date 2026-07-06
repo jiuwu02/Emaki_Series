@@ -151,11 +151,9 @@ final class AttributeSnapshotCollector {
             collectEquipmentSignatures(itemResolver, playerOrNull, signatureParts);
         }
         collectContributionProviderSignatures(entity, signatureParts);
-        if (playerOrNull != null) {
-            String temporarySignature = service.temporaryAttributeService().signature(playerOrNull);
-            if (Texts.isNotBlank(temporarySignature)) {
-                signatureParts.add("temporary:" + temporarySignature);
-            }
+        String temporarySignature = service.temporaryAttributeService().signature(entity);
+        if (Texts.isNotBlank(temporarySignature)) {
+            signatureParts.add("temporary:" + temporarySignature);
         }
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
 
@@ -173,10 +171,8 @@ final class AttributeSnapshotCollector {
             collectEquipmentSnapshots(itemResolver, playerOrNull, values);
         }
         mergeContributionProviders(entity, values);
-        if (playerOrNull != null) {
-            mergeValues(values, service.temporaryAttributeService().additiveValues(playerOrNull));
-            overlayValues(values, service.temporaryAttributeService().setValues(playerOrNull));
-        }
+        mergeValues(values, service.temporaryAttributeService().additiveValues(entity));
+        overlayValues(values, service.temporaryAttributeService().setValues(entity));
         scalingCurveProcessor.apply(values, service.scalingCurves());
         applyDerivedValues(values);
         AttributeSnapshot snapshot = new AttributeSnapshot(

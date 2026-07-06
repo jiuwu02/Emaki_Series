@@ -8,6 +8,7 @@ depend:
 softdepend:
   - PlaceholderAPI
   - packetevents
+  - MythicMobs
 commands:
   codex:
     aliases: [ecodex]

@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
+import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -29,6 +30,8 @@ import io.lumine.mythic.api.config.MythicLineConfig;
 import io.lumine.mythic.api.mobs.MythicMob;
 import io.lumine.mythic.api.skills.SkillCaster;
 import io.lumine.mythic.api.skills.SkillMetadata;
+import io.lumine.mythic.api.skills.ITargetedEntitySkill;
+import io.lumine.mythic.api.skills.SkillResult;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.bukkit.events.MythicConditionLoadEvent;
 import io.lumine.mythic.bukkit.events.MythicMechanicLoadEvent;
@@ -64,6 +67,14 @@ public final class MythicBridge implements Listener {
         File sourceFile = new File(plugin.getDataFolder(), "mythic/" + name + ".yml");
         if (isDamageMechanic(name)) {
             event.register(new DamageSkillMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+        } else if (isTemporaryAddMechanic(name)) {
+            event.register(new TemporaryAttributeAddMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+        } else if (isTemporaryRemoveMechanic(name)) {
+            event.register(new TemporaryAttributeRemoveMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+        } else if (isTemporaryAddTagMechanic(name)) {
+            event.register(new TemporaryAttributeAddTagMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+        } else if (isTemporaryClearTagMechanic(name)) {
+            event.register(new TemporaryAttributeClearTagMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
         }
     }
 
@@ -113,6 +124,22 @@ public final class MythicBridge implements Listener {
 
     private boolean isDamageMechanic(String name) {
         return name.equals("emaki_damage") || name.equals("emakiattribute_damage") || name.equals("attribute_damage");
+    }
+
+    private boolean isTemporaryAddMechanic(String name) {
+        return name.equals("emaki_attribute_add") || name.equals("emakiattribute_add");
+    }
+
+    private boolean isTemporaryRemoveMechanic(String name) {
+        return name.equals("emaki_attribute_remove") || name.equals("emakiattribute_remove");
+    }
+
+    private boolean isTemporaryAddTagMechanic(String name) {
+        return name.equals("emaki_attribute_add_tag") || name.equals("emakiattribute_add_tag");
+    }
+
+    private boolean isTemporaryClearTagMechanic(String name) {
+        return name.equals("emaki_attribute_clear_tag") || name.equals("emakiattribute_clear_tag");
     }
 
     private boolean isAttributeCondition(String name) {
@@ -249,6 +276,202 @@ public final class MythicBridge implements Listener {
                 }
             }
             return fallback;
+        }
+    }
+
+    private abstract static class AbstractTemporaryAttributeMechanic extends SkillMechanic implements ITargetedEntitySkill {
+
+        protected final AttributeService attributeService;
+
+        protected AbstractTemporaryAttributeMechanic(SkillExecutor executor,
+                File file,
+                String mechanicName,
+                MythicLineConfig config,
+                AttributeService attributeService) {
+            super(executor, file, mechanicName, config);
+            this.attributeService = attributeService;
+        }
+
+        protected LivingEntity resolveLiving(AbstractEntity abstractEntity) {
+            if (abstractEntity == null) {
+                return null;
+            }
+            org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
+            return entity instanceof LivingEntity livingEntity ? livingEntity : null;
+        }
+
+        protected String configString(String fallback, String... keys) {
+            for (String key : keys) {
+                String value = config.getString(key, null);
+                if (value != null && !value.isBlank()) {
+                    return value.trim();
+                }
+            }
+            return fallback;
+        }
+
+        protected TemporaryStackMode resolveStackMode() {
+            String raw = configString("", "stack_mode", "stackmode", "mode");
+            return raw.isBlank() ? null : TemporaryStackMode.fromString(raw, null);
+        }
+    }
+
+    @MythicMechanic(
+            name = "emaki_attribute_add",
+            aliases = {"emakiattribute_add"},
+            author = "Emaki",
+            description = "Add a temporary attribute to the target through Emaki_Attribute.",
+            version = "1.0.0",
+            premium = false
+    )
+    public static final class TemporaryAttributeAddMechanic extends AbstractTemporaryAttributeMechanic {
+
+        public TemporaryAttributeAddMechanic(SkillExecutor executor,
+                File file,
+                String mechanicName,
+                MythicLineConfig config,
+                AttributeService attributeService) {
+            super(executor, file, mechanicName, config, attributeService);
+        }
+
+        @Override
+        public SkillResult castAtEntity(SkillMetadata metadata, AbstractEntity target) {
+            LivingEntity livingTarget = resolveLiving(target);
+            if (livingTarget == null) {
+                return SkillResult.INVALID_TARGET;
+            }
+            String effectId = configString("", "effect_id", "effectid", "id");
+            String attribute = configString("", "attribute", "attribute_id", "attributeid");
+            if (effectId.isBlank() || attribute.isBlank()) {
+                return SkillResult.INVALID_CONFIG;
+            }
+            double value = config.getDouble(new String[]{"value", "amount", "v"}, 0D);
+            long durationTicks = config.getInteger(new String[]{"duration", "duration_ticks", "ticks", "d"}, 0);
+            if (durationTicks <= 0L) {
+                return SkillResult.INVALID_CONFIG;
+            }
+            boolean set = resolveBoolean(false, "set", "override_value");
+            if (set) {
+                attributeService.temporaryAttributeService().set(livingTarget, effectId, attribute, value, durationTicks, resolveStackMode());
+            } else {
+                attributeService.temporaryAttributeService().add(livingTarget, effectId, attribute, value, durationTicks, resolveStackMode());
+            }
+            return SkillResult.SUCCESS;
+        }
+
+        private boolean resolveBoolean(boolean fallback, String... keys) {
+            for (String key : keys) {
+                String value = config.getString(key, null);
+                if (value != null && !value.isBlank()) {
+                    return Boolean.parseBoolean(value.trim());
+                }
+            }
+            return fallback;
+        }
+    }
+
+    @MythicMechanic(
+            name = "emaki_attribute_remove",
+            aliases = {"emakiattribute_remove"},
+            author = "Emaki",
+            description = "Remove a temporary attribute from the target through Emaki_Attribute.",
+            version = "1.0.0",
+            premium = false
+    )
+    public static final class TemporaryAttributeRemoveMechanic extends AbstractTemporaryAttributeMechanic {
+
+        public TemporaryAttributeRemoveMechanic(SkillExecutor executor,
+                File file,
+                String mechanicName,
+                MythicLineConfig config,
+                AttributeService attributeService) {
+            super(executor, file, mechanicName, config, attributeService);
+        }
+
+        @Override
+        public SkillResult castAtEntity(SkillMetadata metadata, AbstractEntity target) {
+            LivingEntity livingTarget = resolveLiving(target);
+            if (livingTarget == null) {
+                return SkillResult.INVALID_TARGET;
+            }
+            String effectId = configString("", "effect_id", "effectid", "id");
+            if (effectId.isBlank()) {
+                return SkillResult.INVALID_CONFIG;
+            }
+            attributeService.temporaryAttributeService().remove(livingTarget, effectId);
+            return SkillResult.SUCCESS;
+        }
+    }
+
+    @MythicMechanic(
+            name = "emaki_attribute_add_tag",
+            aliases = {"emakiattribute_add_tag"},
+            author = "Emaki",
+            description = "Add every temporary attribute carrying a tag to the target through Emaki_Attribute.",
+            version = "1.0.0",
+            premium = false
+    )
+    public static final class TemporaryAttributeAddTagMechanic extends AbstractTemporaryAttributeMechanic {
+
+        public TemporaryAttributeAddTagMechanic(SkillExecutor executor,
+                File file,
+                String mechanicName,
+                MythicLineConfig config,
+                AttributeService attributeService) {
+            super(executor, file, mechanicName, config, attributeService);
+        }
+
+        @Override
+        public SkillResult castAtEntity(SkillMetadata metadata, AbstractEntity target) {
+            LivingEntity livingTarget = resolveLiving(target);
+            if (livingTarget == null) {
+                return SkillResult.INVALID_TARGET;
+            }
+            String tag = configString("", "tag", "tags", "t");
+            if (tag.isBlank()) {
+                return SkillResult.INVALID_CONFIG;
+            }
+            double value = config.getDouble(new String[]{"value", "amount", "v"}, 0D);
+            long durationTicks = config.getInteger(new String[]{"duration", "duration_ticks", "ticks", "d"}, 0);
+            if (durationTicks <= 0L) {
+                return SkillResult.INVALID_CONFIG;
+            }
+            String effectPrefix = configString("", "effect_prefix", "effectprefix", "prefix");
+            attributeService.temporaryAttributeService().addByTag(livingTarget, effectPrefix, tag, value, durationTicks, resolveStackMode());
+            return SkillResult.SUCCESS;
+        }
+    }
+
+    @MythicMechanic(
+            name = "emaki_attribute_clear_tag",
+            aliases = {"emakiattribute_clear_tag"},
+            author = "Emaki",
+            description = "Clear every temporary attribute carrying a tag from the target through Emaki_Attribute.",
+            version = "1.0.0",
+            premium = false
+    )
+    public static final class TemporaryAttributeClearTagMechanic extends AbstractTemporaryAttributeMechanic {
+
+        public TemporaryAttributeClearTagMechanic(SkillExecutor executor,
+                File file,
+                String mechanicName,
+                MythicLineConfig config,
+                AttributeService attributeService) {
+            super(executor, file, mechanicName, config, attributeService);
+        }
+
+        @Override
+        public SkillResult castAtEntity(SkillMetadata metadata, AbstractEntity target) {
+            LivingEntity livingTarget = resolveLiving(target);
+            if (livingTarget == null) {
+                return SkillResult.INVALID_TARGET;
+            }
+            String tag = configString("", "tag", "tags", "t");
+            if (tag.isBlank()) {
+                return SkillResult.INVALID_CONFIG;
+            }
+            attributeService.temporaryAttributeService().removeByTag(livingTarget, tag);
+            return SkillResult.SUCCESS;
         }
     }
 

@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
+import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -58,6 +59,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
         AttributeValueKind valueKind = parseEnum(configuration.getString("value_kind", "FLAT"), AttributeValueKind.FLAT);
         AttributeTargetType targetType = parseEnum(configuration.getString("target_type", "GENERIC"), AttributeTargetType.GENERIC);
+        TemporaryStackMode temporaryStackMode = parseEnum(configuration.getString("temporary_stack_mode", "REPLACE"), TemporaryStackMode.REPLACE);
         return new AttributeDefinition(
                 configuration.getString("id"),
                 configuration.getString("display_name"),
@@ -73,7 +75,9 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                 configuration.getString("lore_format_id"),
                 patterns,
                 configuration.getString("description"),
-                configuration.contains("attribute_power") ? configuration.getDouble("attribute_power") : 1D
+                configuration.contains("attribute_power") ? configuration.getDouble("attribute_power") : 1D,
+                configuration.getStringList("tags"),
+                temporaryStackMode
         );
     }
 
@@ -133,6 +137,17 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                             "type", typeName(),
                             "file", file.getName(),
                             "field", "target_type"
+                    )
+            );
+            valid = false;
+        }
+        if (configuration.contains("temporary_stack_mode") && !isValidEnum(configuration.getString("temporary_stack_mode"), TemporaryStackMode.class)) {
+            issue(
+                    "loader.schema_invalid_enum",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "temporary_stack_mode"
                     )
             );
             valid = false;

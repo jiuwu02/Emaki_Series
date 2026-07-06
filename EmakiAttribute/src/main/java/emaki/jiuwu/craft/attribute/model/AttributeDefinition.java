@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.attribute.model;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -19,9 +20,11 @@ public record AttributeDefinition(String id,
         String loreFormatId,
         List<String> lorePatterns,
         String description,
-        double attributePower) {
+        double attributePower,
+        List<String> tags,
+        TemporaryStackMode temporaryStackMode) {
 
-    public AttributeDefinition               {
+    public AttributeDefinition {
         id = normalizeId(id);
         displayName = Texts.isBlank(displayName) ? id : Texts.toStringSafe(displayName).trim();
         valueKind = valueKind == null ? AttributeValueKind.FLAT : valueKind;
@@ -32,6 +35,8 @@ public record AttributeDefinition(String id,
         lorePatterns = lorePatterns == null ? List.of() : List.copyOf(lorePatterns);
         description = Texts.toStringSafe(description).trim();
         attributePower = Double.isNaN(attributePower) ? 1D : attributePower;
+        tags = normalizeTags(tags);
+        temporaryStackMode = temporaryStackMode == null ? TemporaryStackMode.REPLACE : temporaryStackMode;
     }
 
     public double clamp(double value) {
@@ -58,6 +63,30 @@ public record AttributeDefinition(String id,
 
     public boolean isVanillaMappedValue() {
         return targetType == AttributeTargetType.VANILLA;
+    }
+
+    public boolean hasTag(String tag) {
+        if (Texts.isBlank(tag) || tags.isEmpty()) {
+            return false;
+        }
+        return tags.contains(tag.trim().toLowerCase(Locale.ROOT));
+    }
+
+    private static List<String> normalizeTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return List.of();
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String tag : tags) {
+            if (Texts.isBlank(tag)) {
+                continue;
+            }
+            String value = tag.trim().toLowerCase(Locale.ROOT);
+            if (!normalized.contains(value)) {
+                normalized.add(value);
+            }
+        }
+        return normalized.isEmpty() ? List.of() : List.copyOf(normalized);
     }
 
     private static String normalizeId(String value) {

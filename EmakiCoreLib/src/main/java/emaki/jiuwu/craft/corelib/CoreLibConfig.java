@@ -14,12 +14,13 @@ public record CoreLibConfig(
         LoopConfig loopConfig,
         ScriptConfig scriptConfig,
         WebConsoleConfig webConsoleConfig,
-        GuiConfig guiConfig
+        GuiConfig guiConfig,
+        GameplayEventConfig gameplayEventConfig
 ) {
 
     public static CoreLibConfig defaults() {
         return new CoreLibConfig("zh_CN", Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
-                WebConsoleConfig.defaults(), GuiConfig.defaults());
+                WebConsoleConfig.defaults(), GuiConfig.defaults(), GameplayEventConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -41,7 +42,8 @@ public record CoreLibConfig(
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 ScriptConfig.fromConfig(configuration.getSection("script")),
                 WebConsoleConfig.fromConfig(configuration.getSection("web_console")),
-                GuiConfig.fromConfig(configuration.getSection("gui"))
+                GuiConfig.fromConfig(configuration.getSection("gui")),
+                GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events"))
         );
     }
 
@@ -72,6 +74,48 @@ public record CoreLibConfig(
                 return defaults();
             }
             return new GuiConfig(section.getString("backend", defaults().backend()));
+        }
+    }
+
+    /**
+     * Configuration for the shared gameplay-event publisher
+     * ({@link emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher}).
+     *
+     * <p>When {@code enabled}, CoreLib registers a single Bukkit listener that captures the
+     * common gameplay signals (kills, block breaks, crafting, ...) and republishes them on the
+     * shared event bus for every Emaki plugin. The two attribution windows are deliberately
+     * coarse upper bounds: subscribers may enforce their own tighter, per-rule windows.
+     *
+     * <ul>
+     *   <li>{@code lastDamagerExpireTicks} — how long a projectile / delayed-death attribution
+     *       stays valid for {@code entity_kill} when Bukkit reports no direct killer.</li>
+     *   <li>{@code brewAttributionExpireTicks} — how long the last brewing-stand user stays
+     *       eligible for {@code brew_complete} attribution.</li>
+     * </ul>
+     */
+    public record GameplayEventConfig(
+            boolean enabled,
+            int lastDamagerExpireTicks,
+            long brewAttributionExpireTicks
+    ) {
+
+        public static GameplayEventConfig defaults() {
+            return new GameplayEventConfig(true, 200, 6000L);
+        }
+
+        public static GameplayEventConfig fromConfig(YamlSection section) {
+            GameplayEventConfig defaults = defaults();
+            if (section == null) {
+                return defaults;
+            }
+            Boolean enabled = section.getBoolean("enabled", defaults.enabled());
+            Integer lastDamager = section.getInt("last_damager_expire_ticks", defaults.lastDamagerExpireTicks());
+            Integer brew = section.getInt("brew_attribution_expire_ticks", (int) defaults.brewAttributionExpireTicks());
+            return new GameplayEventConfig(
+                    enabled == null ? defaults.enabled() : enabled,
+                    lastDamager == null ? defaults.lastDamagerExpireTicks() : Math.max(0, lastDamager),
+                    brew == null ? defaults.brewAttributionExpireTicks() : Math.max(0L, brew.longValue())
+            );
         }
     }
 

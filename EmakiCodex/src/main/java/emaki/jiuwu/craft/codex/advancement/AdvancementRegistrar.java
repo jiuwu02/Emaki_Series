@@ -55,36 +55,42 @@ public final class AdvancementRegistrar {
      * @return the number of advancement nodes registered
      */
     public synchronized int registerAll() {
+        // Phase 1 (delete): clear our in-memory maps and delete the whole namespace from
+        // disk, then reload once. Parent and child files leave together, so the vanilla
+        // loader never sees a "parent deleted, child present" tree (no orphan), and the
+        // running-instance registry is cleared so phase-2 loads cannot hit a duplicate key.
         unregisterAll();
-        int count = 0;
+
+        // Phase 2 (register): parent-first loadAdvancement with NO reload in between, so no
+        // intermediate tree state is ever scanned.
         for (AdvancementPage page : pageLoader.all().values()) {
-            count += registerPage(page);
+            registerPage(page);
         }
-        return count;
+
+        // Phase 3 (reload once): make the running instance match the freshly written files.
+        // All of root/first_step/challenge are on disk now, so the tree builds completely
+        // (no orphan) and Bukkit.getAdvancement can resolve them for the grant pipeline.
+        platform.reloadData();
+
+        return byKey.size();
     }
 
-    private int registerPage(AdvancementPage page) {
+    private void registerPage(AdvancementPage page) {
         AdvancementDefinition root = page.root();
         if (root == null) {
             plugin.getLogger().warning("[Codex] Advancement page '" + page.pageId()
                     + "' has no valid root '" + page.rootId() + "', skipped.");
-            return 0;
+            return;
         }
-        int count = 0;
         // Register root first so children can reference it.
-        if (registerNode(page, root, null)) {
-            count++;
-        }
+        registerNode(page, root, null);
         for (AdvancementDefinition definition : page.definitions()) {
             if (definition.isRoot() || Objects.equals(definition.id(), page.rootId())) {
                 continue;
             }
             String parentKey = keyOf(page.pageId(), definition.parent()).toString();
-            if (registerNode(page, definition, parentKey)) {
-                count++;
-            }
+            registerNode(page, definition, parentKey);
         }
-        return count;
     }
 
     private boolean registerNode(AdvancementPage page, AdvancementDefinition definition, String parentKey) {
@@ -100,17 +106,16 @@ public final class AdvancementRegistrar {
         return true;
     }
 
-    /** Removes every advancement this registrar created and clears its maps. */
+    /**
+     * Removes every advancement under this plugin's namespace and clears the registrar's
+     * maps. Sweeping by namespace (rather than only the keys this process tracked) also
+     * clears nodes persisted by a previous session, and the platform applies a single
+     * data reload for the whole batch. That avoids the vanilla loader ever seeing a child
+     * advancement whose parent was already removed, which it reports as an orphan error.
+     */
     public synchronized void unregisterAll() {
-        boolean removedAny = false;
-        for (NamespacedKey key : registeredKeys) {
-            if (platform.remove(key)) {
-                removedAny = true;
-            }
-        }
-        if (removedAny) {
-            platform.reloadData();
-        }
+        // Namespace matches the one NamespacedKey(plugin, ...) produces for our keys.
+        platform.removeAll(new NamespacedKey(plugin, "root").getNamespace());
         registeredKeys.clear();
         byKey.clear();
         pageByKey.clear();

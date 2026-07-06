@@ -57,6 +57,8 @@ export function registerEmakiAttributeWebConsole(): void {
     lore_format_id: ['词条格式', '关联 lore_formats 下的格式 ID。', 'text'],
     lore_patterns: ['词条正则', '从物品 Lore 中识别属性数值的正则表达式列表。', 'list'],
     attribute_power: ['属性战力', '该属性每 1 点对应的战力评分系数。', 'number'],
+    tags: ['标签', '属性标签列表（如 DEBUFF），供 MythicMobs 按标签批量增删临时属性。', 'list'],
+    temporary_stack_mode: ['临时叠加模式', '作为临时属性重复施加时的叠加模式：REPLACE 覆盖，STACK 相加。', 'enum'],
     description: ['说明', '定义文件的详细说明，用于文档和调试输出。', 'text'],
     aliases: ['别名', '伤害类型可被引用的别名列表。', 'list'],
     allowed_events: ['允许事件', '允许触发该伤害类型的 Bukkit DamageCause 列表。', 'list'],
@@ -121,7 +123,9 @@ export function registerEmakiAttributeWebConsole(): void {
     ['priority', '优先级', '词条读取或匹配优先级。', 'number'],
     ['lore_format_id', '词条格式', '关联 lore_formats 下的格式 ID。', 'text'],
     ['lore_patterns', '词条正则', '从物品 Lore 中识别属性数值的正则表达式列表。', 'stringList'],
-    ['attribute_power', '属性战力', '该属性每 1 点对应的战力评分系数。', 'number']
+    ['attribute_power', '属性战力', '该属性每 1 点对应的战力评分系数。', 'number'],
+    ['tags', '标签', '属性标签列表（如 DEBUFF），供 MythicMobs 按标签批量增删临时属性。', 'stringList'],
+    ['temporary_stack_mode', '临时叠加模式', '作为临时属性重复施加时的叠加模式。', 'enum', { options: ['REPLACE', 'STACK'], optionLabelPrefix: 'temporary_stack_mode' }]
   ];
 
   const damageTypeFields: ConfigSpec[] = [
@@ -248,6 +252,8 @@ export function registerEmakiAttributeWebConsole(): void {
     'emakiattribute.option.target_type.VANILLA': '原版属性',
     'emakiattribute.option.target_type.RESOURCE': '资源',
     'emakiattribute.option.target_type.DAMAGE': '伤害',
+    'emakiattribute.option.temporary_stack_mode.REPLACE': '覆盖',
+    'emakiattribute.option.temporary_stack_mode.STACK': '相加',
     'emakiattribute.option.damageStageKind.FLAT_PERCENT': '固定值 + 百分比',
     'emakiattribute.option.damageStageKind.CUSTOM': '自定义表达式',
     'emakiattribute.option.damageStageSource.ATTACKER': '攻击者',
@@ -338,7 +344,9 @@ export function registerEmakiAttributeWebConsole(): void {
     'emakiattribute.option.damageStageSource.TARGET': 'Target',
     'emakiattribute.option.damageStageSource.CONTEXT': 'Context',
     'emakiattribute.option.damageStageMode.ADD': 'Add',
-    'emakiattribute.option.damageStageMode.SUBTRACT': 'Subtract'
+    'emakiattribute.option.damageStageMode.SUBTRACT': 'Subtract',
+    'emakiattribute.option.temporary_stack_mode.REPLACE': 'Replace',
+    'emakiattribute.option.temporary_stack_mode.STACK': 'Stack'
   });
 
   registerSurface({

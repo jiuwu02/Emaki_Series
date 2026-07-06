@@ -7,7 +7,7 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
  */
 public final class AppConfig extends BaseAppConfig {
 
-    public static final String CURRENT_VERSION = "1.0.5";
+    public static final String CURRENT_VERSION = "1.0.11";
 
     private final boolean releaseDefaultData;
 
@@ -16,6 +16,7 @@ public final class AppConfig extends BaseAppConfig {
     private final boolean announceDefault;
     private final boolean removeOnDisable;
     private final boolean packetCoordinates;
+    private final boolean advancementTriggersEnabled;
 
     private final boolean opBypass;
 
@@ -27,6 +28,7 @@ public final class AppConfig extends BaseAppConfig {
             boolean announceDefault,
             boolean removeOnDisable,
             boolean packetCoordinates,
+            boolean advancementTriggersEnabled,
             boolean opBypass) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
@@ -36,6 +38,7 @@ public final class AppConfig extends BaseAppConfig {
         this.announceDefault = announceDefault;
         this.removeOnDisable = removeOnDisable;
         this.packetCoordinates = packetCoordinates;
+        this.advancementTriggersEnabled = advancementTriggersEnabled;
         this.opBypass = opBypass;
     }
 
@@ -47,6 +50,7 @@ public final class AppConfig extends BaseAppConfig {
                 true,
                 "unsafe",
                 false,
+                true,
                 true,
                 true,
                 false
@@ -81,6 +85,16 @@ public final class AppConfig extends BaseAppConfig {
      */
     public boolean packetCoordinates() {
         return packetCoordinates;
+    }
+
+    /**
+     * {@return whether gameplay-event advancement triggers are active} When {@code false}, the
+     * trigger listener does nothing and advancements can only be granted manually via command
+     * or the {@code codex-grant-advancement} action. Only meaningful when
+     * {@link #advancementEnabled()} is also true.
+     */
+    public boolean advancementTriggersEnabled() {
+        return advancementTriggersEnabled;
     }
 
     public boolean opBypass() {

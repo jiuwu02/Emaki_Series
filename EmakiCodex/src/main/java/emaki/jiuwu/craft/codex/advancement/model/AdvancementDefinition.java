@@ -22,6 +22,8 @@ import java.util.List;
  * @param showToast    whether a toast pops on completion
  * @param announce     whether completion is broadcast to chat
  * @param onComplete   corelib action lines executed when the advancement completes
+ * @param triggers     automatic grant triggers that award this node when a matching
+ *                     gameplay event fires and its condition passes
  */
 public record AdvancementDefinition(String id,
         String icon,
@@ -34,13 +36,15 @@ public record AdvancementDefinition(String id,
         boolean hidden,
         boolean showToast,
         boolean announce,
-        List<String> onComplete) {
+        List<String> onComplete,
+        List<AdvancementTrigger> triggers) {
 
     /** The single manual criterion name used by every EmakiCodex advancement. */
     public static final String CRITERION = "codex";
 
     public AdvancementDefinition {
         onComplete = onComplete == null ? List.of() : List.copyOf(onComplete);
+        triggers = triggers == null ? List.of() : List.copyOf(triggers);
     }
 
     /** {@return whether this node is the root of its page (no parent)} */

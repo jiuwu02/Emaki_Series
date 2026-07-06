@@ -17,8 +17,11 @@ import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
 import emaki.jiuwu.craft.codex.advancement.AdvancementService;
 import emaki.jiuwu.craft.codex.advancement.loader.AdvancementPageLoader;
 import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
+import emaki.jiuwu.craft.codex.advancement.trigger.CodexGameplaySubscriber;
+import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
+import emaki.jiuwu.craft.codex.listener.PlayerConnectionListener;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -62,8 +65,11 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private AdvancementRegistrar advancementRegistrar;
     private AdvancementService advancementService;
     private AdvancementPacketGateway advancementPacketGateway;
+    private CodexTriggerService triggerService;
 
     private AdvancementListener advancementListener;
+    private CodexGameplaySubscriber gameplaySubscriber;
+    private PlayerConnectionListener connectionListener;
     private DebugCommand debugCommand;
     private BStatsRegistration metrics;
 
@@ -91,6 +97,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     @Override
     public void onDisable() {
         EmakiCodexApi.uninstall(apiBridge);
+        if (gameplaySubscriber != null) {
+            gameplaySubscriber.unsubscribe();
+            gameplaySubscriber = null;
+        }
         if (metrics != null) {
             metrics.close();
             metrics = null;
@@ -113,6 +123,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         advancementRegistrar = components.advancementRegistrar();
         advancementService = components.advancementService();
         advancementPacketGateway = components.advancementPacketGateway();
+        triggerService = components.triggerService();
 
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
@@ -136,6 +147,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private void registerEventHandlers() {
         advancementListener = new AdvancementListener(this, advancementRegistrar);
         getServer().getPluginManager().registerEvents(advancementListener, this);
+        gameplaySubscriber = new CodexGameplaySubscriber(this, triggerService);
+        gameplaySubscriber.subscribe(coreLib().eventBus());
+        connectionListener = new PlayerConnectionListener(this);
+        getServer().getPluginManager().registerEvents(connectionListener, this);
         registerAdvancementPacketChannel();
     }
 
@@ -186,6 +201,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public AdvancementPacketGateway advancementPacketGateway() {
         return advancementPacketGateway;
+    }
+
+    public CodexTriggerService triggerService() {
+        return triggerService;
     }
 
     public DebugCommand debugCommand() {

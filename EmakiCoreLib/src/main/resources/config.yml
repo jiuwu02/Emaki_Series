@@ -53,6 +53,21 @@ gui:
   # 默认 bukkit：升级 CoreLib 不会改变现有菜单行为，需要时再安装 PacketEvents 并切换。
   backend: "bukkit"
 
+# 统一游戏事件层
+# CoreLib 注册一个共享监听器，捕获常见玩法事件(击杀/挖掘/合成/钓鱼/驯服/酿造等)，
+# 经内部事件总线转发给各 Emaki 插件(EmakiLevel、EmakiCodex ...)，避免各插件重复监听。
+gameplay_events:
+  # 总开关。关闭后 CoreLib 不再发布游戏事件，依赖它的插件将收不到事件。
+  enabled: true
+  # entity_kill 的“最后攻击者”归因窗口(tick)。当 Bukkit 未直接记录击杀者时(如弓箭、延迟死亡)，
+  # 在此窗口内仍把击杀归因给最后一次攻击的玩家。仅为粗粒度上限，订阅方可再收紧。
+  last_damager_expire_ticks: 200
+  # brew_complete 的酿造归因保留窗口(tick)。酿造完成后，在此窗口内仍可把结果归因给最后操作酿造台的玩家。
+  # 这是一个“宽松上限”，只用于防止归因记录无限保留；真正的业务窗口由各订阅方自行收紧
+  # (例如 EmakiLevel 各来源的 attribution.expire_ticks，默认 1200)。默认 6000(约 5 分钟)，
+  # 需大于所有订阅方可能配置的业务窗口，避免在订阅方判断前被提前截断。
+  brew_attribution_expire_ticks: 6000
+
 action:
   loop:
     enabled: true
