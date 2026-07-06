@@ -4,8 +4,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+
 import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -179,12 +181,12 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerCommandHandler() {
-        PluginCommand pluginCommand = getCommand(ROOT_COMMAND);
-        if (pluginCommand == null) {
-            return;
-        }
-        pluginCommand.setExecutor(commandRouter);
-        pluginCommand.setTabCompleter(commandRouter);
+        registerCommand(
+                ROOT_COMMAND,
+                "emakiforge command",
+                java.util.List.of("eforge", "ef"),
+                new PaperCommandAdapter(ROOT_COMMAND, "emakiforge.use", commandRouter, commandRouter)
+        );
     }
 
     private void registerEventHandlers() {
@@ -309,4 +311,39 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     public DebugCommand debugCommand() {
         return debugCommand;
     }
+
+    private static final class PaperCommandAdapter implements BasicCommand {
+
+        private final String rootLabel;
+        private final String permission;
+        private final org.bukkit.command.CommandExecutor executor;
+        private final org.bukkit.command.TabCompleter tabCompleter;
+
+        private PaperCommandAdapter(String rootLabel,
+                String permission,
+                org.bukkit.command.CommandExecutor executor,
+                org.bukkit.command.TabCompleter tabCompleter) {
+            this.rootLabel = rootLabel;
+            this.permission = permission;
+            this.executor = executor;
+            this.tabCompleter = tabCompleter;
+        }
+
+        @Override
+        public void execute(CommandSourceStack source, String[] args) {
+            executor.onCommand(source.getSender(), null, rootLabel, args);
+        }
+
+        @Override
+        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, args);
+            return suggestions == null ? java.util.List.of() : suggestions;
+        }
+
+        @Override
+        public String permission() {
+            return permission;
+        }
+    }
+
 }

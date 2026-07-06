@@ -2,7 +2,7 @@ name: EmakiCoreLib
 main: emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin
 loader: emaki.jiuwu.craft.corelib.loader.EmakiCoreLibPluginLoader
 version: ${project.version}
-api-version: "1.21"
+api-version: "1.21.8"
 folia-supported: true
 author: JiuWu
 description: Shared native Java core library for Emaki plugins

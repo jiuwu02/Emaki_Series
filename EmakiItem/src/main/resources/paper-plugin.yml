@@ -1,0 +1,38 @@
+name: EmakiItem
+main: emaki.jiuwu.craft.item.EmakiItemPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    EmakiAttribute:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiSkills:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakiitem.use:
+    default: true
+  emakiitem.give:
+    default: op
+  emakiitem.inspect:
+    default: op
+  emakiitem.update:
+    default: op
+  emakiitem.reload:
+    default: op
+  emakiitem.debug:
+    default: op
+  emakiitem.admin:
+    default: op

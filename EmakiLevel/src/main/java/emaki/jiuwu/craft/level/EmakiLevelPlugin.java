@@ -9,8 +9,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+
 import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -396,11 +398,12 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     private void registerCommand() {
         LevelCommand command = new LevelCommand(this);
-        PluginCommand pluginCommand = getCommand("emakilevel");
-        if (pluginCommand != null) {
-            pluginCommand.setExecutor(command);
-            pluginCommand.setTabCompleter(command);
-        }
+        registerCommand(
+                "emakilevel",
+                "emakilevel command",
+                java.util.List.of("elv", "elevel"),
+                new PaperCommandAdapter("emakilevel", "emakilevel.use", command, command)
+        );
     }
 
     private void registerListeners() {
@@ -582,4 +585,39 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     public LevelTopGuiService levelTopGuiService() {
         return levelTopGuiService;
     }
+
+    private static final class PaperCommandAdapter implements BasicCommand {
+
+        private final String rootLabel;
+        private final String permission;
+        private final org.bukkit.command.CommandExecutor executor;
+        private final org.bukkit.command.TabCompleter tabCompleter;
+
+        private PaperCommandAdapter(String rootLabel,
+                String permission,
+                org.bukkit.command.CommandExecutor executor,
+                org.bukkit.command.TabCompleter tabCompleter) {
+            this.rootLabel = rootLabel;
+            this.permission = permission;
+            this.executor = executor;
+            this.tabCompleter = tabCompleter;
+        }
+
+        @Override
+        public void execute(CommandSourceStack source, String[] args) {
+            executor.onCommand(source.getSender(), null, rootLabel, args);
+        }
+
+        @Override
+        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, args);
+            return suggestions == null ? java.util.List.of() : suggestions;
+        }
+
+        @Override
+        public String permission() {
+            return permission;
+        }
+    }
+
 }

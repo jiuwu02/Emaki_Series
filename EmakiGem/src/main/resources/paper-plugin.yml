@@ -1,0 +1,28 @@
+name: EmakiGem
+main: emaki.jiuwu.craft.gem.EmakiGemPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    EmakiAttribute:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakigem.use:
+    default: true
+  emakigem.reload:
+    default: op
+  emakigem.admin:
+    default: op
+  emakigem.debug:
+    default: op

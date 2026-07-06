@@ -10,8 +10,10 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+
 import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
@@ -111,12 +113,15 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     }
 
     public void registerCommand(EmakiAttributePlugin plugin) {
-        PluginCommand pluginCommand = getPluginCommand(plugin);
-        if (pluginCommand == null || plugin.command() == null) {
+        if (plugin.command() == null) {
             return;
         }
-        pluginCommand.setExecutor(plugin.command());
-        pluginCommand.setTabCompleter(plugin.command());
+        plugin.registerCommand(
+                "emakiattribute",
+                "emakiattribute command",
+                java.util.List.of("eattribute", "ea"),
+                new PaperCommandAdapter("emakiattribute", "emakiattribute.use", plugin.command(), plugin.command())
+        );
     }
 
     public void registerListener(EmakiAttributePlugin plugin) {
@@ -307,9 +312,6 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-    private PluginCommand getPluginCommand(EmakiAttributePlugin plugin) {
-        return plugin.getCommand("emakiattribute");
-    }
 
     private java.util.function.BiConsumer<String, Exception> failureHandler(EmakiAttributePlugin plugin) {
         return (stageName, exception) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
@@ -422,4 +424,39 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         runtime.set("allowed_damage_causes", runtimeEntries);
         return true;
     }
+
+    private static final class PaperCommandAdapter implements BasicCommand {
+
+        private final String rootLabel;
+        private final String permission;
+        private final org.bukkit.command.CommandExecutor executor;
+        private final org.bukkit.command.TabCompleter tabCompleter;
+
+        private PaperCommandAdapter(String rootLabel,
+                String permission,
+                org.bukkit.command.CommandExecutor executor,
+                org.bukkit.command.TabCompleter tabCompleter) {
+            this.rootLabel = rootLabel;
+            this.permission = permission;
+            this.executor = executor;
+            this.tabCompleter = tabCompleter;
+        }
+
+        @Override
+        public void execute(CommandSourceStack source, String[] args) {
+            executor.onCommand(source.getSender(), null, rootLabel, args);
+        }
+
+        @Override
+        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, args);
+            return suggestions == null ? java.util.List.of() : suggestions;
+        }
+
+        @Override
+        public String permission() {
+            return permission;
+        }
+    }
+
 }

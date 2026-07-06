@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-strengthen</artifactId>
-    <version>4.4.1</version>
+    <version>4.4.2</version>
     <name>EmakiStrengthen</name>
     <packaging>jar</packaging>
 
@@ -51,14 +51,14 @@
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>
-                    <exclude>plugin.yml</exclude>
+                    <exclude>paper-plugin.yml</exclude>
                 </excludes>
             </resource>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>plugin.yml</include>
+                    <include>paper-plugin.yml</include>
                 </includes>
             </resource>
         </resources>

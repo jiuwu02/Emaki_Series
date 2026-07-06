@@ -1,17 +1,22 @@
 name: EmakiStrengthen
 main: emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin
 version: ${project.version}
-api-version: "1.21"
+api-version: "1.21.8"
 folia-supported: true
-depend:
-  - EmakiCoreLib
-softdepend:
-  - EmakiAttribute
-  - PlaceholderAPI
-commands:
-  emakistrengthen:
-    aliases: [estrengthen]
-    permission: emakistrengthen.use
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    EmakiAttribute:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
 permissions:
   emakistrengthen.use:
     default: true

@@ -1,0 +1,44 @@
+name: EmakiSkills
+main: emaki.jiuwu.craft.skills.EmakiSkillsPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    MythicMobs:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiAttribute:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    AuraSkills:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    MythicLib:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    MMOCore:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakiskills.use:
+    default: true
+  emakiskills.reload:
+    default: op
+  emakiskills.admin:
+    default: op
+  emakiskills.debug:
+    default: op

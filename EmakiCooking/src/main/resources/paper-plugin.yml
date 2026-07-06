@@ -1,23 +1,46 @@
 name: EmakiCooking
 main: emaki.jiuwu.craft.cooking.EmakiCookingPlugin
 version: ${project.version}
-api-version: "1.21"
+api-version: "1.21.8"
 folia-supported: true
-depend:
-  - EmakiCoreLib
-softdepend:
-  - PlaceholderAPI
-  - CraftEngine
-  - ItemsAdder
-  - Nexo
-  - Oraxen
-  - PacketEvents
-  - MMOItems
-  - NeigeItems
-commands:
-  ecooking:
-    aliases: [ec]
-    permission: emakicooking.use
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    CraftEngine:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    ItemsAdder:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    Nexo:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    Oraxen:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PacketEvents:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    MMOItems:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    NeigeItems:
+      load: BEFORE
+      required: false
+      join-classpath: true
 permissions:
   emakicooking.use:
     default: true

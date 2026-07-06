@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-cooking</artifactId>
-    <version>3.4.3</version>
+    <version>3.4.4</version>
     <name>EmakiCooking</name>
     <packaging>jar</packaging>
 
@@ -104,14 +104,14 @@
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>
-                    <exclude>plugin.yml</exclude>
+                    <exclude>paper-plugin.yml</exclude>
                 </excludes>
             </resource>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>plugin.yml</include>
+                    <include>paper-plugin.yml</include>
                 </includes>
             </resource>
         </resources>
