@@ -110,20 +110,18 @@ final class LedgerNameComposer {
     }
 
     /**
-     * Writes the composed name back to the item, preferring component injection
-     * (which preserves translation keys) and falling back to the legacy custom
-     * name path when component injection is unavailable.
+     * Writes the composed name back through Paper's ItemMeta component API so
+     * Adventure components and translation keys survive without SNBT parsing.
      */
     static void writeName(ItemStack itemStack, ItemMeta itemMeta, Component name) {
-        Component effective = normalize(name);
-        if (SpigotItemComponentNameWriter.writeCustomName(itemStack, effective)) {
+        if (itemStack == null || itemStack.getType().isAir()) {
             return;
         }
         ItemMeta targetMeta = itemMeta != null ? itemMeta : itemStack.getItemMeta();
         if (targetMeta == null) {
             return;
         }
-        ItemTextBridge.customName(targetMeta, effective);
+        ItemTextBridge.customName(targetMeta, normalize(name));
         itemStack.setItemMeta(targetMeta);
     }
 

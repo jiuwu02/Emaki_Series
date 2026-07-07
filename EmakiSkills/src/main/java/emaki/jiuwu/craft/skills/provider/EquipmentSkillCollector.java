@@ -17,6 +17,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSourceType;
@@ -101,7 +102,7 @@ public final class EquipmentSkillCollector {
         if (meta == null || !meta.hasLore()) {
             return;
         }
-        List<String> lore = meta.getLore();
+        List<String> lore = ItemTextBridge.loreLines(meta);
         if (lore == null || lore.isEmpty() || definitions == null || definitions.isEmpty()) {
             return;
         }

@@ -13,6 +13,7 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -141,15 +142,23 @@ final class StrengthenCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
-        plugin.reloadPluginStateAsync(true).thenRun(() -> {
+        plugin.reloadPluginStateAsync(true).thenRun(() -> runForSender(sender, () -> {
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "recipes", plugin.recipeLoader().all().size(),
                     "materials", plugin.recipeLoader().materialCatalog().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
-        });
+        }));
         return true;
+    }
+
+    private void runForSender(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player) {
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            return;
+        }
+        FoliaSchedulerAdapter.runTask(plugin, task);
     }
 
     private boolean handleInspect(CommandSender sender, String[] args) {

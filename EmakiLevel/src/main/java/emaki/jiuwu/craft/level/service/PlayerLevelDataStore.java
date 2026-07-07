@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -47,8 +46,7 @@ public final class PlayerLevelDataStore {
             return existing;
         }
         Player player = Bukkit.getPlayer(uuid);
-        OfflinePlayer offline = Bukkit.getOfflinePlayer(uuid);
-        return load(uuid, player != null ? player.getName() : offline.getName(), types);
+        return load(uuid, player != null ? player.getName() : uuid.toString(), types);
     }
 
     public PlayerLevelData cached(UUID uuid) {

@@ -90,8 +90,12 @@ public final class FoliaSchedulerAdapter {
     }
 
     private static SchedulerCompat resolveCompat(Server server) {
-        SchedulerCompat foliaCompat = FoliaSchedulerCompat.createIfSupported(server, isFoliaPlatform(server));
-        return foliaCompat != null ? foliaCompat : new BukkitSchedulerCompat();
+        try {
+            SchedulerCompat foliaCompat = FoliaSchedulerCompat.createIfSupported(server, isFoliaPlatform(server));
+            return foliaCompat != null ? foliaCompat : new BukkitSchedulerCompat();
+        } catch (LinkageError ignored) {
+            return new BukkitSchedulerCompat();
+        }
     }
 
     private static boolean isFoliaPlatform(Server server) {

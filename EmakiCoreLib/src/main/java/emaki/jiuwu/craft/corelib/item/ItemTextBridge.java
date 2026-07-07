@@ -28,16 +28,21 @@ public final class ItemTextBridge {
         if (!hasCustomName(itemMeta)) {
             return null;
         }
-        return itemMeta.hasDisplayName()
-                ? MiniMessages.legacyRead(itemMeta.getDisplayName())
-                : MiniMessages.legacyRead(itemMeta.getItemName());
+        Component displayName = itemMeta.displayName();
+        if (displayName != null) {
+            return displayName;
+        }
+        return itemMeta.itemName();
     }
 
     public static void customName(ItemMeta itemMeta, Component name) {
         if (itemMeta == null) {
             return;
         }
-        itemMeta.setDisplayName(name == null ? null : MiniMessages.legacy(name));
+        itemMeta.displayName(name);
+        if (name == null) {
+            itemMeta.itemName(null);
+        }
     }
 
     public static void customNameText(ItemMeta itemMeta, String name) {
@@ -51,30 +56,18 @@ public final class ItemTextBridge {
         if (itemMeta == null || !itemMeta.hasLore()) {
             return null;
         }
-        List<String> rawLore = itemMeta.getLore();
-        if (rawLore == null || rawLore.isEmpty()) {
+        List<Component> lore = itemMeta.lore();
+        if (lore == null || lore.isEmpty()) {
             return null;
         }
-        List<Component> lore = new ArrayList<>(rawLore.size());
-        for (String line : rawLore) {
-            lore.add(MiniMessages.legacyRead(line));
-        }
-        return lore;
+        return new ArrayList<>(lore);
     }
 
     public static void lore(ItemMeta itemMeta, List<Component> lore) {
         if (itemMeta == null) {
             return;
         }
-        if (lore == null || lore.isEmpty()) {
-            itemMeta.setLore(null);
-            return;
-        }
-        List<String> lines = new ArrayList<>(lore.size());
-        for (Component line : lore) {
-            lines.add(MiniMessages.legacy(line));
-        }
-        itemMeta.setLore(lines);
+        itemMeta.lore(lore == null || lore.isEmpty() ? null : new ArrayList<>(lore));
     }
 
     public static List<String> loreLines(ItemMeta itemMeta) {

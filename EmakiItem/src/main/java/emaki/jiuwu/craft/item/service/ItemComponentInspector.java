@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import io.papermc.paper.datacomponent.DataComponentType;
+
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -30,7 +32,9 @@ public final class ItemComponentInspector {
     }
 
     public Map<String, ComponentEntry> components(ItemStack itemStack) {
-        return parse(raw(itemStack));
+        Map<String, ComponentEntry> result = parse(raw(itemStack));
+        paperDataComponents(itemStack).forEach((id, entry) -> result.putIfAbsent(id, entry));
+        return result;
     }
 
     public List<String> ids(ItemStack itemStack) {
@@ -218,6 +222,43 @@ public final class ItemComponentInspector {
             return null;
         }
         return itemStack.getItemMeta();
+    }
+
+    private Map<String, ComponentEntry> paperDataComponents(ItemStack itemStack) {
+        Map<String, ComponentEntry> result = new LinkedHashMap<>();
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return result;
+        }
+        try {
+            List<DataComponentType> types = new ArrayList<>(itemStack.getDataTypes());
+            types.sort(java.util.Comparator.comparing(type -> type.getKey().toString()));
+            for (DataComponentType type : types) {
+                if (type == null) {
+                    continue;
+                }
+                String id = normalizeComponentId(type.getKey().toString());
+                if (Texts.isBlank(id)) {
+                    continue;
+                }
+                boolean removed = !itemStack.hasData(type);
+                result.put(id, new ComponentEntry(id, removed ? "" : paperDataValue(itemStack, type), removed));
+            }
+        } catch (RuntimeException | LinkageError _) {
+            // Keep legacy getAsComponentString diagnostics as the stable fallback.
+        }
+        return result;
+    }
+
+    private String paperDataValue(ItemStack itemStack, DataComponentType type) {
+        try {
+            if (type instanceof DataComponentType.Valued<?> valued) {
+                Object value = itemStack.getData(valued);
+                return value == null ? "" : String.valueOf(value);
+            }
+        } catch (RuntimeException | LinkageError _) {
+            return "";
+        }
+        return "";
     }
 
     private static List<String> splitTopLevel(String text, char delimiter) {

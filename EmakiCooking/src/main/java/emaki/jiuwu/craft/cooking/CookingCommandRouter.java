@@ -11,6 +11,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+
 final class CookingCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_USE = CookingPermissions.USE;
@@ -111,14 +113,22 @@ final class CookingCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
-        plugin.reloadPluginStateAsync().thenRun(() -> {
+        plugin.reloadPluginStateAsync().thenRun(() -> runForSender(sender, () -> {
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "recipes", totalRecipeCount(),
                     "resources", 1
             )));
-        });
+        }));
         return true;
+    }
+
+    private void runForSender(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player) {
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            return;
+        }
+        FoliaSchedulerAdapter.runTask(plugin, task);
     }
 
     private boolean handleInspect(CommandSender sender, String[] args) {

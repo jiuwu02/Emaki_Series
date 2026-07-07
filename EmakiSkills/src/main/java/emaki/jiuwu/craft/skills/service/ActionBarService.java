@@ -78,12 +78,14 @@ public final class ActionBarService {
 
     public void refreshAll() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            try {
-                refreshPlayer(player);
-            } catch (Exception exception) {
-                plugin.getLogger().warning("[ActionBar] Failed to refresh for "
-                        + player.getName() + ": " + exception.getMessage());
-            }
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                try {
+                    refreshPlayer(player);
+                } catch (Exception exception) {
+                    plugin.getLogger().warning("[ActionBar] Failed to refresh for "
+                            + player.getName() + ": " + exception.getMessage());
+                }
+            });
         }
     }
 

@@ -206,17 +206,22 @@ public final class PassiveTriggerSource {
             }
             lastTimerDispatchAt = now;
             for (Player player : plugin.getServer().getOnlinePlayers()) {
-                dispatcher.dispatch(new TriggerInvocation(
-                        player,
-                        "timer",
-                        null,
-                        player.isSneaking(),
-                        false,
-                        now,
-                        null,
-                        player.getLocation(),
-                        null
-                ));
+                FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                    if (!player.isOnline()) {
+                        return;
+                    }
+                    dispatcher.dispatch(new TriggerInvocation(
+                            player,
+                            "timer",
+                            null,
+                            player.isSneaking(),
+                            false,
+                            now,
+                            null,
+                            player.getLocation(),
+                            null
+                    ));
+                });
             }
         }, 1L, 1L);
     }

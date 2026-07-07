@@ -7,7 +7,6 @@ import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -244,11 +243,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
 
         private Player resolveOnline(UUID player) {
-            if (player == null) {
-                return null;
-            }
-            OfflinePlayer offline = Bukkit.getOfflinePlayer(player);
-            return offline.getPlayer();
+            return player == null ? null : Bukkit.getPlayer(player);
         }
     }
 

@@ -161,7 +161,7 @@ public final class EmakiItemFactory {
             ItemTextBridge.customName(itemMeta, MiniMessages.parse(displayName));
         }
         if (Texts.isNotBlank(definition.itemName())) {
-            itemMeta.setItemName(MiniMessages.serialize(MiniMessages.parse(ExpressionEngine.evaluateStringConfig(definition.itemName(), variables))));
+            itemMeta.itemName(MiniMessages.parse(ExpressionEngine.evaluateStringConfig(definition.itemName(), variables)));
         }
         List<String> lore = ExpressionEngine.evaluateStringLinesConfig(definition.lore(), variables);
         if (!lore.isEmpty()) {

@@ -11,6 +11,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+
 final class ForgeCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_ROOT = "emakiforge";
@@ -104,14 +106,22 @@ final class ForgeCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
-        plugin.reloadPluginStateAsync(true).thenRun(() -> {
+        plugin.reloadPluginStateAsync(true).thenRun(() -> runForSender(sender, () -> {
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "recipes", plugin.recipeLoader().all().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
-        });
+        }));
         return true;
+    }
+
+    private void runForSender(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player) {
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            return;
+        }
+        FoliaSchedulerAdapter.runTask(plugin, task);
     }
 
     private boolean handleList(CommandSender sender, String[] args) {

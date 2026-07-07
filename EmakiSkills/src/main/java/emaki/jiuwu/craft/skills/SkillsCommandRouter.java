@@ -12,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -231,21 +232,29 @@ final class SkillsCommandRouter implements TabExecutor {
         plugin.messageService().send(sender, "general.reloading");
         plugin.reloadPluginStateAsync(true, progress -> {
             if (progress != null && !progress.isBlank()) {
-                plugin.messageService().sendRaw(sender, progress);
+                runForSender(sender, () -> plugin.messageService().sendRaw(sender, progress));
             }
-        }).thenRun(() -> {
+        }).thenRun(() -> runForSender(sender, () -> {
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "skills", plugin.skillDefinitionLoader().all().size(),
                     "resources", plugin.localResourceDefinitionLoader().all().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
-        }).exceptionally(throwable -> {
-            plugin.messageService().send(sender, "general.reload_failed");
+        })).exceptionally(throwable -> {
+            runForSender(sender, () -> plugin.messageService().send(sender, "general.reload_failed"));
             plugin.getLogger().warning("[Reload] Async reload failed: " + throwable.getMessage());
             return null;
         });
         return true;
+    }
+
+    private void runForSender(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player) {
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            return;
+        }
+        FoliaSchedulerAdapter.runTask(plugin, task);
     }
 
     private boolean handleCastMode(CommandSender sender, String[] args) {

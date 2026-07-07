@@ -12,6 +12,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -146,17 +147,15 @@ public final class GuiService implements Listener, GuiSessionRegistry {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof GuiSession session)) {
-            return;
-        }
-        if (!isManagedSession(session) || !isBukkitBacked(session)) {
+        GuiSession session = resolveSession(event.getWhoClicked().getUniqueId(), event.getView().getTopInventory());
+        if (session == null || !isBukkitBacked(session)) {
             return;
         }
         if (event.getClickedInventory() == null) {
             return;
         }
         GuiClickContext click = new BukkitGuiClickContext(event);
-        if (event.getClickedInventory().equals(event.getView().getTopInventory())) {
+        if (event.getClickedInventory() == session.getInventory()) {
             event.setCancelled(true);
             GuiTemplate.ResolvedSlot slot = session.template().resolvedSlotAt(event.getRawSlot());
             playClickSound(session, slot, GuiClickType.from(event));
@@ -168,10 +167,8 @@ public final class GuiService implements Listener, GuiSessionRegistry {
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof GuiSession session)) {
-            return;
-        }
-        if (!isManagedSession(session) || !isBukkitBacked(session)) {
+        GuiSession session = resolveSession(event.getWhoClicked().getUniqueId(), event.getView().getTopInventory());
+        if (session == null || !isBukkitBacked(session)) {
             return;
         }
         event.setCancelled(true);
@@ -180,10 +177,8 @@ public final class GuiService implements Listener, GuiSessionRegistry {
 
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (!(event.getInventory().getHolder() instanceof GuiSession session)) {
-            return;
-        }
-        if (!isManagedSession(session) || !isBukkitBacked(session)) {
+        GuiSession session = resolveSession(event.getPlayer().getUniqueId(), event.getInventory());
+        if (session == null || !isBukkitBacked(session)) {
             return;
         }
         sessions.remove(event.getPlayer().getUniqueId(), session);
@@ -202,6 +197,22 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         if (event.getPlayer() != null) {
             sessions.remove(event.getPlayer().getUniqueId());
         }
+    }
+
+    private GuiSession resolveSession(UUID viewerId, Inventory inventory) {
+        GuiSession session = viewerId == null ? null : sessions.get(viewerId);
+        if (matchesInventory(session, inventory) && isManagedSession(session)) {
+            return session;
+        }
+        if (inventory != null && inventory.getHolder() instanceof GuiSession holderSession
+                && matchesInventory(holderSession, inventory) && isManagedSession(holderSession)) {
+            return holderSession;
+        }
+        return null;
+    }
+
+    private boolean matchesInventory(GuiSession session, Inventory inventory) {
+        return session != null && inventory != null && session.getInventory() == inventory;
     }
 
     private boolean isManagedSession(GuiSession session) {

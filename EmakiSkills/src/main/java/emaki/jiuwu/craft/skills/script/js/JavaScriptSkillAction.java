@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
 import emaki.jiuwu.craft.skills.api.SkillActionExecutionMode;
 import emaki.jiuwu.craft.skills.api.SkillActionParameter;
@@ -124,7 +125,17 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
                 false
         )));
         if (executionMode == SkillActionExecutionMode.ASYNC_IO) {
-            return CompletableFuture.supplyAsync(task);
+            CompletableFuture<SkillActionResult> future = new CompletableFuture<>();
+            if (FoliaSchedulerAdapter.runAsync(plugin, () -> {
+                try {
+                    future.complete(task.get());
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            }) == null) {
+                future.completeExceptionally(new IllegalStateException("JavaScript skill action async scheduler is unavailable."));
+            }
+            return future;
         }
         return CompletableFuture.completedFuture(task.get());
     }

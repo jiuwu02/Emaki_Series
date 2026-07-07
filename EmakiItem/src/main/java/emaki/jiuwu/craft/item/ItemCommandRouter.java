@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -459,11 +460,19 @@ final class ItemCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
-        plugin.reloadPluginStateAsync().thenRun(() -> {
+        plugin.reloadPluginStateAsync().thenRun(() -> runForSender(sender, () -> {
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of("items", plugin.itemLoader().all().size())));
-        });
+        }));
         return true;
+    }
+
+    private void runForSender(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player) {
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            return;
+        }
+        FoliaSchedulerAdapter.runTask(plugin, task);
     }
 
     private void completePlayers(List<String> result, String prefix) {

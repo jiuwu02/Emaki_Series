@@ -35,7 +35,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionRegistry;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.SoundParser;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 
 /**
  * Packet-driven virtual GUI backend.
@@ -189,7 +188,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         WrapperPlayServerOpenWindow open = new WrapperPlayServerOpenWindow(
                 window.windowId,
                 type,
-                MiniMessages.parse(window.session.title())
+                window.session.titleComponent()
         );
         PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, open);
     }
