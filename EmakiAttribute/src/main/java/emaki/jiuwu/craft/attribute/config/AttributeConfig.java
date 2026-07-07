@@ -8,6 +8,7 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record AttributeConfig(String language,
+        boolean releaseDefaultData,
         boolean hardLockDamage,
         String defaultDamageType,
         boolean vanillaEventDamageEnabled,
@@ -21,7 +22,7 @@ public record AttributeConfig(String language,
         List<DamageCauseRule> allowedDamageCauses) {
 
     public static AttributeConfig defaults() {
-        return new AttributeConfig("zh_CN", true, "physical", true, "physical", 20, 1, defaultProfileDefaults(), true, 0.4D, true, List.of());
+        return new AttributeConfig("zh_CN", true, true, "physical", true, "physical", 20, 1, defaultProfileDefaults(), true, 0.4D, true, List.of());
     }
 
     public static AttributeConfig fromConfig(YamlSection configuration) {
@@ -30,6 +31,7 @@ public record AttributeConfig(String language,
         }
         AttributeConfig defaults = defaults();
         String language = ConfigNodes.string(configuration, "language", "zh_CN");
+        boolean releaseDefaultData = Boolean.TRUE.equals(configuration.getBoolean("release_default_data", true));
         boolean hardLockDamage = Boolean.TRUE.equals(configuration.getBoolean("hard_lock_damage", true));
         String defaultDamageType = ConfigNodes.string(configuration, "default_damage_type", "physical");
         boolean vanillaEventDamageEnabled = Boolean.TRUE.equals(configuration.getBoolean("vanilla_event_damage.enabled", true));
@@ -53,6 +55,7 @@ public record AttributeConfig(String language,
         }
         return new AttributeConfig(
                 language,
+                releaseDefaultData,
                 hardLockDamage,
                 defaultDamageType,
                 vanillaEventDamageEnabled,

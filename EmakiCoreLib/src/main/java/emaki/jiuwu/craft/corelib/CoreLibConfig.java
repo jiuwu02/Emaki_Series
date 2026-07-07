@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record CoreLibConfig(
         String language,
+        boolean releaseDefaultData,
         Map<String, List<String>> actionTemplates,
         LoopConfig loopConfig,
         ScriptConfig scriptConfig,
@@ -19,7 +20,7 @@ public record CoreLibConfig(
 ) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig("zh_CN", Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
+        return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
                 WebConsoleConfig.defaults(), GuiConfig.defaults(), GameplayEventConfig.defaults());
     }
 
@@ -38,6 +39,7 @@ public record CoreLibConfig(
         }
         return new CoreLibConfig(
                 language,
+                configuration.getBoolean("release_default_data", defaults().releaseDefaultData()),
                 Map.copyOf(templates),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 ScriptConfig.fromConfig(configuration.getSection("script")),

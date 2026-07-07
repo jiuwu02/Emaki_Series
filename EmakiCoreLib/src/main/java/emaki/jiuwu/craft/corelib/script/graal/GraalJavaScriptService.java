@@ -39,6 +39,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
     private final ScriptRepository repository;
     private final java.util.function.Supplier<ActionExecutor> actionExecutorSupplier;
     private final ScriptModuleRegistry moduleRegistry;
+    private final boolean releaseDefaultScripts;
     private final Map<String, ScriptSource> sourceCache = new ConcurrentHashMap<>();
     private final Engine engine;
     private boolean closed;
@@ -55,11 +56,21 @@ public final class GraalJavaScriptService implements JavaScriptService {
             Path scriptRoot,
             java.util.function.Supplier<ActionExecutor> actionExecutorSupplier,
             ScriptModuleRegistry moduleRegistry) {
+        this(plugin, config, scriptRoot, actionExecutorSupplier, moduleRegistry, true);
+    }
+
+    public GraalJavaScriptService(Plugin plugin,
+            ScriptConfig config,
+            Path scriptRoot,
+            java.util.function.Supplier<ActionExecutor> actionExecutorSupplier,
+            ScriptModuleRegistry moduleRegistry,
+            boolean releaseDefaultScripts) {
         this.plugin = plugin;
         this.config = config == null ? ScriptConfig.defaults() : config;
         this.repository = new ScriptRepository(scriptRoot, this.config.security());
         this.actionExecutorSupplier = actionExecutorSupplier;
         this.moduleRegistry = moduleRegistry == null ? new ScriptModuleRegistry() : moduleRegistry;
+        this.releaseDefaultScripts = releaseDefaultScripts;
         this.engine = Engine.newBuilder()
                 .option("engine.WarnInterpreterOnly", "false")
                 .build();
@@ -139,7 +150,9 @@ public final class GraalJavaScriptService implements JavaScriptService {
     public ScriptReloadResult reload() {
         try {
             repository.ensureDirectories(config.paths().createDirectories());
-            repository.releaseDefaultScripts(plugin);
+            if (releaseDefaultScripts) {
+                repository.releaseDefaultScripts(plugin);
+            }
             sourceCache.clear();
             List<String> scripts = repository.scan();
             return ScriptReloadResult.success(scripts);

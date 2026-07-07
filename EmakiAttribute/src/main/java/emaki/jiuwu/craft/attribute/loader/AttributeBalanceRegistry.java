@@ -37,16 +37,18 @@ public final class AttributeBalanceRegistry {
         File file = plugin.dataPath("attribute_balance.yml").toFile();
         MessageService messages = plugin.messageService();
         try {
-            YamlFiles.copyResourceIfMissing(plugin, "attribute_balance.yml", file);
-            configuration = YamlFiles.load(file);
+            if (plugin.configModel().releaseDefaultData()) {
+                YamlFiles.copyResourceIfMissing(plugin, "attribute_balance.yml", file);
+            }
+            configuration = file.isFile() ? YamlFiles.load(file) : new emaki.jiuwu.craft.corelib.yaml.MapYamlSection();
         } catch (IOException exception) {
             messages.warning("loader.bundled_resource_sync_failed", Map.of(
                     "path", file.getPath(),
                     "error", String.valueOf(exception.getMessage())
             ));
-            configuration = YamlFiles.load(file);
+            configuration = file.isFile() ? YamlFiles.load(file) : new emaki.jiuwu.craft.corelib.yaml.MapYamlSection();
         }
-        if (!file.exists()) {
+        if (plugin.configModel().releaseDefaultData() && !file.exists()) {
             messages.warning("loader.bundled_resource_missing", Map.of(
                     "type", typeName(),
                     "path", file.getPath(),

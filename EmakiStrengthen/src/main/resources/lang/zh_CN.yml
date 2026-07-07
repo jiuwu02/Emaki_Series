@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.4.3"
+version: "4.4.4"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiStrengthen</gradient> ]</gray>"
@@ -65,6 +65,7 @@ console:
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
+  bootstrap_skip: "<yellow>release_default_data=false，已跳过默认数据生成。</yellow>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"

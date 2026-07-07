@@ -350,7 +350,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     configModel.scriptConfig(),
                     dataPath(configModel.scriptConfig().paths().root()),
                     () -> actionExecutor,
-                    scriptModuleRegistry
+                    scriptModuleRegistry,
+                    configModel.releaseDefaultData()
             );
             messageService.info("console.script_engine_ready");
             messageService.info("console.scripts_loaded", Map.of("count", String.valueOf(javaScriptService.loadedScripts().size())));
@@ -432,6 +433,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     public void releaseBundledScripts(JavaPlugin sourcePlugin, String directory, boolean skipWhenAnyFileExists, java.util.List<String> names) {
+        releaseBundledScripts(sourcePlugin, directory, skipWhenAnyFileExists, names, releaseDefaultDataEnabled(sourcePlugin));
+    }
+
+    public void releaseBundledScripts(JavaPlugin sourcePlugin,
+            String directory,
+            boolean skipWhenAnyFileExists,
+            java.util.List<String> names,
+            boolean releaseDefaultData) {
+        if (!releaseDefaultData) {
+            return;
+        }
         CoreLibConfig effectiveConfig = configModel == null ? CoreLibConfig.defaults() : configModel;
         var scriptConfig = effectiveConfig.scriptConfig() == null
                 ? emaki.jiuwu.craft.corelib.script.ScriptConfig.defaults()
@@ -440,6 +452,24 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 dataPath(scriptConfig.paths().root()),
                 scriptConfig.security()
         ).releaseScriptGroup(sourcePlugin, directory, skipWhenAnyFileExists, names);
+    }
+
+    private boolean releaseDefaultDataEnabled(JavaPlugin sourcePlugin) {
+        if (sourcePlugin == null) {
+            return true;
+        }
+        if (sourcePlugin == this) {
+            return configModel == null || configModel.releaseDefaultData();
+        }
+        File file = new File(sourcePlugin.getDataFolder(), "config.yml");
+        if (!file.isFile()) {
+            return true;
+        }
+        try {
+            return YamlFiles.load(file).getBoolean("release_default_data", true);
+        } catch (Exception _) {
+            return true;
+        }
     }
 
     private void registerCommandHandler() {

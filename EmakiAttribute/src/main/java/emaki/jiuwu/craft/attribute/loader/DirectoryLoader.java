@@ -50,7 +50,9 @@ public abstract class DirectoryLoader<T> {
                         )
                 );
             }
-            seedBundledResources(directory);
+            if (plugin.configModel().releaseDefaultData()) {
+                seedBundledResources(directory);
+            }
             File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
             int total = files == null ? 0 : files.length;
             notifyProgress(progressCallback, 0, total, "", total == 0);

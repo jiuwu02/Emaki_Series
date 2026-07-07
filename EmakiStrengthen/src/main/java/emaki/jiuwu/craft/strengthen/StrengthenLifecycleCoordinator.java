@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.strengthen;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +21,6 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
@@ -41,6 +39,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiStrengthen</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml");
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
@@ -63,10 +63,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 plugin,
                 messageService,
                 VERSIONED_FILES,
-                staticFiles(plugin),
-                List.of(),
+                STATIC_FILES,
+                DEFAULT_DATA_FILES,
                 List.of(),
                 new BootstrapHooks() {
+                    @Override
+                    public boolean shouldInstallDefaultData() {
+                        return plugin.appConfig().releaseDefaultData();
+                    }
                 }
         );
         GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
@@ -205,6 +209,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
                 configuration.getString("version", defaults.configVersion()),
+                configuration.getBoolean("release_default_data", defaults.releaseDefaultData()),
                 configuration.getInt("local_broadcast_radius", defaults.localBroadcastRadius()),
                 parseIntegerList(configuration.getSection("broadcast.local_stars"), configuration.get("broadcast.local_stars"), defaults.localBroadcastStars()),
                 parseIntegerList(configuration.getSection("broadcast.global_stars"), configuration.get("broadcast.global_stars"), defaults.globalBroadcastStars()),
@@ -247,13 +252,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return java.util.List.copyOf(fallback);
         }
         return java.util.List.copyOf(values);
-    }
-
-    private List<String> staticFiles(EmakiStrengthenPlugin plugin) {
-        List<String> files = new ArrayList<>();
-        files.addAll(YamlFiles.listResourcePaths(plugin, "gui"));
-        files.addAll(YamlFiles.listResourcePaths(plugin, "recipes"));
-        return List.copyOf(files);
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {
