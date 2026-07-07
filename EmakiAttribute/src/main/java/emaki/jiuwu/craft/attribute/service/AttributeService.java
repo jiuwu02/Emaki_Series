@@ -106,7 +106,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     @Override
     protected void updateConfig(AttributeConfig config) {
-        this.config = config;
+        AttributeConfig nextConfig = config == null ? AttributeConfig.defaults() : config;
+        boolean resetHealthScaling = this.config != null
+                && this.config.healthDisplayScalingEnabled()
+                && !nextConfig.healthDisplayScalingEnabled();
+        this.config = nextConfig;
+        if (resetHealthScaling && resourceManagementService != null) {
+            resourceManagementService.resetHealthDisplayScaling();
+        }
     }
 
     @Override
@@ -208,6 +215,9 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     }
 
     public void shutdown() {
+        if (config.healthDisplayScalingEnabled()) {
+            resourceManagementService.resetHealthDisplayScaling();
+        }
         temporaryAttributeService.close();
     }
 

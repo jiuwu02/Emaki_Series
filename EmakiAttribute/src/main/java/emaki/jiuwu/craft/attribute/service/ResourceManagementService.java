@@ -30,6 +30,7 @@ final class ResourceManagementService {
 
     private final AttributeService service;
     private final Set<UUID> pendingEquipmentSyncs = ConcurrentHashMap.newKeySet();
+    private volatile boolean healthDisplayScalingWarningLogged;
 
     ResourceManagementService(AttributeService service) {
         this.service = service;
@@ -299,6 +300,45 @@ final class ResourceManagementService {
             maxHealthAttribute.setBaseValue(maxHealth);
         }
         player.setHealth(Math.min(maxHealth, bukkitHealth));
+        syncHealthDisplayScaling(player);
+    }
+
+    void resetHealthDisplayScaling() {
+        healthDisplayScalingWarningLogged = false;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            resetHealthDisplayScaling(player);
+        }
+    }
+
+    private void syncHealthDisplayScaling(Player player) {
+        if (player == null || !service.config().healthDisplayScalingEnabled()) {
+            return;
+        }
+        double target = service.config().healthDisplayScalingTarget();
+        if (!Double.isFinite(target) || target <= 0D) {
+            resetHealthDisplayScaling(player);
+            return;
+        }
+        try {
+            player.setHealthScale(target);
+            healthDisplayScalingWarningLogged = false;
+        } catch (IllegalArgumentException exception) {
+            resetHealthDisplayScaling(player);
+            if (!healthDisplayScalingWarningLogged) {
+                healthDisplayScalingWarningLogged = true;
+                service.plugin().getLogger().warning("Invalid health_display_scaling.target '" + target + "': " + exception.getMessage());
+            }
+        }
+    }
+
+    private void resetHealthDisplayScaling(Player player) {
+        if (player == null) {
+            return;
+        }
+        try {
+            player.setHealthScaled(false);
+        } catch (IllegalArgumentException ignored) {
+        }
     }
 
     private void schedulePlayer(Player player, Consumer<Player> action) {

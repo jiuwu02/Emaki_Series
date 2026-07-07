@@ -8,7 +8,7 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.4.9"
+version: "4.4.10"
 
 # 语言文件 ID
 language: zh_CN
@@ -49,6 +49,13 @@ regen_interval_ticks: 20
 
 # 属性同步到 Bukkit 的延迟，单位 tick
 sync_delay_ticks: 1
+
+# 客户端血量显示压缩。
+# enabled: true 时仅缩放玩家客户端血量条显示，不改变真实最大生命值、不改变实际生命值与伤害结算。
+# target: 客户端显示目标血量；20 表示最多显示为 20 血（即一排红心）。
+health_display_scaling:
+  enabled: false
+  target: 20.0
 
 # 默认属性与资源基础值
 default_profile:

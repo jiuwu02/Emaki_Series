@@ -16,6 +16,8 @@ public record AttributeConfig(String language,
         String vanillaEventDamageType,
         int regenIntervalTicks,
         int syncDelayTicks,
+        boolean healthDisplayScalingEnabled,
+        double healthDisplayScalingTarget,
         DefaultProfile defaultProfile,
         boolean syntheticHitKnockback,
         double syntheticHitKnockbackStrength,
@@ -23,7 +25,7 @@ public record AttributeConfig(String language,
         List<DamageCauseRule> allowedDamageCauses) {
 
     public static AttributeConfig defaults() {
-        return new AttributeConfig("zh_CN", true, true, "physical", "projectile", true, "physical", 20, 1, defaultProfileDefaults(), true, 0.4D, true, List.of());
+        return new AttributeConfig("zh_CN", true, true, "physical", "projectile", true, "physical", 20, 1, false, 20D, defaultProfileDefaults(), true, 0.4D, true, List.of());
     }
 
     public static AttributeConfig fromConfig(YamlSection configuration) {
@@ -40,6 +42,11 @@ public record AttributeConfig(String language,
         String vanillaEventDamageType = ConfigNodes.string(configuration, "vanilla_event_damage.damage_type", defaultDamageType);
         int regenIntervalTicks = Math.max(1, configuration.getInt("regen_interval_ticks", 20));
         int syncDelayTicks = Math.max(0, configuration.getInt("sync_delay_ticks", 1));
+        boolean healthDisplayScalingEnabled = Boolean.TRUE.equals(configuration.getBoolean("health_display_scaling.enabled", false));
+        double healthDisplayScalingTarget = configuration.getDouble("health_display_scaling.target", 20D);
+        if (!Double.isFinite(healthDisplayScalingTarget) || healthDisplayScalingTarget <= 0D) {
+            healthDisplayScalingTarget = 20D;
+        }
         DefaultProfile defaultProfile = DefaultProfile.fromMap(configuration.getSection("default_profile"));
         if (defaultProfile == null) {
             defaultProfile = defaults.defaultProfile();
@@ -65,6 +72,8 @@ public record AttributeConfig(String language,
                 vanillaEventDamageType,
                 regenIntervalTicks,
                 syncDelayTicks,
+                healthDisplayScalingEnabled,
+                healthDisplayScalingTarget,
                 defaultProfile,
                 syntheticHitKnockback,
                 syntheticHitKnockbackStrength,
