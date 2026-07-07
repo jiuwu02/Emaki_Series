@@ -176,6 +176,8 @@ condition:
 # materials.amount: 每次修复消耗的材料数量
 # materials.restore: 每次修复恢复的耐久值；支持固定值或百分比，例如 250 / 25%
 # economy: 经济修复配置，货币接口复用 CoreLib EconomyManager
+# economy.currencies.currency_id: 货币 ID；留空使用默认货币
+# economy.currencies.cost_formula: 费用公式，可使用 missing_durability 等变量
 # disabled_display: 物品损坏时的外观变化
 # on_disabled/on_repaired: 损坏/修复时执行的动作
 repair:
@@ -194,9 +196,9 @@ repair:
     restore: "100%"
     currencies:
       - provider: "vault"
-        currency: "default"
+        currency_id: "default"
         display_name: "金币"
-        formula: "100 + missing_durability * 0.25"
+        cost_formula: "100 + missing_durability * 0.25"
   disabled_display:
     name_prefix: "<dark_gray>[已损坏] </dark_gray>"
     lore_append:

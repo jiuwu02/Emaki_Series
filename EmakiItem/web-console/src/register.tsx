@@ -177,7 +177,7 @@ export function registerEmakiItemWebConsole(): void {
     ['repair.materials', '修复材料', '每种修复材料的物品来源、消耗数量和恢复耐久值。', 'repairMaterials', { wide: true }],
     ['repair.economy.enabled', '启用经济修复', '是否允许通过 CoreLib 经济系统扣款修复。', 'boolean'],
     ['repair.economy.restore', '经济修复耐久', '经济修复恢复的耐久值，支持固定值或百分比。', 'text'],
-    ['repair.economy.currencies', '经济修复货币', '经济修复消耗的货币列表，支持 provider、currency/currency_id、amount/base_cost/formula。', 'json', { wide: true }],
+    ['repair.economy.currencies', '经济修复货币', '经济修复消耗的货币列表，使用 provider、currency_id、amount/base_cost/cost_formula。', 'json', { wide: true }],
     ['repair.disabled_display.name_prefix', '损坏名称前缀', '物品损坏时追加到名称前的 MiniMessage。', 'text'],
     ['repair.disabled_display.lore_append', '损坏 Lore', '物品损坏时追加的 Lore。', 'stringList', { wide: true }],
     ['repair.on_disabled', '损坏动作', '物品进入损坏状态时执行。', 'stringList', { wide: true }],

@@ -252,7 +252,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private void validateConfiguredExternalSources(EmakiForgePlugin plugin) {
         for (var entry : plugin.recipeLoader().all().entrySet()) {
-            validateSource(plugin, entry.getValue().configuredOutputSource(), "recipe:" + entry.getKey() + ".result.output_item");
+            validateSource(plugin, entry.getValue().configuredOutputSource(), "recipe:" + entry.getKey() + ".result.success.outputs[0].item_sources");
         }
         for (Map.Entry<String, GuiTemplate> entry : plugin.guiTemplateLoader().all().entrySet()) {
             for (GuiSlot slot : entry.getValue().slots().values()) {

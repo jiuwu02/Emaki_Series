@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
  * Grants and revokes EmakiCodex advancements for online players by awarding or
  * revoking the single manual {@code codex} criterion. Awarding it completes the
  * advancement, which fires {@code PlayerAdvancementDoneEvent} and runs the node's
- * {@code on_complete} actions.
+ * {@code actions.complete} actions.
  */
 public final class AdvancementService {
 

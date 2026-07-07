@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
  * {@link AdvancementDisplay#setX(float)}/{@link AdvancementDisplay#setY(float)} values of
  * our own advancements as they leave the server, giving servers precise control over layout
  * when PacketEvents is present. It never adds, removes, or completes advancements, so the
- * {@code on_complete} action pipeline and {@code PlayerAdvancementDoneEvent} are unaffected.
+ * {@code actions.complete} action pipeline and {@code PlayerAdvancementDoneEvent} are unaffected.
  *
  * <p>This class references PacketEvents types directly, so it is only ever instantiated by
  * {@link AdvancementPacketGateway} after PacketEvents is confirmed present. When PacketEvents

@@ -12,6 +12,8 @@ import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementFrame;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementTrigger;
+import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -76,24 +78,30 @@ public final class AdvancementPageLoader extends YamlDirectoryLoader<Advancement
         boolean announce = Boolean.TRUE.equals(node.getBoolean("announce", false));
         return new AdvancementDefinition(localId, icon, title, description, frame,
                 x, y, parent, hidden, toast, announce,
-                node.getStringList("on_complete"), parseTriggers(node));
+                parseCompleteActions(node), parseTriggers(node));
+    }
+
+    private List<String> parseCompleteActions(YamlSection node) {
+        if (node == null) {
+            return List.of();
+        }
+        return List.copyOf(node.getStringList("actions.complete"));
     }
 
     private List<AdvancementTrigger> parseTriggers(YamlSection node) {
-        List<Map<?, ?>> raw = node.getMapList("triggers");
-        if (raw == null || raw.isEmpty()) {
+        Object raw = node == null ? null : node.get("triggers.entries");
+        if (raw == null) {
             return List.of();
         }
         List<AdvancementTrigger> triggers = new ArrayList<>();
-        for (Map<?, ?> entry : raw) {
-            if (entry == null) {
-                continue;
-            }
+        for (Object rawEntry : ConfigNodes.asObjectList(raw)) {
+            Map<String, Object> entry = ConfigNodes.entries(rawEntry);
             String event = Texts.toStringSafe(entry.get("event"));
             if (Texts.isBlank(event)) {
                 continue;
             }
-            triggers.add(new AdvancementTrigger(event, Texts.toStringSafe(entry.get("condition"))));
+            ConditionGroup condition = ConditionGroup.fromConfig(entry.get("condition"));
+            triggers.add(new AdvancementTrigger(event, condition));
         }
         return List.copyOf(triggers);
     }

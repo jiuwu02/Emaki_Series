@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 
 /**
- * Runs a node's {@code on_complete} action lines when a player completes one of the
+ * Runs a node's {@code actions.complete} action lines when a player completes one of the
  * EmakiCodex advancements. The whole action pipeline (parsing, placeholders, sync/async
  * scheduling) is delegated to corelib's ActionExecutor.
  */
@@ -35,7 +35,7 @@ public final class AdvancementListener implements Listener {
         if (definition == null) {
             return;
         }
-        List<String> lines = definition.onComplete();
+        List<String> lines = definition.completeActions();
         if (lines.isEmpty()) {
             return;
         }

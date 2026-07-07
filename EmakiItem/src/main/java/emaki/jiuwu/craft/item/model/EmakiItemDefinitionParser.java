@@ -252,8 +252,8 @@ public final class EmakiItemDefinitionParser {
             if (entry == null) {
                 continue;
             }
-            String currencyId = ConfigNodes.string(entry, "currency_id", ConfigNodes.string(entry, "currency", ""));
-            String costFormula = ConfigNodes.string(entry, "cost_formula", ConfigNodes.string(entry, "formula", ""));
+            String currencyId = ConfigNodes.string(entry, "currency_id", "");
+            String costFormula = ConfigNodes.string(entry, "cost_formula", "");
             RepairCurrencyCost currency = new RepairCurrencyCost(
                     ConfigNodes.string(entry, "provider", "auto"),
                     currencyId,

@@ -5,7 +5,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "1.0.13"
+version: "1.0.14"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"

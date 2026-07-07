@@ -7,7 +7,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.13"
+version: "1.0.14"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -37,7 +37,7 @@ advancement:
   packet-coordinates: true
   # 事件触发器：玩家完成配置的游戏事件（且满足条件）时自动授予成就。
   # true=启用；false=关闭后成就只能通过 /codex grant 命令或 codex-grant-advancement 动作手动授予。
-  # 具体在每个成就节点下用 triggers 配置，见 advancements/ 示例文件。
+  # 具体在每个成就节点下用 triggers.entries 配置，见 advancements/ 示例文件。
   triggers-enabled: true
 
 debug: false

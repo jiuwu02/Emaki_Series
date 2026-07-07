@@ -44,6 +44,14 @@ export function registerEmakiForgeWebConsole(): void {
     { path: 'amount', label: '数量', comment: '需要持有的蓝图数量。', type: 'number', defaultValue: 1 }
   ];
 
+  const outputFields = standardMaterialCostFields({
+    omit: ['optional', 'protection'],
+    overrides: {
+      item_sources: { label: '产物来源', comment: '锻造结果主产物的 ItemSource 列表。', defaultValue: ['minecraft-diamond_sword'] },
+      amount: { label: '数量', comment: '产物数量；当前锻造流程使用第一项产物作为主结果物品。', defaultValue: 1 }
+    }
+  });
+
   const failureOutcomeFields = [
     { path: 'type', label: '结果类型', comment: '失败结果类型，例如 return_materials、consume_materials、byproduct。', type: 'enum', options: ['return_materials', 'consume_materials', 'partial_consume', 'fixed_quality', 'byproduct', 'economy_penalty', 'downgrade_quality'], defaultValue: 'return_materials' },
     { path: 'weight', label: '权重', comment: '失败时随机抽取此结果的权重。', type: 'number', defaultValue: 1 },
@@ -122,12 +130,12 @@ export function registerEmakiForgeWebConsole(): void {
     ['quality.guarantee.enabled', '启用配方保底', '是否启用此配方专属保底。', 'boolean'],
     ['quality.guarantee.attempts', '保底次数', '连续未达到最低品质多少次后触发保底。', 'number'],
     ['quality.guarantee.minimum', '保底最低品质', '触发保底时至少获得的品质名称。', 'text'],
-    ['result', '锻造结果', '锻造成功后的产物、结果物品动作和提示动作。', 'object'],
-    ['result.item_sources', '结果物品来源', '锻造成功后产出的 ItemSource 列表。', 'stringList'],
-    ['result.meta_actions', '结果显示动作', '对结果物品名称和 Lore 执行的动作。', 'object'],
-    ['result.meta_actions.name_actions', '结果名称动作', '对结果物品显示名称执行的动作列表。', 'actions'],
-    ['result.meta_actions.lore_actions', '结果 Lore 动作', '对结果物品 Lore 执行的动作列表。', 'actions'],
-    ['result.actions', '结果动作', '锻造成功并生成结果后执行的动作列表。', 'stringList'],
+    ['result', '锻造结果', '锻造完成后的结果分支，结构与 Cooking 配方 result.<branch> 保持一致。', 'object'],
+    ['result.success', '成功结果', '锻造成功后的产物、结果物品动作和提示动作。', 'object'],
+    ['result.success.outputs', '成功产物', '成功结果分支产出的物品列表；Forge 当前使用第一项作为主结果物品。', 'objectList'],
+    ['result.success.name_actions', '结果名称动作', '对结果物品显示名称执行的动作列表。', 'actions'],
+    ['result.success.lore_actions', '结果 Lore 动作', '对结果物品 Lore 执行的动作列表。', 'actions'],
+    ['result.success.actions', '成功动作', '锻造成功并生成结果后执行的动作列表。', 'stringList'],
     ['actions', '流程动作', '锻造 pre、success、failure 三个阶段执行的动作。', 'object'],
     ['actions.pre', '开始前动作', '锻造开始前执行的动作列表。', 'stringList'],
     ['actions.success', '成功动作', '锻造成功后执行的动作列表。', 'stringList'],
@@ -222,6 +230,7 @@ export function registerEmakiForgeWebConsole(): void {
       ], { uniqueBy: 'name' }],
       ['materials', materialFields],
       ['blueprint_requirements', blueprintFields],
+      ['result.success.outputs', outputFields],
       ['failure_outcomes', failureOutcomeFields]
     ]
   });

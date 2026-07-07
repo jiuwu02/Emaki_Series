@@ -12,14 +12,20 @@
 # 未装 PacketEvents 时 x/y 被忽略，位置由客户端按 parent 树自动排布。
 # x/y 都为 0 视为“未设置”，该节点回退自动排布；要用坐标建议整页都配，避免节点重叠。
 #
+# 节点完成动作 actions.complete（可选）：
+# actions:
+#   complete:
+#     - "sendmessage text=<green>达成成就！</green>"
+#
 # ------------------------------------------------------------
-# 事件触发器 triggers（可选）：
-# 在成就节点下写 triggers，玩家完成对应事件且条件满足时自动授予该成就。
+# 事件触发器 triggers.entries（可选）：
+# 在成就节点下写 triggers.entries，玩家完成对应事件且条件满足时自动授予该成就。
 # 需 config.yml 的 advancement.triggers-enabled=true（默认开）。
 # 每个 trigger 含:
 #   event:     事件类型（见下表）
-#   condition: 单行布尔表达式（可省略；省略=只要事件发生就触发）
-#              支持 == != < <= > >= 与 && || !，字符串值建议加引号。
+#   condition: CoreLib 条件组（可省略；省略=只要事件发生就触发）
+#              推荐使用 type + entries，与其他插件的 condition 块保持一致。
+#              entries 内支持 == != < <= > >= 与 && || !，字符串值建议加引号。
 #              变量用 %名称%，会先替换成事件的实际值再求值。
 # 同一节点可写多个 trigger，满足任意一个即授予（“或”关系）。
 #
@@ -61,7 +67,8 @@ advancements:
     toast: false
     announce: false
     hidden: false
-    on_complete: []
+    actions:
+      complete: []
 
   first_step:
     icon: "minecraft-crafting_table"
@@ -76,12 +83,17 @@ advancements:
     announce: false
     hidden: false
     # 完成时执行 corelib action：给玩家发消息
-    on_complete:
-      - "sendmessage text=<green>你迈出了图鉴之路的第一步！</green>"
+    actions:
+      complete:
+        - "sendmessage text=<green>你迈出了图鉴之路的第一步！</green>"
     # 事件触发：合成一个工作台即达成
     triggers:
-      - event: "craft_item"
-        condition: '%result_type% == "CRAFTING_TABLE"'
+      entries:
+        - event: "craft_item"
+          condition:
+            type: "all_of"
+            entries:
+              - '%result_type% == "CRAFTING_TABLE"'
 
   challenge:
     icon: "minecraft-nether_star"
@@ -96,11 +108,15 @@ advancements:
     announce: true
     # 默认可见（未完成也在 GUI 中显示）
     hidden: false
-    on_complete:
-      - "sendmessage text=<gold>恭喜达成终极挑战！</gold>"
+    actions:
+      complete:
+        - "sendmessage text=<gold>恭喜达成终极挑战！</gold>"
     # 事件触发：击杀凋灵或末影龙任意其一即达成
     triggers:
-      - event: "entity_kill"
-        condition: '%entity_type% == "ENDER_DRAGON"'
-      - event: "entity_kill"
-        condition: '%entity_type% == "WITHER"'
+      entries:
+        - event: "entity_kill"
+          condition:
+            type: "any_of"
+            entries:
+              - '%entity_type% == "ENDER_DRAGON"'
+              - '%entity_type% == "WITHER"'

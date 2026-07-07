@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.codex.advancement.trigger;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import emaki.jiuwu.craft.codex.advancement.loader.AdvancementPageLoader;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementTrigger;
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -19,14 +21,14 @@ import emaki.jiuwu.craft.corelib.text.Texts;
  *
  * <p>Given a normalized trigger key and the domain variables produced by a listener, it scans
  * every loaded advancement node for a matching {@link AdvancementTrigger}. When a trigger's
- * condition passes (a blank condition always passes), the owning node's manual {@code codex}
+ * condition group passes (an empty condition always passes), the owning node's manual {@code codex}
  * criterion is awarded through {@link AdvancementService}, which flows into the existing
- * completion pipeline (toast, announce, {@code on_complete} actions).
+ * completion pipeline (toast, announce, {@code actions.complete} actions).
  *
  * <p>Definitions are read live from {@link AdvancementPageLoader} on every fire, so a
  * {@code /codex reload} that reloads the pages takes effect immediately without re-registering
  * listeners. Grants are idempotent: awarding an already-completed criterion is a no-op and does
- * not re-run {@code on_complete}.
+ * not re-run {@code actions.complete}.
  */
 public final class CodexTriggerService {
 
@@ -82,10 +84,25 @@ public final class CodexTriggerService {
         if (!trigger.hasCondition()) {
             return true;
         }
-        Boolean result = ConditionEvaluator.evaluateSingle(
+        return ConditionEvaluator.evaluate(
                 trigger.condition(),
-                line -> resolvePlaceholders(player, variables, line));
-        return Boolean.TRUE.equals(result);
+                line -> resolvePlaceholders(player, variables, line),
+                true,
+                ConditionContext.of(player, null, conditionVariables(variables)));
+    }
+
+    private Map<String, Object> conditionVariables(Map<String, ?> variables) {
+        if (variables == null || variables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<String, ?> entry : variables.entrySet()) {
+            if (Texts.isBlank(entry.getKey())) {
+                continue;
+            }
+            result.put(entry.getKey(), entry.getValue() == null ? "" : entry.getValue());
+        }
+        return result;
     }
 
     /**
