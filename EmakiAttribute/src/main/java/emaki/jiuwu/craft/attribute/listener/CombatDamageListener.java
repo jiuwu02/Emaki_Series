@@ -99,14 +99,15 @@ public final class CombatDamageListener implements Listener {
             return;
         }
         EntityDamageEvent.DamageCause cause = event.getCause();
-        if (attributeService.config().vanillaEventDamageEnabled()) {
-            handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
-            return;
-        }
         if (cause == EntityDamageEvent.DamageCause.PROJECTILE) {
             if (damager instanceof Projectile projectile) {
                 Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
                 LivingEntity shootingEntity = shooter instanceof LivingEntity livingEntity ? livingEntity : null;
+                if (!attributeService.config().vanillaEventDamageEnabled()
+                        && attributeService.config().damageCauseRule(cause.name()) == null) {
+                    handleEnvironmentalDamage(event, target, shootingEntity);
+                    return;
+                }
                 if (debugHandler.shouldDebugCombat(shootingEntity, target, projectile)) {
                     debugHandler.debugCombat(shootingEntity, target, projectile, "PROJECTILE_HIT", "combat_debug.projectile_hit_intercept", Map.of(
                             "shooter", debugHandler.describeEntity(shootingEntity),
@@ -117,19 +118,18 @@ public final class CombatDamageListener implements Listener {
                             "vanilla_final", debugHandler.formatNumber(event.getFinalDamage())
                     ));
                 }
-                Player playerShooter = shooter instanceof Player player ? player : null;
-                if (isAttackCoolingDown(playerShooter, shootingEntity, target, projectile,
-                        "PROJECTILE_HIT_BLOCKED", "combat_debug.projectile_hit_blocked", "shooter")) {
-                    event.setCancelled(true);
-                    return;
-                }
-                event.setCancelled(true);
                 DamageContextVariables context = CombatSupport.baseContext(event, target);
                 DamageContext damageContext = createProjectileDamageContext(event, projectile, target, context);
                 if (damageContext == null) {
                     debugHandler.debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVE_EMPTY", "combat_debug.projectile_resolve_empty");
+                    handleEnvironmentalDamage(event, target, shootingEntity);
                     return;
                 }
+                if (attributeService.config().vanillaEventDamageEnabled()) {
+                    applyPerfectTakeover(event, damageContext, shootingEntity, target, projectile, projectile);
+                    return;
+                }
+                event.setCancelled(true);
                 resolveAndApplyDamage(
                         attributeService.resolveDamageApplicationAsync(damageContext),
                         shootingEntity,
@@ -145,6 +145,10 @@ public final class CombatDamageListener implements Listener {
                 );
                 return;
             }
+            handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
+            return;
+        }
+        if (attributeService.config().vanillaEventDamageEnabled()) {
             handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
             return;
         }

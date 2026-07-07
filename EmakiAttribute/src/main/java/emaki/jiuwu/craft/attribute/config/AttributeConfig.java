@@ -11,6 +11,7 @@ public record AttributeConfig(String language,
         boolean releaseDefaultData,
         boolean hardLockDamage,
         String defaultDamageType,
+        String projectileDamageType,
         boolean vanillaEventDamageEnabled,
         String vanillaEventDamageType,
         int regenIntervalTicks,
@@ -22,7 +23,7 @@ public record AttributeConfig(String language,
         List<DamageCauseRule> allowedDamageCauses) {
 
     public static AttributeConfig defaults() {
-        return new AttributeConfig("zh_CN", true, true, "physical", true, "physical", 20, 1, defaultProfileDefaults(), true, 0.4D, true, List.of());
+        return new AttributeConfig("zh_CN", true, true, "physical", "projectile", true, "physical", 20, 1, defaultProfileDefaults(), true, 0.4D, true, List.of());
     }
 
     public static AttributeConfig fromConfig(YamlSection configuration) {
@@ -34,6 +35,7 @@ public record AttributeConfig(String language,
         boolean releaseDefaultData = Boolean.TRUE.equals(configuration.getBoolean("release_default_data", true));
         boolean hardLockDamage = Boolean.TRUE.equals(configuration.getBoolean("hard_lock_damage", true));
         String defaultDamageType = ConfigNodes.string(configuration, "default_damage_type", "physical");
+        String projectileDamageType = ConfigNodes.string(configuration, "projectile_damage_type", "projectile");
         boolean vanillaEventDamageEnabled = Boolean.TRUE.equals(configuration.getBoolean("vanilla_event_damage.enabled", true));
         String vanillaEventDamageType = ConfigNodes.string(configuration, "vanilla_event_damage.damage_type", defaultDamageType);
         int regenIntervalTicks = Math.max(1, configuration.getInt("regen_interval_ticks", 20));
@@ -58,6 +60,7 @@ public record AttributeConfig(String language,
                 releaseDefaultData,
                 hardLockDamage,
                 defaultDamageType,
+                projectileDamageType,
                 vanillaEventDamageEnabled,
                 vanillaEventDamageType,
                 regenIntervalTicks,

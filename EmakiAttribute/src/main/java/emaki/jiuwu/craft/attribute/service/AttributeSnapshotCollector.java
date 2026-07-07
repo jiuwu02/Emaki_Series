@@ -86,7 +86,7 @@ final class AttributeSnapshotCollector {
         }
         Map<String, Double> values = new LinkedHashMap<>();
         mergeValues(values, parsedLore.snapshot().values());
-        overlayValues(values, resolvedRawContribution.values());
+        mergeValues(values, resolvedRawContribution.values());
         AttributeSnapshot snapshot = new AttributeSnapshot(
                 AttributeFusionMath.ITEM_SNAPSHOT_SCHEMA_VERSION,
                 sourceSignature,
@@ -161,7 +161,7 @@ final class AttributeSnapshotCollector {
         AttributeSnapshot cachedSnapshot = service.stateRepository().readCombatSnapshot(entity);
         if (sourceSignature.equals(cachedSignature)
                 && cachedSnapshot != null
-                && cachedSnapshot.schemaVersion() >= AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION) {
+                && cachedSnapshot.schemaVersion() == AttributeFusionMath.RAW_COMBAT_SNAPSHOT_SCHEMA_VERSION) {
             return cachedSnapshot;
         }
 
@@ -176,7 +176,7 @@ final class AttributeSnapshotCollector {
         scalingCurveProcessor.apply(values, service.scalingCurves());
         applyDerivedValues(values);
         AttributeSnapshot snapshot = new AttributeSnapshot(
-                AttributeFusionMath.FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION,
+                AttributeFusionMath.RAW_COMBAT_SNAPSHOT_SCHEMA_VERSION,
                 sourceSignature,
                 values,
                 System.currentTimeMillis()
@@ -370,7 +370,6 @@ final class AttributeSnapshotCollector {
         if (values == null) {
             return;
         }
-        applyCombatFusion(values);
         values.put("attribute_power", computeAttributePower(values));
     }
 

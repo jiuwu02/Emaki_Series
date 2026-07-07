@@ -675,6 +675,9 @@ public final class AttributeCommand implements TabExecutor {
         if (plugin.damageTypeRegistry().resolve(plugin.configModel().defaultDamageType()) == null) {
             issues.add("default_damage_type 指向了未加载的伤害类型: " + plugin.configModel().defaultDamageType());
         }
+        if (plugin.damageTypeRegistry().resolve(plugin.configModel().projectileDamageType()) == null) {
+            issues.add("projectile_damage_type 指向了未加载的伤害类型: " + plugin.configModel().projectileDamageType());
+        }
         if (plugin.configModel().vanillaEventDamageEnabled()
                 && plugin.damageTypeRegistry().resolve(plugin.configModel().vanillaEventDamageType()) == null) {
             issues.add("vanilla_event_damage.damage_type 指向了未加载的伤害类型: " + plugin.configModel().vanillaEventDamageType());

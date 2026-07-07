@@ -6,12 +6,13 @@ final class AttributeFusionMath {
 
     static final int ITEM_SNAPSHOT_SCHEMA_VERSION = 1;
     static final int FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION = 2;
+    static final int RAW_COMBAT_SNAPSHOT_SCHEMA_VERSION = 3;
 
     private AttributeFusionMath() {
     }
 
     static boolean usesFusedCombatValues(AttributeSnapshot snapshot) {
-        return snapshot != null && snapshot.schemaVersion() >= FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION;
+        return snapshot != null && snapshot.schemaVersion() == FUSED_COMBAT_SNAPSHOT_SCHEMA_VERSION;
     }
 
     static double percentFactor(double percentBonus, boolean clampNonNegative) {

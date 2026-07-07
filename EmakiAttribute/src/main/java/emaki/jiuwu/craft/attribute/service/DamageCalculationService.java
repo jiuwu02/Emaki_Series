@@ -82,6 +82,12 @@ final class DamageCalculationService {
     }
 
     private String computeDefaultProjectileDamageTypeId() {
+        if (service.config().projectileDamageType() != null && !service.config().projectileDamageType().isBlank()) {
+            DamageTypeDefinition configured = service.damageTypeRegistry().resolve(service.config().projectileDamageType());
+            if (configured != null) {
+                return configured.id();
+            }
+        }
         DamageTypeDefinition projectile = service.damageTypeRegistry().resolve("projectile");
         if (projectile != null) {
             return projectile.id();

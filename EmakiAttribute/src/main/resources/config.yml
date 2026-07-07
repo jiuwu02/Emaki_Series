@@ -8,7 +8,7 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.4.5"
+version: "4.4.8"
 
 # 语言文件 ID
 language: zh_CN
@@ -24,6 +24,12 @@ hard_lock_damage: true
 
 # 默认伤害类型 ID
 default_damage_type: physical
+
+# 投射物默认伤害类型 ID。
+# 弓箭、弩箭、三叉戟等投射物发射时会缓存攻击者当前属性快照，命中时按这里配置的伤害类型结算。
+# projectile：使用 projectile_attack / projectile_damage_bonus / projectile_crit_* 等投射物属性。
+# physical：使用 physical_attack / physical_damage_bonus / physical_crit_* 等物理属性。
+projectile_damage_type: projectile
 
 # 原版事件伤害接管
 # enabled: true 时启用「完美接管」——不取消原版伤害事件，只把最终伤害数值替换为 EA 结算值，
