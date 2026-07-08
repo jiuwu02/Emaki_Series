@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.4.7"
+version: "4.4.8"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -149,6 +149,14 @@ command:
   loop_header: "<aqua>活动循环任务：</aqua><yellow>%count%</yellow>"
   loop_cancelled: "<green>已请求取消循环任务: <aqua>%key%</aqua></green>"
   loop_player_cancelled: "<green>已取消玩家 <aqua>%player%</aqua> 的 <yellow>%count%</yellow> 个循环任务</green>"
+  action_unavailable: "<red>Action 系统尚未就绪，无法执行。</red>"
+  action_usage: "<yellow>用法: /corelib action run <actionId> [key=value ...]</yellow>"
+  action_list_header: "<aqua>当前已注册 Action：</aqua><yellow>%count%</yellow>"
+  action_list_empty: "<gray>当前没有已注册 Action</gray>"
+  action_list_item: "<gray>- <aqua>%id%</aqua> <dark_gray>[%category%]</dark_gray> source=<yellow>%source%</yellow> owner=<yellow>%owner%</yellow> mode=<white>%mode%</white> params=<gray>%params%</gray></gray>"
+  action_execute_started: "<gray>正在执行 Action: <aqua>%line%</aqua></gray>"
+  action_execute_success: "<green>Action 执行完成：成功 <yellow>%success%</yellow>，跳过 <yellow>%skipped%</yellow></green>"
+  action_execute_failed: "<red>Action 执行失败: <aqua>%action%</aqua> - %error%</red>"
   web_address: "<aqua>Web Console 地址：</aqua><white>%url%</white>"
   web_bind_hint: "<yellow>当前 host 是绑定地址，客户端通常不能直接访问；下面提供本机回退链接</yellow>"
   web_click_open: "<aqua>点击打开：</aqua><click:open_url:'%url%'><hover:show_text:'<yellow>点击在浏览器中打开 Web Console</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
@@ -159,6 +167,7 @@ command:
   help_reload: "<green>%root% reload</green><gray> - 重载 CoreLib 配置与 Web Console</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - 执行配置预检或查看最近报告</gray>"
   help_script: "<green>%root% script [list|inspect|reload]</green><gray> - 查看或重载 JavaScript 扩展</gray>"
+  help_action: "<green>%root% action [list|run <actionId> key=value ...]</green><gray> - 查看并直接执行已注册 Action</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消循环 Action 任务</gray>"
   help_webdebug: "<green>%root% webdebug [frontend|backend|all]</green><gray> - Web Console 启用后开关前端/后端调试日志</gray>"
 

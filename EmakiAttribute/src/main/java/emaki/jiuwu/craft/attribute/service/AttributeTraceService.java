@@ -129,7 +129,7 @@ public final class AttributeTraceService {
             if (points <= 0) {
                 continue;
             }
-            addTrace(reconstructed, traces, parent.id(), points, "EmakiAttribute", "parent_attribute", parent.id(), parent.displayName() + " 加点", "", "", "parent_attribute", true, "points", filter);
+            addTrace(reconstructed, traces, parent.id(), (double) points, "EmakiAttribute", "parent_attribute", parent.id(), parent.displayName() + " 加点", "", "", "parent_attribute", true, "points", filter);
             for (Map.Entry<String, Double> bonus : parent.childBonuses().entrySet()) {
                 if (bonus.getValue() == null) {
                     continue;

@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.4.7"
+version: "4.4.8"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -149,6 +149,14 @@ command:
   loop_header: "<aqua>Active loop tasks: </aqua><yellow>%count%</yellow>"
   loop_cancelled: "<green>Requested loop task cancellation: <aqua>%key%</aqua></green>"
   loop_player_cancelled: "<green>Cancelled <yellow>%count%</yellow> loop task(s) for <aqua>%player%</aqua></green>"
+  action_unavailable: "<red>The Action system is not ready yet.</red>"
+  action_usage: "<yellow>Usage: /corelib action run <actionId> [key=value ...]</yellow>"
+  action_list_header: "<aqua>Currently registered Actions: </aqua><yellow>%count%</yellow>"
+  action_list_empty: "<gray>No Actions are currently registered</gray>"
+  action_list_item: "<gray>- <aqua>%id%</aqua> <dark_gray>[%category%]</dark_gray> source=<yellow>%source%</yellow> owner=<yellow>%owner%</yellow> mode=<white>%mode%</white> params=<gray>%params%</gray></gray>"
+  action_execute_started: "<gray>Executing Action: <aqua>%line%</aqua></gray>"
+  action_execute_success: "<green>Action execution completed: success <yellow>%success%</yellow>, skipped <yellow>%skipped%</yellow></green>"
+  action_execute_failed: "<red>Action execution failed: <aqua>%action%</aqua> - %error%</red>"
   web_address: "<aqua>Web Console address: </aqua><white>%url%</white>"
   web_bind_hint: "<yellow>The current host is a bind address and usually cannot be accessed directly by clients; a localhost fallback link is provided below</yellow>"
   web_click_open: "<aqua>Click to open: </aqua><click:open_url:'%url%'><hover:show_text:'<yellow>Click to open the Web Console in your browser</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
@@ -158,6 +166,8 @@ command:
   help_web: "<green>%root% web</green><gray> - Print a clickable Web Console link</gray>"
   help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration and the Web Console</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - Run config prechecks or show the latest report</gray>"
+  help_script: "<green>%root% script [list|inspect|reload]</green><gray> - View or reload JavaScript extensions</gray>"
+  help_action: "<green>%root% action [list|run <actionId> key=value ...]</green><gray> - View and directly execute registered Actions</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - View or cancel loop Action tasks</gray>"
   help_webdebug: "<green>%root% webdebug [frontend|backend|all]</green><gray> - Toggle frontend/backend debug logs after the Web Console is enabled</gray>"
 
