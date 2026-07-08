@@ -20,14 +20,20 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 public final class RevokeAdvancementAction implements Action {
 
     private final EmakiCodexPlugin plugin;
+    private final String id;
 
     public RevokeAdvancementAction(EmakiCodexPlugin plugin) {
+        this(plugin, "codex-revoke-advancement");
+    }
+
+    public RevokeAdvancementAction(EmakiCodexPlugin plugin, String id) {
         this.plugin = plugin;
+        this.id = Texts.normalizeId(id);
     }
 
     @Override
     public String id() {
-        return "codex-revoke-advancement";
+        return id;
     }
 
     @Override
@@ -52,11 +58,11 @@ public final class RevokeAdvancementAction implements Action {
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
         Player player = targetPlayer(context, arguments == null ? null : arguments.get("target"));
         if (player == null) {
-            return ActionResult.failure(ActionErrorType.INVALID_STATE, "codex-revoke-advancement requires an online player target.");
+            return ActionResult.failure(ActionErrorType.INVALID_STATE, id + " requires an online player target.");
         }
         String advancementId = Texts.toStringSafe(arguments == null ? null : arguments.get("advancement"));
         if (Texts.isBlank(advancementId)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "codex-revoke-advancement requires an 'advancement' argument.");
+            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, id + " requires an 'advancement' argument.");
         }
         boolean revoked = plugin.advancementService().revoke(player, advancementId.trim());
         if (!revoked) {

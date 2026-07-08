@@ -42,6 +42,7 @@ import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.CastModeService;
+import emaki.jiuwu.craft.skills.service.ManualSkillSourceService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
@@ -101,6 +102,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private TriggerConflictResolver triggerConflictResolver;
     private SkillRegistryService skillRegistryService;
     private PlayerSkillDataStore playerSkillDataStore;
+    private ManualSkillSourceService manualSkillSourceService;
     private PlayerSkillStateService playerSkillStateService;
     private SkillLevelService skillLevelService;
     private SkillParameterResolver skillParameterResolver;
@@ -221,6 +223,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         triggerConflictResolver = components.triggerConflictResolver();
         skillRegistryService = components.skillRegistryService();
         playerSkillDataStore = components.playerSkillDataStore();
+        manualSkillSourceService = components.manualSkillSourceService();
         playerSkillStateService = components.playerSkillStateService();
         skillLevelService = components.skillLevelService();
         skillParameterResolver = components.skillParameterResolver();
@@ -279,7 +282,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void registerCoreLibActions() {
         SkillsActionRegistrar.registerAll(coreLib().actionRegistry(), this, mythicSkillCastService,
-                playerSkillStateService, skillLevelService, skillUpgradeService, playerSkillDataStore);
+                playerSkillStateService, skillLevelService, skillUpgradeService, playerSkillDataStore,
+                manualSkillSourceService);
     }
 
     private void reloadJavaScriptSkillExtensions() {
@@ -414,6 +418,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public PlayerSkillDataStore playerSkillDataStore() {
         return playerSkillDataStore;
+    }
+
+    public ManualSkillSourceService manualSkillSourceService() {
+        return manualSkillSourceService;
     }
 
     public PlayerSkillStateService playerSkillStateService() {

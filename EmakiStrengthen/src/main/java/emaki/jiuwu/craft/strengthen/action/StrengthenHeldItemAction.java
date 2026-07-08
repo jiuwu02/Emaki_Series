@@ -23,6 +23,7 @@ public final class StrengthenHeldItemAction implements Action {
         RERENDER,
         SET_STAR,
         ADD_STAR,
+        REMOVE_STAR,
         RESET_STAR,
         CLEAR_LAYER
     }
@@ -58,6 +59,7 @@ public final class StrengthenHeldItemAction implements Action {
             case RERENDER, RESET_STAR, CLEAR_LAYER -> List.of();
             case SET_STAR -> List.of(ActionParameter.required("star", ActionParameterType.INTEGER, "Target star."));
             case ADD_STAR -> List.of(ActionParameter.required("amount", ActionParameterType.INTEGER, "Star delta."));
+            case REMOVE_STAR -> List.of(ActionParameter.required("amount", ActionParameterType.INTEGER, "Star amount to remove."));
         };
     }
 
@@ -76,6 +78,7 @@ public final class StrengthenHeldItemAction implements Action {
             case RERENDER -> plugin.attemptService().rebuild(original);
             case SET_STAR -> plugin.attemptService().applyAdminState(original, intArgument(arguments, "star", before.currentStar()), null, null);
             case ADD_STAR -> plugin.attemptService().applyAdminState(original, before.currentStar() + intArgument(arguments, "amount", 0), null, null);
+            case REMOVE_STAR -> plugin.attemptService().applyAdminState(original, Math.max(0, before.currentStar() - Math.max(0, intArgument(arguments, "amount", 1))), null, null);
             case RESET_STAR -> plugin.attemptService().applyAdminState(original, 0, null, null);
             case CLEAR_LAYER -> plugin.attemptService().clearStrengthenLayer(original);
         };

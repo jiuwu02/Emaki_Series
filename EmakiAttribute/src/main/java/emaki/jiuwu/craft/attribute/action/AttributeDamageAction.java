@@ -21,15 +21,21 @@ public final class AttributeDamageAction implements Action {
 
     public static final String ID = "attributedamage";
 
+    private final String id;
     private final AttributeServiceFacade attributeService;
 
     public AttributeDamageAction(AttributeServiceFacade attributeService) {
+        this(ID, attributeService);
+    }
+
+    public AttributeDamageAction(String id, AttributeServiceFacade attributeService) {
+        this.id = Texts.normalizeId(id);
         this.attributeService = attributeService;
     }
 
     @Override
     public String id() {
-        return ID;
+        return id;
     }
 
     @Override
@@ -67,7 +73,7 @@ public final class AttributeDamageAction implements Action {
     @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
         if (context == null || context.player() == null) {
-            return ActionResult.failure(ActionErrorType.INVALID_STATE, "Action '" + ID + "' requires a player context.");
+            return ActionResult.failure(ActionErrorType.INVALID_STATE, "Action '" + id + "' requires a player context.");
         }
         EntityDamageEvent.DamageCause cause = parseCause(arguments.get("cause"));
         String damageTypeId = Texts.toStringSafe(arguments.get("type"));
@@ -79,7 +85,7 @@ public final class AttributeDamageAction implements Action {
             damageContext.put("damage_cause", cause.name());
             damageContext.put("cause", cause.name());
         }
-        damageContext.put("action_id", ID);
+        damageContext.put("action_id", id);
         damageContext.put("damage_type_id", damageTypeId);
         boolean applied = attributeService.applyDamage(
                 null,

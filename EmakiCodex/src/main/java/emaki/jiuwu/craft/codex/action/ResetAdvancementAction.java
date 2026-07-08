@@ -29,15 +29,21 @@ public final class ResetAdvancementAction implements Action {
 
     private final EmakiCodexPlugin plugin;
     private final Mode mode;
+    private final String id;
 
     public ResetAdvancementAction(EmakiCodexPlugin plugin, Mode mode) {
+        this(plugin, mode, mode == Mode.PAGE ? "codex-reset-page" : "codex-reset-all");
+    }
+
+    public ResetAdvancementAction(EmakiCodexPlugin plugin, Mode mode, String id) {
         this.plugin = plugin;
         this.mode = mode;
+        this.id = Texts.normalizeId(id);
     }
 
     @Override
     public String id() {
-        return mode == Mode.PAGE ? "codex-reset-page" : "codex-reset-all";
+        return id;
     }
 
     @Override

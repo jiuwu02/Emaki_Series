@@ -20,10 +20,16 @@ public final class AttributeSyncAction implements Action {
     public static final String REFRESH_ID = "attribute_refresh";
 
     private final String id;
+    private final String operationId;
     private final AttributeServiceFacade attributeService;
 
     AttributeSyncAction(String id, AttributeServiceFacade attributeService) {
+        this(id, id, attributeService);
+    }
+
+    AttributeSyncAction(String id, String operationId, AttributeServiceFacade attributeService) {
         this.id = id;
+        this.operationId = operationId;
         this.attributeService = attributeService;
     }
 
@@ -34,7 +40,7 @@ public final class AttributeSyncAction implements Action {
 
     @Override
     public String description() {
-        return SYNC_ID.equals(id) ? "Synchronize the current player's attribute resources." : "Refresh attribute caches and synchronize players.";
+        return SYNC_ID.equals(operationId) ? "Synchronize the current player's attribute resources." : "Refresh attribute caches and synchronize players.";
     }
 
     @Override
@@ -44,7 +50,7 @@ public final class AttributeSyncAction implements Action {
 
     @Override
     public List<ActionParameter> parameters() {
-        if (SYNC_ID.equals(id)) {
+        if (SYNC_ID.equals(operationId)) {
             return List.of(ActionParameter.optional("all", ActionParameterType.BOOLEAN, "false", "Synchronize all online players."));
         }
         return List.of(ActionParameter.optional("all", ActionParameterType.BOOLEAN, "true", "Refresh all online players instead of current player only."));
@@ -52,8 +58,8 @@ public final class AttributeSyncAction implements Action {
 
     @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
-        boolean all = Boolean.parseBoolean(arguments.getOrDefault("all", REFRESH_ID.equals(id) ? "true" : "false"));
-        if (REFRESH_ID.equals(id)) {
+        boolean all = Boolean.parseBoolean(arguments.getOrDefault("all", REFRESH_ID.equals(operationId) ? "true" : "false"));
+        if (REFRESH_ID.equals(operationId)) {
             attributeService.refreshCaches();
             if (all) {
                 attributeService.resyncAllPlayers();

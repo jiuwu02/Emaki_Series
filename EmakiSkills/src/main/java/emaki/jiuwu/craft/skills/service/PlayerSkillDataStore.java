@@ -259,6 +259,10 @@ public final class PlayerSkillDataStore {
             root.put("skill_levels", levelsMap);
         }
 
+        if (!profile.manualSkillIds().isEmpty()) {
+            root.put("manual_skill_ids", new ArrayList<>(profile.manualSkillIds()));
+        }
+
         PlayerCastTimingState timing = profile.timingState();
         Map<String, Object> timingMap = new LinkedHashMap<>();
         timingMap.put("forced_global_cast_delay_until", timing.forcedGlobalCastDelayUntil());
@@ -328,6 +332,16 @@ public final class PlayerSkillDataStore {
             }
         }
 
+        List<?> manualSkillIds = section.getList("manual_skill_ids");
+        if (manualSkillIds != null) {
+            for (Object obj : manualSkillIds) {
+                String skillId = toStringOrNull(obj);
+                if (skillId != null) {
+                    profile.manualSkillIds().add(skillId);
+                }
+            }
+        }
+
         emaki.jiuwu.craft.corelib.yaml.YamlSection timingSection = section.getSection("timing");
         if (timingSection != null) {
             PlayerCastTimingState timing = profile.timingState();
@@ -390,6 +404,16 @@ public final class PlayerSkillDataStore {
             }
         }
 
+        List<?> manualSkillIds = yaml.getList("manual_skill_ids");
+        if (manualSkillIds != null) {
+            for (Object obj : manualSkillIds) {
+                String skillId = toStringOrNull(obj);
+                if (skillId != null) {
+                    profile.manualSkillIds().add(skillId);
+                }
+            }
+        }
+
         ConfigurationSection timingSection = yaml.getConfigurationSection("timing");
         if (timingSection != null) {
             PlayerCastTimingState timing = profile.timingState();
@@ -442,6 +466,10 @@ public final class PlayerSkillDataStore {
                 continue;
             }
             yaml.set("skill_levels." + entry.getKey() + ".level", state.level());
+        }
+
+        if (!profile.manualSkillIds().isEmpty()) {
+            yaml.set("manual_skill_ids", new ArrayList<>(profile.manualSkillIds()));
         }
 
         PlayerCastTimingState timing = profile.timingState();

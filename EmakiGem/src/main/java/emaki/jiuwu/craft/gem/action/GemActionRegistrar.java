@@ -17,11 +17,11 @@ public final class GemActionRegistrar {
         if (registry == null) {
             return;
         }
-        register(registry, GemHeldItemAction.Operation.OPEN_SOCKET, List.of("emakigem_open_socket", "emakigemopensocket"));
-        register(registry, GemHeldItemAction.Operation.INLAY, List.of("emakigem_inlay", "emakigeminlay"));
-        register(registry, GemHeldItemAction.Operation.EXTRACT, List.of("emakigem_extract", "emakigemextract"));
-        register(registry, GemHeldItemAction.Operation.UPGRADE_GEM_ITEM, List.of("emakigem_upgrade_gem_item", "emakigemupgradegemitem"));
-        register(registry, GemHeldItemAction.Operation.CLEAR_LAYER, List.of("emakigem_clear_layer", "emakigemclearlayer"));
+        register(registry, GemHeldItemAction.Operation.OPEN_SOCKET, List.of("emakigem_open_socket", "emakigemopensocket", "gem_open_socket", "gemopensocket"));
+        register(registry, GemHeldItemAction.Operation.INLAY, List.of("emakigem_inlay", "emakigeminlay", "gem_inlay", "geminlay"));
+        register(registry, GemHeldItemAction.Operation.EXTRACT, List.of("emakigem_extract", "emakigemextract", "gem_extract", "gemextract"));
+        register(registry, GemHeldItemAction.Operation.UPGRADE_GEM_ITEM, List.of("emakigem_upgrade_gem_item", "emakigemupgradegemitem", "gem_upgrade_item", "gemupgradeitem"));
+        register(registry, GemHeldItemAction.Operation.CLEAR_LAYER, List.of("emakigem_clear_layer", "emakigemclearlayer", "gem_clear_layer", "gemclearlayer"));
     }
 
     private void register(ActionRegistry registry, GemHeldItemAction.Operation operation, List<String> ids) {

@@ -4,6 +4,7 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
+import emaki.jiuwu.craft.skills.service.ManualSkillSourceService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
@@ -22,7 +23,8 @@ public final class SkillsActionRegistrar {
             PlayerSkillStateService stateService,
             SkillLevelService levelService,
             SkillUpgradeService upgradeService,
-            PlayerSkillDataStore dataStore) {
+            PlayerSkillDataStore dataStore,
+            ManualSkillSourceService manualSkillSourceService) {
         if (registry == null || owner == null) {
             return;
         }
@@ -35,6 +37,11 @@ public final class SkillsActionRegistrar {
         registry.register(owner, SOURCE, new SkillSlotAction(SkillSlotAction.BIND_ID, stateService, dataStore));
         registry.register(owner, SOURCE, new SkillCooldownAction(SkillCooldownAction.CLEAR_ID, stateService, dataStore));
         registry.register(owner, SOURCE, new SkillCooldownAction(SkillCooldownAction.SET_ID, stateService, dataStore));
+        registry.register(owner, SOURCE, new SkillLearnAction("skill_learn", SkillLearnAction.Operation.LEARN, manualSkillSourceService, stateService, dataStore));
+        registry.register(owner, SOURCE, new SkillLearnAction("skill_unlock", SkillLearnAction.Operation.LEARN, manualSkillSourceService, stateService, dataStore));
+        registry.register(owner, SOURCE, new SkillLearnAction("skill_forget", SkillLearnAction.Operation.FORGET, manualSkillSourceService, stateService, dataStore));
+        registry.register(owner, SOURCE, new SkillLearnAction("skill_unlearn", SkillLearnAction.Operation.FORGET, manualSkillSourceService, stateService, dataStore));
+        registry.register(owner, SOURCE, new SkillLearnAction("skill_forget_all", SkillLearnAction.Operation.FORGET_ALL, manualSkillSourceService, stateService, dataStore));
     }
 
     public static void unregisterAll(ActionRegistry registry, Plugin owner) {

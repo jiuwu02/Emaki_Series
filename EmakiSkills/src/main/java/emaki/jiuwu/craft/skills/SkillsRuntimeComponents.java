@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.CastModeService;
+import emaki.jiuwu.craft.skills.service.ManualSkillSourceService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
@@ -50,6 +51,7 @@ record SkillsRuntimeComponents(
         TriggerConflictResolver triggerConflictResolver,
         SkillRegistryService skillRegistryService,
         PlayerSkillDataStore playerSkillDataStore,
+        ManualSkillSourceService manualSkillSourceService,
         PlayerSkillStateService playerSkillStateService,
         SkillLevelService skillLevelService,
         SkillParameterResolver skillParameterResolver,
@@ -85,6 +87,7 @@ record SkillsRuntimeComponents(
                 RuntimeComponents.component(TriggerConflictResolver.class, triggerConflictResolver),
                 RuntimeComponents.component(SkillRegistryService.class, skillRegistryService),
                 RuntimeComponents.component(PlayerSkillDataStore.class, playerSkillDataStore),
+                RuntimeComponents.component(ManualSkillSourceService.class, manualSkillSourceService),
                 RuntimeComponents.component(PlayerSkillStateService.class, playerSkillStateService),
                 RuntimeComponents.component(SkillLevelService.class, skillLevelService),
                 RuntimeComponents.component(SkillParameterResolver.class, skillParameterResolver),

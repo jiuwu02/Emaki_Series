@@ -26,15 +26,33 @@ public final class NutritionActionRegistrar {
         register(registry, NutritionOperationType.ADD, List.of("emakicookingaddnutrition", "ecaddnutrition", "cookingaddnutrition"));
         register(registry, NutritionOperationType.REMOVE, List.of("emakicookingremovenutrition", "ecremovenutrition", "ectakenutrition", "cookingremovenutrition"));
         register(registry, NutritionOperationType.SET, List.of("emakicookingsetnutrition", "ecsetnutrition", "cookingsetnutrition"));
-        registry.register(plugin, "emakicooking", new NutritionResetAction(plugin, "emakicookingclearnutrition", NutritionResetAction.Mode.CLEAR));
-        registry.register(plugin, "emakicooking", new NutritionResetAction(plugin, "emakicookingresetnutrition", NutritionResetAction.Mode.RESET));
-        registry.register(plugin, "emakicooking", new NutritionThresholdRecheckAction(plugin, "emakicookingrechecknutritionthreshold"));
-        registry.register(plugin, "emakicooking", new RunRecipeRewardAction(plugin, "emakicookingrunrecipereward"));
+        registerReset(registry, NutritionResetAction.Mode.CLEAR, List.of("emakicookingclearnutrition", "ecclearnutrition", "cookingclearnutrition"));
+        registerReset(registry, NutritionResetAction.Mode.RESET, List.of("emakicookingresetnutrition", "ecresetnutrition", "cookingresetnutrition"));
+        registerThresholdRecheck(registry, List.of("emakicookingrechecknutritionthreshold", "ecrechecknutritionthreshold", "cookingrechecknutritionthreshold"));
+        registerRecipeReward(registry, List.of("emakicookingrunrecipereward", "ecrunrecipereward", "cookingrunrecipereward"));
     }
 
     private void register(ActionRegistry registry, NutritionOperationType type, List<String> ids) {
         for (String id : ids) {
             registry.register(plugin, "emakicooking", new NutritionOperationAction(plugin, id, type));
+        }
+    }
+
+    private void registerReset(ActionRegistry registry, NutritionResetAction.Mode mode, List<String> ids) {
+        for (String id : ids) {
+            registry.register(plugin, "emakicooking", new NutritionResetAction(plugin, id, mode));
+        }
+    }
+
+    private void registerThresholdRecheck(ActionRegistry registry, List<String> ids) {
+        for (String id : ids) {
+            registry.register(plugin, "emakicooking", new NutritionThresholdRecheckAction(plugin, id));
+        }
+    }
+
+    private void registerRecipeReward(ActionRegistry registry, List<String> ids) {
+        for (String id : ids) {
+            registry.register(plugin, "emakicooking", new RunRecipeRewardAction(plugin, id));
         }
     }
 }

@@ -17,9 +17,9 @@ public final class ForgeActionRegistrar {
         if (registry == null || plugin == null) {
             return;
         }
-        register(registry, ForgeRefreshAction.Operation.HELD_ITEM, List.of("emakiforge_refresh_held", "emakiforgerefreshheld"));
-        register(registry, ForgeRefreshAction.Operation.PLAYER_INVENTORY, List.of("emakiforge_refresh_player", "emakiforgerefreshplayer"));
-        register(registry, ForgeRefreshAction.Operation.ONLINE_PLAYERS, List.of("emakiforge_refresh_all", "emakiforgerefreshall"));
+        register(registry, ForgeRefreshAction.Operation.HELD_ITEM, List.of("emakiforge_refresh_held", "emakiforgerefreshheld", "forge_refresh_held", "forgerefreshheld"));
+        register(registry, ForgeRefreshAction.Operation.PLAYER_INVENTORY, List.of("emakiforge_refresh_player", "emakiforgerefreshplayer", "forge_refresh_player", "forgerefreshplayer"));
+        register(registry, ForgeRefreshAction.Operation.ONLINE_PLAYERS, List.of("emakiforge_refresh_all", "emakiforgerefreshall", "forge_refresh_all", "forgerefreshall"));
     }
 
     private void register(ActionRegistry registry, ForgeRefreshAction.Operation operation, List<String> ids) {

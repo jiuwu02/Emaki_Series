@@ -37,6 +37,7 @@ import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.CastModeService;
+import emaki.jiuwu.craft.skills.service.ManualSkillSourceService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
@@ -99,6 +100,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 appConfigLoader.current().defaultSlotCount(),
                 () -> asyncYamlFiles
         );
+        ManualSkillSourceService manualSkillSourceService = new ManualSkillSourceService(playerSkillDataStore, skillRegistryService);
+        skillSourceRegistry.register(manualSkillSourceService);
         EaBridge eaBridge = new EaBridge(plugin, messageService);
         eaBridge.init();
         ExternalManaBridge externalManaBridge = new ExternalManaBridge(plugin, messageService);
@@ -175,6 +178,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 triggerConflictResolver,
                 skillRegistryService,
                 playerSkillDataStore,
+                manualSkillSourceService,
                 playerSkillStateService,
                 skillLevelService,
                 skillParameterResolver,

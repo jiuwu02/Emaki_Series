@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.skills.model;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class PlayerSkillProfile {
@@ -11,6 +12,7 @@ public final class PlayerSkillProfile {
     private final List<SkillSlotBinding> bindings;
     private final Map<String, PlayerLocalResourceState> localResources;
     private final Map<String, PlayerSkillLevelState> skillLevels;
+    private final Set<String> manualSkillIds;
     private final PlayerCastTimingState timingState;
     private final Map<String, SkillSlotBinding> bindingByTrigger = new ConcurrentHashMap<>();
     private boolean castModeEnabled;
@@ -24,6 +26,7 @@ public final class PlayerSkillProfile {
         }
         this.localResources = new ConcurrentHashMap<>();
         this.skillLevels = new ConcurrentHashMap<>();
+        this.manualSkillIds = ConcurrentHashMap.newKeySet();
         this.timingState = new PlayerCastTimingState();
         this.castModeEnabled = false;
         this.dirty = false;
@@ -48,6 +51,10 @@ public final class PlayerSkillProfile {
 
     public Map<String, PlayerSkillLevelState> skillLevels() {
         return skillLevels;
+    }
+
+    public Set<String> manualSkillIds() {
+        return manualSkillIds;
     }
 
     public PlayerCastTimingState timingState() {

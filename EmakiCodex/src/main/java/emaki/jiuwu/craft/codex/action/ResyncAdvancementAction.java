@@ -20,14 +20,20 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 public final class ResyncAdvancementAction implements Action {
 
     private final EmakiCodexPlugin plugin;
+    private final String id;
 
     public ResyncAdvancementAction(EmakiCodexPlugin plugin) {
+        this(plugin, "codex-resync-advancement");
+    }
+
+    public ResyncAdvancementAction(EmakiCodexPlugin plugin, String id) {
         this.plugin = plugin;
+        this.id = Texts.normalizeId(id);
     }
 
     @Override
     public String id() {
-        return "codex-resync-advancement";
+        return id;
     }
 
     @Override
@@ -52,7 +58,7 @@ public final class ResyncAdvancementAction implements Action {
         }
         Player player = targetPlayer(context, arguments == null ? null : arguments.get("target"));
         if (player == null) {
-            return ActionResult.failure(ActionErrorType.INVALID_STATE, "codex-resync-advancement requires an online player target.");
+            return ActionResult.failure(ActionErrorType.INVALID_STATE, id + " requires an online player target.");
         }
         if (!plugin.advancementPacketGateway().canResync()) {
             return ActionResult.failure(ActionErrorType.INVALID_STATE, "PacketEvents is not available; EmakiCodex advancement resync cannot run.");

@@ -20,20 +20,26 @@ import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class ResourceConsumeAction implements Action {
+public final class ResourceModifyAction implements Action {
 
-    public static final String ID = "attribute_resource_consume";
+    public static final String ADD_ID = "attribute_resource_add";
+    public static final String SET_ID = "attribute_resource_set";
+    public static final String REMOVE_ID = "attribute_resource_remove";
+
+    enum Operation {
+        ADD,
+        SET,
+        REMOVE
+    }
 
     private final String id;
     private final AttributeServiceFacade attributeService;
+    private final Operation operation;
 
-    ResourceConsumeAction(AttributeServiceFacade attributeService) {
-        this(ID, attributeService);
-    }
-
-    ResourceConsumeAction(String id, AttributeServiceFacade attributeService) {
-        this.id = Texts.normalizeId(id);
+    ResourceModifyAction(String id, AttributeServiceFacade attributeService, Operation operation) {
+        this.id = id;
         this.attributeService = attributeService;
+        this.operation = operation;
     }
 
     @Override
@@ -43,7 +49,7 @@ public final class ResourceConsumeAction implements Action {
 
     @Override
     public String description() {
-        return "Consume an EmakiAttribute player resource through the resource sync boundary.";
+        return "Modify an EmakiAttribute player resource through the resource sync boundary.";
     }
 
     @Override
@@ -55,7 +61,7 @@ public final class ResourceConsumeAction implements Action {
     public List<ActionParameter> parameters() {
         return List.of(
                 ActionParameter.required("resource", ActionParameterType.STRING, "Resource id"),
-                ActionParameter.required("amount", ActionParameterType.DOUBLE, "Amount to consume")
+                ActionParameter.required("amount", ActionParameterType.DOUBLE, "Resource amount")
         );
     }
 
@@ -65,7 +71,17 @@ public final class ResourceConsumeAction implements Action {
         if (!validation.success()) {
             return validation;
         }
-        if (ActionParsers.parseDouble(arguments.get("amount"), 0D) <= 0D) {
+        Double amount = ActionParsers.parseDoubleNullable(arguments.get("amount"));
+        if (amount == null || !Double.isFinite(amount)) {
+            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "amount must be a finite number.");
+        }
+        if (operation == Operation.SET) {
+            if (amount < 0D) {
+                return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "amount must be greater than or equal to 0.");
+            }
+            return ActionResult.ok();
+        }
+        if (amount <= 0D) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "amount must be greater than 0.");
         }
         return ActionResult.ok();
@@ -89,13 +105,18 @@ public final class ResourceConsumeAction implements Action {
                 ? attributeService.syncResource(player, definition, snapshot, ResourceSyncReason.MANUAL, null)
                 : current;
         double oldValue = synced == null ? 0D : synced.currentValue();
-        double newValue = Math.max(0D, oldValue - amount);
-        ResourceState result = attributeService.syncResource(player, definition, snapshot, ResourceSyncReason.MANUAL, newValue);
+        double requestedValue = switch (operation) {
+            case ADD -> oldValue + amount;
+            case SET -> amount;
+            case REMOVE -> Math.max(0D, oldValue - amount);
+        };
+        ResourceState result = attributeService.syncResource(player, definition, snapshot, ResourceSyncReason.MANUAL, requestedValue);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("resource", resourceId);
+        data.put("operation", operation.name().toLowerCase(java.util.Locale.ROOT));
         data.put("amount", amount);
         data.put("old_value", oldValue);
-        data.put("new_value", result == null ? newValue : result.currentValue());
+        data.put("new_value", result == null ? requestedValue : result.currentValue());
         data.put("current_max", result == null ? 0D : result.currentMax());
         return ActionResult.ok(data);
     }

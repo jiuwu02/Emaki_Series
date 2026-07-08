@@ -24,10 +24,16 @@ public final class TemporaryAttributeTagAction implements Action {
     public static final String CLEAR_ID = "attribute_tag_clear";
 
     private final String id;
+    private final String operationId;
     private final AttributeServiceFacade attributeService;
 
     TemporaryAttributeTagAction(String id, AttributeServiceFacade attributeService) {
-        this.id = id;
+        this(id, id, attributeService);
+    }
+
+    TemporaryAttributeTagAction(String id, String operationId, AttributeServiceFacade attributeService) {
+        this.id = Texts.normalizeId(id);
+        this.operationId = Texts.normalizeId(operationId);
         this.attributeService = attributeService;
     }
 
@@ -38,7 +44,7 @@ public final class TemporaryAttributeTagAction implements Action {
 
     @Override
     public String description() {
-        if (ADD_ID.equals(id)) {
+        if (ADD_ID.equals(operationId)) {
             return "Add temporary attributes to all definitions with a tag.";
         }
         return "Remove temporary attributes whose definitions have a tag.";
@@ -51,7 +57,7 @@ public final class TemporaryAttributeTagAction implements Action {
 
     @Override
     public List<ActionParameter> parameters() {
-        if (ADD_ID.equals(id)) {
+        if (ADD_ID.equals(operationId)) {
             return List.of(
                     ActionParameter.required("tag", ActionParameterType.STRING, "Attribute tag"),
                     ActionParameter.required("value", ActionParameterType.DOUBLE, "Temporary value"),
@@ -69,7 +75,7 @@ public final class TemporaryAttributeTagAction implements Action {
         if (!validation.success()) {
             return validation;
         }
-        if (ADD_ID.equals(id) && ActionParsers.parseTicks(arguments.get("duration_ticks")) <= 0L) {
+        if (ADD_ID.equals(operationId) && ActionParsers.parseTicks(arguments.get("duration_ticks")) <= 0L) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "duration_ticks must be greater than 0.");
         }
         return ActionResult.ok();
@@ -84,7 +90,7 @@ public final class TemporaryAttributeTagAction implements Action {
         String tag = Texts.toStringSafe(arguments.get("tag")).trim();
         TemporaryAttributeService service = attributeService.temporaryAttributeService();
         int count;
-        if (ADD_ID.equals(id)) {
+        if (ADD_ID.equals(operationId)) {
             double value = ActionParsers.parseDouble(arguments.get("value"), 0D);
             long durationTicks = ActionParsers.parseTicks(arguments.get("duration_ticks"));
             count = service.addByTag(player, arguments.get("effect_prefix"), tag, value, durationTicks, stackMode(arguments.get("stack_mode")));
