@@ -77,7 +77,9 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                 configuration.getString("description"),
                 configuration.contains("attribute_power") ? configuration.getDouble("attribute_power") : 1D,
                 configuration.getStringList("tags"),
-                temporaryStackMode
+                temporaryStackMode,
+                configuration.getBoolean("parent_attribute", false),
+                parseChildBonuses(configuration)
         );
     }
 
@@ -167,6 +169,61 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         if (!validateNumericField(configuration, file, "attribute_power", typeName())) {
             valid = false;
         }
+        if (!validateChildBonuses(configuration, file)) {
+            valid = false;
+        }
+        return valid;
+    }
+
+    private Map<String, Double> parseChildBonuses(YamlSection configuration) {
+        YamlSection section = configuration.getSection("child_bonuses");
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Double> bonuses = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            if (Texts.isBlank(key)) {
+                continue;
+            }
+            Double value = section.getDouble(key, null);
+            if (value != null) {
+                bonuses.put(normalizeId(key), value);
+            }
+        }
+        return bonuses;
+    }
+
+    private boolean validateChildBonuses(YamlSection configuration, File file) {
+        if (!configuration.contains("child_bonuses")) {
+            return true;
+        }
+        YamlSection section = configuration.getSection("child_bonuses");
+        if (section == null) {
+            issue(
+                    "loader.schema_invalid_section",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "child_bonuses"
+                    )
+            );
+            return false;
+        }
+        boolean valid = true;
+        for (String key : section.getKeys(false)) {
+            Object raw = section.get(key);
+            if (Numbers.tryParseDouble(raw, null) == null) {
+                issue(
+                        "loader.schema_invalid_number",
+                        Map.of(
+                                "type", typeName(),
+                                "file", file.getName(),
+                                "field", "child_bonuses." + key
+                        )
+                );
+                valid = false;
+            }
+        }
         return valid;
     }
 
@@ -178,6 +235,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     @Override
     protected void afterLoad() {
         List<AttributeDefinition> definitions = rebuildIndexes();
+        validateParentChildBonuses(definitions);
         logLoadReport(definitions);
         detectKeyContainmentConflicts(definitions);
     }
@@ -259,10 +317,40 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             if (Texts.isNotBlank(definition.displayName())) {
                 aliasIndex.putIfAbsent(normalizeId(definition.displayName()), definition);
             }
-            orderedPatterns.addAll(compilePatterns(definition));
+            if (!definition.parentAttribute()) {
+                orderedPatterns.addAll(compilePatterns(definition));
+            }
         }
         orderedPatterns.sort(Comparator.comparingInt(PatternEntry::priority).reversed());
         return definitions;
+    }
+
+    private void validateParentChildBonuses(List<AttributeDefinition> definitions) {
+        if (definitions == null || definitions.isEmpty()) {
+            return;
+        }
+        Map<String, AttributeDefinition> byId = new LinkedHashMap<>();
+        for (AttributeDefinition definition : definitions) {
+            byId.put(definition.id(), definition);
+        }
+        for (AttributeDefinition parent : definitions) {
+            if (parent == null || parent.childBonuses().isEmpty()) {
+                continue;
+            }
+            if (!parent.parentAttribute()) {
+                issue("loader.parent_child_bonus_on_non_parent", Map.of("attribute", parent.id()));
+            }
+            for (String childId : parent.childBonuses().keySet()) {
+                AttributeDefinition child = byId.get(childId);
+                if (child == null) {
+                    issue("loader.parent_child_bonus_unknown", Map.of("parent", parent.id(), "child", childId));
+                    continue;
+                }
+                if (child.parentAttribute()) {
+                    issue("loader.parent_child_bonus_parent_target", Map.of("parent", parent.id(), "child", childId));
+                }
+            }
+        }
     }
 
     public AttributeDefinition resolve(String id) {

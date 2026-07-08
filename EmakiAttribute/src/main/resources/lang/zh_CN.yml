@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.4.11"
+version: "4.4.12"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -79,6 +79,10 @@ loader:
   duplicate_id: "<red>%type%文件 %file% 的 ID 重复: %id%。</red>"
   invalid_lore_pattern: "<red>%attribute% 的词条正则无效: %pattern% (%error%)</red>"
   load_failed: "<red>读取%type%文件 %file% 失败: %error%</red>"
+  parent_child_bonus_on_non_parent: "<red>%attribute% 配置了 child_bonuses，但不是父级属性。</red>"
+  parent_child_bonus_unknown: "<red>父级属性 %parent% 指向了不存在的子属性: %child%</red>"
+  parent_child_bonus_parent_target: "<red>父级属性 %parent% 的 child_bonuses 不能指向另一个父级属性: %child%</red>"
+  damage_type_parent_attribute_forbidden: "<red>伤害类型阶段不能直接引用父级属性: %attribute%</red>"
 
 label:
   attribute: "属性"
@@ -246,6 +250,24 @@ command:
     enabled: "<green>已为 %player% 开启战斗调试日志，相关输出将写入控制台。</green>"
     disabled: "<yellow>已为 %player% 关闭战斗调试日志。</yellow>"
 
+  points:
+    no_permission: "<red>你没有权限执行属性点命令。</red>"
+    console_usage: "<yellow>控制台用法: /emakiattribute points <view|open|add|reset|grant|set|setreset> <玩家> ...</yellow>"
+    usage: "<yellow>用法: /emakiattribute points [view|open|add|reset]；管理员可用 grant/set/setreset。</yellow>"
+    admin_usage: "<yellow>管理员用法: /emakiattribute points <grant|set|setreset> <玩家> <数量> 或 /ea points add <玩家> <父级属性> [数量]</yellow>"
+    player_not_found: "<red>未找到在线玩家 %player%。</red>"
+    unknown_attribute: "<red>未知父级属性: %attribute%</red>"
+    gui_failed: "<red>属性点界面未加载，请检查 gui/attribute_points.yml。</red>"
+    header: "<gold>========== %player% 的属性点 ==========</gold> <gray>可用 %available%，洗点 %reset%，已分配 %allocated%</gray>"
+    line: "<gray>%display_name% <dark_gray>(%attribute%)</dark_gray>: <yellow>%points%</yellow></gray>"
+    add_success: "<green>已为 %player% 的 %attribute% 投入 %amount% 点。</green>"
+    add_failed: "<red>加点失败: %reason%</red>"
+    set_success: "<green>已将 %player% 的可用属性点设置为 %amount%。</green>"
+    grant_success: "<green>已给予 %player% %amount% 点可用属性点。</green>"
+    set_reset_success: "<green>已将 %player% 的洗点次数设置为 %amount%。</green>"
+    reset_success: "<green>已重置 %player% 的父级属性加点。</green>"
+    reset_failed: "<red>重置失败: %reason%</red>"
+
   lint:
     no_permission: "<red>你没有权限执行此命令。</red>"
     header: "<gold>========== EmakiAttribute 自检 ==========</gold>"
@@ -265,6 +287,7 @@ command:
       管理 Debug 追踪。"
     source: "<gray>/emakiattribute source <玩家> <属性></gray> 查看指定属性来源。"
     trace: "<gray>/emakiattribute trace <last|list|export|clear> <玩家></gray> 查看伤害 Trace。"
+    points: "<gray>/emakiattribute points [view|open|add|reset]</gray> 查看属性点、打开加点界面或投入父级属性。"
     lint: "<gray>/emakiattribute lint</gray> 检查配置与资源加载问题。"
 
 # Debug 模式消息

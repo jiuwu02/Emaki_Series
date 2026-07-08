@@ -155,6 +155,12 @@ final class AttributeSnapshotCollector {
         if (Texts.isNotBlank(temporarySignature)) {
             signatureParts.add("temporary:" + temporarySignature);
         }
+        if (playerOrNull != null && service.parentAttributeService() != null) {
+            String parentSignature = service.parentAttributeService().signature(playerOrNull);
+            if (Texts.isNotBlank(parentSignature)) {
+                signatureParts.add("parent_attributes:" + parentSignature);
+            }
+        }
         String sourceSignature = SignatureUtil.stableSignature(signatureParts);
 
         String cachedSignature = service.stateRepository().readCombatSourceSignature(entity);
@@ -169,6 +175,9 @@ final class AttributeSnapshotCollector {
         mergeValues(values, service.defaultAttributeValues());
         if (itemResolver != null) {
             collectEquipmentSnapshots(itemResolver, playerOrNull, values);
+        }
+        if (playerOrNull != null && service.parentAttributeService() != null) {
+            mergeValues(values, service.parentAttributeService().contributionValues(playerOrNull));
         }
         mergeContributionProviders(entity, values);
         mergeValues(values, service.temporaryAttributeService().additiveValues(entity));

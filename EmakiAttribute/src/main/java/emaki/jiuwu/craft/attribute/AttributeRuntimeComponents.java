@@ -16,9 +16,14 @@ import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
+import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
+import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 
 record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
@@ -32,6 +37,11 @@ record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
         MessageService messageService,
         EmakiAttributeBridge emakiAttributeBridge,
         PdcAttributeApi.Bridge pdcAttributeApi,
+        ParentAttributeDataStore parentAttributeDataStore,
+        ParentAttributeService parentAttributeService,
+        GuiTemplateLoader guiTemplateLoader,
+        GuiService guiService,
+        AttributePointsGuiService attributePointsGuiService,
         AttributeService attributeService,
         List<Listener> listeners,
         AttributeCommand command,
@@ -52,6 +62,11 @@ record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
                 RuntimeComponents.component(EmakiAttributeBridge.class, emakiAttributeBridge),
                 RuntimeComponents.component(PdcAttributeApi.Bridge.class, pdcAttributeApi),
                 RuntimeComponents.component(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, pdcAttributeApi),
+                RuntimeComponents.component(ParentAttributeDataStore.class, parentAttributeDataStore),
+                RuntimeComponents.component(ParentAttributeService.class, parentAttributeService),
+                RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),
+                RuntimeComponents.component(GuiService.class, guiService),
+                RuntimeComponents.component(AttributePointsGuiService.class, attributePointsGuiService),
                 RuntimeComponents.component(AttributeService.class, attributeService),
                 RuntimeComponents.component(AttributeCommand.class, command),
                 RuntimeComponents.component(MythicBridge.class, mythicBridge)

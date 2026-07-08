@@ -51,6 +51,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final PerfectTakeoverCoordinator perfectTakeoverCoordinator;
     private final PdcAttributeService pdcAttributeService;
     private final TemporaryAttributeService temporaryAttributeService;
+    private final ParentAttributeService parentAttributeService;
 
     public AttributeService(EmakiAttributePlugin plugin,
             PdcService pdcService,
@@ -62,7 +63,8 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
             DefaultProfileRegistry defaultProfileRegistry,
             LoreFormatRegistry loreFormatRegistry,
             AttributePresetRegistry presetRegistry,
-            PdcAttributeService pdcAttributeService) {
+            PdcAttributeService pdcAttributeService,
+            ParentAttributeService parentAttributeService) {
         this.plugin = plugin;
         this.asyncTaskScheduler = asyncTaskScheduler;
         this.config = config == null ? AttributeConfig.defaults() : config;
@@ -73,6 +75,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.loreFormatRegistry = loreFormatRegistry;
         this.presetRegistry = presetRegistry;
         this.pdcAttributeService = pdcAttributeService;
+        this.parentAttributeService = parentAttributeService;
         this.loreParser = new LoreParser(attributeRegistry, loreFormatRegistry);
         this.damageEngine = new DamageEngine();
         this.asyncDamageEngine = new AsyncDamageEngine(asyncTaskScheduler, damageEngine);
@@ -214,9 +217,20 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return temporaryAttributeService;
     }
 
+    public ParentAttributeService parentAttributeService() {
+        return parentAttributeService;
+    }
+
+    public void invalidateCombatSnapshot(LivingEntity entity) {
+        stateRepository.clearCombatSnapshot(entity);
+    }
+
     public void shutdown() {
         if (config.healthDisplayScalingEnabled()) {
             resourceManagementService.resetHealthDisplayScaling();
+        }
+        if (parentAttributeService != null) {
+            parentAttributeService.saveAll();
         }
         temporaryAttributeService.close();
     }

@@ -14,8 +14,10 @@ import org.bukkit.inventory.PlayerInventory;
 import emaki.jiuwu.craft.attribute.api.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.model.AttributeContributionTrace;
+import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeSourceTraceReport;
+import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -46,6 +48,7 @@ public final class AttributeTraceService {
         List<AttributeContributionTrace> traces = new ArrayList<>();
         addDefaultProfileContributions(reconstructed, traces, filter);
         addEquipmentContributions(player, reconstructed, traces, filter);
+        addParentAttributeContributions(player, reconstructed, traces, filter);
         addProviderContributions(player, reconstructed, traces, filter);
         addTemporaryContributions(player, reconstructed, traces, filter);
         AttributeSnapshot finalSnapshot = service.collectCombatSnapshot(player);
@@ -106,6 +109,33 @@ public final class AttributeTraceService {
                 } else if (matches(filter, id)) {
                     traces.add(new AttributeContributionTrace(id, 0D, "EmakiAttribute", "pdc", slot, label + " / PDC（条件未通过）", slot, "", "pdc", false, "", raw, 0D));
                 }
+            }
+        }
+    }
+
+    private void addParentAttributeContributions(Player player,
+            Map<String, Double> reconstructed,
+            List<AttributeContributionTrace> traces,
+            String filter) {
+        if (service.parentAttributeService() == null) {
+            return;
+        }
+        ParentAttributeData data = service.parentAttributeService().data(player);
+        if (data == null || data.allocations().isEmpty()) {
+            return;
+        }
+        for (AttributeDefinition parent : service.parentAttributeService().parentAttributes()) {
+            int points = data.allocation(parent.id());
+            if (points <= 0) {
+                continue;
+            }
+            addTrace(reconstructed, traces, parent.id(), points, "EmakiAttribute", "parent_attribute", parent.id(), parent.displayName() + " 加点", "", "", "parent_attribute", true, "points", filter);
+            for (Map.Entry<String, Double> bonus : parent.childBonuses().entrySet()) {
+                if (bonus.getValue() == null) {
+                    continue;
+                }
+                double value = points * bonus.getValue();
+                addTrace(reconstructed, traces, bonus.getKey(), value, "EmakiAttribute", "parent_attribute", parent.id(), parent.displayName() + " 加点", "", "", "parent_attribute", true, parent.id() + " * " + bonus.getValue(), filter, bonus.getValue(), value);
             }
         }
     }

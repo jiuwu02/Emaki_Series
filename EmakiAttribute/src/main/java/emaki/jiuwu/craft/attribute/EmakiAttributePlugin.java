@@ -32,9 +32,12 @@ import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
+import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
+import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeExtensionLoader;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
@@ -46,6 +49,8 @@ import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
 import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
@@ -84,6 +89,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private MessageService messageService;
     private EmakiAttributeBridge emakiAttributeBridge;
     private PdcAttributeApi.Bridge pdcAttributeApi;
+    private ParentAttributeDataStore parentAttributeDataStore;
+    private ParentAttributeService parentAttributeService;
+    private GuiTemplateLoader guiTemplateLoader;
+    private GuiService guiService;
+    private AttributePointsGuiService attributePointsGuiService;
     private AttributeService attributeService;
     private List<Listener> listeners = List.of();
     private AttributeCommand command;
@@ -221,6 +231,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         messageService = components.messageService();
         emakiAttributeBridge = components.emakiAttributeBridge();
         pdcAttributeApi = components.pdcAttributeApi();
+        parentAttributeDataStore = components.parentAttributeDataStore();
+        parentAttributeService = components.parentAttributeService();
+        guiTemplateLoader = components.guiTemplateLoader();
+        guiService = components.guiService();
+        attributePointsGuiService = components.attributePointsGuiService();
         attributeService = components.attributeService();
         listeners = components.listeners();
         command = components.command();
@@ -318,6 +333,26 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public PdcAttributeApi.Bridge pdcAttributeApi() {
         return pdcAttributeApi;
+    }
+
+    public ParentAttributeDataStore parentAttributeDataStore() {
+        return parentAttributeDataStore;
+    }
+
+    public ParentAttributeService parentAttributeService() {
+        return parentAttributeService;
+    }
+
+    public GuiTemplateLoader guiTemplateLoader() {
+        return guiTemplateLoader;
+    }
+
+    public GuiService guiService() {
+        return guiService;
+    }
+
+    public AttributePointsGuiService attributePointsGuiService() {
+        return attributePointsGuiService;
     }
 
     public AttributeService attributeService() {

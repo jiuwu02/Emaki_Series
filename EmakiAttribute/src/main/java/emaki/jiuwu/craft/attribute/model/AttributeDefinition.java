@@ -1,8 +1,10 @@
 package emaki.jiuwu.craft.attribute.model;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -22,7 +24,9 @@ public record AttributeDefinition(String id,
         String description,
         double attributePower,
         List<String> tags,
-        TemporaryStackMode temporaryStackMode) {
+        TemporaryStackMode temporaryStackMode,
+        boolean parentAttribute,
+        Map<String, Double> childBonuses) {
 
     public AttributeDefinition {
         id = normalizeId(id);
@@ -37,6 +41,7 @@ public record AttributeDefinition(String id,
         attributePower = Double.isNaN(attributePower) ? 1D : attributePower;
         tags = normalizeTags(tags);
         temporaryStackMode = temporaryStackMode == null ? TemporaryStackMode.REPLACE : temporaryStackMode;
+        childBonuses = normalizeChildBonuses(childBonuses);
     }
 
     public double clamp(double value) {
@@ -87,6 +92,22 @@ public record AttributeDefinition(String id,
             }
         }
         return normalized.isEmpty() ? List.of() : List.copyOf(normalized);
+    }
+
+    private static Map<String, Double> normalizeChildBonuses(Map<String, Double> childBonuses) {
+        if (childBonuses == null || childBonuses.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Double> normalized = new LinkedHashMap<>();
+        for (Map.Entry<String, Double> entry : childBonuses.entrySet()) {
+            String id = normalizeId(entry.getKey());
+            Double value = entry.getValue();
+            if (Texts.isBlank(id) || value == null || !Double.isFinite(value) || Math.abs(value) <= 1.0E-9D) {
+                continue;
+            }
+            normalized.merge(id, value, Double::sum);
+        }
+        return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
     }
 
     private static String normalizeId(String value) {

@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.4.11"
+version: "4.4.12"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -82,6 +82,10 @@ loader:
   duplicate_id: "<red>%type% file %file% has duplicate ID: %id%.</red>"
   invalid_lore_pattern: "<red>%attribute% has invalid lore regex: %pattern% (%error%)</red>"
   load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
+  parent_child_bonus_on_non_parent: "<red>%attribute% declares child_bonuses but is not a parent attribute.</red>"
+  parent_child_bonus_unknown: "<red>Parent attribute %parent% references unknown child attribute: %child%</red>"
+  parent_child_bonus_parent_target: "<red>Parent attribute %parent% child_bonuses cannot target another parent attribute: %child%</red>"
+  damage_type_parent_attribute_forbidden: "<red>Damage type stages cannot directly reference parent attribute: %attribute%</red>"
 
 label:
   attribute: "Attribute"
@@ -261,6 +265,24 @@ command:
       console.</green>"
     disabled: "<yellow>Combat debug logging disabled for %player%.</yellow>"
 
+  points:
+    no_permission: "<red>You do not have permission to use attribute points.</red>"
+    console_usage: "<yellow>Console usage: /emakiattribute points <view|open|add|reset|grant|set|setreset> <player> ...</yellow>"
+    usage: "<yellow>Usage: /emakiattribute points [view|open|add|reset]; admins may use grant/set/setreset.</yellow>"
+    admin_usage: "<yellow>Admin usage: /emakiattribute points <grant|set|setreset> <player> <amount> or /ea points add <player> <parent attribute> [amount]</yellow>"
+    player_not_found: "<red>Online player %player% not found.</red>"
+    unknown_attribute: "<red>Unknown parent attribute: %attribute%</red>"
+    gui_failed: "<red>Attribute points GUI is not loaded. Check gui/attribute_points.yml.</red>"
+    header: "<gold>========== %player%'s Attribute Points ==========</gold> <gray>available %available%, resets %reset%, allocated %allocated%</gray>"
+    line: "<gray>%display_name% <dark_gray>(%attribute%)</dark_gray>: <yellow>%points%</yellow></gray>"
+    add_success: "<green>Added %amount% point(s) to %player%'s %attribute%.</green>"
+    add_failed: "<red>Failed to add points: %reason%</red>"
+    set_success: "<green>Set %player%'s available attribute points to %amount%.</green>"
+    grant_success: "<green>Granted %amount% available attribute point(s) to %player%.</green>"
+    set_reset_success: "<green>Set %player%'s reset points to %amount%.</green>"
+    reset_success: "<green>Reset parent attribute allocations for %player%.</green>"
+    reset_failed: "<red>Reset failed: %reason%</red>"
+
   lint:
     no_permission: "<red>You do not have permission to run this command.</red>"
     header: "<gold>========== EmakiAttribute Lint ==========</gold>"
@@ -287,6 +309,9 @@ command:
     trace:
       "<gray>/emakiattribute trace <last|list|export|clear> <player></gray> View
       damage Trace records."
+    points:
+      "<gray>/emakiattribute points [view|open|add|reset]</gray> View attribute
+      points, open the allocation GUI, or allocate parent attributes."
     lint: "<gray>/emakiattribute lint</gray> Check config and resource loading
       issues."
 

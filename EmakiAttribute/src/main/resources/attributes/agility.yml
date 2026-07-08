@@ -1,0 +1,35 @@
+# EmakiAttribute 父级属性定义 - 敏捷
+
+id: agility
+
+display_name: "敏捷"
+
+value_kind: DERIVED
+
+target_type: GENERIC
+
+target_id: parent_attribute
+
+default_value: 0.0
+
+min_value: 0.0
+
+max_value: 999999.0
+
+allow_negative: false
+
+priority: 990
+
+lore_format_id: ""
+
+attribute_power: 0.0
+
+parent_attribute: true
+
+child_bonuses:
+  physical_crit_rate: 0.1
+  projectile_crit_rate: 0.1
+  dodge_chance: 0.05
+  speed: 0.01
+
+description: "每点敏捷提升暴击率、闪避率与少量移动速度。"

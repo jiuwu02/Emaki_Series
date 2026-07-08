@@ -1,0 +1,34 @@
+# EmakiAttribute 父级属性定义 - 智力
+
+id: intelligence
+
+display_name: "智力"
+
+value_kind: DERIVED
+
+target_type: GENERIC
+
+target_id: parent_attribute
+
+default_value: 0.0
+
+min_value: 0.0
+
+max_value: 999999.0
+
+allow_negative: false
+
+priority: 980
+
+lore_format_id: ""
+
+attribute_power: 0.0
+
+parent_attribute: true
+
+child_bonuses:
+  spell_attack: 1.0
+  mana: 5.0
+  mana_regen: 0.02
+
+description: "每点智力提升法术伤害、法力值与法力回复。"

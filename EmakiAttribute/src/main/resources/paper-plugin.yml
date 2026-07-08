@@ -30,5 +30,9 @@ permissions:
     default: op
   emakiattribute.debug:
     default: op
+  emakiattribute.points:
+    default: true
+  emakiattribute.points.admin:
+    default: op
   emakiattribute.admin:
     default: op
