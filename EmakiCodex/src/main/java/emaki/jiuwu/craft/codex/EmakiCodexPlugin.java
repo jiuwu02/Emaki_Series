@@ -10,7 +10,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.codex.action.GrantAdvancementAction;
+import emaki.jiuwu.craft.codex.action.CodexActionRegistrar;
 import emaki.jiuwu.craft.codex.advancement.AdvancementJsonBuilder;
 import emaki.jiuwu.craft.codex.advancement.AdvancementListener;
 import emaki.jiuwu.craft.codex.advancement.AdvancementPlatform;
@@ -133,7 +133,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void registerActions() {
         EmakiCoreLibPlugin coreLib = coreLib();
-        coreLib.actionRegistry().register(this, "codex", new GrantAdvancementAction(this));
+        new CodexActionRegistrar(this).register(coreLib.actionRegistry());
     }
 
     private void registerCommandHandler() {

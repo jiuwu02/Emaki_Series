@@ -26,6 +26,10 @@ public final class NutritionActionRegistrar {
         register(registry, NutritionOperationType.ADD, List.of("emakicookingaddnutrition", "ecaddnutrition", "cookingaddnutrition"));
         register(registry, NutritionOperationType.REMOVE, List.of("emakicookingremovenutrition", "ecremovenutrition", "ectakenutrition", "cookingremovenutrition"));
         register(registry, NutritionOperationType.SET, List.of("emakicookingsetnutrition", "ecsetnutrition", "cookingsetnutrition"));
+        registry.register(plugin, "emakicooking", new NutritionResetAction(plugin, "emakicookingclearnutrition", NutritionResetAction.Mode.CLEAR));
+        registry.register(plugin, "emakicooking", new NutritionResetAction(plugin, "emakicookingresetnutrition", NutritionResetAction.Mode.RESET));
+        registry.register(plugin, "emakicooking", new NutritionThresholdRecheckAction(plugin, "emakicookingrechecknutritionthreshold"));
+        registry.register(plugin, "emakicooking", new RunRecipeRewardAction(plugin, "emakicookingrunrecipereward"));
     }
 
     private void register(ActionRegistry registry, NutritionOperationType type, List<String> ids) {

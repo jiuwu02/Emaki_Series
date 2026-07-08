@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.skills.action.CastSkillAction;
+import emaki.jiuwu.craft.skills.action.SkillsActionRegistrar;
 import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
 import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
@@ -278,7 +278,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void registerCoreLibActions() {
-        coreLib().actionRegistry().register(new CastSkillAction(mythicSkillCastService));
+        SkillsActionRegistrar.registerAll(coreLib().actionRegistry(), this, mythicSkillCastService,
+                playerSkillStateService, skillLevelService, skillUpgradeService, playerSkillDataStore);
     }
 
     private void reloadJavaScriptSkillExtensions() {
@@ -338,7 +339,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void unregisterCoreLibActions() {
-        coreLib().actionRegistry().unregister("castskill");
+        SkillsActionRegistrar.unregisterAll(coreLib().actionRegistry(), this);
     }
 
     private void ensurePlaceholderExpansion() {

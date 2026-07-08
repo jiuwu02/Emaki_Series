@@ -220,6 +220,15 @@ public final class NutritionService {
 
     // ===================== 阈值判定 =====================
 
+    public boolean recheckThresholds(Player player) {
+        if (!enabled || player == null) {
+            return false;
+        }
+        PlayerNutritionData data = dataStore.getOrLoad(player.getUniqueId(), typeRegistry.asMap());
+        evaluateThresholds(player, data);
+        return true;
+    }
+
     private void evaluateThresholds(Player player, PlayerNutritionData data) {
         if (!enabled || player == null || data == null) {
             return;

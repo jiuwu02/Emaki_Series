@@ -29,6 +29,7 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.forge.action.ForgeActionRegistrar;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
@@ -114,6 +115,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         bootstrapService.bootstrap();
         reloadPluginState(false);
         registerCommandHandler();
+        registerActions();
         registerEventHandlers();
         registerPublicApiService();
         registerWebConsole();
@@ -130,6 +132,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             placeholderExpansion = null;
         }
         WebConsoleRegistry.unregisterModule(this);
+        EmakiCoreLibPlugin coreLib = coreLib();
+        if (coreLib != null && coreLib.actionRegistry() != null) {
+            coreLib.actionRegistry().unregisterAll(this);
+        }
         EmakiForgeApi.uninstall(forgeApiBridge);
         if (metrics != null) {
             metrics.close();
@@ -187,6 +193,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 java.util.List.of("eforge", "ef"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiforge.use", commandRouter, commandRouter)
         );
+    }
+
+    private void registerActions() {
+        new ForgeActionRegistrar(this).register(coreLib().actionRegistry());
     }
 
     private void registerEventHandlers() {

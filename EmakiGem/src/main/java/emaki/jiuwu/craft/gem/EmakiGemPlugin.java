@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.gem.action.GemActionRegistrar;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.config.GemConfigPrecheckContributor;
@@ -139,6 +140,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         bootstrapService.bootstrap();
         reloadPluginState(false);
         registerCommandHandler();
+        registerActions();
         registerEventHandlers();
         registerPublicApiService();
         registerWebConsole();
@@ -156,6 +158,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         }
         WebConsoleRegistry.unregisterModule(this);
         WebItemLayerPreviewRegistry.unregister(this);
+        EmakiCoreLibPlugin coreLib = coreLib();
+        if (coreLib != null && coreLib.actionRegistry() != null) {
+            coreLib.actionRegistry().unregisterAll(this);
+        }
         EmakiGemApi.uninstall(gemApiBridge);
         if (metrics != null) {
             metrics.close();
@@ -220,6 +226,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
                 java.util.List.of("egem", "eg"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakigem.use", commandRouter, commandRouter)
         );
+    }
+
+    private void registerActions() {
+        new GemActionRegistrar(this).register(coreLib().actionRegistry());
     }
 
     private void registerEventHandlers() {

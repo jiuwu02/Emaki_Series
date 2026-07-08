@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.api.LevelOperationType;
+import emaki.jiuwu.craft.level.api.LevelUpCause;
 
 final class LevelOperationAction implements Action {
 
@@ -49,6 +50,13 @@ final class LevelOperationAction implements Action {
 
     @Override
     public List<ActionParameter> parameters() {
+        if (operationType == LevelOperationType.RESET || operationType == LevelOperationType.LEVEL_UP) {
+            return List.of(
+                    ActionParameter.required("type", ActionParameterType.STRING, "Level type id."),
+                    ActionParameter.optional("target", ActionParameterType.STRING, "", "Target player name. Defaults to action context player."),
+                    ActionParameter.optional("reason", ActionParameterType.STRING, "action", "Operation reason.")
+            );
+        }
         return List.of(
                 ActionParameter.required("type", ActionParameterType.STRING, "Level type id."),
                 ActionParameter.required("amount", ActionParameterType.STRING, "Experience or level amount or expression."),
@@ -77,6 +85,8 @@ final class LevelOperationAction implements Action {
             case ADD_LEVEL -> plugin.levelService().addLevel(targetId, type, (int) Math.round(amount), reason);
             case SET_LEVEL -> plugin.levelService().setLevel(targetId, type, (int) Math.round(amount), reason);
             case REMOVE_LEVEL -> plugin.levelService().removeLevel(targetId, type, (int) Math.round(amount), reason);
+            case RESET -> plugin.levelService().reset(targetId, type);
+            case LEVEL_UP -> plugin.levelService().levelUp(targetId, type, LevelUpCause.ACTION);
             default -> LevelOperationResult.failure("unsupported_operation", operationType, type);
         };
         if (!result.success()) {

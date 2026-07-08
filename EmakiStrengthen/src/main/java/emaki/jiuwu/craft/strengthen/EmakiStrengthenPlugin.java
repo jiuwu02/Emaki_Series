@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.strengthen.action.StrengthenActionRegistrar;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
@@ -143,6 +144,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         bootstrapService.bootstrap();
         reloadPluginState(false);
         registerApi();
+        registerActions();
         registerCommandHandler();
         registerEventHandlers();
         registerWebConsole();
@@ -160,6 +162,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         }
         WebConsoleRegistry.unregisterModule(this);
         WebPluginApiRegistry.unregister(this);
+        EmakiCoreLibPlugin coreLib = coreLib();
+        if (coreLib != null && coreLib.actionRegistry() != null) {
+            coreLib.actionRegistry().unregisterAll(this);
+        }
         WebItemLayerPreviewRegistry.unregister(this);
         EmakiStrengthenApi.uninstall(strengthenApiBridge);
         getServer().getServicesManager().unregisterAll(this);
@@ -216,6 +222,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private void registerApi() {
         EmakiStrengthenApi.install(strengthenApiBridge);
+    }
+
+    private void registerActions() {
+        new StrengthenActionRegistrar(this).register(coreLib().actionRegistry());
     }
 
     private void registerCommandHandler() {

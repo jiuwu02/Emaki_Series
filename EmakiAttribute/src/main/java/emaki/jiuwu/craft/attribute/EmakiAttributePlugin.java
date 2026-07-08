@@ -392,7 +392,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         if (coreLibPlugin.actionRegistry() == null || attributeService == null) {
             return;
         }
-        AttributeActions.registerAll(coreLibPlugin.actionRegistry(), attributeService);
+        AttributeActions.registerAll(coreLibPlugin.actionRegistry(), this, attributeService);
     }
 
     private void reloadJavaScriptAttributeExtensions() {
@@ -425,7 +425,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         if (coreLibPlugin.actionRegistry() == null) {
             return;
         }
-        AttributeActions.unregisterAll(coreLibPlugin.actionRegistry());
+        AttributeActions.unregisterAll(coreLibPlugin.actionRegistry(), this);
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin) {

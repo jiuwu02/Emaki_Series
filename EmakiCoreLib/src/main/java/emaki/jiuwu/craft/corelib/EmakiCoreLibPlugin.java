@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.event.HandlerList;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -33,16 +32,14 @@ import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.apiimpl.DefaultEmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.OraxenBlockBridgeProvider;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.metrics.BStatsService;
@@ -118,43 +115,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private DebugLogger debugLogger;
     private WebConsoleService webConsoleService;
     private CoreLibCommandRouter commandRouter;
-    private final EmakiCoreLibApi.Bridge coreLibApiBridge = new EmakiCoreLibApi.Bridge() {
-        @Override
-        public String apiVersion() {
-            return getDescription().getVersion();
-        }
-
-        @Override
-        public String pluginName() {
-            return getName();
-        }
-
-        @Override
-        public boolean isReady() {
-            return isEnabled() && messageService() != null;
-        }
-
-        @Override
-        public String itemDisplayName(String itemSource) {
-            ItemSource source = ItemSourceUtil.parse(itemSource);
-            String displayName = itemSourceService.displayName(source);
-            return emaki.jiuwu.craft.corelib.text.Texts.isBlank(displayName)
-                    ? emaki.jiuwu.craft.corelib.text.Texts.toStringSafe(itemSource)
-                    : displayName;
-        }
-
-        @Override
-        public String itemDisplayName(ItemStack itemStack) {
-            if (itemStack == null || itemStack.getType().isAir()) {
-                return "";
-            }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
-            String displayName = itemSourceService.displayName(source);
-            return emaki.jiuwu.craft.corelib.text.Texts.isBlank(displayName)
-                    ? ItemTextBridge.effectiveNameText(itemStack)
-                    : displayName;
-        }
-    };
+    private final EmakiCoreLibApi.Bridge coreLibApiBridge = new DefaultEmakiCoreLibApi(this);
     private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
     private MythicJavaScriptBridge mythicJavaScriptBridge;
     private emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher gameplayEventPublisher;

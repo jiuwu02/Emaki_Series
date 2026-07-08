@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightAliasRegistry;
 import emaki.jiuwu.craft.corelib.web.insight.WebInsightAliasResolver;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.item.action.ItemActionRegistrar;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.config.ItemConfigPrecheckContributor;
@@ -167,6 +168,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         reloadPluginState();
         EmakiItemApi.install(itemApiBridge);
         lifecycleCoordinator.registerServices(this);
+        registerActions();
         registerCommandHandler();
         registerEventHandlers();
         registerWebConsole();
@@ -189,13 +191,16 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         WebConsoleRegistry.unregisterModule(this);
         WebPluginApiRegistry.unregister(this);
         WebInsightAliasRegistry.unregister(this);
+        EmakiCoreLibPlugin coreLib = coreLib();
+        if (coreLib != null && coreLib.actionRegistry() != null) {
+            coreLib.actionRegistry().unregisterAll(this);
+        }
         if (javaScriptDefinitionRegistry != null) {
             javaScriptDefinitionRegistry.clear();
         }
         if (javaScriptFactoryRegistry != null) {
             javaScriptFactoryRegistry.clear();
         }
-        EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.javaScriptRegistrationTracker() != null) {
             coreLib.javaScriptRegistrationTracker().unregisterOwner(this);
         }
@@ -261,6 +266,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
                 java.util.List.of("ei"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiitem.use", commandRouter, commandRouter)
         );
+    }
+
+    private void registerActions() {
+        new ItemActionRegistrar(this).register(coreLib().actionRegistry());
     }
 
     private void registerEventHandlers() {

@@ -24,6 +24,8 @@ public final class LevelActionRegistrar {
         register(registry, LevelOperationType.ADD_LEVEL, List.of("emakileveladdlevel", "elvaddlevel", "leveladdlevel"));
         register(registry, LevelOperationType.SET_LEVEL, List.of("emakilevelsetlevel", "elvsetlevel", "levelsetlevel"));
         register(registry, LevelOperationType.REMOVE_LEVEL, List.of("emakilevelremovelevel", "elvremovelevel", "elvtakelevel", "levelremovelevel"));
+        register(registry, LevelOperationType.RESET, List.of("emakilevelreset", "elvreset", "levelreset"));
+        register(registry, LevelOperationType.LEVEL_UP, List.of("emakilevellevelup", "elvlevelup", "levellevelup"));
     }
 
     private void register(ActionRegistry registry, LevelOperationType type, List<String> ids) {

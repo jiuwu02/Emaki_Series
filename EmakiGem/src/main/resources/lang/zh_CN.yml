@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.4.3"
+version: "2.4.4"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiGem</gradient> ]</gray>"
