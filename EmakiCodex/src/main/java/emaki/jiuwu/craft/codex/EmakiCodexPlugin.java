@@ -133,7 +133,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void registerActions() {
         EmakiCoreLibPlugin coreLib = coreLib();
-        new CodexActionRegistrar(this).register(coreLib.actionRegistry());
+        new CodexActionRegistrar(this).register(coreLib.actionRegistry(), coreLib.itemSourceService());
     }
 
     private void registerCommandHandler() {

@@ -51,7 +51,6 @@ public final class BuiltinActions {
         registry.register(new SendMessageAction());
         registry.register(new SendTitleAction());
         registry.register(new SendActionBarAction());
-        registry.register(new ShowAchievementToastAction(itemSourceService));
         registry.register(new BroadcastMessageAction());
         registry.register(new PlaySoundAction());
         registry.register(new SpawnParticleAction());

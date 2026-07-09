@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin;
+package emaki.jiuwu.craft.codex.advancement.packet;
 
 import java.util.Collections;
 import java.util.List;

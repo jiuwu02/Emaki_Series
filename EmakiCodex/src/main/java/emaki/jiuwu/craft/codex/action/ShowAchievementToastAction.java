@@ -1,7 +1,8 @@
-package emaki.jiuwu.craft.corelib.action.builtin;
+package emaki.jiuwu.craft.codex.action;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -12,6 +13,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
+import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
@@ -24,56 +27,80 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class ShowAchievementToastAction extends BaseAction {
+/** Shows a client-only advancement toast through EmakiCodex's PacketEvents bridge. */
+public final class ShowAchievementToastAction implements Action {
 
-    private static final String PACKET_BRIDGE_CLASS = "emaki.jiuwu.craft.corelib.action.builtin.AchievementToastPacketBridge";
+    private static final String ID = "showachievementtoast";
+    private static final String PACKET_BRIDGE_CLASS = "emaki.jiuwu.craft.codex.advancement.packet.AchievementToastPacketBridge";
     private static final String DEFAULT_ICON = "minecraft-book";
     private static final String DEFAULT_FRAME = "task";
     private static final String DEFAULT_REMOVE_DELAY = "20t";
 
+    private final EmakiCodexPlugin plugin;
     private final ItemSourceService itemSourceService;
+    private final List<ActionParameter> parameters = List.of(
+            ActionParameter.required("title", ActionParameterType.STRING, "Toast title"),
+            ActionParameter.optional("description", ActionParameterType.STRING, "", "Toast description"),
+            ActionParameter.optional("icon", ActionParameterType.STRING, DEFAULT_ICON, "Toast icon item source"),
+            ActionParameter.optional("frame", ActionParameterType.STRING, DEFAULT_FRAME, "Toast frame: task, goal, or challenge"),
+            ActionParameter.optional("id", ActionParameterType.STRING, "", "Optional client-side toast id"),
+            ActionParameter.optional("remove_delay", ActionParameterType.TIME, DEFAULT_REMOVE_DELAY, "Delay before removing the fake advancement packet")
+    );
 
-    public ShowAchievementToastAction(ItemSourceService itemSourceService) {
-        super(
-                "showachievementtoast",
-                "feedback",
-                "Show a client-side advancement toast without registering or granting an advancement.",
-                ActionParameter.required("title", ActionParameterType.STRING, "Toast title"),
-                ActionParameter.optional("description", ActionParameterType.STRING, "", "Toast description"),
-                ActionParameter.optional("icon", ActionParameterType.STRING, DEFAULT_ICON, "Toast icon item source"),
-                ActionParameter.optional("frame", ActionParameterType.STRING, DEFAULT_FRAME, "Toast frame: task, goal, or challenge"),
-                ActionParameter.optional("id", ActionParameterType.STRING, "", "Optional client-side toast id"),
-                ActionParameter.optional("remove_delay", ActionParameterType.TIME, DEFAULT_REMOVE_DELAY, "Delay before removing the fake advancement packet")
-        );
+    public ShowAchievementToastAction(EmakiCodexPlugin plugin, ItemSourceService itemSourceService) {
+        this.plugin = plugin;
         this.itemSourceService = itemSourceService;
     }
 
     @Override
+    public String id() {
+        return ID;
+    }
+
+    @Override
+    public String category() {
+        return "codex";
+    }
+
+    @Override
+    public String description() {
+        return "Show a client-side advancement toast without registering or granting an advancement.";
+    }
+
+    @Override
+    public List<ActionParameter> parameters() {
+        return parameters;
+    }
+
+    @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
-        ActionResult playerCheck = requirePlayerResult(context);
-        if (!playerCheck.success()) {
-            return playerCheck;
+        Player player = context == null ? null : context.player();
+        if (player == null) {
+            return ActionResult.failure(ActionErrorType.INVALID_STATE, "Action '" + id() + "' requires a player context.");
         }
         if (!isPacketEventsPresent()) {
             return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "PacketEvents is required to show achievement toasts.");
+        }
+        String title = stringArg(arguments, "title");
+        if (Texts.isBlank(title)) {
+            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, id() + " requires a 'title' argument.");
         }
         String frame = frameArgument(arguments);
         if (frame == null) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Unknown achievement toast frame: " + stringWithDefault(arguments, "frame", DEFAULT_FRAME));
         }
-        Player player = context.player();
-        String key = "emakicorelib:toast/" + toastId(arguments);
+        String key = "emakicodex:toast/" + toastId(arguments);
         ItemStack icon = resolveIcon(stringWithDefault(arguments, "icon", DEFAULT_ICON));
         try {
             boolean sent = invokeBridge("send", player, key,
-                    stringArg(arguments, "title"),
+                    title,
                     stringWithDefault(arguments, "description", ""),
                     icon,
                     frame);
             if (!sent) {
                 return ActionResult.failure(ActionErrorType.INVALID_STATE, "Could not send achievement toast packet to player.");
             }
-            scheduleRemoval(context, player, key, removeDelay(arguments));
+            scheduleRemoval(player, key, removeDelay(arguments));
             return ActionResult.ok(Map.of("advancement", key, "frame", frame));
         } catch (Throwable throwable) {
             return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Could not show achievement toast: " + rootMessage(throwable));
@@ -138,16 +165,12 @@ public final class ShowAchievementToastAction extends BaseAction {
         }
     }
 
-    private void scheduleRemoval(ActionContext context, Player player, String key, long removeDelayTicks) {
-        Plugin schedulerPlugin = context == null ? null : context.sourcePlugin();
-        if (schedulerPlugin == null) {
-            schedulerPlugin = Bukkit.getPluginManager().getPlugin("EmakiCoreLib");
-        }
-        if (schedulerPlugin == null || !schedulerPlugin.isEnabled()) {
+    private void scheduleRemoval(Player player, String key, long removeDelayTicks) {
+        if (plugin == null || !plugin.isEnabled()) {
             removeToast(player, key);
             return;
         }
-        FoliaSchedulerAdapter.runEntityTaskLater(schedulerPlugin, player, () -> removeToast(player, key), removeDelayTicks);
+        FoliaSchedulerAdapter.runEntityTaskLater(plugin, player, () -> removeToast(player, key), removeDelayTicks);
     }
 
     private void removeToast(Player player, String key) {
@@ -162,6 +185,10 @@ public final class ShowAchievementToastAction extends BaseAction {
         Plugin upper = Bukkit.getPluginManager().getPlugin("PacketEvents");
         Plugin lower = Bukkit.getPluginManager().getPlugin("packetevents");
         return (upper != null && upper.isEnabled()) || (lower != null && lower.isEnabled());
+    }
+
+    private String stringArg(Map<String, String> arguments, String key) {
+        return Texts.toStringSafe(arguments == null ? null : arguments.get(key));
     }
 
     private String stringWithDefault(Map<String, String> arguments, String key, String fallback) {

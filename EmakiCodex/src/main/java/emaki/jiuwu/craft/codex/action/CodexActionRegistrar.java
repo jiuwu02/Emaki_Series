@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.codex.action;
 
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 /** Registers EmakiCodex actions into CoreLib's ActionRegistry. */
 public final class CodexActionRegistrar {
@@ -14,7 +15,7 @@ public final class CodexActionRegistrar {
         this.plugin = plugin;
     }
 
-    public void register(ActionRegistry registry) {
+    public void register(ActionRegistry registry, ItemSourceService itemSourceService) {
         if (registry == null) {
             return;
         }
@@ -23,5 +24,6 @@ public final class CodexActionRegistrar {
         registry.register(plugin, SOURCE, new ResyncAdvancementAction(plugin, "codex_resync_advancement"));
         registry.register(plugin, SOURCE, new ResetAdvancementAction(plugin, ResetAdvancementAction.Mode.PAGE, "codex_reset_page"));
         registry.register(plugin, SOURCE, new ResetAdvancementAction(plugin, ResetAdvancementAction.Mode.ALL, "codex_reset_all"));
+        registry.register(plugin, SOURCE, new ShowAchievementToastAction(plugin, itemSourceService));
     }
 }
