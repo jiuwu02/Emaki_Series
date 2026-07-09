@@ -648,7 +648,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
         @Override
         public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, args);
+            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
+            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
             return suggestions == null ? java.util.List.of() : suggestions;
         }
 

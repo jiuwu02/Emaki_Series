@@ -42,7 +42,8 @@ public final class CoreLibBasicCommand implements BasicCommand {
     @Override
     public @NotNull Collection<String> suggest(@NotNull CommandSourceStack source, @NotNull String[] args) {
         CommandSender sender = source.getSender();
-        return router.onTabComplete(sender, null, ROOT_LABEL, args);
+        String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
+        return router.onTabComplete(sender, null, ROOT_LABEL, completionArgs);
     }
 
     @Override

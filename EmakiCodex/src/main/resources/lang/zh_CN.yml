@@ -5,7 +5,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.17"
+version: "1.0.18"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
