@@ -249,10 +249,12 @@ public final class SkillsGuiService {
             sourceLabel = switch (entry.sourceType()) {
                 case EQUIPMENT -> "装备";
                 case PROVIDER -> "外部来源";
+                case MANUAL -> "手动解锁";
             };
             String coloredSourceLabel = switch (entry.sourceType()) {
                 case EQUIPMENT -> "<blue>装备";
                 case PROVIDER -> "<light_purple>外部来源";
+                case MANUAL -> "<gold>手动解锁";
             };
             lore.add("<dark_gray>来源: " + coloredSourceLabel);
         }
