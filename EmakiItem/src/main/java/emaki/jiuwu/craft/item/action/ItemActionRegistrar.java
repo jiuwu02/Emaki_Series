@@ -1,7 +1,5 @@
 package emaki.jiuwu.craft.item.action;
 
-import java.util.List;
-
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
@@ -17,23 +15,11 @@ public final class ItemActionRegistrar {
         if (registry == null) {
             return;
         }
-        for (String id : List.of("emakiitem_update", "emakiitemupdate", "item_update", "itemupdate")) {
-            registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, id, ItemHeldItemAction.Operation.UPDATE));
-        }
-        for (String id : List.of("emakiitem_rerender", "emakiitemrerender", "item_rerender", "itemrerender")) {
-            registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, id, ItemHeldItemAction.Operation.RERENDER));
-        }
-        for (String id : List.of("emakiitem_repair_amount", "emakiitemrepairamount", "item_repair_amount", "itemrepairamount")) {
-            registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, id, ItemHeldItemAction.Operation.REPAIR_AMOUNT));
-        }
-        for (String id : List.of("emakiitem_damage", "emakiitemdamage", "item_damage", "itemdamage")) {
-            registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, id, ItemHeldItemAction.Operation.DAMAGE));
-        }
-        for (String id : List.of("emakiitem_set_damage", "emakiitemsetdamage", "item_set_damage", "itemsetdamage")) {
-            registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, id, ItemHeldItemAction.Operation.SET_DAMAGE));
-        }
-        for (String id : List.of("emakiitem_set_durability", "emakiitemsetdurability", "item_set_durability", "itemsetdurability")) {
-            registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, id, ItemHeldItemAction.Operation.SET_DURABILITY));
-        }
+        registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, "emakiitem_update", ItemHeldItemAction.Operation.UPDATE));
+        registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, "emakiitem_rerender", ItemHeldItemAction.Operation.RERENDER));
+        registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, "emakiitem_repair_amount", ItemHeldItemAction.Operation.REPAIR_AMOUNT));
+        registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, "emakiitem_damage", ItemHeldItemAction.Operation.DAMAGE));
+        registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, "emakiitem_set_damage", ItemHeldItemAction.Operation.SET_DAMAGE));
+        registry.register(plugin, "emakiitem", new ItemHeldItemAction(plugin, "emakiitem_set_durability", ItemHeldItemAction.Operation.SET_DURABILITY));
     }
 }

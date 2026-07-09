@@ -15,7 +15,7 @@ function register() {
       attack_damage: 10
     },
     actions: {
-      give: ["message text=<gold>你获得了 JS 活动之剑！</gold>"]
+      give: ["sendmessage text=<gold>你获得了 JS 活动之剑！</gold>"]
     }
   });
 

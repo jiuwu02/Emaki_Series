@@ -1,7 +1,5 @@
 package emaki.jiuwu.craft.forge.action;
 
-import java.util.List;
-
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 
@@ -17,14 +15,12 @@ public final class ForgeActionRegistrar {
         if (registry == null || plugin == null) {
             return;
         }
-        register(registry, ForgeRefreshAction.Operation.HELD_ITEM, List.of("emakiforge_refresh_held", "emakiforgerefreshheld", "forge_refresh_held", "forgerefreshheld"));
-        register(registry, ForgeRefreshAction.Operation.PLAYER_INVENTORY, List.of("emakiforge_refresh_player", "emakiforgerefreshplayer", "forge_refresh_player", "forgerefreshplayer"));
-        register(registry, ForgeRefreshAction.Operation.ONLINE_PLAYERS, List.of("emakiforge_refresh_all", "emakiforgerefreshall", "forge_refresh_all", "forgerefreshall"));
+        register(registry, ForgeRefreshAction.Operation.HELD_ITEM, "emakiforge_refresh_held");
+        register(registry, ForgeRefreshAction.Operation.PLAYER_INVENTORY, "emakiforge_refresh_player");
+        register(registry, ForgeRefreshAction.Operation.ONLINE_PLAYERS, "emakiforge_refresh_all");
     }
 
-    private void register(ActionRegistry registry, ForgeRefreshAction.Operation operation, List<String> ids) {
-        for (String id : ids) {
-            registry.register(plugin, "emakiforge", new ForgeRefreshAction(plugin, id, operation));
-        }
+    private void register(ActionRegistry registry, ForgeRefreshAction.Operation operation, String id) {
+        registry.register(plugin, "emakiforge", new ForgeRefreshAction(plugin, id, operation));
     }
 }

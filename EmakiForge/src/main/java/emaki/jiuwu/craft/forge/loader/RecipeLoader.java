@@ -145,18 +145,13 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             }
             Action action = actionRegistry.get(parsed.actionId());
             if (action == null) {
-                String suggestion = "";
-                String normalizedActionId = parsed.actionId().replace("_", "");
-                if (!normalizedActionId.equals(parsed.actionId()) && actionRegistry.get(normalizedActionId) != null) {
-                    suggestion = " 请改用标准操作名 '" + normalizedActionId + "'.";
-                }
                 forgePlugin.messageService().warning("loader.recipe_unknown_action", Map.of(
                         "action", parsed.actionId(),
                         "recipe", recipe.id(),
                         "file", file.getName(),
                         "phase", phase,
                         "line", parsed.lineNumber(),
-                        "suggestion", suggestion
+                        "suggestion", ""
                 ));
                 return false;
             }

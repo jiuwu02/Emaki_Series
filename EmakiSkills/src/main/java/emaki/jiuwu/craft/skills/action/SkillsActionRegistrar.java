@@ -38,9 +38,7 @@ public final class SkillsActionRegistrar {
         registry.register(owner, SOURCE, new SkillCooldownAction(SkillCooldownAction.CLEAR_ID, stateService, dataStore));
         registry.register(owner, SOURCE, new SkillCooldownAction(SkillCooldownAction.SET_ID, stateService, dataStore));
         registry.register(owner, SOURCE, new SkillLearnAction("skill_learn", SkillLearnAction.Operation.LEARN, manualSkillSourceService, stateService, dataStore));
-        registry.register(owner, SOURCE, new SkillLearnAction("skill_unlock", SkillLearnAction.Operation.LEARN, manualSkillSourceService, stateService, dataStore));
         registry.register(owner, SOURCE, new SkillLearnAction("skill_forget", SkillLearnAction.Operation.FORGET, manualSkillSourceService, stateService, dataStore));
-        registry.register(owner, SOURCE, new SkillLearnAction("skill_unlearn", SkillLearnAction.Operation.FORGET, manualSkillSourceService, stateService, dataStore));
         registry.register(owner, SOURCE, new SkillLearnAction("skill_forget_all", SkillLearnAction.Operation.FORGET_ALL, manualSkillSourceService, stateService, dataStore));
     }
 

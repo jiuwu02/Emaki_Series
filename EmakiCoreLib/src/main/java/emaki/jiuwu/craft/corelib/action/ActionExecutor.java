@@ -298,10 +298,6 @@ public final class ActionExecutor {
     }
 
     private ActionResult missingActionResult(String actionId) {
-        String normalized = Texts.toStringSafe(actionId).replace("_", "");
-        if (!normalized.equals(actionId) && registry.get(normalized) != null) {
-            return ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + actionId + ". Use '" + normalized + "' instead.");
-        }
         return ActionResult.failure(ActionErrorType.ACTION_NOT_FOUND, "Action not found: " + actionId);
     }
 
