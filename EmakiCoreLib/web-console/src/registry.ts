@@ -132,6 +132,21 @@ export type ConfigPreviewRegistration = {
   priority?: number;
 };
 
+export type InsightDefinitionRegistration = {
+  moduleId?: string;
+  pathPrefix?: string;
+  pathPattern?: string;
+  idType: string;
+  idPath?: string;
+  fallbackId?: 'basename' | 'none';
+  priority?: number;
+};
+
+export type InsightDefinitionContext = {
+  moduleId?: string;
+  path?: string;
+};
+
 export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string, extra?: { options?: string[]; optionLabelPrefix?: string }];
 export type ConfigMetaFieldEntry = [path: string, label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
 export type ConfigRuleFieldEntry = [label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
@@ -216,6 +231,8 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previe
   registerConfigPreview: typeof registerConfigPreview;
   getConfigPreview: typeof getConfigPreview;
   getAllConfigPreviews: typeof getAllConfigPreviews;
+  registerInsightDefinition: typeof registerInsightDefinition;
+  getInsightDefinition: typeof getInsightDefinition;
   standardGuiFields: typeof standardGuiFields;
   registerEditorDescriptor: typeof registerEditorDescriptor;
   registerEditorField: typeof registerEditorField;
@@ -254,10 +271,11 @@ export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previe
   registerModuleLocale: typeof i18n.registerModuleLocale;
 };
 
-export const EMAKI_WEB_CONSOLE_API_VERSION = '1.1.0';
+export const EMAKI_WEB_CONSOLE_API_VERSION = '1.2.0';
 
 const _registry: SurfaceRegistration[] = [];
 const _configPreviews: ConfigPreviewRegistration[] = [];
+const _insightDefinitions: InsightDefinitionRegistration[] = [];
 const _editorOverrides: Record<string, WebEditorDescriptor> = {};
 const _sourceAdapters: SourceAdapterRegistration[] = [];
 const _extensionStatuses: WebConsoleExtensionStatus[] = [];
@@ -381,6 +399,47 @@ export function getConfigPreview(context: { moduleId?: string; kind?: string; pa
 
 export function getAllConfigPreviews(): ConfigPreviewRegistration[] {
   return [..._configPreviews];
+}
+
+function insightDefinitionScore(reg: InsightDefinitionRegistration): number {
+  return (reg.priority ?? 0)
+    + (reg.moduleId ? 100 : 0)
+    + (reg.pathPattern ? 14 : 0)
+    + (reg.pathPrefix ? 10 + reg.pathPrefix.length / 1000 : 0);
+}
+
+export function registerInsightDefinition(reg: InsightDefinitionRegistration): void {
+  const idType = String(reg?.idType ?? '').trim();
+  if (!idType) return;
+  const next: InsightDefinitionRegistration = {
+    ...reg,
+    idType,
+    moduleId: reg.moduleId ? normalize(reg.moduleId) : undefined,
+    pathPrefix: normalizePreviewPath(reg.pathPrefix),
+    pathPattern: normalizePreviewPath(reg.pathPattern),
+    idPath: String(reg.idPath ?? 'id').trim() || 'id',
+    fallbackId: reg.fallbackId ?? 'basename'
+  };
+  const duplicate = _insightDefinitions.findIndex(existing =>
+    normalize(existing.moduleId) === normalize(next.moduleId)
+    && normalizePreviewPath(existing.pathPrefix) === next.pathPrefix
+    && normalizePreviewPath(existing.pathPattern) === next.pathPattern
+  );
+  if (duplicate >= 0) _insightDefinitions.splice(duplicate, 1);
+  _insightDefinitions.push(next);
+  _insightDefinitions.sort((a, b) => insightDefinitionScore(b) - insightDefinitionScore(a));
+}
+
+export function getInsightDefinition(context: InsightDefinitionContext): InsightDefinitionRegistration | undefined {
+  const moduleId = normalize(context.moduleId);
+  const path = normalizePreviewPath(context.path);
+  const match = _insightDefinitions.find(reg => {
+    if (reg.moduleId && normalize(reg.moduleId) !== moduleId) return false;
+    if (reg.pathPrefix && !path.startsWith(reg.pathPrefix)) return false;
+    if (reg.pathPattern && !previewPathPatternMatches(reg.pathPattern, path)) return false;
+    return true;
+  });
+  return match ? { ...match } : undefined;
 }
 
 export function recordExtensionStatus(status: WebConsoleExtensionStatus): void {
@@ -674,7 +733,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, registerJavaScriptMethod, registerJavaScriptMethods, getJavaScriptCompletionScopes, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, registerInsightDefinition, getInsightDefinition, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, registerJavaScriptMethod, registerJavaScriptMethods, getJavaScriptCompletionScopes, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;

@@ -1,10 +1,11 @@
-import { getLocale, localeText, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields } from 'emaki-web-console';
+import { getLocale, localeText, registerInsightDefinition, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields } from 'emaki-web-console';
 
 let registered = false;
 
 export function registerEmakiSkillsWebConsole(): void {
   if (registered) return;
   registered = true;
+  registerInsightDefinition({ moduleId: 'EmakiSkills', pathPrefix: 'skills/', idType: 'skill', idPath: 'id' });
   const MODULE = 'EmakiSkills';
 
   type FieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];

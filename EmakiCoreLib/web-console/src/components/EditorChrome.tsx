@@ -16,6 +16,7 @@ export type EditorChange = {
 export type EditorChromeProps = {
   title: ReactNode;
   subtitle?: ReactNode;
+  meta?: ReactNode;
   dirty: boolean;
   changes?: EditorChange[];
   changedCount?: number;
@@ -43,6 +44,7 @@ export type EditorChromeProps = {
 export function EditorChrome({
   title,
   subtitle,
+  meta,
   dirty,
   changes = [],
   changedCount,
@@ -109,6 +111,7 @@ export function EditorChrome({
       <div className="editor-chrome-title">
         <h2>{title}</h2>
         {subtitle && <p>{subtitle}{dirty && <span className="dirty-inline">{t('core.item.unsaved', undefined, 'Unsaved')}</span>}</p>}
+        {meta && <div className="editor-chrome-meta">{meta}</div>}
       </div>
       <ActionGroup className="editor-chrome-actions" role="toolbar" aria-label={t('core.editor.toolbarAria', undefined, 'Editor actions')}>
         {children}

@@ -6,7 +6,7 @@
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .strengthen-route-preview__header,
@@ -136,7 +136,7 @@
   padding: 12px;
   background: color-mix(in oklch, var(--surface-2) 72%, transparent);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .strengthen-route-preview__detail h4,

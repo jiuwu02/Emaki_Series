@@ -6,7 +6,7 @@
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .level-curve-preview__header,
@@ -128,7 +128,7 @@
 .level-curve-preview__inspector-empty {
   padding: 10px;
   border: 1px solid var(--line-2);
-  border-radius: 8px;
+  border-radius: 6px;
   background: color-mix(in oklch, var(--surface-2) 70%, transparent);
 }
 
@@ -192,7 +192,7 @@
 
 .level-curve-preview__table-group {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
   background: color-mix(in oklch, var(--surface-2) 54%, transparent);
 }

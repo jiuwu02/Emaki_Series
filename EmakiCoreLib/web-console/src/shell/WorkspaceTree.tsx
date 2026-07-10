@@ -326,7 +326,7 @@ function scrubSvgNode(element: Element): boolean {
 
 function buildTreeIndex(registry: WebRegistry): TreeIndex {
   const pathIndex = buildGlobChildPathIndex(registry.modules);
-  const roots = registry.tree?.length ? normalizeRegistryTree(registry.tree, pathIndex) : modulesToTree(registry.modules);
+  const roots = sortModuleRoots(registry.tree?.length ? normalizeRegistryTree(registry.tree, pathIndex) : modulesToTree(registry.modules));
   const rootIds = roots.map(node => node.id);
   const nodeById = new Map<string, RegistryTreeNode>();
   const childrenById = new Map<string, RegistryTreeNode[]>();
@@ -343,6 +343,20 @@ function buildTreeIndex(registry: WebRegistry): TreeIndex {
   };
   roots.forEach(root => visit(root));
   return { roots, rootIds, nodeById, childrenById, parentById, searchTextById };
+}
+
+const MODULE_NAME_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+
+function sortModuleRoots(roots: RegistryTreeNode[]): RegistryTreeNode[] {
+  return roots
+    .map((node, index) => ({ node, index }))
+    .sort((left, right) => MODULE_NAME_COLLATOR.compare(moduleSortKey(left.node), moduleSortKey(right.node)) || left.index - right.index)
+    .map(entry => entry.node);
+}
+
+function moduleSortKey(node: RegistryTreeNode): string {
+  const name = String(node.label || node.moduleId || node.id).trim();
+  return name.replace(/^emaki[\s_-]*/i, '');
 }
 
 function buildSearchState(index: TreeIndex, query: string): TreeSearchState {

@@ -1,4 +1,4 @@
-import { getLocale, localeText, registerFileKindLabel, registerModuleLocale, registerPluginConfig, getRuntimeEnum, registerSurface } from 'emaki-web-console';
+import { getLocale, localeText, registerFileKindLabel, registerInsightDefinition, registerModuleLocale, registerPluginConfig, getRuntimeEnum, registerSurface } from 'emaki-web-console';
 import { AttributeDiagnosticsPanel, installAttributeDiagnosticsStyles } from './diagnostics/AttributeDiagnosticsPanel';
 
 let registered = false;
@@ -6,6 +6,7 @@ let registered = false;
 export function registerEmakiAttributeWebConsole(): void {
   if (registered) return;
   registered = true;
+  registerInsightDefinition({ moduleId: 'EmakiAttribute', pathPrefix: 'attributes/', idType: 'attribute', idPath: 'id' });
   installAttributeDiagnosticsStyles();
   const MODULE = 'EmakiAttribute';
   const copy = localeText;

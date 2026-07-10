@@ -109,8 +109,8 @@ function probeLatency(): Promise<string[]> {
   return _probePromise;
 }
 
-if (typeof window !== 'undefined') {
-  window.setTimeout(() => { void probeLatency(); }, 0);
+function ensureTextureProbe(): void {
+  if (typeof window !== 'undefined' && !_resolvedBases) void probeLatency();
 }
 
 /** Get texture base URLs ordered by measured image load speed. */
@@ -132,6 +132,7 @@ export function normalizeMaterial(value: unknown): string {
 export function materialUrls(value: unknown): string[] {
   const material = normalizeMaterial(value);
   if (material === 'air') return [];
+  ensureTextureProbe();
   const candidates = materialTextureCandidates(material);
   const bases = getTextureBases();
   return candidates.flatMap((candidate) => bases.map((base) => `${base}/${candidate.folder}/${candidate.name}.png`))

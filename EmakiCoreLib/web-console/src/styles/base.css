@@ -125,19 +125,19 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: oklch(96.5% 0.008 var(--hue));
-  --rail: oklch(94% 0.009 var(--hue));
-  --surface: oklch(98% 0.006 var(--hue));
-  --surface-2: oklch(94.5% 0.01 var(--hue));
-  --surface-3: oklch(90.5% 0.012 var(--hue));
-  --input: oklch(99% 0.004 var(--hue));
-  --line: oklch(84% 0.012 var(--hue));
-  --line-2: oklch(74% 0.016 var(--hue));
-  --text: oklch(22% 0.014 var(--hue));
-  --muted: oklch(42% 0.014 var(--hue));
-  --faint: oklch(58% 0.012 var(--hue));
-  --subtle-readable: oklch(38% 0.014 var(--hue));
-  --placeholder: oklch(40% 0.014 var(--hue));
+  --bg: oklch(95.8% 0.008 var(--hue));
+  --rail: oklch(92.8% 0.01 var(--hue));
+  --surface: oklch(98.2% 0.006 var(--hue));
+  --surface-2: oklch(95.2% 0.01 var(--hue));
+  --surface-3: oklch(91.8% 0.012 var(--hue));
+  --input: oklch(99.2% 0.004 var(--hue));
+  --line: oklch(82% 0.013 var(--hue));
+  --line-2: oklch(70% 0.018 var(--hue));
+  --text: oklch(20% 0.014 var(--hue));
+  --muted: oklch(39% 0.014 var(--hue));
+  --faint: oklch(55% 0.012 var(--hue));
+  --subtle-readable: oklch(35% 0.014 var(--hue));
+  --placeholder: oklch(38% 0.014 var(--hue));
   --accent: oklch(55% 0.15 var(--accent-hue));
   --accent-strong: oklch(45% 0.16 var(--accent-hue));
   --accent-soft: oklch(91.5% 0.045 var(--accent-hue));
@@ -145,7 +145,7 @@
   --green: oklch(48% 0.14 150);
   --red: oklch(54% 0.18 28);
   --amber: oklch(56% 0.14 80);
-  --shadow: 0 18px 46px oklch(22% 0.014 var(--hue) / .16);
+  --shadow: 0 14px 36px oklch(22% 0.014 var(--hue) / .13);
   --danger-line: oklch(72% 0.11 28);
   --danger-soft: oklch(95% 0.035 28);
   --danger-hover: oklch(92% 0.055 28);

@@ -1,11 +1,12 @@
 import React from 'react';
-import { DisclosureChevron, ItemEditorSurface, PropRow, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
+import { DisclosureChevron, ItemEditorSurface, PropRow, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, registerEffectTypes, registerFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerEditorDescriptor, registerEditorField, registerInsightDefinition, registerItemFieldRenderer, registerModuleLocale, registerPluginSurfaces, registerSourceDocumentAdapter, textValue, type AnyMap, type ItemFieldRendererContext } from 'emaki-web-console';
 
 let registered = false;
 
 export function registerEmakiItemWebConsole(): void {
   if (registered) return;
   registered = true;
+  registerInsightDefinition({ moduleId: 'EmakiItem', pathPrefix: 'items/', idType: 'emaki_item', idPath: 'id' });
   const MODULE = 'EmakiItem';
   const EDITOR_ID = 'emakiitem:item';
   const SET_EDITOR_ID = 'emakiitem:set';

@@ -1,4 +1,4 @@
-import { localeText, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigPreview, registerConfigRuleFields, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
+import { localeText, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigPreview, registerConfigRuleFields, registerInsightDefinition, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor } from 'emaki-web-console';
 import { LevelCurvePreview, dynamicFields, installLevelCurvePreviewStyles, mainConfigFields, sourceFields, typeFields } from './curve/LevelCurvePreview';
 
 let registered = false;
@@ -6,6 +6,7 @@ let registered = false;
 export function registerEmakiLevelWebConsole(): void {
   if (registered) return;
   registered = true;
+  registerInsightDefinition({ moduleId: 'EmakiLevel', pathPrefix: 'types/', idType: 'level_type', idPath: 'id' });
   installLevelCurvePreviewStyles();
   const MODULE = 'EmakiLevel';
   const copy = localeText;

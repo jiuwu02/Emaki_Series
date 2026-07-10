@@ -3,7 +3,7 @@ import type { Completion, CompletionContext, CompletionResult, CompletionSource 
 import type { ComponentType } from 'react';
 import { ApiClient, ApiError, type FrontendDebugEventReport, type HistoryEntry, type HistorySnapshot, type InsightDependencyGraphEdge, type InsightDependencyGraphNode, type InsightDependencyGraphResult, type InsightReferenceResult, type InsightSearchResult, type RegistryValueChange } from './api';
 import { loadWebExtensions } from './extensions';
-import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getJavaScriptCompletionScopes, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, setServerJavaScriptCompletions, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
+import { applyConfigNodeOverrides, applyConfigRegistryOverrides, applyEditorDescriptorOverrides, getConfigPreview, getInsightDefinition, getJavaScriptCompletionScopes, getSourceDocumentAdapter, getSurface, isKind, registerSourceDocumentAdapter, registerSurface, setRuntimeEnums, setServerJavaScriptCompletions, type ConfigPreviewProps, type SourceDocumentAdapterContext } from './registry';
 import { isGlobPath, normalizeDocumentPath, normalizeLookupPath, resolveConcreteChildPath, resolveSurfaceDocumentPath, treeDirtyKey } from './documentPaths';
 import { getLocale, getRegisteredLocales, setLocale, t } from './i18n';
 import { ActionGroup, ActionTypesProvider, Button, CodeEditor, EconomyProvidersProvider, EditorChrome, DisclosureChevron, InlineError, NumberListEditor, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, type EditorChange } from './components';
@@ -769,24 +769,24 @@ export default function App() {
           <span>{t('core.insight.searchPlaceholder')}</span>
           <kbd>Ctrl K</kbd>
         </button>
-        <ExtensionHealthBanner
-          health={extensionHealth}
-          statuses={extensionStatuses}
-          onRetry={() => void loadRegistry({ clearDrafts: false, announceRefresh: false })}
-        />
         <WorkspaceTree registry={registry} selected={selected} expanded={expanded} dirtyKeys={mergedDirtyKeys} localeVersion={localeVersion} setExpanded={setExpanded} onOpenI18n={setI18nTarget} onCreateFile={setCreateTarget} onDeleteFile={setDeleteTarget} onSelect={(next) => setSelected((current) => {
           const same = sameSelection(current, next);
           const accepted = same ? { ...next, refreshKey: (current?.refreshKey ?? 0) + 1 } : next;
           return accepted;
         })} />
+        <ExtensionHealthBanner
+          health={extensionHealth}
+          statuses={extensionStatuses}
+          onRetry={() => void loadRegistry({ clearDrafts: false, announceRefresh: false })}
+        />
         <button className="rail-action quiet" onClick={signOut}>{t('core.auth.logout')}</button>
       </ResizableRail>
       <main className="stage">
-        <SurfaceSummaryStrip module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} referenceTarget={selectedReferenceTarget} historyTarget={selectedHistoryTarget} onOpenReferences={openInsightReferences} onOpenGraph={openInsightDependencyGraph} onOpenHistory={setHistoryTarget} />
         <EditorChrome
           className="stage-head"
           title={toolbar.title ?? (selectedModule ? moduleDisplayName(selectedModule) : t('core.stage.defaultTitle'))}
           subtitle={toolbar.subtitle ?? (selectedFile ? `${fileDisplayTitle(selectedFile)}，${selectedFile.path}` : t('core.stage.defaultHint'))}
+          meta={<SurfaceHeaderMeta module={selectedModule} file={selectedFile} editor={selectedEditor} toolbar={toolbar} loading={loading} />}
           dirty={toolbar.dirty}
           changedCount={toolbar.changedCount}
           changes={toolbar.changes ?? []}
@@ -807,7 +807,9 @@ export default function App() {
           onReload={toolbar.onReload}
           onSourceChange={toolbar.onSourceChange}
           onSave={toolbar.onSave}
-        />
+        >
+          <SurfaceHeaderActions referenceTarget={selectedReferenceTarget} historyTarget={selectedHistoryTarget} onOpenReferences={openInsightReferences} onOpenGraph={openInsightDependencyGraph} onOpenHistory={setHistoryTarget} />
+        </EditorChrome>
         <section className="editor-shell single">
           <ConfigSurface registry={registry} module={selectedModule} file={selectedFile} drafts={drafts} draftHistory={draftHistory} setDraftValue={setDraftValue} clearDraftScope={clearDraftScope} clearDraftValues={clearDraftValues} clearDraftPaths={clearDraftPaths} reconcileScopeDrafts={reconcileScopeDrafts} setSaveConflict={setSaveConflict} undoDraftScope={undoDraftScope} redoDraftScope={redoDraftScope} api={api} scriptPath={selected?.scriptPath} refreshKey={selected?.refreshKey ?? 0} pendingExtensionModules={pendingExtensionModules} onReload={() => void reloadCurrentSurface()} onRefreshRegistry={() => loadRegistry({ clearDrafts: false, announceRefresh: false })} setSurfaceToolbar={setSurfaceToolbar} setSurfaceOutline={setSurfaceOutline} setToast={setToast} />
         </section>
@@ -821,8 +823,7 @@ export default function App() {
   );
 }
 
-function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, referenceTarget, historyTarget, onOpenReferences, onOpenGraph, onOpenHistory }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean; referenceTarget: InsightReferenceTarget | null; historyTarget: HistoryTarget | null; onOpenReferences: (target: InsightReferenceTarget) => void; onOpenGraph: (target: InsightReferenceTarget) => void; onOpenHistory: (target: HistoryTarget) => void }) {
-  const moduleName = module ? moduleDisplayName(module) : t('core.stage.defaultTitle');
+function SurfaceHeaderMeta({ module, file, editor, toolbar, loading }: { module: WebRegistryModule | null; file: WebRegistryFile | null; editor?: WebEditorDescriptor; toolbar: SurfaceToolbarState; loading: boolean }) {
   const moduleSummary = module?.summary?.trim() || '';
   const fileComment = file ? fileDisplayComment(file).trim() : '';
   const filePath = file?.path || '';
@@ -834,24 +835,25 @@ function SurfaceSummaryStrip({ module, file, editor, toolbar, loading, reference
     editor?.kindLabel || editor?.title || '',
     fileNodeCount ? t('core.stage.nodeCount', { count: fileNodeCount }, '{count} nodes') : '',
     fileChildCount ? t('core.stage.childCount', { count: fileChildCount }, '{count} children') : '',
-    toolbar.dirty ? t('core.item.unsaved', undefined, 'Unsaved') : '',
     toolbar.saving ? t('core.script.saving', undefined, 'Saving...') : '',
     loading ? t('core.state.loading') : ''
   ].filter(Boolean);
 
-  return <section className={`surface-summary${toolbar.dirty ? ' dirty' : ''}`.trim()} aria-label={t('core.stage.summaryAria', undefined, 'Current surface summary')}>
-    <div className="surface-summary-copy">
-      <strong>{moduleName}</strong>
-      <p>{moduleSummary || fileComment || t('core.stage.defaultHint')}</p>
-      <code>{fileComment ? `${fileComment}${filePath ? ` · ${filePath}` : ''}` : filePath || t('core.stage.defaultHint')}</code>
-    </div>
-    <div className="surface-summary-meta" aria-live="polite">
+  return <div className="surface-header-meta">
+    {(moduleSummary || fileComment) && <span className="surface-header-summary">{moduleSummary || fileComment}</span>}
+    {filePath && <code>{filePath}</code>}
+    {chips.length > 0 && <div className="surface-summary-meta" aria-live="polite">
       {chips.map((chip, index) => <span key={`${chip}-${index}`} className={`surface-summary-chip${chip === fileKind ? ' kind' : ''}`}>{chip}</span>)}
-      {historyTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenHistory(historyTarget)}>{t('core.history.button', undefined, 'History')}</button>}
-      {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenReferences(referenceTarget)}>{t('core.insight.references')}</button>}
-      {referenceTarget && <button type="button" className="surface-summary-chip action" onClick={() => onOpenGraph(referenceTarget)}>{t('core.insight.graph')}</button>}
-    </div>
-  </section>;
+    </div>}
+  </div>;
+}
+
+function SurfaceHeaderActions({ referenceTarget, historyTarget, onOpenReferences, onOpenGraph, onOpenHistory }: { referenceTarget: InsightReferenceTarget | null; historyTarget: HistoryTarget | null; onOpenReferences: (target: InsightReferenceTarget) => void; onOpenGraph: (target: InsightReferenceTarget) => void; onOpenHistory: (target: HistoryTarget) => void }) {
+  return <>
+    {historyTarget && <Button size="sm" variant="ghost" onClick={() => onOpenHistory(historyTarget)}>{t('core.history.button', undefined, 'History')}</Button>}
+    {referenceTarget && <Button size="sm" variant="ghost" onClick={() => onOpenReferences(referenceTarget)}>{t('core.insight.references')}</Button>}
+    {referenceTarget && <Button size="sm" variant="ghost" onClick={() => onOpenGraph(referenceTarget)}>{t('core.insight.graph')}</Button>}
+  </>;
 }
 
 
@@ -890,11 +892,13 @@ function historyTargetForSelection(module: WebRegistryModule | null, file: WebRe
 function insightDefinitionTarget(module: WebRegistryModule | null, file: WebRegistryFile | null, childPath?: string): InsightReferenceTarget | null {
   if (!module || !file) return null;
   const path = normalizeInsightPath(childPath || file.path);
-  const idType = inferInsightIdType(module.id, path);
+  const registeredDefinition = getInsightDefinition({ moduleId: module.id, path });
+  const idType = registeredDefinition?.idType || inferInsightIdType(module.id, path);
   if (!idType) return null;
-  const idNode = file.nodes?.find(node => node.path === 'id');
+  const idPath = registeredDefinition?.idPath || 'id';
+  const idNode = file.nodes?.find(node => node.path === idPath);
   const nodeId = scalarText(idNode?.value).trim();
-  const fallbackId = basenameWithoutExtension(path);
+  const fallbackId = registeredDefinition?.fallbackId === 'none' ? '' : basenameWithoutExtension(path);
   const id = nodeId || fallbackId;
   return id ? { idType, id } : null;
 }
@@ -1397,14 +1401,11 @@ function formatHistoryTime(value: unknown): string {
 }
 
 function ExtensionHealthBanner({ health, statuses, onRetry }: { health: 'idle' | 'loading' | 'ok' | 'failed'; statuses: WebConsoleExtensionStatus[]; onRetry: () => void }) {
-  if (health === 'idle') return null;
+  if (health === 'idle' || health === 'ok') return null;
   const failed = statuses.filter(status => status.status === 'failed');
-  const loadedCount = Math.max(0, statuses.length - failed.length);
   const label = health === 'loading'
     ? t('core.state.loading')
-    : health === 'failed'
-      ? t('core.toast.extensionLoadFailed', { count: failed.length || statuses.length || 1 })
-      : t('core.extension.loaded', { count: statuses.length }, '{count} extensions loaded');
+    : t('core.toast.extensionLoadFailed', { count: failed.length || statuses.length || 1 });
 
   return <aside className={`extension-health extension-health--${health}`} aria-live="polite">
     <div className="extension-health-copy">

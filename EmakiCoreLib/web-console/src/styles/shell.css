@@ -683,10 +683,10 @@
   top: 0;
   z-index: 11;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
-  padding: 11px 18px 11px 18px;
+  gap: 14px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
@@ -694,7 +694,7 @@
 .stage-head h1,
 .stage-head h2,
 .editor-chrome-title h2 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -.02em;
 }
@@ -702,50 +702,7 @@
 .stage-head p,
 .editor-chrome-title p {
   color: var(--faint);
-  font-size: 12px;
-  line-height: 1.18;
-  margin-top: 2px;
-}
-
-.surface-summary {
-  position: sticky;
-  top: 0;
-  z-index: 12;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 10px 18px;
-  border-bottom: 1px solid var(--line);
-  background: color-mix(in oklch, var(--surface) 88%, var(--input) 12%);
-}
-
-
-.surface-summary-copy {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.surface-summary-copy strong {
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: -.02em;
-}
-
-.surface-summary-copy p {
-  margin: 0;
-  max-width: 58ch;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.18;
-}
-
-.surface-summary-copy code {
-  display: block;
-  color: var(--faint);
-  font-family: ui-monospace, "Cascadia Code", monospace;
   font-size: 11px;
-  overflow-wrap: anywhere;
+  line-height: 1.25;
+  margin-top: 2px;
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PropRow, SectionHead, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, localeText, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerEffectTypes, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, parseActionList, standardEconomyRuleFields, textValue, type AnyMap, type ConfigRuleFieldEntry, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
+import { PropRow, SectionHead, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, payloadEffectDefinition, fieldLabel, firstItemSource, getLocale, humanizeFieldLabel, localeText, materialFromItemSource, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigRuleFields, registerEditorDescriptor, registerEditorField, registerEffectTypes, registerInsightDefinition, registerItemFieldRenderer, registerItemPreviewFallback, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, parseActionList, standardEconomyRuleFields, textValue, type AnyMap, type ConfigRuleFieldEntry, type ItemFieldRendererContext, type ItemPreviewResult } from 'emaki-web-console';
 import { installEmakiGemStyles } from './styles';
 
 let registered = false;
@@ -7,6 +7,7 @@ let registered = false;
 export function registerEmakiGemWebConsole(): void {
   if (registered) return;
   registered = true;
+  registerInsightDefinition({ moduleId: 'EmakiGem', pathPrefix: 'gems/', idType: 'gem', idPath: 'id' });
   installEmakiGemStyles();
   registerModuleLocale('EmakiGem', 'zh-CN', {
     'emakigem.module.name': 'Gem',

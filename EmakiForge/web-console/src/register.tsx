@@ -1,10 +1,11 @@
-import { getLocale, localeText, registerEffectTypes, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardMaterialCostFields, coreEffectDefinition, payloadEffectDefinition } from 'emaki-web-console';
+import { getLocale, localeText, registerEffectTypes, registerInsightDefinition, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardMaterialCostFields, coreEffectDefinition, payloadEffectDefinition } from 'emaki-web-console';
 
 let registered = false;
 
 export function registerEmakiForgeWebConsole(): void {
   if (registered) return;
   registered = true;
+  registerInsightDefinition({ moduleId: 'EmakiForge', pathPrefix: 'recipes/', idType: 'forge_recipe', idPath: 'id' });
   const MODULE = 'EmakiForge';
   type AnyMap = Record<string, unknown>;
 

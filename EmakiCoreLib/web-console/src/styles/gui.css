@@ -226,19 +226,19 @@
 .login-panel button {
   background: var(--text);
   color: var(--bg);
-  border-radius: 7px;
+  border-radius: 6px;
   padding: 9px 12px;
   font-weight: 700;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, background 0.15s ease;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.15s ease;
 }
 
 .login-panel button:hover:not(:disabled) {
-  transform: scale(1.04);
-  box-shadow: 0 4px 16px oklch(0% 0 0 / 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px oklch(0% 0 0 / 0.16);
 }
 
 .login-panel button:active:not(:disabled) {
-  transform: scale(0.94);
+  transform: translateY(0) scale(0.98);
 }
 
 .inline-error {
@@ -259,7 +259,7 @@
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr);
   border: 1px solid var(--line-2);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--surface);
   box-shadow: var(--shadow);
   overflow: hidden;
@@ -600,7 +600,7 @@
   min-height: 0;
   overflow: auto;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--input);
 }
 

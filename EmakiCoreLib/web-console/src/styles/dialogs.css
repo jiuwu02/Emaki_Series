@@ -398,7 +398,7 @@
   gap: 10px;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 6px;
   background: color-mix(in oklch, var(--surface-2) 70%, var(--surface) 30%);
   align-content: start;
   align-self: stretch;
@@ -561,7 +561,7 @@
 
 .ie-layer-row {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--surface-2);
   padding: 9px;
 }

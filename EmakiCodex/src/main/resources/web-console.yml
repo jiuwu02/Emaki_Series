@@ -1,0 +1,17 @@
+module:
+  name: Codex
+  summary: 原版成就页、节点、触发器与完成动作配置
+  tone: codex
+  icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/><path d="M7 7h2M15 7h2M7 10h2M15 10h2"/></svg>'
+
+files:
+  - path: "config.yml"
+    kind: CONFIG
+  - path: "advancements/**/*.yml"
+    kind: CONFIG
+  - path: "lang/**/*.yml"
+    kind: CONFIG
+
+extensions:
+  - id: "emakicodex:config"
+    resource: "web-extensions/emakicodex-config.js"

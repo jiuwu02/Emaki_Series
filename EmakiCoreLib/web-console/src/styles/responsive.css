@@ -11,11 +11,11 @@
 
 .overlay-entry {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 6px;
   background: color-mix(in oklch, var(--input) 86%, var(--surface) 14%);
   padding: 0 10px 10px;
   box-shadow: inset 0 1px 0 var(--surface-2);
-  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  transition: border-color 0.18s ease, background 0.18s ease;
 }
 
 .overlay-entry:last-child {
@@ -25,7 +25,7 @@
 .overlay-entry:hover,
 .overlay-entry:focus-within {
   border-color: var(--line-2);
-  box-shadow: 0 12px 24px oklch(0% 0 0 / .08), inset 0 1px 0 var(--surface-2);
+  background: var(--input);
 }
 
 .overlay-entry.is-visible {
@@ -383,7 +383,8 @@
   }
 
   .surface-head,
-  .ie-header {
+  .ie-header,
+  .editor-chrome {
     align-items: flex-start;
     flex-direction: column;
     gap: 10px;
@@ -442,7 +443,6 @@
 
   .material-list button,
   .material-tabs button,
-  .surface-summary-chip.action,
   .overlay-toggle,
   .overlay-delete,
   .prop-level-toggle,
