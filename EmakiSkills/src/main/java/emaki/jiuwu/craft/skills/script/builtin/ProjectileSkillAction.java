@@ -12,9 +12,9 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.skills.api.SkillActionParameter;
 import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
 import emaki.jiuwu.craft.skills.api.SkillActionResult;
@@ -62,32 +62,40 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
         double hitRadiusSq = hitRadius * hitRadius;
         List<Entity> alreadyHit = new ArrayList<>();
 
-        new BukkitRunnable() {
-            Location current = origin.clone();
-            Vector velocity = direction.clone();
-            int ticksLived = 0;
-            int pierceRemaining = pierce;
+        class ProjectileFlight {
+            private Location current = origin.clone();
+            private final Vector velocity = direction.clone();
+            private int ticksLived;
+            private int pierceRemaining = pierce;
 
-            @Override
-            public void run() {
+            private void scheduleNextTick() {
                 if (ticksLived >= lifetime || !caster.isOnline()) {
-                    cancel();
                     return;
                 }
                 ticksLived++;
-
                 velocity.setY(velocity.getY() - gravity);
 
-                if (homing && context.targetEntity() != null && !context.targetEntity().isDead()) {
-                    Vector toTarget = context.targetEntity().getLocation().add(0, 1, 0)
+                Entity homingTarget = context.targetEntity();
+                if (homing && homingTarget != null && !homingTarget.isDead()) {
+                    Vector toTarget = homingTarget.getLocation().add(0, 1, 0)
                             .toVector().subtract(current.toVector()).normalize();
                     velocity.add(toTarget.multiply(homingStrength)).normalize().multiply(speed);
                 }
 
                 current.add(velocity);
+                FoliaSchedulerAdapter.runAtLocationLater(
+                        context.plugin(),
+                        current.clone(),
+                        this::tick,
+                        1L);
+            }
+
+            private void tick() {
+                if (!caster.isOnline()) {
+                    return;
+                }
                 World world = current.getWorld();
                 if (world == null) {
-                    cancel();
                     return;
                 }
 
@@ -96,7 +104,6 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
                 }
 
                 if (current.getBlock().getType().isSolid()) {
-                    cancel();
                     return;
                 }
 
@@ -122,13 +129,15 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
                     }
 
                     if (pierceRemaining <= 0) {
-                        cancel();
                         return;
                     }
                     pierceRemaining--;
                 }
+                scheduleNextTick();
             }
-        }.runTaskTimer(context.plugin(), 0L, 1L);
+        }
+
+        new ProjectileFlight().scheduleNextTick();
 
         return completed(SkillActionResult.ok());
     }

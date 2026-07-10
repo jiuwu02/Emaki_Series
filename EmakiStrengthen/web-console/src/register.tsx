@@ -1,11 +1,15 @@
 import { localeText, registerConfigPreview, registerEffectTypes, registerModuleLocale, registerPluginConfig, registerPluginGuiEditor, standardCurrencyCostFields, standardMaterialCostFields, coreEffectDefinition, payloadEffectDefinition, type ConfigMetaFieldEntry } from 'emaki-web-console';
-import { StrengthenRoutePreview } from './routePreview/StrengthenRoutePreview';
+import {
+  StrengthenRoutePreview,
+  installStrengthenRoutePreviewStyles,
+} from './routePreview/StrengthenRoutePreview';
 
 let registered = false;
 
 export function registerEmakiStrengthenWebConsole(): void {
   if (registered) return;
   registered = true;
+  installStrengthenRoutePreviewStyles();
   const MODULE = 'EmakiStrengthen';
   const copy = localeText;
 

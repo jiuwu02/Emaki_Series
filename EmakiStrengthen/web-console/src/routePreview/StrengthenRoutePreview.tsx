@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, InlineError, localeText, type ConfigPreviewProps } from 'emaki-web-console';
-import './StrengthenRoutePreview.css';
+import { Button, InlineError, injectExtensionStyles, localeText, type ConfigPreviewProps } from 'emaki-web-console';
+import strengthenRoutePreviewStyles from './StrengthenRoutePreview.css?raw';
+
+export function installStrengthenRoutePreviewStyles(): void {
+  injectExtensionStyles('emakistrengthen-route-preview', strengthenRoutePreviewStyles);
+}
 
 const copy = localeText;
 

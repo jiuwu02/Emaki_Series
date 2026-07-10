@@ -39,7 +39,7 @@ public final class ShowAchievementToastAction implements Action {
     private final EmakiCodexPlugin plugin;
     private final ItemSourceService itemSourceService;
     private final List<ActionParameter> parameters = List.of(
-            ActionParameter.required("title", ActionParameterType.STRING, "Toast title"),
+            ActionParameter.required("title", ActionParameterType.STRING, "Toast title shown in the vanilla advancement toast."),
             ActionParameter.optional("description", ActionParameterType.STRING, "", "Toast description"),
             ActionParameter.optional("icon", ActionParameterType.STRING, DEFAULT_ICON, "Toast icon item source"),
             ActionParameter.optional("frame", ActionParameterType.STRING, DEFAULT_FRAME, "Toast frame: task, goal, or challenge"),
@@ -81,7 +81,7 @@ public final class ShowAchievementToastAction implements Action {
         if (!isPacketEventsPresent()) {
             return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "PacketEvents is required to show achievement toasts.");
         }
-        String title = stringArg(arguments, "title");
+        String title = toastTitle(stringArg(arguments, "title"));
         if (Texts.isBlank(title)) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, id() + " requires a 'title' argument.");
         }
@@ -189,6 +189,10 @@ public final class ShowAchievementToastAction implements Action {
 
     private String stringArg(Map<String, String> arguments, String key) {
         return Texts.toStringSafe(arguments == null ? null : arguments.get(key));
+    }
+
+    private String toastTitle(String title) {
+        return Texts.toStringSafe(title).replace('|', '\n');
     }
 
     private String stringWithDefault(Map<String, String> arguments, String key, String fallback) {
