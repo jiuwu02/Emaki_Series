@@ -2,7 +2,7 @@ import { defineCapabilities, defineEmakiPluginWebModule, defineGuiEditor, define
 import { StrengthenRoutePreview } from './routePreview/StrengthenRoutePreview';
 import { enUS } from './locales/en-US';
 import { zhCN } from './locales/zh-CN';
-import { strengthenBranchTreeManifestSchema, strengthenPluginConfig } from './schema/strengthenSchema';
+import { strengthenBranchTreeManifestSchema, strengthenEffectTypes, strengthenPluginConfig } from './schema/strengthenSchema';
 
 const MODULE_ID = 'EmakiStrengthen';
 const copy = localeText;
@@ -16,6 +16,7 @@ export const emakiStrengthenWebModule = defineEmakiPluginWebModule({
   ],
   schemas: [strengthenBranchTreeManifestSchema],
   config: strengthenPluginConfig,
+  effectTypes: strengthenEffectTypes,
   previews: [definePreview({ kind: 'CONFIG', pathPattern: 'recipes/**/*.yml', component: StrengthenRoutePreview, label: copy('强化路线蓝图', 'Strengthen route blueprint'), priority: 20 })],
   guiEditors: [defineGuiEditor({
     editorId: 'emakistrengthen:gui',

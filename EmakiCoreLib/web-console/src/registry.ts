@@ -188,6 +188,12 @@ export type ConfigNodeMetaOverride = {
   uniqueBy?: string;
 };
 
+/**
+ * @deprecated New plugin modules should model config fields through Schema AST
+ * and Manifest v2 `schemas`/`config` declarations. Matcher-based metadata is
+ * kept only as a compatibility bridge for older extension bundles and the
+ * Manifest v2 loader's internal registry adapter.
+ */
 export type ConfigNodeRuleMatcher = {
   path?: string;
   key?: string;
@@ -322,7 +328,14 @@ function previewPathPatternMatches(pattern: string, path: string): boolean {
   return new RegExp(`^${escaped}$`).test(path);
 }
 
-/** Register a surface. Later registrations with higher priority override earlier ones. */
+/**
+ * Register a surface. Later registrations with higher priority override earlier ones.
+ *
+ * @deprecated New plugin extensions should declare `surfaces` through
+ * `defineEmakiPluginWebModule(...)`. This low-level registry function remains
+ * for CoreLib built-ins, the Manifest v2 loader bridge, and pre-v2 extension
+ * compatibility only.
+ */
 export function registerSurface(reg: SurfaceRegistration): void {
   if (!reg || !reg.component || (!reg.kind && !reg.editorId)) return;
   const next = {
@@ -365,6 +378,11 @@ export function getAllSurfaces(): SurfaceRegistration[] {
   return [..._registry];
 }
 
+/**
+ * @deprecated New plugin extensions should declare `previews` through
+ * `defineEmakiPluginWebModule(...)`. This remains for the Manifest v2 loader
+ * bridge and pre-v2 extension compatibility only.
+ */
 export function registerConfigPreview(reg: ConfigPreviewRegistration): void {
   if (!reg?.component) return;
   const next: ConfigPreviewRegistration = {
@@ -409,6 +427,11 @@ function insightDefinitionScore(reg: InsightDefinitionRegistration): number {
     + (reg.pathPrefix ? 10 + reg.pathPrefix.length / 1000 : 0);
 }
 
+/**
+ * @deprecated New plugin extensions should declare `insightDefinitions` through
+ * `defineEmakiPluginWebModule(...)`. This remains for the Manifest v2 loader
+ * bridge and pre-v2 extension compatibility only.
+ */
 export function registerInsightDefinition(reg: InsightDefinitionRegistration): void {
   const idType = String(reg?.idType ?? '').trim();
   if (!idType) return;
@@ -518,6 +541,11 @@ export function getRuntimeEnum(id: string): string[] {
   return [...(_runtimeEnums[String(id ?? '')] ?? [])];
 }
 
+/**
+ * @deprecated New plugin extensions should declare `fileKindLabels` through
+ * `defineEmakiPluginWebModule(...)`. This remains for the Manifest v2 loader
+ * bridge and pre-v2 extension compatibility only.
+ */
 export function registerFileKindLabel(kind: string, label: string): void {
   const normalized = normalize(kind);
   if (!normalized || !label) return;
@@ -544,6 +572,11 @@ export function registerConfigNodeRule(moduleId: string, matcher: ConfigNodeRule
   _configNodeRules.push({ moduleId: normalizeConfigModuleId(moduleId), matcher, meta });
 }
 
+/**
+ * @deprecated New plugin extensions should model config metadata through
+ * Manifest v2 `config.metaFields` / `schemas`. This remains for the Manifest
+ * v2 loader bridge and pre-v2 extension compatibility only.
+ */
 export function registerConfigMetaFields(moduleId: string, fields: ConfigMetaFieldEntry[]): void {
   if (!moduleId || !Array.isArray(fields)) return;
   fields.forEach(([path, label, comment, type, extra]) => registerConfigNodeMeta(moduleId, path, { label, comment, type, ...(extra ?? {}) }));
@@ -564,6 +597,11 @@ export function registerConfigFileSchemas(moduleId: string, schemas: ConfigFileS
   schemas.forEach(schema => registerConfigFileSchema(moduleId, schema));
 }
 
+/**
+ * @deprecated New plugin extensions should model rule-based config metadata
+ * through Manifest v2 `config.ruleFields` / `config.rules`. This remains for
+ * the Manifest v2 loader bridge and pre-v2 extension compatibility only.
+ */
 export function registerConfigRuleFields(moduleId: string, fields: Record<string, ConfigRuleFieldEntry>): void {
   if (!moduleId || !fields) return;
   Object.entries(fields).forEach(([key, [label, comment, type, extra]]) => registerConfigNodeRule(moduleId, { key }, { label, comment, type, ...(extra ?? {}) }));
@@ -607,6 +645,11 @@ export function registerConfigListItemSchemaRules(moduleId: string, entries: Con
   entries.forEach(([matcher, fields, options]) => registerConfigListItemSchemaRule(moduleId, matcher, fields, options));
 }
 
+/**
+ * @deprecated Prefer `defineEmakiPluginWebModule({ config, schemas })` and
+ * `registerEmakiPluginWebModule(...)`. This bridge remains for CoreLib's
+ * Manifest v2 loader and pre-v2 extension compatibility only.
+ */
 export function registerPluginConfig(registration: PluginConfigRegistration): void {
   if (!registration?.moduleId) return;
   const { moduleId } = registration;

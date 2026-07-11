@@ -12,7 +12,6 @@ import {
   objectField,
   objectMapField,
   payloadEffectDefinition,
-  registerEffectTypes,
   standardCurrencyCostFields,
   standardMaterialCostFields,
   textField,
@@ -25,6 +24,13 @@ const copy = localeText;
 
 const attributeEffectDef = payloadEffectDefinition('ea_attribute', 'EA 属性', [{ key: 'ea_attributes', type: 'map', label: 'EA 属性', defaultValue: {} }]);
 const skillEffectDef = payloadEffectDefinition('es_skill', 'ES 技能', [{ key: 'es_skills', type: 'stringList', label: 'ES 技能', defaultValue: [] }]);
+export const strengthenEffectTypes = [
+  coreEffectDefinition('variables'),
+  attributeEffectDef,
+  skillEffectDef,
+  coreEffectDefinition('name_action'),
+  coreEffectDefinition('lore_action')
+];
 
 const materialFields = standardMaterialCostFields({
   overrides: {
@@ -130,16 +136,6 @@ const recipeFields: ConfigMetaFieldEntry[] = [
   ['lore_actions', 'Lore 动作', '强化成功后对物品 Lore 执行的动作。', 'actions'],
   ['effects', '效果', '强化完成后追加的效果列表，支持变量、EA 属性和 ES 技能。', 'effects']
 ];
-
-export function registerEmakiStrengthenEffectTypes(): void {
-  registerEffectTypes(MODULE, [
-    coreEffectDefinition('variables'),
-    attributeEffectDef,
-    skillEffectDef,
-    coreEffectDefinition('name_action'),
-    coreEffectDefinition('lore_action')
-  ]);
-}
 
 export const localeMessages: Record<string, string> = Object.fromEntries([
   ['emakistrengthen.module.name', 'Strengthen'],
