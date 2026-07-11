@@ -12,7 +12,7 @@ Emaki Series 是一组面向 Minecraft Spigot 服务端的 Java 插件，采用�
 | `EmakiAttribute`  | `3.2.0`  | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
 | `EmakiForge`      | `3.2.0`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
 | `EmakiStrengthen` | `3.2.0`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
-| `EmakiCooking`    | `2.2.0`  | 烹饪系统   | 提供砧板、炒锅、研磨机、蒸锅的世界工位运行时、配方判定、输入限制与状态持久化能力 |
+| `EmakiCooking`    | `2.2.0`  | 烹饪系统   | 提供砧板、炒锅、研磨机、蒸锅的世界工位运行时、配方判定、输入限制与状态持久化能力      |
 | `EmakiGem`        | `1.1.0`  | 宝石系统   | 提供装备开孔、宝石镶嵌、取出、升级、装备模板、宝石定义与可选属性系统接入能力          |
 | `EmakiSkills`     | `1.0.0`  | 技能系统   | 提供主动技能槽位、被动触发器、施法模式、冷却与 MythicMobs / Attribute 桥接能力        |
 
@@ -99,14 +99,6 @@ mvn -DskipTests compile
 ## 文档
 
 - 项目文档：[Emaki Series Docs](https://jiuwu02.github.io/Emaki_Series/)
-
-
-## 版本与发布策略
-
-- 根 `pom.xml` 负责模块聚合、依赖版本和 Maven 插件配置，当前父工程版本为 `3.0.0`。
-- 根级默认聚合模块当前为 `EmakiCoreLib`、`EmakiAttribute`、`EmakiForge`、`EmakiStrengthen`、`EmakiCooking`。
-- `.key` 存在时会通过 `private-modules` profile 额外聚合 `EmakiGem` 与 `EmakiSkills`。
-- 当前工作区版本线分别为：`EmakiCoreLib / EmakiAttribute / EmakiForge / EmakiStrengthen = 3.2.0`、`EmakiCooking = 2.0.0`、`EmakiGem = 1.1.0`、`EmakiSkills = 1.0.0`。
 
 ## 开源许可
 

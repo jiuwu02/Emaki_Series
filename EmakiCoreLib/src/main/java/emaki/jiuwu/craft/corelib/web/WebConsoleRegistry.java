@@ -66,7 +66,16 @@ public final class WebConsoleRegistry {
     }
 
     public static synchronized void unregisterModule(JavaPlugin plugin) {
-        String moduleId = plugin.getName();
+        if (plugin == null) {
+            return;
+        }
+        unregisterModule(plugin.getName());
+    }
+
+    static synchronized void unregisterModule(String moduleId) {
+        if (Texts.isBlank(moduleId)) {
+            return;
+        }
         WebConsoleYamlRegistrar.unmarkScanned(moduleId);
         MODULES.remove(moduleId);
         EDITORS.values().removeIf(editor -> moduleId.equals(editor.moduleId()));

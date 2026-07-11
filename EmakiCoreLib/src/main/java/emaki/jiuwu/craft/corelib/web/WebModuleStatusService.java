@@ -18,6 +18,7 @@ public final class WebModuleStatusService {
     }
 
     public List<Map<String, Object>> modules() {
+        WebConsoleYamlRegistrar.scanAll();
         List<Map<String, Object>> result = new ArrayList<>();
         List<String> modules = configuredModules.isEmpty() ? WebConsoleRegistry.registeredModuleIds() : configuredModules;
         for (String moduleId : modules) {

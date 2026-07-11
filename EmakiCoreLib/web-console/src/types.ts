@@ -38,6 +38,8 @@ export type WebConfigFieldSchema = {
   optionLabelPrefix?: string;
   itemFields?: WebConfigFieldSchema[];
   uniqueBy?: string;
+  creatableChildren?: boolean;
+  createTemplates?: WebConfigCreateTemplate[];
 };
 
 export type WebConfigCreateTemplate = {

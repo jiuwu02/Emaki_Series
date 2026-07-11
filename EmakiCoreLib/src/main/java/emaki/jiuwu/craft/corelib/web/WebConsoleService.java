@@ -87,6 +87,10 @@ public final class WebConsoleService {
             createContext("/api/auth/logout", postAuth(this::handleLogout));
             createContext("/api/session", auth(this::handleSession));
             createContext("/api/modules", auth(this::handleModules));
+            createContext("/api/web/modules", auth(this::handleWebModules));
+            createContext("/api/web/manifest", auth(this::handleWebManifest));
+            createContext("/api/web/diagnostics", auth(this::handleWebDiagnostics));
+            createContext("/api/web/schema/", auth(this::handleWebSchema));
             createContext("/api/registry", auth(this::handleRegistry));
             createContext("/api/registry/file", auth(this::handleRegistryFile));
             createContext("/api/registry/save", postAuth(this::handleRegistrySave));
@@ -420,6 +424,36 @@ public final class WebConsoleService {
         context.ok(Map.of("modules", moduleStatusService.modules()));
     }
 
+    private void handleWebModules(WebRequestContext context) throws IOException {
+        context.ok(Map.of("modules", moduleStatusService.modules()));
+    }
+
+    private void handleWebManifest(WebRequestContext context) throws IOException {
+        context.ok(Map.of("manifest", webManifest()));
+    }
+
+    private void handleWebSchema(WebRequestContext context) throws IOException {
+        String path = context.exchange().getRequestURI().getPath();
+        String relative = path.substring("/api/web/schema/".length()).replace('\\', '/');
+        int separator = relative.indexOf('/');
+        if (separator <= 0 || separator + 1 >= relative.length()) {
+            context.badRequest("缺少 module 或 file 参数");
+            return;
+        }
+        String moduleId = urlDecode(relative.substring(0, separator));
+        String filePath = urlDecode(relative.substring(separator + 1));
+        if (context.badRequestIfMissing("缺少 module 或 file 参数", moduleId, filePath)) {
+            return;
+        }
+        runBadRequest(context, () -> context.ok(Map.of("schema", consoleRegistry.fileNodes(moduleId, filePath))));
+    }
+
+    private void handleWebDiagnostics(WebRequestContext context) throws IOException {
+        Map<String, Object> manifest = webManifest();
+        List<Map<String, Object>> modules = moduleStatusService.modules();
+        context.ok(Map.of("diagnostics", webDiagnostics(manifest, modules)));
+    }
+
     private boolean requireConfigWriteAllowed(WebRequestContext context) throws IOException {
         return requirePermission(context, this::configWriteAllowed, "当前已关闭 Web 配置写入权限。", "config_write_disabled");
     }
@@ -454,6 +488,132 @@ public final class WebConsoleService {
         } catch (Exception exception) {
             context.serverError(exception.getMessage());
         }
+    }
+
+    private Map<String, Object> webManifest() {
+        Map<String, Object> manifest = new LinkedHashMap<>(consoleRegistry.snapshot());
+        manifest.put("pluginApiRoutes", WebPluginApiRegistry.routesSnapshot());
+        return manifest;
+    }
+
+    private List<Map<String, Object>> webDiagnostics(Map<String, Object> manifest, List<Map<String, Object>> moduleStatuses) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        List<?> manifestModules = asList(manifest.get("modules"));
+        List<String> manifestModuleIds = new ArrayList<>();
+        for (Object moduleValue : manifestModules) {
+            Map<?, ?> module = asMap(moduleValue);
+            if (module == null) {
+                continue;
+            }
+            String moduleId = Texts.toStringSafe(module.get("id"));
+            if (Texts.isNotBlank(moduleId)) {
+                manifestModuleIds.add(moduleId);
+            }
+        }
+
+        for (Map<String, Object> status : moduleStatuses) {
+            String moduleId = Texts.toStringSafe(status.get("id"));
+            if (Texts.isBlank(moduleId)) {
+                continue;
+            }
+            boolean present = Boolean.TRUE.equals(status.get("present"));
+            boolean enabled = Boolean.TRUE.equals(status.get("enabled"));
+            if (!present) {
+                result.add(webDiagnostic("WARN", "web.module.missing", moduleId, "插件未安装，Web manifest 不可用。"));
+            } else if (!enabled) {
+                result.add(webDiagnostic("WARN", "web.module.disabled", moduleId, "插件已安装但未启用，Web manifest 已降级。"));
+            } else if (!manifestModuleIds.contains(moduleId)) {
+                result.add(webDiagnostic("WARN", "web.manifest.missing", moduleId, "插件已启用但未注册 Web manifest。"));
+            } else {
+                result.add(webDiagnostic("INFO", "web.manifest.active", moduleId, "插件 Web manifest 已注册。"));
+            }
+        }
+
+        for (Object routeValue : asList(manifest.get("pluginApiRoutes"))) {
+            Map<?, ?> route = asMap(routeValue);
+            if (route == null) {
+                continue;
+            }
+            String moduleId = Texts.toStringSafe(route.get("moduleId"));
+            String routeId = Texts.toStringSafe(route.get("routeId"));
+            if (Texts.isBlank(moduleId)) {
+                continue;
+            }
+            boolean present = Boolean.TRUE.equals(route.get("present"));
+            boolean enabled = Boolean.TRUE.equals(route.get("enabled"));
+            if (!present) {
+                result.add(webDiagnostic("WARN", "web.capability.missing", moduleId, routeId, "插件 Web API route 已注册但插件不可用。"));
+            } else if (!enabled) {
+                result.add(webDiagnostic("WARN", "web.capability.disabled", moduleId, routeId, "插件 Web API route 已降级，当前不会分发。"));
+            } else {
+                result.add(webDiagnostic("INFO", "web.capability.active", moduleId, routeId, "插件 Web API route 可分发。"));
+            }
+        }
+
+        for (Object moduleValue : manifestModules) {
+            Map<?, ?> module = asMap(moduleValue);
+            if (module == null) {
+                continue;
+            }
+            String moduleId = Texts.toStringSafe(module.get("id"));
+            List<?> files = asList(module.get("files"));
+            if (files.isEmpty()) {
+                result.add(webDiagnostic("WARN", "web.manifest.files.empty", moduleId, "Web manifest 未声明文件入口。"));
+                continue;
+            }
+            result.add(webDiagnostic("INFO", "web.manifest.files", moduleId, "Web manifest 声明了 " + files.size() + " 个文件入口。"));
+            for (Object fileValue : files) {
+                Map<?, ?> file = asMap(fileValue);
+                if (file == null) {
+                    continue;
+                }
+                String path = Texts.toStringSafe(file.get("path"));
+                String kind = Texts.toStringSafe(file.get("kind"));
+                if (Texts.isBlank(path)) {
+                    result.add(webDiagnostic("WARN", "web.manifest.file.path_missing", moduleId, "Web manifest 存在缺少 path 的文件入口。"));
+                    continue;
+                }
+                if (!"CONFIG".equalsIgnoreCase(kind)) {
+                    continue;
+                }
+                List<?> nodes = asList(file.get("nodes"));
+                List<?> children = asList(file.get("children"));
+                if (!nodes.isEmpty()) {
+                    result.add(webDiagnostic("INFO", "web.schema.nodes", moduleId, path, "CONFIG schema 输出 " + nodes.size() + " 个节点。"));
+                } else if (!children.isEmpty()) {
+                    result.add(webDiagnostic("INFO", "web.schema.children", moduleId, path, "CONFIG glob 入口输出 " + children.size() + " 个子文件。"));
+                } else if (path.contains("*") || path.contains("?")) {
+                    result.add(webDiagnostic("INFO", "web.schema.glob", moduleId, path, "CONFIG glob 入口已声明，当前数据目录暂无子文件。"));
+                } else {
+                    result.add(webDiagnostic("WARN", "web.schema.empty", moduleId, path, "CONFIG 文件未输出 schema 节点。"));
+                }
+            }
+        }
+        return result;
+    }
+
+    private Map<String, Object> webDiagnostic(String level, String code, String moduleId, String message) {
+        return webDiagnostic(level, code, moduleId, "", message);
+    }
+
+    private Map<String, Object> webDiagnostic(String level, String code, String moduleId, String path, String message) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("level", level);
+        entry.put("code", code);
+        entry.put("moduleId", Texts.toStringSafe(moduleId));
+        if (Texts.isNotBlank(path)) {
+            entry.put("path", path);
+        }
+        entry.put("message", message);
+        return entry;
+    }
+
+    private Map<?, ?> asMap(Object value) {
+        return value instanceof Map<?, ?> map ? map : null;
+    }
+
+    private List<?> asList(Object value) {
+        return value instanceof List<?> list ? list : List.of();
     }
 
     private void handleRegistry(WebRequestContext context) throws IOException {

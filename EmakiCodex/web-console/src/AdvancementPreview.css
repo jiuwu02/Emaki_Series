@@ -165,11 +165,24 @@
   pointer-events: none;
 }
 
+.advancement-preview__links {
+  shape-rendering: crispEdges;
+}
+
 .advancement-preview__links path {
   fill: none;
-  stroke: #121212;
-  stroke-width: 7;
-  stroke-linejoin: bevel;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.advancement-preview__link-border {
+  stroke: rgba(0, 0, 0, .82);
+  stroke-width: 6;
+}
+
+.advancement-preview__link-core {
+  stroke: #8f8f8f;
+  stroke-width: 2;
 }
 
 .advancement-preview__node {

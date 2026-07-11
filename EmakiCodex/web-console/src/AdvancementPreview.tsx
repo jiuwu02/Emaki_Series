@@ -17,14 +17,16 @@ type AdvancementNode = {
   parent: string;
   x: number;
   y: number;
+  hasCoordinates: boolean;
   toast: boolean;
   announce: boolean;
   hidden: boolean;
 };
 type PositionedNode = AdvancementNode & { left: number; top: number };
+type AdvancementLink = { id: string; d: string };
 type AdvancementLayout = {
   nodes: PositionedNode[];
-  links: Array<{ id: string; d: string }>;
+  links: AdvancementLink[];
   width: number;
   height: number;
   mode: 'coordinates' | 'tree';
@@ -74,7 +76,10 @@ export function AdvancementPreview({ data, sourceDirty }: ConfigPreviewProps) {
       <div className="advancement-preview__viewport">
         {nodes.length ? <div className="advancement-preview__canvas" style={{ width: layout.width, height: layout.height }}>
           <svg className="advancement-preview__links" viewBox={`0 0 ${layout.width} ${layout.height}`} aria-hidden="true">
-            {layout.links.map(link => <path key={link.id} d={link.d} />)}
+            {layout.links.map(link => <g key={link.id}>
+              <path className="advancement-preview__link-border" d={link.d} />
+              <path className="advancement-preview__link-core" d={link.d} />
+            </g>)}
           </svg>
           {layout.nodes.map(node => <button
             key={node.id}
@@ -138,6 +143,7 @@ function advancementEntries(value: unknown): AdvancementNode[] {
       parent: textValue(node.parent),
       x: numberValue(node.x),
       y: numberValue(node.y),
+      hasCoordinates: Object.prototype.hasOwnProperty.call(node, 'x') || Object.prototype.hasOwnProperty.call(node, 'y'),
       toast: booleanValue(node.toast, true),
       announce: booleanValue(node.announce, false),
       hidden: booleanValue(node.hidden, false)
@@ -147,7 +153,7 @@ function advancementEntries(value: unknown): AdvancementNode[] {
 
 function createAdvancementLayout(nodes: AdvancementNode[], rootId: string): AdvancementLayout {
   if (!nodes.length) return { nodes: [], links: [], width: 680, height: 270, mode: 'tree' };
-  const coordinateMode = nodes.every(node => node.x !== 0 || node.y !== 0);
+  const coordinateMode = nodes.some(node => node.hasCoordinates);
   const logical = coordinateMode ? coordinatePositions(nodes) : treePositions(nodes, rootId);
   const xs = [...logical.values()].map(position => position.x);
   const ys = [...logical.values()].map(position => position.y);
@@ -165,9 +171,9 @@ function createAdvancementLayout(nodes: AdvancementNode[], rootId: string): Adva
   const links = positioned.flatMap(node => {
     const parent = byId.get(node.parent);
     if (!parent) return [];
-    const startX = parent.left + NODE_SIZE;
+    const startX = parent.left + NODE_SIZE / 2;
     const startY = parent.top + NODE_SIZE / 2;
-    const endX = node.left;
+    const endX = node.left + NODE_SIZE / 2;
     const endY = node.top + NODE_SIZE / 2;
     const middleX = startX + (endX - startX) / 2;
     return [{ id: `${parent.id}:${node.id}`, d: `M ${startX} ${startY} H ${middleX} V ${endY} H ${endX}` }];

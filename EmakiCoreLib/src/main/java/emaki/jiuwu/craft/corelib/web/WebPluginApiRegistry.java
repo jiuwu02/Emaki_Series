@@ -1,10 +1,13 @@
 package emaki.jiuwu.craft.corelib.web;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 public final class WebPluginApiRegistry {
@@ -33,7 +36,42 @@ public final class WebPluginApiRegistry {
     }
 
     static synchronized RegisteredRoute route(String moduleId, String routeId) {
-        return ROUTES.get(key(moduleId, routeId));
+        String key = key(moduleId, routeId);
+        RegisteredRoute route = ROUTES.get(key);
+        if (route == null) {
+            return null;
+        }
+        if (!isPluginCurrent(route.plugin())) {
+            ROUTES.remove(key);
+            return null;
+        }
+        return route.plugin().isEnabled() ? route : null;
+    }
+
+    public static synchronized List<Map<String, Object>> routesSnapshot() {
+        ROUTES.entrySet().removeIf(entry -> !isPluginCurrent(entry.getValue().plugin()));
+        List<Map<String, Object>> routes = new ArrayList<>();
+        for (Map.Entry<String, RegisteredRoute> entry : ROUTES.entrySet()) {
+            String[] parts = entry.getKey().split("/", 2);
+            Plugin plugin = entry.getValue().plugin();
+            boolean enabled = plugin.isEnabled();
+            Map<String, Object> route = new LinkedHashMap<>();
+            route.put("moduleId", parts.length > 0 ? parts[0] : "");
+            route.put("routeId", parts.length > 1 ? parts[1] : "");
+            route.put("present", true);
+            route.put("enabled", enabled);
+            route.put("status", enabled ? "OK" : "DISABLED");
+            routes.add(route);
+        }
+        return routes;
+    }
+
+    private static boolean isPluginCurrent(Plugin plugin) {
+        if (plugin == null) {
+            return false;
+        }
+        Plugin installed = Bukkit.getPluginManager().getPlugin(plugin.getName());
+        return installed == plugin;
     }
 
     private static String key(String moduleId, String routeId) {

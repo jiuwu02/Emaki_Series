@@ -18,6 +18,7 @@ import * as itemFieldRegistry from './itemFieldRegistry';
 import * as effectTypeRegistry from './effectTypeRegistry';
 import * as economyConfig from './economyConfig';
 import * as pluginKit from './pluginKit';
+import * as webManifest from './platform/manifest';
 import { ItemEditorSurface } from './ItemEditorSurface';
 import type { EditorChange } from './components';
 import type { WebConfigCreateTemplate, WebConfigFieldSchema, WebConfigNode, WebEditorDescriptor, WebEditorField, WebRegistry, WebRegistryFile, WebRegistryModule, WebConsoleExtensionStatus, WebScriptCompletionEntry } from './types';
@@ -217,7 +218,7 @@ type ConfigFileSchemaRegistration = {
   fields: ConfigMetaFieldEntry[];
 };
 
-export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previewKit & typeof i18n & typeof itemFieldRegistry & typeof effectTypeRegistry & typeof economyConfig & typeof pluginKit & {
+export type EmakiWebConsoleHost = typeof lib & typeof components & typeof previewKit & typeof i18n & typeof itemFieldRegistry & typeof effectTypeRegistry & typeof economyConfig & typeof pluginKit & typeof webManifest & {
   apiVersion: string;
   React: typeof React;
   ItemEditorSurface: typeof ItemEditorSurface;
@@ -609,6 +610,15 @@ export function registerConfigListItemSchemaRules(moduleId: string, entries: Con
 export function registerPluginConfig(registration: PluginConfigRegistration): void {
   if (!registration?.moduleId) return;
   const { moduleId } = registration;
+  webManifest.recordLegacyPluginConfigManifest(moduleId, {
+    metaFields: registration.metaFields ?? [],
+    fileSchemas: registration.fileSchemas ?? [],
+    ruleFields: registration.ruleFields ?? {},
+    rules: registration.rules ?? [],
+    createTemplates: registration.createTemplates ?? [],
+    listItemSchemas: registration.listItemSchemas ?? [],
+    listItemSchemaRules: registration.listItemSchemaRules ?? []
+  });
   registerConfigMetaFields(moduleId, registration.metaFields ?? []);
   registerConfigFileSchemas(moduleId, registration.fileSchemas ?? []);
   registerConfigRuleFields(moduleId, registration.ruleFields ?? {});
@@ -753,7 +763,7 @@ export function isKind(fileKind: string | undefined, target: string): boolean {
 
 /** Install the browser global used by plugin extension scripts. */
 export function installWebConsoleHost(): EmakiWebConsoleHost {
-  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, registerInsightDefinition, getInsightDefinition, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, registerJavaScriptMethod, registerJavaScriptMethods, getJavaScriptCompletionScopes, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
+  const host: EmakiWebConsoleHost = { ...lib, ...components, ...previewKit, ...i18n, ...itemFieldRegistry, ...effectTypeRegistry, ...economyConfig, ...pluginKit, ...webManifest, apiVersion: EMAKI_WEB_CONSOLE_API_VERSION, React, ItemEditorSurface, registerSurface, getSurface, getAllSurfaces, isKind, registerPluginGuiSurface, registerPluginGuiEditor, registerPluginSurfaces, registerConfigPreview, getConfigPreview, getAllConfigPreviews, registerInsightDefinition, getInsightDefinition, standardGuiFields, registerEditorDescriptor, registerEditorField, registerSourceDocumentAdapter, getSourceDocumentAdapter, registerGuiEditorDescriptor, registerGuiEditorField, getRuntimeEnum, registerFileKindLabel, getFileKindLabel, registerConfigNodeMeta, registerConfigNodeRule, registerConfigCreateTemplate, registerConfigMetaFields, registerConfigFileSchema, registerConfigFileSchemas, registerConfigRuleFields, registerConfigCreateTemplates, registerConfigListItemSchemas, registerConfigListItemSchemaRules, registerConfigListItemSchema, registerConfigListItemSchemaRule, registerPluginConfig, registerUniqueListField, recordExtensionStatus, getExtensionStatuses, registerJavaScriptMethod, registerJavaScriptMethods, getJavaScriptCompletionScopes, components, previewKit, lib, i18n, t: i18n.t, registerLocale: i18n.registerLocale, registerModuleLocale: i18n.registerModuleLocale };
   (window as any).React = React;
   window.EmakiWebConsole = host;
   return host;
@@ -1051,7 +1061,12 @@ function copyCreateTemplate(template: WebConfigCreateTemplate): WebConfigCreateT
 }
 
 function copyFieldSchema(field: WebConfigFieldSchema): WebConfigFieldSchema {
-  return { ...field, options: field.options ? [...field.options] : undefined, itemFields: field.itemFields ? field.itemFields.map(copyFieldSchema) : undefined };
+  return {
+    ...field,
+    options: field.options ? [...field.options] : undefined,
+    itemFields: field.itemFields ? field.itemFields.map(copyFieldSchema) : undefined,
+    createTemplates: field.createTemplates ? field.createTemplates.map(copyCreateTemplate) : undefined
+  };
 }
 
 function configRuleMatches(matcher: ConfigNodeRuleMatcher, path: string, node: WebConfigNode): boolean {

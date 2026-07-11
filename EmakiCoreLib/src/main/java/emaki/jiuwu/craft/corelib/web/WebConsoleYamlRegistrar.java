@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.corelib.web;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
@@ -18,7 +17,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 public final class WebConsoleYamlRegistrar {
 
     private static final String RESOURCE_NAME = "web-console.yml";
-    private static final Set<String> SCANNED = ConcurrentHashMap.newKeySet();
+    private static final Map<String, Plugin> SCANNED = new ConcurrentHashMap<>();
 
     private WebConsoleYamlRegistrar() {}
 
@@ -29,6 +28,7 @@ public final class WebConsoleYamlRegistrar {
     }
 
     public static synchronized void scanAll() {
+        clearUnavailableScans();
         for (Plugin plugin : Bukkit.getPluginManager().getPlugins()) {
             if (!plugin.isEnabled()) continue;
             if (!(plugin instanceof JavaPlugin javaPlugin)) continue;
@@ -37,9 +37,14 @@ public final class WebConsoleYamlRegistrar {
     }
 
     public static synchronized void scanPlugin(JavaPlugin plugin) {
+        if (plugin == null || !plugin.isEnabled()) return;
         String moduleId = plugin.getName();
-        if (SCANNED.contains(moduleId)) return;
-        SCANNED.add(moduleId);
+        Plugin scanned = SCANNED.get(moduleId);
+        if (scanned == plugin) return;
+        if (scanned != null) {
+            WebConsoleRegistry.unregisterModule(moduleId);
+        }
+        SCANNED.put(moduleId, plugin);
 
         if (WebConsoleRegistry.isModuleRegistered(moduleId)) return;
 
@@ -50,6 +55,16 @@ public final class WebConsoleYamlRegistrar {
             applyRegistration(plugin, moduleId, yaml);
         } catch (Exception e) {
             plugin.getLogger().log(Level.WARNING, "[WebConsole] Failed to parse web-console.yml for " + moduleId, e);
+        }
+    }
+
+    private static void clearUnavailableScans() {
+        for (Map.Entry<String, Plugin> entry : List.copyOf(SCANNED.entrySet())) {
+            Plugin installed = Bukkit.getPluginManager().getPlugin(entry.getKey());
+            if (installed != entry.getValue() || installed == null || !installed.isEnabled()) {
+                SCANNED.remove(entry.getKey(), entry.getValue());
+                WebConsoleRegistry.unregisterModule(entry.getKey());
+            }
         }
     }
 
