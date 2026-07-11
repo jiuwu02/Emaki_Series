@@ -25,8 +25,8 @@ import emaki.jiuwu.craft.corelib.text.Texts;
  * {@code ConfigCategory}), so both {@code eco} and {@code libreforge} must be on
  * the compile classpath as {@code provided} dependencies for javac to resolve the
  * inheritance hierarchy; none of them are shaded into the jar. Coordinates are
- * pinned to Auxilor's latest public CalVer generation (eco {@code 2026.27},
- * libreforge / EcoItems / libreforge-loader {@code 2026.25}), and the EcoItems
+ * pinned to Auxilor's latest public CalVer generation (eco {@code 2026.28},
+ * libreforge / EcoItems / libreforge-loader {@code 2026.27}), and the EcoItems
  * classifier choice is critical (verified by bytecode inspection + a real javac
  * compile): EcoItems must use the <b>plain</b> jar (no classifier), whose {@code
  * EcoItems} super-type is the standard {@code com.willfp.libreforge.loader.configs.

@@ -1,4 +1,5 @@
-import { localeText, registerInsightDefinition, registerModuleLocale, registerPluginConfig } from 'emaki-web-console';
+import { localeText, registerConfigPreview, registerInsightDefinition, registerModuleLocale, registerPluginConfig } from 'emaki-web-console';
+import { AdvancementPreview, installAdvancementPreviewStyles } from './AdvancementPreview';
 
 let registered = false;
 
@@ -8,6 +9,7 @@ export function registerEmakiCodexWebConsole(): void {
 
   const MODULE = 'EmakiCodex';
   const copy = localeText;
+  installAdvancementPreviewStyles();
   const triggerEvents = ['entity_kill', 'mythic_mob_kill', 'block_break', 'crop_harvest', 'craft_item', 'furnace_extract', 'player_fish', 'brew_complete', 'entity_tame'];
   const advancementNodeFields = [
     { path: 'icon', label: copy('图标', 'Icon'), comment: copy('CoreLib ItemSource 字符串。', 'CoreLib ItemSource string.'), type: 'text', defaultValue: 'minecraft-book' },
@@ -47,6 +49,7 @@ export function registerEmakiCodexWebConsole(): void {
   });
 
   registerInsightDefinition({ moduleId: MODULE, pathPrefix: 'advancements/', idType: 'advancement_page', idPath: 'page_id' });
+  registerConfigPreview({ moduleId: MODULE, kind: 'CONFIG', pathPrefix: 'advancements/', component: AdvancementPreview, label: copy('原版成就预览', 'Vanilla advancement preview'), priority: 20 });
   registerPluginConfig({
     moduleId: MODULE,
     metaFields: [

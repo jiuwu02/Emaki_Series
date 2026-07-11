@@ -637,17 +637,37 @@ export function applyConfigRegistryOverrides(registry: WebRegistry): WebRegistry
 }
 
 export function applyConfigNodeOverrides(moduleId: string, nodes: WebConfigNode[], filePath?: string): WebConfigNode[] {
-  const existing = nodes.map(node => applySingleConfigNodeOverride(moduleId, node));
   const schemaFields = dedupeConfigSchemaFields(configSchemaFieldsForFile(moduleId, filePath));
+  const virtualNodes = dedupeVirtualNodes(schemaFields.flatMap(field => createVirtualConfigNodesFromField(moduleId, field)));
+  const schemaNodesByPath = new Map(virtualNodes.map(node => [node.path, node]));
+  const existing = nodes.map(node => {
+    const schemaNode = schemaNodesByPath.get(node.path);
+    return applySingleConfigNodeOverride(moduleId, schemaNode ? mergeConfigSchemaNodeMetadata(node, schemaNode) : node);
+  });
   let merged = existing;
-  if (schemaFields.length) {
-    const virtualNodes = dedupeVirtualNodes(schemaFields.flatMap(field => createVirtualConfigNodesFromField(moduleId, field)));
+  if (virtualNodes.length) {
     const schemaPaths = virtualNodes.map(node => node.path);
     const existingPaths = new Set(merged.map(node => node.path));
     const missing = virtualNodes.filter(node => !existingPaths.has(node.path));
     if (missing.length) merged = mergeMissingConfigNodes(merged, missing, schemaPaths);
   }
   return mergeSchemaObjectChildNodes(moduleId, merged);
+}
+
+function mergeConfigSchemaNodeMetadata(node: WebConfigNode, schemaNode: WebConfigNode): WebConfigNode {
+  const next: WebConfigNode = {
+    ...node,
+    label: schemaNode.label,
+    comment: schemaNode.comment,
+    type: resolveConfigNodeType(node.type, schemaNode.type)
+  };
+  if (schemaNode.options !== undefined) next.options = [...schemaNode.options];
+  if (schemaNode.optionLabelPrefix !== undefined) next.optionLabelPrefix = schemaNode.optionLabelPrefix;
+  if (schemaNode.creatableChildren !== undefined) next.creatableChildren = schemaNode.creatableChildren;
+  if (schemaNode.createTemplates !== undefined) next.createTemplates = schemaNode.createTemplates.map(copyCreateTemplate);
+  if (schemaNode.itemFields !== undefined) next.itemFields = schemaNode.itemFields.map(copyFieldSchema);
+  if (schemaNode.uniqueBy !== undefined) next.uniqueBy = schemaNode.uniqueBy;
+  return next;
 }
 
 function mergeSchemaObjectChildNodes(moduleId: string, nodes: WebConfigNode[]): WebConfigNode[] {

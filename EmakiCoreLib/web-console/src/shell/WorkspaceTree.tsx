@@ -423,7 +423,7 @@ function treeRowAriaLabel(label: string, kindLabel: string, comment: string, isG
 }
 
 function visibleChildren(node: RegistryTreeNode): RegistryTreeNode[] {
-  return (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child));
+  return (node.children ?? []).filter(child => !isEmptyGlobPlaceholder(child) && !isLanguageTreeNode(child));
 }
 
 function nodeSearchText(node: RegistryTreeNode): string {
@@ -596,8 +596,13 @@ function normalizeTreePath(path: string | undefined): string {
   return String(path ?? '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
 }
 
+function isLanguageTreeNode(node: RegistryTreeNode): boolean {
+  return isLanguageFilePath(node.childPath ?? node.path);
+}
+
 function isLanguageFilePath(path: string | undefined): boolean {
-  return normalizeTreePath(path).toLowerCase().startsWith('lang/');
+  const normalized = normalizeTreePath(path).toLowerCase();
+  return normalized === 'lang' || normalized.startsWith('lang/');
 }
 
 function leafFileName(path: string | undefined): string {
