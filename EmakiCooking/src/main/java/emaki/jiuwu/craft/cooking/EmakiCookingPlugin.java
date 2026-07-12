@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.cooking;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -204,6 +205,13 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (fermentationBarrelRuntimeService != null) {
             fermentationBarrelRuntimeService.shutdown();
         }
+        if (stationStateStore != null) {
+            try {
+                stationStateStore.waitForIdle().get(5, TimeUnit.SECONDS);
+            } catch (Exception exception) {
+                getLogger().warning("Timed out waiting for station state store flush: " + exception.getMessage());
+            }
+        }
         if (displayService != null) {
             displayService.shutdown();
         }
@@ -274,7 +282,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         javaScriptResultRuleRegistry = new JavaScriptCookingResultRuleRegistry(this);
         javaScriptCompleteHookRegistry = new JavaScriptCookingCompleteHookRegistry(this);
         stationTracker = new CookingStationTracker();
-        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService, blockMatcher);
+        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService, blockMatcher, settingsService);
         stationLocator = new CookingStationLocator(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
@@ -295,6 +303,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             return;
         }
         getServer().getPluginManager().registerEvents(stationListener, this);
+        if (stationStateStore != null) {
+            getServer().getPluginManager().registerEvents(new CookingStationStorageListener(this), this);
+        }
         if (stationTracker != null) {
             getServer().getPluginManager().registerEvents(stationTracker, this);
         }

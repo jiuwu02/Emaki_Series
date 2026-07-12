@@ -19,6 +19,10 @@ language: "zh_CN"
 # 是否写入默认 recipes
 release_default_data: true
 
+# 工位交互全局禁用世界；命中后插件不接管事件，保留原版方块行为
+station:
+  disabled_worlds: []
+
 input_rules:
   # 严格模式：只允许能继续匹配当前工位配方的物品进入工位输入。
   only_recipe_items: true
@@ -121,6 +125,7 @@ stations:
     # 砧板方块来源
     block_item_sources:
       - minecraft-oak_log
+    disabled_worlds: []
     # 省略时继承 input_rules.only_recipe_items
     only_recipe_items: true
     interactions:
@@ -154,6 +159,7 @@ stations:
     # 炒锅方块来源
     block_item_sources:
       - minecraft-iron_block
+    disabled_worlds: []
     interactions:
       add_ingredient: shift_left_click
       stir: shift_left_click
@@ -221,6 +227,7 @@ stations:
     # 研磨机方块来源
     block_item_sources:
       - minecraft-grindstone
+    disabled_worlds: []
     interactions:
       start: shift_left_click
     drop_result: true
@@ -240,6 +247,7 @@ stations:
     # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
     block_item_sources:
       - minecraft-barrel
+    disabled_worlds: []
     interactions:
       open: shift_right_click
       fuel: right_click
@@ -303,6 +311,7 @@ stations:
     # 烤炉主体方块来源；GUI 细节在 gui/oven.yml
     block_item_sources:
       - minecraft-smoker
+    disabled_worlds: []
     interactions:
       open: shift_right_click
       fuel: shift_left_click
@@ -336,6 +345,7 @@ stations:
     # 榨汁机方块来源；GUI 细节在 gui/juicer.yml
     block_item_sources:
       - minecraft-cauldron
+    disabled_worlds: []
     interactions:
       open: shift_right_click
       process: shift_left_click
@@ -366,6 +376,7 @@ stations:
     # 发酵桶方块来源；GUI 细节在 gui/fermentation_barrel.yml
     block_item_sources:
       - minecraft-barrel
+    disabled_worlds: []
     interactions:
       open: shift_right_click
       start: shift_left_click

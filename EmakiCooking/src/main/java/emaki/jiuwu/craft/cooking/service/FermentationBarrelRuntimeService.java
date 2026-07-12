@@ -81,22 +81,50 @@ public final class FermentationBarrelRuntimeService implements Listener {
         textDisplayService.removeStationType(StationType.FERMENTATION_BARREL);
         runtimeStates.clear();
         activeStations.clear();
-        for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.FERMENTATION_BARREL).entrySet()) {
-            StationCoordinates coordinates = entry.getKey();
-            Block block = coordinates.block();
-            FermentationBarrelState state = codec.readState(entry.getValue());
-            ItemSource stationSource = stateStore.stationSource(entry.getValue());
-            if (!blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource) || state.isCompletelyEmpty()) {
-                removeState(coordinates, true);
-                continue;
-            }
-            runtimeStates.put(coordinates, state);
-            refreshText(coordinates, state);
-            if (tickProcessor.shouldRemainActive(state)) {
-                activeStations.add(coordinates);
-            }
+        stateStore.forEachLoadedState(StationType.FERMENTATION_BARREL, this::restoreStoredState);
+        ensureTicker();
+    }
+
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+        if (coordinates == null) {
+            return false;
+        }
+        Block block = coordinates.block();
+        FermentationBarrelState state = codec.readState(section);
+        ItemSource stationSource = stateStore.stationSource(section);
+        if (state == null || state.isCompletelyEmpty()) {
+            removeState(coordinates, false);
+            activeStations.remove(coordinates);
+            return false;
+        }
+        if (!blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource)) {
+            removeState(coordinates, false);
+            activeStations.remove(coordinates);
+            plugin.getLogger().warning("Station restore report: skipped_mismatch type=fermentation_barrel coordinate=" + coordinates.runtimeKey());
+            return false;
+        }
+        runtimeStates.put(coordinates, state);
+        refreshText(coordinates, state);
+        if (tickProcessor.shouldRemainActive(state)) {
+            activeStations.add(coordinates);
         }
         ensureTicker();
+        return true;
+    }
+
+    public void unloadStoredState(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return;
+        }
+        FermentationBarrelState state = runtimeStates.get(coordinates);
+        if (state != null && !state.isCompletelyEmpty()) {
+            stateStore.save(coordinates, codec.serializeState(coordinates, state));
+        }
+        removeState(coordinates, false);
+        activeStations.remove(coordinates);
+        if (activeStations.isEmpty()) {
+            cancelTicker();
+        }
     }
 
     public void shutdown() {

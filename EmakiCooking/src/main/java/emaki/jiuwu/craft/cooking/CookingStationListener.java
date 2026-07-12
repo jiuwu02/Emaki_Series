@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.cooking.model.StationInteractionType;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
 import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
+import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
@@ -39,6 +40,7 @@ final class CookingStationListener implements Listener {
     private final JuicerRuntimeService juicerRuntimeService;
     private final FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
     private final CookingBlockMatcher blockMatcher;
+    private final CookingSettingsService settingsService;
     private final Map<String, Long> handledBreaks = new ConcurrentHashMap<>();
 
     CookingStationListener(ChoppingBoardRuntimeService choppingBoardRuntimeService,
@@ -48,7 +50,8 @@ final class CookingStationListener implements Listener {
             OvenRuntimeService ovenRuntimeService,
             JuicerRuntimeService juicerRuntimeService,
             FermentationBarrelRuntimeService fermentationBarrelRuntimeService,
-            CookingBlockMatcher blockMatcher) {
+            CookingBlockMatcher blockMatcher,
+            CookingSettingsService settingsService) {
         this.choppingBoardRuntimeService = choppingBoardRuntimeService;
         this.wokRuntimeService = wokRuntimeService;
         this.grinderRuntimeService = grinderRuntimeService;
@@ -57,6 +60,7 @@ final class CookingStationListener implements Listener {
         this.juicerRuntimeService = juicerRuntimeService;
         this.fermentationBarrelRuntimeService = fermentationBarrelRuntimeService;
         this.blockMatcher = blockMatcher;
+        this.settingsService = settingsService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -85,7 +89,11 @@ final class CookingStationListener implements Listener {
     }
 
     void dispatchInteraction(StationInteraction interaction) {
-        fireInteractEvent(interaction);
+        StationType stationType = resolveStationType(interaction);
+        if (isInteractionDisabled(stationType, interaction == null ? null : interaction.block())) {
+            return;
+        }
+        fireInteractEvent(interaction, stationType);
         if (choppingBoardRuntimeService.handleInteraction(interaction)) {
             return;
         }
@@ -112,16 +120,12 @@ final class CookingStationListener implements Listener {
      * 之前同步触发，{@code CookingStationTracker} 监听该事件写入"最近交互工位"，因此
      * 随后进行的配方条件占位符求值即可读到当前工位。事件为只读通知，不影响交互取消。
      */
-    private void fireInteractEvent(StationInteraction interaction) {
+    private void fireInteractEvent(StationInteraction interaction, StationType stationType) {
         if (interaction == null) {
             return;
         }
         Block block = interaction.block();
-        if (block == null || interaction.player() == null) {
-            return;
-        }
-        StationType stationType = resolveStationType(interaction);
-        if (stationType == null) {
+        if (block == null || interaction.player() == null || stationType == null) {
             return;
         }
         StationInteractionType interactionType = interaction.type();
@@ -151,7 +155,30 @@ final class CookingStationListener implements Listener {
         return null;
     }
 
+    private StationType resolveStationType(StationBreakContext context) {
+        if (blockMatcher == null) {
+            return null;
+        }
+        for (StationType type : StationType.values()) {
+            if (blockMatcher.matches(context, type)) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    private boolean isInteractionDisabled(StationType stationType, Block block) {
+        if (stationType == null || block == null || block.getWorld() == null || settingsService == null) {
+            return false;
+        }
+        return settingsService.isInteractionDisabled(stationType, block.getWorld().getName());
+    }
+
     void dispatchBreak(StationBreakContext context) {
+        StationType stationType = resolveStationType(context);
+        if (isInteractionDisabled(stationType, context == null ? null : context.block())) {
+            return;
+        }
         if (recentlyHandledBreak(context)) {
             return;
         }

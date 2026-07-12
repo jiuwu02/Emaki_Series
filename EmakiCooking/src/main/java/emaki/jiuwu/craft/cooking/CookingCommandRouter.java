@@ -40,6 +40,7 @@ final class CookingCommandRouter implements TabExecutor {
             }
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
+            case "station" -> handleStation(sender, args);
             case "nutrition" -> handleNutrition(sender, args);
             case "debug" -> handleDebug(sender, args);
             default -> {
@@ -53,7 +54,7 @@ final class CookingCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "reload", "inspect", "nutrition", "debug")) {
+            for (String sub : List.of("help", "reload", "inspect", "station", "nutrition", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -67,8 +68,16 @@ final class CookingCommandRouter implements TabExecutor {
             return nutritionTabComplete(args);
         }
         if (args.length == 2) {
-            if ("inspect".equalsIgnoreCase(args[0]) && "hand".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
-                result.add("hand");
+            if ("inspect".equalsIgnoreCase(args[0])) {
+                String prefix = args[1].toLowerCase(java.util.Locale.ROOT);
+                for (String option : List.of("hand", "block")) {
+                    if (option.startsWith(prefix)) {
+                        result.add(option);
+                    }
+                }
+            }
+            if ("station".equalsIgnoreCase(args[0]) && "reindex".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                result.add("reindex");
             }
             return result;
         }
@@ -141,11 +150,39 @@ final class CookingCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.no_permission");
             return true;
         }
-        if (args.length < 2 || !"hand".equalsIgnoreCase(args[1])) {
+        if (args.length < 2) {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        return plugin.inspectService().inspectHand(sender, player);
+        return switch (args[1].toLowerCase(java.util.Locale.ROOT)) {
+            case "hand" -> plugin.inspectService().inspectHand(sender, player);
+            case "block" -> plugin.inspectService().inspectBlock(sender, player);
+            default -> {
+                plugin.messageService().send(sender, "general.invalid_args");
+                yield true;
+            }
+        };
+    }
+
+    private boolean handleStation(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2 || !"reindex".equalsIgnoreCase(args[1])) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        if (plugin.stationStateStore() == null) {
+            plugin.messageService().sendRaw(sender, "<red>Station state store is not ready.</red>");
+            return true;
+        }
+        plugin.messageService().sendRaw(sender, "<gray>Rebuilding station location index...</gray>");
+        plugin.stationStateStore().reindexAsync().thenAccept(report -> runForSender(sender, () -> plugin.messageService().sendRaw(sender,
+                "<green>Station index rebuilt:</green> <gray>legacy_yaml=</gray>" + report.legacyYamlStates()
+                        + " <gray>loaded_pdc=</gray>" + report.loadedPdcStates()
+                        + " <gray>total_indexed=</gray>" + report.totalIndexedStates())));
+        return true;
     }
 
     private int totalRecipeCount() {
@@ -160,7 +197,8 @@ final class CookingCommandRouter implements TabExecutor {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
-        lines.put("inspect hand", plugin.messageService().message("command.help.desc.inspect"));
+        lines.put("inspect hand|block", plugin.messageService().message("command.help.desc.inspect"));
+        lines.put("station reindex", "rebuild station storage index");
         lines.put("nutrition get|set|add|remove", plugin.messageService().message("command.help.desc.nutrition"));
         lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(

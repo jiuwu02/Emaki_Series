@@ -78,18 +78,39 @@ public final class JuicerRuntimeService implements Listener {
         guiController.closeAllOpenInventories(false);
         textDisplayService.removeStationType(StationType.JUICER);
         runtimeStates.clear();
-        for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.JUICER).entrySet()) {
-            StationCoordinates coordinates = entry.getKey();
-            Block block = coordinates.block();
-            JuicerState state = codec.readState(entry.getValue());
-            ItemSource stationSource = stateStore.stationSource(entry.getValue());
-            if (!blockMatcher.matches(block, StationType.JUICER, stationSource) || state.isCompletelyEmpty()) {
-                removeState(coordinates, true);
-                continue;
-            }
-            runtimeStates.put(coordinates, state);
-            refreshText(coordinates, state);
+        stateStore.forEachLoadedState(StationType.JUICER, this::restoreStoredState);
+    }
+
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+        if (coordinates == null) {
+            return false;
         }
+        Block block = coordinates.block();
+        JuicerState state = codec.readState(section);
+        ItemSource stationSource = stateStore.stationSource(section);
+        if (state == null || state.isCompletelyEmpty()) {
+            removeState(coordinates, false);
+            return false;
+        }
+        if (!blockMatcher.matches(block, StationType.JUICER, stationSource)) {
+            removeState(coordinates, false);
+            plugin.getLogger().warning("Station restore report: skipped_mismatch type=juicer coordinate=" + coordinates.runtimeKey());
+            return false;
+        }
+        runtimeStates.put(coordinates, state);
+        refreshText(coordinates, state);
+        return true;
+    }
+
+    public void unloadStoredState(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return;
+        }
+        JuicerState state = runtimeStates.get(coordinates);
+        if (state != null && !state.isCompletelyEmpty()) {
+            stateStore.save(coordinates, codec.serializeState(coordinates, state));
+        }
+        removeState(coordinates, false);
     }
 
     public void shutdown() {

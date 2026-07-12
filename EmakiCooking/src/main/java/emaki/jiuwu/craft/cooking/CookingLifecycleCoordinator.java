@@ -68,6 +68,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
             "recipes/fermentation_barrel",
             "item_adjustments",
             "data/stations",
+            "data/stations/index",
+            "data/stations-legacy-backup",
             "nutrition",
             "data/nutrition"
     );
@@ -127,7 +129,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreLibPlugin.itemAssemblyService()
         );
         rewardService.setRecipeService(recipeService);
-        CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService());
+        CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService(), stationStateStore, blockMatcher, settingsService);
         CookingDisplayService displayService = CookingDisplayServiceFactory.create(plugin, settingsService);
         CookingTextDisplayService textDisplayService = CookingTextDisplayServiceFactory.create(plugin, settingsService);
         ChoppingBoardRuntimeService choppingBoardRuntimeService = new ChoppingBoardRuntimeService(

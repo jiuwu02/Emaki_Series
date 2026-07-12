@@ -84,18 +84,37 @@ public final class WokRuntimeService {
 
     public void reload() {
         displayService.removeStationType(StationType.WOK);
-        for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.WOK).entrySet()) {
-            StationCoordinates coordinates = entry.getKey();
-            WokState state = readState(entry.getValue());
-            ItemSource stationSource = stateStore.stationSource(entry.getValue());
-            Block block = coordinates.block();
-            if (state == null || !blockMatcher.matches(block, StationType.WOK, stationSource) || !state.hasIngredients()) {
-                stateStore.deleteAsync(coordinates);
-                displayService.removeStation(StationType.WOK, coordinates);
-                continue;
-            }
-            refreshDisplays(coordinates, state);
+        stateStore.forEachLoadedState(StationType.WOK, this::restoreStoredState);
+    }
+
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+        if (coordinates == null) {
+            return false;
         }
+        WokState state = readState(section);
+        ItemSource stationSource = stateStore.stationSource(section);
+        Block block = coordinates.block();
+        if (state == null || !state.hasIngredients()) {
+            displayService.removeStation(StationType.WOK, coordinates);
+            textDisplayService.removeStation(StationType.WOK, coordinates);
+            return false;
+        }
+        if (!blockMatcher.matches(block, StationType.WOK, stationSource)) {
+            displayService.removeStation(StationType.WOK, coordinates);
+            textDisplayService.removeStation(StationType.WOK, coordinates);
+            plugin.getLogger().warning("Station restore report: skipped_mismatch type=wok coordinate=" + coordinates.runtimeKey());
+            return false;
+        }
+        refreshDisplays(coordinates, state);
+        return true;
+    }
+
+    public void unloadStoredState(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return;
+        }
+        displayService.removeStation(StationType.WOK, coordinates);
+        textDisplayService.removeStation(StationType.WOK, coordinates);
     }
 
     public boolean handleInteraction(StationInteraction interaction) {

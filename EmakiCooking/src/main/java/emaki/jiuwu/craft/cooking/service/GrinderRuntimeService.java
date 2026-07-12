@@ -72,19 +72,43 @@ public final class GrinderRuntimeService {
         cancelTicker();
         activeStations.clear();
         textDisplayService.removeStationType(StationType.GRINDER);
-        for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.GRINDER).entrySet()) {
-            StationCoordinates coordinates = entry.getKey();
-            GrinderState state = readState(entry.getValue());
-            ItemSource stationSource = stateStore.stationSource(entry.getValue());
-            Block block = coordinates.block();
-            if (state == null || !blockMatcher.matches(block, StationType.GRINDER, stationSource)) {
-                stateStore.deleteAsync(coordinates);
-                continue;
-            }
-            activeStations.add(coordinates.runtimeKey());
-            refreshText(coordinates, state);
-        }
+        stateStore.forEachLoadedState(StationType.GRINDER, this::restoreStoredState);
         ensureTicker();
+    }
+
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+        if (coordinates == null) {
+            return false;
+        }
+        GrinderState state = readState(section);
+        ItemSource stationSource = stateStore.stationSource(section);
+        Block block = coordinates.block();
+        if (state == null) {
+            activeStations.remove(coordinates.runtimeKey());
+            textDisplayService.removeStation(StationType.GRINDER, coordinates);
+            return false;
+        }
+        if (!blockMatcher.matches(block, StationType.GRINDER, stationSource)) {
+            activeStations.remove(coordinates.runtimeKey());
+            textDisplayService.removeStation(StationType.GRINDER, coordinates);
+            plugin.getLogger().warning("Station restore report: skipped_mismatch type=grinder coordinate=" + coordinates.runtimeKey());
+            return false;
+        }
+        activeStations.add(coordinates.runtimeKey());
+        refreshText(coordinates, state);
+        ensureTicker();
+        return true;
+    }
+
+    public void unloadStoredState(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return;
+        }
+        activeStations.remove(coordinates.runtimeKey());
+        textDisplayService.removeStation(StationType.GRINDER, coordinates);
+        if (activeStations.isEmpty()) {
+            cancelTicker();
+        }
     }
 
     public void shutdown() {
@@ -243,15 +267,14 @@ public final class GrinderRuntimeService {
             cancelTicker();
             return;
         }
-        for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.GRINDER).entrySet()) {
-            GrinderState state = readState(entry.getValue());
-            StationCoordinates coordinates = entry.getKey();
+        stateStore.forEachLoadedState(StationType.GRINDER, (coordinates, section) -> {
+            GrinderState state = readState(section);
             if (state == null) {
                 activeStations.remove(coordinates.runtimeKey());
-                continue;
+                return;
             }
             processStation(coordinates, state);
-        }
+        });
         if (activeStations.isEmpty()) {
             cancelTicker();
         }

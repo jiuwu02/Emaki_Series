@@ -100,24 +100,49 @@ public final class OvenRuntimeService implements Listener {
         activeStations.clear();
         runtimeStates.clear();
         dirtyStations.clear();
-        long now = System.currentTimeMillis();
-        for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.OVEN).entrySet()) {
-            StationCoordinates coordinates = entry.getKey();
-            OvenState state = codec.readState(entry.getValue());
-            ItemSource stationSource = stateStore.stationSource(entry.getValue());
-            Block block = coordinates.block();
-            if (state == null || !blockMatcher.matches(block, StationType.OVEN, stationSource)) {
-                guiController.closeOpenInventories(coordinates, true);
-                removeState(coordinates, true);
-                continue;
-            }
-            cacheState(coordinates, state);
-            refreshText(coordinates, state);
-            if (tickProcessor.shouldRemainActive(state, now)) {
-                activeStations.add(coordinates);
-            }
+        stateStore.forEachLoadedState(StationType.OVEN, this::restoreStoredState);
+        ensureTicker();
+    }
+
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+        if (coordinates == null) {
+            return false;
+        }
+        OvenState state = codec.readState(section);
+        ItemSource stationSource = stateStore.stationSource(section);
+        Block block = coordinates.block();
+        if (state == null) {
+            guiController.closeOpenInventories(coordinates, true);
+            removeState(coordinates, false);
+            return false;
+        }
+        if (!blockMatcher.matches(block, StationType.OVEN, stationSource)) {
+            guiController.closeOpenInventories(coordinates, true);
+            removeState(coordinates, false);
+            plugin.getLogger().warning("Station restore report: skipped_mismatch type=oven coordinate=" + coordinates.runtimeKey());
+            return false;
+        }
+        cacheState(coordinates, state);
+        refreshText(coordinates, state);
+        if (tickProcessor.shouldRemainActive(state, System.currentTimeMillis())) {
+            activeStations.add(coordinates);
         }
         ensureTicker();
+        return true;
+    }
+
+    public void unloadStoredState(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return;
+        }
+        OvenState state = runtimeStates.get(coordinates);
+        if (state != null && !state.isCompletelyEmpty()) {
+            stateStore.save(coordinates, codec.serializeState(coordinates, state));
+        }
+        removeState(coordinates, false);
+        if (activeStations.isEmpty()) {
+            cancelTicker();
+        }
     }
 
     public void shutdown() {

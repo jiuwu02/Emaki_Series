@@ -85,34 +85,53 @@ public final class ChoppingBoardRuntimeService {
     public void reload() {
         displayService.removeStationType(StationType.CHOPPING_BOARD);
         textDisplayService.removeStationType(StationType.CHOPPING_BOARD);
-        for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.CHOPPING_BOARD).entrySet()) {
-            StationCoordinates coordinates = entry.getKey();
-            ChoppingBoardState state = readState(entry.getValue());
-            ItemSource stationSource = stateStore.stationSource(entry.getValue());
-            Block block = coordinates.block();
-            if (state == null || !blockMatcher.matches(block, StationType.CHOPPING_BOARD, stationSource)) {
-                clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
-                stateStore.deleteAsync(coordinates);
-                continue;
+        stateStore.forEachLoadedState(StationType.CHOPPING_BOARD, this::restoreStoredState);
+    }
+
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+        if (coordinates == null) {
+            return false;
+        }
+        ChoppingBoardState state = readState(section);
+        ItemSource stationSource = stateStore.stationSource(section);
+        Block block = coordinates.block();
+        if (state == null) {
+            clearDisplay(coordinates, null, null);
+            textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+            return false;
+        }
+        if (!blockMatcher.matches(block, StationType.CHOPPING_BOARD, stationSource)) {
+            clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
+            textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+            plugin.getLogger().warning("Station restore report: skipped_mismatch type=chopping_board coordinate=" + coordinates.runtimeKey());
+            return false;
+        }
+        if (state.hasInputSource()) {
+            if (state.displayEntityId() != null) {
+                clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
             }
-            if (state.hasInputSource()) {
-                if (state.displayEntityId() != null) {
-                    clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
-                }
-                refreshDisplay(coordinates, state.inputSource(), state.inputItemData());
-                refreshText(coordinates, state);
-                if (state.displayEntityId() != null) {
-                    saveState(coordinates, new ChoppingBoardState(
-                            state.inputSource(),
-                            state.inputItemData(),
-                            state.inputAmount(),
-                            state.cutCount(),
-                            state.lastInteractionMs(),
-                            null
-                    ));
-                }
+            refreshDisplay(coordinates, state.inputSource(), state.inputItemData());
+            refreshText(coordinates, state);
+            if (state.displayEntityId() != null) {
+                saveState(coordinates, new ChoppingBoardState(
+                        state.inputSource(),
+                        state.inputItemData(),
+                        state.inputAmount(),
+                        state.cutCount(),
+                        state.lastInteractionMs(),
+                        null
+                ));
             }
         }
+        return true;
+    }
+
+    public void unloadStoredState(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return;
+        }
+        displayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+        textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
     }
 
     public boolean handleInteraction(StationInteraction interaction) {
