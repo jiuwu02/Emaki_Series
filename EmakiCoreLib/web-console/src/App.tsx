@@ -25,8 +25,9 @@ const I18nBundleModal = lazy(() => import('./I18nBundleModal').then(module => ({
 // Register CoreLib's built-in surfaces through the same registry used by plugin extensions.
 registerSurface({ kind: 'GUI', component: GuiEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gui.label') });
 registerSurface({ kind: 'ITEM', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.item.label') });
+registerSurface({ kind: 'SET', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.item.label') });
 registerSurface({ kind: 'GEM', component: ItemEditorSurface as ComponentType<SurfaceProps>, label: t('core.surface.gem.label') });
-for (const kind of ['CONFIG', 'GUI', 'ITEM', 'GEM', 'SCRIPT']) {
+for (const kind of ['CONFIG', 'GUI', 'ITEM', 'SET', 'GEM', 'SCRIPT']) {
   registerSourceDocumentAdapter({
     kind,
     adapter: {

@@ -1284,6 +1284,8 @@ export function registerLocale(locale: string, messages: LocaleMessages, options
 
 export function registerModuleLocale(moduleId: string, locale: string, messages: LocaleMessages, options: RegisterLocaleOptions = {}): void {
   registerLocale(locale, messages, { ...options, moduleId });
+  const alias = moduleIdAlias(moduleId);
+  if (alias && normalizeModuleId(alias) !== normalizeModuleId(moduleId)) registerLocale(locale, messages, { ...options, moduleId: alias });
 }
 
 export function replaceLocaleMessages(locale: string, messages: LocaleMessages, options: RegisterLocaleOptions = {}): void {
@@ -1457,6 +1459,11 @@ function normalizeLocale(locale: string | undefined): string {
 
 function normalizeModuleId(moduleId: string | undefined): string {
   return String(moduleId ?? '').trim().toUpperCase();
+}
+
+function moduleIdAlias(moduleId: string | undefined): string {
+  const text = String(moduleId ?? '').trim();
+  return /^Emaki[A-Z]/.test(text) ? text.slice('Emaki'.length) : '';
 }
 
 function isPrimaryLocale(locale: string): boolean {

@@ -311,6 +311,21 @@ function normalize(value: string | undefined): string {
   return String(value ?? '').toUpperCase();
 }
 
+function normalizeModuleVariants(value: string | undefined): string[] {
+  const normalized = normalize(value).trim();
+  if (!normalized) return [];
+  const variants = [normalized];
+  if (normalized.startsWith('EMAKI') && normalized.length > 'EMAKI'.length) variants.push(normalized.slice('EMAKI'.length));
+  else variants.push(`EMAKI${normalized}`);
+  return [...new Set(variants)];
+}
+
+function moduleIdMatches(a: string | undefined, b: string | undefined): boolean {
+  const left = normalizeModuleVariants(a);
+  const right = new Set(normalizeModuleVariants(b));
+  return left.some(value => right.has(value));
+}
+
 function normalizePreviewPath(value: string | undefined): string {
   return String(value ?? '').trim().replace(/\\/g, '/').replace(/^\/+/, '').toLowerCase();
 }
@@ -323,9 +338,37 @@ function configPreviewScore(reg: ConfigPreviewRegistration): number {
     + (reg.pathPrefix ? 10 + reg.pathPrefix.length / 1000 : 0);
 }
 
+function globPatternRegex(pattern: string): RegExp {
+  const source = String(pattern ?? '').replace(/\\/g, '/').replace(/^\/+/, '');
+  let regex = '';
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index];
+    if (char === '*') {
+      if (source[index + 1] === '*') {
+        if (source[index + 2] === '/') {
+          regex += '(?:.*/)?';
+          index += 2;
+        } else {
+          regex += '.*';
+          index += 1;
+        }
+      } else {
+        regex += '[^/]*';
+      }
+    } else if (char === '?') {
+      regex += '[^/]';
+    } else {
+      regex += char.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    }
+  }
+  return new RegExp(`^${regex}$`);
+}
+
 function previewPathPatternMatches(pattern: string, path: string): boolean {
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
-  return new RegExp(`^${escaped}$`).test(path);
+  const regex = globPatternRegex(pattern);
+  if (regex.test(path)) return true;
+  const prefixed = path.startsWith('/') ? path : `/${path}`;
+  return regex.test(prefixed);
 }
 
 /**
@@ -363,11 +406,11 @@ export function getSurface(fileOrKind: WebRegistryFile | string | undefined, edi
   const editorId = String(file?.editorId ?? editor?.id ?? '');
 
   if (editorId) {
-    const byEditor = _registry.find(r => String(r.editorId ?? '') === editorId && (!r.moduleId || !moduleId || normalize(r.moduleId) === moduleId));
+    const byEditor = _registry.find(r => String(r.editorId ?? '') === editorId && (!r.moduleId || !moduleId || moduleIdMatches(r.moduleId, moduleId)));
     if (byEditor) return byEditor;
   }
   if (moduleId) {
-    const byModuleKind = _registry.find(r => normalize(r.kind) === kind && normalize(r.moduleId) === moduleId);
+    const byModuleKind = _registry.find(r => normalize(r.kind) === kind && moduleIdMatches(r.moduleId, moduleId));
     if (byModuleKind) return byModuleKind;
   }
   return _registry.find(r => normalize(r.kind) === kind && !r.moduleId && !r.editorId);
@@ -408,7 +451,7 @@ export function getConfigPreview(context: { moduleId?: string; kind?: string; pa
   const kind = normalize(context.kind);
   const path = normalizePreviewPath(context.path);
   return _configPreviews.find(reg => {
-    if (reg.moduleId && normalize(reg.moduleId) !== moduleId) return false;
+    if (reg.moduleId && !moduleIdMatches(reg.moduleId, moduleId)) return false;
     if (reg.kind && normalize(reg.kind) !== kind) return false;
     if (reg.pathPrefix && !path.startsWith(reg.pathPrefix)) return false;
     if (reg.pathPattern && !previewPathPatternMatches(reg.pathPattern, path)) return false;
@@ -458,7 +501,7 @@ export function getInsightDefinition(context: InsightDefinitionContext): Insight
   const moduleId = normalize(context.moduleId);
   const path = normalizePreviewPath(context.path);
   const match = _insightDefinitions.find(reg => {
-    if (reg.moduleId && normalize(reg.moduleId) !== moduleId) return false;
+    if (reg.moduleId && !moduleIdMatches(reg.moduleId, moduleId)) return false;
     if (reg.pathPrefix && !path.startsWith(reg.pathPrefix)) return false;
     if (reg.pathPattern && !previewPathPatternMatches(reg.pathPattern, path)) return false;
     return true;
@@ -793,7 +836,7 @@ export function getSourceDocumentAdapter(fileOrKind: WebRegistryFile | string | 
     if (byEditor) return byEditor.adapter;
   }
   if (moduleId) {
-    const byModuleKind = _sourceAdapters.find(r => normalize(r.kind) === kind && normalize(r.moduleId) === moduleId);
+    const byModuleKind = _sourceAdapters.find(r => normalize(r.kind) === kind && moduleIdMatches(r.moduleId, moduleId));
     if (byModuleKind) return byModuleKind.adapter;
   }
   return _sourceAdapters.find(r => normalize(r.kind) === kind && !r.moduleId && !r.editorId)?.adapter;
@@ -905,10 +948,7 @@ function configSchemaFieldsForFile(moduleId: string, filePath: string | undefine
 
 function configFileSchemaMatches(schema: ConfigFileSchemaRegistration, filePath: string): boolean {
   if (schema.pathPrefix && filePath.startsWith(normalizeConfigFilePath(schema.pathPrefix))) return true;
-  if (schema.pathPattern) {
-    const pattern = normalizeConfigFilePath(schema.pathPattern).replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*');
-    return new RegExp(`^${pattern}$`).test(filePath);
-  }
+  if (schema.pathPattern) return globPatternRegex(normalizeConfigFilePath(schema.pathPattern)).test(filePath);
   return false;
 }
 
@@ -1127,7 +1167,8 @@ function configOverrideKey(moduleId: string, path: string): string {
 }
 
 function normalizeConfigModuleId(moduleId: string): string {
-  return String(moduleId ?? '').trim().toLowerCase();
+  const normalized = String(moduleId ?? '').trim().toLowerCase();
+  return normalized.startsWith('emaki') && normalized.length > 'emaki'.length ? normalized.slice('emaki'.length) : normalized;
 }
 
 function lastConfigPathKey(path: string): string {

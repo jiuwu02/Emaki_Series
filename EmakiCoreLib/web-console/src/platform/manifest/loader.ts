@@ -1,4 +1,4 @@
-import { registerModuleLocale } from '../../i18n';
+import { registerModuleLocale, type LocaleMessages } from '../../i18n';
 import { registerEffectTypes } from '../../effectTypeRegistry';
 import { registerItemFieldRenderer, registerItemPreviewFallback } from '../../itemFieldRegistry';
 import {
@@ -58,6 +58,8 @@ export function getWebManifestRuntimeSnapshot(): WebManifestRuntimeSnapshot {
 
 export function applyWebManifestV2(manifest: WebManifestV2): void {
   const moduleId = manifest.module.id;
+  const derivedLocales = deriveManifestLocaleMessages(manifest);
+  for (const [locale, messages] of Object.entries(derivedLocales)) registerModuleLocale(moduleId, locale, messages);
   for (const locale of manifest.locales ?? []) registerModuleLocale(moduleId, locale.locale, locale.messages);
   if (manifest.config || manifest.schemas?.length) {
     registerPluginConfig({
@@ -132,6 +134,106 @@ function normalizeWebManifestV2(input: WebManifestV2): WebManifestV2 {
 
 function copyManifest(manifest: WebManifestV2): WebManifestV2 {
   return normalizeWebManifestV2(manifest);
+}
+
+function deriveManifestLocaleMessages(manifest: WebManifestV2): Record<string, LocaleMessages> {
+  const moduleId = manifest.module.id;
+  const namespace = moduleId.toLowerCase();
+  const localeMessages: Record<string, LocaleMessages> = { 'zh-CN': {}, 'en-US': {} };
+  const put = (key: string, value: unknown) => {
+    const text = typeof value === 'function' ? undefined : String(value ?? '').trim();
+    if (!key || !text) return;
+    localeMessages['zh-CN'][key] ??= text;
+    localeMessages['en-US'][key] ??= text;
+  };
+  put(`${namespace}.module.name`, manifest.module.displayName ?? moduleId);
+  for (const file of manifest.files ?? []) {
+    const id = String(file.id ?? '').trim();
+    if (!id) continue;
+    if (file.titleKey) put(file.titleKey, file.path || id);
+    else put(`${namespace}.file.${id}.title`, file.path || id);
+    if (file.commentKey) put(file.commentKey, file.path || id);
+  }
+  for (const field of manifest.config?.metaFields ?? []) collectConfigFieldLocale(namespace, field, put);
+  for (const schema of [...(manifest.config?.fileSchemas ?? []), ...(manifest.schemas ?? [])]) for (const field of schema.fields ?? []) collectConfigFieldLocale(namespace, field, put);
+  for (const [path, field] of Object.entries(manifest.config?.ruleFields ?? {})) collectRuleFieldLocale(namespace, path, field, put);
+  for (const [, template] of manifest.config?.createTemplates ?? []) collectCreateTemplateLocale(namespace, template, put);
+  for (const [, fields] of manifest.config?.listItemSchemas ?? []) for (const field of fields ?? []) collectWebFieldLocale(namespace, field, put);
+  for (const [, fields] of manifest.config?.listItemSchemaRules ?? []) for (const field of fields ?? []) collectWebFieldLocale(namespace, field, put);
+  for (const editor of manifest.itemEditors ?? []) {
+    if (editor.descriptor) collectEditorDescriptorLocale(namespace, editor.editorId, editor.descriptor, put);
+    for (const field of editor.fields ?? []) collectEditorFieldLocale(namespace, field, put);
+  }
+  for (const editor of manifest.guiEditors ?? []) {
+    if (editor.label) put(`${namespace}.editor.${editor.editorId}.title`, editor.label);
+    for (const field of editor.fields ?? []) collectStandardGuiFieldLocale(namespace, field, put);
+    for (const field of Object.values(editor.descriptor?.fields ?? {})) collectEditorFieldLocale(namespace, field, put);
+  }
+  return Object.fromEntries(Object.entries(localeMessages).filter(([, messages]) => Object.keys(messages).length > 0));
+}
+
+function collectConfigFieldLocale(namespace: string, field: unknown, put: (key: string, value: unknown) => void): void {
+  if (!Array.isArray(field)) return;
+  const [path, label, comment, , extra] = field;
+  collectPathLocale(namespace, path, label, comment, put);
+  if (extra && typeof extra === 'object') collectWebFieldExtrasLocale(namespace, extra as { itemFields?: unknown[]; createTemplates?: unknown[] }, put);
+}
+
+function collectRuleFieldLocale(namespace: string, path: string, field: unknown, put: (key: string, value: unknown) => void): void {
+  if (!Array.isArray(field)) return;
+  const [label, comment, , extra] = field;
+  const normalizedPath = String(path ?? '').trim();
+  if (normalizedPath) collectPathLocale(namespace, normalizedPath, label, comment, put);
+  if (extra && typeof extra === 'object') collectWebFieldExtrasLocale(namespace, extra as { itemFields?: unknown[]; createTemplates?: unknown[] }, put);
+}
+
+function collectWebFieldLocale(namespace: string, field: unknown, put: (key: string, value: unknown) => void): void {
+  if (!field || typeof field !== 'object') return;
+  const entry = field as { path?: unknown; label?: unknown; comment?: unknown };
+  collectPathLocale(namespace, entry.path, entry.label, entry.comment, put);
+  collectWebFieldExtrasLocale(namespace, field as { itemFields?: unknown[]; createTemplates?: unknown[] }, put);
+}
+
+function collectEditorFieldLocale(namespace: string, field: unknown, put: (key: string, value: unknown) => void): void {
+  collectWebFieldLocale(namespace, field, put);
+}
+
+function collectStandardGuiFieldLocale(namespace: string, field: unknown, put: (key: string, value: unknown) => void): void {
+  if (!Array.isArray(field)) return;
+  const [path, label, comment] = field;
+  collectPathLocale(namespace, path, label, comment, put);
+}
+
+function collectEditorDescriptorLocale(namespace: string, editorId: string, descriptor: { title?: unknown; kindLabel?: unknown; sections?: Array<{ title?: unknown; titleKey?: string; comment?: unknown; commentKey?: string; fields?: unknown[] }>; fields?: Record<string, unknown> }, put: (key: string, value: unknown) => void): void {
+  const normalizedEditorId = editorId.replace(/[^a-z0-9_-]+/gi, '.');
+  put(`${namespace}.editor.${normalizedEditorId}.title`, descriptor.title);
+  put(`${namespace}.editor.${normalizedEditorId}.kind`, descriptor.kindLabel);
+  for (const section of descriptor.sections ?? []) {
+    if (section.titleKey) put(section.titleKey, section.title);
+    if (section.commentKey) put(section.commentKey, section.comment);
+    for (const field of section.fields ?? []) collectEditorFieldLocale(namespace, field, put);
+  }
+  for (const field of Object.values(descriptor.fields ?? {})) collectEditorFieldLocale(namespace, field, put);
+}
+
+function collectWebFieldExtrasLocale(namespace: string, field: { itemFields?: unknown[]; createTemplates?: unknown[] }, put: (key: string, value: unknown) => void): void {
+  for (const child of field.itemFields ?? []) collectWebFieldLocale(namespace, child, put);
+  for (const template of field.createTemplates ?? []) collectCreateTemplateLocale(namespace, template, put);
+}
+
+function collectCreateTemplateLocale(namespace: string, template: unknown, put: (key: string, value: unknown) => void): void {
+  if (!template || typeof template !== 'object') return;
+  const entry = template as { id?: unknown; label?: unknown; fields?: unknown[] };
+  const templateId = String(entry.id ?? '').trim();
+  if (templateId) put(`${namespace}.template.${templateId}.label`, entry.label);
+  for (const field of entry.fields ?? []) collectWebFieldLocale(namespace, field, put);
+}
+
+function collectPathLocale(namespace: string, path: unknown, label: unknown, comment: unknown, put: (key: string, value: unknown) => void): void {
+  const normalizedPath = String(path ?? '').trim();
+  if (!normalizedPath) return;
+  put(`${namespace}.field.${normalizedPath}`, label);
+  put(`${namespace}.comment.${normalizedPath}`, comment);
 }
 
 function normalizeModuleId(moduleId: string): string {

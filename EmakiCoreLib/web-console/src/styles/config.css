@@ -443,8 +443,9 @@
 
 .node-meta {
   min-width: 0;
+  min-height: var(--config-field-control-height);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 6px;
   flex-wrap: nowrap;
 }

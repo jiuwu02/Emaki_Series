@@ -17,20 +17,17 @@ export type OptionLabelOptions = {
 export function fieldLabel(path: string, options: FieldLabelOptions = {}): string {
   const exactPath = String(path || '');
   const last = lastPathKey(exactPath);
-  const namespace = normalizeNamespace(options.namespace);
-  const moduleNamespace = normalizeNamespace(options.moduleId);
+  const namespaces = uniqueStrings([...namespaceVariants(options.namespace), ...namespaceVariants(options.moduleId)]);
   const keys = [
-    namespace && `${namespace}.field.${exactPath}`,
-    namespace && `${namespace}.field.${last}`,
-    moduleNamespace && `${moduleNamespace}.field.${exactPath}`,
-    moduleNamespace && `${moduleNamespace}.field.${last}`,
-    namespace && `${namespace}.item.field.${exactPath}`,
-    namespace && `${namespace}.item.field.${last}`,
-    moduleNamespace && `${moduleNamespace}.item.field.${exactPath}`,
-    moduleNamespace && `${moduleNamespace}.item.field.${last}`,
+    ...namespaces.flatMap(namespace => [
+      `${namespace}.field.${exactPath}`,
+      `${namespace}.field.${last}`,
+      `${namespace}.item.field.${exactPath}`,
+      `${namespace}.item.field.${last}`
+    ]),
     `core.field.${exactPath}`,
     `core.field.${last}`
-  ].filter(Boolean) as string[];
+  ];
 
   const currentValue = lookupCurrentLocale(keys);
   if (currentValue) return currentValue;
@@ -57,16 +54,15 @@ export function fieldLabel(path: string, options: FieldLabelOptions = {}): strin
 export function fieldComment(path: string, options: FieldLabelOptions = {}): string {
   const exactPath = String(path || '');
   const last = lastPathKey(exactPath);
-  const namespace = normalizeNamespace(options.namespace);
-  const moduleNamespace = normalizeNamespace(options.moduleId);
+  const namespaces = uniqueStrings([...namespaceVariants(options.namespace), ...namespaceVariants(options.moduleId)]);
   const keys = [
-    namespace && `${namespace}.comment.${exactPath}`,
-    namespace && `${namespace}.comment.${last}`,
-    moduleNamespace && `${moduleNamespace}.comment.${exactPath}`,
-    moduleNamespace && `${moduleNamespace}.comment.${last}`,
+    ...namespaces.flatMap(namespace => [
+      `${namespace}.comment.${exactPath}`,
+      `${namespace}.comment.${last}`
+    ]),
     `core.comment.${exactPath}`,
     `core.comment.${last}`
-  ].filter(Boolean) as string[];
+  ];
   const currentValue = lookupCurrentLocale(keys);
   if (currentValue) return currentValue;
   const fields = options.editorFields;
@@ -79,13 +75,11 @@ export function fieldComment(path: string, options: FieldLabelOptions = {}): str
 
 export function optionLabel(prefix: string, value: string, options: OptionLabelOptions = {}): string {  const text = String(value ?? '');
   if (!text) return text;
-  const namespace = normalizeNamespace(options.namespace);
-  const moduleNamespace = normalizeNamespace(options.moduleId);
+  const namespaces = uniqueStrings([...namespaceVariants(options.namespace), ...namespaceVariants(options.moduleId)]);
   const keys = [
-    namespace && `${namespace}.option.${prefix}.${text}`,
-    moduleNamespace && `${moduleNamespace}.option.${prefix}.${text}`,
+    ...namespaces.map(namespace => `${namespace}.option.${prefix}.${text}`),
     `core.option.${prefix}.${text}`
-  ].filter(Boolean) as string[];
+  ];
   const currentValue = lookupCurrentLocale(keys);
   if (currentValue) return currentValue;
   if (!isZhLocale()) return options.fallback || text;
@@ -127,6 +121,20 @@ export function humanizeFieldLabel(path: string): string {
 
 export function lastPathKey(path: string): string {
   return path.includes('.') ? path.slice(path.lastIndexOf('.') + 1) : path;
+}
+
+function namespaceVariants(value: string | undefined): string[] {
+  const normalized = normalizeNamespace(value);
+  if (!normalized) return [];
+  if (normalized === 'core') return [normalized];
+  const variants = [normalized];
+  if (normalized.startsWith('emaki') && normalized.length > 'emaki'.length) variants.push(normalized.slice('emaki'.length));
+  else variants.push(`emaki${normalized}`);
+  return uniqueStrings(variants);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.filter(Boolean))];
 }
 
 function normalizeNamespace(value: string | undefined): string {
