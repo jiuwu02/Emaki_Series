@@ -67,6 +67,34 @@ const outcomeFields = [
   { path: 'actions', label: '结果动作', comment: '该结果分支触发后执行的动作。', type: 'stringList', defaultValue: [] }
 ];
 
+const displayTextProfileFields = [
+  { path: 'enabled', label: '启用', comment: '是否启用该文本展示配置。', type: 'boolean', defaultValue: true },
+  { path: 'text', label: '文本', comment: '展示实体上方显示的文本模板。', type: 'text', defaultValue: '' },
+  { path: 'offset_y', label: 'Y 偏移', comment: '文本相对展示实体的 Y 轴偏移。', type: 'number', defaultValue: 0 },
+  { path: 'scale', label: '缩放', comment: '文本展示缩放倍率。', type: 'number', defaultValue: 1 }
+];
+
+const nutritionFoodSourceFields = [
+  { path: 'item_sources', label: '食物来源', comment: '会提供营养值的 ItemSource 列表。', type: 'stringList', defaultValue: ['minecraft-apple'] },
+  { path: 'values', label: '营养值', comment: '营养类型 ID 到增减数值的映射。', type: 'dynamic_map', defaultValue: {} },
+  { path: 'actions', label: '食用动作', comment: '食用该来源后执行的 CoreLib Action 列表。', type: 'stringList', defaultValue: [] }
+];
+
+const nutritionSingleThresholdFields = [
+  { path: 'id', label: 'ID', comment: '单营养阈值规则 ID。', type: 'text', defaultValue: 'single_rule' },
+  { path: 'type', label: '营养类型', comment: '匹配的营养类型 ID。', type: 'text', defaultValue: 'fruit' },
+  { path: 'min', label: '最小值', comment: '触发该规则的营养值下限。', type: 'number', defaultValue: 0 },
+  { path: 'max', label: '最大值', comment: '触发该规则的营养值上限。', type: 'number', defaultValue: 100 },
+  { path: 'actions', label: '动作', comment: '阈值命中时执行的 CoreLib Action 列表。', type: 'stringList', defaultValue: [] }
+];
+
+const nutritionComboThresholdFields = [
+  { path: 'id', label: 'ID', comment: '组合阈值规则 ID。', type: 'text', defaultValue: 'combo_rule' },
+  { path: 'required_count', label: '需要满足数量', comment: '需要达到阈值的营养类型数量。', type: 'number', defaultValue: 5 },
+  { path: 'min', label: '最小值', comment: '参与组合判定的营养值下限。', type: 'number', defaultValue: 0 },
+  { path: 'actions', label: '动作', comment: '组合阈值命中时执行的 CoreLib Action 列表。', type: 'stringList', defaultValue: [] }
+];
+
 const fields: FieldSpec[] = [
   ['language', '语言', '语言文件 ID，对应 lang/<language>.yml。', 'text'],
   ['version', '配置版本', '默认配置结构版本，通常不建议手动修改。', 'text'],
@@ -79,6 +107,14 @@ const fields: FieldSpec[] = [
   ['display_entities.refresh_interval_ticks', '刷新间隔', '展示实体位置、旋转、可见性与状态刷新间隔，单位 tick。', 'number'],
   ['display_entities.wok', '炒锅展示', '炒锅食材环形展示的专用布局参数。', 'object'],
   ['display_entities.wok.layout_radius', '炒锅半径', '炒锅中多份食材围绕中心摆放的半径，单位方块格。', 'number'],
+  ['display_entities.text', '文本展示', '展示实体附加文本的默认配置与工位覆盖。', 'object'],
+  ['display_entities.text.defaults', '默认文本展示', '展示实体附加文本的默认文本、偏移和缩放配置。', 'object', { itemFields: displayTextProfileFields }],
+  ['display_entities.text.stations', '工位文本覆盖', '按工位类型覆盖展示实体附加文本配置。', 'object', { creatableChildren: true, createTemplates: [{ id: 'station-text-profile', label: copy('工位文本展示', 'Station text profile'), fields: displayTextProfileFields }] }],
+  ['nutrition', '营养系统', '食用物品营养来源、单项阈值和组合阈值规则。', 'object'],
+  ['nutrition.food_sources', '营养食物来源', '按 ItemSource 匹配食物并提供营养值的规则列表。', 'objectList'],
+  ['nutrition.thresholds', '营养阈值', '营养单项阈值与组合阈值规则。', 'object'],
+  ['nutrition.thresholds.single', '单营养阈值', '单个营养类型达到范围时触发的规则列表。', 'objectList'],
+  ['nutrition.thresholds.combo', '组合阈值', '多个营养类型共同达标时触发的规则列表。', 'objectList'],
   ['display_adjustments', '展示变换', '默认展示实体的偏移、旋转、缩放，以及各工位专用覆盖。', 'object'],
   ['display_adjustments.defaults', '默认展示', '普通物品和方块展示实体的默认变换参数。', 'object', { creatableChildren: true, createTemplates: [{ id: 'display-kind-adjustment', label: copy('展示类型调整', 'Display kind adjustment'), fields: displayTransformFields }] }],
   ['display_adjustments.station_defaults', '工位覆盖', '按工位类型覆盖展示实体变换，例如炒锅食材翻转角度。', 'object', { creatableChildren: true, createTemplates: [{ id: 'station-display-adjustment', label: copy('工位展示调整', 'Station display adjustment'), fields: [{ path: 'item', label: '物品展示', comment: '该工位物品展示实体的调整。', type: 'object', defaultValue: {}, itemFields: displayTransformFields }] }] }],
@@ -182,6 +218,11 @@ const recipeCommonFields: FieldSpec[] = [
   ['condition.on_pass.actions', '条件成立动作', '条件成立时执行的 CoreLib Action 列表。', 'stringList'],
   ['condition.on_fail.actions', '条件失败动作', '条件不成立时执行的 CoreLib Action 列表。', 'stringList'],
   ['condition.on_fail.block_output', '失败阻止产出', '条件不成立时是否阻止产物输出。', 'boolean'],
+  ['availability_condition', '可用条件', '配方参与匹配或可用性判断时评估的条件块。', 'object'],
+  ['availability_condition.type', '可用条件逻辑', '可用条件表达式组合方式。', 'enum', { options: ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'], optionLabelPrefix: 'conditionType' }],
+  ['availability_condition.entries', '可用条件表达式', 'CoreLib 条件表达式字符串列表。', 'stringList'],
+  ['availability_condition.required_count', '可用条件数量', 'at_least / exactly 条件逻辑下需要满足的条件数量。', 'number'],
+  ['availability_condition.invalid_as_failure', '解析失败视为失败', '可用条件表达式解析失败时是否视为条件不通过。', 'boolean'],
   ['result', '结果', '配方完成后的分支产物与动作。', 'object'],
   ['result.success', '成功结果', '普通完成或正确烹饪时的结果分支。', 'object', { itemFields: outcomeFields }],
   ['result.success.outputs', '成功产物', '成功结果分支产出的物品列表。', 'objectList', { itemFields: outputFields }],
@@ -481,6 +522,9 @@ export const cookingPluginConfig: WebManifestPluginConfig = {
         { path: 'amount', label: '数量', comment: '此食材需要的数量。', type: 'number', defaultValue: 1 },
         { path: 'stir_rule', label: '翻炒规则', comment: '炒锅配方加入时机，格式为“最早-最晚”。', type: 'text', defaultValue: '1-1' }
       ]],
+      ['nutrition.food_sources', nutritionFoodSourceFields],
+      ['nutrition.thresholds.single', nutritionSingleThresholdFields],
+      ['nutrition.thresholds.combo', nutritionComboThresholdFields],
       ['result.success.outputs', outputFields],
       ['result.undercooked.outputs', outputFields],
       ['result.overcooked.outputs', outputFields],

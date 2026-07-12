@@ -35,17 +35,18 @@ export function fieldLabel(path: string, options: FieldLabelOptions = {}): strin
   const currentValue = lookupCurrentLocale(keys);
   if (currentValue) return currentValue;
 
-  if (!isZhLocale()) return englishFallback(exactPath, options.fallback);
+  const fields = options.editorFields;
+  const exact = fields?.[exactPath];
+  const loose = fields?.[last];
+
+  if (!isZhLocale()) return exact?.label || loose?.label || englishFallback(exactPath, options.fallback);
 
   for (const key of keys) {
     const value = t(key, undefined, '');
     if (value) return value;
   }
 
-  const fields = options.editorFields;
-  const exact = fields?.[exactPath];
   if (exact?.label) return exact.label;
-  const loose = fields?.[last];
   if (loose?.label) return loose.label;
 
   return options.fallback || humanizeFieldLabel(exactPath);

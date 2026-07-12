@@ -4,6 +4,28 @@ import { LevelCurvePreview, dynamicFields, installLevelCurvePreviewStyles, mainC
 const MODULE = 'EmakiLevel';
 const copy = localeText;
 
+const sourceRuleFields = [
+  { path: 'entity_types', label: copy('实体类型', 'Entity types'), comment: copy('匹配 Bukkit EntityType 名称。', 'Matching Bukkit EntityType names.'), type: 'stringList', defaultValue: [] },
+  { path: 'blocks', label: copy('方块', 'Blocks'), comment: copy('匹配 Bukkit Material 名称。', 'Matching Bukkit material names.'), type: 'stringList', defaultValue: [] },
+  { path: 'states', label: copy('状态', 'States'), comment: copy('事件状态名称。', 'Event state names.'), type: 'stringList', defaultValue: [] },
+  { path: 'result_item_sources', label: copy('结果物品源', 'Result item sources'), comment: copy('匹配 CoreLib ItemSource。', 'Matching CoreLib ItemSource values.'), type: 'stringList', defaultValue: [] },
+  { path: 'potion_types', label: copy('药水类型', 'Potion types'), comment: copy('药水类型名称。', 'Potion type names.'), type: 'stringList', defaultValue: [] },
+  { path: 'mob_ids', label: copy('MythicMob ID', 'MythicMob IDs'), comment: copy('匹配 MythicMobs 内部 ID。', 'Matching MythicMobs internal ids.'), type: 'stringList', defaultValue: [] },
+  { path: 'exp_formula', label: copy('经验公式', 'Exp formula'), comment: copy('使用 %变量% 计算本次经验。', 'Formula using %variables% to calculate exp.'), type: 'text', defaultValue: '0' }
+];
+
+const requirementGroupFields = [
+  { path: 'formula', label: copy('需求公式', 'Requirement formula'), comment: copy('按目标等级计算升级所需经验。', 'Formula for required exp by target level.'), type: 'text', defaultValue: '' },
+  { path: 'values', label: copy('等级固定值', 'Level values'), comment: copy('按目标等级覆盖需求值，key 为等级数字。', 'Per-target-level overrides keyed by level number.'), type: 'dynamic_map', defaultValue: {}, creatableChildren: true, createTemplates: [{ id: 'requirement-value', label: copy('等级需求值', 'Level requirement value'), fields: [{ path: 'value', label: copy('需求值', 'Required value'), comment: copy('该目标等级所需经验。', 'Required exp for this target level.'), type: 'number', defaultValue: 0 }] }] }
+];
+
+const requirementFields: [string, string, string, string?, Record<string, unknown>?][] = [
+  ['global', copy('全局需求', 'Global requirement'), copy('默认升级需求公式和固定值。', 'Default requirement formula and value overrides.'), 'object', { itemFields: requirementGroupFields }],
+  ['global.formula', copy('全局公式', 'Global formula'), copy('默认升级需求公式。', 'Default requirement formula.'), 'text'],
+  ['global.values', copy('全局固定值', 'Global values'), copy('按目标等级覆盖全局需求值。', 'Global requirement overrides by target level.'), 'dynamic_map', { creatableChildren: true, createTemplates: [{ id: 'global-requirement-value', label: copy('全局等级需求值', 'Global level requirement value'), fields: [{ path: 'value', label: copy('需求值', 'Required value'), comment: copy('该目标等级所需经验。', 'Required exp for this target level.'), type: 'number', defaultValue: 0 }] }] }],
+  ['groups', copy('需求分组', 'Requirement groups'), copy('按分组 ID 覆盖升级需求。', 'Requirement overrides keyed by group id.'), 'object', { creatableChildren: true, createTemplates: [{ id: 'requirement-group', label: copy('需求分组', 'Requirement group'), fields: requirementGroupFields }] }]
+];
+
 export const emakiLevelWebModule = (() => {
   installLevelCurvePreviewStyles();
 
@@ -20,6 +42,7 @@ export const emakiLevelWebModule = (() => {
     config: {
       metaFields: mainConfigFields,
       fileSchemas: [
+        { pathPrefix: 'requirements.yml', fields: requirementFields },
         { pathPrefix: 'types/', fields: typeFields },
         { pathPrefix: 'sources/', fields: sourceFields }
       ],
@@ -32,9 +55,12 @@ export const emakiLevelWebModule = (() => {
             { path: 'enabled', label: copy('启用', 'Enabled'), comment: copy('是否启用该来源。', 'Whether this source is enabled.'), type: 'boolean', defaultValue: true },
             { path: 'type', label: copy('等级类型', 'Level type'), comment: copy('经验写入的等级类型 ID。', 'Target level type id.'), type: 'text', defaultValue: 'main' },
             { path: 'trigger', label: copy('触发器', 'Trigger'), comment: copy('经验来源触发器。', 'Experience source trigger.'), type: 'text', defaultValue: 'entity_kill' },
-            { path: 'rules', label: copy('规则', 'Rules'), comment: copy('匹配规则列表。', 'Match rule list.'), type: 'objectList', defaultValue: [] }
+            { path: 'rules', label: copy('规则', 'Rules'), comment: copy('匹配规则列表。', 'Match rule list.'), type: 'objectList', defaultValue: [], itemFields: sourceRuleFields }
           ]
         }]
+      ],
+      listItemSchemaRules: [
+        [{ key: 'rules' }, sourceRuleFields]
       ]
     },
     previews: [

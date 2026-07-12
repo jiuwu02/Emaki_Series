@@ -493,7 +493,7 @@
     text-overflow: ellipsis;
   }
 
-  .object-list-field {
+  .object-list-field.object-list-field--wide {
     grid-template-columns: 1fr;
     gap: 4px;
   }

@@ -18,7 +18,7 @@ const configFields: ConfigSpec[] = [
   ['sync_delay_ticks', '同步延迟', '属性计算后同步到 Bukkit 原生属性的延迟，单位 tick。', 'number'],
   ['default_profile', '默认档案', '玩家默认资源上限、初始属性基础值和新玩家档案模板。', 'object'],
   ['default_profile.resources', '默认资源', '生命、法力等资源的默认最大值、边界与 Bukkit 同步策略。', 'object', { creatableChildren: true }],
-  ['default_profile.attributes', '默认属性', '玩家默认拥有的属性基础值，key 为属性 ID。', 'object', { creatableChildren: true }],
+  ['default_profile.attributes', '默认属性', '玩家默认拥有的属性基础值，key 为属性 ID。', 'dynamic_map', { creatableChildren: true }],
   ['synthetic_hit_feedback', '击中反馈', '仅兼容模式生效：合成重应用伤害后是否补发击退和受伤音效。', 'object'],
   ['synthetic_hit_feedback.knockback', '补发击退', '仅兼容模式生效：合成伤害后是否补发击退。', 'boolean'],
   ['synthetic_hit_feedback.knockback_strength', '击退强度', '仅兼容模式生效：补发击退力度系数。', 'number'],
@@ -51,6 +51,7 @@ const commonFields: Record<string, [string, string, string]> = {
   attribute_power: ['属性战力', '该属性每 1 点对应的战力评分系数。', 'number'],
   tags: ['标签', '属性标签列表（如 DEBUFF），供 MythicMobs 按标签批量增删临时属性。', 'list'],
   temporary_stack_mode: ['临时叠加模式', '作为临时属性重复施加时的叠加模式：REPLACE 覆盖，STACK 相加。', 'enum'],
+  child_bonuses: ['子属性加成', '父级属性按子属性 ID 提供的加成映射，可新增任意子属性键。', 'dynamic_map'],
   description: ['说明', '定义文件的详细说明，用于文档和调试输出。', 'text'],
   aliases: ['别名', '伤害类型可被引用的别名列表。', 'list'],
   allowed_events: ['允许事件', '允许触发该伤害类型的 Bukkit DamageCause 列表。', 'list'],
@@ -95,7 +96,8 @@ const attributeBalanceFields: ConfigSpec[] = [
   ['schema_version', '结构版本', '属性权重配置结构版本。', 'text'],
   ['groups', '分组', '属性分组说明。', 'object', { creatableChildren: true }],
   ['roles', '角色', '属性角色说明。', 'object', { creatableChildren: true }],
-  ['attributes', '属性权重', '各属性的分组、角色、摘要和战力评分系数。', 'object', { creatableChildren: true }]
+  ['attributes', '属性权重', '各属性的分组、角色、摘要和战力评分系数。', 'object', { creatableChildren: true }],
+  ['scores', '属性分数', '属性 ID 到战力分数的映射，可新增任意属性键。', 'dynamic_map', { creatableChildren: true, createTemplates: [{ id: 'attribute-score', label: copy('属性分数', 'Attribute score'), fields: [{ path: 'value', label: '分数', comment: '该属性的战力评分系数。', type: 'number', defaultValue: 1 }] }] }]
 ];
 
 const attributeDefinitionFields: ConfigSpec[] = [
@@ -117,7 +119,8 @@ const attributeDefinitionFields: ConfigSpec[] = [
   ['lore_patterns', '词条正则', '从物品 Lore 中识别属性数值的正则表达式列表。', 'stringList'],
   ['attribute_power', '属性战力', '该属性每 1 点对应的战力评分系数。', 'number'],
   ['tags', '标签', '属性标签列表（如 DEBUFF），供 MythicMobs 按标签批量增删临时属性。', 'stringList'],
-  ['temporary_stack_mode', '临时叠加模式', '作为临时属性重复施加时的叠加模式。', 'enum', { options: ['REPLACE', 'STACK'], optionLabelPrefix: 'temporary_stack_mode' }]
+  ['temporary_stack_mode', '临时叠加模式', '作为临时属性重复施加时的叠加模式。', 'enum', { options: ['REPLACE', 'STACK'], optionLabelPrefix: 'temporary_stack_mode' }],
+  ['child_bonuses', '子属性加成', '父级属性按子属性 ID 提供的加成映射。', 'dynamic_map', { creatableChildren: true }]
 ];
 
 const damageTypeFields: ConfigSpec[] = [
@@ -211,7 +214,7 @@ export const emakiAttributeWebModule = defineEmakiPluginWebModule({
         { path: 'full_on_init', label: '初始满值', comment: '初始化时是否填充至最大值。', type: 'boolean', defaultValue: true }
       ] }],
       ['default_profile.attributes', { id: 'attribute', label: copy('属性默认值', 'Attribute default value'), fields: [
-        { path: 'default_value', label: '默认值', comment: '属性默认基础数值。', type: 'number', defaultValue: 0 }
+        { path: 'value', label: '默认值', comment: '属性默认基础数值。', type: 'number', defaultValue: 0 }
       ] }],
       ['scaling_curves', { id: 'curve', label: copy('衰减曲线模板', 'Scaling curve template'), fields: [
         { path: 'attribute', label: '属性 ID', comment: '需要应用衰减的属性 ID。', type: 'text', defaultValue: 'physical_attack' },

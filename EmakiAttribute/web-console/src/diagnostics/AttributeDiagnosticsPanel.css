@@ -41,13 +41,16 @@
 
 .ea-form label {
   display: grid;
-  gap: 6px;
+  grid-template-columns: minmax(92px, .75fr) minmax(0, 1.25fr);
+  align-items: center;
+  gap: 8px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
 }
 
 .ea-form input {
+  width: 100%;
   min-height: var(--config-field-control-height, 30px);
   border-radius: 6px;
   border: 1px solid var(--line);

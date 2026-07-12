@@ -35,7 +35,7 @@ const outputFields = standardMaterialCostFields({
 const failureOutcomeFields = [
   { path: 'type', label: '结果类型', comment: '失败结果类型，例如 return_materials、consume_materials、byproduct。', type: 'enum', options: ['return_materials', 'consume_materials', 'partial_consume', 'fixed_quality', 'byproduct', 'economy_penalty', 'downgrade_quality'], defaultValue: 'return_materials' },
   { path: 'weight', label: '权重', comment: '失败时随机抽取此结果的权重。', type: 'number', defaultValue: 1 },
-  { path: 'params', label: '参数', comment: '结果类型对应参数，例如 return_rate、quality、item_sources、amount、levels。', type: 'map', defaultValue: {} }
+  { path: 'params', label: '参数', comment: '结果类型对应参数，例如 return_rate、quality、item_sources、amount、levels。', type: 'dynamic_map', defaultValue: {} }
 ];
 
 const qualityTierDisplayFields = [
@@ -191,6 +191,12 @@ export const emakiForgeWebModule = defineEmakiPluginWebModule({
       ['blueprint_requirements', blueprintFields],
       ['result.success.outputs', outputFields],
       ['failure_outcomes', failureOutcomeFields]
+    ],
+    listItemSchemaRules: [
+      [{ key: 'materials' }, materialFields],
+      [{ key: 'blueprint_requirements' }, blueprintFields],
+      [{ suffix: 'result.success.outputs' }, outputFields],
+      [{ key: 'failure_outcomes' }, failureOutcomeFields]
     ]
   },
   guiEditors: [defineGuiEditor({

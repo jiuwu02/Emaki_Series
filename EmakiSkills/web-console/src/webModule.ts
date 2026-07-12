@@ -24,6 +24,17 @@ const currencyFields = standardCurrencyCostFields({
   }
 });
 
+const triggerConfigFields = [
+  { path: 'display_name', label: '显示名称', comment: '触发器在 GUI、ActionBar 或提示文本中显示的名称。', type: 'text', defaultValue: '' },
+  { path: 'enabled', label: '启用', comment: '是否启用当前触发器。', type: 'boolean', defaultValue: true },
+  { path: 'incompatible_with', label: '互斥触发器', comment: '与当前触发器不能同时绑定或同时生效的触发器 ID 列表。', type: 'stringList', defaultValue: [] }
+];
+
+const parameterCaseFields = [
+  { path: 'condition', label: '条件', comment: '命中该分支前需要满足的布尔表达式。', type: 'text', defaultValue: '' },
+  { path: 'value', label: '输出值', comment: '条件命中时输出的字符或文本。', type: 'text', defaultValue: '' }
+];
+
 const parameterFields = [
   { path: 'type', label: '类型', comment: '参数类型。数值分布、文本与布尔类型。', type: 'enum', options: ['string', 'random_text', 'random_char', 'weighted_random_char', 'conditional_char', 'boolean', 'constant', 'range', 'uniform', 'gaussian', 'skew_normal', 'triangle', 'expression'], optionLabelPrefix: 'skill.parameter.type', defaultValue: 'constant' },
   { path: 'value', label: '值', comment: '常量值或表达式值。', type: 'text', defaultValue: '' },
@@ -41,7 +52,7 @@ const parameterFields = [
   { path: 'condition', label: '条件', comment: 'conditional_char 的二选一布尔表达式。', type: 'text', defaultValue: '' },
   { path: 'true_value', label: '成立输出', comment: 'conditional_char 条件成立时输出的字符或文本。', type: 'text', defaultValue: '' },
   { path: 'false_value', label: '不成立输出', comment: 'conditional_char 条件不成立或无法判断时输出的字符或文本。', type: 'text', defaultValue: '' },
-  { path: 'cases', label: '穷举条件', comment: 'conditional_char 穷举条件列表。', type: 'objectList', defaultValue: [] },
+  { path: 'cases', label: '穷举条件', comment: 'conditional_char 穷举条件列表。', type: 'objectList', defaultValue: [], itemFields: parameterCaseFields },
   { path: 'fallback', label: '兜底输出', comment: '没有任何穷举条件命中时输出的字符或文本。', type: 'text', defaultValue: '' }
 ];
 
@@ -68,11 +79,11 @@ const fields: FieldSpec[] = [
   ['script_engine.max_lines_per_phase', '阶段最大行数', '每个脚本阶段允许的最大行数，防止过长脚本拖慢主线程。', 'number'],
   ['script_engine.max_targets_per_action', '动作目标上限', '单个动作最多处理的目标数量。', 'number'],
   ['script_engine.debug', '脚本调试', '是否输出脚本执行调试信息，生产环境建议关闭。', 'boolean'],
-  ['triggers', '主动触发器', '左键、右键、Shift 与数字键等可由玩家主动绑定的触发器。', 'object'],
+  ['triggers', '主动触发器', '左键、右键、Shift 与数字键等可由玩家主动绑定的触发器。', 'object', { creatableChildren: true, createTemplates: [{ id: 'trigger', label: copy('主动触发器', 'Active trigger'), fields: triggerConfigFields }] }],
   ['passive_trigger_settings', '被动触发设置', '被动触发器的全局检查间隔和连击判定时间。', 'object'],
   ['passive_trigger_settings.timer_interval_ticks', '定时间隔', 'timer 被动触发器的检查间隔，单位 tick。', 'number'],
   ['passive_trigger_settings.combo_timeout_ticks', '连击超时', 'combo_attack 连击触发器的重置超时时间，单位 tick。', 'number'],
-  ['passive_triggers', '被动触发器', '攻击、受伤、击杀、射箭、方块、登录、潜行、定时等由事件自动触发的技能触发器。', 'object']
+  ['passive_triggers', '被动触发器', '攻击、受伤、击杀、射箭、方块、登录、潜行、定时等由事件自动触发的技能触发器。', 'object', { creatableChildren: true, createTemplates: [{ id: 'passive-trigger', label: copy('被动触发器', 'Passive trigger'), fields: triggerConfigFields }] }]
 ];
 
 const FAILURE_PENALTIES = ['none', 'downgrade'];
@@ -111,7 +122,7 @@ const skillFields: FieldSpec[] = [
   ['upgrade.economy', '升级经济', '技能升级经济消耗配置。', 'object'],
   ['upgrade.economy.enabled', '启用经济', '是否启用升级经济消耗。', 'boolean'],
   ['upgrade.economy.currencies', '升级货币', '升级经济中各币种的成本列表。', 'objectList'],
-  ['upgrade.success_rates', '成功率表', '按目标等级配置的全局升级成功率。', 'object', { creatableChildren: true }],
+  ['upgrade.success_rates', '成功率表', '按目标等级配置的全局升级成功率。', 'dynamic_map', { creatableChildren: true }],
   ['upgrade.failure_penalty', '失败惩罚', '技能升级失败后的惩罚方式。', 'enum', { options: FAILURE_PENALTIES, optionLabelPrefix: 'upgrade.failure_penalty' }],
   ['upgrade.levels', '等级覆盖', '按目标等级覆盖材料、经济、参数和动作。', 'object', { creatableChildren: true }],
   ['cooldown_ticks', '技能冷却', '该技能自身冷却时间，单位 tick。', 'number'],
@@ -209,7 +220,7 @@ export const emakiSkillsWebModule = defineEmakiPluginWebModule({
         { path: 'economy', label: '经济覆盖', comment: '该等级专属经济消耗。', type: 'object', defaultValue: {} },
         { path: 'economy.enabled', label: '启用经济', comment: '是否启用该等级专属经济消耗。', type: 'boolean', defaultValue: true },
         { path: 'economy.currencies', label: '货币', comment: '该等级专属货币成本列表。', type: 'objectList', defaultValue: [], itemFields: currencyFields },
-        { path: 'parameters', label: '参数覆盖', comment: '升级到该等级后覆盖的技能参数。', type: 'map', defaultValue: {} },
+        { path: 'parameters', label: '参数覆盖', comment: '升级到该等级后覆盖的技能参数。', type: 'variablesMap', defaultValue: {} },
         { path: 'actions.success', label: '成功动作', comment: '升级成功动作列表。', type: 'stringList', defaultValue: [] },
         { path: 'actions.failure', label: '失败动作', comment: '升级失败动作列表。', type: 'stringList', defaultValue: [] }
       ] }]
@@ -224,9 +235,11 @@ export const emakiSkillsWebModule = defineEmakiPluginWebModule({
       ], { uniqueBy: 'target_id' }],
       ['upgrade.economy.currencies', currencyFields, { uniqueBy: 'currency_id' }],
       ['currencies', currencyFields, { uniqueBy: 'currency_id' }],
-      ['materials', materialFields]
+      ['materials', materialFields],
+      ['cases', parameterCaseFields]
     ],
     listItemSchemaRules: [
+      [{ key: 'cases' }, parameterCaseFields],
       [{ suffix: 'materials' }, materialFields]
     ]
   },

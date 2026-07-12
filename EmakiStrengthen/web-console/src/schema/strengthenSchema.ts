@@ -123,7 +123,7 @@ const recipeFields: ConfigMetaFieldEntry[] = [
   ['match.slot_groups', '槽位组', '可选的粗粒度类型组兜底，可选值 weapon / armor / offhand / generic；不是 main_hand / helmet 这类具体装备槽位。', 'stringList'],
   ['match.lore_contains', 'Lore 包含', '物品 Lore 需要包含的文本。', 'stringList'],
   ['match.stats_any', '任意属性', '物品拥有任意一个属性时允许匹配。', 'stringList'],
-  ['stat_lines', '属性行', '强化属性行模板定义。', 'object'],
+  ['stat_lines', '属性行', '强化属性行模板定义；源码按 stat_lines.<id> 动态读取。', 'object', { creatableChildren: true }],
   ['stars', '星级阶段', '每个目标星级的材料、属性、技能和动作配置。', 'object', { creatableChildren: true, createTemplates: [starStageTemplate] }],
   ['branch_tree', '分支树', '分支强化路线配置。', 'object'],
   ['branch_tree.stars', '根分支星级', '分支树根节点内的星级阶段。', 'object', { creatableChildren: true, createTemplates: [starStageTemplate] }],

@@ -1274,7 +1274,7 @@ function SurfaceHost({ registry, module, file, drafts, draftHistory, setDraftVal
   const editor = file.editorId ? registry?.editors?.[file.editorId] : undefined;
 
   // Check registry for a custom surface first
-  const registeredSurface = getSurface(file, editor);
+  const registeredSurface = getSurface({ ...file, moduleId: module.id }, editor);
   if (extensionSurfacePending(module, file, editor, registeredSurface, pendingExtensionModules)) {
     return <section className="config-surface empty" role="status">{t('core.extension.loadingEditor', undefined, 'Loading plugin editor…')}</section>;
   }

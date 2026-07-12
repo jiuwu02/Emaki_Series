@@ -417,7 +417,7 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'actions') return <PropRow label={label} path={field.path} changed={changed} wide><StandardActionsField value={value} onChange={next => setField(field.path, next)} path={field.path} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} actionTypes={actionTypesResult ?? undefined} /></PropRow>;
   if (type === 'effects') return <PropRow label={label} path={field.path} changed={false} wide><StandardEffectsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} actionTypes={actionTypesResult ?? undefined} /></PropRow>;
   if (type === 'json') return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
-  return <PropRow label={label} path={field.path} changed={changed} wide={field.wide}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
+  return <PropRow label={label} path={field.path} changed={changed}><input type="text" value={textValue(value)} onChange={e => setField(field.path, e.target.value)} placeholder={field.placeholder} /></PropRow>;
 }
 
 function PropRow({ label, path, children, wide, changed }: { label: string; path?: string; children: React.ReactNode; wide?: boolean; changed?: boolean }) {

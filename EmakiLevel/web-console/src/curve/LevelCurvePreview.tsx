@@ -50,7 +50,7 @@ export const typeFields: ConfigMetaFieldEntry[] = [
   ['upgrade.actions.success', copy('升级成功动作', 'Success actions'), copy('升级成功后执行的 CoreLib Action。', 'CoreLib actions executed after successful level-up.'), 'stringList'],
   ['upgrade.actions.failure', copy('升级失败动作', 'Failure actions'), copy('升级失败后执行的 CoreLib Action。', 'CoreLib actions executed after failed level-up.'), 'stringList'],
   ['attributes.enabled', copy('启用属性', 'Attributes enabled'), copy('是否将此类型等级转为属性贡献。', 'Whether this type contributes attributes.'), 'boolean'],
-  ['attributes.values', copy('属性公式', 'Attribute formulas'), copy('属性 ID 到表达式的映射。', 'Map of attribute id to expression.'), 'object', { creatableChildren: true }]
+  ['attributes.values', copy('属性公式', 'Attribute formulas'), copy('属性 ID 到表达式的映射。', 'Map of attribute id to expression.'), 'dynamic_map', { creatableChildren: true, createTemplates: [{ id: 'attribute-formula', label: copy('属性公式', 'Attribute formula'), fields: [{ path: 'value', label: copy('公式', 'Formula'), comment: copy('该属性的等级公式。', 'Level formula for this attribute.'), type: 'text', defaultValue: '0' }] }] }]
 ];
 
 export const sourceFields: ConfigMetaFieldEntry[] = [

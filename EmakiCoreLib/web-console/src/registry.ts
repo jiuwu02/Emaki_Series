@@ -363,7 +363,7 @@ export function getSurface(fileOrKind: WebRegistryFile | string | undefined, edi
   const editorId = String(file?.editorId ?? editor?.id ?? '');
 
   if (editorId) {
-    const byEditor = _registry.find(r => String(r.editorId ?? '') === editorId);
+    const byEditor = _registry.find(r => String(r.editorId ?? '') === editorId && (!r.moduleId || !moduleId || normalize(r.moduleId) === moduleId));
     if (byEditor) return byEditor;
   }
   if (moduleId) {
@@ -1038,7 +1038,7 @@ function emptyConfigValueForType(type: string): unknown {
   if (normalized === 'number') return undefined;
   if (normalized === 'boolean') return false;
   if (normalized === 'list' || normalized === 'stringList' || normalized === 'numberList' || normalized === 'objectList' || normalized === 'actions' || normalized === 'effects') return [];
-  if (normalized === 'object' || normalized === 'dynamic_map' || normalized === 'variablesMap' || normalized === 'json') return {};
+  if (normalized === 'object' || normalized === 'dynamic_map' || normalized === 'map' || normalized === 'variablesMap' || normalized === 'json') return {};
   return '';
 }
 
@@ -1080,7 +1080,7 @@ function resolveConfigNodeType(detectedType: string | undefined, metaType: strin
   if (detectedType === 'list') return isListUiType(metaType) ? metaType : detectedType;
   if (detectedType === 'boolean') return 'boolean';
   if (detectedType === 'number') return 'number';
-  if (detectedType === 'object') return metaType === 'dynamic_map' || metaType === 'json' ? metaType : 'object';
+  if (detectedType === 'object') return metaType === 'dynamic_map' || metaType === 'map' || metaType === 'json' ? metaType : 'object';
   return metaType;
 }
 

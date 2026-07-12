@@ -20,7 +20,7 @@ export function createConfigChild(node: WebConfigNode, source: ConfigSourceDocum
       setToast({ tone: 'bad', text: t('core.config.createDuplicate', { key }) });
       return;
     }
-    const childValue = templateValuesToObject(values);
+    const childValue = templateValueForConfigChild(node, values, template);
     const nextParent = { ...parent, [key]: childValue };
     const nextData = setDeepValue(data, node.path.split('.'), nextParent);
     source.update(serializeYaml(nextData));
@@ -56,19 +56,29 @@ export function templateValuesToObject(values: Record<string, unknown>): Record<
   return Object.entries(values).reduce<Record<string, unknown>>((result, [path, value]) => setDeepValue(result, path.split('.'), value), {});
 }
 
-export function createOptimisticConfigNodes(parent: WebConfigNode, key: string, value: Record<string, unknown>, template: WebConfigCreateTemplate): WebConfigNode[] {
+export function templateValueForConfigChild(parent: WebConfigNode, values: Record<string, unknown>, template: WebConfigCreateTemplate): unknown {
+  if (isScalarMapCreateTemplate(parent, template)) return values[template.fields[0].path];
+  return templateValuesToObject(values);
+}
+
+export function createOptimisticConfigNodes(parent: WebConfigNode, key: string, value: unknown, template: WebConfigCreateTemplate): WebConfigNode[] {
   const rootPath = `${parent.path}.${key}`;
+  if (isScalarMapCreateTemplate(parent, template)) {
+    const field = template.fields[0];
+    return [optimisticFieldNode(parent.path, { ...field, path: key, label: key, comment: field.comment || template.label || key, type: field.type || inferConfigFieldType(value) }, value)];
+  }
+  const valueRecord = isPlainObject(value) ? value : {};
   const root: WebConfigNode = {
     path: rootPath,
     label: key,
     comment: template.label || key,
     type: 'object',
     editable: true,
-    value,
+    value: valueRecord,
     creatableChildren: false,
     createTemplates: [],
   };
-  const fields = template.fields.length ? template.fields : Object.keys(value).map(fieldKey => ({ path: fieldKey, label: fieldKey, type: inferConfigFieldType(value[fieldKey]) } as WebConfigFieldSchema));
+  const fields = template.fields.length ? template.fields : Object.keys(valueRecord).map(fieldKey => ({ path: fieldKey, label: fieldKey, type: inferConfigFieldType(valueRecord[fieldKey]) } as WebConfigFieldSchema));
   const nodes: WebConfigNode[] = [root];
   for (const field of fields) {
     const fullPath = `${rootPath}.${field.path}`;
@@ -76,10 +86,10 @@ export function createOptimisticConfigNodes(parent: WebConfigNode, key: string, 
     for (let index = rootPath.split('.').length + 1; index < parts.length; index++) {
       const parentPath = parts.slice(0, index).join('.');
       if (!nodes.some(node => node.path === parentPath)) {
-        nodes.push({ path: parentPath, label: parentPath.split('.').pop() ?? parentPath, comment: '', type: 'object', editable: true, value: getDeepConfigValue(value, parentPath.slice(rootPath.length + 1).split('.')) ?? {} });
+        nodes.push({ path: parentPath, label: parentPath.split('.').pop() ?? parentPath, comment: '', type: 'object', editable: true, value: getDeepConfigValue(valueRecord, parentPath.slice(rootPath.length + 1).split('.')) ?? {} });
       }
     }
-    nodes.push(optimisticFieldNode(rootPath, field, getDeepConfigValue(value, field.path.split('.'))));
+    nodes.push(optimisticFieldNode(rootPath, field, getDeepConfigValue(valueRecord, field.path.split('.'))));
   }
   return nodes;
 }
@@ -159,8 +169,8 @@ export function defaultTemplateValues(template: WebConfigCreateTemplate): Record
 export function defaultSchemaFieldValue(field: WebConfigFieldSchema): unknown {
   if (field.type === 'number') return 0;
   if (field.type === 'boolean') return false;
-  if (field.type === 'json') return {};
-  if (field.type === 'list' || field.type === 'stringList' || field.type === 'numberList' || field.type === 'objectList') return [];
+  if (field.type === 'json' || field.type === 'map' || field.type === 'dynamic_map' || field.type === 'object' || field.type === 'variablesMap') return {};
+  if (field.type === 'list' || field.type === 'stringList' || field.type === 'numberList' || field.type === 'objectList' || field.type === 'actions' || field.type === 'effects') return [];
   if (field.type === 'enum') return field.options?.[0] ?? '';
   return '';
 }
@@ -183,4 +193,12 @@ export function nextConfigChildKey(parent: Record<string, unknown>): string {
   let index = 1;
   while (used.has(`new_field_${index}`)) index += 1;
   return `new_field_${index}`;
+}
+
+function isScalarMapCreateTemplate(parent: WebConfigNode, template: WebConfigCreateTemplate): boolean {
+  return (parent.type === 'map' || parent.type === 'dynamic_map') && template.fields.length === 1 && template.fields[0]?.path === 'value';
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

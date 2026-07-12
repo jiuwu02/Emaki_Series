@@ -27,6 +27,7 @@ export function renderControl(node: WebConfigNode, value: unknown, setValue: (v:
   if (node.type === 'actions') return <StandardActionsField value={value} onChange={setValue} path={node.path} moduleId={moduleId} />;
   if (node.type === 'effects') return <StandardEffectsEditor value={value} onChange={setValue} path={node.path} moduleId={moduleId} />;
   if (node.type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={setValue} />;
+  if (node.type === 'map') return <ObjectMapEditor value={value} onChange={setValue} />;
   if (node.type === 'object') {
     if (node.itemFields?.length) return <SchemaObjectEditor field={configNodeToSchemaField(node)} value={value} onChange={setValue} moduleId={moduleId} ariaLabel={label} />;
     return <ObjectMapEditor value={value} onChange={setValue} />;
@@ -49,8 +50,9 @@ export function renderControl(node: WebConfigNode, value: unknown, setValue: (v:
 
 export function isWideConfigNode(node: WebConfigNode): boolean {
   return node.type === 'dynamic_map'
+    || node.type === 'map'
     || node.type === 'list'
-    || node.type === 'stringList'
+    || (node.type === 'stringList' && !isInlineScalarListPath(node.path))
     || node.type === 'numberList'
     || node.type === 'objectList'
     || node.type === 'object'
@@ -75,36 +77,68 @@ function BooleanSwitch({ checked, label, onToggle }: { checked: boolean; label: 
 }
 
 function ObjectMapEditor({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
+  return <KeyValueMapEditor value={value} onChange={onChange} addKeyPrefix="key" />;
+}
+
+function KeyValueMapEditor({ value, onChange, addKeyPrefix }: { value: unknown; onChange: (value: unknown) => void; addKeyPrefix: string }) {
   const entries = Object.entries(isPlainObject(value) ? value : {});
+  const keys = entries.map(([key]) => key);
+
   const updateKey = (index: number, nextKey: string) => {
+    const normalized = nextKey.trim().replace(/\s+/g, '_');
     const next: Record<string, unknown> = {};
     entries.forEach(([key, entry], itemIndex) => {
-      next[itemIndex === index ? nextKey : key] = entry;
+      const targetKey = itemIndex === index ? normalized : key;
+      if (targetKey) next[targetKey] = entry;
     });
     onChange(next);
   };
-  const updateValue = (index: number, nextValue: string) => {
+
+  const updateValue = (index: number, nextValue: unknown) => {
     const next: Record<string, unknown> = {};
     entries.forEach(([key, entry], itemIndex) => {
-      next[key] = itemIndex === index ? parseListValue(entry, nextValue) : entry;
+      next[key] = itemIndex === index ? nextValue : entry;
     });
     onChange(next);
   };
+
   const remove = (index: number) => onChange(Object.fromEntries(entries.filter((_, itemIndex) => itemIndex !== index)));
+
   const add = () => {
-    const keys = entries.map(([key]) => key);
     let index = 1;
-    while (keys.includes(`key_${index}`)) index += 1;
-    onChange({ ...(isPlainObject(value) ? value : {}), [`key_${index}`]: '' });
+    while (keys.includes(`${addKeyPrefix}_${index}`)) index += 1;
+    onChange({ ...(isPlainObject(value) ? value : {}), [`${addKeyPrefix}_${index}`]: '' });
   };
-  return <div className="dynamic-map-editor">
+
+  return <div className="dynamic-map-editor dynamic-map-editor--kv">
     {entries.map(([key, entry], index) => <div className="dynamic-map-row" key={`${key}:${index}`}>
-      <input value={key} onChange={event => updateKey(index, event.target.value)} aria-label={t('core.kv.key')} />
-      <input value={entry == null || isPlainObject(entry) || Array.isArray(entry) ? JSON.stringify(entry ?? '') : String(entry)} onChange={event => updateValue(index, event.target.value)} aria-label={t('core.kv.value')} />
+      <input className="dynamic-map-key" value={key} onChange={event => updateKey(index, event.target.value)} aria-label={t('core.kv.key')} />
+      <MapValueField value={entry} onChange={next => updateValue(index, next)} ariaLabel={`${key} ${t('core.kv.value')}`} />
       <button type="button" onClick={() => remove(index)}>{t('core.config.delete')}</button>
     </div>)}
     <button type="button" className="add-row" onClick={add}>{t('core.config.create')}</button>
   </div>;
+}
+
+function MapValueField({ value, onChange, ariaLabel }: { value: unknown; onChange: (value: unknown) => void; ariaLabel: string }) {
+  if (isPlainObject(value) || Array.isArray(value)) return <JsonInlineField value={value} onChange={onChange} ariaLabel={ariaLabel} />;
+  return <input className="dynamic-map-value" value={scalarMapText(value)} onChange={event => onChange(parseLooseConfigValue(event.target.value))} aria-label={ariaLabel} />;
+}
+
+function JsonInlineField({ value, onChange, ariaLabel }: { value: unknown; onChange: (value: unknown) => void; ariaLabel: string }) {
+  const [text, setText] = useState(() => formatJsonFieldValue(value));
+  const [error, setError] = useState('');
+  useEffect(() => { setText(formatJsonFieldValue(value)); setError(''); }, [value]);
+  function handleChange(nextText: string) {
+    setText(nextText);
+    try {
+      onChange(nextText.trim() ? JSON.parse(nextText) : {});
+      setError('');
+    } catch {
+      setError(configInlineText('JSON 格式无效，修正后才会写入。', 'Invalid JSON; fix it before saving.'));
+    }
+  }
+  return <div className="map-json-field"><textarea rows={Math.min(8, Math.max(2, text.split('\n').length))} value={text} onChange={event => handleChange(event.target.value)} aria-label={ariaLabel} aria-invalid={error ? 'true' : undefined} />{error && <small className="field-error" role="alert">{error}</small>}</div>;
 }
 
 function ObjectListEditor({ node, items, setValue, moduleId, compact = false, headerAdd = false }: { node: WebConfigNode; items: unknown[]; setValue: (v: unknown) => void; moduleId: string; compact?: boolean; headerAdd?: boolean }) {
@@ -215,6 +249,8 @@ export function renderSchemaField(field: WebConfigFieldSchema | undefined, value
   if (type === 'variablesMap') return <VariablesMapEditor value={value} onChange={onChange} />;
   if (type === 'actions') return <StandardActionsField value={value} onChange={onChange} path={field?.path} moduleId={moduleId} />;
   if (type === 'effects') return <StandardEffectsEditor value={value} onChange={onChange} path={field?.path} moduleId={moduleId} />;
+  if (type === 'dynamic_map') return <DynamicMapEditor value={value} setValue={onChange} />;
+  if (type === 'map') return <ObjectMapEditor value={value} onChange={onChange} />;
   if (type === 'economyProvider') return <StandardEconomyProviderSelect value={value} onChange={onChange} moduleId={moduleId} optionPrefix={field?.optionLabelPrefix || 'economyProvider'} />;
   if (type === 'object' && field?.itemFields?.length) {
     return <SchemaObjectEditor field={field} value={value} onChange={onChange} moduleId={moduleId} ariaLabel={ariaLabel} />;
@@ -427,58 +463,7 @@ function mergeKeys(preferred: string[], keys: string[]) {
 }
 
 function DynamicMapEditor({ value, setValue }: { value: unknown; setValue: (v: unknown) => void }) {
-  const [newKey, setNewKey] = useState('');
-  const map: Record<string, string[]> = (isObjectLike(value) ? value : {}) as Record<string, string[]>;
-  const keys = Object.keys(map);
-
-  function addKey() {
-    const trimmed = newKey.trim().replace(/\s+/g, '_').toLowerCase();
-    if (!trimmed || trimmed in map) return;
-    setValue({ ...map, [trimmed]: [] });
-    setNewKey('');
-  }
-
-  function removeKey(k: string) {
-    const copy = { ...map };
-    delete copy[k];
-    setValue(copy);
-  }
-
-  function updateList(k: string, items: string[]) {
-    setValue({ ...map, [k]: items });
-  }
-
-  function addItem(k: string) {
-    updateList(k, [...(map[k] || []), '']);
-  }
-
-  function updateItem(k: string, i: number, v: string) {
-    updateList(k, (map[k] || []).map((x, j) => j === i ? v : x));
-  }
-
-  function removeItem(k: string, i: number) {
-    updateList(k, (map[k] || []).filter((_, j) => j !== i));
-  }
-
-  return <div className="dynamic-map-editor">
-    {keys.map(k => <div key={k} className="dmap-entry">
-      <div className="dmap-header">
-        <code>{k}</code>
-        <button type="button" className="dmap-remove" onClick={() => removeKey(k)} aria-label={t('core.config.removeGroup', { group: k })}>{t('core.config.remove')}</button>
-      </div>
-      <div className="dmap-list">
-        {(Array.isArray(map[k]) ? map[k] : []).map((item, i) => <div key={i} className="dmap-row">
-          <input value={String(item)} onChange={(e) => updateItem(k, i, e.target.value)} aria-label={`${k} ${t('core.config.itemIndex', { index: i + 1 })}`} />
-          <button type="button" onClick={() => removeItem(k, i)} aria-label={t('core.config.deleteItemInGroup', { group: k, index: i + 1 })}>{t('core.config.delete')}</button>
-        </div>)}
-        <button type="button" className="add-row" onClick={() => addItem(k)}>{t('core.config.addActionRow')}</button>
-      </div>
-    </div>)}
-    <div className="dmap-add">
-      <input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder={t('core.config.newTemplateName')} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addKey(); } }} />
-      <button type="button" onClick={addKey} disabled={!newKey.trim()}>{t('core.config.addTemplate')}</button>
-    </div>
-  </div>;
+  return <KeyValueMapEditor value={value} onChange={setValue} addKeyPrefix="field" />;
 }
 
 function useProgressiveCount(total: number, initial: number, batch: number, deps: ProgressDeps): number {
@@ -511,7 +496,18 @@ function useProgressiveCount(total: number, initial: number, batch: number, deps
   return Math.min(Math.max(count, Math.min(total, initial)), total);
 }
 
-function isObjectLike(v: unknown) { return typeof v === 'object' && v !== null; }
 function isPlainObject(v: unknown): v is Record<string, unknown> { return typeof v === 'object' && v !== null && !Array.isArray(v); }
-function parseListValue(original: unknown, text: string) { if (isObjectLike(original)) { try { return JSON.parse(text); } catch { return text; } } return text; }
+function scalarMapText(value: unknown): string { return value == null ? '' : String(value); }
+function parseLooseConfigValue(text: string): unknown {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (trimmed === 'null') return null;
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(trimmed)) return Number(trimmed);
+  if (/^[\[{]/.test(trimmed)) {
+    try { return JSON.parse(trimmed); } catch { return text; }
+  }
+  return text;
+}
 function str(v: unknown): string { if (v == null) return ''; if (typeof v === 'object') try { return JSON.stringify(v, null, 2); } catch { return ''; } return String(v); }
