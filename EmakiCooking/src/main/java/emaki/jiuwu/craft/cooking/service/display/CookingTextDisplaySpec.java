@@ -7,6 +7,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -50,12 +51,12 @@ public record CookingTextDisplaySpec(StationType stationType,
         );
     }
 
-    public String legacyText() {
-        return MiniMessages.legacyText(text);
+    public Component component() {
+        return MiniMessages.parse(text);
     }
 
     public Object componentObject() {
-        return MiniMessages.componentObject(text);
+        return component();
     }
 
     public Transformation transformation() {

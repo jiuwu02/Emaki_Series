@@ -100,7 +100,7 @@ public final class BukkitCookingTextDisplayService implements CookingTextDisplay
 
     private void apply(TextDisplay display, CookingTextDisplaySpec spec) {
         CookingSettingsService.TextDisplayProfile profile = spec.profile();
-        display.setText(spec.legacyText());
+        display.text(spec.component());
         display.setBillboard(billboard(profile.billboard()));
         display.setTransformation(spec.transformation());
         display.setInterpolationDuration(0);
