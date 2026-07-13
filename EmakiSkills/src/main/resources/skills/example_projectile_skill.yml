@@ -32,6 +32,12 @@ icon_material: "fire_charge"
 
 trigger_type: "active"
 enabled: true
+show_in_slots: true
+tags:
+  - "attack"
+  - "ultimate"
+tab_tags:
+  - "advanced"
 
 # 冷却时间（tick，20 tick = 1 秒）
 cooldown_ticks: 60

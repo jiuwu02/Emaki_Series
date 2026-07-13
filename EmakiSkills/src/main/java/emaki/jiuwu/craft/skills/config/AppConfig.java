@@ -8,13 +8,14 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
 public final class AppConfig extends BaseAppConfig {
 
-    public static final String CURRENT_VERSION = "2.2.8";
+    public static final String CURRENT_VERSION = "2.4.10";
 
     private final boolean releaseDefaultData;
     private final int defaultSlotCount;
     private final CastModeSettings castMode;
     private final CastTimingSettings castTiming;
     private final ActionBarSettings actionBar;
+    private final Map<String, Integer> skillTagEquipLimits;
     private final Map<String, TriggerConfig> triggers;
     private final Map<String, TriggerConfig> passiveTriggers;
     private final PassiveTriggerSettings passiveTriggerSettings;
@@ -27,6 +28,7 @@ public final class AppConfig extends BaseAppConfig {
             CastModeSettings castMode,
             CastTimingSettings castTiming,
             ActionBarSettings actionBar,
+            Map<String, Integer> skillTagEquipLimits,
             Map<String, TriggerConfig> triggers,
             Map<String, TriggerConfig> passiveTriggers,
             PassiveTriggerSettings passiveTriggerSettings,
@@ -37,6 +39,7 @@ public final class AppConfig extends BaseAppConfig {
         this.castMode = castMode == null ? CastModeSettings.defaults() : castMode;
         this.castTiming = castTiming == null ? CastTimingSettings.defaults() : castTiming;
         this.actionBar = actionBar == null ? ActionBarSettings.defaults() : actionBar;
+        this.skillTagEquipLimits = skillTagEquipLimits == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(skillTagEquipLimits));
         this.triggers = triggers == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(triggers));
         this.passiveTriggers = passiveTriggers == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(passiveTriggers));
         this.passiveTriggerSettings = passiveTriggerSettings == null
@@ -54,6 +57,7 @@ public final class AppConfig extends BaseAppConfig {
                 CastModeSettings.defaults(),
                 CastTimingSettings.defaults(),
                 ActionBarSettings.defaults(),
+                Map.of(),
                 Map.of(),
                 Map.of(),
                 PassiveTriggerSettings.defaults(),
@@ -79,6 +83,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public ActionBarSettings actionBar() {
         return actionBar;
+    }
+
+    public Map<String, Integer> skillTagEquipLimits() {
+        return skillTagEquipLimits;
     }
 
     public Map<String, TriggerConfig> triggers() {

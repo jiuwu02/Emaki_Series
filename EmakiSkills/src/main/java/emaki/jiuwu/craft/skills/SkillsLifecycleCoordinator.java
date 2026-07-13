@@ -115,7 +115,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 equipmentSkillCollector,
                 skillSourceRegistry,
                 triggerConflictResolver,
-                triggerRegistry
+                triggerRegistry,
+                plugin::appConfig
         );
         SkillLevelService skillLevelService = new SkillLevelService(playerSkillDataStore);
         SkillParameterResolver skillParameterResolver = new SkillParameterResolver(skillLevelService, plugin);
@@ -321,6 +322,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             );
         }
 
+        Map<String, Integer> skillTagEquipLimits = parseSkillTagEquipLimits(configuration);
         Map<String, AppConfig.TriggerConfig> triggers = parseTriggers(configuration.getSection("triggers"));
         Map<String, AppConfig.TriggerConfig> passiveTriggers = parseTriggers(configuration.getSection("passive_triggers"));
         YamlSection passiveTriggerSettingsSection = configuration.getSection("passive_trigger_settings");
@@ -328,7 +330,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 ? defaults.passiveTriggerSettings()
                 : new AppConfig.PassiveTriggerSettings(
                         intValue(passiveTriggerSettingsSection.getInt("timer_interval_ticks"),
-                                (int) defaults.passiveTriggerSettings().timerIntervalTicks())
+                                (int) defaults.passiveTriggerSettings().timerIntervalTicks()),
+                        intValue(passiveTriggerSettingsSection.getInt("combo_timeout_ticks"),
+                                (int) defaults.passiveTriggerSettings().comboTimeoutTicks())
                 );
 
         AppConfig.ScriptEngineSettings scriptEngine = parseScriptEngineSettings(
@@ -342,6 +346,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 castMode,
                 castTiming,
                 actionBar,
+                skillTagEquipLimits,
                 triggers,
                 passiveTriggers,
                 passiveTriggerSettings,
@@ -355,6 +360,28 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
 
     private static boolean boolValue(Boolean value, boolean fallback) {
         return value != null ? value : fallback;
+    }
+
+    private Map<String, Integer> parseSkillTagEquipLimits(YamlSection configuration) {
+        if (configuration == null) {
+            return Map.of();
+        }
+        YamlSection section = configuration.getSection("skill_tags.equip_limits");
+        if (section == null || section.getKeys(false).isEmpty()) {
+            section = configuration.getSection("tag_limits");
+        }
+        if (section == null || section.getKeys(false).isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Integer> limits = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            String tag = emaki.jiuwu.craft.corelib.text.Texts.normalizeId(key).replace('-', '_');
+            int limit = intValue(section.getInt(key), 0);
+            if (!tag.isBlank() && limit > 0) {
+                limits.put(tag, limit);
+            }
+        }
+        return limits.isEmpty() ? Map.of() : Map.copyOf(limits);
     }
 
     private AppConfig.ScriptEngineSettings parseScriptEngineSettings(YamlSection section,

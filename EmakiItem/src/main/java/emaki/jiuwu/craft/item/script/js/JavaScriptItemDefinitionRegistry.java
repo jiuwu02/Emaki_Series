@@ -136,7 +136,8 @@ public final class JavaScriptItemDefinitionRegistry {
                 variables(rawDefinition),
                 components,
                 objectMap(rawDefinition.get("ea_attributes")),
-                stringList(rawDefinition.containsKey("skills") ? rawDefinition.get("skills") : rawDefinition.get("es_skills")),
+                stringList(firstPresent(rawDefinition, Map.of(), "skills", "es_skills", "esSkills")),
+                stringMap(firstPresent(rawDefinition, Map.of(), "skillTriggers", "skill_triggers", "es_skill_triggers", "esSkillTriggers")),
                 value(rawDefinition, "equip_slot", "all"),
                 ItemSetMembership.empty(),
                 ItemConditions.empty(),
@@ -199,6 +200,18 @@ public final class JavaScriptItemDefinitionRegistry {
         return Texts.asStringList(raw).stream().filter(Texts::isNotBlank).map(String::trim).toList();
     }
 
+    private Map<String, String> stringMap(Object raw) {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
+            String key = Texts.normalizeId(entry.getKey());
+            String value = Texts.normalizeId(Texts.toStringSafe(entry.getValue())).replace('-', '_');
+            if (Texts.isNotBlank(key) && Texts.isNotBlank(value)) {
+                result.put(key, value);
+            }
+        }
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
         if (tracker != null) {
             tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
@@ -258,17 +271,26 @@ public final class JavaScriptItemDefinitionRegistry {
         }
     }
 
-    private static Object firstPresent(Map<String, ?> rawDefinition, Map<String, Object> componentMap, String snakeKey, String camelKey) {
-        if (rawDefinition != null && rawDefinition.containsKey(snakeKey)) {
-            return rawDefinition.get(snakeKey);
+    private static Object firstPresent(Map<String, ?> rawDefinition, Map<String, Object> componentMap, String... keys) {
+        if (keys == null || keys.length == 0) {
+            return null;
         }
-        if (rawDefinition != null && rawDefinition.containsKey(camelKey)) {
-            return rawDefinition.get(camelKey);
+        if (rawDefinition != null) {
+            for (String key : keys) {
+                if (rawDefinition.containsKey(key)) {
+                    return rawDefinition.get(key);
+                }
+            }
         }
-        if (componentMap != null && componentMap.containsKey(Texts.normalizeId(snakeKey))) {
-            return componentMap.get(Texts.normalizeId(snakeKey));
+        if (componentMap != null) {
+            for (String key : keys) {
+                String normalized = Texts.normalizeId(key);
+                if (componentMap.containsKey(normalized)) {
+                    return componentMap.get(normalized);
+                }
+            }
         }
-        return componentMap == null ? null : componentMap.get(Texts.normalizeId(camelKey));
+        return null;
     }
 
     private static String firstText(Map<String, ?> rawDefinition, Map<String, Object> componentMap, String snakeKey, String camelKey) {

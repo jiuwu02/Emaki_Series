@@ -155,7 +155,11 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
             return;
         }
 
-        stateService.equipSkill(player, emptySlot, entry.skillId());
+        if (!stateService.equipSkill(player, emptySlot, entry.skillId())) {
+            messageService.send(player, "gui.skill_equip_failed");
+            skillsGuiService.renderSkillsGui(session);
+            return;
+        }
         messageService.send(player, "gui.skill_equipped", Map.of(
                 "skill", definition.displayName(),
                 "slot", emptySlot

@@ -25,6 +25,11 @@ icon_material: "iron_sword"
 # 被动技能配置
 trigger_type: "passive"
 enabled: true
+show_in_slots: false
+tags:
+  - "passive"
+tab_tags:
+  - "equipment"
 
 # 绑定 combo_attack 被动触发器
 passive_triggers:

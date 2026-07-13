@@ -272,7 +272,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         }
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
-                configuration.getString("version", "2.1.0"),
+                configuration.getString("version", "2.4.10"),
                 configuration.getBoolean("release_default_data", true),
                 parseSetBonus(configuration.getSection("set_bonus"))
         );

@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.4.9"
+version: "2.4.10"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
@@ -109,6 +109,9 @@ cast:
   global_cooldown: "<red>公共冷却中，剩余 %remaining%s。</red>"
   skill_cooldown: "<red>技能 <white>%skill%</white> 冷却中，剩余 %remaining%s。</red>"
   resource_insufficient: "<red>%message%</red>"
+  condition_not_met: "<red>技能条件未满足。</red>"
+  cancelled: "<yellow>技能释放已取消。</yellow>"
+  skill_execute_failed: "<red>技能执行失败。</red>"
   mythic_not_configured: "<red>技能未配置 Mythic 映射。</red>"
   mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%。</red>"
   mythic_failed: "<red>技能释放失败。</red>"
@@ -116,6 +119,7 @@ cast:
 
 gui:
   open_failed: "<red>无法打开技能界面。</red>"
+  skill_equip_failed: "<red>技能装配失败：依赖、冲突、槽位显示或标签数量限制未满足。</red>"
   title: "主动技能"
   slot_empty: "<gray>空技能槽</gray>"
   slot_empty_short: "<gray>[空]</gray>"

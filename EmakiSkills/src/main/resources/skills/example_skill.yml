@@ -47,11 +47,23 @@ global_cooldown_ticks: 20
 # GUI 显示配置
 # ============================================================
 # lore_aliases: 技能的别名列表（用于 Lore 匹配识别）
+# tags: 技能标签；可用于装备数量限制和分类筛选
+# required_skills: 装备此技能前必须已经装备的技能 ID
+# conflicting_skills: 不能与此技能同时装备的技能 ID
+# show_in_slots: 是否允许显示在玩家主动技能槽选择列表中；false 常用于装备强制触发器技能
 # ui_category: GUI 中的分类标签（attack/defense/utility/passive）
 # sort_order: 在 GUI 中的排序权重（数字越小越靠前）
 lore_aliases:
   - "火球术"
   - "烈焰弹"
+tags:
+  - "attack"
+tab_tags:
+  - "starter"
+required_skills: []
+conflicting_skills:
+  - "ice_bolt"
+show_in_slots: true
 ui_category: "attack"
 sort_order: 1
 

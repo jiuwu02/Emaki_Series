@@ -20,6 +20,7 @@ public record EmakiItemDefinition(String id,
         ItemComponentsConfig components,
         Map<String, Object> attributes,
         List<String> skills,
+        Map<String, String> skillTriggers,
         String equipSlot,
         ItemSetMembership setMembership,
         ItemConditions conditions,
@@ -40,6 +41,7 @@ public record EmakiItemDefinition(String id,
         components = components == null ? ItemComponentsConfig.empty() : components;
         attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
         skills = skills == null ? List.of() : List.copyOf(skills);
+        skillTriggers = skillTriggers == null ? Map.of() : Map.copyOf(skillTriggers);
         equipSlot = EquipmentSlotMatcher.normalizeRequired(equipSlot);
         setMembership = setMembership == null ? ItemSetMembership.empty() : setMembership;
         conditions = conditions == null ? ItemConditions.empty() : conditions;
@@ -62,6 +64,7 @@ public record EmakiItemDefinition(String id,
         signatureData.put("components", components);
         signatureData.put("ea_attributes", attributes);
         signatureData.put("es_skills", skills);
+        signatureData.put("es_skill_triggers", skillTriggers);
         signatureData.put("equip_slot", equipSlot);
         signatureData.put("set", Map.of("id", setMembership.setId(), "piece", setMembership.pieceId()));
         signatureData.put("conditions", conditions);

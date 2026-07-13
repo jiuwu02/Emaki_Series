@@ -61,6 +61,7 @@ lore:
 #   - type: "variables"      → 表达式引擎变量（用于 display_name/lore 中的占位符渲染）
 #   - type: "ea_attribute"   → EmakiAttribute PDC 属性（写入物品 PDC）
 #   - type: "es_skill"       → EmakiSkills 技能附加（装备时获得技能）
+#     es_skill_triggers        → 可选，写入 skill_id: trigger_id 的装备强制触发器，不占用玩家技能槽
 effects:
   - type: "variables"
     variables:
@@ -74,6 +75,8 @@ effects:
     es_skills:
       - "fireball"
       - "flame_dash"
+    es_skill_triggers:
+      fireball: "right_click"
 
 # ============================================================
 # 原版物品组件配置
@@ -146,7 +149,7 @@ set:
 # 装备条件
 # ============================================================
 # 不满足条件时，物品的 ea_attributes 不生效。
-# entries: 条件表达式列表（支持 %player_level%、%player_class% 等变量）
+# entries: 条件表达式列表（支持 CoreLib 占位符，例如 EmakiLevel 的 %emakilevel_level_main%）
 # type: 条件组合方式（all_of = 全部满足 / any_of = 任一满足）
 # required_count: 需要满足的最少条件数
 # invalid_as_failure: 表达式解析失败时是否视为不满足
@@ -158,7 +161,7 @@ condition:
   required_count: 2
   invalid_as_failure: true
   entries:
-    - "%player_level% >= 10"
+    - "%emakilevel_level_main% >= 10"
     - "%player_class% == 'warrior'"
   on_pass:
     actions:

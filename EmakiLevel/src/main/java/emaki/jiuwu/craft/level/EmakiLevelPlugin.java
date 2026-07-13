@@ -52,6 +52,7 @@ import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
 import emaki.jiuwu.craft.level.papi.LevelPlaceholderExpansion;
+import emaki.jiuwu.craft.level.placeholder.LevelCorePlaceholderResolver;
 import emaki.jiuwu.craft.level.service.LevelAntiAbuseService;
 import emaki.jiuwu.craft.level.service.LevelAttributeBridge;
 import emaki.jiuwu.craft.level.service.LevelCurveService;
@@ -138,6 +139,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private LevelAttributeBridge attributeBridge;
     private MythicLevelDropBridge mythicDropBridge;
     private LevelGameplaySubscriber gameplaySubscriber;
+    private LevelCorePlaceholderResolver corePlaceholderResolver;
     private LevelPlaceholderExpansion placeholderExpansion;
     private BStatsRegistration metrics;
     private final EmakiLevelApi.Bridge levelApiBridge = new EmakiLevelApi.Bridge() {
@@ -234,6 +236,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         registerScriptModule();
         releaseBundledScripts();
         registerActions();
+        registerCorePlaceholders();
         registerWebConsole();
         registerPlaceholderExpansion();
         registerAttributeBridge();
@@ -260,6 +263,10 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
+        }
+        if (corePlaceholderResolver != null && coreLib != null && coreLib.placeholderRegistry() != null) {
+            coreLib.placeholderRegistry().unregister(corePlaceholderResolver);
+            corePlaceholderResolver = null;
         }
         if (attributeBridge != null) {
             attributeBridge.unregister();
@@ -455,6 +462,17 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         } catch (ReflectiveOperationException exception) {
             getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
         }
+    }
+
+    private void registerCorePlaceholders() {
+        if (coreLib == null || coreLib.placeholderRegistry() == null) {
+            return;
+        }
+        if (corePlaceholderResolver != null) {
+            coreLib.placeholderRegistry().unregister(corePlaceholderResolver);
+        }
+        corePlaceholderResolver = new LevelCorePlaceholderResolver(this);
+        coreLib.placeholderRegistry().register(corePlaceholderResolver);
     }
 
     private void registerWebConsole() {

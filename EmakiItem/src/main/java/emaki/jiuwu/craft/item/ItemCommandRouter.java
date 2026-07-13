@@ -35,6 +35,7 @@ final class ItemCommandRouter implements TabExecutor {
     private static final String PERMISSION_DEBUG = "emakiitem.debug";
     private static final String PERMISSION_ADMIN = "emakiitem.admin";
     private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey("emaki_skills", "item.skills.ids");
+    private static final NamespacedKey SKILL_TRIGGERS_KEY = new NamespacedKey("emaki_skills", "item.skills.triggers");
 
     private final EmakiItemPlugin plugin;
 
@@ -224,6 +225,7 @@ final class ItemCommandRouter implements TabExecutor {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "attributes", "value", inspectAttributes(held))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "attribute_meta", "value", inspectAttributeMeta(held))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "skills", "value", inspectSkills(held))));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "skill_triggers", "value", inspectSkillTriggers(held))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "definition_signature", "value", plugin.identifier().definitionSignature(held))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "set_id", "value", valueOrDash(plugin.identifier().setId(held)))));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "set_piece", "value", valueOrDash(plugin.identifier().setPiece(held)))));
@@ -366,6 +368,18 @@ final class ItemCommandRouter implements TabExecutor {
             return "-";
         }
         String raw = itemMeta.getPersistentDataContainer().get(SKILL_IDS_KEY, PersistentDataType.STRING);
+        return Texts.isBlank(raw) ? "-" : raw;
+    }
+
+    private String inspectSkillTriggers(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return "-";
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return "-";
+        }
+        String raw = itemMeta.getPersistentDataContainer().get(SKILL_TRIGGERS_KEY, PersistentDataType.STRING);
         return Texts.isBlank(raw) ? "-" : raw;
     }
 

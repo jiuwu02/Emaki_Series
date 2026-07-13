@@ -118,6 +118,19 @@ public final class CastAttemptService {
         return attemptCastWithDefinition(player, definition, triggerId, invocation);
     }
 
+    public CastAttemptResult attemptDirectCast(Player player,
+            String triggerId,
+            SkillDefinition definition,
+            TriggerInvocation invocation) {
+        if (player == null || triggerId == null || triggerId.isBlank()) {
+            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.invalid_input");
+        }
+        if (definition == null || !definition.enabled() || definition.activationType() != emaki.jiuwu.craft.skills.model.SkillActivationType.ACTIVE) {
+            return CastAttemptResult.fail(FailureReason.SKILL_NOT_FOUND, "skill.not_found");
+        }
+        return attemptCastWithDefinition(player, definition, triggerId, invocation);
+    }
+
     private CastAttemptResult attemptCastWithBinding(Player player, String triggerId, SkillSlotBinding binding) {
 
         SkillDefinition definition = stateService.getDefinition(binding.skillId());

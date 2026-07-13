@@ -505,6 +505,8 @@ public final class SkillsGuiService {
         replacements.put("skill_id", definition.id());
         replacements.put("cooldown", cooldownSeconds(definition.cooldownTicks()));
         replacements.put("cooldown_ticks", definition.cooldownTicks());
+        replacements.put("tags", String.join(",", definition.tags()));
+        replacements.put("tab_tags", String.join(",", definition.tabTags()));
         int level = skillLevelService == null || player == null ? 1 : skillLevelService.currentLevel(player, definition);
         int maxLevel = skillLevelService == null ? 1 : skillLevelService.maxLevel(definition);
         replacements.put("level", level);

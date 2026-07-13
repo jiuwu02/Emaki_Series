@@ -23,8 +23,13 @@ public record SkillDefinition(String id,
         List<SkillResourceCost> resourceCosts,
         List<String> loreAliases,
         String pdcSkillId,
+        List<String> tags,
+        List<String> tabTags,
+        List<String> requiredSkillIds,
+        List<String> conflictingSkillIds,
         String uiCategory,
         int sortOrder,
+        boolean showInSlots,
         boolean enabled,
         ConditionGroup conditions,
         String conditionType) {
@@ -45,6 +50,10 @@ public record SkillDefinition(String id,
         globalCooldownTicks = Math.max(0L, globalCooldownTicks);
         resourceCosts = resourceCosts == null ? List.of() : List.copyOf(resourceCosts);
         loreAliases = loreAliases == null ? List.of() : List.copyOf(loreAliases);
+        tags = tags == null ? List.of() : List.copyOf(tags);
+        tabTags = tabTags == null ? List.of() : List.copyOf(tabTags);
+        requiredSkillIds = requiredSkillIds == null ? List.of() : List.copyOf(requiredSkillIds);
+        conflictingSkillIds = conflictingSkillIds == null ? List.of() : List.copyOf(conflictingSkillIds);
         uiCategory = uiCategory == null || uiCategory.isBlank() ? "default" : uiCategory;
         conditions = conditions == null ? ConditionGroup.empty() : conditions;
         conditionType = conditionType == null || conditionType.isBlank() ? "all_of" : conditionType;

@@ -2,12 +2,15 @@ package emaki.jiuwu.craft.skills.service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.skills.api.event.PlayerSkillSlotChangeEvent;
+import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -29,6 +32,7 @@ public final class PlayerSkillStateService {
     private final SkillSourceRegistry sourceRegistry;
     private final TriggerConflictResolver conflictResolver;
     private final TriggerRegistry triggerRegistry;
+    private final Supplier<AppConfig> configSupplier;
 
     public PlayerSkillStateService(JavaPlugin plugin,
             PlayerSkillDataStore dataStore,
@@ -36,7 +40,8 @@ public final class PlayerSkillStateService {
             EquipmentSkillCollector equipmentCollector,
             SkillSourceRegistry sourceRegistry,
             TriggerConflictResolver conflictResolver,
-            TriggerRegistry triggerRegistry) {
+            TriggerRegistry triggerRegistry,
+            Supplier<AppConfig> configSupplier) {
         this.plugin = plugin;
         this.dataStore = dataStore;
         this.registryService = registryService;
@@ -44,6 +49,7 @@ public final class PlayerSkillStateService {
         this.sourceRegistry = sourceRegistry;
         this.conflictResolver = conflictResolver;
         this.triggerRegistry = triggerRegistry;
+        this.configSupplier = configSupplier;
     }
 
     public List<UnlockedSkillEntry> getUnlockedSkills(Player player) {
@@ -54,7 +60,9 @@ public final class PlayerSkillStateService {
         return getUnlockedSkills(player).stream()
                 .filter(entry -> {
                     SkillDefinition definition = registryService.getDefinition(entry.skillId());
-                    return definition != null && definition.activationType() == SkillActivationType.ACTIVE;
+                    return definition != null
+                            && definition.activationType() == SkillActivationType.ACTIVE
+                            && definition.showInSlots();
                 })
                 .toList();
     }
@@ -64,7 +72,9 @@ public final class PlayerSkillStateService {
             return false;
         }
         SkillDefinition definition = registryService.getDefinition(skillId);
-        if (definition == null || !definition.enabled() || definition.activationType() != SkillActivationType.ACTIVE) {
+        if (definition == null || !definition.enabled()
+                || definition.activationType() != SkillActivationType.ACTIVE
+                || !definition.showInSlots()) {
             return false;
         }
         PlayerSkillProfile profile = dataStore.get(player);
@@ -72,7 +82,7 @@ public final class PlayerSkillStateService {
             return false;
         }
         SkillSlotBinding current = profile.getBinding(slotIndex);
-        if (current == null) {
+        if (current == null || !canEquipSkill(profile, slotIndex, definition)) {
             return false;
         }
         if (fireSlotChange(player, slotIndex, skillId, null, PlayerSkillSlotChangeEvent.Action.EQUIP)) {
@@ -184,10 +194,85 @@ public final class PlayerSkillStateService {
             if (binding.isEmpty()) {
                 continue;
             }
-            if (!unlockedIds.contains(binding.skillId()) || !isValidTrigger(binding.triggerId())) {
+            SkillDefinition definition = registryService.getDefinition(binding.skillId());
+            if (!unlockedIds.contains(binding.skillId())
+                    || !isValidTrigger(binding.triggerId())
+                    || definition == null
+                    || !canEquipSkill(profile, binding.slotIndex(), definition)) {
                 profile.clearSlot(binding.slotIndex());
             }
         }
+    }
+
+    private boolean canEquipSkill(PlayerSkillProfile profile, int targetSlot, SkillDefinition definition) {
+        if (profile == null || definition == null || !definition.showInSlots()) {
+            return false;
+        }
+        for (String requiredSkillId : definition.requiredSkillIds()) {
+            if (!isSkillEquipped(profile, requiredSkillId, targetSlot)) {
+                return false;
+            }
+        }
+        for (SkillSlotBinding binding : profile.bindings()) {
+            if (binding == null || binding.slotIndex() == targetSlot || binding.isEmpty()) {
+                continue;
+            }
+            if (definition.id().equals(binding.skillId())) {
+                return false;
+            }
+            SkillDefinition equipped = registryService.getDefinition(binding.skillId());
+            if (skillsConflict(definition, equipped) || skillsConflict(equipped, definition)) {
+                return false;
+            }
+        }
+        return passesTagLimits(profile, targetSlot, definition);
+    }
+
+    private boolean isSkillEquipped(PlayerSkillProfile profile, String skillId, int excludedSlot) {
+        if (profile == null || skillId == null || skillId.isBlank()) {
+            return false;
+        }
+        for (SkillSlotBinding binding : profile.bindings()) {
+            if (binding != null && binding.slotIndex() != excludedSlot && skillId.equals(binding.skillId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean skillsConflict(SkillDefinition left, SkillDefinition right) {
+        return left != null && right != null && left.conflictingSkillIds().contains(right.id());
+    }
+
+    private boolean passesTagLimits(PlayerSkillProfile profile, int targetSlot, SkillDefinition definition) {
+        if (definition.tags().isEmpty()) {
+            return true;
+        }
+        AppConfig config = configSupplier == null ? null : configSupplier.get();
+        Map<String, Integer> limits = config == null ? Map.of() : config.skillTagEquipLimits();
+        if (limits.isEmpty()) {
+            return true;
+        }
+        for (String tag : definition.tags()) {
+            int limit = limits.getOrDefault(tag, 0);
+            if (limit <= 0) {
+                continue;
+            }
+            int count = 1;
+            for (SkillSlotBinding binding : profile.bindings()) {
+                if (binding == null || binding.slotIndex() == targetSlot || binding.isEmpty()) {
+                    continue;
+                }
+                SkillDefinition equipped = registryService.getDefinition(binding.skillId());
+                if (equipped != null && equipped.tags().contains(tag)) {
+                    count++;
+                }
+            }
+            if (count > limit) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean isValidTrigger(String triggerId) {

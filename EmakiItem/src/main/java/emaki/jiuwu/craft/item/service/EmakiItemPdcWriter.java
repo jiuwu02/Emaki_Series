@@ -55,9 +55,9 @@ public final class EmakiItemPdcWriter {
                     EquipmentSlotMatcher.ACTIVE_SLOT_META_KEY, equipSlot
             ));
         }
-        if (!definition.skills().isEmpty()
+        if ((!definition.skills().isEmpty() || !definition.skillTriggers().isEmpty())
                 && Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
-            skillPdcGateway.write(itemStack, definition.skills(), equipSlot);
+            skillPdcGateway.write(itemStack, definition.skills(), equipSlot, definition.skillTriggers());
         }
     }
 
@@ -96,7 +96,7 @@ public final class EmakiItemPdcWriter {
             if (setSkills != null) {
                 skills.addAll(setSkills);
             }
-            skillPdcGateway.write(itemStack, skills, EquipmentSlotMatcher.normalizeRequired(definition.equipSlot()));
+            skillPdcGateway.write(itemStack, skills, EquipmentSlotMatcher.normalizeRequired(definition.equipSlot()), definition.skillTriggers());
         }
     }
 
@@ -111,7 +111,7 @@ public final class EmakiItemPdcWriter {
         }
         attributeGateway.clear(itemStack, SET_ATTRIBUTE_SOURCE_ID);
         if (definition != null && Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
-            skillPdcGateway.write(itemStack, definition.skills(), EquipmentSlotMatcher.normalizeRequired(definition.equipSlot()));
+            skillPdcGateway.write(itemStack, definition.skills(), EquipmentSlotMatcher.normalizeRequired(definition.equipSlot()), definition.skillTriggers());
         }
     }
 

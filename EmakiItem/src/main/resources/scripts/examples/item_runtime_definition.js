@@ -14,6 +14,10 @@ function register() {
     ea_attributes: {
       attack_damage: 10
     },
+    skills: ["fireball"],
+    skillTriggers: {
+      fireball: "right_click"
+    },
     actions: {
       give: ["sendmessage text=<gold>你获得了 JS 活动之剑！</gold>"]
     }

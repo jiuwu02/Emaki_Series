@@ -60,6 +60,7 @@ public final class EmakiItemDefinitionParser {
                 components,
                 attributes,
                 parseSkills(root, effects),
+                parseSkillTriggers(root, effects),
                 parseEquipSlot(root, id, source),
                 parseSetMembership(root.getSection("set")),
                 parseConditions(root),
@@ -315,6 +316,33 @@ public final class EmakiItemDefinitionParser {
             result.addAll(normalizedList(ConfigNodes.get(effect, "es_skills")));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    private Map<String, String> parseSkillTriggers(YamlSection root, List<Map<?, ?>> effects) {
+        Map<String, String> result = new LinkedHashMap<>();
+        mergeSkillTriggers(result, root.get("es_skill_triggers"));
+        mergeSkillTriggers(result, root.get("skill_triggers"));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            mergeSkillTriggers(result, ConfigNodes.get(effect, "es_skill_triggers"));
+            mergeSkillTriggers(result, ConfigNodes.get(effect, "skill_triggers"));
+        }
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private void mergeSkillTriggers(Map<String, String> target, Object raw) {
+        if (target == null || raw == null) {
+            return;
+        }
+        for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
+            String skillId = Texts.normalizeId(entry.getKey());
+            String triggerId = Texts.normalizeId(Texts.toStringSafe(entry.getValue())).replace('-', '_');
+            if (Texts.isNotBlank(skillId) && Texts.isNotBlank(triggerId)) {
+                target.put(skillId, triggerId);
+            }
+        }
     }
 
     private Object parseDisplayActions(YamlSection root, List<Map<?, ?>> effects, String effectType, String topKey, String effectKey) {

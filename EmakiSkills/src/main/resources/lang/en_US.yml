@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.4.9"
+version: "2.4.10"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
@@ -115,6 +115,9 @@ cast:
   skill_cooldown: "<red>Skill <white>%skill%</white> on cooldown, %remaining%s
     remaining.</red>"
   resource_insufficient: "<red>%message%</red>"
+  condition_not_met: "<red>Skill conditions are not met.</red>"
+  cancelled: "<yellow>Skill cast cancelled.</yellow>"
+  skill_execute_failed: "<red>Skill execution failed.</red>"
   mythic_not_configured: "<red>Skill has no Mythic mapping configured.</red>"
   mythic_not_found: "<red>Mythic skill %mythic_skill% not found.</red>"
   mythic_failed: "<red>Skill cast failed.</red>"
@@ -122,6 +125,7 @@ cast:
 
 gui:
   open_failed: "<red>Unable to open skill interface.</red>"
+  skill_equip_failed: "<red>Failed to equip skill: dependency, conflict, slot visibility, or tag limit requirements were not met.</red>"
   title: "Active Skills"
   slot_empty: "<gray>Empty Skill Slot</gray>"
   slot_empty_short: "<gray>[Empty]</gray>"

@@ -8,7 +8,7 @@
 
 # 主配置
 # version 由资源同步维护
-version: "2.4.9"
+version: "2.4.10"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -19,6 +19,14 @@ release_default_data: true
 slots:
   # 默认技能槽数量
   default_count: 3
+
+# 技能标签装备数量限制。
+# 技能定义里的 tags 命中这里的标签时，玩家最多只能同时把该标签的技能装备到对应数量。
+# 例如：tags 包含 ultimate 的技能最多装备 1 个；tags 包含 mobility 的技能最多装备 2 个。
+skill_tags:
+  equip_limits:
+    ultimate: 1
+    mobility: 2
 
 cast_mode:
   # F 键用于进入/退出施法模式。

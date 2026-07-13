@@ -82,8 +82,13 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 resourceCosts,
                 configuration.getStringList("lore_aliases"),
                 configuration.getString("pdc_skill_id", id),
+                parseIdList(configuration.get("tags"), null),
+                parseIdList(configuration.get("tab_tags"), configuration.get("tabTags")),
+                parseIdList(configuration.get("required_skills"), configuration.get("dependencies")),
+                parseIdList(configuration.get("conflicting_skills"), configuration.get("conflicts")),
                 configuration.getString("ui_category", "default"),
                 configuration.getInt("sort_order", 0),
+                configuration.getBoolean("show_in_slots", true),
                 enabled,
                 conditionGroup,
                 conditionGroup.conditionType()
@@ -376,6 +381,23 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
             }
         }
         return costs;
+    }
+
+    private List<String> parseIdList(Object primary, Object secondary) {
+        java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+        for (String rawId : Texts.asStringList(primary)) {
+            String id = Texts.normalizeId(rawId).replace('-', '_');
+            if (Texts.isNotBlank(id)) {
+                ids.add(id);
+            }
+        }
+        for (String rawId : Texts.asStringList(secondary)) {
+            String id = Texts.normalizeId(rawId).replace('-', '_');
+            if (Texts.isNotBlank(id)) {
+                ids.add(id);
+            }
+        }
+        return ids.isEmpty() ? List.of() : List.copyOf(ids);
     }
 
     private List<String> normalizeTriggerIds(List<String> rawIds) {
