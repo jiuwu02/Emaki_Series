@@ -67,7 +67,7 @@ final class LevelCostTransaction {
                 if (!InventoryItemUtil.applyRemoval(player.getInventory(), plan)) {
                     RollbackResult rollback = rollback(player, economyManager, List.of(), itemDebits);
                     return Result.failure(
-                            rollback.complete()
+                            rollback.isComplete()
                                     ? LevelFailureReason.NOT_ENOUGH_MATERIAL
                                     : LevelFailureReason.COST_COMPENSATION_FAILED,
                             rollback
@@ -79,7 +79,7 @@ final class LevelCostTransaction {
             if (remaining > 0L) {
                 RollbackResult rollback = rollback(player, economyManager, List.of(), itemDebits);
                 return Result.failure(
-                        rollback.complete()
+                        rollback.isComplete()
                                 ? LevelFailureReason.NOT_ENOUGH_MATERIAL
                                 : LevelFailureReason.COST_COMPENSATION_FAILED,
                         rollback
@@ -156,7 +156,7 @@ final class LevelCostTransaction {
 
     private static Result failedCurrencyCharge(RollbackResult rollback) {
         return Result.failure(
-                rollback.complete()
+                rollback.isComplete()
                         ? LevelFailureReason.NOT_ENOUGH_MONEY
                         : LevelFailureReason.COST_COMPENSATION_FAILED,
                 rollback
@@ -305,7 +305,7 @@ final class LevelCostTransaction {
 
         private static Result failure(String failureReason, RollbackResult rollback) {
             RollbackResult actual = rollback == null ? RollbackResult.complete() : rollback;
-            return new Result(false, failureReason, actual.complete(),
+            return new Result(false, failureReason, actual.isComplete(),
                     actual.remainingCurrencies(), actual.remainingMaterials(), List.of(), List.of());
         }
     }
@@ -322,7 +322,7 @@ final class LevelCostTransaction {
             return new RollbackResult(List.of(), List.of());
         }
 
-        private boolean complete() {
+        private boolean isComplete() {
             return remainingCurrencies.isEmpty() && remainingMaterials.isEmpty();
         }
     }

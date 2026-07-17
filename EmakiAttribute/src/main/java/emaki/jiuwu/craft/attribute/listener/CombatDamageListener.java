@@ -423,19 +423,21 @@ public final class CombatDamageListener implements Listener {
         }
         future.thenCompose(resolvedDamage -> {
             if (resolvedDamage == null) {
-                plugin.debug("Damage resolution returned no result (" + emptyPhase + ").");
+                debugHandler.debugCombat(attacker, target, projectile, emptyPhase, emptyMessageKey);
                 return applyFallbackDamage(target, fallbackDamage);
             }
-            plugin.debug("Damage resolved (" + resolvedPhase + "): final=" + resolvedDamage.finalDamage());
+            debugHandler.debugCombat(attacker, target, projectile, resolvedPhase, resolvedMessageKey, Map.of(
+                    "resolved", debugHandler.describeResolvedDamage(resolvedDamage)
+            ));
+            debugHandler.debugCombat(attacker, target, projectile, applyPhase, applyMessageKey);
             return attributeService.applyResolvedDamageAsync(resolvedDamage, visualSource, 0D);
         }).whenComplete((applied, throwable) -> {
             if (throwable != null) {
-                plugin.debug("Damage application failed (" + applyPhase + "): "
-                        + CombatSupport.rootCauseMessage(throwable));
+                debugHandler.debugCombat(attacker, target, projectile, "ASYNC_DAMAGE_FAILED", "combat_debug.async_damage_failed", Map.of(
+                        "error", CombatSupport.rootCauseMessage(throwable)
+                ));
                 applyFallbackDamage(target, fallbackDamage);
-                return;
             }
-            plugin.debug("Damage applied (" + applyPhase + "): " + Boolean.TRUE.equals(applied));
         });
     }
 

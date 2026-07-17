@@ -111,8 +111,13 @@ public final class MmoItemsBridge implements Listener {
             applyPerfectTakeover(event, damageContext, target, event.getDamager());
             return;
         }
+        double fallbackDamage = Math.max(0D, event.getFinalDamage());
         event.setCancelled(true);
-        resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, event.getDamager());
+        resolveAndApplyDamage(
+                attributeService.resolveDamageApplicationAsync(damageContext),
+                target,
+                event.getDamager(),
+                fallbackDamage);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)

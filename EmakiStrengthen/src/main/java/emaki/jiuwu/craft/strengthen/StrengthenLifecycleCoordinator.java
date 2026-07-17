@@ -172,7 +172,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
             notifyProgress(progressListener, "Applying configuration...");
-            return scheduler.callSync("strengthen-reload-apply", () -> {
+            return scheduler.<Void>callSync("strengthen-reload-apply", () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
                 syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
