@@ -284,8 +284,9 @@ public final class GraalJavaScriptService implements JavaScriptService {
         @SuppressWarnings("unchecked")
         Map<String, Object> moduleOverrides = (Map<String, Object>) ScriptHostObjectProxy.wrapIfExported(request.moduleOverrides());
         ActionExecutor actionExecutor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
+        Plugin schedulerOwner = request.sourcePlugin() == null ? plugin : request.sourcePlugin();
         ScriptDeferredOperationQueue deferredOperations = new ScriptDeferredOperationQueue(
-                plugin,
+                schedulerOwner,
                 actionExecutor,
                 request.actionContext()
         );

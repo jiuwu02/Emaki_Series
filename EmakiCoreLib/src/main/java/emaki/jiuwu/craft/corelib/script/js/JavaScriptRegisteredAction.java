@@ -11,7 +11,9 @@ import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionExecutionMode;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
@@ -91,6 +93,11 @@ public final class JavaScriptRegisteredAction implements Action {
     @Override
     public ActionExecutionMode executionMode() {
         return executionMode;
+    }
+
+    @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        return Action.contextualTarget(context == null ? null : context.actionContext());
     }
 
     @Override

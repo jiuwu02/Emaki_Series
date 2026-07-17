@@ -86,13 +86,15 @@ public final class ScriptServerApi {
     @HostAccess.Export
     public ScriptEntityApi player(String nameOrUuid) {
         if (Texts.isBlank(nameOrUuid)) {
-            return new ScriptEntityApi(null);
+            return ScriptEntityApi.missing();
         }
         String key = Texts.trim(nameOrUuid);
         try {
-            return playersByUuid.getOrDefault(UUID.fromString(key).toString(), new ScriptEntityApi(null));
+            ScriptEntityApi snapshot = playersByUuid.get(UUID.fromString(key).toString());
+            return snapshot == null ? ScriptEntityApi.missing() : snapshot;
         } catch (IllegalArgumentException ignored) {
-            return playersByName.getOrDefault(Texts.lower(key), new ScriptEntityApi(null));
+            ScriptEntityApi snapshot = playersByName.get(Texts.lower(key));
+            return snapshot == null ? ScriptEntityApi.missing() : snapshot;
         }
     }
 
@@ -189,6 +191,10 @@ public final class ScriptServerApi {
             this(entity, null, null);
         }
 
+        private static ScriptEntityApi missing() {
+            return new ScriptEntityApi(EntityView.missing());
+        }
+
         ScriptEntityApi(Entity entity, ScriptDeferredOperationQueue deferredOperations, Server server) {
             this.entity = entity;
             this.deferredOperations = deferredOperations;
@@ -216,7 +222,7 @@ public final class ScriptServerApi {
         }
 
         public ScriptEntityApi(EntityView view) {
-            EntityView safe = view == null ? EntityView.empty() : view;
+            EntityView safe = view == null ? EntityView.missing() : view;
             this.entity = null;
             this.deferredOperations = null;
             this.server = null;

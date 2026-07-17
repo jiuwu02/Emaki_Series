@@ -1,36 +1,38 @@
 package emaki.jiuwu.craft.corelib.api.script;
 
+import java.util.logging.Logger;
+
 import org.bukkit.plugin.Plugin;
 import org.graalvm.polyglot.HostAccess;
 
 public final class ScriptLoggerApi {
 
-    private final Plugin plugin;
+    private final Logger logger;
     private final String scriptPath;
 
     public ScriptLoggerApi(Plugin plugin, String scriptPath) {
-        this.plugin = plugin;
+        this.logger = plugin == null ? null : plugin.getLogger();
         this.scriptPath = scriptPath == null ? "" : scriptPath;
     }
 
     @HostAccess.Export
     public void info(String message) {
-        if (plugin != null) {
-            plugin.getLogger().info(prefix() + message);
+        if (logger != null) {
+            logger.info(prefix() + message);
         }
     }
 
     @HostAccess.Export
     public void warn(String message) {
-        if (plugin != null) {
-            plugin.getLogger().warning(prefix() + message);
+        if (logger != null) {
+            logger.warning(prefix() + message);
         }
     }
 
     @HostAccess.Export
     public void error(String message) {
-        if (plugin != null) {
-            plugin.getLogger().severe(prefix() + message);
+        if (logger != null) {
+            logger.severe(prefix() + message);
         }
     }
 

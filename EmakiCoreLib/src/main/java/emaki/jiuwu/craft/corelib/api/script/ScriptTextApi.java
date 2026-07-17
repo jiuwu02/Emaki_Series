@@ -14,6 +14,7 @@ import org.bukkit.plugin.Plugin;
 import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.script.ScriptDeferredOperationQueue;
 import emaki.jiuwu.craft.corelib.script.ScriptDeferredOperationQueue.OperationResult;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -186,7 +187,7 @@ public final class ScriptTextApi {
             java.util.function.Supplier<? extends CompletionStage<OperationResult>> operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            FoliaSchedulerAdapter.runTask(sourcePlugin, () -> {
+            TaskHandle handle = FoliaSchedulerAdapter.runTask(sourcePlugin, () -> {
                 try {
                     CompletionStage<OperationResult> stage = operation.get();
                     if (stage == null) {
@@ -198,6 +199,10 @@ public final class ScriptTextApi {
                     future.completeExceptionally(throwable);
                 }
             });
+            if (handle == null) {
+                future.complete(OperationResult.failure(
+                        "Deferred global text operation scheduling was rejected."));
+            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }
@@ -207,7 +212,7 @@ public final class ScriptTextApi {
     private CompletableFuture<OperationResult> schedulePlayer(Player player, Consumer<Player> operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            FoliaSchedulerAdapter.runEntityTask(sourcePlugin, player, () -> {
+            TaskHandle handle = FoliaSchedulerAdapter.runEntityTask(sourcePlugin, player, () -> {
                 try {
                     operation.accept(player);
                     future.complete(OperationResult.ok());
@@ -215,6 +220,10 @@ public final class ScriptTextApi {
                     future.completeExceptionally(throwable);
                 }
             });
+            if (handle == null) {
+                future.complete(OperationResult.failure(
+                        "Deferred player text operation scheduling was rejected."));
+            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }

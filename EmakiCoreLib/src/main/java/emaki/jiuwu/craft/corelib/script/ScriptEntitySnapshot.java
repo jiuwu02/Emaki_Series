@@ -85,8 +85,12 @@ public final class ScriptEntitySnapshot {
             location = location == null ? Map.of() : ScriptSnapshots.immutableMap(location);
         }
 
-        public static EntityView empty() {
+        public static EntityView missing() {
             return new EntityView(false, false, false, "", "", "", new WorldView(false, ""), Map.of(), 0D, 0D);
+        }
+
+        public static EntityView empty() {
+            return missing();
         }
 
         @Override
