@@ -1,4 +1,4 @@
-version: "1.3.1"
+version: "1.3.2"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiLevel</gradient> ]</gray>"
 console:
@@ -8,6 +8,21 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "Level config precheck passed."
+      required_file_missing: "Required file is missing."
+      path_not_file: "Path is not a file."
+      file_not_readable: "File is not readable."
+      required_directory_missing: "Required directory is missing."
+      path_not_directory: "Path is not a directory."
+      directory_not_readable: "Directory is not readable."
   types_loaded: "<gray>Loaded <yellow>%count%</yellow> level type(s)</gray>"
   sources_loaded: "<gray>Loaded <yellow>%count%</yellow> experience source rule(s)</gray>"
   actions_registered: "<gray>CoreLib actions registered</gray>"

@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.level.config;
 
+import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +18,7 @@ public final class LevelConfigPrecheckContributor extends AbstractModuleConfigPr
     private final EmakiLevelPlugin plugin;
 
     public LevelConfigPrecheckContributor(EmakiLevelPlugin plugin) {
-        super("level");
+        super("level", plugin::messages);
         this.plugin = plugin;
     }
 
@@ -29,7 +31,7 @@ public final class LevelConfigPrecheckContributor extends AbstractModuleConfigPr
         checkDirectory(new File(plugin.getDataFolder(), "sources"), "sources", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         if (issues.isEmpty()) {
-            addSuccessIssue(issues, "config.yml", "Level config precheck passed.");
+            addMessageIssue("config.yml", INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
     }

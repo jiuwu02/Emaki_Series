@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.0.0"
+version: "4.0.1"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
@@ -56,6 +56,29 @@ console:
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "致命"
+      error: "错误"
+      warn: "警告"
+      info: "信息"
+    hint: " <dark_gray>（%hint%）</dark_gray>"
+    messages:
+      passed: "Cooking 配置预检通过。"
+      required_file_missing: "必需文件不存在。"
+      path_not_file: "路径不是文件。"
+      file_not_readable: "文件不可读。"
+      required_directory_missing: "必需目录不存在。"
+      path_not_directory: "路径不是目录。"
+      directory_not_readable: "目录不可读。"
+      recipe_directory_missing: "配方目录不存在。"
+      recipe_directory_not_readable: "配方目录不可读。"
+      station_state_directory_missing: "工位状态目录不存在。"
+      station_state_directory_not_readable: "工位状态目录不可读。"
+      station_storage: "工位存储预检：%station% 来源 %source% -> %backend%"
+      station_storage_inspect_anchor: "后端取决于实际锚点 BlockState；请检查已放置的工位。"
+      station_storage_block_pdc: "已放置的原版 %material% 支持 BLOCK_PDC。"
+      station_storage_yaml_fallback: "除非已放置方块是 TileState，否则回退到 YAML。"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
@@ -82,6 +105,19 @@ console:
     fermentation_barrel: "发酵桶"
 
 loader:
+  type:
+    recipe: "%station%配方"
+  station:
+    chopping_board: "砧板"
+    wok: "炒锅"
+    grinder: "研磨机"
+    steamer: "蒸锅"
+    oven: "烤箱"
+    juicer: "榨汁机"
+    fermentation_barrel: "发酵桶"
+  error:
+    empty_document: "空文档"
+    missing_field: "缺少字段：%path%"
   lang_directory_create_failed: "<yellow>无法创建语言目录: <red>%path%</red></yellow>"
   bundled_language_load_failed: "<yellow>读取内置语言失败: <red>%error%</red></yellow>"
   directory_create_failed: "<yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"

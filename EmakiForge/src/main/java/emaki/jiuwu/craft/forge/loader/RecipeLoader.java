@@ -46,7 +46,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
 
     @Override
     protected String typeName() {
-        return "recipe";
+        return localized("loader.type.recipe");
     }
 
     @Override

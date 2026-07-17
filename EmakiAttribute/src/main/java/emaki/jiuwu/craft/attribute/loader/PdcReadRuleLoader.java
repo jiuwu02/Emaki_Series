@@ -26,7 +26,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
 
     @Override
     protected String typeName() {
-        return "PDC 读取条件";
+        return localized("label.pdc_read_rule", Map.of());
     }
 
     @Override

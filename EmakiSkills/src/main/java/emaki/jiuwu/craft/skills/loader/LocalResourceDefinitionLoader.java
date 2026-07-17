@@ -23,7 +23,7 @@ public final class LocalResourceDefinitionLoader extends YamlDirectoryLoader<Loc
 
     @Override
     protected String typeName() {
-        return "resource";
+        return localized("loader.type.resource");
     }
 
     @Override

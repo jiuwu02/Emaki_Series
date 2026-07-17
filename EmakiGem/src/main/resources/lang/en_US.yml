@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.5.0"
+version: "2.5.1"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiGem</gradient> ]</gray>"
@@ -29,6 +29,21 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "EmakiGem configuration precheck passed."
+      required_file_missing: "The required file is missing."
+      path_not_file: "The specified path is not a file."
+      file_not_readable: "The file is not readable."
+      required_directory_missing: "The required directory is missing."
+      path_not_directory: "The specified path is not a directory."
+      directory_not_readable: "The directory is not readable."
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data file
     generation.</gray>"
@@ -47,6 +62,10 @@ console:
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
+  type:
+    gem: "Gem"
+    gem_item: "Gem Item"
+    resonance: "Resonance"
   lang_directory_create_failed: "<red>Unable to create language directory: %path%</red>"
   bundled_language_load_failed: "<red>Failed to load bundled language: %error%</red>"
   bundled_resource_missing: "<red>Bundled resource missing: %resource%, cannot write to %path%</red>"

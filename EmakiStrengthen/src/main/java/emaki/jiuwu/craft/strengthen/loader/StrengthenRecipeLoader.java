@@ -39,7 +39,7 @@ public final class StrengthenRecipeLoader {
                     YamlFiles.ensureDirectory(directory.toPath());
                 } catch (IOException exception) {
                     issue("loader.directory_create_failed", Map.of(
-                            "type", "strengthen-recipe",
+                            "type", recipeType(),
                             "path", directory.getAbsolutePath()
                     ));
                     return;
@@ -101,7 +101,7 @@ public final class StrengthenRecipeLoader {
             StrengthenRecipe recipe = StrengthenRecipeParser.parse(configuration);
             if (recipe == null || Texts.isBlank(recipe.id())) {
                 issue("loader.invalid_blank_id", Map.of(
-                        "type", "strengthen-recipe",
+                        "type", recipeType(),
                         "file", file.getName()
                 ));
                 return;
@@ -109,7 +109,7 @@ public final class StrengthenRecipeLoader {
             String recipeId = Texts.lower(recipe.id());
             if (recipes.containsKey(recipeId)) {
                 issue("loader.duplicate_id", Map.of(
-                        "type", "strengthen-recipe",
+                        "type", recipeType(),
                         "id", recipe.id(),
                         "file", file.getName()
                 ));
@@ -119,7 +119,7 @@ public final class StrengthenRecipeLoader {
             indexMaterials(recipe);
         } catch (Exception exception) {
             issue("loader.load_failed", Map.of(
-                    "type", "strengthen-recipe",
+                    "type", recipeType(),
                     "file", file.getName(),
                     "error", String.valueOf(exception.getMessage())
             ));
@@ -143,14 +143,46 @@ public final class StrengthenRecipeLoader {
         }
     }
 
+    private String recipeType() {
+        return localized("loader.type.recipe", Map.of());
+    }
+
     private void issue(String key, Map<String, ?> replacements) {
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        issues.add(localized(key, safeReplacements));
         LogMessages messages = plugin.messageService();
         if (messages != null) {
-            String rendered = messages.message(key, replacements);
-            issues.add(rendered);
-            messages.warning(key, replacements);
-            return;
+            messages.warning(key, safeReplacements);
         }
-        issues.add(key + " " + replacements);
+    }
+
+    private String localized(String key, Map<String, ?> replacements) {
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        LogMessages messages = plugin.messageService();
+        if (messages != null) {
+            String rendered = messages.message(key, safeReplacements);
+            if (!Texts.isBlank(rendered) && !key.equals(rendered.trim())) {
+                return rendered;
+            }
+        }
+        String safeKey = Texts.toStringSafe(key);
+        int separator = safeKey.lastIndexOf('.');
+        String token = (separator < 0 ? safeKey : safeKey.substring(separator + 1)).replace('_', ' ').trim();
+        String label = Texts.isBlank(token)
+                ? "Configuration loader issue"
+                : Character.toUpperCase(token.charAt(0)) + token.substring(1);
+        if (safeReplacements.isEmpty()) {
+            return label;
+        }
+        StringBuilder builder = new StringBuilder(label).append(": ");
+        boolean first = true;
+        for (Map.Entry<String, ?> entry : safeReplacements.entrySet()) {
+            if (!first) {
+                builder.append(", ");
+            }
+            builder.append(entry.getKey()).append('=').append(Texts.toStringSafe(entry.getValue()));
+            first = false;
+        }
+        return builder.toString();
     }
 }

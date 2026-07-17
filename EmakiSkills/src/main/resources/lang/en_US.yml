@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.5.1"
+version: "2.5.2"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiSkills</gradient> ]</gray>"
@@ -27,6 +27,21 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "Skills config precheck passed."
+      required_file_missing: "Required file is missing."
+      path_not_file: "Path is not a file."
+      file_not_readable: "File is not readable."
+      required_directory_missing: "Required directory is missing."
+      path_not_directory: "Path is not a directory."
+      directory_not_readable: "Directory is not readable."
   reload_loading_files: "<gray>Loading configuration files...</gray>"
   reload_loading_configs: "<gray>Loading configs...</gray>"
   reload_applying: "<gray>Applying configuration...</gray>"
@@ -81,6 +96,14 @@ loader:
   lang_directory_create_failed: "Unable to create language directory: %path%"
   bundled_language_load_failed: "Failed to load bundled language file: %error%"
   bundled_resource_missing: "Bundled resource missing: %resource%, cannot write to %path%"
+  directory_create_failed: "Unable to create %type% directory: %path%"
+  invalid_blank_id: "%type% ID is blank: %file%"
+  duplicate_id: "Duplicate %type% ID %id%, source %file%"
+  load_failed: "Failed to load %type% file: %file% (%error%)"
+  invalid_config: "Invalid %type% config: %file%"
+  type:
+    skill: "skill"
+    resource: "local resource"
 
 cast_mode:
   enabled: "<green>Entered cast mode.</green>"

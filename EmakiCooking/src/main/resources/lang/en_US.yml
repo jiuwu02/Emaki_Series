@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.0.0"
+version: "4.0.1"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
@@ -56,6 +56,29 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "Cooking config precheck passed."
+      required_file_missing: "Required file does not exist."
+      path_not_file: "Path is not a file."
+      file_not_readable: "File is not readable."
+      required_directory_missing: "Required directory does not exist."
+      path_not_directory: "Path is not a directory."
+      directory_not_readable: "Directory is not readable."
+      recipe_directory_missing: "Recipe directory does not exist."
+      recipe_directory_not_readable: "Recipe directory is not readable."
+      station_state_directory_missing: "Station state directory does not exist."
+      station_state_directory_not_readable: "Station state directory is not readable."
+      station_storage: "Station storage precheck: %station% source %source% -> %backend%"
+      station_storage_inspect_anchor: "Backend depends on the actual anchor BlockState; inspect a placed station."
+      station_storage_block_pdc: "Placed vanilla %material% supports BLOCK_PDC."
+      station_storage_yaml_fallback: "YAML fallback unless the placed block is TileState."
   bootstrap_start: "<white>Checking default files...</white>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
@@ -83,6 +106,19 @@ console:
     fermentation_barrel: "Fermentation Barrel"
 
 loader:
+  type:
+    recipe: "%station% recipe"
+  station:
+    chopping_board: "Chopping Board"
+    wok: "Wok"
+    grinder: "Grinder"
+    steamer: "Steamer"
+    oven: "Oven"
+    juicer: "Juicer"
+    fermentation_barrel: "Fermentation Barrel"
+  error:
+    empty_document: "Empty document"
+    missing_field: "Missing field: %path%"
   lang_directory_create_failed: "<yellow>Unable to create language directory: <red>%path%</red></yellow>"
   bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>%error%</red></yellow>"
   directory_create_failed: "<yellow>Unable to create %type% directory: <red>%path%</red></yellow>"

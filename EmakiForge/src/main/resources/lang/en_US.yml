@@ -9,7 +9,7 @@
 
 # version is maintained by resource sync
 
-version: "4.5.0"
+version: "4.5.1"
 
 # General messages
 general:
@@ -60,6 +60,21 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "EmakiForge configuration precheck passed."
+      required_file_missing: "The required file is missing."
+      path_not_file: "The specified path is not a file."
+      file_not_readable: "The file is not readable."
+      required_directory_missing: "The required directory is missing."
+      path_not_directory: "The specified path is not a directory."
+      directory_not_readable: "The directory is not readable."
   config_load_failed: "<red>Failed to load config: %error%</red>"
   checking_config: "<white>Checking default config files...</white>"
   data_folder_error: "<yellow>Unable to access data directory, skipped default
@@ -177,10 +192,16 @@ console:
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
+  type:
+    recipe: "Recipe"
   lang_directory_create_failed: "<red>Unable to create language directory: %path%</red>"
   bundled_language_load_failed: "<red>Failed to load bundled language: %error%</red>"
   invalid_config: "<yellow>%type% file %file% has invalid config, skipped loading.</yellow>"
   bundled_resource_missing: "<red>Bundled resource missing: %resource%, cannot write to %path%</red>"
+  directory_create_failed: "<red>Failed to create %type% directory: %path%</red>"
+  invalid_blank_id: "<red>%type% file %file% has a blank ID.</red>"
+  duplicate_id: "<red>%type% file %file% has duplicate ID: %id%</red>"
+  load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
   recipe_action_validation_skipped:
     "<yellow>Skipped action validation for recipe
     %file% because EmakiCoreLib is unavailable.</yellow>"

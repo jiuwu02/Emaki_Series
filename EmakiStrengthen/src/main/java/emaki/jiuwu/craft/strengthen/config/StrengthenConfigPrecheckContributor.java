@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.strengthen.config;
 
+import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +18,7 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
     private final EmakiStrengthenPlugin plugin;
 
     public StrengthenConfigPrecheckContributor(EmakiStrengthenPlugin plugin) {
-        super("strengthen");
+        super("strengthen", plugin::messageService);
         this.plugin = plugin;
     }
 
@@ -28,7 +30,7 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         addLoaderIssues("recipes", plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
         if (issues.isEmpty()) {
-            addSuccessIssue(issues, "config.yml", "Strengthen config precheck passed.");
+            addMessageIssue("config.yml", INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
     }

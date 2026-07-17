@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.gem.config;
 
+import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +18,7 @@ public final class GemConfigPrecheckContributor extends AbstractModuleConfigPrec
     private final EmakiGemPlugin plugin;
 
     public GemConfigPrecheckContributor(EmakiGemPlugin plugin) {
-        super("gem");
+        super("gem", plugin::messageService);
         this.plugin = plugin;
     }
 
@@ -33,7 +35,7 @@ public final class GemConfigPrecheckContributor extends AbstractModuleConfigPrec
         addLoaderIssues("items", plugin.gemItemLoader() == null ? null : plugin.gemItemLoader().issues(), issues);
         addLoaderIssues("resonances", plugin.resonanceLoader() == null ? null : plugin.resonanceLoader().issues(), issues);
         if (issues.isEmpty()) {
-            addSuccessIssue(issues, "config.yml", "Gem config precheck passed.");
+            addMessageIssue("config.yml", INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
     }

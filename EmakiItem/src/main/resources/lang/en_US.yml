@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.5.1"
+version: "2.5.2"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>You do not have permission.</red>"
@@ -31,6 +31,21 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "Item config precheck passed."
+      required_file_missing: "Required file is missing."
+      path_not_file: "Path is not a file."
+      file_not_readable: "File is not readable."
+      required_directory_missing: "Required directory is missing."
+      path_not_directory: "Path is not a directory."
+      directory_not_readable: "Directory is not readable."
   items_loaded: "<gray>Loaded <yellow>%count%</yellow> item(s)</gray>"
   sets_loaded: "<gray>Loaded <yellow>%count%</yellow> set(s)</gray>"
   bootstrap_start: "Syncing bundled resources..."

@@ -190,7 +190,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     public void shutdown(EmakiStrengthenPlugin plugin) {
         freezeAndDrain(plugin, true, "shutdown");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(plugin);
+        var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
+        if (javaScriptRegistrationTracker != null) {
+            javaScriptRegistrationTracker.unregisterOwner(plugin);
+        }
         coreLibPlugin.scriptModuleRegistry().unregister("strengthen");
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {

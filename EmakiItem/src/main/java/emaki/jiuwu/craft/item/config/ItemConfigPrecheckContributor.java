@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.item.config;
 
+import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +18,7 @@ public final class ItemConfigPrecheckContributor extends AbstractModuleConfigPre
     private final EmakiItemPlugin plugin;
 
     public ItemConfigPrecheckContributor(EmakiItemPlugin plugin) {
-        super("item");
+        super("item", plugin::messageService);
         this.plugin = plugin;
     }
 
@@ -29,7 +31,7 @@ public final class ItemConfigPrecheckContributor extends AbstractModuleConfigPre
         checkDirectory(new File(plugin.getDataFolder(), "sets"), "sets", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         if (issues.isEmpty()) {
-            addSuccessIssue(issues, "config.yml", "Item config precheck passed.");
+            addMessageIssue("config.yml", INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
     }

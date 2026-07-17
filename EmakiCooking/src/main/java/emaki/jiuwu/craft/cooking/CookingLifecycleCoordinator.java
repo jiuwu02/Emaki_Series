@@ -322,7 +322,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                             .configPrecheckService()
                             .checkModule(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configModel(), "cooking");
                     if (!report.success()) {
-                        throw new IllegalStateException("Cooking precheck failed: " + String.join("; ", report.formatLines()));
+                        throw new IllegalStateException("Cooking precheck failed: "
+                                + String.join("; ", report.formatLines(plugin.messageService(), "cooking")));
                     }
                     return null;
                 },

@@ -180,7 +180,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         ConfigPrecheckLifecycleSupport.unregister("cooking");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("cooking");
-        coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(this);
+        var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
+        if (javaScriptRegistrationTracker != null) {
+            javaScriptRegistrationTracker.unregisterOwner(this);
+        }
         coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         if (coreLibPlugin.actionRegistry() != null) {
             coreLibPlugin.actionRegistry().unregisterAll(this);

@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.5.3"
+version: "4.5.4"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -19,6 +19,21 @@ console:
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "致命"
+      error: "错误"
+      warn: "警告"
+      info: "信息"
+    hint: " <dark_gray>（%hint%）</dark_gray>"
+    messages:
+      passed: "EmakiAttribute 配置预检通过。"
+      required_file_missing: "缺少必需文件。"
+      path_not_file: "指定路径不是文件。"
+      file_not_readable: "文件不可读。"
+      required_directory_missing: "缺少必需目录。"
+      path_not_directory: "指定路径不是目录。"
+      directory_not_readable: "目录不可读。"
   combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>配置读取失败: %error%</red>"
@@ -91,6 +106,7 @@ label:
   default_profile: "默认属性配置"
   lore_format: "词条格式"
   preset: "预设"
+  pdc_read_rule: "PDC 读取规则"
 
 damage:
   environment: "环境"

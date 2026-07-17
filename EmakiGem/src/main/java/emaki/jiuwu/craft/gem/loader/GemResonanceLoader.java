@@ -31,7 +31,7 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
 
     @Override
     protected String typeName() {
-        return "resonance";
+        return localized("loader.type.resonance");
     }
 
     @Override

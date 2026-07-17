@@ -39,7 +39,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
 
     @Override
     protected String typeName() {
-        return "skill";
+        return localized("loader.type.skill");
     }
 
     @Override

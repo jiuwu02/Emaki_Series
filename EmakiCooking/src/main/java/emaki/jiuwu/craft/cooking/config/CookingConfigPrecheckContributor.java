@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckContributor;
@@ -18,15 +19,10 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 
 public final class CookingConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
 
-    private static final String RECIPE_DIRECTORY_MISSING = "Recipe directory does not exist.";
-    private static final String RECIPE_DIRECTORY_NOT_READABLE = "Recipe directory is not readable.";
-    private static final String STATE_DIRECTORY_MISSING = "Station state directory does not exist.";
-    private static final String STATE_DIRECTORY_NOT_READABLE = "Station state directory is not readable.";
-
     private final EmakiCookingPlugin plugin;
 
     public CookingConfigPrecheckContributor(EmakiCookingPlugin plugin) {
-        super("cooking");
+        super("cooking", plugin::messageService);
         this.plugin = plugin;
     }
 
@@ -37,24 +33,24 @@ public final class CookingConfigPrecheckContributor extends AbstractModuleConfig
         for (StationType type : StationType.values()) {
             checkDirectory(new File(plugin.getDataFolder(), "recipes/" + type.folderName()),
                     "recipes/" + type.folderName(),
-                    RECIPE_DIRECTORY_MISSING,
-                    RECIPE_DIRECTORY_NOT_READABLE,
+                    message("recipe_directory_missing"),
+                    message("recipe_directory_not_readable"),
                     issues);
         }
         checkDirectory(new File(plugin.getDataFolder(), "data/stations"),
                 "data/stations",
-                STATE_DIRECTORY_MISSING,
-                STATE_DIRECTORY_NOT_READABLE,
+                message("station_state_directory_missing"),
+                message("station_state_directory_not_readable"),
                 issues);
         checkDirectory(new File(plugin.getDataFolder(), "data/stations/index"),
                 "data/stations/index",
-                STATE_DIRECTORY_MISSING,
-                STATE_DIRECTORY_NOT_READABLE,
+                message("station_state_directory_missing"),
+                message("station_state_directory_not_readable"),
                 issues);
         checkDirectory(new File(plugin.getDataFolder(), "data/stations-legacy-backup"),
                 "data/stations-legacy-backup",
-                STATE_DIRECTORY_MISSING,
-                STATE_DIRECTORY_NOT_READABLE,
+                message("station_state_directory_missing"),
+                message("station_state_directory_not_readable"),
                 issues);
         addLoaderIssues("recipes/chopping_board", plugin.choppingBoardRecipeLoader().issues(), issues);
         addLoaderIssues("recipes/wok", plugin.wokRecipeLoader().issues(), issues);
@@ -65,7 +61,7 @@ public final class CookingConfigPrecheckContributor extends AbstractModuleConfig
         addLoaderIssues("recipes/fermentation_barrel", plugin.fermentationBarrelRecipeLoader().issues(), issues);
         boolean blockingIssue = issues.stream().anyMatch(issue -> issue.severity().blocking());
         if (!blockingIssue) {
-            addSuccessIssue(issues, "config.yml", "Cooking config precheck passed.");
+            addMessageIssue("config.yml", ConfigPrecheckSeverity.INFO, "passed", issues);
         }
         addStationStorageHints(issues);
         return new ConfigPrecheckResult(module(), issues);
@@ -83,7 +79,11 @@ public final class CookingConfigPrecheckContributor extends AbstractModuleConfig
                 }
                 addIssue("stations." + type.folderName() + ".block_item_sources",
                         ConfigPrecheckSeverity.INFO,
-                        "Station storage precheck: " + type.folderName() + " source " + shorthand + " -> " + storageBackendHint(shorthand),
+                        message("station_storage", Map.of(
+                                "station", type.folderName(),
+                                "source", shorthand,
+                                "backend", storageBackendHint(shorthand)
+                        )),
                         issues);
             }
         }
@@ -92,13 +92,13 @@ public final class CookingConfigPrecheckContributor extends AbstractModuleConfig
     private String storageBackendHint(String shorthand) {
         String normalized = shorthand.toLowerCase(Locale.ROOT);
         if (!normalized.startsWith("minecraft-")) {
-            return "backend depends on actual anchor BlockState; inspect a placed station.";
+            return message("station_storage_inspect_anchor");
         }
         String material = normalized.substring("minecraft-".length());
         if (isLikelyVanillaTileState(material)) {
-            return "placed vanilla " + material + " supports BLOCK_PDC.";
+            return message("station_storage_block_pdc", Map.of("material", material));
         }
-        return "YAML fallback unless the placed block is TileState.";
+        return message("station_storage_yaml_fallback");
     }
 
     private boolean isLikelyVanillaTileState(String material) {

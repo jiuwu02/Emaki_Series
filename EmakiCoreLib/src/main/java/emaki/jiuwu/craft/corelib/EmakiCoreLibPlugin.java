@@ -494,7 +494,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         bStatsService = new BStatsService(this, messageService);
         debugLogger = new DebugLogger(this, languageLoader);
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
-        configPrecheckService = new ConfigPrecheckService();
+        configPrecheckService = new ConfigPrecheckService(messageService);
         loopActionService = new LoopActionService(this);
         getServer().getPluginManager().registerEvents(loopActionService, this);
         performanceMonitor = new PerformanceMonitor();

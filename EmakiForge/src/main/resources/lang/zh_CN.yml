@@ -10,7 +10,7 @@
 # Emaki Forge 中文语言文件
 
 # version 由资源同步维护
-version: "4.5.0"
+version: "4.5.1"
 
 # 通用消息
 general:
@@ -61,6 +61,21 @@ console:
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "致命"
+      error: "错误"
+      warn: "警告"
+      info: "信息"
+    hint: " <dark_gray>（%hint%）</dark_gray>"
+    messages:
+      passed: "EmakiForge 配置预检通过。"
+      required_file_missing: "缺少必需文件。"
+      path_not_file: "指定路径不是文件。"
+      file_not_readable: "文件不可读。"
+      required_directory_missing: "缺少必需目录。"
+      path_not_directory: "指定路径不是目录。"
+      directory_not_readable: "目录不可读。"
   config_load_failed: "<red>配置读取失败: %error%</red>"
   checking_config: "<white>正在检查默认配置文件...</white>"
   data_folder_error: "<yellow>无法获取数据目录，已跳过默认文件检查。</yellow>"
@@ -190,10 +205,16 @@ debug:
     close: "关闭 GUI | 玩家=%player%"
 
 loader:
+  type:
+    recipe: "配方"
   lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"
   bundled_language_load_failed: "<red>读取内置语言失败: %error%</red>"
   invalid_config: "<yellow>%type% 文件 %file% 配置无效，已跳过加载。</yellow>"
   bundled_resource_missing: "<red>内置资源缺失: %resource%，无法写入 %path%</red>"
+  directory_create_failed: "<red>无法创建%type%目录: %path%</red>"
+  invalid_blank_id: "<red>%type% 文件 %file% 的 ID 不能为空。</red>"
+  duplicate_id: "<red>%type% 文件 %file% 出现重复 ID: %id%</red>"
+  load_failed: "<red>加载 %type% 文件 %file% 失败: %error%</red>"
   recipe_action_validation_skipped: "<yellow>跳过配方 %file% 的操作校验，因为 EmakiCoreLib 不可用。</yellow>"
   recipe_invalid_action_syntax:
     "<yellow>配方 %recipe% 的操作语法无效: %file%，阶段 %phase%，第

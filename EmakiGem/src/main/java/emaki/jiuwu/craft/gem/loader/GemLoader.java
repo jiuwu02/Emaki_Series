@@ -24,7 +24,7 @@ public final class GemLoader extends YamlDirectoryLoader<GemDefinition> {
 
     @Override
     protected String typeName() {
-        return "gem";
+        return localized("loader.type.gem");
     }
 
     @Override

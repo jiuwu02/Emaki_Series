@@ -120,7 +120,7 @@ public abstract class YamlDirectoryLoader<T> {
     }
 
     protected void onDirectoryCreateFailed(File directory) {
-        issue("loader.directory_create_failed", Map.of("path", directory.getPath()));
+        issue("loader.directory_create_failed", Map.of("type", typeName(), "path", directory.getPath()));
     }
 
     protected void onBlankId(File file) {
@@ -147,14 +147,51 @@ public abstract class YamlDirectoryLoader<T> {
 
     protected abstract String idOf(T value);
 
-    protected final void issue(String key, Map<String, ?> replacements) {
+    protected final String localized(String key) {
+        return localized(key, Map.of());
+    }
+
+    protected final String localized(String key, Map<String, ?> replacements) {
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
         LogMessages messages = messages();
         if (messages != null) {
-            issues.add(messages.message(key, replacements));
-            messages.warning(key, replacements);
-            return;
+            String rendered = messages.message(key, safeReplacements);
+            if (!Texts.isBlank(rendered) && !key.equals(rendered.trim())) {
+                return rendered;
+            }
         }
-        issues.add(key);
+        return fallbackMessage(key, safeReplacements);
+    }
+
+    protected final void issue(String key, Map<String, ?> replacements) {
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        issues.add(localized(key, safeReplacements));
+        LogMessages messages = messages();
+        if (messages != null) {
+            messages.warning(key, safeReplacements);
+        }
+    }
+
+    private String fallbackMessage(String key, Map<String, ?> replacements) {
+        String safeKey = Texts.toStringSafe(key);
+        int separator = safeKey.lastIndexOf('.');
+        String token = (separator < 0 ? safeKey : safeKey.substring(separator + 1)).replace('_', ' ').trim();
+        String label = Texts.isBlank(token)
+                ? "Configuration loader issue"
+                : Character.toUpperCase(token.charAt(0)) + token.substring(1);
+        if (replacements == null || replacements.isEmpty()) {
+            return label;
+        }
+        StringBuilder builder = new StringBuilder(label).append(": ");
+        boolean first = true;
+        for (Map.Entry<String, ?> entry : replacements.entrySet()) {
+            if (!first) {
+                builder.append(", ");
+            }
+            builder.append(entry.getKey()).append('=').append(Texts.toStringSafe(entry.getValue()));
+            first = false;
+        }
+        return builder.toString();
     }
 
     private LogMessages messages() {

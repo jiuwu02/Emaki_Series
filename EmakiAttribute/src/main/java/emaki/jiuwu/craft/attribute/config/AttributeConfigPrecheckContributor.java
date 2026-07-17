@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.attribute.config;
 
+import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +18,7 @@ public final class AttributeConfigPrecheckContributor extends AbstractModuleConf
     private final EmakiAttributePlugin plugin;
 
     public AttributeConfigPrecheckContributor(EmakiAttributePlugin plugin) {
-        super("attribute");
+        super("attribute", plugin::messageService);
         this.plugin = plugin;
     }
 
@@ -31,7 +33,7 @@ public final class AttributeConfigPrecheckContributor extends AbstractModuleConf
         addLoaderIssues("presets", plugin.presetRegistry() == null ? null : plugin.presetRegistry().issues(), issues);
         addLoaderIssues("pdc_read_rules", plugin.pdcReadRuleLoader() == null ? null : plugin.pdcReadRuleLoader().issues(), issues);
         if (issues.isEmpty()) {
-            addSuccessIssue(issues, "config.yml", "Attribute config precheck passed.");
+            addMessageIssue("config.yml", INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
     }

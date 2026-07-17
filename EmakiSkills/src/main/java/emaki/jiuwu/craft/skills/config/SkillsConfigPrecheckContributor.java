@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.skills.config;
 
+import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +18,7 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
     private final EmakiSkillsPlugin plugin;
 
     public SkillsConfigPrecheckContributor(EmakiSkillsPlugin plugin) {
-        super("skills");
+        super("skills", plugin::messageService);
         this.plugin = plugin;
     }
 
@@ -30,7 +32,7 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
         addLoaderIssues("skills", plugin.skillDefinitionLoader() == null ? null : plugin.skillDefinitionLoader().issues(), issues);
         addLoaderIssues("resources", plugin.localResourceDefinitionLoader() == null ? null : plugin.localResourceDefinitionLoader().issues(), issues);
         if (issues.isEmpty()) {
-            addSuccessIssue(issues, "config.yml", "Skills config precheck passed.");
+            addMessageIssue("config.yml", INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
     }

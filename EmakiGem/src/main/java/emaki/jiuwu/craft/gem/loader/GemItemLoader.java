@@ -20,7 +20,7 @@ public final class GemItemLoader extends YamlDirectoryLoader<GemItemDefinition> 
 
     @Override
     protected String typeName() {
-        return "gem-item";
+        return localized("loader.type.gem_item");
     }
 
     @Override

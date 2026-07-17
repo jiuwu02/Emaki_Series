@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.5.0"
+version: "2.5.1"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiGem</gradient> ]</gray>"
@@ -27,6 +27,21 @@ console:
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "致命"
+      error: "错误"
+      warn: "警告"
+      info: "信息"
+    hint: " <dark_gray>（%hint%）</dark_gray>"
+    messages:
+      passed: "EmakiGem 配置预检通过。"
+      required_file_missing: "缺少必需文件。"
+      path_not_file: "指定路径不是文件。"
+      file_not_readable: "文件不可读。"
+      required_directory_missing: "缺少必需目录。"
+      path_not_directory: "指定路径不是目录。"
+      directory_not_readable: "目录不可读。"
   bootstrap_start: "<white>开始检查默认文件...</white>"
   bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
@@ -41,6 +56,10 @@ console:
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
+  type:
+    gem: "宝石"
+    gem_item: "宝石物品"
+    resonance: "共鸣"
   lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"
   bundled_language_load_failed: "<red>读取内置语言失败: %error%</red>"
   bundled_resource_missing: "<red>内置资源缺失: %resource%，无法写入 %path%</red>"
