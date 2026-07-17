@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class BreakBlockAction extends BaseAction {
+public final class BreakBlockAction extends LocationTargetAction {
 
     public BreakBlockAction() {
         super(

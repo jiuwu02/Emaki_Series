@@ -23,10 +23,16 @@ public final class HealSkillAction extends AbstractSkillScriptAction {
     @Override
     public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
         Entity entity = entityTarget(context, arguments);
-        if (entity instanceof LivingEntity living) {
-            double max = living.getAttribute(Attribute.MAX_HEALTH) == null ? living.getHealth() : living.getAttribute(Attribute.MAX_HEALTH).getValue();
-            living.setHealth(Math.min(max, living.getHealth() + Math.max(0D, doubleArg(arguments, "amount", 0D))));
+        if (!(entity instanceof LivingEntity living)) {
+            return completed(SkillActionResult.ok());
         }
-        return completed(SkillActionResult.ok());
+        double amount = Math.max(0D, doubleArg(arguments, "amount", 0D));
+        return callOnEntity(context, living, () -> {
+            double max = living.getAttribute(Attribute.MAX_HEALTH) == null
+                    ? living.getHealth()
+                    : living.getAttribute(Attribute.MAX_HEALTH).getValue();
+            living.setHealth(Math.min(max, living.getHealth() + amount));
+            return SkillActionResult.ok();
+        });
     }
 }

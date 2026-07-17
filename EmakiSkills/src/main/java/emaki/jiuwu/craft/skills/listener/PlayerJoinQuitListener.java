@@ -1,6 +1,11 @@
 package emaki.jiuwu.craft.skills.listener;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,6 +30,7 @@ public final class PlayerJoinQuitListener implements Listener {
     private final CastModeService castModeService;
     private final ActionBarService actionBarService;
     private final Supplier<AppConfig> configSupplier;
+    private final Map<UUID, ConnectionSession> sessions = new ConcurrentHashMap<>();
 
     public PlayerJoinQuitListener(JavaPlugin plugin,
                                   PlayerSkillDataStore dataStore,
@@ -38,19 +44,31 @@ public final class PlayerJoinQuitListener implements Listener {
         this.configSupplier = configSupplier;
     }
 
-    @EventHandler(priority = EventPriority.NORMAL)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+        ConnectionSession previous = sessions.remove(playerId);
+        if (previous != null) {
+            closeSession(playerId, previous);
+        }
 
-        dataStore.loadAsync(player).thenAccept(profile -> {
-            if (!player.isOnline()) {
+        var loadFuture = dataStore.loadAsync(player);
+        long generation = dataStore.currentGeneration(playerId);
+        ConnectionSession session = new ConnectionSession(player, generation);
+        sessions.put(playerId, session);
+        loadFuture.whenComplete((profile, throwable) -> {
+            if (throwable != null) {
+                logFailure("load", playerId, throwable);
+                return;
+            }
+            if (profile == null || !isCurrent(player, session)) {
                 return;
             }
             FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-                if (!player.isOnline()) {
-                    return;
+                if (isCurrent(player, session)) {
+                    applyJoinState(player, profile);
                 }
-                applyJoinState(player, profile);
             });
         });
     }
@@ -70,17 +88,51 @@ public final class PlayerJoinQuitListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.NORMAL)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
-
-        dataStore.unloadAsync(player.getUniqueId());
+        closeSession(event.getPlayer());
     }
 
-    @EventHandler(priority = EventPriority.NORMAL)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onKick(PlayerKickEvent event) {
-        Player player = event.getPlayer();
+        closeSession(event.getPlayer());
+    }
 
-        dataStore.unloadAsync(player.getUniqueId());
+    private void closeSession(Player player) {
+        UUID playerId = player.getUniqueId();
+        ConnectionSession session = sessions.get(playerId);
+        if (session == null || session.player() != player || !sessions.remove(playerId, session)) {
+            return;
+        }
+        closeSession(playerId, session);
+    }
+
+    private void closeSession(UUID playerId, ConnectionSession session) {
+        dataStore.unloadAsync(playerId, session.generation())
+                .whenComplete((ignored, throwable) -> logFailure("close", playerId, throwable));
+    }
+
+    private boolean isCurrent(Player player, ConnectionSession session) {
+        ConnectionSession current = sessions.get(player.getUniqueId());
+        return current == session
+                && current.player() == player
+                && player.isOnline()
+                && dataStore.isCurrentGeneration(player.getUniqueId(), session.generation());
+    }
+
+    private void logFailure(String operation, UUID playerId, Throwable throwable) {
+        if (throwable == null) {
+            return;
+        }
+        Throwable cause = throwable instanceof CompletionException completionException
+                && completionException.getCause() != null
+                        ? completionException.getCause()
+                        : throwable;
+        plugin.getLogger().log(Level.WARNING,
+                "[SkillDataStore] Async " + operation + " failed for " + playerId,
+                cause);
+    }
+
+    private record ConnectionSession(Player player, long generation) {
     }
 }

@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -155,7 +156,7 @@ public final class JavaScriptForgeResultHookRegistry {
         map.put("resultItem", ScriptServiceApiSupport.itemSummary(result.resultItem()));
         map.put("actionFailureReason", Texts.toStringSafe(result.actionFailureReason()));
         map.put("replacements", result.replacements());
-        return map;
+        return ScriptSnapshots.immutableMap(map);
     }
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {

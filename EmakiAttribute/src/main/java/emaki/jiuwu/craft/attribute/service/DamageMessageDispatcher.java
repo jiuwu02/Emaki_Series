@@ -23,6 +23,17 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class DamageMessageDispatcher {
 
+    record MessageIntent(String template, Map<String, Object> replacements) {
+
+        MessageIntent {
+            template = template == null ? "" : template;
+            replacements = replacements == null ? Map.of() : Map.copyOf(replacements);
+        }
+    }
+
+    record MessagePlan(MessageIntent attacker, MessageIntent target, boolean samePlayer) {
+    }
+
     private final AttributeService service;
     private volatile Map<EntityDamageEvent.DamageCause, String> causeDisplayNameCache = Map.of();
     private volatile String environmentDisplayName = "environment";
@@ -45,18 +56,49 @@ final class DamageMessageDispatcher {
             DamageTypeDefinition damageType,
             DamageResult result,
             double finalDamage) {
-        if (damageContext == null || damageType == null || result == null) {
+        if (damageContext == null) {
             return;
         }
-        Map<String, Object> replacements = buildDamageMessageReplacements(damageContext, damageType, result, finalDamage);
+        MessagePlan plan = prepareMessages(damageContext, damageType, result, finalDamage);
         Player attackerPlayer = damageContext.attacker() instanceof Player player ? player : null;
         Player targetPlayer = damageContext.target() instanceof Player player ? player : null;
-        if (attackerPlayer != null && targetPlayer != null && attackerPlayer.getUniqueId().equals(targetPlayer.getUniqueId())) {
-            sendDamageMessage(attackerPlayer, firstNonBlank(damageType.attackerMessage(), damageType.targetMessage()), replacements);
+        if (plan.samePlayer()) {
+            dispatch(attackerPlayer == null ? targetPlayer : attackerPlayer, plan.attacker());
             return;
         }
-        sendDamageMessage(attackerPlayer, damageType.attackerMessage(), replacements);
-        sendDamageMessage(targetPlayer, damageType.targetMessage(), replacements);
+        dispatch(attackerPlayer, plan.attacker());
+        dispatch(targetPlayer, plan.target());
+    }
+
+    MessagePlan prepareMessages(DamageContext damageContext,
+            DamageTypeDefinition damageType,
+            DamageResult result,
+            double finalDamage) {
+        if (damageContext == null || damageType == null || result == null) {
+            return new MessagePlan(null, null, false);
+        }
+        Map<String, Object> replacements = buildDamageMessageReplacements(damageContext, damageType, result, finalDamage);
+        String attackerUuid = damageContext.variables().string("attacker_uuid", "");
+        String targetUuid = damageContext.variables().string("target_uuid", "");
+        boolean samePlayer = Texts.isNotBlank(attackerUuid) && attackerUuid.equals(targetUuid);
+        if (samePlayer) {
+            return new MessagePlan(
+                    new MessageIntent(firstNonBlank(damageType.attackerMessage(), damageType.targetMessage()), replacements),
+                    null,
+                    true
+            );
+        }
+        return new MessagePlan(
+                new MessageIntent(damageType.attackerMessage(), replacements),
+                new MessageIntent(damageType.targetMessage(), replacements),
+                false
+        );
+    }
+
+    void dispatch(Player player, MessageIntent intent) {
+        if (intent != null) {
+            sendDamageMessage(player, intent.template(), intent.replacements());
+        }
     }
 
     String entityLabel(LivingEntity entity, EntityDamageEvent.DamageCause cause, String fallback) {
@@ -101,18 +143,24 @@ final class DamageMessageDispatcher {
             DamageResult result,
             double finalDamage) {
         Map<String, Object> replacements = new HashMap<>(40);
-        String attackerLabel = entityLabel(damageContext.attacker(), damageContext.cause(), messageOrFallback("damage.environment", "environment"));
-        String targetLabel = entityLabel(damageContext.target(), null, messageOrFallback("damage.target", "target"));
+        String attackerLabel = damageContext.variables().string(
+                "attacker_name",
+                damageContext.variables().string("attacker", messageOrFallback("damage.environment", "environment"))
+        );
+        String targetLabel = damageContext.variables().string(
+                "target_name",
+                damageContext.variables().string("target", messageOrFallback("damage.target", "target"))
+        );
         String damageTypeLabel = Texts.isBlank(damageType.displayName()) ? damageType.id() : damageType.displayName();
         String sourceDamageText = Numbers.formatNumber(damageContext.sourceDamage(), "0.##");
         String baseDamageText = Numbers.formatNumber(damageContext.baseDamage(), "0.##");
         String finalDamageText = Numbers.formatNumber(finalDamage, "0.##");
         String rollText = Numbers.formatNumber(result.roll(), "0.##");
         String causeName = causeDisplayName(damageContext.cause());
-        String attackerType = damageContext.attacker() == null ? causeName : damageContext.attacker().getType().name();
-        String attackerUuid = damageContext.attacker() == null ? "" : damageContext.attacker().getUniqueId().toString();
-        String targetType = damageContext.target() == null ? "" : damageContext.target().getType().name();
-        String targetUuid = damageContext.target() == null ? "" : damageContext.target().getUniqueId().toString();
+        String attackerType = damageContext.variables().string("attacker_type", causeName);
+        String attackerUuid = damageContext.variables().string("attacker_uuid", "");
+        String targetType = damageContext.variables().string("target_type", "");
+        String targetUuid = damageContext.variables().string("target_uuid", "");
         boolean critical = result.critical();
         replacements.put("attacker", attackerLabel);
         replacements.put("attacker_name", attackerLabel);
@@ -144,12 +192,10 @@ final class DamageMessageDispatcher {
         replacements.put("critical_text", critical ? messageOrFallback("damage.critical_text", "critical") : "");
         replacements.put("critical_suffix", critical ? messageOrFallback("damage.critical_suffix", " <red>critical</red>") : "");
         replacements.put("roll", rollText);
-        double attackerHealth = damageContext.attacker() == null ? 0D : damageContext.attacker().getHealth();
-        double attackerMaxHealth = damageContext.attacker() == null ? 0D : damageContext.attacker().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
-                ? damageContext.attacker().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue() : 0D;
-        double targetHealth = damageContext.target() == null ? 0D : damageContext.target().getHealth();
-        double targetMaxHealth = damageContext.target() == null ? 0D : damageContext.target().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH) != null
-                ? damageContext.target().getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue() : 0D;
+        double attackerHealth = damageContext.variables().getDouble("attacker_health", 0D);
+        double attackerMaxHealth = damageContext.variables().getDouble("attacker_max_health", 0D);
+        double targetHealth = damageContext.variables().getDouble("target_health", 0D);
+        double targetMaxHealth = damageContext.variables().getDouble("target_max_health", 0D);
         replacements.put("attacker_health", Numbers.formatNumber(attackerHealth, "0.##"));
         replacements.put("attacker_max_health", Numbers.formatNumber(attackerMaxHealth, "0.##"));
         replacements.put("target_health", Numbers.formatNumber(targetHealth, "0.##"));
@@ -219,14 +265,9 @@ final class DamageMessageDispatcher {
     }
 
     private String resolveDistance(DamageContext damageContext) {
-        if (damageContext.attacker() == null || damageContext.target() == null) {
-            return "0";
-        }
-        if (!damageContext.attacker().getWorld().equals(damageContext.target().getWorld())) {
-            return "0";
-        }
-        double distance = damageContext.attacker().getLocation().distance(damageContext.target().getLocation());
-        return Numbers.formatNumber(distance, "0.##");
+        return damageContext == null
+                ? "0"
+                : Numbers.formatNumber(damageContext.variables().getDouble("distance", 0D), "0.##");
     }
 
     private static final class MythicMobNames {

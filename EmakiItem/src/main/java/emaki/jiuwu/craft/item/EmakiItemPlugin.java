@@ -66,7 +66,7 @@ import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
 import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
-import emaki.jiuwu.craft.item.script.js.JavaScriptItemFactoryRegistry;
+import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 

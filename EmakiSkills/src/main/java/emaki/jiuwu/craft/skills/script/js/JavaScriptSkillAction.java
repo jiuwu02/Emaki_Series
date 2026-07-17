@@ -3,8 +3,8 @@ package emaki.jiuwu.craft.skills.script.js;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
 import emaki.jiuwu.craft.skills.api.SkillActionExecutionMode;
 import emaki.jiuwu.craft.skills.api.SkillActionParameter;
@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.SkillScriptAction;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
+import emaki.jiuwu.craft.skills.script.SkillScriptIntentExecutor;
 
 public final class JavaScriptSkillAction implements SkillScriptAction {
 
@@ -91,58 +92,96 @@ public final class JavaScriptSkillAction implements SkillScriptAction {
 
     @Override
     public SkillActionResult validate(Map<String, String> arguments) {
-        SkillActionResult base = SkillScriptAction.super.validate(arguments);
-        if (!base.success() || Texts.isBlank(validateFunction)) {
-            return base;
-        }
-        ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
-                plugin,
-                null,
-                scriptPath,
-                validateFunction,
-                List.of(arguments == null ? Map.of() : arguments),
-                Map.of("action_id", id),
-                scriptConfig.clampTimeoutMillis(timeoutMillis),
-                false
-        ));
-        return toSkillActionResult(result);
+        return SkillScriptAction.super.validate(arguments);
     }
 
     @Override
-    public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
-        if (javaScriptService == null || !javaScriptService.enabled()) {
-            return CompletableFuture.completedFuture(SkillActionResult.failure(SkillActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable."));
+    public CompletableFuture<SkillActionResult> execute(SkillScriptContext context,
+            Map<String, String> arguments) {
+        return CompletableFuture.completedFuture(SkillActionResult.failure(
+                SkillActionErrorType.INVALID_STATE,
+                "JavaScript skill actions must be executed through executeAsync."));
+    }
+
+    @Override
+    public CompletionStage<SkillActionResult> executeAsync(SkillScriptContext context,
+            Map<String, String> arguments) {
+        return executeAsync(context, arguments, new SkillScriptAction.CancellationToken());
+    }
+
+    @Override
+    public CompletionStage<SkillActionResult> executeAsync(SkillScriptContext context,
+            Map<String, String> arguments,
+            SkillScriptAction.CancellationToken cancellationToken) {
+        if (cancellationToken == null || cancellationToken.isCancelled()) {
+            return CompletableFuture.completedFuture(SkillActionResult.failure(
+                    SkillActionErrorType.CANCELLED, "JavaScript skill action was cancelled."));
         }
-        ScriptSkillContextApi scriptContext = new ScriptSkillContextApi(context);
-        java.util.function.Supplier<SkillActionResult> task = () -> toSkillActionResult(javaScriptService.invoke(new ScriptInvocationRequest(
+        if (javaScriptService == null || !javaScriptService.enabled()) {
+            return CompletableFuture.completedFuture(SkillActionResult.failure(
+                    SkillActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable."));
+        }
+        SkillActionResult baseValidation = validate(arguments);
+        if (!baseValidation.success()) {
+            return CompletableFuture.completedFuture(baseValidation);
+        }
+        if (!(context instanceof emaki.jiuwu.craft.skills.script.SkillScriptContext liveContext)) {
+            return CompletableFuture.completedFuture(SkillActionResult.failure(
+                    SkillActionErrorType.INVALID_STATE,
+                    "JavaScript skill action requires the EmakiSkills runtime context."));
+        }
+
+        Map<String, String> safeArguments = arguments == null ? Map.of() : Map.copyOf(arguments);
+        SkillScriptIntentExecutor intentExecutor = new SkillScriptIntentExecutor(liveContext, cancellationToken);
+        ScriptSkillContextApi scriptContext = new ScriptSkillContextApi(intentExecutor.workerContext());
+
+        return validateScriptAsync(safeArguments)
+                .thenCompose(validation -> {
+                    if (cancellationToken.isCancelled()) {
+                        return CompletableFuture.completedFuture(SkillActionResult.failure(
+                                SkillActionErrorType.CANCELLED, "JavaScript skill action was cancelled."));
+                    }
+                    SkillActionResult validationResult = toSkillActionResult(validation);
+                    if (!validationResult.success() || validationResult.skipped()) {
+                        return CompletableFuture.completedFuture(validationResult);
+                    }
+                    return javaScriptService.invokeAsync(request(
+                                    executeFunction,
+                                    List.of(scriptContext, safeArguments)))
+                            .thenCompose(intentExecutor::applyAsync)
+                            .thenApply(this::toSkillActionResult);
+                })
+                .exceptionally(throwable -> SkillActionResult.failure(
+                        SkillActionErrorType.EXECUTION_EXCEPTION,
+                        Texts.isBlank(throwable.getMessage())
+                                ? "JavaScript skill action failed."
+                                : throwable.getMessage()));
+    }
+
+    private CompletionStage<ScriptExecutionResult> validateScriptAsync(Map<String, String> arguments) {
+        if (Texts.isBlank(validateFunction)) {
+            return CompletableFuture.completedFuture(ScriptExecutionResult.success(null, ""));
+        }
+        return javaScriptService.invokeAsync(request(validateFunction, List.of(arguments)));
+    }
+
+    private ScriptInvocationRequest request(String function, List<Object> arguments) {
+        return new ScriptInvocationRequest(
                 plugin,
                 null,
                 scriptPath,
-                executeFunction,
-                List.of(scriptContext, arguments == null ? Map.of() : arguments),
+                function,
+                arguments,
                 Map.of("action_id", id),
                 scriptConfig.clampTimeoutMillis(timeoutMillis),
                 false
-        )));
-        if (executionMode == SkillActionExecutionMode.ASYNC_IO) {
-            CompletableFuture<SkillActionResult> future = new CompletableFuture<>();
-            if (FoliaSchedulerAdapter.runAsync(plugin, () -> {
-                try {
-                    future.complete(task.get());
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            }) == null) {
-                future.completeExceptionally(new IllegalStateException("JavaScript skill action async scheduler is unavailable."));
-            }
-            return future;
-        }
-        return CompletableFuture.completedFuture(task.get());
+        );
     }
 
     private SkillActionResult toSkillActionResult(ScriptExecutionResult result) {
         if (result == null) {
-            return SkillActionResult.failure(SkillActionErrorType.EXECUTION_EXCEPTION, "JavaScript skill action returned no result.");
+            return SkillActionResult.failure(SkillActionErrorType.EXECUTION_EXCEPTION,
+                    "JavaScript skill action returned no result.");
         }
         if (result.skipped()) {
             return SkillActionResult.skipped(result.message());

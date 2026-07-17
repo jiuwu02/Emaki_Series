@@ -15,14 +15,24 @@ public final class WebAuthService {
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private static final long FAILED_ATTEMPT_WINDOW_MILLIS = 5 * 60_000L;
     private static final long FAILED_LOGIN_COOLDOWN_MILLIS = 60_000L;
+    private static final int DEFAULT_MAX_SESSIONS = Integer.getInteger("emaki.web.auth.maxSessions", 256);
+    private static final int DEFAULT_MAX_FAILED_LOGINS = Integer.getInteger("emaki.web.auth.maxFailedLogins", 1_024);
 
     private final WebConsoleConfig.Auth authConfig;
     private final SecureRandom random = new SecureRandom();
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
     private final Map<String, FailedLogin> failedLogins = new ConcurrentHashMap<>();
+    private final int maxSessions;
+    private final int maxFailedLogins;
 
     public WebAuthService(WebConsoleConfig.Auth authConfig) {
+        this(authConfig, DEFAULT_MAX_SESSIONS, DEFAULT_MAX_FAILED_LOGINS);
+    }
+
+    WebAuthService(WebConsoleConfig.Auth authConfig, int maxSessions, int maxFailedLogins) {
         this.authConfig = authConfig;
+        this.maxSessions = Math.max(1, maxSessions);
+        this.maxFailedLogins = Math.max(1, maxFailedLogins);
     }
 
     public LoginResult login(String username, String password) {
@@ -51,7 +61,14 @@ public final class WebAuthService {
         return authConfig.username().equals(username) && authConfig.password().equals(password);
     }
 
-    private LoginResult createSession(String username) {
+    private synchronized LoginResult createSession(String username) {
+        purgeExpiredSessions(System.currentTimeMillis());
+        while (sessions.size() >= maxSessions) {
+            String evicted = oldestSessionToken();
+            if (evicted == null || sessions.remove(evicted) == null) {
+                break;
+            }
+        }
         byte[] tokenBytes = new byte[32];
         random.nextBytes(tokenBytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
@@ -94,13 +111,69 @@ public final class WebAuthService {
     }
 
     private void recordFailedLogin(String key, long now, FailedLogin failedLogin) {
+        purgeExpiredFailedLogins(now);
         if (failedLogin == null || failedLogin.windowStartedAt + FAILED_ATTEMPT_WINDOW_MILLIS < now) {
             failedLogins.put(key, new FailedLogin(1, now, 0L));
+            enforceFailedLoginCapacity();
             return;
         }
         int attempts = failedLogin.attempts + 1;
         long blockedUntil = attempts >= MAX_FAILED_ATTEMPTS ? now + FAILED_LOGIN_COOLDOWN_MILLIS : failedLogin.blockedUntil;
         failedLogins.put(key, new FailedLogin(attempts, failedLogin.windowStartedAt, blockedUntil));
+        enforceFailedLoginCapacity();
+    }
+
+    private void purgeExpiredSessions(long now) {
+        sessions.entrySet().removeIf(entry -> entry.getValue().expiresAt() < now);
+    }
+
+    private String oldestSessionToken() {
+        String oldestToken = null;
+        long oldestExpiry = Long.MAX_VALUE;
+        for (Map.Entry<String, Session> entry : sessions.entrySet()) {
+            if (entry.getValue().expiresAt() < oldestExpiry) {
+                oldestExpiry = entry.getValue().expiresAt();
+                oldestToken = entry.getKey();
+            }
+        }
+        return oldestToken;
+    }
+
+    private void purgeExpiredFailedLogins(long now) {
+        failedLogins.entrySet().removeIf(entry -> {
+            FailedLogin failedLogin = entry.getValue();
+            return failedLogin.windowStartedAt + FAILED_ATTEMPT_WINDOW_MILLIS < now
+                    && failedLogin.blockedUntil < now;
+        });
+    }
+
+    private void enforceFailedLoginCapacity() {
+        while (failedLogins.size() > maxFailedLogins) {
+            String evicted = oldestFailedLoginKey();
+            if (evicted == null || failedLogins.remove(evicted) == null) {
+                break;
+            }
+        }
+    }
+
+    private String oldestFailedLoginKey() {
+        String oldestKey = null;
+        long oldestWindow = Long.MAX_VALUE;
+        for (Map.Entry<String, FailedLogin> entry : failedLogins.entrySet()) {
+            if (entry.getValue().windowStartedAt < oldestWindow) {
+                oldestWindow = entry.getValue().windowStartedAt;
+                oldestKey = entry.getKey();
+            }
+        }
+        return oldestKey;
+    }
+
+    int sessionCount() {
+        return sessions.size();
+    }
+
+    int failedLoginCount() {
+        return failedLogins.size();
     }
 
     private String failedLoginKey(HttpExchange exchange, String username) {

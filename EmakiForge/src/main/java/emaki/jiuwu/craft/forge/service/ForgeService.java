@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.forge.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -84,6 +85,21 @@ public final class ForgeService {
             public void reset(UUID playerId, String key) {
                 plugin.playerDataStore().resetGuaranteeCounter(playerId, key);
             }
+
+            @Override
+            public int counter(UUID playerId, long generation, String key) {
+                return plugin.playerDataStore().guaranteeCounterIfCurrent(playerId, generation, key);
+            }
+
+            @Override
+            public void increment(UUID playerId, long generation, String key) {
+                plugin.playerDataStore().incrementGuaranteeCounterIfCurrent(playerId, generation, key);
+            }
+
+            @Override
+            public void reset(UUID playerId, long generation, String key) {
+                plugin.playerDataStore().resetGuaranteeCounterIfCurrent(playerId, generation, key);
+            }
         },
                 this::resolveMaterialQualityModifiers
         );
@@ -111,6 +127,8 @@ public final class ForgeService {
                 (player, recipe) -> guiItems -> canForge(player, recipe, guiItems)
         );
         this.forgeExecutionService = new ForgeExecutionService(
+                plugin,
+                (playerId, generation) -> plugin.playerDataStore().isCurrentGeneration(playerId, generation),
                 actionCoordinator,
                 qualityCalculationService,
                 (player, recipe, guiItems, preparedForge) -> preparedForge == null
@@ -127,7 +145,8 @@ public final class ForgeService {
                         return itemAssemblyService == null ? null : itemAssemblyService.preview(request);
                     }
                 },
-                (playerId, recipeId) -> plugin.playerDataStore().recordCraft(playerId, recipeId),
+                (playerId, generation, recipeId, guaranteeUpdate) -> plugin.playerDataStore()
+                        .recordSuccessfulForgeIfCurrent(playerId, generation, recipeId, guaranteeUpdate),
                 resultPostProcessor::process,
                 plugin.javaScriptForgeRuleRegistry(),
                 plugin.javaScriptResultHookRegistry()
@@ -211,7 +230,23 @@ public final class ForgeService {
             GuiItems guiItems,
             PreparedForge preparedForge) {
         ValidationResult validation = canForge(player, recipe, guiItems);
-        return forgeExecutionService.execute(player, recipe, guiItems, preparedForge, validation);
+        long sessionGeneration = player == null
+                ? 0L
+                : plugin.playerDataStore().ensureCurrentGeneration(player.getUniqueId());
+        if (player != null && !plugin.playerDataStore().isSessionWritable(player.getUniqueId())) {
+            ForgeResult result = new ForgeResult();
+            result.setErrorKey("forge.error.action_failed");
+            result.setReplacements(Map.of("reason", "player data is not ready"));
+            return CompletableFuture.completedFuture(result);
+        }
+        return forgeExecutionService.execute(
+                player,
+                recipe,
+                guiItems,
+                preparedForge,
+                validation,
+                sessionGeneration
+        );
     }
 
     public String resolveResultItemName(Recipe recipe, ItemStack itemStack) {

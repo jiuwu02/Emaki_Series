@@ -1,5 +1,5 @@
 # EmakiAttribute 父级属性定义 - 力量
-# 父级属性不会被 Lore 或伤害类型阶段直接读取；玩家加点后按 child_bonuses 展开为战斗快照贡献。
+# 父级属性可从物品 Lore / PDC 或玩家加点进入快照，并按 child_bonuses 展开为子属性贡献。
 
 id: strength
 
@@ -21,7 +21,7 @@ allow_negative: false
 
 priority: 1000
 
-lore_format_id: ""
+lore_format_id: default_flat
 
 attribute_power: 0.0
 

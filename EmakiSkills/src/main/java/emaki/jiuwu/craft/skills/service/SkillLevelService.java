@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.skills.service;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -44,14 +46,14 @@ public final class SkillLevelService {
         if (player == null || definition == null || Texts.isBlank(definition.id())) {
             return 1;
         }
-        PlayerSkillProfile profile = dataStore.get(player);
-        if (profile == null) {
-            return 1;
-        }
         int clamped = clampLevel(definition, level);
-        profile.skillLevels().put(definition.id(), new PlayerSkillLevelState(definition.id(), clamped));
-        profile.markDirty();
-        return clamped;
+        AtomicInteger result = new AtomicInteger(1);
+        dataStore.mutate(player, profile -> {
+            profile.skillLevels().put(definition.id(), new PlayerSkillLevelState(definition.id(), clamped));
+            profile.markDirty();
+            result.set(clamped);
+        });
+        return result.get();
     }
 
     public int addLevel(Player player, SkillDefinition definition, int delta) {

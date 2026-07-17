@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.attribute.service;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -335,8 +336,22 @@ abstract class AbstractAttributeServiceFacade implements AttributeServiceFacade 
         return damageCalculationServiceRef().applyResolvedDamage(resolvedDamage, visualSource, alreadyAppliedDamage);
     }
 
+    public CompletableFuture<Boolean> applyResolvedDamageAsync(ResolvedDamage resolvedDamage, double alreadyAppliedDamage) {
+        return damageCalculationServiceRef().applyResolvedDamageAsync(resolvedDamage, alreadyAppliedDamage);
+    }
+
+    public CompletableFuture<Boolean> applyResolvedDamageAsync(ResolvedDamage resolvedDamage,
+            Entity visualSource,
+            double alreadyAppliedDamage) {
+        return damageCalculationServiceRef().applyResolvedDamageAsync(resolvedDamage, visualSource, alreadyAppliedDamage);
+    }
+
     public void applyDamageSideEffects(ResolvedDamage resolvedDamage, Entity visualSource) {
         damageCalculationServiceRef().applyDamageSideEffects(resolvedDamage, visualSource);
+    }
+
+    public CompletableFuture<Boolean> applyDamageSideEffectsAsync(ResolvedDamage resolvedDamage) {
+        return damageCalculationServiceRef().applyDamageSideEffectsAsync(resolvedDamage);
     }
 
     @Override

@@ -52,8 +52,13 @@ public final class TakeItemAction extends BaseAction {
         if (available < amount) {
             return ActionResult.skipped("Not enough matching items for takeitem: requested " + amount + ", available " + available + ".");
         }
-        boolean removed = InventoryItemUtil.removeItems(context.player().getInventory(), itemSourceService, source, amount);
-        if (!removed) {
+        InventoryItemUtil.RemovalPlan removalPlan = InventoryItemUtil.planRemoval(
+                context.player().getInventory(),
+                itemSourceService,
+                source,
+                amount
+        );
+        if (!removalPlan.complete() || !InventoryItemUtil.applyRemoval(context.player().getInventory(), removalPlan)) {
             return ActionResult.failure(ActionErrorType.INVALID_STATE, "Failed to remove matching items for takeitem.");
         }
         return ActionResult.ok(Map.of(

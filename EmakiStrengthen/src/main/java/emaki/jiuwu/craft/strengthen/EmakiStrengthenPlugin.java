@@ -56,8 +56,8 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenItemLayerPreviewProvider;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRoutePreviewService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
-import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenChanceRuleRegistry;
-import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegistry;
+import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenChanceRuleRegistry;
+import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenResultHookRegistry;
 
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
@@ -156,6 +156,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     @Override
     public void onDisable() {
         ConfigPrecheckLifecycleSupport.unregister("strengthen");
+        lifecycleCoordinator.shutdown(this);
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -173,7 +174,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
             metrics.close();
             metrics = null;
         }
-        lifecycleCoordinator.shutdown(this);
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {

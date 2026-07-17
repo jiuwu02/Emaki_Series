@@ -30,6 +30,7 @@ public final class SkillsActionRegistrar {
         }
         unregisterAll(registry, owner);
         registry.register(owner, SOURCE, new CastSkillAction(mythicSkillCastService));
+        registry.register(owner, SOURCE, new CastSkillAction("skill.cast", mythicSkillCastService));
         registry.register(owner, SOURCE, new SkillLevelAction(SkillLevelAction.SET_LEVEL_ID, stateService, levelService, upgradeService, dataStore));
         registry.register(owner, SOURCE, new SkillLevelAction(SkillLevelAction.UPGRADE_ID, stateService, levelService, upgradeService, dataStore));
         registry.register(owner, SOURCE, new SkillSlotAction(SkillSlotAction.EQUIP_ID, stateService, dataStore));

@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
 import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
+import emaki.jiuwu.craft.cooking.service.CookingCompletionCoordinator;
 import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
@@ -118,7 +119,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         CookingSettingsService settingsService = new CookingSettingsService(plugin);
         settingsService.reload();
         CookingBlockMatcher blockMatcher = new CookingBlockMatcher(settingsService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge);
-        StationStateStore stationStateStore = new StationStateStore(plugin, coreLibPlugin.asyncFileService());
+        var cookingFileScope = coreLibPlugin.asyncFileScope(plugin);
+        StationStateStore stationStateStore = new StationStateStore(plugin, cookingFileScope);
         CookingRecipeService recipeService = new CookingRecipeService(plugin, settingsService);
         ActionExecutor coreActionExecutor = coreLibPlugin.actionExecutor();
         CookingRewardService rewardService = new CookingRewardService(
@@ -129,6 +131,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreLibPlugin.itemAssemblyService()
         );
         rewardService.setRecipeService(recipeService);
+        CookingCompletionCoordinator completionCoordinator = new CookingCompletionCoordinator(plugin, rewardService, cookingFileScope);
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService(), stationStateStore, blockMatcher, settingsService);
         CookingDisplayService displayService = CookingDisplayServiceFactory.create(plugin, settingsService);
         CookingTextDisplayService textDisplayService = CookingTextDisplayServiceFactory.create(plugin, settingsService);
@@ -208,14 +211,22 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
+                completionCoordinator,
                 coreLibPlugin.itemSourceService(),
                 textDisplayService
         );
+        choppingBoardRuntimeService.setCompletionCoordinator(completionCoordinator);
+        wokRuntimeService.setCompletionCoordinator(completionCoordinator);
+        grinderRuntimeService.setCompletionCoordinator(completionCoordinator);
+        steamerRuntimeService.setCompletionCoordinator(completionCoordinator);
+        ovenRuntimeService.setCompletionCoordinator(completionCoordinator);
+        juicerRuntimeService.setCompletionCoordinator(completionCoordinator);
         NutritionTypeLoader nutritionTypeLoader = new NutritionTypeLoader(plugin);
         nutritionTypeLoader.load();
         NutritionTypeRegistry nutritionTypeRegistry = new NutritionTypeRegistry();
         nutritionTypeRegistry.reload(nutritionTypeLoader.types());
-        PlayerNutritionDataStore nutritionDataStore = new PlayerNutritionDataStore(plugin);
+        var nutritionDataFiles = coreLibPlugin.asyncYamlFiles(plugin);
+        PlayerNutritionDataStore nutritionDataStore = new PlayerNutritionDataStore(plugin, () -> nutritionDataFiles);
         NutritionService nutritionService = new NutritionService(
                 plugin,
                 coreActionExecutor,
@@ -247,6 +258,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 stationStateStore,
                 recipeService,
                 rewardService,
+                completionCoordinator,
                 inspectService,
                 displayService,
                 textDisplayService,

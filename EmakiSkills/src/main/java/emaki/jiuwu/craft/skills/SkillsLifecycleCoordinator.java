@@ -6,13 +6,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -94,7 +99,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         TriggerRegistry triggerRegistry = new TriggerRegistry();
         TriggerConflictResolver triggerConflictResolver = new TriggerConflictResolver();
         SkillRegistryService skillRegistryService = new SkillRegistryService(plugin, () -> skillDefinitionLoader.all());
-        AsyncYamlFiles asyncYamlFiles = new AsyncYamlFiles(coreLibPlugin.asyncFileService());
+        AsyncYamlFiles asyncYamlFiles = coreLibPlugin.asyncYamlFiles(plugin);
         PlayerSkillDataStore playerSkillDataStore = new PlayerSkillDataStore(
                 plugin,
                 appConfigLoader.current().defaultSlotCount(),
@@ -201,7 +206,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
 
     public void reload(EmakiSkillsPlugin plugin, boolean closeInventories) {
         if (closeInventories) {
-            Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
+            forEachOnlinePlayer(plugin, Player::closeInventory).join();
         }
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
@@ -211,7 +216,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         plugin.guiTemplateLoader().load();
         loadTriggersIntoRegistry(plugin);
         plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
-        Bukkit.getOnlinePlayers().forEach(player -> plugin.playerSkillStateService().validateBindings(player));
+        forEachOnlinePlayer(plugin, plugin.playerSkillStateService()::validateBindings).join();
         plugin.actionBarService().startRefreshTask();
         plugin.messageService().info("console.skills_loaded", Map.of(
                 "skills", String.valueOf(plugin.skillDefinitionLoader().all().size()),
@@ -219,40 +224,71 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         ));
     }
 
-    public java.util.concurrent.CompletableFuture<Void> reloadAsync(EmakiSkillsPlugin plugin, boolean closeInventories, java.util.function.Consumer<String> progressListener) {
+    public CompletableFuture<Void> reloadAsync(EmakiSkillsPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
         emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin, closeInventories);
-            return java.util.concurrent.CompletableFuture.completedFuture(null);
+            return CompletableFuture.completedFuture(null);
         }
 
-        if (closeInventories) {
-            Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
-        }
+        CompletableFuture<Void> closeStage = closeInventories
+                ? forEachOnlinePlayer(plugin, Player::closeInventory)
+                : CompletableFuture.completedFuture(null);
         notifyProgress(progressListener, plugin.messageService().message("console.reload_loading_files"));
 
-        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "skills", "config-load", plugin.messageService().message("console.reload_loading_configs"), progressListener,
-                () -> {
-                    plugin.languageLoader().load();
-                    plugin.appConfigLoader().load();
-                    plugin.skillDefinitionLoader().load();
-                    plugin.localResourceDefinitionLoader().load();
-                    plugin.guiTemplateLoader().load();
-                },
-                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
-        )).thenCompose(_ -> {
-            notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
-            return scheduler.callSync("skills-reload-apply", () -> {
-                plugin.languageLoader().setLanguage(plugin.appConfig().language());
-                loadTriggersIntoRegistry(plugin);
-                plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
-                Bukkit.getOnlinePlayers().forEach(player -> plugin.playerSkillStateService().validateBindings(player));
-                plugin.actionBarService().startRefreshTask();
-                notifyProgress(progressListener, plugin.messageService().message("console.reload_complete"));
-                return null;
-            });
-        });
+        return closeStage
+                .thenCompose(ignored -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+                        "skills", "config-load", plugin.messageService().message("console.reload_loading_configs"), progressListener,
+                        () -> {
+                            plugin.languageLoader().load();
+                            plugin.appConfigLoader().load();
+                            plugin.skillDefinitionLoader().load();
+                            plugin.localResourceDefinitionLoader().load();
+                            plugin.guiTemplateLoader().load();
+                        },
+                        null,
+                        (stage, ex) -> plugin.getLogger().warning(
+                                "[Reload] Stage " + stage + " failed: " + ex.getMessage())
+                )))
+                .thenCompose(ignored -> {
+                    notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
+                    return scheduler.callSync("skills-reload-apply", () -> {
+                        plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                        loadTriggersIntoRegistry(plugin);
+                        plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
+                        return null;
+                    });
+                })
+                .thenCompose(ignored -> forEachOnlinePlayer(
+                        plugin, plugin.playerSkillStateService()::validateBindings))
+                .thenRun(() -> {
+                    plugin.actionBarService().startRefreshTask();
+                    notifyProgress(progressListener, plugin.messageService().message("console.reload_complete"));
+                });
+    }
+
+    private CompletableFuture<Void> forEachOnlinePlayer(EmakiSkillsPlugin plugin, Consumer<Player> action) {
+        List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
+        List<CompletableFuture<Void>> tasks = new ArrayList<>(players.size());
+        for (Player player : players) {
+            CompletableFuture<Void> task = new CompletableFuture<>();
+            tasks.add(task);
+            try {
+                FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                    try {
+                        if (player.isOnline()) {
+                            action.accept(player);
+                        }
+                        task.complete(null);
+                    } catch (Throwable throwable) {
+                        task.completeExceptionally(throwable);
+                    }
+                });
+            } catch (Throwable throwable) {
+                task.completeExceptionally(throwable);
+            }
+        }
+        return CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new));
     }
 
     public void shutdown(EmakiSkillsPlugin plugin) {
@@ -260,8 +296,14 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             plugin.actionBarService().stopRefreshTask();
         }
         if (plugin.playerSkillDataStore() != null) {
-            plugin.playerSkillDataStore().saveAllAsync().join();
-            plugin.playerSkillDataStore().waitForPendingSaves();
+            var flushResult = plugin.playerSkillDataStore().flushAndSeal(5L, TimeUnit.SECONDS);
+            if (!flushResult.clean()) {
+                plugin.getLogger().warning("[Shutdown] Skill data drain incomplete: pending="
+                        + flushResult.drainResult().pendingOperations()
+                        + ", ioFailures=" + flushResult.drainResult().failures().size()
+                        + ", saveFailures=" + flushResult.failedEntries()
+                        + ", remainingDirty=" + flushResult.remainingDirtyEntries());
+            }
         }
         if (plugin.eaBridge() != null) {
             plugin.eaBridge().shutdown();

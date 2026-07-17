@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
-import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventRegistry;
+import emaki.jiuwu.craft.corelib.script.event.JavaScriptEventRegistry;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationSnapshot;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTypes;

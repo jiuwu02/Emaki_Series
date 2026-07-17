@@ -1,21 +1,28 @@
 package emaki.jiuwu.craft.cooking.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import org.bukkit.Location;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
-
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -26,11 +33,13 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.api.event.CookingRecipeCompleteEvent;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
-import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingResultRuleRegistry;
+import emaki.jiuwu.craft.cooking.script.JavaScriptCookingCompleteHookRegistry;
+import emaki.jiuwu.craft.cooking.script.JavaScriptCookingResultRuleRegistry;
 
 public final class CookingRewardService {
 
     private final JavaPlugin plugin;
+    @SuppressWarnings("unused")
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
     private final ActionExecutor actionExecutor;
@@ -54,6 +63,10 @@ public final class CookingRewardService {
         this.recipeService = recipeService;
     }
 
+    /**
+     * Legacy non-journaled delivery entry point. Runtime completion paths use
+     * {@link CookingCompletionCoordinator}; this method remains for explicit reward Actions.
+     */
     public void deliver(RecipeDocument recipe,
             Player player,
             Location location,
@@ -63,63 +76,244 @@ public final class CookingRewardService {
             List<String> actions,
             String phase,
             Map<String, ?> placeholders) {
-        boolean conditionPassed = true;
+        PreparedReward prepared = prepare(
+                UUID.randomUUID().toString(),
+                recipe,
+                player,
+                location,
+                dropResult,
+                inputs,
+                outputs,
+                actions,
+                phase,
+                placeholders
+        );
+        CompletableFuture<Boolean> chain = CompletableFuture.completedFuture(true);
+        for (FrozenRewardUnit unit : prepared.units()) {
+            chain = chain.thenCompose(ignored -> executeFrozen(unit.kind(), unit.payload()));
+        }
+        chain.exceptionally(error -> {
+            plugin.getLogger().warning("Failed to execute legacy cooking reward: " + error.getMessage());
+            return false;
+        });
+    }
+
+    /**
+     * Resolves all conditions, scripts, event mutations, random rolls and item assembly without
+     * delivering any reward side effect. The returned units are safe to persist in PREPARED.
+     */
+    PreparedReward prepare(String operationId,
+            RecipeDocument recipe,
+            Player player,
+            Location location,
+            boolean dropResult,
+            List<CookingInputIngredient> inputs,
+            List<Map<String, Object>> outputs,
+            List<String> actions,
+            String phase,
+            Map<String, ?> placeholders) {
+        String stableOperationId = Texts.isBlank(operationId) ? UUID.randomUUID().toString() : operationId;
+        Map<String, Object> basePlaceholders = defaultPlaceholders(recipe, player, location, inputs, placeholders);
+        List<FrozenRewardUnit> units = new ArrayList<>();
+        int sequence = 0;
+
         if (recipe != null && recipeService != null && recipeService.hasCompletionCondition(recipe)) {
-            conditionPassed = recipeService.completionConditionPasses(recipe, player);
+            boolean conditionPassed = recipeService.completionConditionPasses(recipe, player);
             List<String> branchActions = recipeService.completionConditionActions(recipe, conditionPassed);
-            executeActions(branchActions, player, location, phase, defaultPlaceholders(player, location, placeholders));
+            if (!branchActions.isEmpty()) {
+                units.add(freezeActionUnit(
+                        stableOperationId,
+                        sequence++,
+                        branchActions,
+                        player,
+                        location,
+                        phase,
+                        basePlaceholders
+                ));
+            }
             if (!conditionPassed && recipeService.completionConditionBlocksOutput(recipe)) {
-                return;
+                return new PreparedReward(units);
             }
         }
-        JavaScriptCookingResultRuleRegistry.DeliveryPlan plan = applyJavaScriptResultRules(recipe, player, location, phase, inputs, outputs, actions, placeholders);
-        if (plan.cancelled()) {
-            return;
+
+        JavaScriptCookingResultRuleRegistry.DeliveryPlan plan = JavaScriptCookingResultRuleRegistry.DeliveryPlan.from(
+                recipe,
+                player,
+                location,
+                phase,
+                inputs,
+                outputs,
+                actions,
+                basePlaceholders
+        );
+        if (plugin instanceof EmakiCookingPlugin cookingPlugin
+                && cookingPlugin.javaScriptResultRuleRegistry() != null) {
+            plan = cookingPlugin.javaScriptResultRuleRegistry().apply(plan);
         }
-        // 配方完成产物发放对外开放，可取消、可改是否掉落；这是所有工位的统一出口，仅主线程派发。
+        if (plan == null || plan.cancelled()) {
+            return new PreparedReward(units);
+        }
+
         boolean effectiveDropResult = dropResult;
-        if (recipe != null && org.bukkit.Bukkit.isPrimaryThread()) {
+        if (recipe != null && Bukkit.isPrimaryThread()) {
             CookingRecipeCompleteEvent completeEvent = new CookingRecipeCompleteEvent(
                     player,
                     location,
                     recipe.id(),
                     recipe.displayName(),
                     recipe.stationType() == null ? "" : recipe.stationType().folderName(),
-                    phase,
-                    plan.outputs() == null ? 0 : plan.outputs().size(),
-                    dropResult);
-            org.bukkit.Bukkit.getPluginManager().callEvent(completeEvent);
+                    plan.phase(),
+                    plan.outputs().size(),
+                    dropResult
+            );
+            Bukkit.getPluginManager().callEvent(completeEvent);
             if (completeEvent.isCancelled()) {
-                return;
+                return new PreparedReward(units);
             }
             effectiveDropResult = completeEvent.isDropResult();
         }
+
         for (Map<String, Object> output : plan.outputs()) {
-            deliverOutput(recipe, player, location, effectiveDropResult, output, phase, placeholders);
+            if (output == null || output.isEmpty() || !passesChance(output.get("chance"))) {
+                continue;
+            }
+            ItemStack itemStack = createOutputItem(recipe, output, player, location, plan.phase(), plan.placeholders());
+            if (itemStack == null || itemStack.getType().isAir()) {
+                plugin.getLogger().warning("[CookingReward] Output item is null or air. output_map=" + output
+                        + ", recipe=" + (recipe == null ? "null" : recipe.id()));
+                continue;
+            }
+            units.add(freezeItemUnit(
+                    stableOperationId,
+                    sequence++,
+                    itemStack,
+                    player,
+                    location,
+                    effectiveDropResult
+            ));
+            List<String> outputActions = Texts.asStringList(output.get("actions"));
+            if (!outputActions.isEmpty()) {
+                units.add(freezeActionUnit(
+                        stableOperationId,
+                        sequence++,
+                        outputActions,
+                        player,
+                        location,
+                        plan.phase(),
+                        buildOutputPlaceholders(recipe, output, player, location, plan.phase(), plan.placeholders())
+                ));
+            }
         }
-        executeActions(plan.actions(), player, location, phase, defaultPlaceholders(player, location, placeholders));
-        fireJavaScriptCompleteHooks(plan);
+        if (!plan.actions().isEmpty()) {
+            units.add(freezeActionUnit(
+                    stableOperationId,
+                    sequence++,
+                    plan.actions(),
+                    player,
+                    location,
+                    plan.phase(),
+                    basePlaceholders
+            ));
+        }
+        if (plugin instanceof EmakiCookingPlugin cookingPlugin) {
+            JavaScriptCookingCompleteHookRegistry hookRegistry = cookingPlugin.javaScriptCompleteHookRegistry();
+            if (hookRegistry != null) {
+                List<String> hookActions = hookRegistry.prepareActions(plan);
+                if (!hookActions.isEmpty()) {
+                    units.add(freezeActionUnit(
+                            stableOperationId,
+                            sequence,
+                            hookActions,
+                            player,
+                            location,
+                            "cooking.complete",
+                            basePlaceholders
+                    ));
+                }
+            }
+        }
+        return new PreparedReward(units);
     }
 
-    private JavaScriptCookingResultRuleRegistry.DeliveryPlan applyJavaScriptResultRules(RecipeDocument recipe,
-            Player player,
-            Location location,
-            String phase,
-            List<CookingInputIngredient> inputs,
-            List<Map<String, Object>> outputs,
-            List<String> actions,
-            Map<String, ?> placeholders) {
-        JavaScriptCookingResultRuleRegistry.DeliveryPlan base = JavaScriptCookingResultRuleRegistry.DeliveryPlan.from(recipe, player, location, phase, inputs, outputs, actions, placeholders);
-        if (!(plugin instanceof EmakiCookingPlugin cookingPlugin) || cookingPlugin.javaScriptResultRuleRegistry() == null) {
-            return base;
+    CompletableFuture<Boolean> executeFrozen(RewardUnitKind kind, Map<String, Object> payload) {
+        if (kind == null) {
+            return CompletableFuture.completedFuture(false);
         }
-        return cookingPlugin.javaScriptResultRuleRegistry().apply(base);
+        return switch (kind) {
+            case ITEM_REWARD -> executeFrozenItem(payload);
+            case ACTION_BATCH -> executeFrozenActions(payload);
+        };
     }
 
-    private void fireJavaScriptCompleteHooks(JavaScriptCookingResultRuleRegistry.DeliveryPlan plan) {
-        if (plugin instanceof EmakiCookingPlugin cookingPlugin && cookingPlugin.javaScriptCompleteHookRegistry() != null) {
-            cookingPlugin.javaScriptCompleteHookRegistry().fire(plan);
+    private CompletableFuture<Boolean> executeFrozenItem(Map<String, Object> payload) {
+        Map<String, Object> itemData = mapValue(payload == null ? null : payload.get("item"));
+        ItemStack itemStack = StoredItemCodec.deserialize(itemData);
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return CompletableFuture.completedFuture(false);
         }
+        Player player = resolvePlayer(payload == null ? null : payload.get("player_uuid"));
+        Location location = resolveLocation(mapValue(payload == null ? null : payload.get("location")));
+        boolean dropResult = boolValue(payload == null ? null : payload.get("drop_result"), false);
+
+        if (!dropResult && player != null && player.isOnline()) {
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
+            try {
+                FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                    try {
+                        InventoryItemUtil.giveOrDrop(player, itemStack.clone());
+                        future.complete(true);
+                    } catch (Throwable error) {
+                        future.completeExceptionally(error);
+                    }
+                });
+            } catch (Throwable error) {
+                future.completeExceptionally(error);
+            }
+            return future;
+        }
+        Location dropLocation = location != null ? location : (player == null ? null : player.getLocation());
+        if (dropLocation == null || dropLocation.getWorld() == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            FoliaSchedulerAdapter.runAtLocation(plugin, dropLocation, () -> {
+                try {
+                    World world = dropLocation.getWorld();
+                    if (world == null) {
+                        future.complete(false);
+                        return;
+                    }
+                    world.dropItemNaturally(dropLocation, itemStack.clone());
+                    future.complete(true);
+                } catch (Throwable error) {
+                    future.completeExceptionally(error);
+                }
+            });
+        } catch (Throwable error) {
+            future.completeExceptionally(error);
+        }
+        return future;
+    }
+
+    private CompletableFuture<Boolean> executeFrozenActions(Map<String, Object> payload) {
+        List<String> actions = Texts.asStringList(payload == null ? null : payload.get("actions"));
+        if (actions.isEmpty()) {
+            return CompletableFuture.completedFuture(true);
+        }
+        if (actionExecutor == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        Player player = resolvePlayer(payload == null ? null : payload.get("player_uuid"));
+        Location location = resolveLocation(mapValue(payload == null ? null : payload.get("location")));
+        String phase = Texts.toStringSafe(payload == null ? null : payload.get("phase"));
+        Map<String, Object> placeholders = mapValue(payload == null ? null : payload.get("placeholders"));
+        ActionContext context = ActionContext.create(plugin, player, phase, false)
+                .withPlaceholders(placeholders)
+                .withAttribute("phase", phase)
+                .withAttribute("location", location);
+        return actionExecutor.executeAll(context, actions, true)
+                .thenApply(ActionBatchResult::success);
     }
 
     public boolean completionConditionPasses(RecipeDocument recipe, Player player) {
@@ -174,75 +368,86 @@ public final class CookingRewardService {
         return itemStack;
     }
 
-    private void deliverOutput(RecipeDocument recipe,
+    private FrozenRewardUnit freezeItemUnit(String operationId,
+            int sequence,
+            ItemStack itemStack,
             Player player,
             Location location,
-            boolean dropResult,
-            Map<String, Object> output,
+            boolean dropResult) {
+        Map<String, Object> payload = targetPayload(player, location);
+        payload.put("item", StoredItemCodec.serialize(itemStack));
+        payload.put("drop_result", dropResult);
+        return new FrozenRewardUnit(stableUnitId(operationId, sequence), RewardUnitKind.ITEM_REWARD, payload);
+    }
+
+    private FrozenRewardUnit freezeActionUnit(String operationId,
+            int sequence,
+            List<String> actions,
+            Player player,
+            Location location,
             String phase,
             Map<String, ?> placeholders) {
-        if (output == null || output.isEmpty() || !passesChance(output.get("chance"))) {
-            return;
+        Map<String, Object> payload = targetPayload(player, location);
+        payload.put("actions", actions == null ? List.of() : List.copyOf(actions));
+        payload.put("phase", Texts.toStringSafe(phase));
+        payload.put("placeholders", immutableMap(placeholders));
+        return new FrozenRewardUnit(stableUnitId(operationId, sequence), RewardUnitKind.ACTION_BATCH, payload);
+    }
+
+    private String stableUnitId(String operationId, int sequence) {
+        return operationId + ":reward:" + String.format(java.util.Locale.ROOT, "%04d", Math.max(0, sequence));
+    }
+
+    private Map<String, Object> targetPayload(Player player, Location location) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("player_uuid", player == null ? "" : player.getUniqueId().toString());
+        payload.put("player_name", player == null ? "" : player.getName());
+        payload.put("location", locationPayload(location));
+        return payload;
+    }
+
+    private Map<String, Object> locationPayload(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return Map.of();
         }
-        ItemStack itemStack = createOutputItem(recipe, output, player, location, phase, placeholders);
-        if (itemStack == null || itemStack.getType().isAir()) {
-            plugin.getLogger().warning("[CookingReward] Output item is null or air. output_map=" + output
-                    + ", recipe=" + (recipe == null ? "null" : recipe.id()));
-            return;
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("world", location.getWorld().getName());
+        result.put("x", location.getX());
+        result.put("y", location.getY());
+        result.put("z", location.getZ());
+        result.put("yaw", location.getYaw());
+        result.put("pitch", location.getPitch());
+        return Map.copyOf(result);
+    }
+
+    private Location resolveLocation(Map<String, Object> serialized) {
+        if (serialized.isEmpty()) {
+            return null;
         }
-        if (!deliverItem(player, location, dropResult, itemStack)) {
-            return;
+        World world = Bukkit.getWorld(Texts.toStringSafe(serialized.get("world")));
+        if (world == null) {
+            return null;
         }
-        executeActions(
-                outputActions(output),
-                player,
-                location,
-                phase,
-                buildOutputPlaceholders(recipe, output, player, location, phase, placeholders)
+        return new Location(
+                world,
+                doubleValue(serialized.get("x"), 0.0D),
+                doubleValue(serialized.get("y"), 0.0D),
+                doubleValue(serialized.get("z"), 0.0D),
+                (float) doubleValue(serialized.get("yaw"), 0.0D),
+                (float) doubleValue(serialized.get("pitch"), 0.0D)
         );
     }
 
-    private boolean deliverItem(Player player, Location location, boolean dropResult, ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return false;
+    private Player resolvePlayer(Object rawUuid) {
+        String text = Texts.toStringSafe(rawUuid);
+        if (Texts.isBlank(text)) {
+            return null;
         }
-        if (dropResult || player == null) {
-            Location dropLocation = location == null ? (player == null ? null : player.getLocation()) : location;
-            return dropAt(dropLocation, itemStack);
+        try {
+            return Bukkit.getPlayer(UUID.fromString(text));
+        } catch (IllegalArgumentException exception) {
+            return null;
         }
-        InventoryItemUtil.giveOrDrop(player, itemStack);
-        return true;
-    }
-
-    private boolean dropAt(Location location, ItemStack itemStack) {
-        if (location == null || location.getWorld() == null || itemStack == null || itemStack.getType().isAir()) {
-            return false;
-        }
-        location.getWorld().dropItemNaturally(location, itemStack);
-        return true;
-    }
-
-    private void executeActions(List<String> actions,
-            Player player,
-            Location location,
-            String phase,
-            Map<String, ?> placeholders) {
-        if (actions == null || actions.isEmpty() || actionExecutor == null) {
-            return;
-        }
-        ActionContext context = ActionContext.create(plugin, player, phase, false)
-                .withPlaceholders(defaultPlaceholders(player, location, placeholders))
-                .withAttribute("phase", phase)
-                .withAttribute("location", location);
-        actionExecutor.executeAll(context, actions, true).whenComplete((result, throwable) -> {
-            if (throwable != null) {
-                plugin.getLogger().warning("Failed to execute cooking actions: " + throwable.getMessage());
-                return;
-            }
-            if (result instanceof ActionBatchResult batchResult && !batchResult.success()) {
-                plugin.getLogger().warning("Cooking action batch finished with failures in phase " + phase + ".");
-            }
-        });
     }
 
     private boolean passesChance(Object rawChance) {
@@ -283,15 +488,7 @@ public final class CookingRewardService {
             Location location,
             String phase,
             Map<String, ?> placeholders) {
-        Map<String, Object> values = new LinkedHashMap<>(defaultPlaceholders(player, location, placeholders));
-        if (recipe != null) {
-            values.put("recipe_id", recipe.id());
-            values.put("recipe_name", recipe.displayName());
-            values.put("station_type", recipe.stationType().folderName());
-            values.put("cooking_recipe_id", recipe.id());
-            values.put("cooking_recipe_name", recipe.displayName());
-            values.put("cooking_station_type", recipe.stationType().folderName());
-        }
+        Map<String, Object> values = new LinkedHashMap<>(defaultPlaceholders(recipe, player, location, List.of(), placeholders));
         if (Texts.isNotBlank(phase)) {
             values.put("phase", phase);
         }
@@ -308,13 +505,29 @@ public final class CookingRewardService {
         return Map.copyOf(values);
     }
 
-    private Map<String, ?> defaultPlaceholders(Player player, Location location, Map<String, ?> placeholders) {
+    private Map<String, Object> defaultPlaceholders(RecipeDocument recipe,
+            Player player,
+            Location location,
+            List<CookingInputIngredient> inputs,
+            Map<String, ?> placeholders) {
         Map<String, Object> values = new LinkedHashMap<>();
         if (placeholders != null) {
             values.putAll(placeholders);
         }
+        if (recipe != null) {
+            values.put("recipe_id", recipe.id());
+            values.put("recipe_name", recipe.displayName());
+            values.put("station_type", recipe.stationType() == null ? "" : recipe.stationType().folderName());
+            values.put("cooking_recipe_id", recipe.id());
+            values.put("cooking_recipe_name", recipe.displayName());
+            values.put("cooking_station_type", recipe.stationType() == null ? "" : recipe.stationType().folderName());
+        }
+        if (inputs != null) {
+            values.put("input_count", inputs.size());
+        }
         if (player != null) {
             values.put("player", player.getName());
+            values.put("player_uuid", player.getUniqueId().toString());
         }
         if (location != null && location.getWorld() != null) {
             values.put("world", location.getWorld().getName());
@@ -323,23 +536,6 @@ public final class CookingRewardService {
             values.put("z", location.getBlockZ());
         }
         return Map.copyOf(values);
-    }
-
-    private List<String> outputActions(Map<String, Object> output) {
-        if (output == null || output.isEmpty()) {
-            return List.of();
-        }
-        Object rawActions = output.get("actions");
-        if (!(rawActions instanceof List<?> list) || list.isEmpty()) {
-            return List.of();
-        }
-        List<String> actions = new java.util.ArrayList<>();
-        for (Object raw : list) {
-            if (raw != null) {
-                actions.add(String.valueOf(raw));
-            }
-        }
-        return actions.isEmpty() ? List.of() : List.copyOf(actions);
     }
 
     private String outputSourceShorthand(Map<String, Object> output) {
@@ -362,10 +558,77 @@ public final class CookingRewardService {
         }
     }
 
+    private double doubleValue(Object raw, double fallback) {
+        if (raw instanceof Number number) {
+            return number.doubleValue();
+        }
+        try {
+            return Double.parseDouble(Texts.toStringSafe(raw));
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    private boolean boolValue(Object raw, boolean fallback) {
+        if (raw instanceof Boolean value) {
+            return value;
+        }
+        if (raw == null) {
+            return fallback;
+        }
+        return Boolean.parseBoolean(Texts.toStringSafe(raw));
+    }
+
     private void putIfPresent(Map<String, Object> target, String key, Object value) {
         if (target == null || Texts.isBlank(key) || value == null) {
             return;
         }
         target.put(key, value);
+    }
+
+    private Map<String, Object> mapValue(Object raw) {
+        if (!(raw instanceof Map<?, ?> map)) {
+            return Map.of();
+        }
+        return Map.copyOf(MapYamlSection.normalizeMap(map));
+    }
+
+    private Map<String, Object> immutableMap(Map<String, ?> values) {
+        if (values == null || values.isEmpty()) {
+            return Map.of();
+        }
+        Object plain = ConfigNodes.toPlainData(values);
+        if (!(plain instanceof Map<?, ?> map)) {
+            return Map.of();
+        }
+        return Map.copyOf(MapYamlSection.normalizeMap(map));
+    }
+
+    enum RewardUnitKind {
+        ITEM_REWARD,
+        ACTION_BATCH
+    }
+
+    record FrozenRewardUnit(String stableId, RewardUnitKind kind, Map<String, Object> payload) {
+
+        FrozenRewardUnit {
+            stableId = Texts.toStringSafe(stableId);
+            payload = payload == null ? Map.of() : immutablePayload(payload);
+        }
+
+        private static Map<String, Object> immutablePayload(Map<String, Object> payload) {
+            Object plain = ConfigNodes.toPlainData(payload);
+            if (!(plain instanceof Map<?, ?> map)) {
+                return Map.of();
+            }
+            return Map.copyOf(MapYamlSection.normalizeMap(map));
+        }
+    }
+
+    record PreparedReward(List<FrozenRewardUnit> units) {
+
+        PreparedReward {
+            units = units == null ? List.of() : List.copyOf(units);
+        }
     }
 }

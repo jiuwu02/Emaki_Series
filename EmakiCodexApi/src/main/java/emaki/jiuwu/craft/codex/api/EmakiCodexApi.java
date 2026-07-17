@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.codex.api;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -86,6 +87,22 @@ public final class EmakiCodexApi {
         return resolved != null && resolved.revokeAdvancement(player, advancementId);
     }
 
+    public static @NotNull CompletableFuture<Boolean> grantAdvancementAsync(
+            @NotNull UUID player, @NotNull String advancementId) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(false)
+                : resolved.grantAdvancementAsync(player, advancementId);
+    }
+
+    public static @NotNull CompletableFuture<Boolean> revokeAdvancementAsync(
+            @NotNull UUID player, @NotNull String advancementId) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(false)
+                : resolved.revokeAdvancementAsync(player, advancementId);
+    }
+
     /** Internal bridge installed by EmakiCodex. */
     public interface Bridge {
         /** {@return the semantic version string of the backing plugin} */
@@ -104,5 +121,15 @@ public final class EmakiCodexApi {
 
         /** Revokes an advancement from an online player. */
         boolean revokeAdvancement(@NotNull UUID player, @NotNull String advancementId);
+
+        default @NotNull CompletableFuture<Boolean> grantAdvancementAsync(
+                @NotNull UUID player, @NotNull String advancementId) {
+            return CompletableFuture.completedFuture(grantAdvancement(player, advancementId));
+        }
+
+        default @NotNull CompletableFuture<Boolean> revokeAdvancementAsync(
+                @NotNull UUID player, @NotNull String advancementId) {
+            return CompletableFuture.completedFuture(revokeAdvancement(player, advancementId));
+        }
     }
 }

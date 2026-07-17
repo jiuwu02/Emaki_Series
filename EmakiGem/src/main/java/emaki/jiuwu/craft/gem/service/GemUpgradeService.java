@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -59,6 +60,7 @@ public final class GemUpgradeService {
     private final GemItemFactory itemFactory;
     private final GemEconomyService economyService;
     private final GemActionCoordinator actionCoordinator;
+    private final GemOperationJournal operationJournal;
 
     public GemUpgradeService(EmakiGemPlugin plugin,
             GemItemFactory itemFactory,
@@ -68,6 +70,7 @@ public final class GemUpgradeService {
         this.itemFactory = itemFactory;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
+        this.operationJournal = GemOperationJournal.forPlugin(plugin);
     }
 
     public Result upgradeHeldGem(Player player, boolean bypassCost) {
@@ -85,7 +88,21 @@ public final class GemUpgradeService {
         return upgradeGemItemDirect(player, itemStack, bypassCost, providedMaterials, false);
     }
 
-    public record UpgradeItemResult(Result result, ItemStack updatedItem) {
+    public record UpgradeItemResult(Result result, ItemStack updatedItem, Runnable commitAction) {
+
+        public UpgradeItemResult(Result result, ItemStack updatedItem) {
+            this(result, updatedItem, () -> {
+            });
+        }
+
+        public UpgradeItemResult {
+            commitAction = commitAction == null ? () -> {
+            } : commitAction;
+        }
+
+        public void commit() {
+            commitAction.run();
+        }
     }
 
     private Result upgradeHeldGem(Player player,
@@ -118,6 +135,7 @@ public final class GemUpgradeService {
         if (direct.updatedItem() != itemStack) {
             player.getInventory().setItemInMainHand(direct.updatedItem() == null || direct.updatedItem().getType().isAir() ? null : direct.updatedItem());
         }
+        direct.commit();
         return direct.result();
     }
 
@@ -152,6 +170,7 @@ public final class GemUpgradeService {
             }
             successChance = upgradeEvent.getSuccessChance();
         }
+        String operationId = operationJournal.begin("upgrade_item", player.getUniqueId());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             List<GemDefinition.CurrencyCost> currencies = new ArrayList<>(effectiveCurrencies(upgradeConfig, upgradeLevel));
@@ -161,8 +180,12 @@ public final class GemUpgradeService {
                     ? economyService.charge(player, currencies, materials, variables, providedMaterials)
                     : economyService.chargeProvidedOnly(player, currencies, materials, variables, providedMaterials);
             if (!chargeResult.success()) {
+                operationJournal.failedCharge(operationId, chargeResult);
                 return new UpgradeItemResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), itemStack);
             }
+            operationJournal.charged(operationId, chargeResult);
+        } else {
+            operationJournal.advance(operationId, GemOperationJournal.Phase.CHARGED);
         }
         Map<String, Object> placeholders = new LinkedHashMap<>(itemFactory.gemPlaceholders(definition, targetLevel, instance.level()));
         placeholders.put("player", player.getName());
@@ -171,18 +194,41 @@ public final class GemUpgradeService {
         placeholders.put("success_rate", successChance);
         if (ThreadLocalRandom.current().nextDouble(100D) >= successChance) {
             ItemStack penalized = applyFailurePenalty(definition, upgradeLevel, itemStack, instance);
-            actionCoordinator.execute(player, "gem_upgrade_failure", upgradeLevel.failureActions(), placeholders);
-            return new UpgradeItemResult(Result.failure("command.upgrade.failed", placeholders), penalized);
+            return new UpgradeItemResult(Result.failure("command.upgrade.failed", placeholders), penalized,
+                    commitAfterActions(operationId, player, "gem_upgrade_failure",
+                            upgradeLevel.failureActions(), placeholders));
         }
         ItemStack rebuilt = itemFactory.createGemItem(definition, targetLevel, Math.max(1, itemStack.getAmount()));
         if (rebuilt == null) {
-            if (chargeResult != null) {
-                economyService.refund(player, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
-            }
+            GemEconomyService.RefundResult refundResult = chargeResult == null
+                    ? GemEconomyService.RefundResult.complete()
+                    : economyService.refundDetailed(player, chargeResult);
+            operationJournal.completeAfterRefund(operationId, "upgrade_apply_refund_failed", refundResult);
             return new UpgradeItemResult(Result.failure("command.upgrade.apply_failed", placeholders), itemStack);
         }
-        actionCoordinator.execute(player, "gem_upgrade_success", upgradeLevel.successActions(), placeholders);
-        return new UpgradeItemResult(Result.success("command.upgrade.success", placeholders), rebuilt);
+        return new UpgradeItemResult(Result.success("command.upgrade.success", placeholders), rebuilt,
+                commitAfterActions(operationId, player, "gem_upgrade_success",
+                        upgradeLevel.successActions(), placeholders));
+    }
+
+    private Runnable commitAfterActions(String operationId,
+            Player player,
+            String phase,
+            List<String> actions,
+            Map<String, Object> placeholders) {
+        AtomicBoolean committed = new AtomicBoolean(false);
+        List<String> safeActions = actions == null ? List.of() : List.copyOf(actions);
+        Map<String, Object> safePlaceholders = placeholders == null
+                ? Map.of()
+                : Map.copyOf(new LinkedHashMap<>(placeholders));
+        return () -> {
+            if (!committed.compareAndSet(false, true)) {
+                return;
+            }
+            operationJournal.advance(operationId, GemOperationJournal.Phase.STATE_COMMITTED);
+            operationJournal.completeAfterActions(operationId,
+                    actionCoordinator.executeAsync(player, phase, safeActions, safePlaceholders));
+        };
     }
 
     public Result upgradeEquippedGem(Player actor, Player target, int slotIndex, boolean bypassCost) {
@@ -222,16 +268,21 @@ public final class GemUpgradeService {
             }
             successChance = upgradeEvent.getSuccessChance();
         }
+        String operationId = operationJournal.begin("upgrade_equipped", actor.getUniqueId());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             List<GemDefinition.CurrencyCost> currencies = new ArrayList<>(effectiveCurrencies(upgradeConfig, upgradeLevel));
             List<GemDefinition.MaterialCost> materials = new ArrayList<>(upgradeLevel.materials());
             chargeResult = economyService.charge(actor, currencies, materials, costVariables(definition, instance.level(), targetLevel));
             if (!chargeResult.success()) {
+                operationJournal.failedCharge(operationId, chargeResult);
                 Map<String, Object> placeholders = new LinkedHashMap<>(chargeResult.placeholders());
                 placeholders.put("slot", slotIndex);
                 return Result.failure(chargeResult.errorKey(), placeholders);
             }
+            operationJournal.charged(operationId, chargeResult);
+        } else {
+            operationJournal.advance(operationId, GemOperationJournal.Phase.CHARGED);
         }
         Map<String, Object> placeholders = new LinkedHashMap<>(itemFactory.gemPlaceholders(definition, targetLevel, instance.level()));
         placeholders.put("player", target.getName());
@@ -247,20 +298,25 @@ public final class GemUpgradeService {
                     target.getInventory().setItemInMainHand(penalizedItem);
                 }
             }
-            actionCoordinator.execute(actor, "gem_upgrade_failure", upgradeLevel.failureActions(), placeholders);
+            operationJournal.advance(operationId, GemOperationJournal.Phase.STATE_COMMITTED);
+            operationJournal.completeAfterActions(operationId,
+                    actionCoordinator.executeAsync(actor, "gem_upgrade_failure", upgradeLevel.failureActions(), placeholders));
             return Result.failure("command.upgrade.failed", placeholders);
         }
         GemItemInstance upgradedInstance = new GemItemInstance(instance.gemId(), targetLevel, System.currentTimeMillis());
         GemState nextState = currentState.withAssignment(slotIndex, upgradedInstance);
         ItemStack rebuilt = plugin.stateService().applyState(equipment, itemDefinition, nextState);
         if (rebuilt == null) {
-            if (chargeResult != null) {
-                economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
-            }
+            GemEconomyService.RefundResult refundResult = chargeResult == null
+                    ? GemEconomyService.RefundResult.complete()
+                    : economyService.refundDetailed(actor, chargeResult);
+            operationJournal.completeAfterRefund(operationId, "upgrade_equipped_refund_failed", refundResult);
             return Result.failure("command.upgrade.apply_failed", placeholders);
         }
         target.getInventory().setItemInMainHand(rebuilt);
-        actionCoordinator.execute(actor, "gem_upgrade_success", upgradeLevel.successActions(), placeholders);
+        operationJournal.advance(operationId, GemOperationJournal.Phase.STATE_COMMITTED);
+        operationJournal.completeAfterActions(operationId,
+                actionCoordinator.executeAsync(actor, "gem_upgrade_success", upgradeLevel.successActions(), placeholders));
         return Result.success("command.upgrade.success", placeholders);
     }
 

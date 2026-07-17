@@ -93,16 +93,24 @@ public final class EmakiStrengthenApi {
     }
 
     /**
-     * Performs a strengthen attempt, consuming costs and materials.
+     * Performs a strengthen attempt and charges configured economy costs.
+     *
+     * <p>The API treats {@link AttemptContext} as cloned input data: it does not
+     * mutate or remove the target item or material stacks supplied in the context.
+     * On success or failure with a rebuilt item, callers must apply the returned
+     * {@link AttemptResult#resultItem()} and handle any external inventory material
+     * consumption themselves. The built-in GUI consumes/returns its hosted material
+     * stacks after reading the result preview's per-slot consumed amounts.
      *
      * @param player the player performing the attempt; may be {@code null}
      * @param context the attempt inputs; may be {@code null}
-     * @return the committed attempt result; never {@code null}
+     * @return the attempt result with explicit committed/outcome semantics; never {@code null}
      */
     public static @NotNull AttemptResult attempt(@Nullable Player player, @Nullable AttemptContext context) {
         Bridge resolved = bridge;
         return resolved == null
-                ? AttemptResult.failure("strengthen.error.api_unavailable", preview(player, context), java.util.Map.of())
+                ? AttemptResult.failure("strengthen.error.api_unavailable", preview(player, context), java.util.Map.of(),
+                        context == null ? "" : context.operationId())
                 : resolved.attempt(player, context);
     }
 
@@ -153,7 +161,8 @@ public final class EmakiStrengthenApi {
         AttemptPreview preview(@Nullable Player player, @Nullable AttemptContext context);
 
         /**
-         * Performs a strengthen attempt.
+         * Performs a strengthen attempt and returns the rebuilt result item when committed.
+         * Implementations must not mutate the supplied {@link AttemptContext} item stacks.
          *
          * @param player the player performing the attempt; may be {@code null}
          * @param context the attempt inputs; may be {@code null}

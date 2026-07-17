@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;

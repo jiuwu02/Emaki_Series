@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
 import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
+import emaki.jiuwu.craft.cooking.service.CookingCompletionCoordinator;
 import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
@@ -61,6 +62,7 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         StationStateStore stationStateStore,
         CookingRecipeService recipeService,
         CookingRewardService rewardService,
+        CookingCompletionCoordinator completionCoordinator,
         CookingInspectService inspectService,
         CookingDisplayService displayService,
         CookingTextDisplayService textDisplayService,
@@ -99,6 +101,7 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(StationStateStore.class, stationStateStore),
                 RuntimeComponents.component(CookingRecipeService.class, recipeService),
                 RuntimeComponents.component(CookingRewardService.class, rewardService),
+                RuntimeComponents.component(CookingCompletionCoordinator.class, completionCoordinator),
                 RuntimeComponents.component(CookingInspectService.class, inspectService),
                 RuntimeComponents.component(CookingDisplayService.class, displayService),
                 RuntimeComponents.component(CookingTextDisplayService.class, textDisplayService),

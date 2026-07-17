@@ -114,6 +114,7 @@ public final class GemHeldItemAction implements Action {
         }
         player.getInventory().setItemInMainHand(result.updatedEquipment());
         gem.subtract(1);
+        result.commit();
         return ActionResult.ok(result.result().placeholders());
     }
 
@@ -126,6 +127,7 @@ public final class GemHeldItemAction implements Action {
         if (result.returnedGem() != null) {
             player.getInventory().addItem(result.returnedGem()).values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
         }
+        result.commit();
         return ActionResult.ok(result.result().placeholders());
     }
 

@@ -42,7 +42,7 @@ import emaki.jiuwu.craft.gem.loader.GemLoader;
 import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
 import emaki.jiuwu.craft.gem.papi.GemPlaceholderExpansion;
 import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSetBonusRegistry;
-import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSocketRuleRegistry;
+import emaki.jiuwu.craft.gem.script.JavaScriptGemSocketRuleRegistry;
 import emaki.jiuwu.craft.gem.service.GemActionCoordinator;
 import emaki.jiuwu.craft.gem.service.GemEconomyService;
 import emaki.jiuwu.craft.gem.service.GemExtractService;

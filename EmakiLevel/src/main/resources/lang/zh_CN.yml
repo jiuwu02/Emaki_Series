@@ -73,6 +73,7 @@ gui:
 failure:
   success: "成功"
   player_not_found: "玩家不存在"
+  player_data_unavailable: "玩家数据正在加载或处于只读保护状态"
   type_not_found: "经验类型不存在"
   type_disabled: "经验类型未启用"
   upgrade_disabled: "该类型不允许升级"

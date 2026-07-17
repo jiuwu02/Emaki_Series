@@ -9,8 +9,8 @@ import org.bukkit.entity.LivingEntity;
 
 import emaki.jiuwu.craft.attribute.api.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
-import emaki.jiuwu.craft.corelib.api.script.ScriptServerApi.ScriptEntityApi;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
+import emaki.jiuwu.craft.corelib.script.ScriptEntitySnapshot;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
@@ -63,7 +63,7 @@ public final class JavaScriptAttributeContributionProvider implements AttributeC
                 null,
                 scriptPath,
                 functionName,
-                List.of(new ScriptEntityApi(entity)),
+                List.of(ScriptEntitySnapshot.capture(entity)),
                 Map.of("provider", id),
                 scriptConfig.clampTimeoutMillis(scriptConfig.engine().defaultTimeoutMillis()),
                 true

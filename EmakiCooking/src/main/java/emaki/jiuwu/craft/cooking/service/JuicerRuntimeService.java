@@ -51,6 +51,7 @@ public final class JuicerRuntimeService implements Listener {
     private final JuicerGuiController guiController;
     private final CookingTextDisplayService textDisplayService;
     private final Map<StationCoordinates, JuicerState> runtimeStates = new ConcurrentHashMap<>();
+    private CookingCompletionCoordinator completionCoordinator;
 
     public JuicerRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -72,6 +73,57 @@ public final class JuicerRuntimeService implements Listener {
         this.textDisplayService = textDisplayService;
         this.guiController = new JuicerGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
         this.guiController.setRuntimeService(this);
+    }
+
+    public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
+        this.completionCoordinator = completionCoordinator;
+        if (completionCoordinator != null) {
+            completionCoordinator.register(completionStateAccess());
+        }
+    }
+
+    CookingStationStateAccess completionStateAccess() {
+        return new CookingStationStateAccess() {
+            @Override
+            public StationType stationType() {
+                return StationType.JUICER;
+            }
+
+            @Override
+            public Map<String, Object> snapshot(StationCoordinates coordinates) {
+                JuicerState state = runtimeStates.get(coordinates);
+                if (state == null) {
+                    state = codec.readState(stateStore.load(coordinates));
+                }
+                return state == null || state.isCompletelyEmpty() ? null : codec.serializeState(coordinates, state);
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> replace(
+                    StationCoordinates coordinates,
+                    Map<String, Object> committedState) {
+                JuicerState state = codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(committedState));
+                if (state == null || state.isCompletelyEmpty()) {
+                    return java.util.concurrent.CompletableFuture.failedFuture(
+                            new IllegalArgumentException("Invalid committed juicer state"));
+                }
+                runtimeStates.put(coordinates, state);
+                return stateStore.saveAsync(coordinates, committedState)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> refreshText(coordinates, state)));
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+                runtimeStates.remove(coordinates);
+                return stateStore.deleteAsync(coordinates)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
+                            guiController.closeOpenInventories(coordinates, true);
+                            textDisplayService.removeStation(StationType.JUICER, coordinates);
+                        }));
+            }
+        };
     }
 
     public void reload() {
@@ -116,7 +168,6 @@ public final class JuicerRuntimeService implements Listener {
     public void shutdown() {
         guiController.closeAllOpenInventories(false);
         flushAll();
-        stateStore.waitForIdle().join();
         textDisplayService.removeStationType(StationType.JUICER);
         runtimeStates.clear();
     }
@@ -129,6 +180,10 @@ public final class JuicerRuntimeService implements Listener {
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
         stateStore.rememberStationSource(coordinates, interaction.stationSource());
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.JUICER, coordinates)) {
+            interaction.cancel();
+            return true;
+        }
         if (settingsService.matchesInteraction(StationType.JUICER, CookingSettingsService.INTERACTION_OPEN, interaction)) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.JUICER_USE) && !player.hasPermission(CookingPermissions.ADMIN)) {
@@ -168,6 +223,9 @@ public final class JuicerRuntimeService implements Listener {
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
         stateStore.rememberStationSource(coordinates, context.stationSource());
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.JUICER, coordinates)) {
+            return true;
+        }
         JuicerGuiHolder openHolder = guiController.findOpenSession(coordinates);
         JuicerState state = openHolder == null ? loadStateOrEmpty(coordinates) : guiController.snapshotInventoryState(
                 coordinates,
@@ -206,18 +264,46 @@ public final class JuicerRuntimeService implements Listener {
                 plugin.effectService().playActions(StationType.JUICER, "press", player);
                 return true;
             }
-            state.setProgress(slot, required);
             if (recipeService.juicerHasFluidMode(recipe)) {
+                state.setProgress(slot, required);
                 return completeFluidPress(player, coordinates, state, slot, recipe);
             }
-            if (!consumeContainerIfNeeded(player, recipe)) {
+            CookingCompletionRequest.PlayerInventoryInput containerInput = requiredContainerInput(player, recipe);
+            if (settingsService.juicerRequireContainer() && containerInput == null) {
+                state.setProgress(slot, required);
                 saveState(coordinates, state);
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.need_container", Map.of());
                 return true;
             }
-            completeSlot(player, block, state, slot, recipe);
-            saveState(coordinates, state);
-            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.completed", Map.of("recipe", recipe.displayName()));
+            JuicerState committed = copyState(coordinates, state);
+            committed.removeSlot(slot);
+            committed.setPlayerContext(player.getUniqueId(), player.getName());
+            Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
+            boolean accepted = completionCoordinator != null && completionCoordinator.submit(new CookingCompletionRequest(
+                    "press:" + slot + ":" + state.progressAt(slot) + ":" + System.currentTimeMillis(),
+                    StationType.JUICER,
+                    coordinates,
+                    codec.serializeState(coordinates, state),
+                    committed.isCompletelyEmpty() ? CookingCompletionOperation.CommitMode.DELETE : CookingCompletionOperation.CommitMode.SAVE,
+                    committed.isCompletelyEmpty() ? Map.of() : codec.serializeState(coordinates, committed),
+                    recipe,
+                    player,
+                    block.getLocation().add(0.5D, 1.0D, 0.5D),
+                    settingsService.juicerDropResult(),
+                    List.of(new CookingInputIngredient(state.slotSources().get(slot), 1)),
+                    recipeService.outputs(outcome),
+                    recipeService.actions(outcome),
+                    "cooking_juicer_complete",
+                    Map.of(
+                            "recipe_id", recipe.id(),
+                            "station_type", StationType.JUICER.folderName(),
+                            "slot_index", slot
+                    ),
+                    containerInput == null ? List.of() : List.of(containerInput)
+            ));
+            if (accepted) {
+                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.completed", Map.of("recipe", recipe.displayName()));
+            }
             return true;
         }
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.no_recipe", Map.of());
@@ -258,28 +344,26 @@ public final class JuicerRuntimeService implements Listener {
         return true;
     }
 
-    private boolean consumeContainerIfNeeded(Player player, RecipeDocument recipe) {
+    private CookingCompletionRequest.PlayerInventoryInput requiredContainerInput(Player player, RecipeDocument recipe) {
         if (!settingsService.juicerRequireContainer()) {
-            return true;
+            return null;
         }
         ItemStack hand = player.getInventory().getItemInMainHand();
         ItemSource identified = hand == null || hand.getType().isAir() ? null : itemSourceService.identifyItem(hand);
         if (identified == null) {
-            return false;
+            return null;
         }
         for (ItemSource source : recipeService.juicerContainerSources(recipe)) {
             if (ItemSourceUtil.matches(source, identified)) {
-                CookingRuntimeUtil.takeOneFromMainHand(player);
-                return true;
+                return CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "juicer serving container");
             }
         }
         for (ItemSource source : settingsService.juicerContainerSources()) {
             if (ItemSourceUtil.matches(source, identified)) {
-                CookingRuntimeUtil.takeOneFromMainHand(player);
-                return true;
+                return CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "juicer serving container");
             }
         }
-        return false;
+        return null;
     }
 
     private boolean serve(Player player, Block block, StationCoordinates coordinates) {
@@ -302,34 +386,50 @@ public final class JuicerRuntimeService implements Listener {
             ));
             return true;
         }
-        if (!consumeContainerIfNeeded(player, recipe)) {
+        CookingCompletionRequest.PlayerInventoryInput containerInput = requiredContainerInput(player, recipe);
+        if (settingsService.juicerRequireContainer() && containerInput == null) {
             saveState(coordinates, state);
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.need_container", Map.of());
             return true;
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
-        rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), List.of(), recipeService.outputs(outcome),
-                recipeService.actions(outcome), "cooking_juicer_serve", Map.of("recipe_id", recipe.id(), "station_type", StationType.JUICER.folderName(), "fluid_id", state.fluidId()));
-        state.consumeFluid(servingMl);
-        state.setPlayerContext(player.getUniqueId(), player.getName());
-        saveState(coordinates, state);
+        JuicerState committed = copyState(coordinates, state);
+        committed.consumeFluid(servingMl);
+        committed.setPlayerContext(player.getUniqueId(), player.getName());
+        boolean accepted = completionCoordinator != null && completionCoordinator.submit(new CookingCompletionRequest(
+                "serve:" + state.fluidId() + ":" + state.fluidAmountMl() + ":" + System.currentTimeMillis(),
+                StationType.JUICER,
+                coordinates,
+                codec.serializeState(coordinates, state),
+                committed.isCompletelyEmpty() ? CookingCompletionOperation.CommitMode.DELETE : CookingCompletionOperation.CommitMode.SAVE,
+                committed.isCompletelyEmpty() ? Map.of() : codec.serializeState(coordinates, committed),
+                recipe,
+                player,
+                location,
+                settingsService.juicerDropResult(),
+                List.of(),
+                recipeService.outputs(outcome),
+                recipeService.actions(outcome),
+                "cooking_juicer_serve",
+                Map.of(
+                        "recipe_id", recipe.id(),
+                        "station_type", StationType.JUICER.folderName(),
+                        "fluid_id", state.fluidId()
+                ),
+                containerInput == null ? List.of() : List.of(containerInput)
+        ));
+        if (!accepted) {
+            return true;
+        }
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.served", Map.of(
                 "fluid", recipeService.juicerFluidDisplayName(recipe),
                 "amount", servingMl,
-                "current", state.fluidAmountMl(),
+                "current", committed.fluidAmountMl(),
                 "max", settingsService.juicerMaxFluidMl()
         ));
         plugin.effectService().playActions(StationType.JUICER, "serve", player);
         return true;
-    }
-
-    private void completeSlot(Player player, Block block, JuicerState state, int slot, RecipeDocument recipe) {
-        Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
-        Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
-        rewardService.deliver(recipe, player, location, settingsService.juicerDropResult(), List.of(new CookingInputIngredient(state.slotSources().get(slot), 1)), recipeService.outputs(outcome),
-                recipeService.actions(outcome), "cooking_juicer_complete", Map.of("recipe_id", recipe.id(), "station_type", StationType.JUICER.folderName(), "slot_index", slot));
-        state.removeSlot(slot);
     }
 
     private boolean showInfo(Player player, StationCoordinates coordinates) {
@@ -373,6 +473,10 @@ public final class JuicerRuntimeService implements Listener {
         JuicerState state = guiController.snapshotInventoryState(coordinates, inventory, playerUuid, playerName);
         saveState(coordinates, state);
         return state;
+    }
+
+    private JuicerState copyState(StationCoordinates coordinates, JuicerState state) {
+        return codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
     }
 
     void saveState(StationCoordinates coordinates, JuicerState state) {

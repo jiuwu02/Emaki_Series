@@ -14,6 +14,10 @@ public final class PlayerLevelEntry {
         this.updatedAt = updatedAt;
     }
 
+    public PlayerLevelEntry copy() {
+        return new PlayerLevelEntry(level, exp, totalExp, updatedAt);
+    }
+
     public int level() {
         return level;
     }

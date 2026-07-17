@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.gem.script.ScriptGemModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -42,6 +43,7 @@ import emaki.jiuwu.craft.gem.service.GemGuiService;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
 import emaki.jiuwu.craft.gem.service.GemItemFactory;
 import emaki.jiuwu.craft.gem.service.GemItemMatcher;
+import emaki.jiuwu.craft.gem.service.GemOperationJournal;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
@@ -166,8 +168,12 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
 
     public void reload(EmakiGemPlugin plugin, boolean closeInventories) {
         if (closeInventories) {
-            Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
+            plugin.gemGuiService().clearAllSessions();
         }
+        reloadNow(plugin);
+    }
+
+    private void reloadNow(EmakiGemPlugin plugin) {
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
@@ -175,6 +181,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         plugin.gemItemLoader().load();
         plugin.guiTemplateLoader().load();
         plugin.itemMatcher().refresh();
+        GemOperationJournal.forPlugin(plugin).recover(plugin.economyService());
         loadResonances(plugin);
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
         refreshOnlinePlayerItems(plugin);
@@ -186,41 +193,45 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
 
     public CompletableFuture<Void> reloadAsync(EmakiGemPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        CompletableFuture<Void> sessionsClosed = closeInventories
+                ? plugin.gemGuiService().clearAllSessionsAsync()
+                : CompletableFuture.completedFuture(null);
         if (scheduler == null) {
-            reload(plugin, closeInventories);
-            return CompletableFuture.completedFuture(null);
+            return sessionsClosed.thenRun(() -> reloadNow(plugin));
         }
 
-        if (closeInventories) {
-            Bukkit.getOnlinePlayers().forEach(player -> player.closeInventory());
-        }
+        notifyProgress(progressListener, "Closing active gem sessions...");
 
-        notifyProgress(progressListener, "Loading configuration files...");
-
-        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "gem", "config-load", "Loading configs...", progressListener,
-                () -> {
-                    plugin.languageLoader().load();
-                    plugin.appConfigLoader().load();
-                    plugin.gemLoader().load();
-                    plugin.gemItemLoader().load();
-                    plugin.guiTemplateLoader().load();
-                },
-                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
-        )).thenCompose(_ -> {
-            notifyProgress(progressListener, "Applying configuration...");
-            return scheduler.callSync("gem-reload-apply", () -> {
-                plugin.languageLoader().setLanguage(plugin.appConfig().language());
-                plugin.itemMatcher().refresh();
-                loadResonances(plugin);
-                syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
-                refreshOnlinePlayerItems(plugin);
-                plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
-                plugin.messageService().info("console.gems_loaded", Map.of(
-                        "count", String.valueOf(plugin.gemLoader().all().size())
-                ));
-                notifyProgress(progressListener, "Reload complete.");
-                return null;
+        return sessionsClosed.thenCompose(_ -> {
+            notifyProgress(progressListener, "Loading configuration files...");
+            return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+                    "gem", "config-load", "Loading configs...", progressListener,
+                    () -> {
+                        plugin.languageLoader().load();
+                        plugin.appConfigLoader().load();
+                        plugin.gemLoader().load();
+                        plugin.gemItemLoader().load();
+                        plugin.guiTemplateLoader().load();
+                    },
+                    null,
+                    (stage, ex) -> plugin.getLogger().warning(
+                            "[Reload] Stage " + stage + " failed: " + ex.getMessage())
+            )).thenCompose(_ -> {
+                notifyProgress(progressListener, "Applying configuration...");
+                return scheduler.callSync("gem-reload-apply", () -> {
+                    plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                    plugin.itemMatcher().refresh();
+                    GemOperationJournal.forPlugin(plugin).recover(plugin.economyService());
+                    loadResonances(plugin);
+                    syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                    refreshOnlinePlayerItems(plugin);
+                    plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+                    plugin.messageService().info("console.gems_loaded", Map.of(
+                            "count", String.valueOf(plugin.gemLoader().all().size())
+                    ));
+                    notifyProgress(progressListener, "Reload complete.");
+                    return null;
+                });
             });
         });
     }
@@ -238,7 +249,14 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
             plugin.pdcAttributeGateway().shutdown();
         }
         if (plugin.gemGuiService() != null) {
-            plugin.gemGuiService().clearAllSessions();
+            if (FoliaSchedulerAdapter.isFolia()) {
+                plugin.gemGuiService().clearAllSessionsAsync().exceptionally(throwable -> {
+                    plugin.getLogger().warning("Failed to close gem GUI sessions during shutdown: " + throwable.getMessage());
+                    return null;
+                });
+            } else {
+                plugin.gemGuiService().clearAllSessions();
+            }
         }
     }
 

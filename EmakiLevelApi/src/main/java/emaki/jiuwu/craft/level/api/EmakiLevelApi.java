@@ -72,8 +72,15 @@ public final class EmakiLevelApi {
     /**
      * Loads a player's level data snapshot.
      *
+     * <p>This method does not guarantee a thread switch. The returned future may
+     * already be complete when the API is unavailable, the snapshot is cached, or
+     * the backing store takes a synchronous fallback path; otherwise the installed
+     * bridge may complete it from its asynchronous storage pipeline. Callers must
+     * marshal Bukkit/Paper/Folia work performed by dependent callbacks to the
+     * appropriate owner scheduler.</p>
+     *
      * @param uuid the player UUID
-     * @return a future completed with the player's level view; never {@code null}
+     * @return a non-null future completed with the player's level view
      */
     public static @NotNull CompletableFuture<PlayerLevelView> getPlayerData(@NotNull UUID uuid) {
         Bridge resolved = bridge;
@@ -229,6 +236,62 @@ public final class EmakiLevelApi {
         return resolved == null ? unavailable(LevelOperationType.LEVEL_UP, typeId) : resolved.levelUp(uuid, typeId, cause);
     }
 
+    public static @NotNull CompletableFuture<LevelOperationResult> addExpAsync(
+            @NotNull UUID uuid, @NotNull String typeId, double amount, @Nullable String reason) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(unavailable(LevelOperationType.ADD_EXP, typeId))
+                : resolved.addExpAsync(uuid, typeId, amount, reason);
+    }
+
+    public static @NotNull CompletableFuture<LevelOperationResult> removeExpAsync(
+            @NotNull UUID uuid, @NotNull String typeId, double amount, @Nullable String reason) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(unavailable(LevelOperationType.REMOVE_EXP, typeId))
+                : resolved.removeExpAsync(uuid, typeId, amount, reason);
+    }
+
+    public static @NotNull CompletableFuture<LevelOperationResult> setExpAsync(
+            @NotNull UUID uuid, @NotNull String typeId, double amount, @Nullable String reason) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(unavailable(LevelOperationType.SET_EXP, typeId))
+                : resolved.setExpAsync(uuid, typeId, amount, reason);
+    }
+
+    public static @NotNull CompletableFuture<LevelOperationResult> addLevelAsync(
+            @NotNull UUID uuid, @NotNull String typeId, int amount, @Nullable String reason) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(unavailable(LevelOperationType.ADD_LEVEL, typeId))
+                : resolved.addLevelAsync(uuid, typeId, amount, reason);
+    }
+
+    public static @NotNull CompletableFuture<LevelOperationResult> removeLevelAsync(
+            @NotNull UUID uuid, @NotNull String typeId, int amount, @Nullable String reason) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(unavailable(LevelOperationType.REMOVE_LEVEL, typeId))
+                : resolved.removeLevelAsync(uuid, typeId, amount, reason);
+    }
+
+    public static @NotNull CompletableFuture<LevelOperationResult> setLevelAsync(
+            @NotNull UUID uuid, @NotNull String typeId, int level, @Nullable String reason) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(unavailable(LevelOperationType.SET_LEVEL, typeId))
+                : resolved.setLevelAsync(uuid, typeId, level, reason);
+    }
+
+    public static @NotNull CompletableFuture<LevelOperationResult> levelUpAsync(
+            @NotNull UUID uuid, @NotNull String typeId, @Nullable LevelUpCause cause) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(unavailable(LevelOperationType.LEVEL_UP, typeId))
+                : resolved.levelUpAsync(uuid, typeId, cause);
+    }
+
     private static LevelOperationResult unavailable(LevelOperationType operationType, String typeId) {
         return LevelOperationResult.failure("api_unavailable", operationType, typeId);
     }
@@ -255,8 +318,13 @@ public final class EmakiLevelApi {
         /**
          * Loads a player's level data snapshot.
          *
+         * <p>The bridge may return an already-completed future for cached or fallback
+         * results, or an unfinished future backed by asynchronous storage. It does
+         * not promise a callback thread; consumers that touch Bukkit/Paper/Folia
+         * state must dispatch to the correct owner scheduler.</p>
+         *
          * @param uuid the player UUID
-         * @return a future completed with the player's level view; never {@code null}
+         * @return a non-null future completed with the player's level view
          */
         @NotNull
         CompletableFuture<PlayerLevelView> getPlayerData(@NotNull UUID uuid);
@@ -374,5 +442,40 @@ public final class EmakiLevelApi {
          */
         @NotNull
         LevelOperationResult levelUp(@NotNull UUID uuid, @NotNull String typeId, @Nullable LevelUpCause cause);
+
+        default @NotNull CompletableFuture<LevelOperationResult> addExpAsync(
+                @NotNull UUID uuid, @NotNull String typeId, double amount, @Nullable String reason) {
+            return CompletableFuture.completedFuture(addExp(uuid, typeId, amount, reason));
+        }
+
+        default @NotNull CompletableFuture<LevelOperationResult> removeExpAsync(
+                @NotNull UUID uuid, @NotNull String typeId, double amount, @Nullable String reason) {
+            return CompletableFuture.completedFuture(removeExp(uuid, typeId, amount, reason));
+        }
+
+        default @NotNull CompletableFuture<LevelOperationResult> setExpAsync(
+                @NotNull UUID uuid, @NotNull String typeId, double amount, @Nullable String reason) {
+            return CompletableFuture.completedFuture(setExp(uuid, typeId, amount, reason));
+        }
+
+        default @NotNull CompletableFuture<LevelOperationResult> addLevelAsync(
+                @NotNull UUID uuid, @NotNull String typeId, int amount, @Nullable String reason) {
+            return CompletableFuture.completedFuture(addLevel(uuid, typeId, amount, reason));
+        }
+
+        default @NotNull CompletableFuture<LevelOperationResult> removeLevelAsync(
+                @NotNull UUID uuid, @NotNull String typeId, int amount, @Nullable String reason) {
+            return CompletableFuture.completedFuture(removeLevel(uuid, typeId, amount, reason));
+        }
+
+        default @NotNull CompletableFuture<LevelOperationResult> setLevelAsync(
+                @NotNull UUID uuid, @NotNull String typeId, int level, @Nullable String reason) {
+            return CompletableFuture.completedFuture(setLevel(uuid, typeId, level, reason));
+        }
+
+        default @NotNull CompletableFuture<LevelOperationResult> levelUpAsync(
+                @NotNull UUID uuid, @NotNull String typeId, @Nullable LevelUpCause cause) {
+            return CompletableFuture.completedFuture(levelUp(uuid, typeId, cause));
+        }
     }
 }

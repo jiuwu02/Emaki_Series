@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.strengthen;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -122,26 +123,26 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     }
 
     public void reload(EmakiStrengthenPlugin plugin, boolean closeInventories) {
-        if (closeInventories && plugin.strengthenGuiService() != null) {
-            for (var player : Bukkit.getOnlinePlayers()) {
-                if (plugin.strengthenGuiService().getSession(player) != null) {
-                    player.closeInventory();
-                }
-            }
-            plugin.strengthenGuiService().clearAllSessions();
+        if (!freezeAndDrain(plugin, closeInventories, "reload")) {
+            resumeAccepting(plugin);
+            return;
         }
-        plugin.languageLoader().load();
-        plugin.appConfigLoader().load();
-        plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        plugin.recipeLoader().load();
-        StrengthenRecipeResolver.clearPatternCache();
-        plugin.guiTemplateLoader().load();
-        syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
-        plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
-        plugin.refreshService().refreshOnlinePlayers();
-        plugin.messageService().info("console.recipes_loaded", Map.of(
-                "count", String.valueOf(plugin.recipeLoader().all().size())
-        ));
+        try {
+            plugin.languageLoader().load();
+            plugin.appConfigLoader().load();
+            plugin.languageLoader().setLanguage(plugin.appConfig().language());
+            plugin.recipeLoader().load();
+            StrengthenRecipeResolver.clearPatternCache();
+            plugin.guiTemplateLoader().load();
+            syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+            plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+            plugin.refreshService().refreshOnlinePlayers();
+            plugin.messageService().info("console.recipes_loaded", Map.of(
+                    "count", String.valueOf(plugin.recipeLoader().all().size())
+            ));
+        } finally {
+            resumeAccepting(plugin);
+        }
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiStrengthenPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
@@ -150,19 +151,17 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             reload(plugin, closeInventories);
             return CompletableFuture.completedFuture(null);
         }
-
-        if (closeInventories && plugin.strengthenGuiService() != null) {
-            for (var player : Bukkit.getOnlinePlayers()) {
-                if (plugin.strengthenGuiService().getSession(player) != null) {
-                    player.closeInventory();
-                }
-            }
-            plugin.strengthenGuiService().clearAllSessions();
+        if (!freezeAndDrain(plugin, false, "reload-async")) {
+            resumeAccepting(plugin);
+            return CompletableFuture.failedFuture(new IllegalStateException("Strengthen operations did not drain"));
         }
 
+        CompletableFuture<Void> closeSessions = closeInventories && plugin.strengthenGuiService() != null
+                ? plugin.strengthenGuiService().clearAllSessionsAsync()
+                : CompletableFuture.completedFuture(null);
         notifyProgress(progressListener, "Loading configuration files...");
 
-        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+        return closeSessions.thenCompose(_ -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "strengthen", "config-load", "Loading configs...", progressListener,
                 () -> {
                     plugin.languageLoader().load();
@@ -185,19 +184,56 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 notifyProgress(progressListener, "Reload complete.");
                 return null;
             });
-        });
+        })).whenComplete((_, _) -> resumeAccepting(plugin));
     }
 
     public void shutdown(EmakiStrengthenPlugin plugin) {
+        freezeAndDrain(plugin, true, "shutdown");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLibPlugin.namespaceRegistry().unregister("strengthen");
         coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(plugin);
         coreLibPlugin.scriptModuleRegistry().unregister("strengthen");
+        coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
         }
-        if (plugin.strengthenGuiService() != null) {
+    }
+
+    private boolean freezeAndDrain(EmakiStrengthenPlugin plugin, boolean closeInventories, String phase) {
+        if (plugin == null) {
+            return false;
+        }
+        if (plugin.attemptService() != null) {
+            plugin.attemptService().freezeAccepting();
+        }
+        if (plugin.javaScriptResultHookRegistry() != null) {
+            plugin.javaScriptResultHookRegistry().freeze();
+        }
+        boolean attemptsDrained = plugin.attemptService() == null
+                || plugin.attemptService().drain(5L, TimeUnit.SECONDS);
+        boolean hooksDrained = plugin.javaScriptResultHookRegistry() == null
+                || plugin.javaScriptResultHookRegistry().drain(5L, TimeUnit.SECONDS);
+        if (closeInventories && plugin.strengthenGuiService() != null) {
             plugin.strengthenGuiService().clearAllSessions();
+        }
+        if (!attemptsDrained || !hooksDrained) {
+            plugin.getLogger().severe("[Lifecycle] Strengthen drain incomplete | phase=" + phase
+                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
+                    + " | resultHooks=" + (plugin.javaScriptResultHookRegistry() == null
+                            ? 0 : plugin.javaScriptResultHookRegistry().inFlightCount()));
+            return false;
+        }
+        return true;
+    }
+
+    private void resumeAccepting(EmakiStrengthenPlugin plugin) {
+        if (plugin == null) {
+            return;
+        }
+        if (plugin.javaScriptResultHookRegistry() != null) {
+            plugin.javaScriptResultHookRegistry().resume();
+        }
+        if (plugin.attemptService() != null) {
+            plugin.attemptService().resumeAccepting();
         }
     }
 

@@ -1,4 +1,6 @@
-package emaki.jiuwu.craft.item.script.js;
+package emaki.jiuwu.craft.item.script;
+
+import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,6 +16,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
@@ -101,14 +104,15 @@ public final class JavaScriptItemFactoryRegistry {
             arguments.put("playerUuid", player.getUniqueId().toString());
             arguments.put("playerName", player.getName());
         }
+        Map<String, Object> snapshot = ScriptSnapshots.immutableMap(arguments);
         ScriptConfig config = plugin.coreLib().configModel() == null ? ScriptConfig.defaults() : plugin.coreLib().configModel().scriptConfig();
         ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
                 plugin,
                 null,
                 entry.scriptPath(),
                 entry.functionName(),
-                List.of(arguments),
-                arguments,
+                List.of(snapshot),
+                snapshot,
                 config.clampTimeoutMillis(entry.timeoutMillis()),
                 false
         ));

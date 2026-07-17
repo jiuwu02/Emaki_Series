@@ -26,6 +26,7 @@ final class OvenTickProcessor {
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final OvenStateCodec codec;
+    private CookingCompletionCoordinator completionCoordinator;
 
     OvenTickProcessor(CookingSettingsService settingsService,
             CookingRecipeService recipeService,
@@ -37,6 +38,10 @@ final class OvenTickProcessor {
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.codec = codec;
+    }
+
+    void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
+        this.completionCoordinator = completionCoordinator;
     }
 
     boolean processStation(StationCoordinates coordinates,
@@ -56,7 +61,7 @@ final class OvenTickProcessor {
                 changed = true;
             }
         }
-        if (state.burningUntilMs() > now && heatInNormalRange(state) && processCooking(block, state)) {
+        if (state.burningUntilMs() > now && heatInNormalRange(state) && processCooking(coordinates, block, state)) {
             changed = true;
         }
         if (!state.hasSlots() && state.burningUntilMs() > 0L) {
@@ -67,7 +72,7 @@ final class OvenTickProcessor {
         return changed;
     }
 
-    boolean processCooking(Block ovenBlock, OvenState state) {
+    boolean processCooking(StationCoordinates coordinates, Block ovenBlock, OvenState state) {
         if (ovenBlock == null || state == null) {
             return false;
         }
@@ -89,8 +94,9 @@ final class OvenTickProcessor {
                 state.setPerfectProgress(slot, state.perfectProgressAt(slot) + 1);
             }
             if (progress >= requiredSeconds) {
-                state.setProgress(slot, requiredSeconds);
-                completeSlot(ovenBlock, state, slot, recipe, determineStage(state, slot, recipe, requiredSeconds));
+                if (completeSlot(coordinates, ovenBlock, state, slot, recipe, determineStage(state, slot, recipe, requiredSeconds))) {
+                    return true;
+                }
             } else {
                 state.setProgress(slot, progress);
             }
@@ -99,11 +105,14 @@ final class OvenTickProcessor {
         return changed;
     }
 
-    void completeSlot(Block ovenBlock, OvenState state, int slot, RecipeDocument recipe) {
-        completeSlot(ovenBlock, state, slot, recipe, OvenBakeStage.NORMAL);
+    boolean completeSlot(StationCoordinates coordinates, Block ovenBlock, OvenState state, int slot, RecipeDocument recipe) {
+        return completeSlot(coordinates, ovenBlock, state, slot, recipe, OvenBakeStage.NORMAL);
     }
 
-    void completeSlot(Block ovenBlock, OvenState state, int slot, RecipeDocument recipe, OvenBakeStage stage) {
+    boolean completeSlot(StationCoordinates coordinates, Block ovenBlock, OvenState state, int slot, RecipeDocument recipe, OvenBakeStage stage) {
+        if (coordinates == null || ovenBlock == null || state == null || recipe == null) {
+            return false;
+        }
         Map<String, Object> outcome = recipeService.ovenOutcomeForStage(recipe, stage);
         List<Map<String, Object>> outputs = recipeService.outputs(outcome);
         List<String> actions = combineActions(recipeService.actions(recipe), recipeService.actions(outcome));
@@ -117,9 +126,12 @@ final class OvenTickProcessor {
                 "stage", stage.name().toLowerCase(java.util.Locale.ROOT)
         );
 
+        OvenState committed = copyState(coordinates, state);
+        List<Map<String, Object>> committedOutputs = outputs;
+        boolean dropResult = settingsService.ovenDropResult();
         boolean conditionBlocks = !rewardService.completionConditionPasses(recipe, player)
                 && rewardService.completionConditionBlocksOutput(recipe);
-        if (!conditionBlocks && !settingsService.ovenDropResult() && canStoreOutcomeInSlot(outputs)) {
+        if (!conditionBlocks && !dropResult && canStoreOutcomeInSlot(outputs)) {
             Map<String, Object> storedOutput = outputs.getFirst();
             String source = outputSourceShorthand(storedOutput);
             if (Texts.isNotBlank(source)) {
@@ -131,36 +143,47 @@ final class OvenTickProcessor {
                         "cooking_oven_complete",
                         placeholders
                 );
-                state.setSlotSource(slot, source);
-                state.setSlotItem(slot, codec.serializeItem(storedItem));
-                state.setProgress(slot, 0);
-                rewardService.deliver(
-                        recipe,
-                        player,
-                        rewardLocation,
-                        false,
-                        inputs,
-                        List.of(),
-                        actions,
-                        "cooking_oven_complete",
-                        placeholders
-                );
-                return;
+                if (storedItem != null && !storedItem.getType().isAir()) {
+                    committed.setSlotSource(slot, source);
+                    committed.setSlotItem(slot, codec.serializeItem(storedItem));
+                    committed.setProgress(slot, 0);
+                    committed.setPerfectProgress(slot, 0);
+                    committedOutputs = List.of();
+                    dropResult = false;
+                } else {
+                    committed.removeSlot(slot);
+                }
+            } else {
+                committed.removeSlot(slot);
             }
+        } else {
+            committed.removeSlot(slot);
         }
 
-        rewardService.deliver(
+        boolean emptyCommit = committed.isCompletelyEmpty();
+        boolean accepted = completionCoordinator != null && completionCoordinator.submit(new CookingCompletionRequest(
+                "oven:" + slot + ":" + state.progressAt(slot) + ":" + stage.name().toLowerCase(java.util.Locale.ROOT),
+                StationType.OVEN,
+                coordinates,
+                codec.serializeState(coordinates, state),
+                emptyCommit ? CookingCompletionOperation.CommitMode.DELETE : CookingCompletionOperation.CommitMode.SAVE,
+                emptyCommit ? Map.of() : codec.serializeState(coordinates, committed),
                 recipe,
                 player,
                 rewardLocation,
-                settingsService.ovenDropResult(),
+                dropResult,
                 inputs,
-                outputs,
+                committedOutputs,
                 actions,
                 "cooking_oven_complete",
-                placeholders
-        );
-        state.removeSlot(slot);
+                placeholders,
+                List.of()
+        ));
+        return accepted;
+    }
+
+    private OvenState copyState(StationCoordinates coordinates, OvenState state) {
+        return codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
     }
 
     private OvenBakeStage determineStage(OvenState state, int slot, RecipeDocument recipe, int requiredSeconds) {

@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
@@ -28,6 +30,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -49,6 +52,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
     private final CookingRewardService rewardService;
+    private final CookingCompletionCoordinator completionCoordinator;
     private final ItemSourceService itemSourceService;
     private final FermentationBarrelStateCodec codec = new FermentationBarrelStateCodec();
     private final FermentationBarrelTickProcessor tickProcessor = new FermentationBarrelTickProcessor();
@@ -60,8 +64,8 @@ public final class FermentationBarrelRuntimeService implements Listener {
 
     public FermentationBarrelRuntimeService(EmakiCookingPlugin plugin, MessageService messageService, CookingSettingsService settingsService,
             CookingBlockMatcher blockMatcher, StationStateStore stateStore, CookingRecipeService recipeService,
-            CookingRewardService rewardService, ItemSourceService itemSourceService,
-            CookingTextDisplayService textDisplayService) {
+            CookingRewardService rewardService, CookingCompletionCoordinator completionCoordinator,
+            ItemSourceService itemSourceService, CookingTextDisplayService textDisplayService) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -69,6 +73,10 @@ public final class FermentationBarrelRuntimeService implements Listener {
         this.stateStore = stateStore;
         this.recipeService = recipeService;
         this.rewardService = rewardService;
+        this.completionCoordinator = completionCoordinator;
+        if (completionCoordinator != null) {
+            completionCoordinator.register(completionStateAccess());
+        }
         this.itemSourceService = itemSourceService;
         this.textDisplayService = textDisplayService;
         this.guiController = new FermentationBarrelGuiController(plugin, messageService, settingsService, itemSourceService, codec);
@@ -83,6 +91,54 @@ public final class FermentationBarrelRuntimeService implements Listener {
         activeStations.clear();
         stateStore.forEachLoadedState(StationType.FERMENTATION_BARREL, this::restoreStoredState);
         ensureTicker();
+    }
+
+    CookingStationStateAccess completionStateAccess() {
+        return new CookingStationStateAccess() {
+            @Override
+            public StationType stationType() {
+                return StationType.FERMENTATION_BARREL;
+            }
+
+            @Override
+            public Map<String, Object> snapshot(StationCoordinates coordinates) {
+                FermentationBarrelState state = loadStateOrEmpty(coordinates);
+                return state == null || state.isCompletelyEmpty() ? null : codec.serializeState(coordinates, state);
+            }
+
+            @Override
+            public CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
+                FermentationBarrelState state = codec.readState(new MapYamlSection(committedState));
+                if (state == null || state.isCompletelyEmpty()) {
+                    return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed fermentation barrel state"));
+                }
+                return stateStore.saveAsync(coordinates, committedState)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
+                            runtimeStates.put(coordinates, state);
+                            if (state.fermenting() || state.completed()) {
+                                activeStations.add(coordinates);
+                                ensureTicker();
+                            } else {
+                                activeStations.remove(coordinates);
+                            }
+                            refreshText(coordinates, state);
+                        }));
+            }
+
+            @Override
+            public CompletionStage<Void> delete(StationCoordinates coordinates) {
+                return stateStore.deleteAsync(coordinates)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
+                            removeState(coordinates, false);
+                            activeStations.remove(coordinates);
+                            if (activeStations.isEmpty()) {
+                                cancelTicker();
+                            }
+                        }));
+            }
+        };
     }
 
     public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
@@ -130,7 +186,6 @@ public final class FermentationBarrelRuntimeService implements Listener {
     public void shutdown() {
         guiController.closeAllOpenInventories(false);
         flushAll();
-        stateStore.waitForIdle().join();
         cancelTicker();
         textDisplayService.removeStationType(StationType.FERMENTATION_BARREL);
         runtimeStates.clear();
@@ -144,6 +199,10 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.FERMENTATION_BARREL, coordinates)) {
+            interaction.cancel();
+            return true;
+        }
         stateStore.rememberStationSource(coordinates, interaction.stationSource());
         if (settingsService.matchesInteraction(StationType.FERMENTATION_BARREL, CookingSettingsService.INTERACTION_OPEN, interaction)) {
             interaction.cancel();
@@ -169,6 +228,10 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return false;
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.FERMENTATION_BARREL, coordinates)) {
+            context.cancel();
+            return true;
+        }
         stateStore.rememberStationSource(coordinates, context.stationSource());
         FermentationBarrelGuiHolder openHolder = guiController.findOpenSession(coordinates);
         FermentationBarrelState state = openHolder == null ? loadStateOrEmpty(coordinates) : guiController.snapshotInventoryState(coordinates,
@@ -178,10 +241,10 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         guiController.closeOpenInventories(coordinates, true);
         if (state.completed()) {
-            dropResult(block, state);
-        } else {
-            dropOriginalItems(block, state);
+            submitCompletion(null, block, coordinates, state, currentFermentationStage(state, System.currentTimeMillis()), true, false);
+            return true;
         }
+        dropOriginalItems(block, state);
         removeState(coordinates, true);
         activeStations.remove(coordinates);
         return true;
@@ -196,13 +259,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 return true;
             }
             FermentationStage stage = currentFermentationStage(state, System.currentTimeMillis());
-            deliverResult(player, block, state, stage);
-            state.clearSlots();
-            state.clearProcess();
-            removeState(coordinates, true);
-            activeStations.remove(coordinates);
-            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());
-            plugin.effectService().playActions(StationType.FERMENTATION_BARREL, "collect", player);
+            submitCompletion(player, block, coordinates, state, stage, settingsService.fermentationBarrelDropResult(), true);
             return true;
         }
         if (state.fermenting()) {
@@ -214,13 +271,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
                     messageService.send(player, "general.no_permission");
                     return true;
                 }
-                deliverResult(player, block, state, stage);
-                state.clearSlots();
-                state.clearProcess();
-                removeState(coordinates, true);
-                activeStations.remove(coordinates);
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());
-                plugin.effectService().playActions(StationType.FERMENTATION_BARREL, "collect", player);
+                submitCompletion(player, block, coordinates, state, stage, settingsService.fermentationBarrelDropResult(), true);
                 return true;
             }
             long seconds = Math.max(0L, (state.finishAtMs() - now) / 1000L);
@@ -372,6 +423,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private void tick() {
         long now = System.currentTimeMillis();
         for (StationCoordinates coordinates : List.copyOf(activeStations)) {
+            if (completionCoordinator != null && completionCoordinator.hasActive(StationType.FERMENTATION_BARREL, coordinates)) {
+                continue;
+            }
             FermentationBarrelState state = loadStateOrEmpty(coordinates);
             Block block = coordinates.block();
             ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
@@ -409,10 +463,16 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
     }
 
-    private void deliverResult(Player player, Block block, FermentationBarrelState state, FermentationStage stage) {
+    private boolean submitCompletion(Player player,
+            Block block,
+            StationCoordinates coordinates,
+            FermentationBarrelState state,
+            FermentationStage stage,
+            boolean dropResult,
+            boolean notifyPlayer) {
         RecipeDocument recipe = recipeService.fermentationBarrelRecipeById(state.activeRecipeId());
-        if (recipe == null) {
-            return;
+        if (recipe == null || completionCoordinator == null) {
+            return false;
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.fermentationOutcomeForStage(recipe, stage);
@@ -420,11 +480,35 @@ public final class FermentationBarrelRuntimeService implements Listener {
         for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
             inputs.add(new CookingInputIngredient(entry.getValue(), state.slotAmounts().getOrDefault(entry.getKey(), 1)));
         }
-        rewardService.deliver(recipe, player, location, settingsService.fermentationBarrelDropResult(), inputs, recipeService.outputs(outcome),
-                recipeService.actions(outcome), "cooking_fermentation_barrel_complete", Map.of("recipe_id", recipe.id(), "station_type", StationType.FERMENTATION_BARREL.folderName(), "stage", stage.name().toLowerCase(java.util.Locale.ROOT)));
+        String stageName = stage.name().toLowerCase(java.util.Locale.ROOT);
+        boolean accepted = completionCoordinator.submit(new CookingCompletionRequest(
+                "ferment:" + state.startedAtMs() + ":" + stageName,
+                StationType.FERMENTATION_BARREL,
+                coordinates,
+                codec.serializeState(coordinates, state),
+                CookingCompletionOperation.CommitMode.DELETE,
+                Map.of(),
+                recipe,
+                player,
+                location,
+                dropResult,
+                inputs,
+                recipeService.outputs(outcome),
+                recipeService.actions(outcome),
+                "cooking_fermentation_barrel_complete",
+                Map.of(
+                        "recipe_id", recipe.id(),
+                        "station_type", StationType.FERMENTATION_BARREL.folderName(),
+                        "stage", stageName
+                ),
+                List.of()
+        ));
+        if (accepted && notifyPlayer && player != null) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());
+            plugin.effectService().playActions(StationType.FERMENTATION_BARREL, "collect", player);
+        }
+        return accepted;
     }
-
-    private void dropResult(Block block, FermentationBarrelState state) { deliverResult(null, block, state, currentFermentationStage(state, System.currentTimeMillis())); }
 
     private void dropOriginalItems(Block block, FermentationBarrelState state) {
         if (block.getWorld() == null) {

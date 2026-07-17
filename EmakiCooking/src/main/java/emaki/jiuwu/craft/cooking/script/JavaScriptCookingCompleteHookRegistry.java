@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.cooking.script.js;
+package emaki.jiuwu.craft.cooking.script;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
@@ -78,16 +79,25 @@ public final class JavaScriptCookingCompleteHookRegistry {
         return hooks.keySet().stream().sorted().toList();
     }
 
-    public void fire(JavaScriptCookingResultRuleRegistry.DeliveryPlan plan) {
+    /**
+     * Runs complete-hook scripts as a planning step and freezes their returned Action lines.
+     *
+     * <p>The synchronous script API rejects queued Bukkit side effects, so this method can be
+     * called before the completion journal reaches PREPARED without replaying world/player
+     * mutations. Recovery executes only the returned frozen Action lines and never invokes the
+     * hook scripts again.
+     */
+    public List<String> prepareActions(JavaScriptCookingResultRuleRegistry.DeliveryPlan plan) {
         if (plan == null || plugin == null) {
-            return;
+            return List.of();
         }
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib == null || coreLib.javaScriptService() == null || !coreLib.javaScriptService().enabled()) {
-            return;
+            return List.of();
         }
+        List<String> frozenActions = new java.util.ArrayList<>();
         for (HookEntry hook : matchingHooks(plan.recipeId(), plan.stationType())) {
-            Map<String, Object> context = plan.toContext(hook.id());
+            Map<String, Object> context = ScriptSnapshots.immutableMap(plan.toContext(hook.id()));
             ScriptConfig config = coreLib.configModel() == null ? ScriptConfig.defaults() : coreLib.configModel().scriptConfig();
             ScriptExecutionResult result = coreLib.javaScriptService().invoke(new ScriptInvocationRequest(
                     plugin,
@@ -103,16 +113,21 @@ public final class JavaScriptCookingCompleteHookRegistry {
                 plugin.getLogger().warning("[JavaScript] Cooking complete hook '" + hook.id() + "' failed: " + (result == null ? "no result" : result.message()));
                 continue;
             }
-            executeReturnedActions(coreLib, plan, result.returnValue());
+            frozenActions.addAll(returnedActions(result.returnValue()));
         }
+        return frozenActions.isEmpty() ? List.of() : List.copyOf(frozenActions);
     }
 
-    private void executeReturnedActions(EmakiCoreLibPlugin coreLib, JavaScriptCookingResultRuleRegistry.DeliveryPlan plan, Object returnValue) {
-        if (!(returnValue instanceof Map<?, ?> map)) {
+    public void fire(JavaScriptCookingResultRuleRegistry.DeliveryPlan plan) {
+        if (plan == null || plugin == null) {
             return;
         }
-        List<String> actions = Texts.asStringList(map.get("actions"));
+        List<String> actions = prepareActions(plan);
         if (actions.isEmpty()) {
+            return;
+        }
+        EmakiCoreLibPlugin coreLib = coreLib();
+        if (coreLib == null) {
             return;
         }
         Player player = resolvePlayer(plan.playerUuid());
@@ -130,6 +145,14 @@ public final class JavaScriptCookingCompleteHookRegistry {
                 plugin.getLogger().warning("[JavaScript] Cooking complete hook actions failed: " + throwable.getMessage());
             }
         });
+    }
+
+    private List<String> returnedActions(Object returnValue) {
+        if (!(returnValue instanceof Map<?, ?> map)) {
+            return List.of();
+        }
+        List<String> actions = Texts.asStringList(map.get("actions"));
+        return actions.isEmpty() ? List.of() : List.copyOf(actions);
     }
 
     private static Player resolvePlayer(String playerUuid) {

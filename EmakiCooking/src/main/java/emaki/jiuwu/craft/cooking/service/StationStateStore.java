@@ -18,8 +18,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -36,7 +39,10 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -53,38 +59,52 @@ public final class StationStateStore {
     private static final String STATION_TYPE_KEY = "station_type";
     private static final String SAVED_AT_KEY = "station_saved_at_ms";
     private static final String FORMAT_VERSION_KEY = "station_format_version";
+    private static final String STATE_VERSION_KEY = "station_state_version";
+    private static final String TOMBSTONE_KEY = "station_tombstone";
     private static final int FORMAT_VERSION = 1;
     private static final long INDEX_FLUSH_DELAY_SECONDS = 2L;
     private static final String INDEX_EXTENSION = ".idx";
 
     private final JavaPlugin plugin;
-    private final AsyncFileService asyncFileService;
+    private final FileScope fileScope;
     private final NamespacedKey stateKey;
     private final NamespacedKey stationTypeKey;
     private final NamespacedKey stationSourceKey;
     private final NamespacedKey formatVersionKey;
     private final NamespacedKey savedAtKey;
+    private final NamespacedKey stateVersionKey;
+    private final NamespacedKey tombstoneKey;
+    private final StationStateVersionLedger versionLedger = new StationStateVersionLedger();
     private final ConcurrentMap<StationCoordinates, ItemSource> stationSources = new ConcurrentHashMap<>();
     private final ConcurrentMap<StationCoordinates, YamlSection> yamlCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<StationCoordinates, StationIndexEntry> index = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ConcurrentMap<Long, Set<StationCoordinates>>> chunkIndex = new ConcurrentHashMap<>();
     private final Set<String> dirtyIndexWorlds = ConcurrentHashMap.newKeySet();
     private final Set<CompletableFuture<?>> pendingOperations = ConcurrentHashMap.newKeySet();
+    private final ReentrantLock pendingLock = new ReentrantLock();
+    private final Condition pendingIdle = pendingLock.newCondition();
     private final AtomicBoolean indexLoaded = new AtomicBoolean(false);
     private final AtomicBoolean indexFlushScheduled = new AtomicBoolean(false);
+    private volatile TaskHandle indexFlushTask;
 
     public StationStateStore(JavaPlugin plugin) {
-        this(plugin, null);
+        this(plugin, (FileScope) null);
     }
 
     public StationStateStore(JavaPlugin plugin, AsyncFileService asyncFileService) {
+        this(plugin, asyncFileService == null ? null : asyncFileService.defaultScope());
+    }
+
+    public StationStateStore(JavaPlugin plugin, FileScope fileScope) {
         this.plugin = plugin;
-        this.asyncFileService = asyncFileService;
+        this.fileScope = fileScope;
         this.stateKey = new NamespacedKey(plugin, "station_state");
         this.stationTypeKey = new NamespacedKey(plugin, "station_type");
         this.stationSourceKey = new NamespacedKey(plugin, "station_source");
         this.formatVersionKey = new NamespacedKey(plugin, "station_format_version");
         this.savedAtKey = new NamespacedKey(plugin, "station_saved_at_ms");
+        this.stateVersionKey = new NamespacedKey(plugin, "station_state_version");
+        this.tombstoneKey = new NamespacedKey(plugin, "station_tombstone");
     }
 
     public Map<StationCoordinates, YamlSection> loadAll(StationType stationType) {
@@ -119,11 +139,13 @@ public final class StationStateStore {
         if (entriesByChunk.isEmpty()) {
             return;
         }
-        List<CompletableFuture<Void>> futures = new ArrayList<>();
         for (List<StationIndexEntry> entries : entriesByChunk.values()) {
-            futures.add(runLoadedStateBatch(stationType, entries, consumer));
+            trackOperation(runLoadedStateBatch(stationType, entries, consumer)
+                    .exceptionally(throwable -> {
+                        plugin.getLogger().warning("Station restore batch failed: " + rootCauseMessage(throwable));
+                        return null;
+                    }));
         }
-        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
     }
 
     public YamlSection load(StationCoordinates coordinates) {
@@ -131,89 +153,88 @@ public final class StationStateStore {
             return null;
         }
         ensureIndexLoaded();
-        YamlSection pdcState = readPdcState(coordinates);
-        if (pdcState != null) {
-            rememberStationSource(coordinates, stationSource(pdcState));
-            recordIndex(coordinates, stationType(pdcState), StationStorageBackend.BLOCK_PDC, stationSource(pdcState), savedAt(pdcState), true);
-            archiveYamlAsync(coordinates);
-            return pdcState;
+        StoredState pdc = readPdcCandidate(coordinates);
+        StoredState yaml = readYamlCandidate(coordinates);
+        StoredState persisted = latestState(pdc, yaml, readTombstoneCandidate(coordinates));
+        StationStateVersionLedger.Mutation inMemory = versionLedger.currentMutation(coordinates);
+        if (inMemory != null
+                && (persisted == null
+                || inMemory.version() > persisted.version()
+                || (inMemory.version() == persisted.version() && inMemory.tombstone()))) {
+            if (inMemory.tombstone() || persisted == null || inMemory.version() > persisted.version()) {
+                return null;
+            }
         }
-        YamlSection yamlState = readYamlState(coordinates);
-        if (yamlState == null) {
+        if (persisted == null) {
             StationIndexEntry existing = index.get(coordinates);
             if (existing != null && existing.backend() == StationStorageBackend.BLOCK_PDC && backendForCurrentBlock(coordinates) == StationStorageBackend.YAML_FALLBACK) {
                 removeIndex(coordinates, true);
             }
             return null;
         }
-        rememberStationSource(coordinates, stationSource(yamlState));
-        StationType type = stationType(yamlState);
-        if (tryMigrateYamlToPdc(coordinates, yamlState)) {
-            recordIndex(coordinates, type, StationStorageBackend.BLOCK_PDC, stationSource(yamlState), savedAt(yamlState), true);
-        } else {
-            recordIndex(coordinates, type, StationStorageBackend.YAML_FALLBACK, stationSource(yamlState), savedAt(yamlState), true);
+
+        versionLedger.observe(coordinates, persisted.version(), persisted.tombstone());
+        if (persisted.tombstone() || persisted.state() == null) {
+            yamlCache.remove(coordinates);
+            removeIndex(coordinates, true);
+            return null;
         }
-        return yamlState;
+
+        YamlSection state = persisted.state();
+        rememberStationSource(coordinates, stationSource(state));
+        StationType type = stationType(state);
+        if (persisted.backend() == StationStorageBackend.BLOCK_PDC) {
+            recordIndex(coordinates, type, StationStorageBackend.BLOCK_PDC, stationSource(state), savedAt(state), true);
+            if (yaml != null && yaml.version() <= persisted.version()) {
+                archiveYamlIfUnchangedAsync(coordinates);
+            }
+            return state;
+        }
+        if (tryMigrateYamlToPdc(coordinates, state)) {
+            recordIndex(coordinates, type, StationStorageBackend.BLOCK_PDC, stationSource(state), savedAt(state), true);
+        } else {
+            recordIndex(coordinates, type, StationStorageBackend.YAML_FALLBACK, stationSource(state), savedAt(state), true);
+        }
+        return state;
     }
 
     public void save(StationCoordinates coordinates, Map<String, Object> state) {
-        trySave(coordinates, state);
-    }
-
-    public boolean trySave(StationCoordinates coordinates, Map<String, Object> state) {
-        if (coordinates == null || state == null || state.isEmpty()) {
-            return false;
-        }
-        Map<String, Object> stateWithMetadata = stateWithMetadata(coordinates, state);
-        YamlSection section = new MapYamlSection(stateWithMetadata);
-        if (tryWritePdcState(coordinates, section)) {
-            yamlCache.remove(coordinates);
-            recordIndex(coordinates, stationType(section), StationStorageBackend.BLOCK_PDC, stationSource(section), savedAt(section), true);
-            archiveYamlAsync(coordinates);
-            return true;
-        }
-        return trySaveYamlFallback(coordinates, stateWithMetadata);
+        saveAsync(coordinates, state);
     }
 
     public void delete(StationCoordinates coordinates) {
-        tryDelete(coordinates);
-    }
-
-    public boolean tryDelete(StationCoordinates coordinates) {
-        if (coordinates == null) {
-            return false;
-        }
-        stationSources.remove(coordinates);
-        yamlCache.remove(coordinates);
-        removePdcState(coordinates);
-        removeIndex(coordinates, true);
-        Path file = pathFor(coordinates);
-        try {
-            Files.deleteIfExists(file);
-            cleanupParents(file.getParent());
-            return true;
-        } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to delete station state " + coordinates.runtimeKey() + ": " + exception.getMessage());
-            return false;
-        }
+        deleteAsync(coordinates);
     }
 
     public CompletableFuture<Boolean> saveAsync(StationCoordinates coordinates, Map<String, Object> state) {
         if (coordinates == null || state == null || state.isEmpty()) {
             return CompletableFuture.completedFuture(false);
         }
-        Map<String, Object> stateWithMetadata = stateWithMetadata(coordinates, state);
+        long mutationVersion = versionLedger.beginSave(coordinates);
+        Map<String, Object> stateWithMetadata = stateWithMetadata(coordinates, state, mutationVersion, false);
         YamlSection section = new MapYamlSection(stateWithMetadata);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         runOnBlockThread(coordinates, () -> {
-            if (tryWritePdcState(coordinates, section)) {
-                yamlCache.remove(coordinates);
-                recordIndex(coordinates, stationType(section), StationStorageBackend.BLOCK_PDC, stationSource(section), savedAt(section), true);
-                archiveYamlAsync(coordinates);
-                future.complete(true);
+            if (!versionLedger.isCurrentSave(coordinates, mutationVersion)) {
+                future.complete(false);
                 return;
             }
-            saveYamlFallbackAsync(coordinates, stateWithMetadata)
+            if (tryWritePdcState(coordinates, section, mutationVersion)) {
+                if (versionLedger.isCurrentSave(coordinates, mutationVersion)) {
+                    yamlCache.remove(coordinates);
+                    recordIndex(coordinates, stationType(section), StationStorageBackend.BLOCK_PDC, stationSource(section), savedAt(section), true);
+                    archiveYamlAsync(coordinates, mutationVersion);
+                    future.complete(true);
+                } else {
+                    future.complete(false);
+                }
+                return;
+            }
+            if (!versionLedger.isCurrentSave(coordinates, mutationVersion)) {
+                future.complete(false);
+                return;
+            }
+            saveYamlFallbackAsync(coordinates, stateWithMetadata, mutationVersion)
                     .whenComplete((success, throwable) -> {
                         if (throwable != null) {
                             future.completeExceptionally(throwable);
@@ -232,18 +253,25 @@ public final class StationStateStore {
         if (coordinates == null) {
             return CompletableFuture.completedFuture(false);
         }
-        stationSources.remove(coordinates);
-        yamlCache.remove(coordinates);
-        removeIndex(coordinates, true);
-        CompletableFuture<Boolean> pdcFuture = new CompletableFuture<>();
-        runOnBlockThread(coordinates, () -> pdcFuture.complete(removePdcState(coordinates)), pdcFuture);
-        CompletableFuture<Boolean> yamlFuture = deleteYamlFallbackAsync(coordinates);
-        CompletableFuture<Boolean> result = CompletableFuture.allOf(pdcFuture, yamlFuture)
-                .thenApply(_ -> Boolean.TRUE.equals(pdcFuture.getNow(false)) || Boolean.TRUE.equals(yamlFuture.getNow(false)))
-                .exceptionally(throwable -> {
-                    plugin.getLogger().warning("Async delete failed for station " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
-                    return false;
-                });
+        long mutationVersion = versionLedger.beginDelete(coordinates);
+        CompletableFuture<Boolean> result = writeTombstoneAsync(coordinates, mutationVersion).thenCompose(persisted -> {
+            if (!Boolean.TRUE.equals(persisted) || !versionLedger.isCurrentDelete(coordinates, mutationVersion)) {
+                return CompletableFuture.completedFuture(false);
+            }
+            stationSources.remove(coordinates);
+            yamlCache.remove(coordinates);
+            removeIndex(coordinates, true);
+            CompletableFuture<Boolean> pdcFuture = new CompletableFuture<>();
+            runOnBlockThread(coordinates, () -> pdcFuture.complete(removePdcState(coordinates, mutationVersion)), pdcFuture);
+            CompletableFuture<Boolean> yamlFuture = deleteYamlFallbackAsync(coordinates, mutationVersion);
+            return CompletableFuture.allOf(
+                    pdcFuture.exceptionally(_ -> false),
+                    yamlFuture.exceptionally(_ -> false)
+            ).thenApply(_ -> true);
+        }).exceptionally(throwable -> {
+            plugin.getLogger().warning("Async delete failed for station " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            return false;
+        });
         return trackOperation(result);
     }
 
@@ -254,9 +282,32 @@ public final class StationStateStore {
                 : CompletableFuture.allOf(operations);
         return pending.exceptionally(throwable -> null)
                 .thenCompose(_ -> flushDirtyIndexesAsync())
-                .thenCompose(_ -> asyncFileService == null
+                .thenCompose(_ -> fileScope == null
                         ? CompletableFuture.completedFuture(null)
-                        : asyncFileService.waitForIdle());
+                        : fileScope.waitForIdle());
+    }
+
+    public DrainResult sealAndDrain(long timeout, TimeUnit unit) {
+        long timeoutNanos = Math.max(1L, unit.toNanos(timeout));
+        long deadline = System.nanoTime() + timeoutNanos;
+        cancelIndexFlushTask();
+        trackOperation(flushDirtyIndexesAsync());
+        boolean operationsDrained = awaitPendingOperations(Math.max(1L, timeoutNanos * 4L / 5L));
+        cancelIndexFlushTask();
+        trackOperation(flushDirtyIndexesAsync());
+
+        long remainingNanos = Math.max(1L, deadline - System.nanoTime());
+        DrainResult fileResult = fileScope == null
+                ? new DrainResult(true, 0, List.of())
+                : fileScope.sealAndDrain(remainingNanos, TimeUnit.NANOSECONDS);
+        boolean finalOperationsDrained = awaitPendingOperations(Math.max(1L, deadline - System.nanoTime()));
+
+        if (operationsDrained && finalOperationsDrained) {
+            return fileResult;
+        }
+        List<Throwable> failures = new ArrayList<>(fileResult.failures());
+        failures.add(new IllegalStateException("Station operations did not drain before shutdown"));
+        return new DrainResult(false, fileResult.pendingOperations() + pendingOperations.size(), failures);
     }
 
     public void rememberStationSource(StationCoordinates coordinates, ItemSource stationSource) {
@@ -377,7 +428,7 @@ public final class StationStateStore {
         }
         try {
             if (FoliaSchedulerAdapter.runAtLocation(plugin, location, task) == null) {
-                task.run();
+                future.completeExceptionally(new RejectedExecutionException("Location scheduler rejected station restore"));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -436,26 +487,69 @@ public final class StationStateStore {
             return CompletableFuture.completedFuture(null);
         }
         pendingOperations.add(future);
-        future.whenComplete((_, _) -> pendingOperations.remove(future));
+        future.whenComplete((_, _) -> {
+            pendingOperations.remove(future);
+            pendingLock.lock();
+            try {
+                if (pendingOperations.isEmpty()) {
+                    pendingIdle.signalAll();
+                }
+            } finally {
+                pendingLock.unlock();
+            }
+        });
         return future;
     }
 
-    private CompletableFuture<Boolean> saveYamlFallbackAsync(StationCoordinates coordinates, Map<String, Object> state) {
+    private boolean awaitPendingOperations(long timeoutNanos) {
+        long remainingNanos = Math.max(0L, timeoutNanos);
+        pendingLock.lock();
+        try {
+            while (!pendingOperations.isEmpty() && remainingNanos > 0L) {
+                try {
+                    remainingNanos = pendingIdle.awaitNanos(remainingNanos);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+            return pendingOperations.isEmpty();
+        } finally {
+            pendingLock.unlock();
+        }
+    }
+
+    private void cancelIndexFlushTask() {
+        TaskHandle task = indexFlushTask;
+        indexFlushTask = null;
+        indexFlushScheduled.set(false);
+        FoliaSchedulerAdapter.cancelTask(task);
+    }
+
+    private CompletableFuture<Boolean> saveYamlFallbackAsync(StationCoordinates coordinates, Map<String, Object> state, long mutationVersion) {
         YamlSection section = new MapYamlSection(state);
         StationType type = stationType(section);
         ItemSource source = stationSource(section);
         long savedAt = savedAt(section);
-        if (asyncFileService == null) {
-            return CompletableFuture.completedFuture(trySaveYamlFallback(coordinates, state));
+        if (fileScope == null) {
+            return CompletableFuture.completedFuture(trySaveYamlFallback(coordinates, state, mutationVersion));
         }
         Path path = pathFor(coordinates);
-        return asyncFileService.write(path, "station-yaml-save:" + coordinates.runtimeKey(), () -> {
+        AtomicBoolean wrote = new AtomicBoolean(false);
+        return fileScope.write(path, "station-yaml-save:" + coordinates.runtimeKey(), () -> {
+            if (!versionLedger.isCurrentSave(coordinates, mutationVersion)) {
+                return;
+            }
             try {
                 YamlFiles.save(path.toFile(), state);
+                wrote.set(true);
             } catch (IOException exception) {
                 throw new CompletionException(exception);
             }
         }).thenApply(_ -> {
+            if (!wrote.get() || !versionLedger.isCurrentSave(coordinates, mutationVersion)) {
+                return false;
+            }
             yamlCache.put(coordinates, section.copy());
             recordIndex(coordinates, type, StationStorageBackend.YAML_FALLBACK, source, savedAt, true);
             return true;
@@ -465,10 +559,16 @@ public final class StationStateStore {
         });
     }
 
-    private boolean trySaveYamlFallback(StationCoordinates coordinates, Map<String, Object> state) {
+    private boolean trySaveYamlFallback(StationCoordinates coordinates, Map<String, Object> state, long mutationVersion) {
+        if (!versionLedger.isCurrentSave(coordinates, mutationVersion)) {
+            return false;
+        }
         YamlSection section = new MapYamlSection(state);
         try {
             YamlFiles.save(pathFor(coordinates).toFile(), state);
+            if (!versionLedger.isCurrentSave(coordinates, mutationVersion)) {
+                return false;
+            }
             yamlCache.put(coordinates, section.copy());
             recordIndex(coordinates, stationType(section), StationStorageBackend.YAML_FALLBACK, stationSource(section), savedAt(section), true);
             return true;
@@ -478,10 +578,52 @@ public final class StationStateStore {
         }
     }
 
-    private CompletableFuture<Boolean> deleteYamlFallbackAsync(StationCoordinates coordinates) {
-        if (asyncFileService == null) {
+    private CompletableFuture<Boolean> writeTombstoneAsync(StationCoordinates coordinates, long mutationVersion) {
+        if (coordinates == null || !versionLedger.isCurrentDelete(coordinates, mutationVersion)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        Map<String, Object> tombstone = stateWithMetadata(coordinates, Map.of(), mutationVersion, true);
+        Path path = tombstonePathFor(coordinates);
+        if (fileScope == null) {
+            return CompletableFuture.completedFuture(tryWriteTombstone(path, coordinates, mutationVersion, tombstone));
+        }
+        AtomicBoolean written = new AtomicBoolean(false);
+        return fileScope.write(path, "station-tombstone-save:" + coordinates.runtimeKey(), () -> {
+            if (!versionLedger.isCurrentDelete(coordinates, mutationVersion)) {
+                return;
+            }
+            try {
+                YamlFiles.save(path.toFile(), tombstone);
+                written.set(true);
+            } catch (IOException exception) {
+                throw new CompletionException(exception);
+            }
+        }).thenApply(_ -> written.get() && versionLedger.isCurrentDelete(coordinates, mutationVersion));
+    }
+
+    private boolean tryWriteTombstone(Path path,
+            StationCoordinates coordinates,
+            long mutationVersion,
+            Map<String, Object> tombstone) {
+        if (!versionLedger.isCurrentDelete(coordinates, mutationVersion)) {
+            return false;
+        }
+        try {
+            YamlFiles.save(path.toFile(), tombstone);
+            return versionLedger.isCurrentDelete(coordinates, mutationVersion);
+        } catch (IOException exception) {
+            plugin.getLogger().warning("Failed to persist station tombstone " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            return false;
+        }
+    }
+
+    private CompletableFuture<Boolean> deleteYamlFallbackAsync(StationCoordinates coordinates, long mutationVersion) {
+        if (fileScope == null) {
             Path path = pathFor(coordinates);
             try {
+                if (!versionLedger.isCurrentDelete(coordinates, mutationVersion)) {
+                    return CompletableFuture.completedFuture(false);
+                }
                 Files.deleteIfExists(path);
                 cleanupParents(path.getParent());
                 return CompletableFuture.completedFuture(true);
@@ -492,20 +634,30 @@ public final class StationStateStore {
             }
         }
         Path path = pathFor(coordinates);
-        return asyncFileService.write(path, "station-yaml-delete:" + coordinates.runtimeKey(), () -> {
+        AtomicBoolean deleted = new AtomicBoolean(false);
+        return fileScope.write(path, "station-yaml-delete:" + coordinates.runtimeKey(), () -> {
+            if (!versionLedger.isCurrentDelete(coordinates, mutationVersion)) {
+                return;
+            }
             try {
                 Files.deleteIfExists(path);
                 cleanupParents(path.getParent());
+                deleted.set(true);
             } catch (IOException exception) {
                 throw new CompletionException(exception);
             }
-        }).thenApply(_ -> true).exceptionally(throwable -> {
+        }).thenApply(_ -> deleted.get() && versionLedger.isCurrentDelete(coordinates, mutationVersion)).exceptionally(throwable -> {
             plugin.getLogger().warning("YAML fallback delete failed for station " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
             return false;
         });
     }
 
     private YamlSection readPdcState(StationCoordinates coordinates) {
+        StoredState candidate = latestState(readPdcCandidate(coordinates), readTombstoneCandidate(coordinates));
+        return candidate == null || candidate.tombstone() ? null : candidate.state();
+    }
+
+    private StoredState readPdcCandidate(StationCoordinates coordinates) {
         if (coordinates == null) {
             return null;
         }
@@ -513,29 +665,41 @@ public final class StationStateStore {
         if (tileState == null) {
             return null;
         }
-        String payload = tileState.getPersistentDataContainer().get(stateKey, PersistentDataType.STRING);
+        PersistentDataContainer container = tileState.getPersistentDataContainer();
+        String payload = container.get(stateKey, PersistentDataType.STRING);
+        Long storedVersion = container.get(stateVersionKey, PersistentDataType.LONG);
+        Byte storedTombstone = container.get(tombstoneKey, PersistentDataType.BYTE);
+        boolean pdcTombstone = storedTombstone != null && storedTombstone != 0;
         if (Texts.isBlank(payload)) {
-            return null;
+            return pdcTombstone
+                    ? new StoredState(null, storedVersion == null ? 0L : storedVersion, true, StationStorageBackend.BLOCK_PDC)
+                    : null;
         }
         try {
-            YamlSection section = YamlFiles.load(payload);
-            if (section == null || section.isEmpty()) {
-                return null;
-            }
-            return normalizeLoadedState(coordinates, section);
+            YamlSection section = normalizeLoadedState(coordinates, YamlFiles.load(payload));
+            long version = Math.max(storedVersion == null ? 0L : storedVersion, stateVersion(section));
+            return new StoredState(section, version, pdcTombstone || tombstone(section), StationStorageBackend.BLOCK_PDC);
         } catch (YamlLoadException exception) {
             plugin.getLogger().warning("Failed to decode PDC station state " + coordinates.runtimeKey() + ": " + exception.getMessage());
-            return null;
+            return pdcTombstone
+                    ? new StoredState(null, storedVersion == null ? 0L : storedVersion, true, StationStorageBackend.BLOCK_PDC)
+                    : null;
         }
     }
 
     private YamlSection readYamlState(StationCoordinates coordinates) {
+        StoredState candidate = latestState(readYamlCandidate(coordinates), readTombstoneCandidate(coordinates));
+        return candidate == null || candidate.tombstone() ? null : candidate.state();
+    }
+
+    private StoredState readYamlCandidate(StationCoordinates coordinates) {
         if (coordinates == null) {
             return null;
         }
         YamlSection cached = yamlCache.get(coordinates);
         if (cached != null) {
-            return cached.copy();
+            YamlSection copy = cached.copy();
+            return new StoredState(copy, stateVersion(copy), tombstone(copy), StationStorageBackend.YAML_FALLBACK);
         }
         Path file = pathFor(coordinates);
         if (!Files.exists(file)) {
@@ -543,8 +707,11 @@ public final class StationStateStore {
         }
         try {
             YamlSection state = normalizeLoadedState(coordinates, YamlFiles.load(file.toFile()));
+            if (state == null) {
+                return null;
+            }
             yamlCache.put(coordinates, state.copy());
-            return state;
+            return new StoredState(state, stateVersion(state), tombstone(state), StationStorageBackend.YAML_FALLBACK);
         } catch (YamlLoadException exception) {
             if (!causedByMissingFile(exception)) {
                 throw exception;
@@ -553,8 +720,56 @@ public final class StationStateStore {
         }
     }
 
-    private boolean tryWritePdcState(StationCoordinates coordinates, YamlSection state) {
-        if (coordinates == null || state == null || state.isEmpty()) {
+    private StoredState readTombstoneCandidate(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return null;
+        }
+        Path path = tombstonePathFor(coordinates);
+        if (!Files.exists(path)) {
+            return null;
+        }
+        try {
+            YamlSection state = normalizeLoadedState(coordinates, YamlFiles.load(path.toFile()));
+            if (state == null || !tombstone(state)) {
+                return null;
+            }
+            return new StoredState(null, stateVersion(state), true, null);
+        } catch (YamlLoadException exception) {
+            long fallbackVersion;
+            try {
+                fallbackVersion = Files.getLastModifiedTime(path).toMillis();
+            } catch (IOException ignored) {
+                fallbackVersion = System.currentTimeMillis();
+            }
+            plugin.getLogger().warning("Failed to decode station tombstone " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            return new StoredState(null, fallbackVersion, true, null);
+        }
+    }
+
+    private StoredState latestState(StoredState... candidates) {
+        StoredState selected = null;
+        if (candidates == null) {
+            return null;
+        }
+        for (StoredState candidate : candidates) {
+            if (candidate == null) {
+                continue;
+            }
+            if (selected == null
+                    || candidate.version() > selected.version()
+                    || (candidate.version() == selected.version() && candidate.tombstone() && !selected.tombstone())
+                    || (candidate.version() == selected.version()
+                    && candidate.tombstone() == selected.tombstone()
+                    && candidate.backend() == StationStorageBackend.BLOCK_PDC
+                    && selected.backend() != StationStorageBackend.BLOCK_PDC)) {
+                selected = candidate;
+            }
+        }
+        return selected;
+    }
+
+    private boolean tryWritePdcState(StationCoordinates coordinates, YamlSection state, long mutationVersion) {
+        if (coordinates == null || state == null || state.isEmpty() || !versionLedger.isCurrentSave(coordinates, mutationVersion)) {
             return false;
         }
         Block block = coordinates.block();
@@ -575,19 +790,21 @@ public final class StationStateStore {
         }
         container.set(formatVersionKey, PersistentDataType.INTEGER, FORMAT_VERSION);
         container.set(savedAtKey, PersistentDataType.LONG, savedAt);
+        container.set(stateVersionKey, PersistentDataType.LONG, mutationVersion);
+        container.set(tombstoneKey, PersistentDataType.BYTE, (byte) 0);
         try {
             if (!tileState.update(false, false)) {
                 return false;
             }
-            return true;
+            return versionLedger.isCurrentSave(coordinates, mutationVersion);
         } catch (Exception exception) {
             plugin.getLogger().warning("PDC station save failed for " + coordinates.runtimeKey() + ": " + exception.getMessage());
             return false;
         }
     }
 
-    private boolean removePdcState(StationCoordinates coordinates) {
-        if (coordinates == null) {
+    private boolean removePdcState(StationCoordinates coordinates, long mutationVersion) {
+        if (coordinates == null || !versionLedger.isCurrentDelete(coordinates, mutationVersion)) {
             return false;
         }
         TileState tileState = tileStateOf(coordinates.block(), true);
@@ -595,17 +812,18 @@ public final class StationStateStore {
             return false;
         }
         PersistentDataContainer container = tileState.getPersistentDataContainer();
-        boolean present = container.has(stateKey, PersistentDataType.STRING)
-                || container.has(stationTypeKey, PersistentDataType.STRING)
-                || container.has(stationSourceKey, PersistentDataType.STRING);
         container.remove(stateKey);
         container.remove(stationTypeKey);
         container.remove(stationSourceKey);
-        container.remove(formatVersionKey);
-        container.remove(savedAtKey);
+        container.set(formatVersionKey, PersistentDataType.INTEGER, FORMAT_VERSION);
+        container.set(savedAtKey, PersistentDataType.LONG, System.currentTimeMillis());
+        container.set(stateVersionKey, PersistentDataType.LONG, mutationVersion);
+        container.set(tombstoneKey, PersistentDataType.BYTE, (byte) 1);
         try {
-            tileState.update(false, false);
-            return present;
+            if (!tileState.update(false, false)) {
+                return false;
+            }
+            return versionLedger.isCurrentDelete(coordinates, mutationVersion);
         } catch (Exception exception) {
             plugin.getLogger().warning("PDC station delete failed for " + coordinates.runtimeKey() + ": " + exception.getMessage());
             return false;
@@ -613,19 +831,35 @@ public final class StationStateStore {
     }
 
     private boolean tryMigrateYamlToPdc(StationCoordinates coordinates, YamlSection yamlState) {
-        if (coordinates == null || yamlState == null || yamlState.isEmpty()) {
+        if (coordinates == null || yamlState == null || yamlState.isEmpty() || versionLedger.isTombstoned(coordinates)) {
             return false;
         }
-        if (tryWritePdcState(coordinates, yamlState)) {
-            archiveYamlAsync(coordinates);
+        long mutationVersion = versionLedger.beginSave(coordinates);
+        Map<String, Object> stateWithVersion = new LinkedHashMap<>(yamlState.asMap());
+        stateWithVersion.put(STATE_VERSION_KEY, mutationVersion);
+        stateWithVersion.put(TOMBSTONE_KEY, false);
+        YamlSection versionedState = new MapYamlSection(stateWithVersion);
+        if (tryWritePdcState(coordinates, versionedState, mutationVersion)) {
+            archiveYamlAsync(coordinates, mutationVersion);
             yamlCache.remove(coordinates);
             return true;
         }
         return false;
     }
 
-    private void archiveYamlAsync(StationCoordinates coordinates) {
-        if (coordinates == null) {
+    private void archiveYamlIfUnchangedAsync(StationCoordinates coordinates) {
+        if (coordinates == null || versionLedger.isTombstoned(coordinates)) {
+            return;
+        }
+        archiveYamlAsync(coordinates, versionLedger.currentVersion(coordinates), false);
+    }
+
+    private void archiveYamlAsync(StationCoordinates coordinates, long mutationVersion) {
+        archiveYamlAsync(coordinates, mutationVersion, true);
+    }
+
+    private void archiveYamlAsync(StationCoordinates coordinates, long mutationVersion, boolean requireCurrentSave) {
+        if (coordinates == null || !canArchiveYaml(coordinates, mutationVersion, requireCurrentSave)) {
             return;
         }
         Path source = pathFor(coordinates);
@@ -634,6 +868,9 @@ public final class StationStateStore {
         }
         Path target = legacyBackupPathFor(coordinates);
         Runnable task = () -> {
+            if (!canArchiveYaml(coordinates, mutationVersion, requireCurrentSave)) {
+                return;
+            }
             try {
                 if (!Files.exists(source)) {
                     return;
@@ -645,7 +882,7 @@ public final class StationStateStore {
                 throw new CompletionException(exception);
             }
         };
-        if (asyncFileService == null) {
+        if (fileScope == null) {
             try {
                 task.run();
             } catch (CompletionException exception) {
@@ -653,14 +890,24 @@ public final class StationStateStore {
             }
             return;
         }
-        asyncFileService.write(source, "station-yaml-archive:" + coordinates.runtimeKey(), task)
+        fileScope.write(source, "station-yaml-archive:" + coordinates.runtimeKey(), task)
                 .exceptionally(throwable -> {
                     plugin.getLogger().warning("Failed to archive legacy station YAML " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
                     return null;
                 });
     }
 
-    private Map<String, Object> stateWithMetadata(StationCoordinates coordinates, Map<String, Object> state) {
+    private boolean canArchiveYaml(StationCoordinates coordinates, long mutationVersion, boolean requireCurrentSave) {
+        if (coordinates == null) {
+            return false;
+        }
+        if (requireCurrentSave) {
+            return versionLedger.isCurrentSave(coordinates, mutationVersion);
+        }
+        return !versionLedger.isTombstoned(coordinates) && versionLedger.currentVersion(coordinates) == mutationVersion;
+    }
+
+    private Map<String, Object> stateWithMetadata(StationCoordinates coordinates, Map<String, Object> state, long mutationVersion, boolean tombstone) {
         Map<String, Object> copy = new LinkedHashMap<>(MapYamlSection.normalizeMap(state));
         copy.putIfAbsent("world", coordinates.world());
         copy.putIfAbsent("x", coordinates.x());
@@ -668,6 +915,8 @@ public final class StationStateStore {
         copy.putIfAbsent("z", coordinates.z());
         copy.put(SAVED_AT_KEY, System.currentTimeMillis());
         copy.put(FORMAT_VERSION_KEY, FORMAT_VERSION);
+        copy.put(STATE_VERSION_KEY, mutationVersion);
+        copy.put(TOMBSTONE_KEY, tombstone);
         ItemSource explicitSource = ItemSourceUtil.parse(copy.get(STATION_SOURCE_KEY));
         if (explicitSource != null) {
             rememberStationSource(coordinates, explicitSource);
@@ -694,6 +943,8 @@ public final class StationStateStore {
             copy.putIfAbsent("z", coordinates.z());
         }
         copy.putIfAbsent(FORMAT_VERSION_KEY, FORMAT_VERSION);
+        copy.putIfAbsent(STATE_VERSION_KEY, 0L);
+        copy.putIfAbsent(TOMBSTONE_KEY, false);
         return new MapYamlSection(copy);
     }
 
@@ -750,6 +1001,35 @@ public final class StationStateStore {
             }
         }
         return 0L;
+    }
+
+    private long stateVersion(YamlSection state) {
+        if (state == null) {
+            return 0L;
+        }
+        Object raw = state.get(STATE_VERSION_KEY);
+        if (raw instanceof Number number) {
+            return Math.max(0L, number.longValue());
+        }
+        try {
+            return Math.max(0L, Long.parseLong(Texts.toStringSafe(raw).trim()));
+        } catch (NumberFormatException ignored) {
+            return 0L;
+        }
+    }
+
+    private boolean tombstone(YamlSection state) {
+        if (state == null) {
+            return false;
+        }
+        Object raw = state.get(TOMBSTONE_KEY);
+        if (raw instanceof Boolean value) {
+            return value;
+        }
+        if (raw instanceof Number number) {
+            return number.intValue() != 0;
+        }
+        return raw != null && Boolean.parseBoolean(String.valueOf(raw).trim());
     }
 
     private void ensureIndexLoaded() {
@@ -814,6 +1094,18 @@ public final class StationStateStore {
                     continue;
                 }
                 YamlSection normalized = normalizeLoadedState(coordinates, state);
+                StoredState selected = latestState(
+                        normalized == null ? null : new StoredState(
+                                normalized,
+                                stateVersion(normalized),
+                                tombstone(normalized),
+                                StationStorageBackend.YAML_FALLBACK),
+                        readTombstoneCandidate(coordinates)
+                );
+                if (selected == null || selected.tombstone() || selected.state() == null) {
+                    continue;
+                }
+                normalized = selected.state();
                 yamlCache.put(coordinates, normalized.copy());
                 rememberStationSource(coordinates, stationSource(normalized));
                 recordIndex(coordinates, type, StationStorageBackend.YAML_FALLBACK, stationSource(normalized), savedAt(normalized), true);
@@ -826,10 +1118,10 @@ public final class StationStateStore {
     }
 
     private CompletableFuture<Integer> scanLegacyYamlAsync() {
-        if (asyncFileService == null) {
+        if (fileScope == null) {
             return CompletableFuture.completedFuture(scanLegacyYamlSync());
         }
-        return asyncFileService.read("station-index-scan-legacy-yaml", this::scanLegacyYamlSync)
+        return fileScope.read("station-index-scan-legacy-yaml", this::scanLegacyYamlSync)
                 .exceptionally(throwable -> {
                     plugin.getLogger().warning("Legacy station YAML scan failed: " + rootCauseMessage(throwable));
                     return 0;
@@ -1023,13 +1315,16 @@ public final class StationStateStore {
             return;
         }
         try {
-            FoliaSchedulerAdapter.runAsyncLater(plugin, () -> {
+            indexFlushTask = FoliaSchedulerAdapter.runAsyncLater(plugin, () -> {
+                indexFlushTask = null;
                 indexFlushScheduled.set(false);
-                flushDirtyIndexesAsync();
+                trackOperation(flushDirtyIndexesAsync());
             }, INDEX_FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
-        } catch (Throwable ignored) {
+        } catch (Throwable throwable) {
+            indexFlushTask = null;
             indexFlushScheduled.set(false);
-            flushDirtyIndexesAsync();
+            trackOperation(flushDirtyIndexesAsync());
+            plugin.getLogger().warning("Failed to schedule station index flush: " + rootCauseMessage(throwable));
         }
     }
 
@@ -1066,7 +1361,7 @@ public final class StationStateStore {
                 throw new CompletionException(exception);
             }
         };
-        if (asyncFileService == null) {
+        if (fileScope == null) {
             try {
                 task.run();
                 return CompletableFuture.completedFuture(null);
@@ -1076,7 +1371,7 @@ public final class StationStateStore {
                 return failed;
             }
         }
-        return asyncFileService.write(file, "station-index-save:" + world, task)
+        return fileScope.write(file, "station-index-save:" + world, task)
                 .exceptionally(throwable -> {
                     plugin.getLogger().warning("Failed to write station index for world " + world + ": " + rootCauseMessage(throwable));
                     return null;
@@ -1160,8 +1455,8 @@ public final class StationStateStore {
                         future.completeExceptionally(throwable);
                     }
                 }
-            }) == null) {
-                task.run();
+            }) == null && future != null) {
+                future.completeExceptionally(new RejectedExecutionException("Location scheduler rejected station operation"));
             }
         } catch (Throwable throwable) {
             if (future != null) {
@@ -1176,6 +1471,12 @@ public final class StationStateStore {
 
     private Path legacyBackupPathFor(StationCoordinates coordinates) {
         return plugin.getDataFolder().toPath().resolve("data").resolve("stations-legacy-backup")
+                .resolve(sanitizeWorld(coordinates.world()))
+                .resolve(coordinates.x() + "_" + coordinates.y() + "_" + coordinates.z() + ".yml");
+    }
+
+    private Path tombstonePathFor(StationCoordinates coordinates) {
+        return plugin.getDataFolder().toPath().resolve("data").resolve("station-tombstones")
                 .resolve(sanitizeWorld(coordinates.world()))
                 .resolve(coordinates.x() + "_" + coordinates.y() + "_" + coordinates.z() + ".yml");
     }
@@ -1296,6 +1597,12 @@ public final class StationStateStore {
     }
 
     public record ReindexReport(int legacyYamlStates, int loadedPdcStates, int totalIndexedStates) {
+    }
+
+    private record StoredState(YamlSection state,
+            long version,
+            boolean tombstone,
+            StationStorageBackend backend) {
     }
 
     private record StationIndexEntry(StationCoordinates coordinates,

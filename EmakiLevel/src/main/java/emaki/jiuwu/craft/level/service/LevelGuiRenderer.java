@@ -47,8 +47,8 @@ final class LevelGuiRenderer {
         if (type == null) {
             return new ItemStack(Material.AIR);
         }
-        PlayerLevelData data = plugin.dataStore().getOrLoad(session.viewer().getUniqueId(), plugin.typeRegistry().asMap());
-        PlayerLevelEntry entry = data.entry(type.id());
+        PlayerLevelData data = plugin.dataStore().cached(session.viewer().getUniqueId());
+        PlayerLevelEntry entry = data == null ? null : data.entry(type.id());
         if (entry == null) {
             return new ItemStack(Material.AIR);
         }

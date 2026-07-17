@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record ScriptConfig(boolean enabled,
+        boolean runtimeOptIn,
         Engine engine,
         Paths paths,
         Action action,
@@ -19,7 +20,8 @@ public record ScriptConfig(boolean enabled,
 
     public static ScriptConfig defaults() {
         return new ScriptConfig(
-                true,
+                false,
+                false,
                 Engine.defaults(),
                 Paths.defaults(),
                 Action.defaults(),
@@ -31,11 +33,13 @@ public record ScriptConfig(boolean enabled,
     }
 
     public static ScriptConfig fromConfig(YamlSection section) {
+        ScriptConfig defaults = defaults();
         if (section == null) {
-            return defaults();
+            return defaults;
         }
         return new ScriptConfig(
-                section.getBoolean("enabled", true),
+                section.getBoolean("enabled", defaults.enabled()),
+                section.getBoolean("runtime_opt_in", defaults.runtimeOptIn()),
                 Engine.fromConfig(section.getSection("engine")),
                 Paths.fromConfig(section.getSection("paths")),
                 Action.fromConfig(section.getSection("action")),
@@ -44,6 +48,10 @@ public record ScriptConfig(boolean enabled,
                 ServerApi.fromConfig(section.getSection("server_api")),
                 Debug.fromConfig(section.getSection("debug"))
         );
+    }
+
+    public boolean runtimeEnabled() {
+        return enabled && runtimeOptIn;
     }
 
     public long clampTimeoutMillis(long requested) {
@@ -203,7 +211,7 @@ public record ScriptConfig(boolean enabled,
             boolean allowRawEventAccess) {
 
         public static ServerApi defaults() {
-            return new ServerApi(true, false, List.of("org.bukkit.", "io.papermc.paper."), false, false);
+            return new ServerApi(false, false, List.of("org.bukkit.", "io.papermc.paper."), false, false);
         }
 
         public static ServerApi fromConfig(YamlSection section) {

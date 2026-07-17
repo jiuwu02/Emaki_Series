@@ -59,6 +59,7 @@ public final class ChoppingBoardRuntimeService {
     private final ItemSourceService itemSourceService;
     private final CookingDisplayService displayService;
     private final CookingTextDisplayService textDisplayService;
+    private CookingCompletionCoordinator completionCoordinator;
 
     public ChoppingBoardRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -80,6 +81,56 @@ public final class ChoppingBoardRuntimeService {
         this.itemSourceService = itemSourceService;
         this.displayService = Objects.requireNonNull(displayService, "displayService");
         this.textDisplayService = Objects.requireNonNull(textDisplayService, "textDisplayService");
+    }
+
+    public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
+        this.completionCoordinator = completionCoordinator;
+        if (completionCoordinator != null) {
+            completionCoordinator.register(completionStateAccess());
+        }
+    }
+
+    CookingStationStateAccess completionStateAccess() {
+        return new CookingStationStateAccess() {
+            @Override
+            public StationType stationType() {
+                return StationType.CHOPPING_BOARD;
+            }
+
+            @Override
+            public Map<String, Object> snapshot(StationCoordinates coordinates) {
+                ChoppingBoardState state = readState(stateStore.load(coordinates));
+                return state == null ? null : serializeState(coordinates, state);
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> replace(
+                    StationCoordinates coordinates,
+                    Map<String, Object> committedState) {
+                ChoppingBoardState state = readState(new MapYamlSection(committedState));
+                if (state == null) {
+                    return java.util.concurrent.CompletableFuture.failedFuture(
+                            new IllegalArgumentException("Invalid committed chopping-board state"));
+                }
+                return stateStore.saveAsync(coordinates, committedState)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
+                            refreshDisplay(coordinates, state.inputSource(), state.inputItemData());
+                            refreshText(coordinates, state);
+                        }));
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+                ChoppingBoardState state = readState(stateStore.load(coordinates));
+                return stateStore.deleteAsync(coordinates)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
+                            clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
+                            textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+                        }));
+            }
+        };
     }
 
     public void reload() {
@@ -145,6 +196,10 @@ public final class ChoppingBoardRuntimeService {
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
         stateStore.rememberStationSource(coordinates, interaction.stationSource());
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.CHOPPING_BOARD, coordinates)) {
+            interaction.cancel();
+            return true;
+        }
         ChoppingBoardState state = readState(stateStore.load(coordinates));
         long now = System.currentTimeMillis();
 
@@ -235,24 +290,21 @@ public final class ChoppingBoardRuntimeService {
 
             if (nextCutCount >= cutsRequired) {
                 int remainingAmount = Math.max(0, state.inputAmount() - inputRequired);
-                if (remainingAmount > 0) {
-                    ChoppingBoardState remaining = new ChoppingBoardState(
-                            state.inputSource(),
-                            state.inputItemData(),
-                            remainingAmount,
-                            0,
-                            now,
-                            state.displayEntityId()
-                    );
-                    saveState(coordinates, remaining);
-                    refreshDisplay(coordinates, remaining.inputSource(), remaining.inputItemData());
-                    refreshText(coordinates, remaining);
-                } else {
-                    clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
-                    textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
-                    stateStore.deleteAsync(coordinates);
-                }
-                rewardService.deliver(
+                ChoppingBoardState remaining = remainingAmount <= 0 ? null : new ChoppingBoardState(
+                        state.inputSource(),
+                        state.inputItemData(),
+                        remainingAmount,
+                        0,
+                        now,
+                        state.displayEntityId()
+                );
+                boolean accepted = completionCoordinator != null && completionCoordinator.submit(new CookingCompletionRequest(
+                        "cut:" + state.lastInteractionMs() + ":" + nextCutCount,
+                        StationType.CHOPPING_BOARD,
+                        coordinates,
+                        serializeState(coordinates, state),
+                        remaining == null ? CookingCompletionOperation.CommitMode.DELETE : CookingCompletionOperation.CommitMode.SAVE,
+                        remaining == null ? Map.of() : serializeState(coordinates, remaining),
                         recipe,
                         player,
                         block.getLocation().add(0.5D, 1.0D, 0.5D),
@@ -264,10 +316,13 @@ public final class ChoppingBoardRuntimeService {
                         Map.of(
                                 "recipe_id", recipe.id(),
                                 "station_type", StationType.CHOPPING_BOARD.folderName()
-                        )
-                );
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.completed", Map.of("recipe", recipe.displayName()));
-                plugin.effectService().playActions(StationType.CHOPPING_BOARD, "complete", player);
+                        ),
+                        List.of()
+                ));
+                if (accepted) {
+                    CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.completed", Map.of("recipe", recipe.displayName()));
+                    plugin.effectService().playActions(StationType.CHOPPING_BOARD, "complete", player);
+                }
                 interaction.cancel();
                 return true;
             }
@@ -347,6 +402,9 @@ public final class ChoppingBoardRuntimeService {
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
         stateStore.rememberStationSource(coordinates, context.stationSource());
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.CHOPPING_BOARD, coordinates)) {
+            return true;
+        }
         ChoppingBoardState state = readState(stateStore.load(coordinates));
         if (state == null) {
             return false;
@@ -553,6 +611,10 @@ public final class ChoppingBoardRuntimeService {
     }
 
     private void saveState(StationCoordinates coordinates, ChoppingBoardState state) {
+        stateStore.saveAsync(coordinates, serializeState(coordinates, state));
+    }
+
+    private Map<String, Object> serializeState(StationCoordinates coordinates, ChoppingBoardState state) {
         Map<String, Object> root = CookingRuntimeUtil.buildStateRoot(StationType.CHOPPING_BOARD, coordinates);
         if (state.hasInputSource()) {
             Map<String, Object> inputItem = new LinkedHashMap<>();
@@ -565,7 +627,7 @@ public final class ChoppingBoardRuntimeService {
         }
         root.put("timestamps", Map.of("last_interaction_ms", state.lastInteractionMs()));
         root.put("chopping_board", Map.of("cut_count", state.cutCount()));
-        stateStore.saveAsync(coordinates, root);
+        return root;
     }
 
     private ChoppingBoardState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.cooking.script.js;
+package emaki.jiuwu.craft.gem.script;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -7,50 +7,52 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
-import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
-import emaki.jiuwu.craft.cooking.model.RecipeDocument;
+import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.model.GemDefinition;
+import emaki.jiuwu.craft.gem.model.GemItemDefinition;
+import emaki.jiuwu.craft.gem.model.GemItemInstance;
 
-public final class JavaScriptCookingResultRuleRegistry {
+public final class JavaScriptGemSocketRuleRegistry {
 
-    /** JavaScript registration type id for cooking result rules (CoreLib tracks this as a free-form string). */
-    private static final String REGISTRATION_TYPE = "cooking_result_rule";
+    /** JavaScript registration type id for gem socket rules (CoreLib tracks this as a free-form string). */
+    private static final String REGISTRATION_TYPE = "gem_socket_rule";
 
-    private final EmakiCookingPlugin plugin;
+    private final EmakiGemPlugin plugin;
     private final Map<String, RuleEntry> rules = new LinkedHashMap<>();
 
-    public JavaScriptCookingResultRuleRegistry(EmakiCookingPlugin plugin) {
+    public JavaScriptGemSocketRuleRegistry(EmakiGemPlugin plugin) {
         this.plugin = plugin;
     }
 
     public synchronized boolean register(ScriptModuleContext context, Map<String, ?> definition, JavaScriptRegistrationTracker tracker) {
         if (definition == null) {
-            recordError(context, tracker, "", "register", "Cooking result rule cannot be null.");
+            recordError(context, tracker, "", "register", "Gem socket rule cannot be null.");
             return false;
         }
         String id = Texts.normalizeId(value(definition, "id", ""));
         if (Texts.isBlank(id)) {
-            recordError(context, tracker, id, "register", "Cooking result rule id cannot be blank.");
+            recordError(context, tracker, id, "register", "Gem socket rule id cannot be blank.");
             return false;
         }
-        String function = value(definition, "function", value(definition, "execute", "modifyCookingResult"));
+        String function = value(definition, "function", value(definition, "execute", "checkSocket"));
         RuleEntry entry = new RuleEntry(id,
                 intValue(definition.get("priority"), 0),
-                normalizedStationSet(definition.containsKey("stations") ? definition.get("stations") : definition.get("station")),
-                normalizedSet(definition.containsKey("recipeIds") ? definition.get("recipeIds") : definition.get("recipes")),
+                normalizedSet(definition.containsKey("gemIds") ? definition.get("gemIds") : definition.get("gems")),
+                normalizedSet(definition.containsKey("socketTypes") ? definition.get("socketTypes") : definition.get("sockets")),
                 function,
                 scriptPath(context),
                 longValue(definition.get("timeoutMillis"), defaultTimeout(context)));
@@ -81,7 +83,7 @@ public final class JavaScriptCookingResultRuleRegistry {
         return rules.keySet().stream().sorted().toList();
     }
 
-    public DeliveryPlan apply(DeliveryPlan base) {
+    public Decision apply(Decision base) {
         if (base == null || plugin == null) {
             return base;
         }
@@ -89,10 +91,10 @@ public final class JavaScriptCookingResultRuleRegistry {
         if (coreLib == null || coreLib.javaScriptService() == null || !coreLib.javaScriptService().enabled()) {
             return base;
         }
-        DeliveryPlan current = base;
-        for (RuleEntry rule : matchingRules(base.recipeId(), base.stationType())) {
+        Decision current = base;
+        for (RuleEntry rule : matchingRules(base.gemId(), base.socketType())) {
             current = applyRule(coreLib, coreLib.javaScriptService(), rule, current);
-            if (current.cancelled()) {
+            if (!current.allowed()) {
                 break;
             }
         }
@@ -110,6 +112,8 @@ public final class JavaScriptCookingResultRuleRegistry {
         }
         for (Map<String, Object> trace : traces) {
             plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
+                    + " | before=" + Texts.toStringSafe(trace.get("before"))
+                    + " | after=" + Texts.toStringSafe(trace.get("after"))
                     + " | msg=" + Texts.toStringSafe(trace.get("message")));
         }
     }
@@ -125,7 +129,7 @@ public final class JavaScriptCookingResultRuleRegistry {
         }
     }
 
-    private DeliveryPlan applyRule(EmakiCoreLibPlugin coreLib, JavaScriptService javaScriptService, RuleEntry rule, DeliveryPlan current) {
+    private Decision applyRule(EmakiCoreLibPlugin coreLib, JavaScriptService javaScriptService, RuleEntry rule, Decision current) {
         Map<String, Object> context = current.toContext(rule.id());
         ScriptConfig config = coreLib.configModel() == null ? ScriptConfig.defaults() : coreLib.configModel().scriptConfig();
         ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
@@ -139,38 +143,38 @@ public final class JavaScriptCookingResultRuleRegistry {
                 true
         ));
         if (result == null || !result.success() || !(result.returnValue() instanceof Map<?, ?> rawMap)) {
-            return current.withTrace(rule.id(), result == null ? "no_result" : result.message());
+            return current.withTrace(rule.id(), current.successRate(), current.successRate(), result == null ? "no_result" : result.message());
         }
         Map<String, Object> map = new LinkedHashMap<>();
         ConfigNodes.entries(rawMap).forEach(map::put);
-        List<Map<String, Object>> outputs = current.outputs();
-        if (map.get("outputs") instanceof Iterable<?> replacementOutputs) {
-            outputs = normalizeOutputs(replacementOutputs);
+        boolean allowed = !bool(map.get("cancel"), false) && bool(map.get("allowed"), current.allowed());
+        double before = current.successRate();
+        double after = before;
+        Double explicit = number(map.get("successRate"));
+        if (explicit != null) {
+            after = explicit;
+        } else {
+            Double bonus = number(map.get("successBonus"));
+            if (bonus != null) {
+                after += bonus;
+            }
+            Double multiplier = number(map.get("successMultiplier"));
+            if (multiplier != null) {
+                after *= multiplier;
+            }
         }
-        if (map.get("extraResults") instanceof Iterable<?> extraResults) {
-            List<Map<String, Object>> combined = new ArrayList<>(outputs);
-            combined.addAll(normalizeOutputs(extraResults));
-            outputs = List.copyOf(combined);
-        }
-        List<String> actions = current.actions();
-        if (map.get("actions") instanceof Iterable<?> replacementActions) {
-            actions = strings(replacementActions);
-        }
-        if (map.get("extraActions") instanceof Iterable<?> extraActions) {
-            List<String> combined = new ArrayList<>(actions);
-            combined.addAll(strings(extraActions));
-            actions = List.copyOf(combined);
-        }
-        boolean cancelled = bool(map.get("cancel"), current.cancelled());
-        return current.withValues(outputs, actions, cancelled).withTrace(rule.id(), Texts.toStringSafe(map.get("message")));
+        String messageKey = value(map, "messageKey", current.messageKey());
+        String message = Texts.toStringSafe(map.get("message"));
+        return current.withValues(allowed, Numbers.clamp(after, 0D, 100D), messageKey, message)
+                .withTrace(rule.id(), before, Numbers.clamp(after, 0D, 100D), message);
     }
 
-    private synchronized List<RuleEntry> matchingRules(String recipeId, String stationType) {
-        String normalizedRecipe = Texts.normalizeId(recipeId);
-        String normalizedStation = Texts.normalizeId(stationType);
+    private synchronized List<RuleEntry> matchingRules(String gemId, String socketType) {
+        String normalizedGem = Texts.normalizeId(gemId);
+        String normalizedSocket = Texts.normalizeId(socketType);
         return rules.values().stream()
-                .filter(rule -> rule.recipeIds().isEmpty() || rule.recipeIds().contains(normalizedRecipe))
-                .filter(rule -> rule.stations().isEmpty() || rule.stations().contains(normalizedStation))
+                .filter(rule -> rule.gemIds().isEmpty() || rule.gemIds().contains(normalizedGem))
+                .filter(rule -> rule.socketTypes().isEmpty() || rule.socketTypes().contains(normalizedSocket))
                 .sorted((left, right) -> {
                     int priority = Integer.compare(left.priority(), right.priority());
                     return priority != 0 ? priority : left.id().compareTo(right.id());
@@ -183,7 +187,7 @@ public final class JavaScriptCookingResultRuleRegistry {
             tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
         if (plugin != null) {
-            plugin.getLogger().warning("[JavaScript] Cooking result rule registration failed: " + message);
+            plugin.getLogger().warning("[JavaScript] Gem socket rule registration failed: " + message);
         }
     }
 
@@ -195,31 +199,6 @@ public final class JavaScriptCookingResultRuleRegistry {
         }
     }
 
-    private static List<Map<String, Object>> normalizeOutputs(Iterable<?> rawOutputs) {
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Object raw : rawOutputs) {
-            if (raw instanceof Map<?, ?> rawMap) {
-                Map<String, Object> map = new LinkedHashMap<>();
-                ConfigNodes.entries(rawMap).forEach(map::put);
-                if (!map.isEmpty()) {
-                    result.add(Map.copyOf(map));
-                }
-            }
-        }
-        return List.copyOf(result);
-    }
-
-    private static List<String> strings(Iterable<?> rawActions) {
-        List<String> result = new ArrayList<>();
-        for (Object raw : rawActions) {
-            String text = Texts.toStringSafe(raw);
-            if (Texts.isNotBlank(text)) {
-                result.add(text);
-            }
-        }
-        return List.copyOf(result);
-    }
-
     private static Set<String> normalizedSet(Object raw) {
         Set<String> result = new LinkedHashSet<>();
         for (String value : Texts.asStringList(raw)) {
@@ -227,19 +206,6 @@ public final class JavaScriptCookingResultRuleRegistry {
             if (Texts.isNotBlank(normalized)) {
                 result.add(normalized);
             }
-        }
-        return Set.copyOf(result);
-    }
-
-    // 工位类型别名：把脚本作者可能写的简写映射到正式枚举 folderName，避免 station 过滤不命中。
-    private static final Map<String, String> STATION_ALIASES = Map.of(
-            "fermenter", "fermentation_barrel",
-            "fermentation", "fermentation_barrel");
-
-    private static Set<String> normalizedStationSet(Object raw) {
-        Set<String> result = new LinkedHashSet<>();
-        for (String station : normalizedSet(raw)) {
-            result.add(STATION_ALIASES.getOrDefault(station, station));
         }
         return Set.copyOf(result);
     }
@@ -272,6 +238,17 @@ public final class JavaScriptCookingResultRuleRegistry {
         }
     }
 
+    private static Double number(Object raw) {
+        if (raw instanceof Number number) {
+            return number.doubleValue();
+        }
+        try {
+            return Double.parseDouble(Texts.toStringSafe(raw));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
     private static boolean bool(Object raw, boolean fallback) {
         if (raw instanceof Boolean value) {
             return value;
@@ -294,87 +271,110 @@ public final class JavaScriptCookingResultRuleRegistry {
         return Math.max(0L, (System.nanoTime() - started) / 1_000_000L);
     }
 
-    private record RuleEntry(String id, int priority, Set<String> stations, Set<String> recipeIds, String functionName, String scriptPath, long timeoutMillis) {
+    private record RuleEntry(String id, int priority, Set<String> gemIds, Set<String> socketTypes, String functionName, String scriptPath, long timeoutMillis) {
     }
 
-    public record DeliveryPlan(String recipeId,
-            String recipeName,
-            String stationType,
-            String playerUuid,
+    public record Decision(String playerUuid,
             String playerName,
-            String phase,
-            String world,
-            int x,
-            int y,
-            int z,
-            List<CookingInputIngredient> inputs,
-            List<Map<String, Object>> outputs,
-            List<String> actions,
-            Map<String, ?> placeholders,
-            boolean cancelled,
+            String itemId,
+            int slotIndex,
+            String socketType,
+            String gemId,
+            String gemType,
+            int gemLevel,
+            boolean allowed,
+            double originalSuccessRate,
+            double successRate,
+            String messageKey,
+            String message,
+            List<Map<String, Object>> inlaidGems,
             List<Map<String, Object>> traces) {
 
-        public DeliveryPlan {
-            inputs = inputs == null ? List.of() : List.copyOf(inputs);
-            outputs = outputs == null ? List.of() : List.copyOf(outputs);
-            actions = actions == null ? List.of() : List.copyOf(actions);
-            placeholders = placeholders == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(placeholders));
-            traces = traces == null ? List.of() : List.copyOf(traces);
+        public Decision {
+            inlaidGems = inlaidGems == null ? List.of() : castMapList(ScriptSnapshots.immutableValue(inlaidGems));
+            traces = traces == null ? List.of() : castMapList(ScriptSnapshots.immutableValue(traces));
         }
 
-        public static DeliveryPlan from(RecipeDocument recipe, Player player, Location location, String phase, List<CookingInputIngredient> inputs, List<Map<String, Object>> outputs, List<String> actions, Map<String, ?> placeholders) {
-            return new DeliveryPlan(
-                    recipe == null ? "" : recipe.id(),
-                    recipe == null ? "" : recipe.displayName(),
-                    recipe == null ? "" : recipe.stationType().folderName(),
+        public static Decision from(Player player,
+                GemItemDefinition itemDefinition,
+                GemItemDefinition.SocketSlot slot,
+                int slotIndex,
+                GemDefinition gemDefinition,
+                GemItemInstance instance,
+                double successRate) {
+            return from(player, itemDefinition, slot, slotIndex, gemDefinition, instance, successRate, List.of());
+        }
+
+        public static Decision from(Player player,
+                GemItemDefinition itemDefinition,
+                GemItemDefinition.SocketSlot slot,
+                int slotIndex,
+                GemDefinition gemDefinition,
+                GemItemInstance instance,
+                double successRate,
+                List<Map<String, Object>> inlaidGems) {
+            return new Decision(
                     player == null ? "" : player.getUniqueId().toString(),
                     player == null ? "" : player.getName(),
-                    Texts.toStringSafe(phase),
-                    location == null || location.getWorld() == null ? "" : location.getWorld().getName(),
-                    location == null ? 0 : location.getBlockX(),
-                    location == null ? 0 : location.getBlockY(),
-                    location == null ? 0 : location.getBlockZ(),
-                    inputs,
-                    outputs,
-                    actions,
-                    placeholders,
-                    false,
+                    itemDefinition == null ? "" : itemDefinition.id(),
+                    slotIndex,
+                    slot == null ? "" : slot.type(),
+                    gemDefinition == null ? "" : gemDefinition.id(),
+                    gemDefinition == null ? "" : gemDefinition.gemType(),
+                    instance == null ? 1 : instance.level(),
+                    true,
+                    successRate,
+                    successRate,
+                    "gem.error.condition_not_met",
+                    "",
+                    inlaidGems,
                     List.of()
             );
         }
 
-        DeliveryPlan withValues(List<Map<String, Object>> outputs, List<String> actions, boolean cancelled) {
-            return new DeliveryPlan(recipeId, recipeName, stationType, playerUuid, playerName, phase, world, x, y, z, inputs, outputs, actions, placeholders, cancelled, traces);
+        Decision withValues(boolean allowed, double successRate, String messageKey, String message) {
+            return new Decision(playerUuid, playerName, itemId, slotIndex, socketType, gemId, gemType, gemLevel,
+                    allowed, originalSuccessRate, successRate, Texts.toStringSafe(messageKey), Texts.toStringSafe(message),
+                    inlaidGems, traces);
         }
 
-        DeliveryPlan withTrace(String ruleId, String message) {
+        Decision withTrace(String ruleId, double before, double after, String message) {
             List<Map<String, Object>> updated = new ArrayList<>(traces);
             Map<String, Object> trace = new LinkedHashMap<>();
             trace.put("id", ruleId);
+            trace.put("before", before);
+            trace.put("after", after);
             trace.put("message", Texts.toStringSafe(message));
             updated.add(Map.copyOf(trace));
-            return new DeliveryPlan(recipeId, recipeName, stationType, playerUuid, playerName, phase, world, x, y, z, inputs, outputs, actions, placeholders, cancelled, List.copyOf(updated));
+            return new Decision(playerUuid, playerName, itemId, slotIndex, socketType, gemId, gemType, gemLevel,
+                    allowed, originalSuccessRate, successRate, messageKey, this.message, inlaidGems, List.copyOf(updated));
         }
 
         Map<String, Object> toContext(String ruleId) {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("ruleId", ruleId);
-            map.put("recipeId", recipeId);
-            map.put("recipeName", recipeName);
-            map.put("stationType", stationType);
             map.put("playerUuid", playerUuid);
             map.put("playerName", playerName);
-            map.put("phase", phase);
-            map.put("world", world);
-            map.put("x", x);
-            map.put("y", y);
-            map.put("z", z);
-            map.put("inputs", inputs.stream().map(CookingInputIngredient::toMap).toList());
-            map.put("outputs", outputs);
-            map.put("actions", actions);
-            map.put("placeholders", placeholders);
+            map.put("itemId", itemId);
+            map.put("slotIndex", slotIndex);
+            map.put("socketType", socketType);
+            map.put("gemId", gemId);
+            map.put("gemType", gemType);
+            map.put("gemLevel", gemLevel);
+            map.put("allowed", allowed);
+            map.put("originalSuccessRate", originalSuccessRate);
+            map.put("successRate", successRate);
+            map.put("messageKey", messageKey);
+            map.put("message", message);
+            map.put("inlaidGems", inlaidGems);
+            map.put("inlaidGemCount", inlaidGems.size());
             map.put("traces", traces);
-            return map;
+            return ScriptSnapshots.immutableMap(map);
+        }
+
+        @SuppressWarnings("unchecked")
+        private static List<Map<String, Object>> castMapList(Object value) {
+            return value instanceof List<?> list ? (List<Map<String, Object>>) (List<?>) list : List.of();
         }
     }
 }

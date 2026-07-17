@@ -9,7 +9,6 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
@@ -209,16 +208,14 @@ public final class SkillUpgradeService {
 
         double successRate = preview == null ? 100D : preview.successRate();
         // 技能升级前对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
-            SkillPreUpgradeEvent preUpgradeEvent = new SkillPreUpgradeEvent(
-                    player, definition.id(), currentLevel, targetLevel, maxLevel, successRate);
-            org.bukkit.Bukkit.getPluginManager().callEvent(preUpgradeEvent);
-            if (preUpgradeEvent.isCancelled()) {
-                return UpgradeResult.fail("upgrade.cancelled", placeholders, preview);
-            }
-            successRate = preUpgradeEvent.getSuccessRate();
-            placeholders.put("success_rate", successRate);
+        SkillPreUpgradeEvent preUpgradeEvent = new SkillPreUpgradeEvent(
+                player, definition.id(), currentLevel, targetLevel, maxLevel, successRate);
+        org.bukkit.Bukkit.getPluginManager().callEvent(preUpgradeEvent);
+        if (preUpgradeEvent.isCancelled()) {
+            return UpgradeResult.fail("upgrade.cancelled", placeholders, preview);
         }
+        successRate = preUpgradeEvent.getSuccessRate();
+        placeholders.put("success_rate", successRate);
 
         CostCheckResult costCheck = checkCosts(player, preview);
         if (!costCheck.success()) {
@@ -234,9 +231,25 @@ public final class SkillUpgradeService {
 
         boolean success = roll(successRate);
         boolean downgraded = !success && "downgrade".equals(Texts.lower(upgrade.failurePenalty()));
-        if (success) {
-            levelService.setLevel(player, definition, targetLevel);
+        try {
+            if (success) {
+                levelService.setLevel(player, definition, targetLevel);
+            } else {
+                applyFailurePenalty(player, definition, currentLevel, upgrade.failurePenalty());
+            }
             dataStore.save(player);
+        } catch (RuntimeException | LinkageError exception) {
+            boolean stateRestored = restoreLevelAfterCommitFailure(player, definition, currentLevel);
+            boolean costsRestored = rollbackCharge(player, chargeResult);
+            boolean compensated = stateRestored & costsRestored;
+            logCompensationFailure(player, compensated, "upgrade state commit");
+            placeholders.put("reason", Texts.isBlank(exception.getMessage())
+                    ? exception.getClass().getSimpleName()
+                    : exception.getMessage());
+            return UpgradeResult.fail("upgrade.commit_failed", placeholders, preview);
+        }
+
+        if (success) {
             triggerActions(player, definition, "skill_upgrade_success",
                     upgrade.levels().get(targetLevel) == null
                             ? List.of()
@@ -246,8 +259,6 @@ public final class SkillUpgradeService {
             return UpgradeResult.ok(true, "upgrade.success", placeholders, preview);
         }
 
-        applyFailurePenalty(player, definition, currentLevel, upgrade.failurePenalty());
-        dataStore.save(player);
         triggerActions(player, definition, "skill_upgrade_failure",
                 upgrade.levels().get(targetLevel) == null
                         ? List.of()
@@ -266,9 +277,6 @@ public final class SkillUpgradeService {
             boolean success,
             boolean downgraded) {
         // 技能升级结果对外开放，after 通知；仅主线程派发。
-        if (!org.bukkit.Bukkit.isPrimaryThread()) {
-            return;
-        }
         org.bukkit.Bukkit.getPluginManager().callEvent(new SkillUpgradeEvent(
                 player, definition.id(), fromLevel, toLevel, successRate, success, downgraded));
     }
@@ -344,10 +352,7 @@ public final class SkillUpgradeService {
             return CostCheckResult.fail("upgrade.invalid", Map.of());
         }
         EconomyManager economyManager = economyManager();
-        for (CurrencyCost currency : preview.currencies()) {
-            if (currency.amount() <= 0D) {
-                continue;
-            }
+        for (CurrencyCost currency : aggregateCurrencies(preview.currencies())) {
             if (economyManager == null || economyManager.select(currency.provider(), currency.currencyId()) == null) {
                 return CostCheckResult.fail("upgrade.economy_unavailable", Map.of(
                         "cost", formatCost(currency)
@@ -362,8 +367,8 @@ public final class SkillUpgradeService {
                 ));
             }
         }
-        for (MaterialCost material : preview.materials()) {
-            long available = InventoryItemUtil.countItems(player, itemSourceService, material.item());
+        for (ResolvedMaterialCost material : aggregateMaterials(preview.materials())) {
+            long available = InventoryItemUtil.countItems(player, itemSourceService, material.source());
             if (available < material.amount()) {
                 return CostCheckResult.fail("upgrade.insufficient_materials", Map.of(
                         "material", material.displayName(),
@@ -375,72 +380,221 @@ public final class SkillUpgradeService {
         return CostCheckResult.ok();
     }
 
-    private ChargeResult charge(Player player, UpgradePreview preview) {
-        List<CurrencyCost> chargedCurrencies = new ArrayList<>();
-        List<MaterialCost> chargedMaterials = new ArrayList<>();
+    ChargeResult charge(Player player, UpgradePreview preview) {
+        if (player == null || player.getInventory() == null || preview == null) {
+            return ChargeResult.fail("upgrade.invalid", Map.of(), true);
+        }
+        List<CurrencyCost> currencies = aggregateCurrencies(preview.currencies());
         EconomyManager economyManager = economyManager();
-
-        for (CurrencyCost currency : preview.currencies()) {
-            if (currency.amount() <= 0D) {
-                continue;
+        for (CurrencyCost currency : currencies) {
+            if (economyManager == null || economyManager.select(currency.provider(), currency.currencyId()) == null) {
+                return ChargeResult.fail("upgrade.economy_unavailable", Map.of("cost", formatCost(currency)), true);
             }
-            if (economyManager == null) {
-                refund(player, chargedCurrencies, chargedMaterials);
-                return ChargeResult.fail("upgrade.economy_unavailable", Map.of("cost", formatCost(currency)));
+            double balance = economyManager.getBalance(player, currency.provider(), currency.currencyId());
+            if (balance + 1.0E-9D < currency.amount()) {
+                return ChargeResult.fail("upgrade.insufficient_funds", Map.of(
+                        "cost", formatCost(currency),
+                        "required", formatAmount(currency.amount()),
+                        "balance", formatAmount(balance)
+                ), true);
             }
-            ActionResult result = economyManager.remove(player, currency.provider(), currency.currencyId(), currency.amount());
-            if (!result.success()) {
-                refund(player, chargedCurrencies, chargedMaterials);
-                String messageKey = result.errorType() == ActionErrorType.INSUFFICIENT_BALANCE
-                        ? "upgrade.insufficient_funds"
-                        : "upgrade.economy_unavailable";
-                return ChargeResult.fail(messageKey, Map.of("cost", formatCost(currency)));
-            }
-            chargedCurrencies.add(currency);
         }
 
-        for (MaterialCost material : preview.materials()) {
-            boolean removed = InventoryItemUtil.removeItems(
+        List<MaterialDebit> plannedMaterials = new ArrayList<>();
+        for (ResolvedMaterialCost material : aggregateMaterials(preview.materials())) {
+            InventoryItemUtil.RemovalPlan plan = InventoryItemUtil.planRemoval(
                     player.getInventory(),
                     itemSourceService,
-                    material.item(),
+                    material.source(),
                     material.amount()
             );
-            if (!removed) {
-                refund(player, chargedCurrencies, chargedMaterials);
+            if (!plan.complete()) {
                 return ChargeResult.fail("upgrade.insufficient_materials", Map.of(
                         "material", material.displayName(),
                         "required", material.amount(),
-                        "available", InventoryItemUtil.countItems(player, itemSourceService, material.item())
-                ));
+                        "available", plan.removedAmount()
+                ), true);
             }
-            chargedMaterials.add(material);
+            plannedMaterials.add(new MaterialDebit(material, plan));
         }
 
-        return ChargeResult.ok(chargedCurrencies, chargedMaterials);
+        List<InventoryItemUtil.RemovalPlan> itemDebits = new ArrayList<>();
+        for (MaterialDebit material : plannedMaterials) {
+            boolean applied;
+            try {
+                applied = InventoryItemUtil.applyRemoval(player.getInventory(), material.plan());
+            } catch (RuntimeException | LinkageError exception) {
+                boolean compensated = rollbackItems(player, itemDebits);
+                logCompensationFailure(player, compensated, "material costs");
+                return ChargeResult.fail("upgrade.insufficient_materials", Map.of(
+                        "material", material.cost().displayName(),
+                        "required", material.cost().amount(),
+                        "available", InventoryItemUtil.countItems(player, itemSourceService, material.cost().source())
+                ), compensated);
+            }
+            if (!applied) {
+                boolean compensated = rollbackItems(player, itemDebits);
+                logCompensationFailure(player, compensated, "material costs");
+                return ChargeResult.fail("upgrade.insufficient_materials", Map.of(
+                        "material", material.cost().displayName(),
+                        "required", material.cost().amount(),
+                        "available", InventoryItemUtil.countItems(player, itemSourceService, material.cost().source())
+                ), compensated);
+            }
+            itemDebits.add(material.plan());
+        }
+
+        List<CurrencyDebit> currencyDebits = new ArrayList<>();
+        for (CurrencyCost currency : currencies) {
+            double before;
+            try {
+                before = economyManager.getBalance(player, currency.provider(), currency.currencyId());
+            } catch (RuntimeException | LinkageError exception) {
+                boolean compensated = rollbackCurrencies(player, economyManager, currencyDebits)
+                        & rollbackItems(player, itemDebits);
+                logCompensationFailure(player, compensated, "upgrade costs");
+                return ChargeResult.fail("upgrade.economy_unavailable", Map.of("cost", formatCost(currency)), compensated);
+            }
+            ActionResult result = null;
+            boolean providerFailed = false;
+            boolean balanceReadFailed = false;
+            try {
+                result = economyManager.remove(player, currency.provider(), currency.currencyId(), currency.amount());
+            } catch (RuntimeException | LinkageError exception) {
+                providerFailed = true;
+            }
+            double after = before;
+            try {
+                after = economyManager.getBalance(player, currency.provider(), currency.currencyId());
+            } catch (RuntimeException | LinkageError exception) {
+                providerFailed = true;
+                balanceReadFailed = true;
+            }
+            double debited = balanceReadFailed && result != null && result.success()
+                    ? currency.amount()
+                    : Math.max(0D, before - after);
+            if (debited > 1.0E-9D) {
+                currencyDebits.add(new CurrencyDebit(currency.provider(), currency.currencyId(), debited, before));
+            }
+            if (providerFailed || result == null || !result.success()
+                    || debited + 1.0E-9D < currency.amount()) {
+                boolean compensated = rollbackCurrencies(player, economyManager, currencyDebits)
+                        & rollbackItems(player, itemDebits);
+                logCompensationFailure(player, compensated, "upgrade costs");
+                String messageKey = compensated && result != null
+                        && result.errorType() == ActionErrorType.INSUFFICIENT_BALANCE
+                        ? "upgrade.insufficient_funds"
+                        : "upgrade.economy_unavailable";
+                return ChargeResult.fail(messageKey, Map.of("cost", formatCost(currency)), compensated);
+            }
+        }
+
+        return ChargeResult.committed(new ChargeReceipt(currencyDebits, itemDebits));
     }
 
-    private void refund(Player player, List<CurrencyCost> currencies, List<MaterialCost> materials) {
-        EconomyManager economyManager = economyManager();
-        if (economyManager != null) {
-            for (CurrencyCost currency : currencies) {
-                if (currency != null && currency.amount() > 0D) {
-                    economyManager.add(player, currency.provider(), currency.currencyId(), currency.amount());
-                }
-            }
+    private List<CurrencyCost> aggregateCurrencies(List<CurrencyCost> currencies) {
+        if (currencies == null || currencies.isEmpty()) {
+            return List.of();
         }
+        Map<CurrencyKey, CurrencyCost> aggregated = new LinkedHashMap<>();
+        for (CurrencyCost currency : currencies) {
+            if (currency == null || currency.amount() <= 0D) {
+                continue;
+            }
+            CurrencyKey key = new CurrencyKey(currency.provider(), currency.currencyId());
+            CurrencyCost existing = aggregated.get(key);
+            double amount = existing == null ? currency.amount() : existing.amount() + currency.amount();
+            String displayName = existing == null ? currency.displayName() : existing.displayName();
+            aggregated.put(key, new CurrencyCost(currency.provider(), currency.currencyId(), amount, displayName));
+        }
+        return List.copyOf(aggregated.values());
+    }
+
+    private List<ResolvedMaterialCost> aggregateMaterials(List<MaterialCost> materials) {
+        if (materials == null || materials.isEmpty()) {
+            return List.of();
+        }
+        Map<MaterialKey, ResolvedMaterialCost> aggregated = new LinkedHashMap<>();
         for (MaterialCost material : materials) {
             if (material == null || material.amount() <= 0) {
                 continue;
             }
             ItemSource source = ItemSourceUtil.parse(material.item());
-            ItemStack itemStack = source == null ? null : itemSourceService.createItem(source, material.amount());
-            if (itemStack == null) {
-                continue;
+            MaterialKey key = new MaterialKey(source, source == null ? Texts.lower(material.item()) : "");
+            ResolvedMaterialCost existing = aggregated.get(key);
+            long amount = existing == null
+                    ? material.amount()
+                    : Math.min(Integer.MAX_VALUE, (long) existing.amount() + material.amount());
+            String displayName = existing == null ? material.displayName() : existing.displayName();
+            aggregated.put(key, new ResolvedMaterialCost(source, (int) amount, displayName));
+        }
+        return List.copyOf(aggregated.values());
+    }
+
+    private boolean restoreLevelAfterCommitFailure(Player player,
+            SkillDefinition definition,
+            int previousLevel) {
+        try {
+            levelService.setLevel(player, definition, previousLevel);
+            dataStore.save(player);
+            return true;
+        } catch (RuntimeException | LinkageError exception) {
+            if (plugin != null) {
+                plugin.getLogger().log(Level.SEVERE,
+                        "Failed to restore skill level after upgrade commit failure for "
+                                + (player == null ? "unknown player" : player.getUniqueId()),
+                        exception);
             }
-            player.getInventory().addItem(itemStack)
-                    .values()
-                    .forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+            return false;
+        }
+    }
+
+    private boolean rollbackCharge(Player player, ChargeResult chargeResult) {
+        ChargeReceipt receipt = chargeResult == null ? null : chargeResult.receipt();
+        if (receipt == null) {
+            return true;
+        }
+        EconomyManager economyManager = economyManager();
+        boolean currenciesRestored = receipt.currencyDebits().isEmpty()
+                || economyManager != null
+                && rollbackCurrencies(player, economyManager, receipt.currencyDebits());
+        boolean itemsRestored = rollbackItems(player, receipt.itemDebits());
+        return currenciesRestored & itemsRestored;
+    }
+
+    private boolean rollbackItems(Player player, List<InventoryItemUtil.RemovalPlan> itemDebits) {
+        boolean success = true;
+        for (int index = itemDebits.size() - 1; index >= 0; index--) {
+            try {
+                success &= InventoryItemUtil.rollbackRemoval(player.getInventory(), itemDebits.get(index));
+            } catch (RuntimeException | LinkageError exception) {
+                success = false;
+            }
+        }
+        return success;
+    }
+
+    private boolean rollbackCurrencies(Player player,
+            EconomyManager economyManager,
+            List<CurrencyDebit> currencyDebits) {
+        boolean success = true;
+        for (int index = currencyDebits.size() - 1; index >= 0; index--) {
+            CurrencyDebit debit = currencyDebits.get(index);
+            try {
+                ActionResult result = economyManager.add(player, debit.provider(), debit.currencyId(), debit.amount());
+                double restored = economyManager.getBalance(player, debit.provider(), debit.currencyId());
+                success &= result.success() && Math.abs(restored - debit.balanceBefore()) <= 1.0E-6D;
+            } catch (RuntimeException | LinkageError exception) {
+                success = false;
+            }
+        }
+        return success;
+    }
+
+    private void logCompensationFailure(Player player, boolean compensated, String costType) {
+        if (!compensated && plugin != null) {
+            plugin.getLogger().severe("Failed to fully compensate skill " + costType + " for "
+                    + (player == null ? "unknown player" : player.getUniqueId()));
         }
     }
 
@@ -595,22 +749,54 @@ public final class SkillUpgradeService {
         }
     }
 
-    private record ChargeResult(boolean success,
+    record ChargeResult(boolean success,
             String messageKey,
             Map<String, Object> placeholders,
-            List<CurrencyCost> currencies,
-            List<MaterialCost> materials) {
+            boolean compensationComplete,
+            ChargeReceipt receipt) {
 
-        private static ChargeResult ok(List<CurrencyCost> currencies, List<MaterialCost> materials) {
-            return new ChargeResult(true, "", Map.of(),
-                    currencies == null ? List.of() : List.copyOf(currencies),
-                    materials == null ? List.of() : List.copyOf(materials));
+        private static ChargeResult committed(ChargeReceipt receipt) {
+            return new ChargeResult(true, "", Map.of(), true, receipt);
         }
 
-        private static ChargeResult fail(String messageKey, Map<String, Object> placeholders) {
-            return new ChargeResult(false, messageKey, placeholders == null ? Map.of() : Map.copyOf(placeholders),
-                    List.of(), List.of());
+        private static ChargeResult fail(String messageKey,
+                Map<String, Object> placeholders,
+                boolean compensationComplete) {
+            return new ChargeResult(false,
+                    messageKey,
+                    placeholders == null ? Map.of() : Map.copyOf(placeholders),
+                    compensationComplete,
+                    null);
         }
+    }
+
+    private record ChargeReceipt(List<CurrencyDebit> currencyDebits,
+            List<InventoryItemUtil.RemovalPlan> itemDebits) {
+
+        private ChargeReceipt {
+            currencyDebits = currencyDebits == null ? List.of() : List.copyOf(currencyDebits);
+            itemDebits = itemDebits == null ? List.of() : List.copyOf(itemDebits);
+        }
+    }
+
+    private record CurrencyKey(String provider, String currencyId) {
+
+    }
+
+    private record CurrencyDebit(String provider, String currencyId, double amount, double balanceBefore) {
+
+    }
+
+    private record MaterialKey(ItemSource source, String unresolvedToken) {
+
+    }
+
+    private record ResolvedMaterialCost(ItemSource source, int amount, String displayName) {
+
+    }
+
+    private record MaterialDebit(ResolvedMaterialCost cost, InventoryItemUtil.RemovalPlan plan) {
+
     }
 
     private EconomyManager economyManager() {

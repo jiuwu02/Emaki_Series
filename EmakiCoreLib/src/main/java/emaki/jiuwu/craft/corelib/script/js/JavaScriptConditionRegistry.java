@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
+import emaki.jiuwu.craft.corelib.script.ScriptHostObjectProxy;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTypes;
@@ -101,8 +102,8 @@ public final class JavaScriptConditionRegistry {
         }
         long started = System.nanoTime();
         try {
-            Map<String, Object> safeContext = context == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(context));
-            Map<String, Object> safeArgs = args == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(args));
+            Map<String, Object> safeContext = snapshotMap(context);
+            Map<String, Object> safeArgs = snapshotMap(args);
             ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
                     plugin,
                     null,
@@ -124,6 +125,14 @@ public final class JavaScriptConditionRegistry {
             debug(condition, args, failed, elapsedMillis(started), exception.getMessage());
             return failed;
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> snapshotMap(Map<String, Object> source) {
+        if (source == null || source.isEmpty()) {
+            return Map.of();
+        }
+        return (Map<String, Object>) ScriptHostObjectProxy.snapshotValue(source);
     }
 
     private ConditionResult parseResult(ScriptExecutionResult result) {

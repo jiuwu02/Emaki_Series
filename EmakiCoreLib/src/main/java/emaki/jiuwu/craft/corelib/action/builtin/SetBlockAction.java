@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class SetBlockAction extends BaseAction {
+public final class SetBlockAction extends LocationTargetAction {
 
     public SetBlockAction() {
         super(

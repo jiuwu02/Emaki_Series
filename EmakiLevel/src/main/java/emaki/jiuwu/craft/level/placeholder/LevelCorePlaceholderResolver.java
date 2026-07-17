@@ -63,10 +63,10 @@ public final class LevelCorePlaceholderResolver implements PlaceholderResolver {
         if (type == null) {
             return "0";
         }
-        PlayerLevelData data = plugin.dataStore().getOrLoad(player.getUniqueId(), plugin.typeRegistry().asMap());
-        PlayerLevelEntry entry = data.entry(type.id());
+        PlayerLevelData data = plugin.dataStore().cached(player.getUniqueId());
+        PlayerLevelEntry entry = data == null ? null : data.entry(type.id());
         if (entry == null) {
-            return "0";
+            return "";
         }
         double required = plugin.requirementService().requiredExp(type, entry, Math.min(type.maxLevel(), entry.level() + 1));
         double progress = required <= 0D ? 1D : Math.min(1D, entry.exp() / required);

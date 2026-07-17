@@ -58,6 +58,14 @@ public final class JavaScriptSkillRegistrationApi {
             plugin.messageService().warning("console.js_skill_action_blank_id", Map.of("script", safe(scriptPath)));
             return false;
         }
+        SkillActionExecutionMode executionMode = parseExecutionMode(value(definition, "executionMode", "SYNC"));
+        if (executionMode == SkillActionExecutionMode.ASYNC_IO) {
+            plugin.messageService().warning("console.js_skill_action_register_failed", Map.of(
+                    "id", id,
+                    "error", "JavaScript ASYNC_IO is disabled because owner-domain snapshots cannot be guaranteed"
+            ));
+            return false;
+        }
         JavaScriptSkillAction action = new JavaScriptSkillAction(
                 plugin,
                 javaScriptService,
@@ -66,7 +74,7 @@ public final class JavaScriptSkillRegistrationApi {
                 value(definition, "category", "javascript"),
                 value(definition, "description", id),
                 parseParameters(definition.get("parameters")),
-                parseExecutionMode(value(definition, "executionMode", "SYNC")),
+                executionMode,
                 parseLong(definition.get("timeoutMillis"), scriptConfig.engine().defaultTimeoutMillis()),
                 scriptPath,
                 value(definition, "execute", "execute"),

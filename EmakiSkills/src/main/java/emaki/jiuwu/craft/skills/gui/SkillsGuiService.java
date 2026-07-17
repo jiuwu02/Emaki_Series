@@ -4,12 +4,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiRenderer;
@@ -133,6 +136,34 @@ public final class SkillsGuiService {
     }
 
     public void clearAllSessions() {
+        clearAllSessionsAsync().exceptionally(throwable -> {
+            plugin.getLogger().warning("Failed to close skill GUI sessions: " + throwable.getMessage());
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> clearAllSessionsAsync() {
+        List<CompletableFuture<Void>> closes = new ArrayList<>();
+        for (Player player : List.copyOf(Bukkit.getOnlinePlayers())) {
+            CompletableFuture<Void> close = new CompletableFuture<>();
+            closes.add(close);
+            try {
+                FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                    try {
+                        GuiSession session = guiService.getSession(player.getUniqueId());
+                        if (session != null && session.owner() == plugin) {
+                            guiService.close(player.getUniqueId());
+                        }
+                        close.complete(null);
+                    } catch (Throwable throwable) {
+                        close.completeExceptionally(throwable);
+                    }
+                });
+            } catch (Throwable throwable) {
+                close.completeExceptionally(throwable);
+            }
+        }
+        return CompletableFuture.allOf(closes.toArray(CompletableFuture[]::new));
     }
 
 

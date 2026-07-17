@@ -9,7 +9,9 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -45,6 +47,12 @@ abstract class BaseAction implements Action {
     @Override
     public final List<ActionParameter> parameters() {
         return parameters;
+    }
+
+    @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        Player player = context == null || context.actionContext() == null ? null : context.actionContext().player();
+        return player == null ? ActionExecutionTarget.global() : ActionExecutionTarget.entity(player);
     }
 
     protected Player requirePlayer(ActionContext context) {

@@ -53,7 +53,8 @@ public final class CodexTriggerService {
      * @param variables  domain variables exposed to the condition as {@code %name%} placeholders
      */
     public void fire(Player player, String triggerKey, Map<String, ?> variables) {
-        if (player == null) {
+        if (player == null || !plugin.appConfig().advancementEnabled()
+                || !plugin.appConfig().advancementTriggersEnabled()) {
             return;
         }
         String normalizedTrigger = Texts.normalizeId(triggerKey);

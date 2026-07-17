@@ -1,8 +1,11 @@
-package emaki.jiuwu.craft.strengthen.script.js;
+package emaki.jiuwu.craft.strengthen.script;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -10,10 +13,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
@@ -21,19 +26,21 @@ import emaki.jiuwu.craft.strengthen.model.AttemptResult;
 
 public final class JavaScriptStrengthenResultHookRegistry {
 
-    /** JavaScript registration type id for strengthen result hooks (CoreLib tracks this as a free-form string). */
     private static final String REGISTRATION_TYPE = "strengthen_result_hook";
 
     private final EmakiStrengthenPlugin plugin;
     private final Map<String, HookEntry> hooks = new LinkedHashMap<>();
+    private final AtomicBoolean accepting = new AtomicBoolean(true);
+    private final AtomicInteger inFlight = new AtomicInteger();
+    private final Object drainMonitor = new Object();
 
     public JavaScriptStrengthenResultHookRegistry(EmakiStrengthenPlugin plugin) {
         this.plugin = plugin;
     }
 
     public synchronized boolean register(ScriptModuleContext context, Map<String, ?> definition, JavaScriptRegistrationTracker tracker) {
-        if (definition == null) {
-            recordError(context, tracker, "", "register", "Strengthen result hook cannot be null.");
+        if (definition == null || !accepting.get()) {
+            recordError(context, tracker, "", "register", "Strengthen result hook cannot be registered while frozen.");
             return false;
         }
         String id = Texts.normalizeId(value(definition, "id", ""));
@@ -70,18 +77,59 @@ public final class JavaScriptStrengthenResultHookRegistry {
         return hooks.keySet().stream().sorted().toList();
     }
 
+    /**
+     * Dispatches result hooks asynchronously and returns without waiting for script execution.
+     */
     public void fire(Player player, AttemptResult result) {
-        if (result == null || plugin == null) {
+        if (result == null || plugin == null || !accepting.get()) {
             return;
         }
         EmakiCoreLibPlugin coreLib = coreLib();
-        if (coreLib == null || coreLib.javaScriptService() == null || !coreLib.javaScriptService().enabled()) {
+        AsyncTaskScheduler scheduler = coreLib == null ? null : coreLib.asyncTaskScheduler();
+        if (coreLib == null || scheduler == null || coreLib.javaScriptService() == null
+                || !coreLib.javaScriptService().enabled()) {
             return;
         }
         for (HookEntry hook : hooks()) {
+            if (!accepting.get()) {
+                return;
+            }
             Map<String, Object> context = toContext(hook.id(), player, result);
+            inFlight.incrementAndGet();
+            try {
+                var dispatch = scheduler.runAsync(
+                        "strengthen-result-hook-" + safeId(result.operationId()) + "-" + hook.id(),
+                        () -> invokeHook(coreLib, hook, player, result, context));
+                if (dispatch == null) {
+                    finishInFlight();
+                    plugin.getLogger().warning("[JavaScript] Strengthen result hook dispatch returned no task | operationId="
+                            + safeId(result.operationId()) + " | hook=" + hook.id());
+                    continue;
+                }
+                dispatch.whenComplete((_, throwable) -> {
+                    if (throwable != null) {
+                        plugin.getLogger().warning("[JavaScript] Strengthen result hook dispatch failed | operationId="
+                                + safeId(result.operationId()) + " | hook=" + hook.id() + " | error=" + throwable.getMessage());
+                    }
+                    finishInFlight();
+                });
+            } catch (RuntimeException | LinkageError exception) {
+                finishInFlight();
+                plugin.getLogger().warning("[JavaScript] Strengthen result hook scheduling failed | operationId="
+                        + safeId(result.operationId()) + " | hook=" + hook.id() + " | error=" + exception.getMessage());
+            }
+        }
+    }
+
+    private void invokeHook(EmakiCoreLibPlugin coreLib,
+            HookEntry hook,
+            Player player,
+            AttemptResult result,
+            Map<String, Object> context) {
+        ScriptExecutionResult execution;
+        try {
             ScriptConfig config = coreLib.configModel() == null ? ScriptConfig.defaults() : coreLib.configModel().scriptConfig();
-            ScriptExecutionResult execution = coreLib.javaScriptService().invoke(new ScriptInvocationRequest(
+            execution = coreLib.javaScriptService().invoke(new ScriptInvocationRequest(
                     plugin,
                     null,
                     hook.scriptPath(),
@@ -91,12 +139,18 @@ public final class JavaScriptStrengthenResultHookRegistry {
                     config.clampTimeoutMillis(hook.timeoutMillis()),
                     true
             ));
-            if (execution == null || !execution.success()) {
-                plugin.getLogger().warning("[JavaScript] Strengthen result hook '" + hook.id() + "' failed: " + (execution == null ? "no result" : execution.message()));
-                continue;
-            }
-            executeReturnedActions(coreLib, player, execution.returnValue(), result);
+        } catch (RuntimeException | LinkageError exception) {
+            plugin.getLogger().warning("[JavaScript] Strengthen result hook failed | operationId="
+                    + safeId(result.operationId()) + " | hook=" + hook.id() + " | error=" + exception.getMessage());
+            return;
         }
+        if (execution == null || !execution.success()) {
+            plugin.getLogger().warning("[JavaScript] Strengthen result hook failed | operationId="
+                    + safeId(result.operationId()) + " | hook=" + hook.id() + " | error="
+                    + (execution == null ? "no result" : execution.message()));
+            return;
+        }
+        executeReturnedActions(coreLib, player, execution.returnValue(), result);
     }
 
     private void executeReturnedActions(EmakiCoreLibPlugin coreLib, Player player, Object returnValue, AttemptResult result) {
@@ -112,19 +166,78 @@ public final class JavaScriptStrengthenResultHookRegistry {
             return;
         }
         Map<String, String> placeholders = new LinkedHashMap<>();
+        placeholders.put("operation_id", result.operationId());
+        placeholders.put("strengthen_operation_id", result.operationId());
         placeholders.put("success", Boolean.toString(result.success()));
+        placeholders.put("committed", Boolean.toString(result.committed()));
+        placeholders.put("outcome", result.outcome().name());
         placeholders.put("strengthen_star", Integer.toString(result.resultingStar()));
         placeholders.put("strengthen_temper", Integer.toString(result.resultingCrack()));
         if (result.preview() != null && result.preview().recipe() != null) {
             placeholders.put("strengthen_recipe_id", result.preview().recipe().id());
         }
         ActionContext context = ActionContext.create(plugin, player, "strengthen.result", false)
-                .withPlaceholders(placeholders);
-        actionExecutor.executeAll(context, actions, true).whenComplete((batch, throwable) -> {
-            if (throwable != null) {
-                plugin.getLogger().warning("[JavaScript] Strengthen result hook actions failed: " + throwable.getMessage());
+                .withPlaceholders(placeholders)
+                .withAttribute("operationId", result.operationId())
+                .withAttribute("attemptResult", result);
+        inFlight.incrementAndGet();
+        try {
+            var actionsFuture = actionExecutor.executeAll(context, actions, true);
+            if (actionsFuture == null) {
+                finishInFlight();
+                return;
             }
-        });
+            actionsFuture.whenComplete((_, throwable) -> {
+                if (throwable != null) {
+                    plugin.getLogger().warning("[JavaScript] Strengthen result hook actions failed | operationId="
+                            + safeId(result.operationId()) + " | error=" + throwable.getMessage());
+                }
+                finishInFlight();
+            });
+        } catch (RuntimeException | LinkageError exception) {
+            finishInFlight();
+            throw exception;
+        }
+    }
+
+    private void finishInFlight() {
+        if (inFlight.decrementAndGet() == 0) {
+            synchronized (drainMonitor) {
+                drainMonitor.notifyAll();
+            }
+        }
+    }
+
+    public void freeze() {
+        accepting.set(false);
+    }
+
+    public void resume() {
+        accepting.set(true);
+    }
+
+    public boolean drain(long timeout, TimeUnit unit) {
+        long timeoutNanos = Math.max(0L, unit == null ? 0L : unit.toNanos(timeout));
+        long deadline = System.nanoTime() + timeoutNanos;
+        synchronized (drainMonitor) {
+            while (inFlight.get() > 0) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0L) {
+                    return false;
+                }
+                try {
+                    TimeUnit.NANOSECONDS.timedWait(drainMonitor, remaining);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public int inFlightCount() {
+        return inFlight.get();
     }
 
     private synchronized List<HookEntry> hooks() {
@@ -134,9 +247,13 @@ public final class JavaScriptStrengthenResultHookRegistry {
     private Map<String, Object> toContext(String hookId, Player player, AttemptResult result) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("hookId", hookId);
+        map.put("operationId", result.operationId());
         map.put("playerUuid", player == null ? "" : player.getUniqueId().toString());
         map.put("playerName", player == null ? "" : player.getName());
         map.put("success", result.success());
+        map.put("committed", result.committed());
+        map.put("outcome", result.outcome().name());
+        map.put("compensationPending", result.compensationPending());
         map.put("errorKey", Texts.toStringSafe(result.errorKey()));
         map.put("resultingStar", result.resultingStar());
         map.put("resultingTemper", result.resultingCrack());
@@ -153,7 +270,7 @@ public final class JavaScriptStrengthenResultHookRegistry {
             map.put("maxLevel", result.preview().recipe() != null
                     && result.resultingStar() >= result.preview().recipe().limits().maxStar());
         }
-        return map;
+        return ScriptSnapshots.immutableMap(map);
     }
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
@@ -200,6 +317,10 @@ public final class JavaScriptStrengthenResultHookRegistry {
 
     private static long elapsedMillis(long started) {
         return Math.max(0L, (System.nanoTime() - started) / 1_000_000L);
+    }
+
+    private static String safeId(String operationId) {
+        return Texts.isBlank(operationId) ? "unknown" : operationId.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
     private record HookEntry(String id, String functionName, String scriptPath, long timeoutMillis) {

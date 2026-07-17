@@ -210,6 +210,7 @@ upgrade:
   max_level: "<yellow>Skill <white>%skill%</white> has reached the maximum level
     <gold>%max_level%</gold>.</yellow>"
   economy_unavailable: "<red>Economy service unavailable, cannot deduct %cost%.</red>"
+  commit_failed: "<red>The skill upgrade could not be committed; cost compensation was attempted. Reason: %reason%.</red>"
   insufficient_funds: "<red>Insufficient funds, requires %cost%.</red>"
   insufficient_materials: "<red>Insufficient materials, requires
     <white>%material%</white> x%required%, currently %available%.</red>"

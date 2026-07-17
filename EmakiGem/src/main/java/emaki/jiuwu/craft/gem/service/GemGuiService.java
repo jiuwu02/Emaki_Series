@@ -1,10 +1,14 @@
 package emaki.jiuwu.craft.gem.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiRenderer;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -213,8 +217,60 @@ public final class GemGuiService {
         return stateManager.getUpgrade(player);
     }
 
+    public CompletableFuture<Void> clearAllSessionsAsync() {
+        List<CompletableFuture<Void>> closes = new ArrayList<>();
+        for (Player viewer : stateManager.viewers()) {
+            if (viewer == null) {
+                continue;
+            }
+            if (!FoliaSchedulerAdapter.isFolia() && org.bukkit.Bukkit.isPrimaryThread()) {
+                close(viewer);
+                continue;
+            }
+            if (!viewer.isOnline()) {
+                stateManager.remove(viewer);
+                GuiSession session = guiService.getSession(viewer.getUniqueId());
+                if (session != null) {
+                    guiService.removeSession(viewer.getUniqueId(), session);
+                }
+                continue;
+            }
+            CompletableFuture<Void> closed = new CompletableFuture<>();
+            closes.add(closed);
+            try {
+                Object scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, viewer, () -> {
+                    try {
+                        close(viewer);
+                        closed.complete(null);
+                    } catch (Throwable throwable) {
+                        closed.completeExceptionally(throwable);
+                    }
+                });
+                if (scheduled == null) {
+                    closed.completeExceptionally(new IllegalStateException(
+                            "Viewer owner scheduler rejected gem session close: " + viewer.getUniqueId()));
+                }
+            } catch (Throwable throwable) {
+                closed.completeExceptionally(throwable);
+            }
+        }
+        return CompletableFuture.allOf(closes.toArray(CompletableFuture[]::new))
+                .thenRun(stateManager::clear);
+    }
+
     public void clearAllSessions() {
-        stateManager.clear();
+        if (FoliaSchedulerAdapter.isFolia()) {
+            throw new IllegalStateException("Use clearAllSessionsAsync() on Folia");
+        }
+        clearAllSessionsAsync().join();
+    }
+
+    public void close(Player player) {
+        if (player == null) {
+            return;
+        }
+        guiService.close(player.getUniqueId());
+        stateManager.remove(player);
     }
 
     private GemGuiMode normalizeMode(GemGuiMode mode) {
@@ -224,5 +280,4 @@ public final class GemGuiService {
     private GemGuiMode normalizeGemMode(GemGuiMode mode) {
         return GemGuiMode.INLAY;
     }
-
 }

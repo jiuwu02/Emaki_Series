@@ -107,9 +107,10 @@ final class LevelGuiInteractionController implements GuiSessionHandler {
     }
 
     private void sendInfo(Player player, LevelTypeConfig type) {
-        PlayerLevelData data = plugin.dataStore().getOrLoad(player.getUniqueId(), plugin.typeRegistry().asMap());
-        PlayerLevelEntry entry = data.entry(type.id());
+        PlayerLevelData data = plugin.dataStore().cached(player.getUniqueId());
+        PlayerLevelEntry entry = data == null ? null : data.entry(type.id());
         if (entry == null) {
+            plugin.messages().send(player, "failure.player_data_unavailable");
             return;
         }
         plugin.messages().send(player, "level.info_line", plugin.levelService().displayPlaceholders(type, entry));

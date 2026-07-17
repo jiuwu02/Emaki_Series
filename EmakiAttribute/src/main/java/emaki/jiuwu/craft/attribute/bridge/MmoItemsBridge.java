@@ -158,8 +158,13 @@ public final class MmoItemsBridge implements Listener {
             applyPerfectTakeover(event, damageContext, target, projectile);
             return;
         }
+        double fallbackDamage = Math.max(0D, event.getFinalDamage());
         event.setCancelled(true);
-        resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, projectile);
+        resolveAndApplyDamage(
+                attributeService.resolveDamageApplicationAsync(damageContext),
+                target,
+                projectile,
+                fallbackDamage);
     }
 
     private void applyPerfectTakeover(EntityDamageEvent event, DamageContext damageContext, LivingEntity target, Entity visualSource) {
@@ -193,17 +198,59 @@ public final class MmoItemsBridge implements Listener {
         return null;
     }
 
-    private void resolveAndApplyDamage(CompletableFuture<ResolvedDamage> future, LivingEntity target, Entity visualSource) {
+    private void resolveAndApplyDamage(CompletableFuture<ResolvedDamage> future,
+            LivingEntity target,
+            Entity visualSource,
+            double fallbackDamage) {
         if (future == null) {
+            applyFallbackDamage(target, fallbackDamage);
             return;
         }
-        future.whenComplete((resolvedDamage, throwable) -> FoliaSchedulerAdapter.runEntityTask(plugin, target, () -> {
-            if (throwable != null || resolvedDamage == null || target == null || !target.isValid() || target.isDead()) {
-                return;
+        future.thenCompose(resolvedDamage -> {
+            if (resolvedDamage == null || target == null) {
+                return applyFallbackDamage(target, fallbackDamage);
             }
-            CombatSupport.applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage(), attributeService.config());
-            attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
-        }));
+            return attributeService.applyResolvedDamageAsync(resolvedDamage, visualSource, 0D);
+        }).exceptionallyCompose(throwable -> applyFallbackDamage(target, fallbackDamage));
+    }
+
+    private CompletableFuture<Boolean> applyFallbackDamage(LivingEntity target, double damage) {
+        if (target == null || damage <= 0D) {
+            return CompletableFuture.completedFuture(false);
+        }
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, target, () -> {
+                if (!target.isValid() || target.isDead()) {
+                    future.complete(false);
+                    return;
+                }
+                try {
+                    target.setNoDamageTicks(0);
+                    double remaining = Math.max(0D, damage);
+                    double absorption = Math.max(0D, target.getAbsorptionAmount());
+                    if (absorption > 0D) {
+                        double absorbed = Math.min(absorption, remaining);
+                        target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
+                        remaining -= absorbed;
+                    }
+                    target.setLastDamage(damage);
+                    if (remaining > 0D) {
+                        target.setHealth(Math.max(0D, target.getHealth() - remaining));
+                    }
+                    future.complete(true);
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+            if (scheduled == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "MMOItems fallback damage scheduling was rejected."));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
     }
 
     private void warnBridgeUnavailable(String error) {

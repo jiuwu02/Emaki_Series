@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.codex;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -24,6 +26,7 @@ import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
 import emaki.jiuwu.craft.codex.listener.PlayerConnectionListener;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -236,18 +239,71 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         @Override
         public boolean grantAdvancement(UUID player, String advancementId) {
             Player target = resolveOnline(player);
-            return target != null && advancementService.grant(target, advancementId);
+            return target != null && ownsWriteTarget(target) && advancementService.grant(target, advancementId);
         }
 
         @Override
         public boolean revokeAdvancement(UUID player, String advancementId) {
             Player target = resolveOnline(player);
-            return target != null && advancementService.revoke(target, advancementId);
+            return target != null && ownsWriteTarget(target) && advancementService.revoke(target, advancementId);
+        }
+
+        @Override
+        public CompletableFuture<Boolean> grantAdvancementAsync(UUID player, String advancementId) {
+            Player target = resolveOnline(player);
+            return runOwnerWriteAsync(target, () -> advancementService.grant(target, advancementId));
+        }
+
+        @Override
+        public CompletableFuture<Boolean> revokeAdvancementAsync(UUID player, String advancementId) {
+            Player target = resolveOnline(player);
+            return runOwnerWriteAsync(target, () -> advancementService.revoke(target, advancementId));
         }
 
         private Player resolveOnline(UUID player) {
             return player == null ? null : Bukkit.getPlayer(player);
         }
+    }
+
+    private boolean ownsWriteTarget(Player target) {
+        if (target == null || !target.isOnline()) {
+            return false;
+        }
+        if (!FoliaSchedulerAdapter.isFolia()) {
+            return Bukkit.isPrimaryThread();
+        }
+        try {
+            return Boolean.TRUE.equals(Bukkit.class
+                    .getMethod("isOwnedByCurrentRegion", org.bukkit.entity.Entity.class)
+                    .invoke(null, target));
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private CompletableFuture<Boolean> runOwnerWriteAsync(Player target, Supplier<Boolean> operation) {
+        if (target == null || !target.isOnline()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (ownsWriteTarget(target)) {
+            return CompletableFuture.completedFuture(operation.get());
+        }
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            Object scheduled = FoliaSchedulerAdapter.runEntityTask(this, target, () -> {
+                try {
+                    future.complete(operation.get());
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+            if (scheduled == null) {
+                future.complete(false);
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
     }
 
     private static final class PaperCommandAdapter implements BasicCommand {

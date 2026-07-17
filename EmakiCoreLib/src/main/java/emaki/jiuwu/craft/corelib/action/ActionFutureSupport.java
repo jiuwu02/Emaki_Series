@@ -15,30 +15,50 @@ final class ActionFutureSupport {
     static CompletableFuture<ActionResult> withTimeout(ActionContext context,
             String actionId,
             CompletableFuture<ActionResult> future) {
-        long timeoutMillis = resolveTimeoutMillis(context);
-        return future.completeOnTimeout(
-                ActionResult.failure(
-                        ActionErrorType.EXECUTION_EXCEPTION,
-                        "Action '" + Texts.toStringSafe(actionId) + "' timed out after " + timeoutMillis + " ms."
-                ),
-                timeoutMillis,
-                TimeUnit.MILLISECONDS
-        );
+        return withTimeout(context, actionId, DEFAULT_TIMEOUT_MILLIS, future);
     }
 
-    private static long resolveTimeoutMillis(ActionContext context) {
-        if (context == null) {
-            return DEFAULT_TIMEOUT_MILLIS;
+    static CompletableFuture<ActionResult> withTimeout(ActionContext context,
+            String actionId,
+            long configuredTimeoutMillis,
+            CompletableFuture<ActionResult> future) {
+        if (future == null) {
+            return CompletableFuture.completedFuture(ActionResult.failure(
+                    ActionErrorType.EXECUTION_EXCEPTION,
+                    "Action '" + Texts.toStringSafe(actionId) + "' returned no future."));
         }
-        long timeoutMillis = parsePositiveLong(context.attribute("action_timeout_millis"));
-        if (timeoutMillis > 0L) {
-            return timeoutMillis;
+        long timeoutMillis = resolveTimeoutMillis(context, configuredTimeoutMillis);
+        CompletableFuture<ActionResult> result = new CompletableFuture<>();
+        future.whenComplete((value, throwable) -> {
+            if (throwable != null) {
+                result.completeExceptionally(throwable);
+            } else {
+                result.complete(value == null ? ActionResult.ok() : value);
+            }
+        });
+        CompletableFuture.delayedExecutor(timeoutMillis, TimeUnit.MILLISECONDS).execute(() -> {
+            ActionResult timeout = ActionResult.failure(
+                    ActionErrorType.EXECUTION_EXCEPTION,
+                    "Action '" + Texts.toStringSafe(actionId) + "' timed out after " + timeoutMillis + " ms.");
+            if (result.complete(timeout)) {
+                future.cancel(true);
+            }
+        });
+        return result;
+    }
+
+    private static long resolveTimeoutMillis(ActionContext context, long configuredTimeoutMillis) {
+        if (context != null) {
+            long timeoutMillis = parsePositiveLong(context.attribute("action_timeout_millis"));
+            if (timeoutMillis > 0L) {
+                return timeoutMillis;
+            }
+            long timeoutSeconds = parsePositiveLong(context.attribute("action_timeout_seconds"));
+            if (timeoutSeconds > 0L) {
+                return Math.multiplyExact(timeoutSeconds, 1_000L);
+            }
         }
-        long timeoutSeconds = parsePositiveLong(context.attribute("action_timeout_seconds"));
-        if (timeoutSeconds > 0L) {
-            return timeoutSeconds * 1_000L;
-        }
-        return DEFAULT_TIMEOUT_MILLIS;
+        return configuredTimeoutMillis > 0L ? configuredTimeoutMillis : DEFAULT_TIMEOUT_MILLIS;
     }
 
     private static long parsePositiveLong(Object raw) {

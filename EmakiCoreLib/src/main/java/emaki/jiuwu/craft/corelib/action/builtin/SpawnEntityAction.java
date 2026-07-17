@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class SpawnEntityAction extends BaseAction {
+public final class SpawnEntityAction extends LocationTargetAction {
 
     public SpawnEntityAction() {
         super(

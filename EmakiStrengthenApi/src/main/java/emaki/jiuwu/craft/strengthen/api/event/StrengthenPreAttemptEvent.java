@@ -26,6 +26,7 @@ public final class StrengthenPreAttemptEvent extends Event implements Cancellabl
     private final String recipeId;
     private final int currentStar;
     private final int targetStar;
+    private final String operationId;
     private double successRate;
     private boolean cancelled;
 
@@ -45,12 +46,26 @@ public final class StrengthenPreAttemptEvent extends Event implements Cancellabl
             int currentStar,
             int targetStar,
             double successRate) {
+        this(player, targetItem, recipeId, currentStar, targetStar, successRate, "");
+    }
+
+    /**
+     * Creates a pre-attempt event with an operation id.
+     */
+    public StrengthenPreAttemptEvent(Player player,
+            ItemStack targetItem,
+            String recipeId,
+            int currentStar,
+            int targetStar,
+            double successRate,
+            String operationId) {
         this.player = player;
-        this.targetItem = targetItem;
+        this.targetItem = cloneItem(targetItem);
         this.recipeId = recipeId;
         this.currentStar = currentStar;
         this.targetStar = targetStar;
-        this.successRate = successRate;
+        this.successRate = sanitizeRate(successRate);
+        this.operationId = operationId == null ? "" : operationId.trim();
     }
 
     /** {@return the player performing the attempt} */
@@ -58,9 +73,12 @@ public final class StrengthenPreAttemptEvent extends Event implements Cancellabl
         return player;
     }
 
-    /** {@return the item being strengthened, or {@code null}} */
+    /**
+     * Returns a defensive copy of the item being strengthened. Mutating it does
+     * not change the real attempt input.
+     */
     public ItemStack getTargetItem() {
-        return targetItem;
+        return cloneItem(targetItem);
     }
 
     /** {@return the strengthen recipe id, or {@code null}} */
@@ -89,7 +107,23 @@ public final class StrengthenPreAttemptEvent extends Event implements Cancellabl
      * @param successRate the new success rate in percent (0-100)
      */
     public void setSuccessRate(double successRate) {
-        this.successRate = successRate;
+        this.successRate = sanitizeRate(successRate);
+    }
+
+    /** {@return the operation id used for tracing and idempotency} */
+    public String getOperationId() {
+        return operationId;
+    }
+
+    private static double sanitizeRate(double value) {
+        if (!Double.isFinite(value)) {
+            return 0D;
+        }
+        return Math.max(0D, Math.min(100D, value));
+    }
+
+    private static ItemStack cloneItem(ItemStack itemStack) {
+        return itemStack == null || itemStack.isEmpty() ? null : itemStack.clone();
     }
 
     @Override

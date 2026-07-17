@@ -7,6 +7,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record WebConsoleConfig(
         boolean enabled,
+        boolean runtimeOptIn,
         String host,
         int port,
         boolean publicAccessWarning,
@@ -18,6 +19,7 @@ public record WebConsoleConfig(
 
     public static WebConsoleConfig defaults() {
         return new WebConsoleConfig(
+                false,
                 false,
                 "127.0.0.1",
                 38765,
@@ -40,6 +42,7 @@ public record WebConsoleConfig(
         YamlSection historySection = section.getSection("history");
         return new WebConsoleConfig(
                 section.getBoolean("enabled", defaults.enabled()),
+                section.getBoolean("runtime_opt_in", defaults.runtimeOptIn()),
                 safeString(section.getString("host", defaults.host()), defaults.host()),
                 clampPort(section.getInt("port", defaults.port())),
                 section.getBoolean("public_access_warning", defaults.publicAccessWarning()),
@@ -50,8 +53,33 @@ public record WebConsoleConfig(
         );
     }
 
+    public boolean runtimeEnabled() {
+        return enabled && runtimeOptIn;
+    }
+
+    public boolean isLoopbackOnly() {
+        if (Texts.isBlank(host)) {
+            return false;
+        }
+        String normalized = host.trim().toLowerCase(java.util.Locale.ROOT);
+        return normalized.startsWith("127.")
+                || "localhost".equals(normalized)
+                || "::1".equals(normalized)
+                || "[::1]".equals(normalized)
+                || "0:0:0:0:0:0:0:1".equals(normalized);
+    }
+
+    public boolean isReadOnly() {
+        return security != null && security.mode() == SecurityMode.READONLY;
+    }
+
     public boolean hasUnsafeDefaultPassword() {
-        return auth == null || Texts.isBlank(auth.password()) || "change-me".equals(auth.password());
+        if (auth == null || Texts.isBlank(auth.password())) {
+            return true;
+        }
+        String password = auth.password().trim();
+        return "change-me".equalsIgnoreCase(password)
+                || "EmakiAdminPassword".equals(password);
     }
 
     private static String safeString(String value, String fallback) {

@@ -42,7 +42,7 @@ public final class ItemSourceService {
 
     @Nullable
     public ItemSource identifyItem(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
+        if (itemStack == null || itemStack.isEmpty()) {
             return null;
         }
         for (ItemSourceResolver resolver : orderedResolvers) {
@@ -195,7 +195,7 @@ public final class ItemSourceService {
 
         @Override
         public ItemSource identify(ItemStack itemStack) {
-            if (itemStack == null || itemStack.getType().isAir()) {
+            if (itemStack == null || itemStack.isEmpty()) {
                 return null;
             }
             return new ItemSource(ItemSourceType.VANILLA, itemStack.getType().name().toLowerCase(java.util.Locale.ROOT));

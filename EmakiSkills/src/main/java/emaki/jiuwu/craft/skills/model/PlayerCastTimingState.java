@@ -67,4 +67,12 @@ public final class PlayerCastTimingState {
         globalCooldownUntil = 0L;
         skillCooldownUntilBySkillId.clear();
     }
+
+    public PlayerCastTimingState copy() {
+        PlayerCastTimingState copy = new PlayerCastTimingState();
+        copy.forcedGlobalCastDelayUntil = forcedGlobalCastDelayUntil;
+        copy.globalCooldownUntil = globalCooldownUntil;
+        copy.skillCooldownUntilBySkillId.putAll(skillCooldownUntilBySkillId);
+        return copy;
+    }
 }

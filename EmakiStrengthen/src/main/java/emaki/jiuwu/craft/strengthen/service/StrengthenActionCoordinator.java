@@ -32,8 +32,18 @@ public final class StrengthenActionCoordinator {
             ItemStack resultItem,
             int star,
             int temper) {
+        triggerSuccessActions(player, recipe, resultSlotId, resultItem, star, temper, "");
+    }
+
+    public void triggerSuccessActions(Player player,
+            StrengthenRecipe recipe,
+            String resultSlotId,
+            ItemStack resultItem,
+            int star,
+            int temper,
+            String operationId) {
         triggerActions(player, recipe, recipe == null ? List.of() : recipe.successActionsForTargetStar(star),
-                "strengthen_success", resultSlotId, resultItem, star, temper, false, false, star);
+                "strengthen_success", resultSlotId, resultItem, star, temper, false, false, star, operationId);
     }
 
     public void triggerFailureActions(Player player,
@@ -45,8 +55,23 @@ public final class StrengthenActionCoordinator {
             int temper,
             boolean dropped,
             boolean protectionApplied) {
+        triggerFailureActions(player, recipe, resultSlotId, resultItem, wasStar, resultStar, temper,
+                dropped, protectionApplied, "");
+    }
+
+    public void triggerFailureActions(Player player,
+            StrengthenRecipe recipe,
+            String resultSlotId,
+            ItemStack resultItem,
+            int wasStar,
+            int resultStar,
+            int temper,
+            boolean dropped,
+            boolean protectionApplied,
+            String operationId) {
         triggerActions(player, recipe, recipe == null ? List.of() : recipe.failureActionsForResultStar(resultStar),
-                "strengthen_failure", resultSlotId, resultItem, resultStar, temper, dropped, protectionApplied, wasStar);
+                "strengthen_failure", resultSlotId, resultItem, resultStar, temper, dropped, protectionApplied,
+                wasStar, operationId);
     }
 
     private void triggerActions(Player player,
@@ -59,13 +84,16 @@ public final class StrengthenActionCoordinator {
             int temper,
             boolean dropped,
             boolean protectionApplied,
-            int wasStar) {
+            int wasStar,
+            String operationId) {
         ActionExecutor actionExecutor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
         if (actionExecutor == null || recipe == null || player == null || actions == null || actions.isEmpty()) {
             return;
         }
         String showItem = buildShowItem(resultItem);
         Map<String, String> placeholders = new LinkedHashMap<>();
+        placeholders.put("operation_id", operationId == null ? "" : operationId);
+        placeholders.put("strengthen_operation_id", operationId == null ? "" : operationId);
         placeholders.put("strengthen_recipe_id", recipe.id());
         placeholders.put("strengthen_recipe", recipe.displayName());
         placeholders.put("strengthen_star", Integer.toString(star));
@@ -81,6 +109,7 @@ public final class StrengthenActionCoordinator {
         placeholders.put("strengthen_max_star", Integer.toString(recipe.limits().maxStar()));
         placeholders.put("strengthen_success_rate", resolveSuccessRate(recipe, wasStar, temper));
         Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("operationId", operationId == null ? "" : operationId);
         attributes.put("recipe", recipe);
         attributes.put("recipe_id", recipe.id());
         attributes.put("resultItem", resultItem);
@@ -92,16 +121,18 @@ public final class StrengthenActionCoordinator {
         attributes.put("was_star", wasStar);
         ActionContext context = new ActionContext(plugin, player, phase, false, placeholders, attributes);
         actionExecutor.executeAll(context, actions, true)
-                .whenComplete((result, throwable) -> logActionResult(recipe, phase, star, result, throwable));
+                .whenComplete((result, throwable) -> logActionResult(recipe, phase, star, operationId, result, throwable));
     }
 
     private void logActionResult(StrengthenRecipe recipe,
             String phase,
             int star,
+            String operationId,
             ActionBatchResult result,
             Throwable throwable) {
         if (throwable != null) {
             plugin.messageService().warning("console.recipe_action_failed", Map.of(
+                    "operation_id", operationId == null ? "" : operationId,
                     "recipe", recipe == null ? "-" : recipe.id(),
                     "phase", phase,
                     "star", star,
@@ -114,6 +145,7 @@ public final class StrengthenActionCoordinator {
         }
         var firstFailure = result.firstFailure();
         plugin.messageService().warning("console.recipe_action_failed", Map.of(
+                "operation_id", operationId == null ? "" : operationId,
                 "recipe", recipe == null ? "-" : recipe.id(),
                 "phase", phase,
                 "star", star,

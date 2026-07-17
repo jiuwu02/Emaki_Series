@@ -2,8 +2,11 @@ package emaki.jiuwu.craft.corelib.async;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Executors;
@@ -11,6 +14,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,18 +44,23 @@ public final class AsyncTaskScheduler implements AutoCloseable {
     }
 
     private static final long DEFAULT_TIMEOUT_MILLIS = 30_000L;
+    private static final int DEFAULT_MAX_QUEUED_TASKS = Integer.getInteger(
+            "emaki.async.maxQueuedTasks", 10_000);
 
     private final ThreadPoolExecutor executor;
     private final ScheduledExecutorService timeoutExecutor;
     private final Executor syncExecutor;
     private final long defaultTimeoutMillis;
+    private final int maxQueuedTasks;
     private final PerformanceMonitor performanceMonitor;
+    private final AtomicBoolean acceptingTasks = new AtomicBoolean(true);
     private final AtomicLong submitted = new AtomicLong();
     private final AtomicLong completed = new AtomicLong();
     private final AtomicLong failed = new AtomicLong();
     private final AtomicLong timedOut = new AtomicLong();
     private final AtomicInteger activeTasks = new AtomicInteger();
     private final AtomicLong sequence = new AtomicLong();
+    private final ConcurrentMap<CompletableFuture<?>, ScheduledFuture<?>> delayedTasks = new ConcurrentHashMap<>();
 
     public AsyncTaskScheduler(Executor syncExecutor,
             int threadCount,
@@ -108,10 +117,21 @@ public final class AsyncTaskScheduler implements AutoCloseable {
             Executor syncExecutor,
             long defaultTimeoutMillis,
             PerformanceMonitor performanceMonitor) {
+        this(executor, timeoutExecutor, syncExecutor, defaultTimeoutMillis,
+                performanceMonitor, DEFAULT_MAX_QUEUED_TASKS);
+    }
+
+    public AsyncTaskScheduler(ThreadPoolExecutor executor,
+            ScheduledExecutorService timeoutExecutor,
+            Executor syncExecutor,
+            long defaultTimeoutMillis,
+            PerformanceMonitor performanceMonitor,
+            int maxQueuedTasks) {
         this.executor = Objects.requireNonNull(executor, "executor");
         this.timeoutExecutor = Objects.requireNonNull(timeoutExecutor, "timeoutExecutor");
         this.syncExecutor = syncExecutor == null ? Runnable::run : syncExecutor;
         this.defaultTimeoutMillis = defaultTimeoutMillis <= 0L ? DEFAULT_TIMEOUT_MILLIS : defaultTimeoutMillis;
+        this.maxQueuedTasks = Math.max(0, maxQueuedTasks);
         this.performanceMonitor = performanceMonitor;
         this.executor.allowCoreThreadTimeOut(false);
     }
@@ -126,8 +146,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
                 return;
             }
             if (plugin == null || !plugin.isEnabled()) {
-                runnable.run();
-                return;
+                throw new RejectedExecutionException("Plugin is disabled; sync dispatch rejected");
             }
             FoliaSchedulerAdapter.runTask(plugin, runnable);
         };
@@ -141,8 +160,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
                 return;
             }
             if (plugin == null || !plugin.isEnabled()) {
-                runnable.run();
-                return;
+                throw new RejectedExecutionException("Plugin is disabled; sync dispatch rejected");
             }
             FoliaSchedulerAdapter.runTask(plugin, runnable);
         };
@@ -163,6 +181,14 @@ public final class AsyncTaskScheduler implements AutoCloseable {
             long timeoutMillis,
             Supplier<T> supplier) {
         Objects.requireNonNull(supplier, "supplier");
+        if (!acceptingTasks.get()) {
+            return CompletableFuture.failedFuture(new RejectedExecutionException("Async scheduler is shutting down"));
+        }
+        if (asyncQueueFull()) {
+            failed.incrementAndGet();
+            return CompletableFuture.failedFuture(new RejectedExecutionException(
+                    "Async task queue is full for task: " + safeTaskName(taskName)));
+        }
         submitted.incrementAndGet();
         activeTasks.incrementAndGet();
         CompletableFuture<T> future = new CompletableFuture<>();
@@ -173,24 +199,40 @@ public final class AsyncTaskScheduler implements AutoCloseable {
                 supplier,
                 future
         );
-        executor.execute(task);
-        ScheduledFuture<?> timeout = timeoutMillis <= 0L ? null : timeoutExecutor.schedule(() -> {
-            TimeoutException exception = new TimeoutException("Async task timed out: " + taskName);
-            if (future.isDone()) {
-                return;
-            }
-            timedOut.incrementAndGet();
-            if (!future.completeExceptionally(exception)) {
-                timedOut.decrementAndGet();
-                return;
-            }
+        future.whenComplete((_, throwable) -> activeTasks.decrementAndGet());
+        try {
+            executor.execute(task);
+        } catch (Throwable throwable) {
+            failed.incrementAndGet();
+            future.completeExceptionally(throwable);
+            return future;
+        }
+        if (timeoutMillis <= 0L) {
+            return future;
+        }
+        ScheduledFuture<?> timeout;
+        try {
+            timeout = timeoutExecutor.schedule(() -> {
+                TimeoutException exception = new TimeoutException("Async task timed out: " + taskName);
+                if (future.isDone()) {
+                    return;
+                }
+                timedOut.incrementAndGet();
+                if (!future.completeExceptionally(exception)) {
+                    timedOut.decrementAndGet();
+                    return;
+                }
+                executor.remove(task);
+                task.cancel();
+            }, timeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (Throwable throwable) {
             executor.remove(task);
             task.cancel();
-        }, timeoutMillis, TimeUnit.MILLISECONDS);
-        if (timeout != null) {
-            future.whenComplete((_, throwable) -> timeout.cancel(false));
+            failed.incrementAndGet();
+            future.completeExceptionally(throwable);
+            return future;
         }
-        future.whenComplete((_, throwable) -> activeTasks.decrementAndGet());
+        future.whenComplete((_, throwable) -> timeout.cancel(false));
         return future;
     }
 
@@ -206,20 +248,77 @@ public final class AsyncTaskScheduler implements AutoCloseable {
         });
     }
 
+    public <T> CompletableFuture<T> schedule(String taskName,
+            long delayMillis,
+            long timeoutMillis,
+            TaskPriority priority,
+            Supplier<T> supplier) {
+        Objects.requireNonNull(supplier, "supplier");
+        if (!acceptingTasks.get()) {
+            return CompletableFuture.failedFuture(new RejectedExecutionException("Async scheduler is shutting down"));
+        }
+        if (delayedQueueFull()) {
+            failed.incrementAndGet();
+            return CompletableFuture.failedFuture(new RejectedExecutionException(
+                    "Async delayed task queue is full for task: " + safeTaskName(taskName)));
+        }
+        CompletableFuture<T> result = new CompletableFuture<>();
+        try {
+            ScheduledFuture<?> scheduled = timeoutExecutor.schedule(() -> {
+                delayedTasks.remove(result);
+                if (!acceptingTasks.get()) {
+                    result.completeExceptionally(new RejectedExecutionException("Async scheduler is shutting down"));
+                    return;
+                }
+                supplyAsync(taskName, priority, timeoutMillis, supplier)
+                        .whenComplete((value, throwable) -> {
+                            if (throwable == null) {
+                                result.complete(value);
+                            } else {
+                                result.completeExceptionally(throwable);
+                            }
+                        });
+            }, Math.max(0L, delayMillis), TimeUnit.MILLISECONDS);
+            delayedTasks.put(result, scheduled);
+            if (result.isDone()) {
+                delayedTasks.remove(result, scheduled);
+            }
+        } catch (Throwable throwable) {
+            result.completeExceptionally(throwable);
+        }
+        return result;
+    }
+
+    private boolean asyncQueueFull() {
+        return executor.getActiveCount() >= executor.getMaximumPoolSize()
+                && executor.getQueue().size() >= maxQueuedTasks;
+    }
+
+    private boolean delayedQueueFull() {
+        return delayedTasks.size() >= maxQueuedTasks;
+    }
+
     public <T> CompletableFuture<T> callSync(String taskName, Supplier<T> supplier) {
         Objects.requireNonNull(supplier, "supplier");
+        if (!acceptingTasks.get()) {
+            return CompletableFuture.failedFuture(new RejectedExecutionException("Async scheduler is shutting down"));
+        }
         CompletableFuture<T> future = new CompletableFuture<>();
-        syncExecutor.execute(() -> {
-            long startedAt = System.nanoTime();
-            try {
-                T value = supplier.get();
-                recordPerformance("async-task:sync:" + safeTaskName(taskName), System.nanoTime() - startedAt, true);
-                future.complete(value);
-            } catch (Throwable throwable) {
-                recordPerformance("async-task:sync:" + safeTaskName(taskName), System.nanoTime() - startedAt, false);
-                future.completeExceptionally(throwable);
-            }
-        });
+        try {
+            syncExecutor.execute(() -> {
+                long startedAt = System.nanoTime();
+                try {
+                    T value = supplier.get();
+                    recordPerformance("async-task:sync:" + safeTaskName(taskName), System.nanoTime() - startedAt, true);
+                    future.complete(value);
+                } catch (Throwable throwable) {
+                    recordPerformance("async-task:sync:" + safeTaskName(taskName), System.nanoTime() - startedAt, false);
+                    future.completeExceptionally(throwable);
+                }
+            });
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
         return future;
     }
 
@@ -235,30 +334,45 @@ public final class AsyncTaskScheduler implements AutoCloseable {
     }
 
     public void shutdown(long timeoutMillis) {
+        shutdownGracefully(timeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public boolean shutdownGracefully(long timeout, TimeUnit unit) {
+        Objects.requireNonNull(unit, "unit");
+        acceptingTasks.set(false);
+        RejectedExecutionException shutdownFailure = new RejectedExecutionException("Async scheduler is shutting down");
+        delayedTasks.forEach((future, scheduled) -> {
+            scheduled.cancel(false);
+            future.completeExceptionally(shutdownFailure);
+        });
+        delayedTasks.clear();
         if (!executor.isShutdown()) {
             int poolSize = executor.getCorePoolSize();
             for (int i = 0; i < poolSize; i++) {
                 try {
                     executor.execute(new ComparableRunnable(ExpressionEngine::clearThreadLocalCache));
-                } catch (java.util.concurrent.RejectedExecutionException | ClassCastException _) {
+                } catch (RejectedExecutionException | ClassCastException _) {
                     break;
                 }
             }
         }
+        long timeoutNanos = Math.max(1L, unit.toNanos(timeout));
+        long deadline = System.nanoTime() + timeoutNanos;
         executor.shutdown();
-        timeoutExecutor.shutdown();
         try {
-            long waitMillis = Math.max(1L, timeoutMillis);
-            if (!executor.awaitTermination(waitMillis, TimeUnit.MILLISECONDS)) {
+            boolean executorTerminated = executor.awaitTermination(timeoutNanos, TimeUnit.NANOSECONDS);
+            if (!executorTerminated) {
                 executor.shutdownNow();
             }
-            if (!timeoutExecutor.awaitTermination(waitMillis, TimeUnit.MILLISECONDS)) {
-                timeoutExecutor.shutdownNow();
-            }
+            timeoutExecutor.shutdownNow();
+            long remainingNanos = Math.max(1L, deadline - System.nanoTime());
+            boolean timeoutExecutorTerminated = timeoutExecutor.awaitTermination(remainingNanos, TimeUnit.NANOSECONDS);
+            return executorTerminated && timeoutExecutorTerminated;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             executor.shutdownNow();
             timeoutExecutor.shutdownNow();
+            return false;
         }
     }
 

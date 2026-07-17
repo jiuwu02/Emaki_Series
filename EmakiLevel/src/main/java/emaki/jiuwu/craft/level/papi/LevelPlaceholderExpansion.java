@@ -63,8 +63,8 @@ public final class LevelPlaceholderExpansion extends PlaceholderExpansion {
         if (type == null) {
             return "";
         }
-        PlayerLevelData data = plugin.dataStore().getOrLoad(player.getUniqueId(), plugin.typeRegistry().asMap());
-        PlayerLevelEntry entry = data.entry(type.id());
+        PlayerLevelData data = plugin.dataStore().cached(player.getUniqueId());
+        PlayerLevelEntry entry = data == null ? null : data.entry(type.id());
         if (entry == null) {
             return "";
         }

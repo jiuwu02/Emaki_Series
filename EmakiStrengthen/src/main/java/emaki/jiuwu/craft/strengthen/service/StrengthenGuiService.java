@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.strengthen.service;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
@@ -24,7 +26,7 @@ public final class StrengthenGuiService {
     }
 
     public boolean open(Player player) {
-        if (player == null) {
+        if (player == null || plugin.attemptService() == null || !plugin.attemptService().accepting()) {
             return false;
         }
         var template = plugin.guiTemplateLoader().get("strengthen_gui");
@@ -56,6 +58,13 @@ public final class StrengthenGuiService {
     }
 
     public void clearAllSessions() {
-        stateManager.clear();
+        clearAllSessionsAsync().exceptionally(throwable -> {
+            plugin.getLogger().warning("Failed to close all strengthen GUI sessions: " + throwable.getMessage());
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> clearAllSessionsAsync() {
+        return guiService.closeAllAsync().whenComplete((_, _) -> stateManager.clear());
     }
 }

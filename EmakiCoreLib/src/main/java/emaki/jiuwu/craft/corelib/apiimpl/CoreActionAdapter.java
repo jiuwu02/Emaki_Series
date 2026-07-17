@@ -2,21 +2,34 @@ package emaki.jiuwu.craft.corelib.apiimpl;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
 
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionExecutionMode;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreAction;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionMode;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionPlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class CoreActionAdapter implements Action {
@@ -69,6 +82,18 @@ final class CoreActionAdapter implements Action {
     }
 
     @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        CoreActionExecutionTarget target = delegate.executionTarget(toApiPlanningContext(context));
+        if ((target == null || target.domain() == emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain.UNDECLARED)
+                && !FoliaSchedulerAdapter.isFolia()) {
+            return executionMode() == ActionExecutionMode.ASYNC_IO
+                    ? ActionExecutionTarget.async()
+                    : Action.contextualTarget(context == null ? null : context.actionContext());
+        }
+        return toInternalTarget(target, context);
+    }
+
+    @Override
     public long timeoutMillis() {
         return delegate.timeoutMillis();
     }
@@ -87,12 +112,47 @@ final class CoreActionAdapter implements Action {
     }
 
     @Override
+    public CompletionStage<ActionResult> validateAsync(Map<String, String> arguments) {
+        ActionResult base = Action.super.validate(arguments);
+        if (!base.success()) {
+            return CompletableFuture.completedFuture(base);
+        }
+        try {
+            CompletionStage<CoreActionResult> stage = delegate.validateAsync(arguments == null ? Map.of() : arguments);
+            if (stage == null) {
+                return CompletableFuture.failedFuture(new IllegalStateException(
+                        "CoreAction returned a null validation completion stage."));
+            }
+            return stage.thenApply(CoreActionAdapter::toInternalResult);
+        } catch (RuntimeException exception) {
+            return CompletableFuture.completedFuture(
+                    ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage()));
+        }
+    }
+
+    @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
         try {
             CoreActionContext apiContext = toApiContext(context);
             return toInternalResult(delegate.execute(apiContext, arguments == null ? Map.of() : arguments));
         } catch (RuntimeException exception) {
             return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage());
+        }
+    }
+
+    @Override
+    public CompletionStage<ActionResult> executeAsync(ActionContext context, Map<String, String> arguments) {
+        try {
+            CompletionStage<CoreActionResult> stage = delegate.executeAsync(
+                    toApiContext(context), arguments == null ? Map.of() : arguments);
+            if (stage == null) {
+                return CompletableFuture.failedFuture(new IllegalStateException(
+                        "CoreAction returned a null execution completion stage."));
+            }
+            return stage.thenApply(CoreActionAdapter::toInternalResult);
+        } catch (RuntimeException exception) {
+            return CompletableFuture.completedFuture(
+                    ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage()));
         }
     }
 
@@ -108,6 +168,35 @@ final class CoreActionAdapter implements Action {
                         context.attributes(),
                         context.sharedState()
                 );
+    }
+
+    private static CoreActionPlanningContext toApiPlanningContext(ActionPlanningContext context) {
+        ActionContext invocation = context == null ? null : context.actionContext();
+        return new CoreActionPlanningContext(
+                toApiContext(invocation),
+                context == null ? Map.of() : context.arguments());
+    }
+
+    private static ActionExecutionTarget toInternalTarget(CoreActionExecutionTarget target,
+            ActionPlanningContext context) {
+        if (target == null) {
+            return ActionExecutionTarget.undeclared();
+        }
+        return switch (target.domain()) {
+            case SERVER_GLOBAL -> ActionExecutionTarget.global();
+            case ASYNC_COMPUTE -> ActionExecutionTarget.async();
+            case CONTEXT_ENTITY -> ActionExecutionTarget.entity(
+                    context == null || context.actionContext() == null
+                            ? null
+                            : context.actionContext().player());
+            case LOCATION_REGION -> ActionExecutionTarget.location(resolveLocation(target));
+            case UNDECLARED -> ActionExecutionTarget.undeclared();
+        };
+    }
+
+    private static Location resolveLocation(CoreActionExecutionTarget target) {
+        World world = Texts.isBlank(target.world()) ? null : Bukkit.getWorld(target.world());
+        return world == null ? null : new Location(world, target.x(), target.y(), target.z());
     }
 
     static ActionResult toInternalResult(CoreActionResult result) {

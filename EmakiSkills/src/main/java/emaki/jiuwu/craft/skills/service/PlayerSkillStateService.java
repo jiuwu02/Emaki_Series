@@ -88,8 +88,8 @@ public final class PlayerSkillStateService {
         if (fireSlotChange(player, slotIndex, skillId, null, PlayerSkillSlotChangeEvent.Action.EQUIP)) {
             return false;
         }
-        profile.setBinding(slotIndex, new SkillSlotBinding(slotIndex, skillId, current.triggerId()));
-        return true;
+        return dataStore.mutate(player, active ->
+                active.setBinding(slotIndex, new SkillSlotBinding(slotIndex, skillId, current.triggerId())));
     }
 
     public boolean unequipSkill(Player player, int slotIndex) {
@@ -107,8 +107,7 @@ public final class PlayerSkillStateService {
         if (fireSlotChange(player, slotIndex, current.skillId(), null, PlayerSkillSlotChangeEvent.Action.UNEQUIP)) {
             return false;
         }
-        profile.clearSlot(slotIndex);
-        return true;
+        return dataStore.mutate(player, active -> active.clearSlot(slotIndex));
     }
 
     public boolean bindTrigger(Player player, int slotIndex, String triggerId) {
@@ -133,23 +132,19 @@ public final class PlayerSkillStateService {
             return false;
         }
 
-        profile.setBinding(slotIndex, new SkillSlotBinding(slotIndex, current.skillId(), triggerId));
-        return true;
+        return dataStore.mutate(player, active ->
+                active.setBinding(slotIndex, new SkillSlotBinding(slotIndex, current.skillId(), triggerId)));
     }
 
     /**
      * Fires the slot change event and returns {@code true} when the change was
-     * cancelled. Only dispatches on the primary thread; off-thread callers
-     * proceed without an event.
+     * cancelled. Callers must already own the player's entity scheduler domain.
      */
     private boolean fireSlotChange(Player player,
             int slotIndex,
             String skillId,
             String triggerId,
             PlayerSkillSlotChangeEvent.Action action) {
-        if (!org.bukkit.Bukkit.isPrimaryThread()) {
-            return false;
-        }
         PlayerSkillSlotChangeEvent event = new PlayerSkillSlotChangeEvent(player, slotIndex, skillId, triggerId, action);
         org.bukkit.Bukkit.getPluginManager().callEvent(event);
         return event.isCancelled();
@@ -180,8 +175,7 @@ public final class PlayerSkillStateService {
         if (player == null) {
             return;
         }
-        PlayerSkillProfile profile = dataStore.get(player);
-        if (profile == null) {
+        if (dataStore.get(player) == null) {
             return;
         }
         List<UnlockedSkillEntry> unlocked = getUnlockedSkills(player);
@@ -190,18 +184,20 @@ public final class PlayerSkillStateService {
             unlockedIds.add(entry.skillId());
         }
 
-        for (SkillSlotBinding binding : profile.bindings()) {
-            if (binding.isEmpty()) {
-                continue;
+        dataStore.mutate(player, profile -> {
+            for (SkillSlotBinding binding : List.copyOf(profile.bindings())) {
+                if (binding.isEmpty()) {
+                    continue;
+                }
+                SkillDefinition definition = registryService.getDefinition(binding.skillId());
+                if (!unlockedIds.contains(binding.skillId())
+                        || !isValidTrigger(binding.triggerId())
+                        || definition == null
+                        || !canEquipSkill(profile, binding.slotIndex(), definition)) {
+                    profile.clearSlot(binding.slotIndex());
+                }
             }
-            SkillDefinition definition = registryService.getDefinition(binding.skillId());
-            if (!unlockedIds.contains(binding.skillId())
-                    || !isValidTrigger(binding.triggerId())
-                    || definition == null
-                    || !canEquipSkill(profile, binding.slotIndex(), definition)) {
-                profile.clearSlot(binding.slotIndex());
-            }
-        }
+        });
     }
 
     private boolean canEquipSkill(PlayerSkillProfile profile, int targetSlot, SkillDefinition definition) {

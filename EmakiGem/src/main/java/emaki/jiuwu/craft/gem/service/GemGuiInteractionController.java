@@ -177,6 +177,7 @@ final class GemGuiInteractionController {
             }
             state.setTargetItem(null);
             state.clearPendingOperation();
+            inlayResult.commit();
         } else {
             state.setTargetItemPreservingPending(inlayResult.updatedEquipment());
             if (result.inputConsumed()) {
@@ -202,6 +203,7 @@ final class GemGuiInteractionController {
             if (extractResult.returnedGem() != null && !extractResult.returnedGem().getType().isAir()) {
                 InventoryItemUtil.giveOrDrop(player, extractResult.returnedGem());
             }
+            extractResult.commit();
         } else {
             state.setTargetItem(extractResult.updatedEquipment());
         }

@@ -13,5 +13,7 @@ public enum SkillActionErrorType {
     WORLD_NOT_FOUND,
     TEMPLATE_NOT_FOUND,
     SYNTAX_ERROR,
-    UNSUPPORTED
+    UNSUPPORTED,
+    CANCELLED,
+    TIMEOUT
 }

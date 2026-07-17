@@ -9,11 +9,22 @@ public final class PlayerLevelData {
     private final UUID uuid;
     private String name;
     private final Map<String, PlayerLevelEntry> levels = new LinkedHashMap<>();
-    private boolean dirty;
+    private long revision;
+    private long persistedRevision;
 
     public PlayerLevelData(UUID uuid, String name) {
         this.uuid = uuid;
         this.name = name == null ? "" : name;
+    }
+
+    public PlayerLevelData copy() {
+        PlayerLevelData copy = new PlayerLevelData(uuid, name);
+        for (Map.Entry<String, PlayerLevelEntry> entry : levels.entrySet()) {
+            copy.levels.put(entry.getKey(), entry.getValue() == null ? null : entry.getValue().copy());
+        }
+        copy.revision = revision;
+        copy.persistedRevision = persistedRevision;
+        return copy;
     }
 
     public UUID uuid() {
@@ -42,15 +53,27 @@ public final class PlayerLevelData {
         markDirty();
     }
 
+    public long revision() {
+        return revision;
+    }
+
+    public long persistedRevision() {
+        return persistedRevision;
+    }
+
     public boolean dirty() {
-        return dirty;
+        return revision > persistedRevision;
     }
 
     public void markDirty() {
-        dirty = true;
+        revision++;
+    }
+
+    public void markPersisted(long revision) {
+        persistedRevision = Math.max(persistedRevision, revision);
     }
 
     public void clearDirty() {
-        dirty = false;
+        persistedRevision = revision;
     }
 }

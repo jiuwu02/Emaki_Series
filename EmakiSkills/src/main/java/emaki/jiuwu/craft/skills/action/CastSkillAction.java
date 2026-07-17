@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.skills.action;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -17,15 +19,21 @@ import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 
 public final class CastSkillAction implements Action {
 
+    private final String id;
     private final MythicSkillCastService mythicSkillCastService;
 
     public CastSkillAction(MythicSkillCastService mythicSkillCastService) {
+        this("castskill", mythicSkillCastService);
+    }
+
+    public CastSkillAction(String id, MythicSkillCastService mythicSkillCastService) {
+        this.id = Texts.isBlank(id) ? "castskill" : id;
         this.mythicSkillCastService = mythicSkillCastService;
     }
 
     @Override
     public @NotNull String id() {
-        return "castskill";
+        return id;
     }
 
     @Override
@@ -40,34 +48,42 @@ public final class CastSkillAction implements Action {
 
     @Override
     public @NotNull List<ActionParameter> parameters() {
-        return List.of(
-                ActionParameter.required("skill", ActionParameterType.STRING, "MythicMobs skill ID to cast")
-        );
+        return List.of(ActionParameter.required(
+                "skill", ActionParameterType.STRING, "MythicMobs skill ID to cast"));
     }
 
     @Override
-    public @NotNull ActionResult execute(@NotNull ActionContext context, @NotNull Map<String, String> arguments) {
+    public @NotNull ActionResult execute(@NotNull ActionContext context,
+            @NotNull Map<String, String> arguments) {
+        return ActionResult.failure(ActionErrorType.INVALID_STATE,
+                id + " must be executed through executeAsync.");
+    }
+
+    @Override
+    public @NotNull CompletionStage<ActionResult> executeAsync(@NotNull ActionContext context,
+            @NotNull Map<String, String> arguments) {
         Player player = context.player();
         if (player == null) {
-            return ActionResult.failure(ActionErrorType.INVALID_STATE, "castskill requires a player context.");
+            return CompletableFuture.completedFuture(ActionResult.failure(
+                    ActionErrorType.INVALID_STATE, id + " requires a player context."));
         }
-
         String skillId = arguments.get("skill");
         if (Texts.isBlank(skillId)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Missing required argument 'skill'.");
+            return CompletableFuture.completedFuture(ActionResult.failure(
+                    ActionErrorType.INVALID_ARGUMENT, "Missing required argument 'skill'."));
         }
-
         if (!mythicSkillCastService.isAvailable()) {
-            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "MythicMobs is not available.");
+            return CompletableFuture.completedFuture(ActionResult.failure(
+                    ActionErrorType.PROVIDER_UNAVAILABLE, "MythicMobs is not available."));
         }
-
         if (!mythicSkillCastService.skillExists(skillId)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Unknown MythicMobs skill: " + skillId);
+            return CompletableFuture.completedFuture(ActionResult.failure(
+                    ActionErrorType.INVALID_ARGUMENT, "Unknown MythicMobs skill: " + skillId));
         }
-
         boolean success = mythicSkillCastService.cast(player, skillId);
-        return success
+        return CompletableFuture.completedFuture(success
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Skill cast failed: " + skillId);
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION,
+                        "Skill cast failed: " + skillId));
     }
 }

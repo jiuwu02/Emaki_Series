@@ -25,7 +25,10 @@ public final class IgniteSkillAction extends AbstractSkillScriptAction {
         if (entity == null) {
             return completed(SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Ignite target not found."));
         }
-        entity.setFireTicks(Math.max(entity.getFireTicks(), intArg(arguments, "ticks", 0)));
-        return completed(SkillActionResult.ok());
+        int ticks = intArg(arguments, "ticks", 0);
+        return callOnEntity(context, entity, () -> {
+            entity.setFireTicks(Math.max(entity.getFireTicks(), ticks));
+            return SkillActionResult.ok();
+        });
     }
 }

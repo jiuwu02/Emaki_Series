@@ -1,8 +1,11 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
@@ -12,8 +15,8 @@ import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
-import emaki.jiuwu.craft.corelib.script.ScriptExecutionRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
+import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class RunJavaScriptAction extends BaseAction {
@@ -56,29 +59,42 @@ public final class RunJavaScriptAction extends BaseAction {
 
     @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
+        return ActionResult.failure(ActionErrorType.UNSUPPORTED,
+                "JavaScript actions must be executed asynchronously.");
+    }
+
+    @Override
+    public CompletionStage<ActionResult> executeAsync(ActionContext context, Map<String, String> arguments) {
         if (javaScriptService == null || !javaScriptService.enabled()) {
-            return ActionResult.failure(ActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable.");
+            return CompletableFuture.completedFuture(
+                    ActionResult.failure(ActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable."));
         }
         Map<String, String> resolved = applyDefaults(arguments);
         String script = stringArg(resolved, "script");
         String function = stringArg(resolved, "function");
         boolean silent = Boolean.parseBoolean(stringArg(resolved, "silent"));
-        long timeout = scriptConfig.clampTimeoutMillis(ScriptConfig.parseMillis(stringArg(resolved, "timeout"), scriptConfig.engine().defaultTimeoutMillis()));
+        long timeout = scriptConfig.clampTimeoutMillis(ScriptConfig.parseMillis(
+                stringArg(resolved, "timeout"), scriptConfig.engine().defaultTimeoutMillis()));
         Map<String, Object> scriptArguments = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : resolved.entrySet()) {
             if (Texts.lower(entry.getKey()).startsWith(ARG_PREFIX)) {
                 scriptArguments.put(entry.getKey().substring(ARG_PREFIX.length()), entry.getValue());
             }
         }
-        ScriptExecutionResult result = javaScriptService.executeJavaScript(new ScriptExecutionRequest(
+        ScriptInvocationRequest request = new ScriptInvocationRequest(
                 context == null ? null : context.sourcePlugin(),
                 context,
                 script,
                 function,
+                Collections.singletonList(context),
                 scriptArguments,
                 timeout,
                 silent
-        ));
+        );
+        return javaScriptService.invokeAsync(request).thenApply(this::toActionResult);
+    }
+
+    private ActionResult toActionResult(ScriptExecutionResult result) {
         if (result == null) {
             return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Script returned no result.");
         }

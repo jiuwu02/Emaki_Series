@@ -11,8 +11,10 @@ import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -52,6 +54,18 @@ public final class ResyncAdvancementAction implements Action {
     }
 
     @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        Player target = targetPlayer(
+                context == null ? null : context.actionContext(),
+                context == null ? null : context.arguments().get("target")
+        );
+        return target == null
+                ? ActionExecutionTarget.failure(ActionResult.failure(
+                        ActionErrorType.INVALID_STATE, id + " requires an online player target."))
+                : ActionExecutionTarget.entity(target);
+    }
+
+    @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
         if (plugin.advancementPacketGateway() == null) {
             return ActionResult.failure(ActionErrorType.INVALID_STATE, "EmakiCodex advancement packet gateway is not ready.");
@@ -74,12 +88,12 @@ public final class ResyncAdvancementAction implements Action {
 
     private Player targetPlayer(ActionContext context, String targetName) {
         if (Texts.isNotBlank(targetName)) {
-            Player byName = Bukkit.getPlayerExact(targetName);
-            if (byName != null) {
-                return byName;
+            Player target = Bukkit.getPlayerExact(targetName);
+            if (target != null) {
+                return target;
             }
             try {
-                return Bukkit.getPlayer(UUID.fromString(targetName.trim()));
+                return Bukkit.getPlayer(java.util.UUID.fromString(targetName.trim()));
             } catch (IllegalArgumentException ignored) {
                 return null;
             }

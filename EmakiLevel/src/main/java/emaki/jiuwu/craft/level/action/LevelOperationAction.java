@@ -11,8 +11,10 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -68,8 +70,22 @@ final class LevelOperationAction implements Action {
     }
 
     @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        Player target = targetPlayer(
+                context == null ? null : context.actionContext(),
+                context == null ? null : context.arguments().get("target")
+        );
+        return target == null
+                ? ActionExecutionTarget.failure(ActionResult.failure(
+                        ActionErrorType.INVALID_STATE,
+                        "EmakiLevel action requires an online player target name or UUID."))
+                : ActionExecutionTarget.entity(target);
+    }
+
+    @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
-        UUID targetId = targetId(context, arguments.get("target"));
+        Player target = targetPlayer(context, arguments.get("target"));
+        UUID targetId = target == null ? null : target.getUniqueId();
         if (targetId == null) {
             return ActionResult.failure(ActionErrorType.INVALID_STATE, "EmakiLevel action requires a player target name or UUID.");
         }
@@ -102,20 +118,19 @@ final class LevelOperationAction implements Action {
         ));
     }
 
-    private UUID targetId(ActionContext context, String targetName) {
+    private Player targetPlayer(ActionContext context, String targetName) {
         if (Texts.isNotBlank(targetName)) {
             Player player = Bukkit.getPlayerExact(targetName);
             if (player != null) {
-                return player.getUniqueId();
+                return player;
             }
             try {
-                return UUID.fromString(targetName.trim());
+                return Bukkit.getPlayer(UUID.fromString(targetName.trim()));
             } catch (IllegalArgumentException ignored) {
                 return null;
             }
         }
-        Player contextPlayer = context == null ? null : context.player();
-        return contextPlayer == null ? null : contextPlayer.getUniqueId();
+        return context == null ? null : context.player();
     }
 
     private static String value(Map<String, String> arguments, String key, String fallback) {

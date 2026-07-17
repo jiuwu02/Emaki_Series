@@ -261,7 +261,12 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
         if (config.scriptConfig() == null || config.scriptConfig().security() == null) {
             return;
         }
-        var security = config.scriptConfig().security();
+        var script = config.scriptConfig();
+        var security = script.security();
+        if (script.enabled() && !script.runtimeOptIn()) {
+            issues.add(ConfigPrecheckIssue.of(module(), "script.runtime_opt_in", ConfigPrecheckSeverity.ERROR,
+                    "JavaScript is enabled without the explicit runtime opt-in."));
+        }
         if (security.allowActionDispatch() && security.maxActionDepth() > 5) {
             issues.add(ConfigPrecheckIssue.of(module(), "script.security.max_action_depth", ConfigPrecheckSeverity.WARN,
                     "Large script action depth may cause difficult-to-trace action chains."));
@@ -273,6 +278,18 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
             return;
         }
         var web = config.webConsoleConfig();
+        if (web.enabled() && !web.runtimeOptIn()) {
+            issues.add(ConfigPrecheckIssue.of(module(), "web_console.runtime_opt_in", ConfigPrecheckSeverity.ERROR,
+                    "Web Console is enabled without the explicit runtime opt-in."));
+        }
+        if (web.enabled() && !web.isLoopbackOnly()) {
+            issues.add(ConfigPrecheckIssue.of(module(), "web_console.host", ConfigPrecheckSeverity.ERROR,
+                    "P0 release isolation requires a loopback-only Web Console bind."));
+        }
+        if (web.enabled() && !web.isReadOnly()) {
+            issues.add(ConfigPrecheckIssue.of(module(), "web_console.security.mode", ConfigPrecheckSeverity.ERROR,
+                    "P0 release isolation requires readonly Web Console mode."));
+        }
         if (web.enabled() && web.hasUnsafeDefaultPassword()) {
             issues.add(ConfigPrecheckIssue.of(module(), "web_console.auth.password", ConfigPrecheckSeverity.ERROR,
                     "Web Console is enabled but password is blank or still using the default value."));

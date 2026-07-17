@@ -10,7 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.item.script.ScriptItemModuleApi;
 import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
-import emaki.jiuwu.craft.item.script.js.JavaScriptItemFactoryRegistry;
+import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;

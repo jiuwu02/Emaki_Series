@@ -260,7 +260,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         }
 
         triggerDispatcher = new DefaultTriggerDispatcher(
-                castModeService, triggerRegistry, playerSkillDataStore,
+                this, castModeService, triggerRegistry, playerSkillDataStore,
                 playerSkillStateService, equipmentSkillCollector,
                 castAttemptService, this::appConfig, messageService);
         new InteractTriggerSource().register(this, triggerDispatcher);

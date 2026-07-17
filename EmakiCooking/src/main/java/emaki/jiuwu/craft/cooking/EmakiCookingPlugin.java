@@ -47,6 +47,7 @@ import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
 import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
+import emaki.jiuwu.craft.cooking.service.CookingCompletionCoordinator;
 import emaki.jiuwu.craft.cooking.service.CookingEffectService;
 import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
@@ -65,8 +66,8 @@ import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
-import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingCompleteHookRegistry;
-import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingResultRuleRegistry;
+import emaki.jiuwu.craft.cooking.script.JavaScriptCookingCompleteHookRegistry;
+import emaki.jiuwu.craft.cooking.script.JavaScriptCookingResultRuleRegistry;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
@@ -114,6 +115,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private StationStateStore stationStateStore;
     private CookingRecipeService recipeService;
     private CookingRewardService rewardService;
+    private CookingCompletionCoordinator completionCoordinator;
     private CookingInspectService inspectService;
     private CookingDisplayService displayService;
     private CookingTextDisplayService textDisplayService;
@@ -162,6 +164,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         bootstrapService.bootstrap();
         registerConfigPrecheckContributor();
         reloadPluginState();
+        recoverCookingCompletions();
         registerCommandHandler();
         registerEventHandlers();
         registerActions();
@@ -188,7 +191,21 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             nutritionService.shutdown();
         }
         if (nutritionDataStore != null) {
-            nutritionDataStore.saveAll();
+            var flushResult = nutritionDataStore.flushAndSeal(5L, TimeUnit.SECONDS);
+            if (!flushResult.success()) {
+                getLogger().warning("Nutrition data drain incomplete: pending="
+                        + flushResult.pendingFileOperations()
+                        + ", dirty=" + flushResult.remainingDirtyEntries()
+                        + ", failures=" + flushResult.failures().size());
+            }
+        }
+        if (completionCoordinator != null) {
+            var drainResult = completionCoordinator.sealAndDrain(5L, TimeUnit.SECONDS);
+            if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
+                getLogger().warning("Cooking completion journal drain incomplete: pending="
+                        + drainResult.pendingOperations()
+                        + ", failures=" + drainResult.failures().size());
+            }
         }
         if (grinderRuntimeService != null) {
             grinderRuntimeService.shutdown();
@@ -206,10 +223,11 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             fermentationBarrelRuntimeService.shutdown();
         }
         if (stationStateStore != null) {
-            try {
-                stationStateStore.waitForIdle().get(5, TimeUnit.SECONDS);
-            } catch (Exception exception) {
-                getLogger().warning("Timed out waiting for station state store flush: " + exception.getMessage());
+            var drainResult = stationStateStore.sealAndDrain(5L, TimeUnit.SECONDS);
+            if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
+                getLogger().warning("Station state drain incomplete: pending="
+                        + drainResult.pendingOperations()
+                        + ", failures=" + drainResult.failures().size());
             }
         }
         if (displayService != null) {
@@ -235,6 +253,17 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     public CompletableFuture<Void> reloadPluginStateAsync() {
         return lifecycleCoordinator.reloadAsync(this, null)
                 .thenRun(this::logConfigPrecheckReport);
+    }
+
+    private void recoverCookingCompletions() {
+        if (completionCoordinator == null) {
+            return;
+        }
+        completionCoordinator.recover().whenComplete((_, error) -> {
+            if (error != null) {
+                getLogger().warning("Cooking completion recovery failed: " + error.getMessage());
+            }
+        });
     }
 
     private void logConfigPrecheckReport() {
@@ -264,6 +293,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         stationStateStore = components.stationStateStore();
         recipeService = components.recipeService();
         rewardService = components.rewardService();
+        completionCoordinator = components.completionCoordinator();
         inspectService = components.inspectService();
         displayService = components.displayService();
         textDisplayService = components.textDisplayService();
@@ -333,12 +363,13 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             return;
         }
         getServer().getPluginManager().registerEvents(new NutritionConsumeListener(this), this);
-        getServer().getPluginManager().registerEvents(new NutritionPlayerDataListener(this), this);
+        NutritionPlayerDataListener playerDataListener = new NutritionPlayerDataListener(this);
+        getServer().getPluginManager().registerEvents(playerDataListener, this);
         registerMmoItemsNutritionHandler();
         registerNeigeItemsNutritionHandler();
-        // 为已在线玩家加载营养数据（reload 或热插拔场景）
+        // reload 或热插拔时为已在线玩家建立同一套异步会话。
         for (org.bukkit.entity.Player online : getServer().getOnlinePlayers()) {
-            nutritionDataStore.load(online, nutritionTypeRegistry.asMap());
+            playerDataListener.ensureSession(online);
         }
     }
 

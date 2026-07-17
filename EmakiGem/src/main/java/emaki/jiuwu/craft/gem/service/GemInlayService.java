@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -24,7 +25,7 @@ import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.model.ResonanceEffects;
 import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSetBonusRegistry;
-import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSocketRuleRegistry;
+import emaki.jiuwu.craft.gem.script.JavaScriptGemSocketRuleRegistry;
 
 public final class GemInlayService {
 
@@ -47,10 +48,21 @@ public final class GemInlayService {
         }
     }
 
-    public record InlayResult(Result result, ItemStack updatedEquipment) {
+    public record InlayResult(Result result, ItemStack updatedEquipment, Runnable commitAction) {
+
+        public InlayResult(Result result, ItemStack updatedEquipment) {
+            this(result, updatedEquipment, () -> {
+            });
+        }
 
         public InlayResult {
             result = result == null ? Result.failure("general.unknown_error", Map.of()) : result;
+            commitAction = commitAction == null ? () -> {
+            } : commitAction;
+        }
+
+        public void commit() {
+            commitAction.run();
         }
     }
 
@@ -62,6 +74,7 @@ public final class GemInlayService {
     private final GemEconomyService economyService;
     private final GemActionCoordinator actionCoordinator;
     private final ItemOperationLedger operationLedger;
+    private final GemOperationJournal operationJournal;
 
     public GemInlayService(EmakiGemPlugin plugin,
             GemItemMatcher itemMatcher,
@@ -74,6 +87,7 @@ public final class GemInlayService {
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
+        this.operationJournal = GemOperationJournal.forPlugin(plugin);
     }
 
     public InlayResult inlayDirect(Player actor,
@@ -146,17 +160,25 @@ public final class GemInlayService {
             placeholders.put("success_rate", successChance);
         }
 
+        String operationId = operationJournal.begin("inlay", actor.getUniqueId());
         String failureAction = Texts.lower(plugin.appConfig().inlaySuccess().failureAction());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost && shouldChargeBeforeRoll(failureAction)) {
             chargeResult = chargeInlayCost(actor, gemDefinition, instance, Map.of());
             if (!chargeResult.success()) {
+                operationJournal.failedCharge(operationId, chargeResult);
                 return new InlayResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment);
             }
+            operationJournal.charged(operationId, chargeResult);
+        } else if (bypassCost) {
+            operationJournal.advance(operationId, GemOperationJournal.Phase.CHARGED);
         }
         if (!rollSuccess(successChance)) {
             if (preserveInputOnFailure && chargeResult != null) {
-                economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
+                operationJournal.completeAfterRefund(operationId, "inlay_chance_refund_failed",
+                        economyService.refundDetailed(actor, chargeResult));
+            } else {
+                operationJournal.advance(operationId, GemOperationJournal.Phase.COMPLETED);
             }
             boolean inputConsumed = !preserveInputOnFailure && shouldConsumeGemOnFailure(failureAction);
             return new InlayResult(Result.failure("command.inlay.chance_failed", placeholders, inputConsumed), equipment);
@@ -164,20 +186,44 @@ public final class GemInlayService {
         if (!bypassCost && chargeResult == null) {
             chargeResult = chargeInlayCost(actor, gemDefinition, instance, Map.of());
             if (!chargeResult.success()) {
+                operationJournal.failedCharge(operationId, chargeResult);
                 return new InlayResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment);
             }
+            operationJournal.charged(operationId, chargeResult);
         }
         GemState nextState = currentState.withAssignment(slotIndex, instance);
         ItemStack rebuilt = stateService.applyState(equipment, itemDefinition, nextState);
         if (rebuilt == null) {
-            if (chargeResult != null) {
-                economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
-            }
+            GemEconomyService.RefundResult refundResult = chargeResult == null
+                    ? GemEconomyService.RefundResult.complete()
+                    : economyService.refundDetailed(actor, chargeResult);
+            operationJournal.completeAfterRefund(operationId, "inlay_apply_refund_failed", refundResult);
             return new InlayResult(Result.failure("command.inlay.apply_failed", Map.of("player", actor.getName())), equipment);
         }
         applyGemOperations(rebuilt, gemDefinition, instance, slotIndex, placeholders);
-        actionCoordinator.execute(actor, "gem_inlay_success", gemDefinition.inlaySuccessActions(), placeholders);
-        return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt);
+        return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt,
+                commitAfterActions(operationId, actor, "gem_inlay_success",
+                        gemDefinition.inlaySuccessActions(), placeholders));
+    }
+
+    private Runnable commitAfterActions(String operationId,
+            Player actor,
+            String phase,
+            List<String> actions,
+            Map<String, Object> placeholders) {
+        AtomicBoolean committed = new AtomicBoolean(false);
+        List<String> safeActions = actions == null ? List.of() : List.copyOf(actions);
+        Map<String, Object> safePlaceholders = placeholders == null
+                ? Map.of()
+                : Map.copyOf(new LinkedHashMap<>(placeholders));
+        return () -> {
+            if (!committed.compareAndSet(false, true)) {
+                return;
+            }
+            operationJournal.advance(operationId, GemOperationJournal.Phase.STATE_COMMITTED);
+            operationJournal.completeAfterActions(operationId,
+                    actionCoordinator.executeAsync(actor, phase, safeActions, safePlaceholders));
+        };
     }
 
     private JavaScriptGemSocketRuleRegistry.Decision applyJavaScriptSocketRules(Player actor,
@@ -249,20 +295,26 @@ public final class GemInlayService {
                         GemExtractService.Result.failure("gem.error.condition_not_met", Map.of()), equipment, null);
             }
         }
+        String operationId = operationJournal.begin("extract_direct", actor.getUniqueId());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             chargeResult = economyService.charge(actor, gemDefinition.extractCost(), costVariables(gemDefinition, instance.level(), instance.level()));
             if (!chargeResult.success()) {
+                operationJournal.failedCharge(operationId, chargeResult);
                 return new ExtractDirectResult(
                         GemExtractService.Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment, null);
             }
+            operationJournal.charged(operationId, chargeResult);
+        } else {
+            operationJournal.advance(operationId, GemOperationJournal.Phase.CHARGED);
         }
         GemState nextState = currentState.withAssignment(slotIndex, null);
         ItemStack rebuilt = stateService.applyState(equipment, itemDefinition, nextState);
         if (rebuilt == null) {
-            if (chargeResult != null) {
-                economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
-            }
+            GemEconomyService.RefundResult refundResult = chargeResult == null
+                    ? GemEconomyService.RefundResult.complete()
+                    : economyService.refundDetailed(actor, chargeResult);
+            operationJournal.completeAfterRefund(operationId, "extract_apply_refund_failed", refundResult);
             return new ExtractDirectResult(
                     GemExtractService.Result.failure("command.extract.apply_failed", Map.of("player", actor.getName())), equipment, null);
         }
@@ -273,12 +325,32 @@ public final class GemInlayService {
         placeholders.put("slot", slotIndex);
         placeholders.put("gem", plugin.itemFactory().resolveGemDisplayName(gemDefinition, instance.level()));
         placeholders.put("gem_id", gemDefinition.id());
-        actionCoordinator.execute(actor, "gem_extract_success", gemDefinition.extractSuccessActions(), placeholders);
         return new ExtractDirectResult(
-                GemExtractService.Result.success("command.extract.success", placeholders), rebuilt, returned);
+                GemExtractService.Result.success("command.extract.success", placeholders), rebuilt, returned,
+                commitAfterActions(operationId, actor, "gem_extract_success",
+                        gemDefinition.extractSuccessActions(), placeholders));
     }
 
-    public record ExtractDirectResult(GemExtractService.Result result, ItemStack updatedEquipment, ItemStack returnedGem) {
+    public record ExtractDirectResult(GemExtractService.Result result,
+            ItemStack updatedEquipment,
+            ItemStack returnedGem,
+            Runnable commitAction) {
+
+        public ExtractDirectResult(GemExtractService.Result result,
+                ItemStack updatedEquipment,
+                ItemStack returnedGem) {
+            this(result, updatedEquipment, returnedGem, () -> {
+            });
+        }
+
+        public ExtractDirectResult {
+            commitAction = commitAction == null ? () -> {
+            } : commitAction;
+        }
+
+        public void commit() {
+            commitAction.run();
+        }
     }
 
     private ItemStack createReturnedGem(GemDefinition gemDefinition, GemItemInstance instance) {

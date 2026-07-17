@@ -1,12 +1,13 @@
 package emaki.jiuwu.craft.skills.script.builtin;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -31,84 +32,79 @@ public final class AoeDamageSkillAction extends AbstractSkillScriptAction {
 
     @Override
     public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
-        double amount = doubleArg(arguments, "amount", 0D);
-        double radius = doubleArg(arguments, "radius", 5D);
-        int maxTargets = intArg(arguments, "max_targets", 20);
-        String shape = arg(arguments, "shape", "sphere").toLowerCase(java.util.Locale.ROOT);
-        String filter = arg(arguments, "filter", "hostile").toLowerCase(java.util.Locale.ROOT);
+        double amount = Math.max(0D, doubleArg(arguments, "amount", 0D));
+        double radius = Math.max(0.5D, Math.min(doubleArg(arguments, "radius", 5D), 64D));
+        int maxTargets = Math.max(0, intArg(arguments, "max_targets", 20));
+        boolean cylinder = "cylinder".equals(arg(arguments, "shape", "sphere")
+                .toLowerCase(java.util.Locale.ROOT));
+        boolean hostileOnly = "hostile".equals(arg(arguments, "filter", "hostile")
+                .toLowerCase(java.util.Locale.ROOT));
         boolean excludeCaster = Boolean.parseBoolean(arg(arguments, "exclude_caster", "true"));
-
-        Location center = resolveCenterLocation(context, arguments);
-        if (center == null || center.getWorld() == null) {
-            return completed(SkillActionResult.ok());
-        }
-
-        radius = Math.max(0.5D, Math.min(radius, 64D));
-        double radiusSquared = radius * radius;
-        boolean isCylinder = "cylinder".equals(shape);
-
         Player caster = context.caster();
-        Collection<Entity> nearby = center.getWorld().getNearbyEntities(center, radius, radius, radius);
-        List<LivingEntity> targets = new ArrayList<>();
 
-        for (Entity entity : nearby) {
-            if (!(entity instanceof LivingEntity living)) {
-                continue;
+        return callAtResolvedLocation(context, arguments, "center", "target", center -> {
+            World world = center.getWorld();
+            Collection<Entity> nearby = world == null
+                    ? List.of()
+                    : world.getNearbyEntities(center, radius, radius, radius);
+            return new AreaScan(world, center.getX(), center.getY(), center.getZ(), List.copyOf(nearby));
+        }).thenCompose(scan -> {
+            if (scan.world() == null || maxTargets == 0) {
+                return recordHitCount(context, caster, 0);
             }
-            if (excludeCaster && entity.equals(caster)) {
-                continue;
-            }
-            if ("hostile".equals(filter) && entity instanceof Player) {
-                continue;
-            }
-            Location entityLocation = entity.getLocation();
-            double distanceSquared;
-            if (isCylinder) {
-                double dx = entityLocation.getX() - center.getX();
-                double dz = entityLocation.getZ() - center.getZ();
-                distanceSquared = dx * dx + dz * dz;
-            } else {
-                distanceSquared = entityLocation.distanceSquared(center);
-            }
-            if (distanceSquared <= radiusSquared) {
-                targets.add(living);
-            }
-            if (targets.size() >= maxTargets) {
-                break;
-            }
-        }
-
-        int hitCount = 0;
-        for (LivingEntity target : targets) {
-            target.damage(Math.max(0D, amount), caster);
-            hitCount++;
-        }
-
-        context.putVariable("aoe_hit_count", hitCount);
-        context.putSharedValue("aoe_hit_count", hitCount);
-        return completed(SkillActionResult.ok());
+            AtomicInteger hitCount = new AtomicInteger();
+            List<CompletableFuture<Integer>> hits = scan.entities().stream()
+                    .filter(LivingEntity.class::isInstance)
+                    .map(LivingEntity.class::cast)
+                    .filter(target -> !excludeCaster || !target.equals(caster))
+                    .filter(target -> !hostileOnly || !(target instanceof Player))
+                    .map(target -> callOnEntity(context, target, () -> {
+                        Location targetLocation = target.getLocation();
+                        if (targetLocation.getWorld() != scan.world()
+                                || !inside(targetLocation, scan, radius * radius, cylinder)
+                                || !reserveHit(hitCount, maxTargets)) {
+                            return 0;
+                        }
+                        target.damage(amount, caster);
+                        return 1;
+                    }))
+                    .toList();
+            return CompletableFuture.allOf(hits.toArray(CompletableFuture[]::new))
+                    .thenCompose(ignored -> recordHitCount(context, caster, hitCount.get()));
+        });
     }
 
-    private Location resolveCenterLocation(SkillScriptContext context, Map<String, String> arguments) {
-        String centerArg = arg(arguments, "center", "target").toLowerCase(java.util.Locale.ROOT);
-        if ("caster".equals(centerArg) || "self".equals(centerArg) || "player".equals(centerArg)) {
-            return context.caster().getLocation();
+    private CompletableFuture<SkillActionResult> recordHitCount(SkillScriptContext context,
+            Player caster,
+            int hitCount) {
+        return callOnEntity(context, caster, () -> {
+            context.putVariable("aoe_hit_count", hitCount);
+            context.putSharedValue("aoe_hit_count", hitCount);
+            return SkillActionResult.ok();
+        });
+    }
+
+    private boolean inside(Location location, AreaScan scan, double radiusSquared, boolean cylinder) {
+        double dx = location.getX() - scan.x();
+        double dz = location.getZ() - scan.z();
+        if (cylinder) {
+            return dx * dx + dz * dz <= radiusSquared;
         }
-        if ("look".equals(centerArg)) {
-            return context.caster().getEyeLocation().add(context.caster().getLocation().getDirection().multiply(3));
-        }
-        Object stored = context.sharedValue(centerArg);
-        if (stored instanceof Entity entity) {
-            return entity.getLocation();
-        }
-        if (stored instanceof Location location) {
-            return location.clone();
-        }
-        Entity entity = context.targetEntity();
-        if (entity != null) {
-            return entity.getLocation();
-        }
-        Location location = context.targetLocation();
-        return location == null ? context.caster().getLocation() : location;
+        double dy = location.getY() - scan.y();
+        return dx * dx + dy * dy + dz * dz <= radiusSquared;
+    }
+
+    private boolean reserveHit(AtomicInteger hitCount, int maxTargets) {
+        int current;
+        do {
+            current = hitCount.get();
+            if (current >= maxTargets) {
+                return false;
+            }
+        } while (!hitCount.compareAndSet(current, current + 1));
+        return true;
+    }
+
+    private record AreaScan(World world, double x, double y, double z, List<Entity> entities) {
     }
 }

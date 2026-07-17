@@ -144,7 +144,7 @@ public final class LevelAttributeBridge {
         }
         PlayerLevelData data = dataStore.cached(player.getUniqueId());
         if (data == null) {
-            data = dataStore.getOrLoad(player.getUniqueId(), typeRegistry.asMap());
+            return List.of();
         }
         List<Object> contributions = new ArrayList<>();
         for (LevelTypeConfig type : typeRegistry.all()) {

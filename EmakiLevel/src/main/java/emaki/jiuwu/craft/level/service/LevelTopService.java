@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -30,11 +31,20 @@ public final class LevelTopService {
     }
 
     public void rebuild() {
-        Map<String, List<TopEntry>> next = new LinkedHashMap<>();
-        for (PlayerLevelData data : dataStore.allKnownData(typeRegistry.asMap()).values()) {
-            collect(next, data);
-        }
-        replaceSnapshot(next);
+        rebuildAsync();
+    }
+
+    public CompletableFuture<Void> rebuildAsync() {
+        return dataStore.allKnownDataAsync(typeRegistry.asMap())
+                .thenAccept(allData -> {
+                    Map<String, List<TopEntry>> next = new LinkedHashMap<>();
+                    if (allData != null) {
+                        for (PlayerLevelData data : allData) {
+                            collect(next, data);
+                        }
+                    }
+                    replaceSnapshot(next);
+                });
     }
 
     public void update(PlayerLevelData data) {
@@ -55,7 +65,9 @@ public final class LevelTopService {
 
     public List<TopEntry> top(String typeId, int limit) {
         String normalizedType = Texts.normalizeId(typeId);
-        List<TopEntry> entries = Texts.isBlank(normalizedType) ? List.of() : snapshot.getOrDefault(normalizedType, List.of());
+        List<TopEntry> entries = Texts.isBlank(normalizedType)
+                ? List.of()
+                : snapshot.getOrDefault(normalizedType, List.of());
         int safeLimit = limit <= 0 ? 1 : limit;
         if (safeLimit >= entries.size()) {
             return entries;
@@ -74,7 +86,7 @@ public final class LevelTopService {
         for (LevelTypeConfig type : typeRegistry.all()) {
             TopEntry entry = toEntry(data, type.id());
             if (entry != null) {
-                target.computeIfAbsent(type.id(), _ -> new ArrayList<>()).add(entry);
+                target.computeIfAbsent(type.id(), ignored -> new ArrayList<>()).add(entry);
             }
         }
     }

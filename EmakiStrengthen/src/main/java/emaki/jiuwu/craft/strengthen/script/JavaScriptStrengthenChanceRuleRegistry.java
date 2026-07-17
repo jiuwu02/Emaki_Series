@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.strengthen.script.js;
+package emaki.jiuwu.craft.strengthen.script;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -18,10 +18,12 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.model.AttemptCost;
 import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 
@@ -103,9 +105,15 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
             return preview;
         }
         ItemStack targetItem = attemptContext == null ? null : attemptContext.targetItem();
-        Adjustment current = Adjustment.from(player, targetItem, requiredMaterials, optionalMaterials, preview);
+        String operationId = attemptContext == null ? "" : attemptContext.operationId();
+        Adjustment current = Adjustment.from(player, operationId, targetItem, requiredMaterials, optionalMaterials, preview);
         for (RuleEntry rule : sortedRules()) {
-            current = applyRule(coreLib, javaScriptService, rule, current);
+            Adjustment adjusted = applyRule(coreLib, javaScriptService, rule, current);
+            if (adjusted == null) {
+                logRuleFailure(player, operationId, rule.id());
+                return failClosed(preview);
+            }
+            current = adjusted;
         }
         logTraces(player, current.traces());
         return current.toPreview(preview);
@@ -120,7 +128,8 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
             return;
         }
         for (Map<String, Object> trace : traces) {
-            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
+            plugin.debugLogger().logRaw("script", playerId, "script trace | operationId="
+                    + Texts.toStringSafe(trace.get("operationId")) + " | rule=" + Texts.toStringSafe(trace.get("id"))
                     + " | before=" + Texts.toStringSafe(trace.get("before"))
                     + " | after=" + Texts.toStringSafe(trace.get("after"))
                     + " | msg=" + Texts.toStringSafe(trace.get("message")));
@@ -128,56 +137,91 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
     }
 
     private Adjustment applyRule(EmakiCoreLibPlugin coreLib, JavaScriptService javaScriptService, RuleEntry rule, Adjustment current) {
-        Map<String, Object> context = current.toContext(rule.id());
-        ScriptConfig config = coreLib.configModel() == null ? ScriptConfig.defaults() : coreLib.configModel().scriptConfig();
-        ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
-                plugin,
-                null,
-                rule.scriptPath(),
-                rule.functionName(),
-                List.of(context),
-                context,
-                config.clampTimeoutMillis(rule.timeoutMillis()),
-                true
-        ));
-        if (result == null || !result.success() || !(result.returnValue() instanceof Map<?, ?> rawMap)) {
-            return current.withTrace(rule.id(), current.successRate(), current.successRate(), result == null ? "no_result" : result.message());
-        }
-        Map<String, Object> map = new LinkedHashMap<>();
-        ConfigNodes.entries(rawMap).forEach(map::put);
-        double before = current.successRate();
-        double after = before;
-        Double explicit = number(map.containsKey("successRate") ? map.get("successRate") : map.get("chance"));
-        if (explicit != null) {
-            after = explicit;
-        } else {
-            Double bonus = number(map.get("successBonus"));
-            if (bonus != null) {
-                after += bonus;
+        try {
+            Map<String, Object> context = current.toContext(rule.id());
+            ScriptConfig config = coreLib.configModel() == null ? ScriptConfig.defaults() : coreLib.configModel().scriptConfig();
+            ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
+                    plugin,
+                    null,
+                    rule.scriptPath(),
+                    rule.functionName(),
+                    List.of(context),
+                    context,
+                    config.clampTimeoutMillis(rule.timeoutMillis()),
+                    true
+            ));
+            if (result == null || !result.success() || !(result.returnValue() instanceof Map<?, ?> rawMap)) {
+                return null;
             }
-            Double multiplier = number(map.get("successMultiplier"));
-            if (multiplier != null) {
-                after *= multiplier;
+            Map<String, Object> map = new LinkedHashMap<>();
+            ConfigNodes.entries(rawMap).forEach(map::put);
+            double before = current.successRate();
+            double after = before;
+            String explicitKey = map.containsKey("successRate") ? "successRate" : map.containsKey("chance") ? "chance" : "";
+            if (!explicitKey.isEmpty()) {
+                after = requiredFiniteNumber(map.get(explicitKey), explicitKey);
+            } else {
+                if (map.containsKey("successBonus")) {
+                    after += requiredFiniteNumber(map.get("successBonus"), "successBonus");
+                }
+                if (map.containsKey("successMultiplier")) {
+                    after *= requiredFiniteNumber(map.get("successMultiplier"), "successMultiplier");
+                }
             }
+            if (!Double.isFinite(after)) {
+                return null;
+            }
+            int failureStar = map.containsKey("failureStar")
+                    ? requiredNonNegativeInt(map.get("failureStar"), "failureStar")
+                    : current.failureStar();
+            int failureTemper = map.containsKey("failureTemper")
+                    ? requiredNonNegativeInt(map.get("failureTemper"), "failureTemper")
+                    : current.failureTemper();
+            boolean protectionApplied = map.containsKey("protectionApplied")
+                    ? requiredBoolean(map.get("protectionApplied"), "protectionApplied")
+                    : current.protectionApplied();
+            boolean failureProtected = map.containsKey("failureProtected")
+                    && requiredBoolean(map.get("failureProtected"), "failureProtected");
+            boolean downgradeProtected = map.containsKey("downgradeProtected")
+                    && requiredBoolean(map.get("downgradeProtected"), "downgradeProtected");
+            if (failureProtected || downgradeProtected) {
+                protectionApplied = true;
+                failureStar = Math.max(failureStar, current.currentStar());
+                failureTemper = 0;
+            }
+            ParsedCosts extraCosts = parseCosts(map.get("extraCosts"));
+            if (!extraCosts.valid()) {
+                return null;
+            }
+            double sanitized = Numbers.clamp(after, 0D, 100D);
+            Adjustment next = current.withValues(sanitized, failureStar, failureTemper, protectionApplied);
+            if (!extraCosts.costs().isEmpty()) {
+                next = next.withExtraCosts(extraCosts.costs());
+            }
+            return next.withTrace(rule.id(), before, sanitized, Texts.toStringSafe(map.get("message")));
+        } catch (RuntimeException | LinkageError exception) {
+            plugin.getLogger().warning("[JavaScript] Strengthen chance rule failed closed | operationId="
+                    + current.operationId() + " | rule=" + rule.id() + " | error=" + exception.getMessage());
+            return null;
         }
-        int failureStar = intValue(map.get("failureStar"), current.failureStar());
-        int failureTemper = intValue(map.get("failureTemper"), current.failureTemper());
-        boolean protectionApplied = bool(map.get("protectionApplied"), current.protectionApplied());
-        // 失败保护 / 降级保护是面向脚本的语义别名：命中任意一个都视为施加保护，
-        // 并把失败结果星级钉在当前星级，避免脚本作者直接操作内部 failureStar 数值。
-        boolean failureProtected = bool(map.get("failureProtected"), false);
-        boolean downgradeProtected = bool(map.get("downgradeProtected"), false);
-        if (failureProtected || downgradeProtected) {
-            protectionApplied = true;
-            failureStar = Math.max(failureStar, current.currentStar());
-            failureTemper = 0;
+    }
+
+    private AttemptPreview failClosed(AttemptPreview preview) {
+        return new AttemptPreview(false, "strengthen.error.chance_rule_failed", preview.state(), preview.recipe(),
+                preview.currentStar(), preview.targetStar(), 0D, preview.costs(), preview.failureStar(),
+                preview.failureTemper(), preview.protectionApplied(), preview.appliedTemperBonus(),
+                preview.successDeltaStats(), preview.unlockingMilestones(), preview.requiredMaterials(),
+                preview.optionalMaterials());
+    }
+
+    private void logRuleFailure(Player player, String operationId, String ruleId) {
+        plugin.getLogger().warning("[JavaScript] Strengthen chance rule rejected attempt | operationId="
+                + (Texts.isBlank(operationId) ? "-" : operationId) + " | rule=" + ruleId);
+        java.util.UUID playerId = player == null ? null : player.getUniqueId();
+        if (plugin.debugLogger() != null && plugin.debugLogger().shouldLog("script", playerId)) {
+            plugin.debugLogger().logRaw("script", playerId, "chance rule failed closed | operationId="
+                    + operationId + " | rule=" + ruleId);
         }
-        List<Map<String, Object>> extraCosts = costList(map.get("extraCosts"));
-        Adjustment next = current.withValues(Numbers.clamp(after, 0D, 100D), failureStar, failureTemper, protectionApplied);
-        if (!extraCosts.isEmpty()) {
-            next = next.withExtraCosts(extraCosts);
-        }
-        return next.withTrace(rule.id(), before, Numbers.clamp(after, 0D, 100D), Texts.toStringSafe(map.get("message")));
     }
 
     private synchronized List<RuleEntry> sortedRules() {
@@ -234,42 +278,81 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
         }
     }
 
-    private static Double number(Object raw) {
+    private static double requiredFiniteNumber(Object raw, String field) {
+        double value;
         if (raw instanceof Number number) {
-            return number.doubleValue();
+            value = number.doubleValue();
+        } else {
+            try {
+                value = Double.parseDouble(Texts.toStringSafe(raw));
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException("Invalid numeric field: " + field, exception);
+            }
         }
-        try {
-            return Double.parseDouble(Texts.toStringSafe(raw));
-        } catch (NumberFormatException exception) {
-            return null;
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Non-finite numeric field: " + field);
         }
+        return value;
     }
 
-    private static boolean bool(Object raw, boolean fallback) {
+    private static int requiredNonNegativeInt(Object raw, String field) {
+        double value = requiredFiniteNumber(raw, field);
+        if (value < 0D || value > Integer.MAX_VALUE || value != Math.rint(value)) {
+            throw new IllegalArgumentException("Invalid integer field: " + field);
+        }
+        return (int) value;
+    }
+
+    private static boolean requiredBoolean(Object raw, String field) {
         if (raw instanceof Boolean value) {
             return value;
         }
-        if (raw == null) {
-            return fallback;
+        String text = Texts.toStringSafe(raw).trim();
+        if ("true".equalsIgnoreCase(text)) {
+            return true;
         }
-        return Boolean.parseBoolean(Texts.toStringSafe(raw));
+        if ("false".equalsIgnoreCase(text)) {
+            return false;
+        }
+        throw new IllegalArgumentException("Invalid boolean field: " + field);
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<Map<String, Object>> costList(Object raw) {
-        if (!(raw instanceof List<?> list) || list.isEmpty()) {
-            return List.of();
+    private static ParsedCosts parseCosts(Object raw) {
+        if (raw == null) {
+            return new ParsedCosts(true, List.of());
         }
-        List<Map<String, Object>> result = new ArrayList<>();
+        if (!(raw instanceof List<?> list)) {
+            return new ParsedCosts(false, List.of());
+        }
+        List<AttemptCost> result = new ArrayList<>();
         for (Object entry : list) {
-            if (entry instanceof Map<?, ?>) {
-                Map<String, Object> cost = new LinkedHashMap<>(ConfigNodes.entries(entry));
-                if (!cost.isEmpty()) {
-                    result.add(Map.copyOf(cost));
-                }
+            if (!(entry instanceof Map<?, ?> rawCost)) {
+                return new ParsedCosts(false, List.of());
             }
+            Map<String, Object> cost = new LinkedHashMap<>(ConfigNodes.entries(rawCost));
+            String provider = Texts.lower(Texts.toStringSafe(cost.get("provider")));
+            String currencyId = Texts.toStringSafe(cost.containsKey("currencyId")
+                    ? cost.get("currencyId") : cost.get("currency"));
+            String displayName = Texts.toStringSafe(cost.containsKey("displayName")
+                    ? cost.get("displayName") : cost.get("name"));
+            if (Texts.isBlank(provider) || !cost.containsKey("amount")) {
+                return new ParsedCosts(false, List.of());
+            }
+            double rawAmount;
+            try {
+                rawAmount = requiredFiniteNumber(cost.get("amount"), "extraCosts.amount");
+            } catch (IllegalArgumentException exception) {
+                return new ParsedCosts(false, List.of());
+            }
+            if (rawAmount <= 0D || rawAmount > Long.MAX_VALUE || rawAmount != Math.rint(rawAmount)
+                    || "items".equals(provider) && Texts.isBlank(currencyId)) {
+                return new ParsedCosts(false, List.of());
+            }
+            result.add(new AttemptCost(provider, currencyId,
+                    Texts.isBlank(displayName) ? (Texts.isBlank(currencyId) ? provider : currencyId) : displayName,
+                    (long) rawAmount));
         }
-        return List.copyOf(result);
+        return new ParsedCosts(true, List.copyOf(result));
     }
 
     private static String scriptPath(ScriptModuleContext context) {
@@ -287,8 +370,12 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
     private record RuleEntry(String id, int priority, String functionName, String scriptPath, long timeoutMillis) {
     }
 
+    private record ParsedCosts(boolean valid, List<AttemptCost> costs) {
+    }
+
     private record Adjustment(String playerUuid,
             String playerName,
+            String operationId,
             String recipeId,
             int currentStar,
             int targetStar,
@@ -301,31 +388,36 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
             Map<String, Object> targetItem,
             List<Map<String, Object>> requiredMaterials,
             List<Map<String, Object>> optionalMaterials,
-            List<Map<String, Object>> extraCosts,
+            List<AttemptCost> extraCosts,
             List<Map<String, Object>> traces) {
 
         private Adjustment {
-            targetItem = targetItem == null ? Map.of() : Map.copyOf(targetItem);
-            requiredMaterials = requiredMaterials == null ? List.of() : List.copyOf(requiredMaterials);
-            optionalMaterials = optionalMaterials == null ? List.of() : List.copyOf(optionalMaterials);
+            operationId = operationId == null ? "" : operationId;
+            targetItem = targetItem == null ? Map.of() : ScriptSnapshots.immutableMap(targetItem);
+            requiredMaterials = requiredMaterials == null ? List.of() : castMapList(ScriptSnapshots.immutableValue(requiredMaterials));
+            optionalMaterials = optionalMaterials == null ? List.of() : castMapList(ScriptSnapshots.immutableValue(optionalMaterials));
             extraCosts = extraCosts == null ? List.of() : List.copyOf(extraCosts);
-            traces = traces == null ? List.of() : List.copyOf(traces);
+            traces = traces == null ? List.of() : castMapList(ScriptSnapshots.immutableValue(traces));
         }
 
         static Adjustment from(Player player,
+                String operationId,
                 ItemStack targetItem,
                 List<AttemptMaterial> requiredMaterials,
                 List<AttemptMaterial> optionalMaterials,
                 AttemptPreview preview) {
+            double initialRate = Double.isFinite(preview.successRate())
+                    ? Numbers.clamp(preview.successRate(), 0D, 100D) : 0D;
             return new Adjustment(
                     player == null ? "" : player.getUniqueId().toString(),
                     player == null ? "" : player.getName(),
+                    operationId,
                     preview.recipe() == null ? "" : preview.recipe().id(),
                     preview.currentStar(),
                     preview.targetStar(),
                     preview.state() == null ? 0 : preview.state().temperLevel(),
-                    preview.successRate(),
-                    preview.successRate(),
+                    initialRate,
+                    initialRate,
                     preview.failureStar(),
                     preview.failureTemper(),
                     preview.protectionApplied(),
@@ -338,18 +430,18 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
         }
 
         Adjustment withValues(double successRate, int failureStar, int failureTemper, boolean protectionApplied) {
-            return new Adjustment(playerUuid, playerName, recipeId, currentStar, targetStar, temperLevel, originalSuccessRate,
+            return new Adjustment(playerUuid, playerName, operationId, recipeId, currentStar, targetStar, temperLevel, originalSuccessRate,
                     successRate, failureStar, failureTemper, protectionApplied, targetItem, requiredMaterials, optionalMaterials,
                     extraCosts, traces);
         }
 
-        Adjustment withExtraCosts(List<Map<String, Object>> additionalCosts) {
+        Adjustment withExtraCosts(List<AttemptCost> additionalCosts) {
             if (additionalCosts == null || additionalCosts.isEmpty()) {
                 return this;
             }
-            List<Map<String, Object>> merged = new ArrayList<>(extraCosts);
+            List<AttemptCost> merged = new ArrayList<>(extraCosts);
             merged.addAll(additionalCosts);
-            return new Adjustment(playerUuid, playerName, recipeId, currentStar, targetStar, temperLevel, originalSuccessRate,
+            return new Adjustment(playerUuid, playerName, operationId, recipeId, currentStar, targetStar, temperLevel, originalSuccessRate,
                     successRate, failureStar, failureTemper, protectionApplied, targetItem, requiredMaterials, optionalMaterials,
                     List.copyOf(merged), traces);
         }
@@ -358,11 +450,12 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
             List<Map<String, Object>> updated = new ArrayList<>(traces);
             Map<String, Object> trace = new LinkedHashMap<>();
             trace.put("id", ruleId);
+            trace.put("operationId", operationId);
             trace.put("before", before);
             trace.put("after", after);
             trace.put("message", Texts.toStringSafe(message));
             updated.add(Map.copyOf(trace));
-            return new Adjustment(playerUuid, playerName, recipeId, currentStar, targetStar, temperLevel, originalSuccessRate,
+            return new Adjustment(playerUuid, playerName, operationId, recipeId, currentStar, targetStar, temperLevel, originalSuccessRate,
                     successRate, failureStar, failureTemper, protectionApplied, targetItem, requiredMaterials, optionalMaterials,
                     extraCosts, List.copyOf(updated));
         }
@@ -392,6 +485,7 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
         Map<String, Object> toContext(String ruleId) {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("ruleId", ruleId);
+            map.put("operationId", operationId);
             map.put("playerUuid", playerUuid);
             map.put("playerName", playerName);
             map.put("recipeId", recipeId);
@@ -406,12 +500,34 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
             map.put("targetItem", targetItem);
             map.put("requiredMaterials", requiredMaterials);
             map.put("optionalMaterials", optionalMaterials);
-            map.put("extraCosts", extraCosts);
+            map.put("extraCosts", costSummaries(extraCosts));
             map.put("traces", traces);
-            return map;
+            return ScriptSnapshots.immutableMap(map);
+        }
+
+        private static List<Map<String, Object>> costSummaries(List<AttemptCost> costs) {
+            if (costs == null || costs.isEmpty()) {
+                return List.of();
+            }
+            List<Map<String, Object>> summaries = new ArrayList<>(costs.size());
+            for (AttemptCost cost : costs) {
+                summaries.add(Map.of(
+                        "provider", cost.provider(),
+                        "currencyId", cost.currencyId(),
+                        "displayName", cost.displayName(),
+                        "amount", cost.amount()));
+            }
+            return List.copyOf(summaries);
+        }
+
+        @SuppressWarnings("unchecked")
+        private static List<Map<String, Object>> castMapList(Object value) {
+            return value instanceof List<?> list ? (List<Map<String, Object>>) (List<?>) list : List.of();
         }
 
         AttemptPreview toPreview(AttemptPreview preview) {
+            List<AttemptCost> finalCosts = new ArrayList<>(preview.costs());
+            finalCosts.addAll(extraCosts);
             return new AttemptPreview(
                     preview.eligible(),
                     preview.errorKey(),
@@ -420,7 +536,7 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
                     preview.currentStar(),
                     preview.targetStar(),
                     successRate,
-                    preview.costs(),
+                    List.copyOf(finalCosts),
                     failureStar,
                     failureTemper,
                     protectionApplied,

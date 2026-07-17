@@ -38,7 +38,10 @@ public final class DefaultEmakiLevelApi implements EmakiLevelApi.Bridge {
 
     @Override
     public CompletableFuture<PlayerLevelView> getPlayerData(UUID uuid) {
-        return CompletableFuture.completedFuture(playerView(plugin.dataStore().getOrLoad(uuid, plugin.typeRegistry().asMap())));
+        return plugin.dataStore().getOrLoadAsync(uuid, plugin.typeRegistry().asMap())
+                .thenApply(data -> data == null
+                        ? new PlayerLevelView(uuid, "", Map.of())
+                        : playerView(data));
     }
 
     @Override
@@ -107,8 +110,8 @@ public final class DefaultEmakiLevelApi implements EmakiLevelApi.Bridge {
         if (uuid == null) {
             return null;
         }
-        PlayerLevelData data = plugin.dataStore().getOrLoad(uuid, plugin.typeRegistry().asMap());
-        return data.entry(emaki.jiuwu.craft.corelib.text.Texts.normalizeId(typeId));
+        PlayerLevelData data = plugin.dataStore().cached(uuid);
+        return data == null ? null : data.entry(emaki.jiuwu.craft.corelib.text.Texts.normalizeId(typeId));
     }
 
     private LevelTypeView view(LevelTypeConfig type) {

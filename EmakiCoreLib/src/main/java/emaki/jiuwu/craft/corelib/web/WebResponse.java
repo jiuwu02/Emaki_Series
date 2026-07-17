@@ -26,9 +26,7 @@ public final class WebResponse {
 
     public static void bytes(HttpExchange exchange, int status, String contentType, byte[] bytes) throws IOException {
         byte[] payload = bytes == null ? new byte[0] : bytes;
-        exchange.getResponseHeaders().set("Content-Type", contentType == null ? "application/octet-stream" : contentType);
-        exchange.getResponseHeaders().set("Cache-Control", "no-store");
-        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+        applySecurityHeaders(exchange, contentType == null ? "application/octet-stream" : contentType);
         exchange.sendResponseHeaders(status, payload.length);
         try (OutputStream output = exchange.getResponseBody()) {
             output.write(payload);
@@ -37,12 +35,19 @@ public final class WebResponse {
 
     private static void send(HttpExchange exchange, int status, String contentType, String body) throws IOException {
         byte[] payload = body.getBytes(StandardCharsets.UTF_8);
-        exchange.getResponseHeaders().set("Content-Type", contentType);
-        exchange.getResponseHeaders().set("Cache-Control", "no-store");
-        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+        applySecurityHeaders(exchange, contentType);
         exchange.sendResponseHeaders(status, payload.length);
         try (OutputStream output = exchange.getResponseBody()) {
             output.write(payload);
         }
+    }
+
+    private static void applySecurityHeaders(HttpExchange exchange, String contentType) {
+        exchange.getResponseHeaders().set("Content-Type", contentType);
+        exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        exchange.getResponseHeaders().set("X-Content-Type-Options", "nosniff");
+        exchange.getResponseHeaders().set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'");
+        exchange.getResponseHeaders().set("Referrer-Policy", "no-referrer");
+        exchange.getResponseHeaders().set("X-Frame-Options", "DENY");
     }
 }

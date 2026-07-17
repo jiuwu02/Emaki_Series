@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class ExplosionAction extends BaseAction {
+public final class ExplosionAction extends LocationTargetAction {
 
     public ExplosionAction() {
         super(

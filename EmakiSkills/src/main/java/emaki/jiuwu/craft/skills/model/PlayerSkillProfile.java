@@ -16,7 +16,8 @@ public final class PlayerSkillProfile {
     private final PlayerCastTimingState timingState;
     private final Map<String, SkillSlotBinding> bindingByTrigger = new ConcurrentHashMap<>();
     private boolean castModeEnabled;
-    private boolean dirty;
+    private long revision;
+    private long persistedRevision;
 
     public PlayerSkillProfile(String uuid, int slotCount) {
         this.uuid = uuid == null ? "" : uuid;
@@ -29,7 +30,8 @@ public final class PlayerSkillProfile {
         this.manualSkillIds = ConcurrentHashMap.newKeySet();
         this.timingState = new PlayerCastTimingState();
         this.castModeEnabled = false;
-        this.dirty = false;
+        this.revision = 0L;
+        this.persistedRevision = 0L;
         rebuildTriggerIndex();
     }
 
@@ -110,15 +112,54 @@ public final class PlayerSkillProfile {
         }
     }
 
-    public void markDirty() {
-        this.dirty = true;
+    public synchronized void markDirty() {
+        revision++;
     }
 
-    public boolean isDirty() {
-        return dirty;
+    public synchronized boolean isDirty() {
+        return revision > persistedRevision;
     }
 
-    public void clearDirty() {
-        this.dirty = false;
+    public synchronized void clearDirty() {
+        persistedRevision = revision;
+    }
+
+    public synchronized void markPersisted(long savedRevision) {
+        persistedRevision = Math.max(persistedRevision, Math.min(savedRevision, revision));
+    }
+
+    public synchronized long revision() {
+        return revision;
+    }
+
+    public synchronized long persistedRevision() {
+        return persistedRevision;
+    }
+
+    public synchronized PlayerSkillProfile copy() {
+        PlayerSkillProfile copy = new PlayerSkillProfile(uuid, bindings.size());
+        copy.bindings.clear();
+        copy.bindings.addAll(bindings);
+        for (Map.Entry<String, PlayerLocalResourceState> entry : localResources.entrySet()) {
+            PlayerLocalResourceState value = entry.getValue();
+            if (value != null) {
+                copy.localResources.put(entry.getKey(), value.copy());
+            }
+        }
+        for (Map.Entry<String, PlayerSkillLevelState> entry : skillLevels.entrySet()) {
+            PlayerSkillLevelState value = entry.getValue();
+            if (value != null) {
+                copy.skillLevels.put(entry.getKey(), value.copy());
+            }
+        }
+        copy.manualSkillIds.addAll(manualSkillIds);
+        copy.timingState.setForcedGlobalCastDelayUntil(timingState.forcedGlobalCastDelayUntil());
+        copy.timingState.setGlobalCooldownUntil(timingState.globalCooldownUntil());
+        copy.timingState.skillCooldownUntilBySkillId().putAll(timingState.skillCooldownUntilBySkillId());
+        copy.castModeEnabled = castModeEnabled;
+        copy.revision = revision;
+        copy.persistedRevision = persistedRevision;
+        copy.rebuildTriggerIndex();
+        return copy;
     }
 }

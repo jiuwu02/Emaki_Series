@@ -73,6 +73,7 @@ gui:
 failure:
   success: "Success"
   player_not_found: "Player not found"
+  player_data_unavailable: "Player data is loading or protected as read-only"
   type_not_found: "Level type not found"
   type_disabled: "Level type disabled"
   upgrade_disabled: "Upgrade disabled"

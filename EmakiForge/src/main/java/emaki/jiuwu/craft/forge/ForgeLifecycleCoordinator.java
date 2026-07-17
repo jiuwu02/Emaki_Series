@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.forge;
 import java.util.Map;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -28,6 +29,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -66,7 +68,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
         RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLibPlugin::actionRegistry, coreLibPlugin::actionTemplateRegistry);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
-        PlayerDataStore playerDataStore = new PlayerDataStore(plugin, coreLibPlugin::asyncYamlFiles);
+        AsyncYamlFiles playerDataFiles = coreLibPlugin.asyncYamlFiles(plugin);
+        PlayerDataStore playerDataStore = new PlayerDataStore(plugin, () -> playerDataFiles);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
         BootstrapService bootstrapService = new BootstrapService(
@@ -220,12 +223,14 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         if (plugin.playerDataStore() != null && plugin.messageService() != null) {
             plugin.messageService().info("console.saving_player_data");
-            try {
-                int saved = plugin.playerDataStore().saveAllAsync().join();
-                plugin.playerDataStore().waitForPendingSaves().join();
-                plugin.messageService().info("console.player_data_saved", Map.of("count", saved));
-            } catch (RuntimeException exception) {
-                plugin.getLogger().log(java.util.logging.Level.WARNING, "[Shutdown] Failed to save player data: " + exception.getMessage(), exception);
+            PlayerDataStore.FlushResult flushResult = plugin.playerDataStore().flushAndSeal(5L, TimeUnit.SECONDS);
+            plugin.messageService().info("console.player_data_saved", Map.of("count", flushResult.savedEntries()));
+            if (!flushResult.clean()) {
+                plugin.getLogger().warning("[Shutdown] Player data drain incomplete: pending="
+                        + flushResult.drainResult().pendingOperations()
+                        + ", ioFailures=" + flushResult.drainResult().failures().size()
+                        + ", saveFailures=" + flushResult.failedEntries()
+                        + ", remainingDirty=" + flushResult.remainingDirtyEntries());
             }
         }
         if (plugin.forgeGuiService() != null) {

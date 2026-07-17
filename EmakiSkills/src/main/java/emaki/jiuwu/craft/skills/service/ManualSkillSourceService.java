@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.skills.service;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.entity.Player;
 
@@ -49,39 +51,47 @@ public final class ManualSkillSourceService implements SkillSourceProvider {
 
     public boolean learn(Player player, String skillId) {
         String normalizedSkillId = Texts.normalizeId(skillId);
-        PlayerSkillProfile profile = dataStore == null ? null : dataStore.get(player);
-        if (profile == null || Texts.isBlank(normalizedSkillId) || !isValidSkill(normalizedSkillId)) {
+        if (dataStore == null || Texts.isBlank(normalizedSkillId) || !isValidSkill(normalizedSkillId)) {
             return false;
         }
-        boolean added = profile.manualSkillIds().add(normalizedSkillId);
-        if (added) {
-            profile.markDirty();
-        }
-        return added;
+        AtomicBoolean added = new AtomicBoolean();
+        dataStore.mutate(player, profile -> {
+            added.set(profile.manualSkillIds().add(normalizedSkillId));
+            if (added.get()) {
+                profile.markDirty();
+            }
+        });
+        return added.get();
     }
 
     public boolean forget(Player player, String skillId) {
         String normalizedSkillId = Texts.normalizeId(skillId);
-        PlayerSkillProfile profile = dataStore == null ? null : dataStore.get(player);
-        if (profile == null || Texts.isBlank(normalizedSkillId)) {
+        if (dataStore == null || Texts.isBlank(normalizedSkillId)) {
             return false;
         }
-        boolean removed = profile.manualSkillIds().remove(normalizedSkillId);
-        if (removed) {
-            profile.markDirty();
-        }
-        return removed;
+        AtomicBoolean removed = new AtomicBoolean();
+        dataStore.mutate(player, profile -> {
+            removed.set(profile.manualSkillIds().remove(normalizedSkillId));
+            if (removed.get()) {
+                profile.markDirty();
+            }
+        });
+        return removed.get();
     }
 
     public int forgetAll(Player player) {
-        PlayerSkillProfile profile = dataStore == null ? null : dataStore.get(player);
-        if (profile == null || profile.manualSkillIds().isEmpty()) {
+        if (dataStore == null) {
             return 0;
         }
-        int removed = profile.manualSkillIds().size();
-        profile.manualSkillIds().clear();
-        profile.markDirty();
-        return removed;
+        AtomicInteger removed = new AtomicInteger();
+        dataStore.mutate(player, profile -> {
+            removed.set(profile.manualSkillIds().size());
+            if (removed.get() > 0) {
+                profile.manualSkillIds().clear();
+                profile.markDirty();
+            }
+        });
+        return removed.get();
     }
 
     public boolean hasLearned(Player player, String skillId) {

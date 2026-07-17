@@ -44,6 +44,7 @@ public final class GemExtractService {
     private final GemEconomyService economyService;
     private final GemActionCoordinator actionCoordinator;
     private final ItemOperationLedger operationLedger;
+    private final GemOperationJournal operationJournal;
 
     public GemExtractService(EmakiGemPlugin plugin,
             GemItemMatcher itemMatcher,
@@ -58,6 +59,7 @@ public final class GemExtractService {
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
+        this.operationJournal = GemOperationJournal.forPlugin(plugin);
     }
 
     public Result extract(Player actor, Player target, int slotIndex, boolean bypassCost) {
@@ -87,23 +89,30 @@ public final class GemExtractService {
                 return Result.failure("gem.error.condition_not_met", Map.of());
             }
         }
+        String operationId = operationJournal.begin("extract", actor.getUniqueId());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             chargeResult = economyService.charge(actor, gemDefinition.extractCost(), costVariables(gemDefinition, instance.level()));
             if (!chargeResult.success()) {
+                operationJournal.failedCharge(operationId, chargeResult);
                 return Result.failure(chargeResult.errorKey(), chargeResult.placeholders());
             }
+            operationJournal.charged(operationId, chargeResult);
+        } else {
+            operationJournal.advance(operationId, GemOperationJournal.Phase.CHARGED);
         }
         GemState nextState = currentState.withAssignment(slotIndex, null);
         ItemStack rebuilt = stateService.applyState(equipment, itemDefinition, nextState);
         if (rebuilt == null) {
-            if (chargeResult != null) {
-                economyService.refund(actor, chargeResult.chargedCurrencies(), chargeResult.chargedMaterials());
-            }
+            GemEconomyService.RefundResult refundResult = chargeResult == null
+                    ? GemEconomyService.RefundResult.complete()
+                    : economyService.refundDetailed(actor, chargeResult);
+            operationJournal.completeAfterRefund(operationId, "extract_apply_refund_failed", refundResult);
             return Result.failure("command.extract.apply_failed", Map.of("player", target.getName()));
         }
         operationLedger.revert(rebuilt, OPERATION_NAMESPACE + ":slot_" + slotIndex);
         target.getInventory().setItemInMainHand(rebuilt);
+        operationJournal.advance(operationId, GemOperationJournal.Phase.STATE_COMMITTED);
         ItemStack returned = createReturnedGem(gemDefinition, instance);
         if (returned != null) {
             Map<Integer, ItemStack> leftover = target.getInventory().addItem(returned);
@@ -114,7 +123,8 @@ public final class GemExtractService {
         placeholders.put("slot", slotIndex);
         placeholders.put("gem", plugin.itemFactory().resolveGemDisplayName(gemDefinition, instance.level()));
         placeholders.put("gem_id", gemDefinition.id());
-        actionCoordinator.execute(target, "gem_extract_success", gemDefinition.extractSuccessActions(), placeholders);
+        operationJournal.completeAfterActions(operationId,
+                actionCoordinator.executeAsync(target, "gem_extract_success", gemDefinition.extractSuccessActions(), placeholders));
         return Result.success("command.extract.success", placeholders);
     }
 

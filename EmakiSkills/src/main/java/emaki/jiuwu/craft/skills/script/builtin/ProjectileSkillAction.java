@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.skills.api.SkillActionParameter;
 import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
 import emaki.jiuwu.craft.skills.api.SkillActionResult;
+import emaki.jiuwu.craft.skills.api.SkillScriptAction;
 import emaki.jiuwu.craft.skills.api.SkillScriptContext;
 
 public final class ProjectileSkillAction extends AbstractSkillScriptAction {
@@ -38,6 +39,20 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
 
     @Override
     public CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments) {
+        return executeFlight(context, arguments, new SkillScriptAction.CancellationToken());
+    }
+
+    @Override
+    public CompletableFuture<SkillActionResult> executeAsync(SkillScriptContext context,
+            Map<String, String> arguments,
+            SkillScriptAction.CancellationToken cancellationToken) {
+        return executeFlight(context, arguments,
+                cancellationToken == null ? new SkillScriptAction.CancellationToken() : cancellationToken);
+    }
+
+    private CompletableFuture<SkillActionResult> executeFlight(SkillScriptContext context,
+            Map<String, String> arguments,
+            SkillScriptAction.CancellationToken cancellationToken) {
         Player caster = context.caster();
         if (caster == null || !caster.isOnline()) {
             return completed(SkillActionResult.ok());
@@ -50,102 +65,134 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
         int pierce = intArg(arguments, "pierce", 0);
         boolean homing = Boolean.parseBoolean(arg(arguments, "homing", "false"));
         double homingStrength = doubleArg(arguments, "homing_strength", 0.1D);
-        String particleName = arg(arguments, "particle", "FLAME").toUpperCase(java.util.Locale.ROOT);
+        Particle particle = parseParticle(arg(arguments, "particle", "FLAME")
+                .toUpperCase(java.util.Locale.ROOT));
         double damage = doubleArg(arguments, "damage", 0D);
         String directionMode = arg(arguments, "direction", "look").toLowerCase(java.util.Locale.ROOT);
-
-        Particle particle = parseParticle(particleName);
         Location origin = caster.getEyeLocation();
-        Vector direction = resolveDirection(context, directionMode, origin);
-        direction.normalize().multiply(speed);
+        Entity target = context.targetEntity();
 
-        double hitRadiusSq = hitRadius * hitRadius;
-        List<Entity> alreadyHit = new ArrayList<>();
+        CompletableFuture<Location> targetLocation = target == null
+                ? CompletableFuture.completedFuture(null)
+                : callOnEntity(context, target, () -> target.getLocation().add(0, 1, 0));
+        CompletableFuture<SkillActionResult> flight = targetLocation.thenCompose(aimLocation -> {
+            Vector direction = resolveDirection(directionMode, origin, aimLocation)
+                    .normalize().multiply(speed);
+            List<Entity> alreadyHit = new ArrayList<>();
+            CompletableFuture<SkillActionResult> completion = new CompletableFuture<>();
 
-        class ProjectileFlight {
-            private Location current = origin.clone();
-            private final Vector velocity = direction.clone();
-            private int ticksLived;
-            private int pierceRemaining = pierce;
+            class ProjectileFlight {
+                private Location current = origin.clone();
+                private final Vector velocity = direction.clone();
+                private int ticksLived;
+                private int pierceRemaining = pierce;
 
-            private void scheduleNextTick() {
-                if (ticksLived >= lifetime || !caster.isOnline()) {
-                    return;
-                }
-                ticksLived++;
-                velocity.setY(velocity.getY() - gravity);
-
-                Entity homingTarget = context.targetEntity();
-                if (homing && homingTarget != null && !homingTarget.isDead()) {
-                    Vector toTarget = homingTarget.getLocation().add(0, 1, 0)
-                            .toVector().subtract(current.toVector()).normalize();
-                    velocity.add(toTarget.multiply(homingStrength)).normalize().multiply(speed);
+                private void finish() {
+                    completion.complete(SkillActionResult.ok());
                 }
 
-                current.add(velocity);
-                FoliaSchedulerAdapter.runAtLocationLater(
-                        context.plugin(),
-                        current.clone(),
-                        this::tick,
-                        1L);
-            }
-
-            private void tick() {
-                if (!caster.isOnline()) {
-                    return;
-                }
-                World world = current.getWorld();
-                if (world == null) {
-                    return;
-                }
-
-                if (particle != null) {
-                    world.spawnParticle(particle, current, 1, 0, 0, 0, 0);
-                }
-
-                if (current.getBlock().getType().isSolid()) {
-                    return;
-                }
-
-                Collection<Entity> nearby = world.getNearbyEntities(current, hitRadius, hitRadius, hitRadius);
-                for (Entity entity : nearby) {
-                    if (!(entity instanceof LivingEntity living)) {
-                        continue;
-                    }
-                    if (entity.equals(caster) || alreadyHit.contains(entity)) {
-                        continue;
-                    }
-                    if (entity.getLocation().distanceSquared(current) > hitRadiusSq * 4) {
-                        continue;
-                    }
-
-                    alreadyHit.add(entity);
-                    context.setTarget(living);
-                    context.putVariable("projectile_hit", "1");
-                    context.putSharedValue("projectile_hit_entity", living);
-
-                    if (damage > 0D) {
-                        living.damage(damage, caster);
-                    }
-
-                    if (pierceRemaining <= 0) {
+                private void scheduleNextTick() {
+                    if (cancellationToken.isCancelled()) {
+                        finish();
                         return;
                     }
-                    pierceRemaining--;
+                    if (completion.isDone() || ticksLived >= lifetime) {
+                        finish();
+                        return;
+                    }
+                    ticksLived++;
+                    velocity.setY(velocity.getY() - gravity);
+                    if (homing && aimLocation != null && aimLocation.getWorld() == current.getWorld()) {
+                        Vector toTarget = aimLocation.toVector().subtract(current.toVector());
+                        if (toTarget.lengthSquared() > 0.0001D) {
+                            velocity.add(toTarget.normalize().multiply(homingStrength))
+                                    .normalize().multiply(speed);
+                        }
+                    }
+                    current.add(velocity);
+                    try {
+                        var scheduled = FoliaSchedulerAdapter.runAtLocationLater(
+                                context.plugin(), current.clone(), this::tick, 1L);
+                        if (scheduled == null) {
+                            completion.completeExceptionally(new IllegalStateException(
+                                    "Projectile flight scheduling was rejected."));
+                        }
+                    } catch (Throwable throwable) {
+                        completion.completeExceptionally(throwable);
+                    }
                 }
-                scheduleNextTick();
+
+                private void tick() {
+                    if (cancellationToken.isCancelled()) {
+                        finish();
+                        return;
+                    }
+                    World world = current.getWorld();
+                    if (world == null || current.getBlock().getType().isSolid()) {
+                        finish();
+                        return;
+                    }
+                    if (particle != null) {
+                        world.spawnParticle(particle, current, 1, 0, 0, 0, 0);
+                    }
+                    Collection<Entity> nearby = world.getNearbyEntities(
+                            current, hitRadius, hitRadius, hitRadius);
+                    List<CompletableFuture<?>> hitTasks = new ArrayList<>();
+                    boolean terminalHit = false;
+                    for (Entity entity : nearby) {
+                        if (!(entity instanceof LivingEntity living)
+                                || entity.equals(caster)
+                                || alreadyHit.contains(entity)) {
+                            continue;
+                        }
+                        alreadyHit.add(entity);
+                        hitTasks.add(callOnEntity(context, living, () -> {
+                            if (cancellationToken.isCancelled()) {
+                                return null;
+                            }
+                            if (damage > 0D) {
+                                living.damage(damage, caster);
+                            }
+                            context.setTarget(living);
+                            context.putVariable("projectile_hit", "1");
+                            context.putSharedValue("projectile_hit_entity", living);
+                            return null;
+                        }));
+                        if (pierceRemaining <= 0) {
+                            terminalHit = true;
+                            break;
+                        }
+                        pierceRemaining--;
+                    }
+                    boolean stop = terminalHit;
+                    CompletableFuture.allOf(hitTasks.toArray(CompletableFuture[]::new))
+                            .whenComplete((_, throwable) -> {
+                                if (throwable != null) {
+                                    completion.completeExceptionally(throwable);
+                                } else if (stop) {
+                                    finish();
+                                } else {
+                                    scheduleNextTick();
+                                }
+                            });
+                }
             }
-        }
 
-        new ProjectileFlight().scheduleNextTick();
-
-        return completed(SkillActionResult.ok());
+            new ProjectileFlight().scheduleNextTick();
+            return completion;
+        });
+        flight.whenComplete((_, _) -> {
+            if (flight.isCancelled()) {
+                cancellationToken.cancel();
+            }
+        });
+        return flight;
     }
 
-    private Vector resolveDirection(SkillScriptContext context, String mode, Location origin) {
-        if ("target".equals(mode) && context.targetEntity() != null) {
-            return context.targetEntity().getLocation().add(0, 1, 0)
-                    .toVector().subtract(origin.toVector());
+    private Vector resolveDirection(String mode, Location origin, Location targetLocation) {
+        if ("target".equals(mode) && targetLocation != null
+                && targetLocation.getWorld() == origin.getWorld()) {
+            return targetLocation.toVector().subtract(origin.toVector());
         }
         return origin.getDirection();
     }

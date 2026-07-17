@@ -204,6 +204,7 @@ upgrade:
   max_level: "<yellow>技能 <white>%skill%</white> 已达到最高等级
     <gold>%max_level%</gold>。</yellow>"
   economy_unavailable: "<red>经济服务不可用，无法扣除 %cost%。</red>"
+  commit_failed: "<red>技能升级状态提交失败，已尝试补偿全部消耗。原因：%reason%。</red>"
   insufficient_funds: "<red>金币不足，需要 %cost%。</red>"
   insufficient_materials: "<red>材料不足，需要 <white>%material%</white> x%required%，当前 %available%。</red>"
   success:

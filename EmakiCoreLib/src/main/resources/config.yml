@@ -19,14 +19,15 @@ language: "zh_CN"
 release_default_data: true
 
 web_console:
-  # 内置 Web 管理台，默认关闭。启用前请修改 auth.password。
+  # 内置 Web 管理台，默认关闭。启用前请修改 auth.password，并显式确认 runtime_opt_in。
   enabled: false
+  runtime_opt_in: false
   host: "127.0.0.1"
   port: 38765
   public_access_warning: true
   auth:
     username: "EmakiAdmin"
-    password: "EmakiAdminPassword"
+    password: "change-me"
     session_timeout_minutes: 60
   security:
     # 安全模式：readonly / config-write / script-write / admin。
@@ -90,10 +91,16 @@ action:
     #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
 
 script:
-  enabled: true
+  # JavaScript 默认关闭；同时设置 enabled 与 runtime_opt_in 为 true 才会启动。
+  # 超时支持数字毫秒、ms、s、t；单次请求 <=0 时使用 default，并被夹在 1..max。
+  enabled: false
+  runtime_opt_in: false
   engine:
     type: "graaljs"
+    # 默认脚本超时；单次 runjs/invoke 未指定或 <=0 时使用。
     default_timeout_millis: 1000
+    # 单次请求超时上限；若配置小于 default，加载时会提升到 default。
+    # Watchdog 到期会 close(true) 中断 Graal context；同步调用最多额外等待约 500ms 收敛结果。
     max_timeout_millis: 5000
     cache_enabled: true
     recompile_on_reload: true
@@ -135,7 +142,7 @@ script:
     allow_action_dispatch: true
     max_action_depth: 3
   server_api:
-    enabled: true
+    enabled: false
     allow_type_access: false
     allowed_type_prefixes:
       - "org.bukkit."

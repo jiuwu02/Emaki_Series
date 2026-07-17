@@ -2,10 +2,13 @@ package emaki.jiuwu.craft.corelib;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.event.HandlerList;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -56,6 +59,9 @@ import emaki.jiuwu.craft.corelib.script.ScriptService;
 import emaki.jiuwu.craft.corelib.script.graal.GraalJavaScriptService;
 import emaki.jiuwu.craft.corelib.script.js.JavaScriptActionExtensionLoader;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
+import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
+import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle;
+import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle.ShutdownReport;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
@@ -88,6 +94,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private emaki.jiuwu.craft.corelib.gui.GuiBackend guiBackend;
     private AsyncFileService asyncFileService;
     private AsyncYamlFiles asyncYamlFiles;
+    private CapabilityProbe capabilityProbe;
+    private CorePluginLifecycle corePluginLifecycle;
     private ActionRegistry actionRegistry;
     private ActionTemplateRegistry actionTemplateRegistry;
     private PlaceholderRegistry placeholderRegistry;
@@ -130,6 +138,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onEnable() {
+        capabilityProbe = CapabilityProbe.detect(getServer());
+        if (capabilityProbe.folia()) {
+            getLogger().severe("Emaki Series P0 release is not approved for Folia. CoreLib startup has been refused.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
         initializeServices();
@@ -195,9 +209,18 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             guiBackendRegistry = null;
             guiBackend = null;
         }
-        if (asyncTaskScheduler != null) {
-            asyncTaskScheduler.shutdown(5_000L);
+        ShutdownReport shutdownReport = corePluginLifecycle == null
+                ? shutdownAsyncFallback()
+                : corePluginLifecycle.shutdown(10L, TimeUnit.SECONDS);
+        if (!shutdownReport.clean()) {
+            getLogger().warning("CoreLib async shutdown was incomplete: pendingFiles="
+                    + shutdownReport.pendingFileOperations()
+                    + ", fileFailures=" + shutdownReport.fileFailures().size()
+                    + ", schedulerTerminated=" + shutdownReport.schedulerTerminated());
         }
+        HandlerList.unregisterAll(this);
+        getServer().getServicesManager().unregisterAll(this);
+        serviceRegistry.clear();
         ExpressionEngine.clearGlobalCache();
         ExpressionEngine.clearThreadLocalCache();
         emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer.clearRegexCache();
@@ -223,7 +246,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public boolean reloadActionSystem() {
         CoreLibConfig candidateConfig = loadConfigModel();
-        ActionRegistry candidateActionRegistry = new ActionRegistry();
+        ActionRegistry candidateActionRegistry = new ActionRegistry(this);
         ActionTemplateRegistry candidateTemplateRegistry = new ActionTemplateRegistry();
         PlaceholderRegistry candidatePlaceholderRegistry = new PlaceholderRegistry(this::debugLogger);
         EconomyManager candidateEconomyManager = new EconomyManager(this);
@@ -303,6 +326,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         if (configModel == null || configModel.scriptConfig() == null || !configModel.scriptConfig().enabled()) {
             messageService.info("console.script_engine_disabled");
+            return;
+        }
+        if (!configModel.scriptConfig().runtimeOptIn()) {
+            getLogger().warning("JavaScript startup refused: set script.runtime_opt_in=true only after reviewing the script security boundary.");
             return;
         }
         try {
@@ -446,6 +473,20 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         );
     }
 
+    private ShutdownReport shutdownAsyncFallback() {
+        var fileResult = asyncFileService == null
+                ? new AsyncFileService.DrainResult(true, 0, List.of())
+                : asyncFileService.closeAndDrain(9L, TimeUnit.SECONDS);
+        boolean schedulerTerminated = asyncTaskScheduler == null
+                || asyncTaskScheduler.shutdownGracefully(1L, TimeUnit.SECONDS);
+        return new ShutdownReport(
+                fileResult.drained(),
+                schedulerTerminated,
+                fileResult.pendingOperations(),
+                fileResult.failures()
+        );
+    }
+
     private void initializeServices() {
         CoreLibConfig config = configModel == null ? CoreLibConfig.defaults() : configModel;
         languageLoader = new LanguageLoader(this, "lang", "lang", config.language(), "zh_CN");
@@ -460,6 +501,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         asyncTaskScheduler = AsyncTaskScheduler.forPlugin(this, "emaki-corelib-async", performanceMonitor);
         asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
         asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
+        corePluginLifecycle = new CorePluginLifecycle();
+        corePluginLifecycle.start(asyncFileService, asyncTaskScheduler);
         languageLoader.load();
         guiBackendRegistry = new emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry(messageService);
         guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
@@ -641,6 +684,30 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return asyncYamlFiles;
     }
 
+    public AsyncYamlFiles asyncYamlFiles(Plugin owner) {
+        if (asyncFileService == null) {
+            throw new IllegalStateException("Async file service is unavailable");
+        }
+        String ownerName = owner == null ? "anonymous" : owner.getName();
+        return new AsyncYamlFiles(asyncFileService.openScope(ownerName));
+    }
+
+    public AsyncFileService.FileScope asyncFileScope(Plugin owner) {
+        if (asyncFileService == null) {
+            throw new IllegalStateException("Async file service is unavailable");
+        }
+        String ownerName = owner == null ? "anonymous" : owner.getName();
+        return asyncFileService.openScope(ownerName);
+    }
+
+    public CapabilityProbe capabilityProbe() {
+        return capabilityProbe;
+    }
+
+    public CorePluginLifecycle corePluginLifecycle() {
+        return corePluginLifecycle;
+    }
+
     public PdcService pdcService() {
         return pdcService;
     }
@@ -710,6 +777,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(AsyncTaskScheduler.class, asyncTaskScheduler);
         registerService(AsyncFileService.class, asyncFileService);
         registerService(AsyncYamlFiles.class, asyncYamlFiles);
+        registerService(CapabilityProbe.class, capabilityProbe);
+        registerService(CorePluginLifecycle.class, corePluginLifecycle);
         registerService(ActionRegistry.class, actionRegistry);
         registerService(ActionTemplateRegistry.class, actionTemplateRegistry);
         registerService(PlaceholderRegistry.class, placeholderRegistry);

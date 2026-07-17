@@ -87,6 +87,7 @@ final class AttributeSnapshotCollector {
         Map<String, Double> values = new LinkedHashMap<>();
         mergeValues(values, parsedLore.snapshot().values());
         mergeValues(values, resolvedRawContribution.values());
+        expandParentAttributeBonuses(values, service.registryService().attributeDefinitions());
         AttributeSnapshot snapshot = new AttributeSnapshot(
                 AttributeFusionMath.ITEM_SNAPSHOT_SCHEMA_VERSION,
                 sourceSignature,
@@ -269,6 +270,45 @@ final class AttributeSnapshotCollector {
                 itemSignature,
                 views.filtered().sourceSignature()
         ));
+    }
+
+    static void expandParentAttributeBonuses(Map<String, Double> values,
+            Collection<AttributeDefinition> definitions) {
+        if (values == null || values.isEmpty() || definitions == null || definitions.isEmpty()) {
+            return;
+        }
+        for (AttributeDefinition definition : definitions) {
+            if (definition == null || !definition.parentAttribute() || definition.childBonuses().isEmpty()) {
+                continue;
+            }
+            String parentId = Texts.normalizeId(definition.id());
+            Double parentValue = values.get(parentId);
+            if (parentValue == null) {
+                continue;
+            }
+            double parentSpread = values.getOrDefault(AttributeSnapshot.rangeSpreadKey(parentId), 0D);
+            double parentUpper = parentValue + parentSpread;
+            for (Map.Entry<String, Double> entry : definition.childBonuses().entrySet()) {
+                if (entry.getKey() == null || entry.getValue() == null) {
+                    continue;
+                }
+                String childId = Texts.normalizeId(entry.getKey());
+                double multiplier = entry.getValue();
+                if (childId.isBlank() || Math.abs(multiplier) <= ZERO_EPSILON) {
+                    continue;
+                }
+                double scaledLower = parentValue * multiplier;
+                double scaledUpper = parentUpper * multiplier;
+                double childLower = Math.min(scaledLower, scaledUpper);
+                double childSpread = Math.abs(scaledUpper - scaledLower);
+                if (Math.abs(childLower) > ZERO_EPSILON) {
+                    values.merge(childId, childLower, Double::sum);
+                }
+                if (childSpread > ZERO_EPSILON) {
+                    values.merge(AttributeSnapshot.rangeSpreadKey(childId), childSpread, Double::sum);
+                }
+            }
+        }
     }
 
     private void mergeValues(Map<String, Double> target, Map<String, Double> source) {

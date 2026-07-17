@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class KillEntityAction extends BaseAction {
+public final class KillEntityAction extends LocationTargetAction {
 
     public KillEntityAction() {
         super(

@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
-import org.bukkit.Location;
 import org.bukkit.Particle;
 
 import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
@@ -30,11 +29,13 @@ public final class ParticleSkillAction extends AbstractSkillScriptAction {
         if (particle == null) {
             return completed(SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Unknown particle: " + arg(arguments, "particle", "")));
         }
-        Location location = locationTarget(context, arguments);
-        if (location == null || location.getWorld() == null) {
-            return completed(SkillActionResult.ok());
-        }
-        location.getWorld().spawnParticle(particle, location, intArg(arguments, "count", 1), 0D, 0D, 0D, doubleArg(arguments, "speed", 0D));
-        return completed(SkillActionResult.ok());
+        int count = intArg(arguments, "count", 1);
+        double speed = doubleArg(arguments, "speed", 0D);
+        return atLocation(context, arguments, "at", "target", location -> {
+            if (location.getWorld() != null) {
+                location.getWorld().spawnParticle(particle, location, count, 0D, 0D, 0D, speed);
+            }
+            return SkillActionResult.ok();
+        });
     }
 }

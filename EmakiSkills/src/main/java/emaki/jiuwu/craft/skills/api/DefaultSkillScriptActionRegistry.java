@@ -1,87 +1,94 @@
 package emaki.jiuwu.craft.skills.api;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
-import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class DefaultSkillScriptActionRegistry implements SkillScriptActionRegistry {
 
-    private final Map<String, SkillScriptAction> actions = new LinkedHashMap<>();
-    private final Map<String, Plugin> owners = new LinkedHashMap<>();
+    private final Map<String, Registration> registrations = new ConcurrentHashMap<>();
 
     @Override
     public SkillActionResult register(Plugin owner, SkillScriptAction action) {
-        if (owner == null) {
-            return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Skill script action owner cannot be null.");
+        if (owner == null || !owner.isEnabled()) {
+            return SkillActionResult.failure(SkillActionErrorType.INVALID_STATE,
+                    "Skill script action owner must be enabled.");
         }
         if (action == null || Texts.isBlank(action.id())) {
-            return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Skill script action id cannot be blank.");
+            return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT,
+                    "Skill script action id cannot be blank.");
         }
         String id = Texts.normalizeId(action.id());
-        if (actions.containsKey(id)) {
-            return SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Skill script action already registered: " + id);
-        }
-        actions.put(id, action);
-        owners.put(id, owner);
-        return SkillActionResult.ok();
+        Registration previous = registrations.putIfAbsent(id, new Registration(owner, action));
+        return previous == null
+                ? SkillActionResult.ok()
+                : SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT,
+                        "Skill script action already registered: " + id);
     }
 
     @Override
     public void unregister(String actionId) {
-        String id = Texts.normalizeId(actionId);
-        actions.remove(id);
-        owners.remove(id);
+        registrations.remove(Texts.normalizeId(actionId));
     }
 
     @Override
     public void unregisterAll(Plugin owner) {
-        if (owner == null) {
-            return;
-        }
-        List<String> remove = new ArrayList<>();
-        for (Map.Entry<String, Plugin> entry : owners.entrySet()) {
-            if (owner.equals(entry.getValue())) {
-                remove.add(entry.getKey());
-            }
-        }
-        for (String id : remove) {
-            unregister(id);
+        if (owner != null) {
+            registrations.entrySet().removeIf(entry -> owner.equals(entry.getValue().owner()));
         }
     }
 
     @Override
     public SkillScriptAction get(String actionId) {
-        return actions.get(Texts.normalizeId(actionId));
+        Registration registration = activeRegistration(actionId);
+        return registration == null ? null : registration.action();
     }
 
     @Override
     public Plugin ownerOf(String actionId) {
-        return owners.get(Texts.normalizeId(actionId));
+        Registration registration = activeRegistration(actionId);
+        return registration == null ? null : registration.owner();
     }
 
     @Override
     public Map<String, SkillScriptAction> all() {
-        return Map.copyOf(actions);
+        purgeDisabledOwners();
+        Map<String, SkillScriptAction> result = new LinkedHashMap<>();
+        registrations.forEach((id, registration) -> result.put(id, registration.action()));
+        return Map.copyOf(result);
     }
 
     @Override
     public List<SkillScriptAction> byOwner(Plugin owner) {
-        if (owner == null) {
+        if (owner == null || !owner.isEnabled()) {
+            unregisterAll(owner);
             return List.of();
         }
-        List<SkillScriptAction> result = new ArrayList<>();
-        for (Map.Entry<String, SkillScriptAction> entry : actions.entrySet()) {
-            if (owner.equals(owners.get(entry.getKey()))) {
-                result.add(entry.getValue());
-            }
+        return registrations.values().stream()
+                .filter(registration -> owner.equals(registration.owner()))
+                .map(Registration::action)
+                .toList();
+    }
+
+    private Registration activeRegistration(String actionId) {
+        String id = Texts.normalizeId(actionId);
+        Registration registration = registrations.get(id);
+        if (registration == null || registration.owner().isEnabled()) {
+            return registration;
         }
-        return List.copyOf(result);
+        registrations.remove(id, registration);
+        return null;
+    }
+
+    private void purgeDisabledOwners() {
+        registrations.entrySet().removeIf(entry -> !entry.getValue().owner().isEnabled());
+    }
+
+    private record Registration(Plugin owner, SkillScriptAction action) {
     }
 }

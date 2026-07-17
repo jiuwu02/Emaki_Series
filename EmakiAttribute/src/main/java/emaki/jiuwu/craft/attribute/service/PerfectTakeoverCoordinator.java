@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 
 public final class PerfectTakeoverCoordinator implements Listener {
 
-    public record Pending(ResolvedDamage resolvedDamage, Entity visualSource) {
+    public record Pending(ResolvedDamage resolvedDamage) {
     }
 
     private final AttributeService service;
@@ -34,7 +34,7 @@ public final class PerfectTakeoverCoordinator implements Listener {
         }
         neutralizeVanillaMitigation(event);
         event.setDamage(EntityDamageEvent.DamageModifier.BASE, resolvedDamage.finalDamage());
-        pending.put(event, new Pending(resolvedDamage, visualSource));
+        pending.put(event, new Pending(resolvedDamage));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -46,7 +46,7 @@ public final class PerfectTakeoverCoordinator implements Listener {
         if (event.isCancelled() || event.getFinalDamage() <= 0D) {
             return;
         }
-        service.applyDamageSideEffects(claimed.resolvedDamage(), claimed.visualSource());
+        service.applyDamageSideEffectsAsync(claimed.resolvedDamage()).exceptionally(throwable -> false);
     }
 
     private void neutralizeVanillaMitigation(EntityDamageEvent event) {

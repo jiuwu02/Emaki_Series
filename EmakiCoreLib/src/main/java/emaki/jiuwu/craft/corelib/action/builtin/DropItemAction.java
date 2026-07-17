@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class DropItemAction extends BaseAction {
+public final class DropItemAction extends LocationTargetAction {
 
     private final ItemSourceService itemSourceService;
 

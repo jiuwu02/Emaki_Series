@@ -110,6 +110,11 @@ public final class PlayerData {
         history(recipeId).increment(timestamp);
     }
 
+    public int craftCount(String recipeId) {
+        ForgeHistory history = recipeHistory.get(recipeId);
+        return history == null ? 0 : history.craftCount();
+    }
+
     public boolean hasCrafted(String recipeId) {
         ForgeHistory history = recipeHistory.get(recipeId);
         return history != null && history.hasCrafted();

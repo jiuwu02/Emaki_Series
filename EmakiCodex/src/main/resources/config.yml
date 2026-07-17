@@ -1,7 +1,8 @@
 # ============================================================
 # EmakiCodex 主配置文件
 # ============================================================
-# 原版成就编排。修改后使用 /codex reload 重载。
+# 原版成就编排。修改后使用 /codex reload 重载配置、语言与成就文件。
+# 注意：动态成就会在启用时重建；PacketEvents 坐标监听开关本身需重启生效。
 #
 # 文件放置位置: plugins/EmakiCodex/config.yml
 # ============================================================
@@ -22,22 +23,28 @@ op_bypass: false
 # 原版成就
 # ------------------------------------------------------------
 advancement:
+  # 总开关：true 时 /codex reload 会加载并注册动态成就；false 时跳过注册/重建。
+  # 若运行中改为 false，本次 reload 不清理已注册成就；仅在 remove-on-disable=true 的插件禁用
+  # 或下一次启用态重建时清理。
   enabled: true
   # 动态注册平台：unsafe（Bukkit.getUnsafe().loadAdvancement）
   platform: unsafe
   # 成就完成默认是否全服广播（可被单个成就的 announce 覆盖）
   announce-default: false
-  # 插件禁用/重载时是否移除已注册的动态成就
+  # 插件禁用时是否移除已注册的动态成就。
+  # /codex reload 的重建流程始终会先清理本插件 namespace 再注册，不受此开关控制。
   remove-on-disable: true
   # 发包坐标注入（软依赖 PacketEvents）
   # true=装了 PacketEvents 时，把成就页每个节点在 GUI 中的位置改成 yml 里配置的 x/y。
   # 未安装 PacketEvents 时该开关不生效，x/y 被忽略，节点位置由客户端按 parent 树自动排布。
+  # 开关只在插件启用时注册/跳过 PacketEvents 监听；运行中切换需重启。
+  # 监听已启用时，/codex reload 后重新注册的节点 x/y 会被下一次发包读取。
   # 注意：x/y 都为 0 视为“未设置”，该节点回退自动排布。若要用坐标，建议整页所有节点都配 x/y，
   # 避免“部分显式坐标 + 部分自动排布”导致节点重叠。
   packet-coordinates: true
   # 事件触发器：玩家完成配置的游戏事件（且满足条件）时自动授予成就。
-  # true=启用；false=关闭后成就只能通过 /codex grant 命令或 codex-grant-advancement 动作手动授予。
-  # 具体在每个成就节点下用 triggers.entries 配置，见 advancements/ 示例文件。
+  # true=启用；false=触发服务直接跳过，成就只能通过 /codex grant 命令或 codex-grant-advancement 动作手动授予。
+  # 修改后 /codex reload 即刻生效；具体在每个成就节点下用 triggers.entries 配置，见 advancements/ 示例文件。
   triggers-enabled: true
 
 debug: false

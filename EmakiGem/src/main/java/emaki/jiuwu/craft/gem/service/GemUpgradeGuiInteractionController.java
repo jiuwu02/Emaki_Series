@@ -160,6 +160,7 @@ final class GemUpgradeGuiInteractionController {
         } else {
             state.setTargetGem(updatedGem);
         }
+        execution.commit();
         scheduleSwitchIfNeeded(state);
     }
 

@@ -2,11 +2,18 @@ package emaki.jiuwu.craft.skills.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
@@ -27,9 +34,6 @@ import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptMode;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
-import emaki.jiuwu.craft.corelib.condition.ConditionContext;
-import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class CastAttemptService {
 
@@ -44,6 +48,7 @@ public final class CastAttemptService {
     private final ExternalManaBridge externalManaBridge;
     private final Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier;
     private final Supplier<AppConfig> configSupplier;
+    private final Map<CastKey, CompletableFuture<CastAttemptResult>> inFlight = new ConcurrentHashMap<>();
 
     public CastAttemptService(JavaPlugin plugin,
             PlayerSkillStateService stateService,
@@ -69,110 +74,133 @@ public final class CastAttemptService {
         this.configSupplier = configSupplier;
     }
 
-    public CastAttemptResult attemptCast(Player player, String triggerId) {
-        if (player == null || triggerId == null || triggerId.isBlank()) {
-            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.invalid_input");
+    public CompletableFuture<CastAttemptResult> attemptCast(Player player, String triggerId) {
+        if (player == null || Texts.isBlank(triggerId)) {
+            return completedFailure(FailureReason.NO_BINDING, "cast.invalid_input");
         }
+        return onCaster(player, () -> CompletableFuture.completedFuture(prepareBoundAttempt(player, triggerId, null)))
+                .thenCompose(this::executePlan);
+    }
 
+    public CompletableFuture<CastAttemptResult> attemptCast(Player player,
+            String triggerId,
+            SkillSlotBinding binding) {
+        if (player == null || Texts.isBlank(triggerId)) {
+            return completedFailure(FailureReason.NO_BINDING, "cast.invalid_input");
+        }
+        if (binding == null || binding.isEmpty()) {
+            return completedFailure(FailureReason.NO_BINDING, "cast.no_binding");
+        }
+        return onCaster(player, () -> CompletableFuture.completedFuture(prepareBoundAttempt(player, triggerId, binding)))
+                .thenCompose(this::executePlan);
+    }
+
+    public CompletableFuture<CastAttemptResult> attemptPassiveCast(Player player,
+            String triggerId,
+            SkillDefinition definition,
+            TriggerInvocation invocation) {
+        if (player == null || Texts.isBlank(triggerId)) {
+            return completedFailure(FailureReason.NO_BINDING, "cast.invalid_input");
+        }
+        return onCaster(player, () -> CompletableFuture.completedFuture(
+                        prepareDefinitionAttempt(player, definition, triggerId, invocation, false)))
+                .thenCompose(this::executePlan);
+    }
+
+    public CompletableFuture<CastAttemptResult> attemptDirectCast(Player player,
+            String triggerId,
+            SkillDefinition definition,
+            TriggerInvocation invocation) {
+        if (player == null || Texts.isBlank(triggerId)) {
+            return completedFailure(FailureReason.NO_BINDING, "cast.invalid_input");
+        }
+        return onCaster(player, () -> CompletableFuture.completedFuture(
+                        prepareDefinitionAttempt(player, definition, triggerId, invocation, true)))
+                .thenCompose(this::executePlan);
+    }
+
+    private AttemptPlan prepareBoundAttempt(Player player, String triggerId, SkillSlotBinding suppliedBinding) {
         if (!castModeService.isCastModeEnabled(player)) {
-            return CastAttemptResult.fail(FailureReason.NOT_IN_CAST_MODE, "cast.not_in_cast_mode");
+            return AttemptPlan.failure(player, FailureReason.NOT_IN_CAST_MODE, "cast.not_in_cast_mode");
         }
-
         PlayerSkillProfile profile = dataStore.get(player);
         if (profile == null) {
-            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.no_profile");
+            return AttemptPlan.failure(player, FailureReason.NO_BINDING, "cast.no_profile");
         }
-        SkillSlotBinding binding = findBindingByTrigger(profile, triggerId);
+        SkillSlotBinding binding = suppliedBinding == null ? findBindingByTrigger(profile, triggerId) : suppliedBinding;
         if (binding == null || binding.isEmpty()) {
-            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.no_binding");
+            return AttemptPlan.failure(player, FailureReason.NO_BINDING, "cast.no_binding");
         }
-
-        return attemptCastWithBinding(player, triggerId, binding);
-    }
-
-    public CastAttemptResult attemptCast(Player player, String triggerId, SkillSlotBinding binding) {
-        if (player == null || triggerId == null || triggerId.isBlank()) {
-            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.invalid_input");
-        }
-        if (binding == null || binding.isEmpty()) {
-            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.no_binding");
-        }
-
-        if (!castModeService.isCastModeEnabled(player)) {
-            return CastAttemptResult.fail(FailureReason.NOT_IN_CAST_MODE, "cast.not_in_cast_mode");
-        }
-
-        return attemptCastWithBinding(player, triggerId, binding);
-    }
-
-    public CastAttemptResult attemptPassiveCast(Player player,
-            String triggerId,
-            SkillDefinition definition,
-            TriggerInvocation invocation) {
-        if (player == null || triggerId == null || triggerId.isBlank()) {
-            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.invalid_input");
-        }
-        if (definition == null || !definition.enabled()) {
-            return CastAttemptResult.fail(FailureReason.SKILL_NOT_FOUND, "skill.not_found");
-        }
-        return attemptCastWithDefinition(player, definition, triggerId, invocation);
-    }
-
-    public CastAttemptResult attemptDirectCast(Player player,
-            String triggerId,
-            SkillDefinition definition,
-            TriggerInvocation invocation) {
-        if (player == null || triggerId == null || triggerId.isBlank()) {
-            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.invalid_input");
-        }
-        if (definition == null || !definition.enabled() || definition.activationType() != emaki.jiuwu.craft.skills.model.SkillActivationType.ACTIVE) {
-            return CastAttemptResult.fail(FailureReason.SKILL_NOT_FOUND, "skill.not_found");
-        }
-        return attemptCastWithDefinition(player, definition, triggerId, invocation);
-    }
-
-    private CastAttemptResult attemptCastWithBinding(Player player, String triggerId, SkillSlotBinding binding) {
-
         SkillDefinition definition = stateService.getDefinition(binding.skillId());
         if (definition == null) {
-            return CastAttemptResult.fail(FailureReason.SKILL_NOT_FOUND, "skill.not_found");
+            return AttemptPlan.failure(player, FailureReason.SKILL_NOT_FOUND, "skill.not_found");
         }
-
         List<UnlockedSkillEntry> unlocked = stateService.getUnlockedSkills(player);
-        boolean inPool = false;
-        for (UnlockedSkillEntry entry : unlocked) {
-            if (entry.skillId().equals(binding.skillId())) {
-                inPool = true;
-                break;
-            }
-        }
+        boolean inPool = unlocked.stream().anyMatch(entry -> entry.skillId().equals(binding.skillId()));
         if (!inPool) {
-            return CastAttemptResult.fail(FailureReason.SOURCE_LOST, "skill.source_lost");
+            return AttemptPlan.failure(player, FailureReason.SOURCE_LOST, "skill.source_lost");
         }
-
-        return attemptCastWithDefinition(player, definition, triggerId, null);
+        return AttemptPlan.ready(player, definition, triggerId, null);
     }
 
-    private CastAttemptResult attemptCastWithDefinition(Player player,
+    private AttemptPlan prepareDefinitionAttempt(Player player,
             SkillDefinition definition,
             String triggerId,
-            TriggerInvocation invocation) {
-        PlayerSkillProfile profile = dataStore.get(player);
+            TriggerInvocation invocation,
+            boolean requireActive) {
+        if (definition == null || !definition.enabled()
+                || (requireActive && definition.activationType()
+                        != emaki.jiuwu.craft.skills.model.SkillActivationType.ACTIVE)) {
+            return AttemptPlan.failure(player, FailureReason.SKILL_NOT_FOUND, "skill.not_found");
+        }
+        return AttemptPlan.ready(player, definition, triggerId, invocation);
+    }
+
+    private CompletableFuture<CastAttemptResult> executePlan(AttemptPlan plan) {
+        if (plan.failure() != null) {
+            return onCaster(plan.player(), () -> CompletableFuture.completedFuture(plan.failure()));
+        }
+
+        CompletableFuture<CastAttemptResult> gate = new CompletableFuture<>();
+        CompletableFuture<CastAttemptResult> existing = inFlight.putIfAbsent(plan.key(), gate);
+        if (existing != null) {
+            return onCaster(plan.player(), () -> completedFailure(
+                    FailureReason.FORCED_DELAY_ACTIVE, "cast.forced_delay"));
+        }
+
+        CompletableFuture<CastAttemptResult> attempt = onCaster(plan.player(), () -> attemptOnDomain(plan));
+        attempt.whenComplete((result, throwable) -> {
+            inFlight.remove(plan.key(), gate);
+            if (throwable != null) {
+                gate.complete(CastAttemptResult.fail(
+                        FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed"));
+            } else {
+                gate.complete(result == null
+                        ? CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed")
+                        : result);
+            }
+        });
+        return gate;
+    }
+
+    private CompletionStage<CastAttemptResult> attemptOnDomain(AttemptPlan plan) {
+        Player player = plan.player();
+        SkillDefinition definition = plan.definition();
+        PlayerSkillDataStore.SessionTicket session = dataStore.currentSession(player.getUniqueId());
+        PlayerSkillProfile profile = dataStore.get(session);
         if (profile == null) {
-            return CastAttemptResult.fail(FailureReason.NO_BINDING, "cast.no_profile");
+            return completedFailure(FailureReason.NO_BINDING, "cast.no_profile");
         }
 
         PlayerCastTimingState timing = profile.timingState();
         if (timing.isForcedDelayActive()) {
-            return CastAttemptResult.fail(FailureReason.FORCED_DELAY_ACTIVE, "cast.forced_delay");
+            return completedFailure(FailureReason.FORCED_DELAY_ACTIVE, "cast.forced_delay");
         }
-
         if (timing.isGlobalCooldownActive()) {
-            return CastAttemptResult.fail(FailureReason.GLOBAL_COOLDOWN_ACTIVE, "cast.global_cooldown");
+            return completedFailure(FailureReason.GLOBAL_COOLDOWN_ACTIVE, "cast.global_cooldown");
         }
-
         if (timing.isSkillOnCooldown(definition.id())) {
-            return CastAttemptResult.fail(FailureReason.SKILL_COOLDOWN_ACTIVE, "cast.skill_cooldown");
+            return completedFailure(FailureReason.SKILL_COOLDOWN_ACTIVE, "cast.skill_cooldown");
         }
 
         if (!definition.conditions().emptyGroup()) {
@@ -180,68 +208,91 @@ public final class CastAttemptService {
                     definition.conditions(),
                     text -> resolvePlaceholders(player, text),
                     true,
-                    ConditionContext.of(player, null, java.util.Map.of(
+                    ConditionContext.of(player, null, Map.of(
                             "skillId", definition.id(),
-                            "triggerId", Texts.toStringSafe(triggerId)))
-            );
+                            "triggerId", Texts.toStringSafe(plan.triggerId()))));
             if (!conditionsPassed) {
-                return CastAttemptResult.fail(FailureReason.RESOURCE_INSUFFICIENT, "cast.condition_not_met");
+                return completedFailure(FailureReason.RESOURCE_INSUFFICIENT, "cast.condition_not_met");
             }
         }
 
         CastAttemptResult costCheck = checkResourceCosts(player, profile, definition);
         if (costCheck != null) {
-            return costCheck;
+            return CompletableFuture.completedFuture(costCheck);
         }
 
         ResolvedSkillParameters parameters = skillParameterResolver == null
                 ? ResolvedSkillParameters.empty()
-                : skillParameterResolver.resolve(player, definition, triggerId, invocation);
-        SkillPreCastEvent preCastEvent = new SkillPreCastEvent(player, definition.id(), Texts.toStringSafe(triggerId));
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
-            org.bukkit.Bukkit.getPluginManager().callEvent(preCastEvent);
-            if (preCastEvent.isCancelled()) {
-                return CastAttemptResult.fail(FailureReason.CANCELLED, "cast.cancelled");
-            }
-        }
-        boolean castSuccess = castSkill(player, definition, triggerId, invocation, parameters);
-        if (!castSuccess) {
-            return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed");
+                : skillParameterResolver.resolve(player, definition, plan.triggerId(), plan.invocation());
+        SkillPreCastEvent preCastEvent = new SkillPreCastEvent(
+                player, definition.id(), Texts.toStringSafe(plan.triggerId()));
+        plugin.getServer().getPluginManager().callEvent(preCastEvent);
+        if (preCastEvent.isCancelled()) {
+            return completedFailure(FailureReason.CANCELLED, "cast.cancelled");
         }
 
-        consumeResources(player, profile, definition);
-        AppConfig config = configSupplier.get();
-        long forcedDelayTicks = config != null ? config.castTiming().forcedGlobalCastDelayTicks() : 0L;
-        timing.recordCast(definition.id(), definition.cooldownTicks(),
-                definition.globalCooldownTicks(), forcedDelayTicks);
-        profile.markDirty();
-
-        return CastAttemptResult.ok();
+        return castSkillAsync(player, definition, plan.triggerId(), plan.invocation(), parameters)
+                .handle((success, throwable) -> new CastOutcome(Boolean.TRUE.equals(success), throwable))
+                .thenCompose(outcome -> onCaster(player, () -> CompletableFuture.completedFuture(
+                        finalizeAttempt(player, session, definition, outcome))));
     }
 
+    private CastAttemptResult finalizeAttempt(Player player,
+            PlayerSkillDataStore.SessionTicket session,
+            SkillDefinition definition,
+            CastOutcome outcome) {
+        if (outcome.throwable() != null || !outcome.success()) {
+            return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed");
+        }
+        AppConfig config = configSupplier.get();
+        long forcedDelayTicks = config != null ? config.castTiming().forcedGlobalCastDelayTicks() : 0L;
+        boolean committed = dataStore.mutateIfCurrent(session, profile -> {
+            consumeResources(player, profile, definition);
+            profile.timingState().recordCast(
+                    definition.id(),
+                    definition.cooldownTicks(),
+                    definition.globalCooldownTicks(),
+                    forcedDelayTicks
+            );
+            profile.markDirty();
+        });
+        return committed
+                ? CastAttemptResult.ok()
+                : CastAttemptResult.fail(FailureReason.SOURCE_LOST, "skill.source_lost");
+    }
 
-    private boolean castSkill(Player player,
+    private CompletableFuture<Boolean> castSkillAsync(Player player,
             SkillDefinition definition,
             String triggerId,
             TriggerInvocation invocation,
             ResolvedSkillParameters parameters) {
         boolean hasScript = definition.script() != null && definition.script().enabled();
         String mythicSkillId = definition.mythicSkill();
-        boolean hasMythic = mythicSkillId != null && !mythicSkillId.isBlank();
+        boolean hasMythic = Texts.isNotBlank(mythicSkillId);
         SkillScriptMode mode = hasScript ? definition.script().mode() : SkillScriptMode.MYTHIC;
         if (hasScript && mode == SkillScriptMode.NATIVE) {
-            return skillScriptCastService != null
-                    && skillScriptCastService.cast(player, definition, triggerId, invocation, parameters);
+            return skillScriptCastService == null
+                    ? CompletableFuture.completedFuture(false)
+                    : skillScriptCastService.cast(player, definition, triggerId, invocation, parameters);
         }
         if (hasScript && mode == SkillScriptMode.HYBRID) {
-            boolean nativeOk = skillScriptCastService != null
-                    && skillScriptCastService.cast(player, definition, triggerId, invocation, parameters);
-            return nativeOk && (!hasMythic || castMythic(player, mythicSkillId, invocation, parameters));
+            if (skillScriptCastService == null) {
+                return CompletableFuture.completedFuture(false);
+            }
+            return skillScriptCastService.cast(player, definition, triggerId, invocation, parameters)
+                    .thenCompose(nativeOk -> {
+                        if (!nativeOk) {
+                            return CompletableFuture.completedFuture(false);
+                        }
+                        if (!hasMythic) {
+                            return CompletableFuture.completedFuture(true);
+                        }
+                        return onCaster(player, () -> CompletableFuture.completedFuture(
+                                castMythic(player, mythicSkillId, invocation, parameters)));
+                    });
         }
-        if (hasMythic) {
-            return castMythic(player, mythicSkillId, invocation, parameters);
-        }
-        return false;
+        return CompletableFuture.completedFuture(
+                hasMythic && castMythic(player, mythicSkillId, invocation, parameters));
     }
 
     private boolean castMythic(Player player,
@@ -255,7 +306,9 @@ public final class CastAttemptService {
 
     private SkillSlotBinding findBindingByTrigger(PlayerSkillProfile profile, String triggerId) {
         SkillSlotBinding indexed = profile.findBindingByTrigger(triggerId);
-        if (indexed != null) return indexed;
+        if (indexed != null) {
+            return indexed;
+        }
         for (SkillSlotBinding binding : profile.bindings()) {
             if (!binding.isEmpty() && triggerId.equals(binding.triggerId())) {
                 return binding;
@@ -264,7 +317,8 @@ public final class CastAttemptService {
         return null;
     }
 
-    private CastAttemptResult checkResourceCosts(Player player, PlayerSkillProfile profile,
+    private CastAttemptResult checkResourceCosts(Player player,
+            PlayerSkillProfile profile,
             SkillDefinition definition) {
         for (SkillResourceCost cost : definition.resourceCosts()) {
             boolean sufficient = switch (cost.type()) {
@@ -274,7 +328,7 @@ public final class CastAttemptService {
                 case AURASKILLS_MANA, MYTHICLIB_MANA -> checkExternalMana(player, cost);
             };
             if (!sufficient) {
-                String message = cost.failureMessage() != null && !cost.failureMessage().isBlank()
+                String message = Texts.isNotBlank(cost.failureMessage())
                         ? cost.failureMessage()
                         : "cast.resource_insufficient";
                 return CastAttemptResult.fail(FailureReason.RESOURCE_INSUFFICIENT, message);
@@ -287,32 +341,25 @@ public final class CastAttemptService {
         if (eaBridge == null || !eaBridge.isAvailable()) {
             return true;
         }
-        double current = eaBridge.readResourceCurrent(player, cost.targetId());
-        return current >= cost.amount();
+        return eaBridge.readResourceCurrent(player, cost.targetId()) >= cost.amount();
     }
 
     private boolean checkAttribute(Player player, SkillResourceCost cost) {
         if (eaBridge == null || !eaBridge.isAvailable()) {
             return true;
         }
-        double value = eaBridge.readAttributeValue(player, cost.targetId());
-        return value >= cost.amount();
+        return eaBridge.readAttributeValue(player, cost.targetId()) >= cost.amount();
     }
 
     private boolean checkLocalResource(PlayerSkillProfile profile, SkillResourceCost cost) {
         PlayerLocalResourceState state = profile.localResources().get(cost.targetId());
-        if (state == null) {
-            return false;
-        }
-        return state.currentValue() >= cost.amount();
+        return state != null && state.currentValue() >= cost.amount();
     }
 
     private boolean checkExternalMana(Player player, SkillResourceCost cost) {
-        if (externalManaBridge == null || !externalManaBridge.isAvailable(cost.type())) {
-            return false;
-        }
-        double current = externalManaBridge.readCurrent(player, cost.type());
-        return current >= cost.amount();
+        return externalManaBridge != null
+                && externalManaBridge.isAvailable(cost.type())
+                && externalManaBridge.readCurrent(player, cost.type()) >= cost.amount();
     }
 
     private void consumeResources(Player player, PlayerSkillProfile profile, SkillDefinition definition) {
@@ -344,7 +391,8 @@ public final class CastAttemptService {
     }
 
     private String resolvePlaceholders(Player player, String text) {
-        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+        if (Texts.isBlank(text)
+                || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             return text;
         }
         try {
@@ -352,5 +400,69 @@ public final class CastAttemptService {
         } catch (Exception | NoClassDefFoundError _) {
             return text;
         }
+    }
+
+    private <T> CompletableFuture<T> onCaster(Player player,
+            Supplier<? extends CompletionStage<T>> task) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        try {
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                try {
+                    CompletionStage<T> stage = task.get();
+                    if (stage == null) {
+                        future.completeExceptionally(new IllegalStateException(
+                                "Cast entity-domain task returned no completion stage."));
+                        return;
+                    }
+                    stage.whenComplete((result, throwable) -> {
+                        if (throwable != null) {
+                            future.completeExceptionally(throwable);
+                        } else {
+                            future.complete(result);
+                        }
+                    });
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    private static CompletableFuture<CastAttemptResult> completedFailure(FailureReason reason, String message) {
+        return CompletableFuture.completedFuture(CastAttemptResult.fail(reason, message));
+    }
+
+    private record CastKey(String playerUuid, String skillId) {
+    }
+
+    private record AttemptPlan(Player player,
+            SkillDefinition definition,
+            String triggerId,
+            TriggerInvocation invocation,
+            CastKey key,
+            CastAttemptResult failure) {
+
+        private static AttemptPlan ready(Player player,
+                SkillDefinition definition,
+                String triggerId,
+                TriggerInvocation invocation) {
+            return new AttemptPlan(
+                    player,
+                    definition,
+                    triggerId,
+                    invocation,
+                    new CastKey(player.getUniqueId().toString(), definition.id()),
+                    null);
+        }
+
+        private static AttemptPlan failure(Player player, FailureReason reason, String message) {
+            return new AttemptPlan(player, null, "", null, null, CastAttemptResult.fail(reason, message));
+        }
+    }
+
+    private record CastOutcome(boolean success, Throwable throwable) {
     }
 }

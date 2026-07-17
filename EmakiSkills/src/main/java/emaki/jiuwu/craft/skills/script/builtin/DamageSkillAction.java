@@ -28,7 +28,10 @@ public final class DamageSkillAction extends AbstractSkillScriptAction {
         if (!(entity instanceof LivingEntity living)) {
             return completed(SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Damage target is not a living entity."));
         }
-        living.damage(Math.max(0D, doubleArg(arguments, "amount", 0D)), context.caster());
-        return completed(SkillActionResult.ok());
+        double amount = Math.max(0D, doubleArg(arguments, "amount", 0D));
+        return callOnEntity(context, living, () -> {
+            living.damage(amount, context.caster());
+            return SkillActionResult.ok();
+        });
     }
 }

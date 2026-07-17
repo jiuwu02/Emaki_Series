@@ -1,9 +1,12 @@
 package emaki.jiuwu.craft.corelib.gui;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -48,12 +51,10 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         if (request == null || request.viewer() == null || request.template() == null) {
             return null;
         }
-        GuiSession existing = sessions.remove(request.viewer().getUniqueId());
-        if (existing != null) {
-            existing.backend().close(existing);
-        }
+        UUID viewerId = request.viewer().getUniqueId();
+        close(viewerId);
         GuiSession session = newSession(request);
-        sessions.put(request.viewer().getUniqueId(), session);
+        sessions.put(viewerId, session);
         session.open();
         return session;
     }
@@ -65,10 +66,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         CompletableFuture<GuiSession> future = new CompletableFuture<>();
         FoliaSchedulerAdapter.runEntityTask(plugin, request.viewer(), () -> {
             UUID viewerId = request.viewer().getUniqueId();
-            GuiSession existing = sessions.remove(viewerId);
-            if (existing != null) {
-                existing.backend().close(existing);
-            }
+            close(viewerId);
             GuiSession session = newSession(request);
             sessions.put(viewerId, session);
             asyncGuiRenderer.prepare(session)
@@ -127,10 +125,61 @@ public final class GuiService implements Listener, GuiSessionRegistry {
     }
 
     public void close(UUID playerId) {
-        GuiSession session = getSession(playerId);
-        if (session != null) {
-            session.backend().close(session);
+        closeSession(playerId, getSession(playerId));
+    }
+
+    public CompletableFuture<Void> closeAsync(UUID playerId) {
+        return closeAsync(playerId, getSession(playerId));
+    }
+
+    public void closeAll() {
+        Map<UUID, GuiSession> snapshot = Map.copyOf(sessions);
+        snapshot.forEach(this::closeSession);
+    }
+
+    public CompletableFuture<Void> closeAllAsync() {
+        Map<UUID, GuiSession> snapshot = Map.copyOf(sessions);
+        List<CompletableFuture<Void>> closes = new ArrayList<>(snapshot.size());
+        snapshot.forEach((viewerId, session) -> closes.add(closeAsync(viewerId, session)));
+        return CompletableFuture.allOf(closes.toArray(CompletableFuture[]::new));
+    }
+
+    private CompletableFuture<Void> closeAsync(UUID viewerId, GuiSession session) {
+        if (viewerId == null || session == null || session.viewer() == null) {
+            return CompletableFuture.completedFuture(null);
         }
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            if (FoliaSchedulerAdapter.runEntityTask(
+                    session.owner() == null ? plugin : session.owner(),
+                    session.viewer(),
+                    () -> {
+                        try {
+                            closeSession(viewerId, session);
+                            future.complete(null);
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    }) == null) {
+                future.completeExceptionally(new RejectedExecutionException(
+                        "GUI close task was rejected for viewer " + viewerId));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    private void closeSession(UUID viewerId, GuiSession session) {
+        if (viewerId == null || session == null || sessions.get(viewerId) != session) {
+            return;
+        }
+        session.backend().close(session);
+        if (sessions.get(viewerId) != session) {
+            return;
+        }
+        session.handler().onClose(session, new SessionGuiCloseContext(session));
+        sessions.remove(viewerId, session);
     }
 
     @Override
@@ -181,21 +230,21 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         if (session == null || !isBukkitBacked(session)) {
             return;
         }
-        sessions.remove(event.getPlayer().getUniqueId(), session);
         session.handler().onClose(session, new BukkitGuiCloseContext(event));
+        sessions.remove(event.getPlayer().getUniqueId(), session);
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         if (event.getPlayer() != null) {
-            sessions.remove(event.getPlayer().getUniqueId());
+            close(event.getPlayer().getUniqueId());
         }
     }
 
     @EventHandler
     public void onPlayerKick(PlayerKickEvent event) {
         if (event.getPlayer() != null) {
-            sessions.remove(event.getPlayer().getUniqueId());
+            close(event.getPlayer().getUniqueId());
         }
     }
 
@@ -237,6 +286,32 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         var resolved = SoundParser.resolve(sound);
         if (resolved != null) {
             session.viewer().playSound(session.viewer().getLocation(), resolved, sound.volume(), sound.pitch());
+        }
+    }
+
+    private static final class SessionGuiCloseContext implements GuiCloseContext {
+
+        private final GuiSession session;
+
+        private SessionGuiCloseContext(GuiSession session) {
+            this.session = session;
+        }
+
+        @Override
+        public org.bukkit.entity.Player player() {
+            return session.viewer();
+        }
+
+        @Override
+        public int topInventorySize() {
+            Inventory inventory = session.getInventory();
+            return inventory == null ? 0 : inventory.getSize();
+        }
+
+        @Override
+        public org.bukkit.inventory.ItemStack topInventoryItem(int slot) {
+            Inventory inventory = session.getInventory();
+            return inventory == null || slot < 0 || slot >= inventory.getSize() ? null : inventory.getItem(slot);
         }
     }
 }

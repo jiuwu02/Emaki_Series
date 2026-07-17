@@ -136,6 +136,7 @@ public final class CombatDamageListener implements Listener {
                         target,
                         projectile,
                         projectile,
+                        event.getFinalDamage(),
                         "PROJECTILE_RESOLVE_EMPTY",
                         "combat_debug.projectile_resolve_empty",
                         "PROJECTILE_RESOLVED",
@@ -182,6 +183,7 @@ public final class CombatDamageListener implements Listener {
                         target,
                         null,
                         damager,
+                        event.getFinalDamage(),
                         "MELEE_RESOLVE_EMPTY",
                         "combat_debug.melee_resolve_empty",
                         "MELEE_RESOLVED",
@@ -278,6 +280,7 @@ public final class CombatDamageListener implements Listener {
                 target,
                 null,
                 attacker,
+                event.getFinalDamage(),
                 "ENVIRONMENT_RESOLVE_EMPTY",
                 "combat_debug.environment_resolve_empty",
                 "ENVIRONMENT_ASYNC_RESOLVED",
@@ -328,13 +331,6 @@ public final class CombatDamageListener implements Listener {
         context.put("jump_boost_level", jumpBoostLevel);
         context.put("vanilla_fall_damage", vanillaDamage);
         context.put("fall_damage_formula", fallDamageFormula);
-    }
-
-    private void scheduleDamageApplication(Runnable action) {
-        if (action == null) {
-            return;
-        }
-        FoliaSchedulerAdapter.runTask(plugin, action);
     }
 
     private boolean isAttackCoolingDown(Player player,
@@ -413,6 +409,7 @@ public final class CombatDamageListener implements Listener {
             LivingEntity target,
             Projectile projectile,
             Entity visualSource,
+            double fallbackDamage,
             String emptyPhase,
             String emptyMessageKey,
             String resolvedPhase,
@@ -421,29 +418,63 @@ public final class CombatDamageListener implements Listener {
             String applyMessageKey) {
         if (future == null) {
             debugHandler.debugCombat(attacker, target, projectile, emptyPhase, emptyMessageKey);
+            applyFallbackDamage(target, fallbackDamage);
             return;
         }
-        future.whenComplete((resolvedDamage, throwable) -> scheduleDamageApplication(() -> {
-            if (throwable != null) {
-                if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
-                    debugHandler.debugCombat(attacker, target, projectile, "ASYNC_DAMAGE_FAILED", "combat_debug.async_damage_failed", Map.of(
-                            "error", CombatSupport.rootCauseMessage(throwable)
-                    ));
-                }
-                return;
-            }
+        future.thenCompose(resolvedDamage -> {
             if (resolvedDamage == null) {
-                debugHandler.debugCombat(attacker, target, projectile, emptyPhase, emptyMessageKey);
+                plugin.debug("Damage resolution returned no result (" + emptyPhase + ").");
+                return applyFallbackDamage(target, fallbackDamage);
+            }
+            plugin.debug("Damage resolved (" + resolvedPhase + "): final=" + resolvedDamage.finalDamage());
+            return attributeService.applyResolvedDamageAsync(resolvedDamage, visualSource, 0D);
+        }).whenComplete((applied, throwable) -> {
+            if (throwable != null) {
+                plugin.debug("Damage application failed (" + applyPhase + "): "
+                        + CombatSupport.rootCauseMessage(throwable));
+                applyFallbackDamage(target, fallbackDamage);
                 return;
             }
-            if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
-                debugHandler.debugCombat(attacker, target, projectile, resolvedPhase, resolvedMessageKey, Map.of(
-                        "resolved", debugHandler.describeResolvedDamage(resolvedDamage)
-                ));
+            plugin.debug("Damage applied (" + applyPhase + "): " + Boolean.TRUE.equals(applied));
+        });
+    }
+
+    private CompletableFuture<Boolean> applyFallbackDamage(LivingEntity target, double damage) {
+        if (target == null || damage <= 0D) {
+            return CompletableFuture.completedFuture(false);
+        }
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, target, () -> {
+                if (!target.isValid() || target.isDead()) {
+                    future.complete(false);
+                    return;
+                }
+                try {
+                    target.setNoDamageTicks(0);
+                    double remaining = Math.max(0D, damage);
+                    double absorption = Math.max(0D, target.getAbsorptionAmount());
+                    if (absorption > 0D) {
+                        double absorbed = Math.min(absorption, remaining);
+                        target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
+                        remaining -= absorbed;
+                    }
+                    target.setLastDamage(damage);
+                    if (remaining > 0D) {
+                        target.setHealth(Math.max(0D, target.getHealth() - remaining));
+                    }
+                    future.complete(true);
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+            if (scheduled == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "Fallback damage scheduling was rejected."));
             }
-            CombatSupport.applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage(), attributeService.config());
-            debugHandler.debugCombat(attacker, target, projectile, applyPhase, applyMessageKey);
-            attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
-        }));
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
     }
 }

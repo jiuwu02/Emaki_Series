@@ -54,6 +54,7 @@ public final class OvenRuntimeService implements Listener {
     private final OvenTickProcessor tickProcessor;
     private final OvenGuiController guiController;
     private final CookingTextDisplayService textDisplayService;
+    private CookingCompletionCoordinator completionCoordinator;
     private final Map<StationCoordinates, OvenState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> dirtyStations = ConcurrentHashMap.newKeySet();
@@ -81,6 +82,70 @@ public final class OvenRuntimeService implements Listener {
         this.tickProcessor = new OvenTickProcessor(settingsService, recipeService, rewardService, itemSourceService, codec);
         this.guiController = new OvenGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
         this.guiController.setRuntimeService(this);
+    }
+
+    public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
+        this.completionCoordinator = completionCoordinator;
+        tickProcessor.setCompletionCoordinator(completionCoordinator);
+        if (completionCoordinator != null) {
+            completionCoordinator.register(completionStateAccess());
+        }
+    }
+
+    CookingStationStateAccess completionStateAccess() {
+        return new CookingStationStateAccess() {
+            @Override
+            public StationType stationType() {
+                return StationType.OVEN;
+            }
+
+            @Override
+            public Map<String, Object> snapshot(StationCoordinates coordinates) {
+                OvenState state = runtimeStates.get(coordinates);
+                if (state == null) {
+                    state = codec.readState(stateStore.load(coordinates));
+                }
+                return state == null || state.isCompletelyEmpty() ? null : codec.serializeState(coordinates, state);
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
+                OvenState state = codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(committedState));
+                if (state == null || state.isCompletelyEmpty()) {
+                    return java.util.concurrent.CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed oven state"));
+                }
+                return stateStore.saveAsync(coordinates, committedState)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
+                            runtimeStates.put(coordinates, state);
+                            dirtyStations.remove(coordinates);
+                            if (tickProcessor.shouldRemainActive(state, System.currentTimeMillis())) {
+                                activeStations.add(coordinates);
+                                ensureTicker();
+                            } else {
+                                activeStations.remove(coordinates);
+                                if (activeStations.isEmpty()) {
+                                    cancelTicker();
+                                }
+                            }
+                            refreshText(coordinates, state);
+                        }));
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+                return stateStore.deleteAsync(coordinates)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
+                            guiController.closeOpenInventories(coordinates, true);
+                            removeState(coordinates, false);
+                            activeStations.remove(coordinates);
+                            if (activeStations.isEmpty()) {
+                                cancelTicker();
+                            }
+                        }));
+            }
+        };
     }
 
     OvenTickProcessor tickProcessor() {
@@ -148,7 +213,6 @@ public final class OvenRuntimeService implements Listener {
     public void shutdown() {
         guiController.closeAllOpenInventories(false);
         flushDirtyStates();
-        stateStore.waitForIdle().join();
         cancelFlushTask();
         cancelTicker();
         textDisplayService.removeStationType(StationType.OVEN);
@@ -168,6 +232,10 @@ public final class OvenRuntimeService implements Listener {
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
         stateStore.rememberStationSource(coordinates, interaction.stationSource());
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.OVEN, coordinates)) {
+            interaction.cancel();
+            return true;
+        }
         ItemStack hand = player.getInventory().getItemInMainHand();
         CookingSettingsService.OvenFuelRule fuelRule = matchFuelRule(hand);
         if (fuelRule != null && settingsService.matchesInteraction(StationType.OVEN, CookingSettingsService.INTERACTION_FUEL, interaction)) {
@@ -402,6 +470,9 @@ public final class OvenRuntimeService implements Listener {
             guiController.closeOpenInventories(coordinates, true);
             removeState(coordinates, true);
             activeStations.remove(coordinates);
+            return;
+        }
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.OVEN, coordinates)) {
             return;
         }
         boolean changed = tickProcessor.processStation(coordinates, state, block, now);

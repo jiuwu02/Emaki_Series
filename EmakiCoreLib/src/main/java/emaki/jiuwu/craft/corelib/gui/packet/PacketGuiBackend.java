@@ -133,16 +133,13 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             return;
         }
         Player viewer = session.viewer();
-        PacketWindow window = windows.remove(viewer.getUniqueId());
+        PacketWindow window = windows.get(viewer.getUniqueId());
         if (window == null || window.session != session) {
             return;
         }
         returnCursor(viewer, window);
         PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerCloseWindow(window.windowId));
-        GuiSessionRegistry registry = session.registry();
-        if (registry != null) {
-            registry.removeSession(viewer.getUniqueId(), session);
-        }
+        windows.remove(viewer.getUniqueId(), window);
     }
 
     @Override
@@ -151,15 +148,22 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             return;
         }
         for (UUID viewerId : Map.copyOf(windows).keySet()) {
-            PacketWindow window = windows.remove(viewerId);
+            PacketWindow window = windows.get(viewerId);
             if (window == null) {
                 continue;
             }
-            Player viewer = Bukkit.getPlayer(viewerId);
+            GuiSession session = window.session;
+            Player viewer = session.viewer();
             if (viewer != null && viewer.isOnline()) {
                 returnCursor(viewer, window);
                 PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerCloseWindow(window.windowId));
             }
+            session.handler().onClose(session, new PacketGuiCloseContext(viewer, window));
+            GuiSessionRegistry registry = session.registry();
+            if (registry != null && viewer != null) {
+                registry.removeSession(viewer.getUniqueId(), session);
+            }
+            windows.remove(viewerId, window);
         }
         windows.clear();
         try {
@@ -278,14 +282,14 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         if (window == null || window.windowId != windowId) {
             return;
         }
-        windows.remove(viewer.getUniqueId(), window);
         GuiSession session = window.session;
         returnCursor(viewer, window);
+        session.handler().onClose(session, new PacketGuiCloseContext(viewer, window));
         GuiSessionRegistry registry = session.registry();
         if (registry != null) {
             registry.removeSession(viewer.getUniqueId(), session);
         }
-        session.handler().onClose(session, new PacketGuiCloseContext(viewer, window));
+        windows.remove(viewer.getUniqueId(), window);
     }
 
     private void playClickSound(GuiSession session, GuiTemplate.ResolvedSlot slot, GuiClickType clickType) {

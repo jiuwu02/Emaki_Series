@@ -23,4 +23,8 @@ public final class PlayerSkillLevelState {
     public void setLevel(int level) {
         this.level = Math.max(1, level);
     }
+
+    public PlayerSkillLevelState copy() {
+        return new PlayerSkillLevelState(skillId, level);
+    }
 }

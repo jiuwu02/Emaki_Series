@@ -20,7 +20,7 @@ allow_negative: false
 
 priority: 990
 
-lore_format_id: ""
+lore_format_id: default_flat
 
 attribute_power: 0.0
 

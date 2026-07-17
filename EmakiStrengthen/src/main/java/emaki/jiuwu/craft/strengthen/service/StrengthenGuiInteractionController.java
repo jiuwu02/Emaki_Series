@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
+import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.model.AttemptResult;
 
 final class StrengthenGuiInteractionController {
@@ -90,44 +91,65 @@ final class StrengthenGuiInteractionController {
         if (state.processing()) {
             return;
         }
-        state.setProcessing(true);
-        AttemptResult result = attemptService.attempt(state.player(), state.toAttemptContext());
-        state.setProcessing(false);
-        if (result.resultItem() == null) {
-            plugin.messageService().send(state.player(), result.errorKey(), result.replacements());
-            renderer.refreshGui(state);
+        if (state.completionPhase().ordinal() >= StrengthenGuiSession.CompletionPhase.RESULT_DELIVERED.ordinal()) {
+            returnAttemptLeftovers(state, state.preview());
+            completeDeliveredEscrow(state);
             return;
         }
-        state.setCompleted(true);
-        returnAttemptLeftovers(state, result);
-        state.clearStoredItems();
-        state.player().closeInventory();
-        giveBackToPlayer(state.player(), result.resultItem());
-        if (result.preview() != null && result.preview().recipe() != null) {
-            if (result.success()) {
-                attemptService.triggerSuccessActions(state.player(), result.preview().recipe(), "gui", result.resultItem(), result.resultingStar(),
-                        result.resultingCrack());
-                attemptService.broadcastFirstReach(state.player(), result.resultItem(), result.newlyReachedStars());
-            } else {
-                attemptService.triggerFailureActions(
-                        state.player(),
-                        result.preview().recipe(),
-                        "gui",
-                        result.resultItem(),
-                        result.preview().currentStar(),
-                        result.resultingStar(),
-                        result.resultingCrack(),
-                        result.resultingStar() < result.preview().currentStar(),
-                        result.preview().protectionApplied()
-                );
-            }
+        if (!attemptService.accepting()) {
+            return;
         }
-        if (result.success()) {
-            plugin.messageService().send(state.player(), "gui.attempt_success", Map.of("star", result.resultingStar()));
-        } else if (result.resultingStar() < result.preview().currentStar()) {
-            plugin.messageService().send(state.player(), "gui.attempt_failed_downgrade", Map.of("star", result.resultingStar()));
-        } else {
-            plugin.messageService().send(state.player(), "gui.attempt_failed", Map.of("star", result.resultingStar()));
+        if (Texts.isBlank(state.operationId())) {
+            state.setOperationId(java.util.UUID.randomUUID().toString());
+        }
+        state.setProcessing(true);
+        try {
+            AttemptResult result = attemptService.attempt(state.player(), state.toAttemptContext());
+            ItemStack resultItem = result.resultItem();
+            if (!result.committed() || resultItem == null) {
+                plugin.messageService().send(state.player(), result.errorKey(), result.replacements());
+                renderer.refreshGui(state);
+                return;
+            }
+
+            state.advanceCompletionPhase(StrengthenGuiSession.CompletionPhase.COMMITTED);
+            state.setPreview(result.preview());
+            giveBackToPlayer(state.player(), resultItem);
+            state.clearTargetItem();
+            state.advanceCompletionPhase(StrengthenGuiSession.CompletionPhase.RESULT_DELIVERED);
+
+            returnAttemptLeftovers(state, result.preview());
+            completeDeliveredEscrow(state);
+
+            if (result.preview() != null && result.preview().recipe() != null) {
+                if (result.success()) {
+                    attemptService.triggerSuccessActions(state.player(), result.preview().recipe(), "gui", resultItem,
+                            result.resultingStar(), result.resultingCrack(), result.operationId());
+                    attemptService.broadcastFirstReach(state.player(), resultItem, result.newlyReachedStars());
+                } else {
+                    attemptService.triggerFailureActions(
+                            state.player(),
+                            result.preview().recipe(),
+                            "gui",
+                            resultItem,
+                            result.preview().currentStar(),
+                            result.resultingStar(),
+                            result.resultingCrack(),
+                            result.resultingStar() < result.preview().currentStar(),
+                            result.preview().protectionApplied(),
+                            result.operationId()
+                    );
+                }
+            }
+            if (result.success()) {
+                plugin.messageService().send(state.player(), "gui.attempt_success", Map.of("star", result.resultingStar()));
+            } else if (result.resultingStar() < result.preview().currentStar()) {
+                plugin.messageService().send(state.player(), "gui.attempt_failed_downgrade", Map.of("star", result.resultingStar()));
+            } else {
+                plugin.messageService().send(state.player(), "gui.attempt_failed", Map.of("star", result.resultingStar()));
+            }
+        } finally {
+            state.setProcessing(false);
         }
     }
 
@@ -148,18 +170,26 @@ final class StrengthenGuiInteractionController {
         state.clearStoredItems();
     }
 
-    private void returnAttemptLeftovers(StrengthenGuiSession state, AttemptResult result) {
-        if (state == null || result == null || result.preview() == null) {
+    private void returnAttemptLeftovers(StrengthenGuiSession state, AttemptPreview preview) {
+        if (state == null || preview == null) {
             return;
         }
         for (int index = 0; index < state.materialInputs().size(); index++) {
             ItemStack itemStack = state.materialInput(index);
-            AttemptMaterial material = index < result.preview().optionalMaterials().size()
-                    ? result.preview().optionalMaterials().get(index)
+            AttemptMaterial material = index < preview.optionalMaterials().size()
+                    ? preview.optionalMaterials().get(index)
                     : null;
             int consumeAmount = material == null ? 0 : material.consumedAmount();
             returnRemaining(state.player(), itemStack, consumeAmount);
+            state.setMaterialInput(index, null);
         }
+    }
+
+    private void completeDeliveredEscrow(StrengthenGuiSession state) {
+        state.clearStoredItems();
+        state.advanceCompletionPhase(StrengthenGuiSession.CompletionPhase.ESCROW_CLEARED);
+        state.setCompleted(true);
+        state.player().closeInventory();
     }
 
     private void returnRemaining(Player player, ItemStack itemStack, int consumeAmount) {

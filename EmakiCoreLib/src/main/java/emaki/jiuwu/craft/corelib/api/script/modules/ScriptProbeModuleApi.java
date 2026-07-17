@@ -4,35 +4,29 @@ import org.graalvm.polyglot.HostAccess;
 
 public class ScriptProbeModuleApi {
 
-    private final String serviceClassName;
+    private final ScriptServiceApiSupport.ServiceSnapshot snapshot;
 
     protected ScriptProbeModuleApi(String serviceClassName) {
-        this.serviceClassName = serviceClassName;
+        this.snapshot = ScriptServiceApiSupport.serviceSnapshot(serviceClassName);
     }
 
     @HostAccess.Export
     public boolean available() {
-        return ScriptServiceApiSupport.available(serviceClassName);
+        return snapshot.available();
     }
 
     @HostAccess.Export
     public String apiVersion() {
-        return ScriptServiceApiSupport.service(serviceClassName)
-                .map(service -> ScriptServiceApiSupport.invokeString(service, "apiVersion", new Class<?>[0]))
-                .orElse("");
+        return snapshot.apiVersion();
     }
 
     @HostAccess.Export
     public String pluginName() {
-        return ScriptServiceApiSupport.service(serviceClassName)
-                .map(service -> ScriptServiceApiSupport.invokeString(service, "pluginName", new Class<?>[0]))
-                .orElse("");
+        return snapshot.pluginName();
     }
 
     @HostAccess.Export
     public boolean ready() {
-        return ScriptServiceApiSupport.service(serviceClassName)
-                .map(service -> ScriptServiceApiSupport.invokeBoolean(service, "isReady", new Class<?>[0]))
-                .orElse(false);
+        return snapshot.ready();
     }
 }

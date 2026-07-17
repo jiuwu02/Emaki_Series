@@ -44,9 +44,26 @@ public final class StrengthenAttemptEvent extends Event {
         return result;
     }
 
-    /** {@return whether the attempt succeeded} */
+    /** {@return whether the strengthen roll succeeded} */
     public boolean isSuccess() {
         return result != null && result.success();
+    }
+
+    /** {@return whether the attempt committed an externally visible result} */
+    public boolean isCommitted() {
+        return result != null && result.committed();
+    }
+
+    /** {@return the transaction outcome, or {@code NOT_COMMITTED}} */
+    public emaki.jiuwu.craft.strengthen.model.AttemptOutcome getOutcome() {
+        return result == null
+                ? emaki.jiuwu.craft.strengthen.model.AttemptOutcome.NOT_COMMITTED
+                : result.outcome();
+    }
+
+    /** {@return the operation id used for tracing and idempotency} */
+    public String getOperationId() {
+        return result == null ? "" : result.operationId();
     }
 
     @Override

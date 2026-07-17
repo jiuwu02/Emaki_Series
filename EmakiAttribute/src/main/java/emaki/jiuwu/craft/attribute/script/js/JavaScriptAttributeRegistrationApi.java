@@ -9,6 +9,8 @@ import org.graalvm.polyglot.HostAccess;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeContributionProvider;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.text.Texts;

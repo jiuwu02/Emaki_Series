@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.skills.script.builtin;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.bukkit.Location;
 import org.bukkit.Sound;
 
 import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
@@ -29,11 +28,13 @@ public final class SoundSkillAction extends AbstractSkillScriptAction {
         if (sound == null) {
             return completed(SkillActionResult.failure(SkillActionErrorType.INVALID_ARGUMENT, "Unknown sound: " + arg(arguments, "sound", "")));
         }
-        Location location = locationTarget(context, arguments);
-        if (location == null || location.getWorld() == null) {
-            return completed(SkillActionResult.ok());
-        }
-        location.getWorld().playSound(location, sound, (float) doubleArg(arguments, "volume", 1D), (float) doubleArg(arguments, "pitch", 1D));
-        return completed(SkillActionResult.ok());
+        float volume = (float) doubleArg(arguments, "volume", 1D);
+        float pitch = (float) doubleArg(arguments, "pitch", 1D);
+        return atLocation(context, arguments, "at", "caster", location -> {
+            if (location.getWorld() != null) {
+                location.getWorld().playSound(location, sound, volume, pitch);
+            }
+            return SkillActionResult.ok();
+        });
     }
 }

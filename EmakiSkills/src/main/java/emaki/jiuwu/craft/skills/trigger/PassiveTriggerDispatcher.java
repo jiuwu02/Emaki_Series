@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.skills.trigger;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 
@@ -28,7 +29,6 @@ public final class PassiveTriggerDispatcher {
         if (invocation == null || invocation.player() == null || invocation.triggerId() == null) {
             return;
         }
-
         SkillTriggerDefinition trigger = triggerRegistry.get(invocation.triggerId());
         if (trigger == null || !trigger.enabled() || trigger.category() != TriggerCategory.PASSIVE) {
             return;
@@ -36,13 +36,17 @@ public final class PassiveTriggerDispatcher {
 
         Player player = invocation.player();
         List<UnlockedSkillEntry> unlocked = stateService.getUnlockedSkills(player);
+        CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
         for (UnlockedSkillEntry entry : unlocked) {
             SkillDefinition definition = stateService.getDefinition(entry.skillId());
             if (!isMatchingPassiveSkill(definition, invocation.triggerId())) {
                 continue;
             }
-            castAttemptService.attemptPassiveCast(player, invocation.triggerId(), definition, invocation);
+            chain = chain.thenCompose(_ -> castAttemptService.attemptPassiveCast(
+                            player, invocation.triggerId(), definition, invocation))
+                    .thenApply(_ -> null);
         }
+        chain.exceptionally(_ -> null);
     }
 
     private boolean isMatchingPassiveSkill(SkillDefinition definition, String triggerId) {

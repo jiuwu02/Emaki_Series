@@ -15,10 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -226,46 +222,24 @@ public final class RuntimeLibraryLoader {
     private String probePreferredRepository() {
         logger.info("[LibraryLoader] 正在检测最快的 Maven 仓库...");
 
-        ExecutorService executor = Executors.newFixedThreadPool(2, runnable -> {
-            Thread thread = new Thread(runnable, "emaki-library-probe");
-            thread.setDaemon(true);
-            return thread;
-        });
+        ProbeResult aliyun = probeRepository(ALIYUN_REPO, "阿里云镜像");
+        ProbeResult central = probeRepository(CENTRAL_REPO, "Maven Central");
 
-        try {
-            CompletableFuture<ProbeResult> aliyunFuture = CompletableFuture.supplyAsync(
-                    () -> probeRepository(ALIYUN_REPO, "阿里云镜像"), executor);
-            CompletableFuture<ProbeResult> centralFuture = CompletableFuture.supplyAsync(
-                    () -> probeRepository(CENTRAL_REPO, "Maven Central"), executor);
-
-            ProbeResult aliyun = null;
-            ProbeResult central = null;
-            try {
-                aliyun = aliyunFuture.get(PROBE_TIMEOUT_MS + 500, TimeUnit.MILLISECONDS);
-            } catch (Exception ignored) {
-            }
-            try {
-                central = centralFuture.get(PROBE_TIMEOUT_MS + 500, TimeUnit.MILLISECONDS);
-            } catch (Exception ignored) {
-            }
-
-            if (aliyun != null && aliyun.reachable && central != null && central.reachable) {
-                ProbeResult chosen = aliyun.latencyMs <= central.latencyMs ? aliyun : central;
-                logger.info("[LibraryLoader] 已选择仓库: " + chosen.name + " (延迟 " + chosen.latencyMs + "ms)");
-                return chosen == aliyun ? ALIYUN_REPO : CENTRAL_REPO;
-            } else if (aliyun != null && aliyun.reachable) {
-                logger.info("[LibraryLoader] 已选择仓库: " + aliyun.name + " (延迟 " + aliyun.latencyMs + "ms)");
-                return ALIYUN_REPO;
-            } else if (central != null && central.reachable) {
-                logger.info("[LibraryLoader] 已选择仓库: " + central.name + " (延迟 " + central.latencyMs + "ms)");
-                return CENTRAL_REPO;
-            } else {
-                logger.warning("[LibraryLoader] 两个仓库均不可达，使用阿里云镜像作为默认。");
-                return ALIYUN_REPO;
-            }
-        } finally {
-            executor.shutdownNow();
+        if (aliyun.reachable && central.reachable) {
+            ProbeResult chosen = aliyun.latencyMs <= central.latencyMs ? aliyun : central;
+            logger.info("[LibraryLoader] 已选择仓库: " + chosen.name + " (延迟 " + chosen.latencyMs + "ms)");
+            return chosen == aliyun ? ALIYUN_REPO : CENTRAL_REPO;
         }
+        if (aliyun.reachable) {
+            logger.info("[LibraryLoader] 已选择仓库: " + aliyun.name + " (延迟 " + aliyun.latencyMs + "ms)");
+            return ALIYUN_REPO;
+        }
+        if (central.reachable) {
+            logger.info("[LibraryLoader] 已选择仓库: " + central.name + " (延迟 " + central.latencyMs + "ms)");
+            return CENTRAL_REPO;
+        }
+        logger.warning("[LibraryLoader] 两个仓库均不可达，使用阿里云镜像作为默认。");
+        return ALIYUN_REPO;
     }
 
     private ProbeResult probeRepository(String repoUrl, String name) {

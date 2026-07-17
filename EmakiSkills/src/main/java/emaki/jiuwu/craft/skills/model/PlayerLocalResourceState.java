@@ -35,4 +35,8 @@ public final class PlayerLocalResourceState {
     public void setLastRegenAt(long lastRegenAt) {
         this.lastRegenAt = lastRegenAt;
     }
+
+    public PlayerLocalResourceState copy() {
+        return new PlayerLocalResourceState(resourceId, currentValue, lastRegenAt);
+    }
 }

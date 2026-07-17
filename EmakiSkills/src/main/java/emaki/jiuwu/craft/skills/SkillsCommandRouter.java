@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -175,14 +177,14 @@ final class SkillsCommandRouter implements TabExecutor {
         }
         return switch (action) {
             case "get" -> {
-                int currentLevel = plugin.skillLevelService().currentLevel(target, definition);
-                plugin.messageService().send(sender, "command.level.get", Map.of(
+                callForPlayer(target, () -> Map.<String, Object>of(
                         "player", target.getName(),
                         "skill_id", definition.id(),
                         "skill", definition.displayName(),
-                        "level", currentLevel,
+                        "level", plugin.skillLevelService().currentLevel(target, definition),
                         "max_level", plugin.skillLevelService().maxLevel(definition)
-                ));
+                )).whenComplete((placeholders, throwable) -> replyToLevelCommand(
+                        sender, placeholders, throwable, "command.level.get"));
                 yield true;
             }
             case "set", "add" -> handleLevelMutation(sender, args, action, target, definition);
@@ -209,17 +211,20 @@ final class SkillsCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        int level = "set".equals(action)
-                ? plugin.skillLevelService().setLevel(target, definition, value)
-                : plugin.skillLevelService().addLevel(target, definition, value);
-        plugin.playerSkillDataStore().save(target);
-        plugin.messageService().send(sender, "command.level.changed", Map.of(
-                "player", target.getName(),
-                "skill_id", definition.id(),
-                "skill", definition.displayName(),
-                "level", level,
-                "max_level", plugin.skillLevelService().maxLevel(definition)
-        ));
+        callForPlayer(target, () -> {
+            int level = "set".equals(action)
+                    ? plugin.skillLevelService().setLevel(target, definition, value)
+                    : plugin.skillLevelService().addLevel(target, definition, value);
+            plugin.playerSkillDataStore().save(target);
+            return Map.<String, Object>of(
+                    "player", target.getName(),
+                    "skill_id", definition.id(),
+                    "skill", definition.displayName(),
+                    "level", level,
+                    "max_level", plugin.skillLevelService().maxLevel(definition)
+            );
+        }).whenComplete((placeholders, throwable) -> replyToLevelCommand(
+                sender, placeholders, throwable, "command.level.changed"));
         return true;
     }
 
@@ -247,6 +252,42 @@ final class SkillsCommandRouter implements TabExecutor {
             return null;
         });
         return true;
+    }
+
+    private <T> CompletableFuture<T> callForPlayer(Player player, Supplier<T> task) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        try {
+            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                try {
+                    if (!player.isOnline()) {
+                        future.complete(null);
+                        return;
+                    }
+                    future.complete(task.get());
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    private void replyToLevelCommand(CommandSender sender,
+            Map<String, Object> placeholders,
+            Throwable throwable,
+            String messageKey) {
+        runForSender(sender, () -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Level command failed: " + throwable.getMessage());
+                plugin.messageService().send(sender, "general.invalid_args");
+            } else if (placeholders == null) {
+                plugin.messageService().send(sender, "general.player_not_found");
+            } else {
+                plugin.messageService().send(sender, messageKey, placeholders);
+            }
+        });
     }
 
     private void runForSender(CommandSender sender, Runnable task) {

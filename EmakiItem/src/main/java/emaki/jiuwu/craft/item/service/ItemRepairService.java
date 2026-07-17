@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -77,14 +78,22 @@ public final class ItemRepairService {
 
     private final EmakiItemPlugin plugin;
     private final Supplier<EconomyManager> economyManagerSupplier;
+    private final ItemSourceService itemSourceService;
 
     public ItemRepairService(EmakiItemPlugin plugin) {
         this(plugin, null);
     }
 
     public ItemRepairService(EmakiItemPlugin plugin, Supplier<EconomyManager> economyManagerSupplier) {
+        this(plugin, economyManagerSupplier, plugin == null ? null : plugin.itemSourceService());
+    }
+
+    ItemRepairService(EmakiItemPlugin plugin,
+            Supplier<EconomyManager> economyManagerSupplier,
+            ItemSourceService itemSourceService) {
         this.plugin = plugin;
         this.economyManagerSupplier = economyManagerSupplier;
+        this.itemSourceService = itemSourceService;
     }
 
     public boolean isDisabled(@Nullable ItemStack itemStack) {
@@ -132,7 +141,7 @@ public final class ItemRepairService {
         if (!definition.repair().enabled() || !definition.repair().hasRepairMaterials()) {
             return null;
         }
-        ItemSourceService sourceService = plugin.itemSourceService();
+        ItemSourceService sourceService = itemSourceService;
         ItemSource repairItemSource = sourceService == null ? null : sourceService.identifyItem(repairItem);
         if (repairItemSource == null) {
             return null;
@@ -165,7 +174,7 @@ public final class ItemRepairService {
         if (providedMaterials == null || providedMaterials.isEmpty() || material == null) {
             return 0L;
         }
-        ItemSourceService sourceService = plugin.itemSourceService();
+        ItemSourceService sourceService = itemSourceService;
         if (sourceService == null) {
             return 0L;
         }
@@ -183,35 +192,55 @@ public final class ItemRepairService {
     }
 
     public boolean removeProvidedMaterial(Map<Integer, ItemStack> providedMaterials, RepairMaterial material) {
+        return debitProvidedMaterial(providedMaterials, material).success();
+    }
+
+    private MaterialDebit debitProvidedMaterial(Map<Integer, ItemStack> providedMaterials, RepairMaterial material) {
         if (providedMaterials == null || material == null || material.amount() <= 0) {
-            return true;
+            return MaterialDebit.committed(List.of());
         }
-        ItemSourceService sourceService = plugin.itemSourceService();
-        if (sourceService == null) {
-            return false;
+        if (itemSourceService == null) {
+            return MaterialDebit.failure();
         }
         long remaining = material.amount();
-        for (Map.Entry<Integer, ItemStack> entry : providedMaterials.entrySet()) {
-            ItemStack itemStack = entry.getValue();
-            if (itemStack == null || itemStack.getType().isAir()) {
-                continue;
-            }
-            ItemSource source = sourceService.identifyItem(itemStack);
-            if (!material.matches(source)) {
-                continue;
-            }
-            int take = (int) Math.min(remaining, itemStack.getAmount());
-            itemStack.setAmount(itemStack.getAmount() - take);
-            remaining -= take;
-            if (itemStack.getAmount() <= 0) {
-                entry.setValue(null);
-            }
+        List<InventoryItemUtil.RemovalPlan> plans = new ArrayList<>();
+        for (ItemSource source : material.itemSources()) {
             if (remaining <= 0L) {
                 break;
             }
+            InventoryItemUtil.RemovalPlan plan = InventoryItemUtil.planRemoval(
+                    providedMaterials,
+                    itemSourceService,
+                    source,
+                    remaining
+            );
+            if (plan.removedAmount() <= 0L) {
+                continue;
+            }
+            if (!InventoryItemUtil.applyRemoval(providedMaterials, plan)) {
+                rollbackMaterial(providedMaterials, plans);
+                return MaterialDebit.failure();
+            }
+            plans.add(plan);
+            remaining -= plan.removedAmount();
         }
-        providedMaterials.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().getType().isAir());
-        return remaining <= 0L;
+        if (remaining > 0L) {
+            rollbackMaterial(providedMaterials, plans);
+            return MaterialDebit.failure();
+        }
+        return MaterialDebit.committed(plans);
+    }
+
+    private boolean rollbackMaterial(Map<Integer, ItemStack> providedMaterials,
+            List<InventoryItemUtil.RemovalPlan> plans) {
+        boolean success = true;
+        for (int index = plans.size() - 1; index >= 0; index--) {
+            success &= InventoryItemUtil.rollbackRemoval(providedMaterials, plans.get(index));
+        }
+        if (!success && plugin != null) {
+            plugin.getLogger().severe("Failed to fully roll back repair materials.");
+        }
+        return success;
     }
 
     public int repair(Player player, ItemStack equipment, ItemStack repairItem, RepairMaterial matched) {
@@ -242,11 +271,13 @@ public final class ItemRepairService {
         if (restoreAmount <= 0) {
             return RepairResult.failure("repair.error.invalid_restore", Map.of("material", material.displaySources()));
         }
-        if (!removeProvidedMaterial(providedMaterials, material)) {
+        MaterialDebit materialDebit = debitProvidedMaterial(providedMaterials, material);
+        if (!materialDebit.success()) {
             return RepairResult.failure("repair.error.insufficient_materials", Map.of("material", material.displaySources(), "required", material.amount()));
         }
         int restored = applyRepair(equipment, restoreAmount);
         if (restored <= 0) {
+            rollbackMaterial(providedMaterials, materialDebit.plans());
             return RepairResult.failure("repair.error.already_repaired", Map.of());
         }
         triggerRepaired(player, definition, equipment, "material", restored);
@@ -275,17 +306,7 @@ public final class ItemRepairService {
             return quoteFailure("repair.error.economy_provider_unavailable", Map.of(), equipment, restoreAmount, List.of());
         }
         Map<String, Object> baseVariables = repairVariables(maxDamage, currentDamage, restoreAmount);
-        List<CurrencyQuote> quotes = new ArrayList<>();
-        for (RepairCurrencyCost currency : economy.currencies()) {
-            double amount = resolveCurrencyAmount(currency, baseVariables);
-            if (amount <= 0D) {
-                continue;
-            }
-            ActionResult supported = economyManager.requireSupported(currency.provider(), currency.currencyId());
-            boolean providerSupported = supported.success();
-            double balance = providerSupported ? economyManager.getBalance(player, currency.provider(), currency.currencyId()) : 0D;
-            quotes.add(new CurrencyQuote(currency, amount, balance, providerSupported));
-        }
+        List<CurrencyQuote> quotes = quoteCurrencies(player, economyManager, economy.currencies(), baseVariables);
         if (quotes.isEmpty()) {
             return quoteFailure("repair.error.invalid_cost", Map.of(), equipment, restoreAmount, quotes);
         }
@@ -317,21 +338,13 @@ public final class ItemRepairService {
         if (restoreAmount <= 0) {
             return RepairResult.failure("repair.error.invalid_restore", Map.of());
         }
-        List<CurrencyQuote> charged = new ArrayList<>();
-        for (CurrencyQuote currency : quote.currencies()) {
-            ActionResult result = economyManager.remove(player, currency.cost().provider(), currency.cost().currencyId(), currency.amount());
-            if (!result.success()) {
-                refund(player, charged);
-                String errorKey = result.errorType() == ActionErrorType.INSUFFICIENT_BALANCE
-                        ? "repair.error.insufficient_funds"
-                        : "repair.error.economy_provider_unavailable";
-                return RepairResult.failure(errorKey, quoteReplacements(currency));
-            }
-            charged.add(currency);
+        CurrencyChargeResult chargeResult = chargeCurrencies(player, economyManager, quote.currencies());
+        if (!chargeResult.success()) {
+            return RepairResult.failure(chargeResult.errorKey(), quoteReplacements(chargeResult.failedQuote()));
         }
         int restored = applyRepair(equipment, restoreAmount);
         if (restored <= 0) {
-            refund(player, charged);
+            rollbackCurrencies(player, economyManager, chargeResult.debits());
             return RepairResult.failure("repair.error.already_repaired", Map.of());
         }
         triggerRepaired(player, definition, equipment, "economy", restored);
@@ -464,6 +477,112 @@ public final class ItemRepairService {
         return Math.max(0D, currency.baseCost());
     }
 
+    private List<CurrencyQuote> quoteCurrencies(Player player,
+            EconomyManager economyManager,
+            List<RepairCurrencyCost> costs,
+            Map<String, Object> variables) {
+        Map<CurrencyKey, ResolvedCurrency> resolved = new LinkedHashMap<>();
+        if (costs != null) {
+            for (RepairCurrencyCost cost : costs) {
+                if (cost == null) {
+                    continue;
+                }
+                double amount = resolveCurrencyAmount(cost, variables);
+                if (amount <= 0D) {
+                    continue;
+                }
+                CurrencyKey key = new CurrencyKey(cost.provider(), cost.currencyId());
+                ResolvedCurrency existing = resolved.get(key);
+                resolved.put(key, new ResolvedCurrency(
+                        existing == null ? cost : existing.cost(),
+                        (existing == null ? 0D : existing.amount()) + amount
+                ));
+            }
+        }
+        List<CurrencyQuote> quotes = new ArrayList<>(resolved.size());
+        for (ResolvedCurrency currency : resolved.values()) {
+            ActionResult supported = economyManager.requireSupported(currency.cost().provider(), currency.cost().currencyId());
+            boolean providerSupported = supported.success();
+            double balance = providerSupported
+                    ? economyManager.getBalance(player, currency.cost().provider(), currency.cost().currencyId())
+                    : 0D;
+            quotes.add(new CurrencyQuote(currency.cost(), currency.amount(), balance, providerSupported));
+        }
+        return List.copyOf(quotes);
+    }
+
+    CurrencyChargeResult chargeCurrencies(Player player,
+            EconomyManager economyManager,
+            List<CurrencyQuote> quotes) {
+        if (player == null || economyManager == null) {
+            return CurrencyChargeResult.failure("repair.error.economy_provider_unavailable", null, List.of(), true);
+        }
+        Map<CurrencyKey, ResolvedCurrency> aggregated = new LinkedHashMap<>();
+        if (quotes != null) {
+            for (CurrencyQuote quote : quotes) {
+                if (quote == null || quote.cost() == null || quote.amount() <= 0D) {
+                    continue;
+                }
+                CurrencyKey key = new CurrencyKey(quote.cost().provider(), quote.cost().currencyId());
+                ResolvedCurrency existing = aggregated.get(key);
+                aggregated.put(key, new ResolvedCurrency(
+                        existing == null ? quote.cost() : existing.cost(),
+                        (existing == null ? 0D : existing.amount()) + quote.amount()
+                ));
+            }
+        }
+        List<CurrencyQuote> normalized = new ArrayList<>(aggregated.size());
+        for (ResolvedCurrency currency : aggregated.values()) {
+            double balance = economyManager.getBalance(player, currency.cost().provider(), currency.cost().currencyId());
+            CurrencyQuote quote = new CurrencyQuote(currency.cost(), currency.amount(), balance, true);
+            if (balance + 1.0E-9D < currency.amount()) {
+                return CurrencyChargeResult.failure("repair.error.insufficient_funds", quote, List.of(), true);
+            }
+            normalized.add(quote);
+        }
+
+        List<CurrencyDebit> debits = new ArrayList<>();
+        for (CurrencyQuote quote : normalized) {
+            double before = economyManager.getBalance(player, quote.cost().provider(), quote.cost().currencyId());
+            ActionResult result = economyManager.remove(player, quote.cost().provider(), quote.cost().currencyId(), quote.amount());
+            double after = economyManager.getBalance(player, quote.cost().provider(), quote.cost().currencyId());
+            double debited = Math.max(0D, before - after);
+            if (debited > 1.0E-9D) {
+                debits.add(new CurrencyDebit(quote.cost().provider(), quote.cost().currencyId(), debited, before));
+            }
+            if (!result.success() || debited + 1.0E-9D < quote.amount()) {
+                boolean compensated = rollbackCurrencies(player, economyManager, debits);
+                String errorKey = compensated && result.errorType() == ActionErrorType.INSUFFICIENT_BALANCE
+                        ? "repair.error.insufficient_funds"
+                        : "repair.error.economy_provider_unavailable";
+                return CurrencyChargeResult.failure(errorKey, quote, compensated ? List.of() : debits, compensated);
+            }
+        }
+        return CurrencyChargeResult.committed(debits);
+    }
+
+    private boolean rollbackCurrencies(Player player,
+            EconomyManager economyManager,
+            List<CurrencyDebit> debits) {
+        if (debits == null || debits.isEmpty()) {
+            return true;
+        }
+        if (player == null || economyManager == null) {
+            return false;
+        }
+        boolean success = true;
+        for (int index = debits.size() - 1; index >= 0; index--) {
+            CurrencyDebit debit = debits.get(index);
+            ActionResult result = economyManager.add(player, debit.provider(), debit.currencyId(), debit.amount());
+            double restored = economyManager.getBalance(player, debit.provider(), debit.currencyId());
+            success &= result.success() && Math.abs(restored - debit.balanceBefore()) <= 1.0E-6D;
+        }
+        if (!success && plugin != null) {
+            plugin.getLogger().severe("Failed to fully compensate repair economy costs.");
+        }
+        return success;
+    }
+
     private Map<String, Object> quoteReplacements(CurrencyQuote quote) {
         if (quote == null || quote.cost() == null) {
             return Map.of();
@@ -486,14 +605,53 @@ public final class ItemRepairService {
         return String.format(java.util.Locale.ROOT, "%.2f", value);
     }
 
-    private void refund(Player player, List<CurrencyQuote> charged) {
-        EconomyManager economyManager = economyManager();
-        if (player == null || economyManager == null || charged == null || charged.isEmpty()) {
-            return;
+    private record MaterialDebit(boolean success, List<InventoryItemUtil.RemovalPlan> plans) {
+
+        private MaterialDebit {
+            plans = plans == null ? List.of() : List.copyOf(plans);
         }
-        for (CurrencyQuote quote : charged) {
-            economyManager.add(player, quote.cost().provider(), quote.cost().currencyId(), quote.amount());
+
+        static MaterialDebit committed(List<InventoryItemUtil.RemovalPlan> plans) {
+            return new MaterialDebit(true, plans);
         }
+
+        static MaterialDebit failure() {
+            return new MaterialDebit(false, List.of());
+        }
+    }
+
+    record CurrencyChargeResult(boolean success,
+            String errorKey,
+            CurrencyQuote failedQuote,
+            List<CurrencyDebit> debits,
+            boolean compensationComplete) {
+
+        CurrencyChargeResult {
+            debits = debits == null ? List.of() : List.copyOf(debits);
+        }
+
+        static CurrencyChargeResult committed(List<CurrencyDebit> debits) {
+            return new CurrencyChargeResult(true, "", null, debits, true);
+        }
+
+        static CurrencyChargeResult failure(String errorKey,
+                CurrencyQuote failedQuote,
+                List<CurrencyDebit> debits,
+                boolean compensationComplete) {
+            return new CurrencyChargeResult(false, errorKey, failedQuote, debits, compensationComplete);
+        }
+    }
+
+    record CurrencyDebit(String provider, String currencyId, double amount, double balanceBefore) {
+
+    }
+
+    private record CurrencyKey(String provider, String currencyId) {
+
+    }
+
+    private record ResolvedCurrency(RepairCurrencyCost cost, double amount) {
+
     }
 
     private EconomyManager economyManager() {

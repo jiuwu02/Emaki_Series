@@ -14,6 +14,15 @@ import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 
 final class StrengthenGuiSession {
 
+    enum CompletionPhase {
+        OPEN,
+        PROCESSING,
+        COMMITTED,
+        RESULT_DELIVERED,
+        ESCROW_CLEARED,
+        COMPLETED
+    }
+
     private static final int MATERIAL_SLOT_COUNT = 4;
 
     private final Player player;
@@ -23,6 +32,8 @@ final class StrengthenGuiSession {
     private AttemptPreview preview;
     private boolean processing;
     private boolean completed;
+    private String operationId = "";
+    private CompletionPhase completionPhase = CompletionPhase.OPEN;
 
     StrengthenGuiSession(Player player) {
         this.player = player;
@@ -93,6 +104,29 @@ final class StrengthenGuiSession {
 
     public void setProcessing(boolean processing) {
         this.processing = processing;
+        if (processing) {
+            completionPhase = CompletionPhase.PROCESSING;
+        } else if (!completed && completionPhase == CompletionPhase.PROCESSING) {
+            completionPhase = CompletionPhase.OPEN;
+        }
+    }
+
+    public String operationId() {
+        return operationId;
+    }
+
+    public void setOperationId(String operationId) {
+        this.operationId = operationId == null ? "" : operationId.trim();
+    }
+
+    public CompletionPhase completionPhase() {
+        return completionPhase;
+    }
+
+    public void advanceCompletionPhase(CompletionPhase phase) {
+        if (phase != null && phase.ordinal() >= completionPhase.ordinal()) {
+            completionPhase = phase;
+        }
     }
 
     public boolean completed() {
@@ -101,14 +135,21 @@ final class StrengthenGuiSession {
 
     public void setCompleted(boolean completed) {
         this.completed = completed;
+        if (completed) {
+            completionPhase = CompletionPhase.COMPLETED;
+        }
     }
 
     public AttemptContext toAttemptContext() {
-        return AttemptContext.of(targetItem, materialInputs);
+        return AttemptContext.of(targetItem, materialInputs, operationId);
+    }
+
+    public void clearTargetItem() {
+        targetItem = null;
     }
 
     public void clearStoredItems() {
-        targetItem = null;
+        clearTargetItem();
         for (int index = 0; index < materialInputs.size(); index++) {
             materialInputs.set(index, null);
         }

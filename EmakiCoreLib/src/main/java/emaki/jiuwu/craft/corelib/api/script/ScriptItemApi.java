@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.corelib.api.script;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.bukkit.inventory.ItemStack;
 import org.graalvm.polyglot.HostAccess;
 
@@ -8,38 +11,54 @@ import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 
 public final class ScriptItemApi {
 
-    private final ActionContext context;
+    private final Map<String, ItemSnapshot> items;
 
     public ScriptItemApi(ActionContext context) {
-        this.context = context;
+        Map<String, ItemSnapshot> captured = new LinkedHashMap<>();
+        if (context != null) {
+            for (Map.Entry<String, Object> entry : context.attributes().entrySet()) {
+                if (entry.getValue() instanceof ItemStack itemStack) {
+                    captured.put(entry.getKey(), ItemSnapshot.capture(itemStack));
+                }
+            }
+        }
+        this.items = Map.copyOf(captured);
     }
 
     @HostAccess.Export
     public boolean has(String attributeKey) {
-        ItemStack itemStack = item(attributeKey);
-        return itemStack != null && !itemStack.getType().isAir();
+        ItemSnapshot item = items.get(attributeKey);
+        return item != null && item.exists();
     }
 
     @HostAccess.Export
     public String type(String attributeKey) {
-        ItemStack itemStack = item(attributeKey);
-        return itemStack == null ? "" : itemStack.getType().name().toLowerCase(java.util.Locale.ROOT);
+        ItemSnapshot item = items.get(attributeKey);
+        return item == null ? "" : item.type();
     }
 
     @HostAccess.Export
     public int amount(String attributeKey) {
-        ItemStack itemStack = item(attributeKey);
-        return itemStack == null ? 0 : itemStack.getAmount();
+        ItemSnapshot item = items.get(attributeKey);
+        return item == null ? 0 : item.amount();
     }
 
     @HostAccess.Export
     public String displayName(String attributeKey) {
-        ItemStack itemStack = item(attributeKey);
-        return itemStack == null ? "" : ItemTextBridge.effectiveNamePlain(itemStack);
+        ItemSnapshot item = items.get(attributeKey);
+        return item == null ? "" : item.displayName();
     }
 
-    private ItemStack item(String attributeKey) {
-        Object value = context == null ? null : context.attribute(attributeKey);
-        return value instanceof ItemStack itemStack ? itemStack : null;
+    private record ItemSnapshot(boolean exists, String type, int amount, String displayName) {
+
+        private static ItemSnapshot capture(ItemStack itemStack) {
+            boolean exists = itemStack != null && !itemStack.getType().isAir();
+            return new ItemSnapshot(
+                    exists,
+                    exists ? itemStack.getType().name().toLowerCase(java.util.Locale.ROOT) : "",
+                    exists ? itemStack.getAmount() : 0,
+                    exists ? ItemTextBridge.effectiveNamePlain(itemStack) : ""
+            );
+        }
     }
 }

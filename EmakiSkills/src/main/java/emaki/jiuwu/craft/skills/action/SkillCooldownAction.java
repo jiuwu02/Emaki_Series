@@ -74,23 +74,30 @@ public final class SkillCooldownAction implements Action {
                 return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "Unknown skill: " + skillId);
             }
             long ticks = ActionParsers.parseTicks(arguments.get("duration_ticks"));
-            if (ticks <= 0L) {
-                profile.timingState().skillCooldownUntilBySkillId().remove(skillId);
-            } else {
-                profile.timingState().skillCooldownUntilBySkillId().put(skillId, System.currentTimeMillis() + ticks * 50L);
-            }
-            profile.markDirty();
+            dataStore.mutate(player, current -> {
+                if (ticks <= 0L) {
+                    current.timingState().skillCooldownUntilBySkillId().remove(skillId);
+                } else {
+                    current.timingState().skillCooldownUntilBySkillId().put(
+                            skillId, System.currentTimeMillis() + ticks * 50L);
+                }
+                current.markDirty();
+            });
             dataStore.save(player);
             return ActionResult.ok(Map.of("skill", skillId, "duration_ticks", ticks));
         }
         if (Texts.isBlank(skillId)) {
-            profile.timingState().clearAll();
-            profile.markDirty();
+            dataStore.mutate(player, current -> {
+                current.timingState().clearAll();
+                current.markDirty();
+            });
             dataStore.save(player);
             return ActionResult.ok(Map.of("all", true));
         }
-        profile.timingState().skillCooldownUntilBySkillId().remove(skillId);
-        profile.markDirty();
+        dataStore.mutate(player, current -> {
+            current.timingState().skillCooldownUntilBySkillId().remove(skillId);
+            current.markDirty();
+        });
         dataStore.save(player);
         return ActionResult.ok(Map.of("all", false, "skill", skillId));
     }

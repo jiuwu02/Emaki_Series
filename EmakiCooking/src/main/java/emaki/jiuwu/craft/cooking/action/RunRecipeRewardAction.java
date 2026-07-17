@@ -13,7 +13,9 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -45,6 +47,11 @@ public final class RunRecipeRewardAction implements Action {
     @Override
     public String category() {
         return "emakicooking";
+    }
+
+    @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        return CookingActionExecutionTargets.onlinePlayer(context, id);
     }
 
     @Override

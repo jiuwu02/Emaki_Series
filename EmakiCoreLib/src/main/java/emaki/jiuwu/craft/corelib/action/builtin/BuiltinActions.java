@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
+import emaki.jiuwu.craft.corelib.action.ActionTargets;
 import emaki.jiuwu.craft.corelib.action.loop.CancelLoopAction;
 import emaki.jiuwu.craft.corelib.action.loop.LoopActionService;
 import emaki.jiuwu.craft.corelib.action.loop.LoopAsyncAction;
@@ -51,7 +52,7 @@ public final class BuiltinActions {
         registry.register(new SendMessageAction());
         registry.register(new SendTitleAction());
         registry.register(new SendActionBarAction());
-        registry.register(new BroadcastMessageAction());
+        registry.register(ActionTargets.global(new BroadcastMessageAction()));
         registry.register(new PlaySoundAction());
         registry.register(new SpawnParticleAction());
         registry.register(new BossBarShowAction());
@@ -87,9 +88,9 @@ public final class BuiltinActions {
         registry.register(new GivePotionEffectAction());
         registry.register(new RemovePotionEffectAction());
         registry.register(new ClearPotionEffectsAction());
-        registry.register(new RunCommandAsPlayerAction());
-        registry.register(new RunCommandAsOpAction());
-        registry.register(new RunCommandAsConsoleAction());
+        registry.register(ActionTargets.contextual(new RunCommandAsPlayerAction()));
+        registry.register(ActionTargets.contextual(new RunCommandAsOpAction()));
+        registry.register(ActionTargets.global(new RunCommandAsConsoleAction()));
         registry.register(new UseTemplateAction());
         if (loopActionService != null) {
             registry.register(new LoopSyncAction(loopActionService));

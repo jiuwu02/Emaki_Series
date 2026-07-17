@@ -317,9 +317,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             if (Texts.isNotBlank(definition.displayName())) {
                 aliasIndex.putIfAbsent(normalizeId(definition.displayName()), definition);
             }
-            if (!definition.parentAttribute()) {
-                orderedPatterns.addAll(compilePatterns(definition));
-            }
+            orderedPatterns.addAll(compilePatterns(definition));
         }
         orderedPatterns.sort(Comparator.comparingInt(PatternEntry::priority).reversed());
         return definitions;

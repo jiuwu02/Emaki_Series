@@ -31,7 +31,7 @@ import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemComponentsConfig;
 import emaki.jiuwu.craft.item.model.VanillaAttributeModifierConfig;
-import emaki.jiuwu.craft.item.script.js.JavaScriptItemFactoryRegistry;
+import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 
 public final class EmakiItemFactory {
 

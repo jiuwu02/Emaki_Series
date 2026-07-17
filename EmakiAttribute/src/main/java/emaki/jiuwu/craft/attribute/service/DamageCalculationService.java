@@ -5,8 +5,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
@@ -17,6 +21,7 @@ import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.util.Vector;
 
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeDamageEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
@@ -29,6 +34,9 @@ import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
+import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -269,7 +277,7 @@ final class DamageCalculationService {
         }
         DamageResult scripted = service.plugin() == null || service.plugin().javaScriptDamagePipelineRegistry() == null
                 ? null
-                : service.plugin().javaScriptDamagePipelineRegistry().resolve(plan.request().damageContext());
+                : service.plugin().javaScriptDamagePipelineRegistry().resolve(plan.request().damageContext(), plan.seededRoll());
         if (scripted != null) {
             return scripted;
         }
@@ -397,7 +405,7 @@ final class DamageCalculationService {
         if (plan == null) {
             return null;
         }
-        DamageResult result = service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
+        DamageResult result = resolveCalculation(plan);
         return finalizeResolvedDamage(plan.damageContext(), result);
     }
 
@@ -417,17 +425,63 @@ final class DamageCalculationService {
         if (plan == null) {
             return CompletableFuture.completedFuture(null);
         }
-        return service.asyncDamageEngine()
-                .resolveAsync(plan.request(), plan.damageType(), plan.seededRoll())
-                .thenCompose(result -> {
-                    if (service.asyncTaskScheduler() == null) {
-                        return CompletableFuture.completedFuture(finalizeResolvedDamage(plan.damageContext(), result));
-                    }
-                    return service.asyncTaskScheduler().callSync(
-                            "attribute-damage-finalize",
-                            () -> finalizeResolvedDamage(plan.damageContext(), result)
-                    );
-                });
+        UUID targetId = damageContext.target().getUniqueId();
+        return resolveCalculationAsync(plan)
+                .thenCompose(result -> callEntityOwner(
+                        targetId,
+                        target -> finalizeResolvedDamage(plan.damageContext(), result)
+                ));
+    }
+
+    private DamageResult resolveCalculation(DamageCalculationPlan plan) {
+        if (plan == null) {
+            return null;
+        }
+        JavaScriptDamagePipelineRegistry pipelines = service.plugin() == null
+                ? null
+                : service.plugin().javaScriptDamagePipelineRegistry();
+        DamageResult scripted = pipelines == null ? null : pipelines.resolve(plan.request().damageContext(), plan.seededRoll());
+        return scripted == null
+                ? service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll())
+                : scripted;
+    }
+
+    private CompletableFuture<DamageResult> resolveCalculationAsync(DamageCalculationPlan plan) {
+        JavaScriptDamagePipelineRegistry pipelines = service.plugin() == null
+                ? null
+                : service.plugin().javaScriptDamagePipelineRegistry();
+        if (pipelines == null || !pipelines.handles(plan.damageContext().damageTypeId())) {
+            return service.asyncDamageEngine().resolveAsync(plan.request(), plan.damageType(), plan.seededRoll());
+        }
+        if (service.asyncTaskScheduler() == null) {
+            try {
+                return CompletableFuture.completedFuture(resolveCalculation(plan));
+            } catch (RuntimeException exception) {
+                return CompletableFuture.failedFuture(exception);
+            }
+        }
+        return service.asyncTaskScheduler().supplyAsync(
+                "attribute-damage-script-pipeline",
+                () -> resolveCalculation(plan)
+        );
+    }
+
+    private DamageContext detachForWorker(DamageContext context) {
+        if (context == null) {
+            return DamageContext.empty();
+        }
+        return DamageContext.of(
+                null,
+                null,
+                null,
+                context.cause(),
+                context.damageTypeId(),
+                context.sourceDamage(),
+                context.baseDamage(),
+                context.attackerSnapshot(),
+                context.targetSnapshot(),
+                context.variables()
+        );
     }
 
     public boolean applyResolvedDamage(ResolvedDamage resolvedDamage, Entity visualSource, double alreadyAppliedDamage) {
@@ -479,6 +533,225 @@ final class DamageCalculationService {
         return applied;
     }
 
+    public CompletableFuture<Boolean> applyResolvedDamageAsync(ResolvedDamage resolvedDamage,
+            double alreadyAppliedDamage) {
+        return applyResolvedDamageAsync(resolvedDamage, null, alreadyAppliedDamage);
+    }
+
+    public CompletableFuture<Boolean> applyResolvedDamageAsync(ResolvedDamage resolvedDamage,
+            Entity visualSource,
+            double alreadyAppliedDamage) {
+        if (resolvedDamage == null || resolvedDamage.damageContext() == null
+                || resolvedDamage.damageContext().target() == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        UUID targetId = resolvedDamage.damageContext().target().getUniqueId();
+        return captureSourceImpact(visualSource).thenCompose(sourceImpact ->
+                callEntityOwner(targetId, target -> applyTargetSideEffects(
+                        resolvedDamage,
+                        target,
+                        alreadyAppliedDamage,
+                        true,
+                        sourceImpact
+                ))).thenCompose(this::applyAttackerSideEffects);
+    }
+
+    public CompletableFuture<Boolean> applyDamageSideEffectsAsync(ResolvedDamage resolvedDamage) {
+        if (resolvedDamage == null || resolvedDamage.damageContext() == null
+                || resolvedDamage.damageContext().target() == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        UUID targetId = resolvedDamage.damageContext().target().getUniqueId();
+        return callEntityOwner(targetId, target -> applyTargetSideEffects(
+                resolvedDamage,
+                target,
+                resolvedDamage.finalDamage(),
+                false,
+                null
+        )).thenCompose(this::applyAttackerSideEffects);
+    }
+
+    private CompletableFuture<SourceImpactSnapshot> captureSourceImpact(Entity source) {
+        if (source == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        CompletableFuture<SourceImpactSnapshot> future = new CompletableFuture<>();
+        try {
+            var scheduled = FoliaSchedulerAdapter.runEntityTask(service.plugin(), source, () -> {
+                if (!source.isValid()) {
+                    future.complete(null);
+                    return;
+                }
+                var location = source.getLocation();
+                future.complete(new SourceImpactSnapshot(
+                        location.getX(), location.getY(), location.getZ(), location.getYaw()));
+            });
+            if (scheduled == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "Damage source snapshot scheduling was rejected."));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    private void applySyntheticKnockback(LivingEntity target,
+            SourceImpactSnapshot sourceImpact,
+            double finalDamage) {
+        if (target == null || sourceImpact == null || finalDamage <= 0D
+                || !target.isValid() || target.isDead() || !service.config().syntheticHitKnockback()) {
+            return;
+        }
+        double strength = Math.max(0D, service.config().syntheticHitKnockbackStrength());
+        if (strength <= 0D) {
+            return;
+        }
+        Vector direction = target.getLocation().toVector()
+                .subtract(new Vector(sourceImpact.x(), sourceImpact.y(), sourceImpact.z()));
+        direction.setY(0D);
+        if (direction.lengthSquared() < 1.0E-6D) {
+            double radians = Math.toRadians(sourceImpact.yaw());
+            direction = new Vector(Math.sin(radians), 0D, -Math.cos(radians)).multiply(-1D);
+        }
+        if (direction.lengthSquared() < 1.0E-6D) {
+            return;
+        }
+        direction.normalize().multiply(strength);
+        Vector velocity = target.getVelocity().clone();
+        velocity.setX(velocity.getX() + direction.getX());
+        velocity.setZ(velocity.getZ() + direction.getZ());
+        velocity.setY(Math.max(0.1D, velocity.getY() + Math.min(0.4D, strength * 0.5D)));
+        target.setVelocity(velocity);
+    }
+
+    private TargetApplicationResult applyTargetSideEffects(ResolvedDamage resolvedDamage,
+            LivingEntity target,
+            double alreadyAppliedDamage,
+            boolean applyDamage,
+            SourceImpactSnapshot sourceImpact) {
+        if (target == null || !target.isValid() || target.isDead()) {
+            return TargetApplicationResult.failed();
+        }
+        DamageContext damageContext = resolvedDamage.damageContext();
+        String expectedTargetId = damageContext.variables().string("target_uuid", "");
+        if (Texts.isNotBlank(expectedTargetId) && !target.getUniqueId().toString().equals(expectedTargetId)) {
+            return TargetApplicationResult.failed();
+        }
+
+        double appliedDamage = Math.max(0D, alreadyAppliedDamage);
+        double remainingDamage = applyDamage
+                ? Math.max(0D, resolvedDamage.finalDamage() - appliedDamage)
+                : 0D;
+        if (applyDamage) {
+            applySyntheticKnockback(target, sourceImpact, resolvedDamage.finalDamage());
+            applyDirectDamage(target, remainingDamage, sourceImpact);
+        }
+
+        DamageMessageDispatcher.MessagePlan messages = messageDispatcher.prepareMessages(
+                damageContext,
+                resolvedDamage.damageType(),
+                resolvedDamage.damageResult(),
+                resolvedDamage.finalDamage()
+        );
+        Player targetPlayer = target instanceof Player player ? player : null;
+        String attackerId = damageContext.variables().string("attacker_uuid", "");
+        boolean sameOwner = Texts.isNotBlank(attackerId) && attackerId.equals(target.getUniqueId().toString());
+        double recoveryAmount = recoveryCalculator.calculateRecoveryAmount(
+                damageContext,
+                resolvedDamage.damageType(),
+                resolvedDamage.damageResult(),
+                resolvedDamage.finalDamage()
+        ) + Math.max(0D, damageContext.variables().getDouble(
+                JavaScriptDamagePipelineRegistry.ATTACKER_HEAL_INTENT, 0D));
+        int cooldownTicks = 0;
+        if (sameOwner) {
+            recoveryCalculator.applyRecovery(target, recoveryAmount);
+            recoveryAmount = 0D;
+            if (targetPlayer != null) {
+                cooldownTicks = service.startAttackCooldown(
+                        targetPlayer,
+                        damageContext.attackerSnapshot(),
+                        targetPlayer.getInventory().getItemInMainHand()
+                );
+                messageDispatcher.dispatch(targetPlayer, messages.attacker());
+            }
+        } else {
+            messageDispatcher.dispatch(targetPlayer, messages.target());
+        }
+        replayTargetScriptIntents(target, targetPlayer, damageContext.variables());
+        service.scheduleHealthSync(target);
+
+        boolean applied = !applyDamage || remainingDamage > 0D || appliedDamage > 0D;
+        AttackerSideEffectsIntent attackerIntent = sameOwner
+                ? null
+                : new AttackerSideEffectsIntent(
+                        parseUuid(attackerId),
+                        damageContext.attackerSnapshot(),
+                        recoveryAmount,
+                        messages.attacker(),
+                        "player".equalsIgnoreCase(damageContext.variables().string("attacker_type", ""))
+                );
+        return new TargetApplicationResult(applied, cooldownTicks, attackerIntent);
+    }
+
+    private CompletableFuture<Boolean> applyAttackerSideEffects(TargetApplicationResult targetResult) {
+        if (targetResult == null || !targetResult.applied()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        AttackerSideEffectsIntent intent = targetResult.attackerIntent();
+        if (intent == null || intent.attackerId() == null) {
+            return CompletableFuture.completedFuture(true);
+        }
+        return callEntityOwner(intent.attackerId(), attacker -> {
+            if (!attacker.isValid() || attacker.isDead()) {
+                return false;
+            }
+            if (intent.recoveryAmount() > 0D) {
+                recoveryCalculator.applyRecovery(attacker, intent.recoveryAmount());
+            }
+            if (attacker instanceof Player player) {
+                service.startAttackCooldown(
+                        player,
+                        intent.attackerSnapshot(),
+                        player.getInventory().getItemInMainHand()
+                );
+                messageDispatcher.dispatch(player, intent.message());
+            }
+            return true;
+        }).handle((ignored, throwable) -> true);
+    }
+
+    private void replayTargetScriptIntents(LivingEntity target,
+            Player targetPlayer,
+            DamageContextVariables variables) {
+        if (target == null || variables == null) {
+            return;
+        }
+        double healing = variables.getDouble(JavaScriptDamagePipelineRegistry.TARGET_HEAL_INTENT, 0D);
+        if (healing > 0D) {
+            double healed = Math.min(target.getMaxHealth(), target.getHealth() + healing);
+            target.setHealth(Math.max(0D, healed));
+        }
+        if (targetPlayer == null) {
+            return;
+        }
+        for (Object raw : ConfigNodes.asObjectList(variables.get(JavaScriptDamagePipelineRegistry.TARGET_MESSAGES_INTENT))) {
+            Map<String, Object> entry = ConfigNodes.entries(raw);
+            String message = Texts.toStringSafe(entry.get("message"));
+            if (Texts.isBlank(message)) {
+                continue;
+            }
+            pluginMessage(targetPlayer, message, ConfigNodes.entries(entry.get("placeholders")));
+        }
+    }
+
+    private void pluginMessage(Player player, String message, Map<String, Object> placeholders) {
+        if (service.plugin() != null && service.plugin().messageService() != null) {
+            service.plugin().messageService().send(player, message, placeholders);
+        }
+    }
+
     public void applyDamageSideEffects(ResolvedDamage resolvedDamage, Entity visualSource) {
         if (resolvedDamage == null || resolvedDamage.damageContext() == null) {
             return;
@@ -513,6 +786,15 @@ final class DamageCalculationService {
     }
 
     private void applyDirectDamage(LivingEntity target, double damage, Entity visualSource) {
+        Float sourceYaw = visualSource == null ? null : visualSource.getLocation().getYaw();
+        applyDirectDamage(target, damage, sourceYaw);
+    }
+
+    private void applyDirectDamage(LivingEntity target, double damage, SourceImpactSnapshot sourceImpact) {
+        applyDirectDamage(target, damage, sourceImpact == null ? null : sourceImpact.yaw());
+    }
+
+    private void applyDirectDamage(LivingEntity target, double damage, Float sourceYaw) {
         if (target == null || damage <= 0D || !target.isValid() || target.isDead()) {
             return;
         }
@@ -526,22 +808,26 @@ final class DamageCalculationService {
         }
         target.setLastDamage(damage);
         if (remainingDamage <= 0D) {
-            playSyntheticImpact(target, visualSource);
+            playSyntheticImpact(target, sourceYaw);
             return;
         }
         double currentHealth = Math.max(0D, target.getHealth());
         double nextHealth = Math.max(0D, currentHealth - remainingDamage);
         target.setHealth(nextHealth);
         if (nextHealth > 0D) {
-            playSyntheticImpact(target, visualSource);
+            playSyntheticImpact(target, sourceYaw);
         }
     }
 
     private void playSyntheticImpact(LivingEntity target, Entity visualSource) {
+        playSyntheticImpact(target, visualSource == null ? null : visualSource.getLocation().getYaw());
+    }
+
+    private void playSyntheticImpact(LivingEntity target, Float sourceYaw) {
         if (target == null || !target.isValid() || target.isDead()) {
             return;
         }
-        float yaw = visualSource == null ? target.getLocation().getYaw() : visualSource.getLocation().getYaw();
+        float yaw = sourceYaw == null ? target.getLocation().getYaw() : sourceYaw;
         target.playHurtAnimation(yaw);
         if (service.config().syntheticHitHurtSound() && target.getHurtSound() != null) {
             target.getWorld().playSound(target, target.getHurtSound(), 1F, 1F);
@@ -624,7 +910,7 @@ final class DamageCalculationService {
                 return new DamageCalculationPlan(
                         resolvedContext.withBaseDamage(0D),
                         emptyDamageType(damageType),
-                        new DamageRequest(resolvedContext.withBaseDamage(0D)),
+                        new DamageRequest(detachForWorker(resolvedContext.withBaseDamage(0D))),
                         seededRoll
                 );
             }
@@ -632,7 +918,7 @@ final class DamageCalculationService {
         return new DamageCalculationPlan(
                 resolvedContext,
                 effectiveDamageType,
-                new DamageRequest(resolvedContext),
+                new DamageRequest(detachForWorker(resolvedContext)),
                 seededRoll
         );
     }
@@ -642,16 +928,27 @@ final class DamageCalculationService {
             debugCombat(damageContext, "EVENT_BLOCKED", "combat_debug.event_result_empty");
             return null;
         }
-        if (shouldDebugCombat(damageContext)) {
-            debugCombat(damageContext, "CALC_RESULT", "combat_debug.calc_result", Map.of(
-                    "damage_type", result.damageTypeId(),
-                    "final_damage", service.combatDebug().formatNumber(result.finalDamage()),
-                    "critical", result.critical(),
-                    "roll", service.combatDebug().formatNumber(result.roll()),
-                    "stages", service.combatDebug().formatStageValues(result.stageValues())
+        DamageContext resultContext = result.damageContext() == null
+                ? damageContext
+                : damageContext.withDamageTypeId(result.damageTypeId()).withVariables(result.variables());
+        DamageResult effectiveResult = new DamageResult(
+                result.damageTypeId(),
+                result.finalDamage(),
+                result.critical(),
+                result.roll(),
+                result.stageValues(),
+                resultContext
+        );
+        if (shouldDebugCombat(resultContext)) {
+            debugCombat(resultContext, "CALC_RESULT", "combat_debug.calc_result", Map.of(
+                    "damage_type", effectiveResult.damageTypeId(),
+                    "final_damage", service.combatDebug().formatNumber(effectiveResult.finalDamage()),
+                    "critical", effectiveResult.critical(),
+                    "roll", service.combatDebug().formatNumber(effectiveResult.roll()),
+                    "stages", service.combatDebug().formatStageValues(effectiveResult.stageValues())
             ));
         }
-        EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(damageContext, result);
+        EmakiAttributeDamageEvent event = new EmakiAttributeDamageEvent(resultContext, effectiveResult);
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled() || event.getFinalDamage() <= 0D) {
             if (shouldDebugCombat(damageContext)) {
@@ -662,14 +959,14 @@ final class DamageCalculationService {
             }
             return null;
         }
-        DamageTypeDefinition damageType = resolveDamageType(result.damageTypeId());
-        if (shouldDebugCombat(damageContext)) {
-            debugCombat(damageContext, "EVENT_PASSED", "combat_debug.event_passed", Map.of(
+        DamageTypeDefinition damageType = resolveDamageType(effectiveResult.damageTypeId());
+        if (shouldDebugCombat(resultContext)) {
+            debugCombat(resultContext, "EVENT_PASSED", "combat_debug.event_passed", Map.of(
                     "final_damage", service.combatDebug().formatNumber(event.getFinalDamage()),
                     "resolved_damage_type", damageType.id()
             ));
         }
-        return new ResolvedDamage(damageContext, result, damageType, event.getFinalDamage());
+        return new ResolvedDamage(resultContext, effectiveResult, damageType, event.getFinalDamage());
     }
 
     private DamageTypeDefinition filterDamageType(DamageTypeDefinition damageType, boolean allowCritical, boolean calculateTargetDefense) {
@@ -753,8 +1050,76 @@ final class DamageCalculationService {
         messageDispatcher.notifyDamageMessages(damageContext, damageType, result, finalDamage);
     }
 
+    private <T> CompletableFuture<T> callEntityOwner(UUID entityId, Function<LivingEntity, T> operation) {
+        if (entityId == null || operation == null || service.plugin() == null) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatch is unavailable."));
+        }
+        CompletableFuture<T> result = new CompletableFuture<>();
+        try {
+            var lookupTask = FoliaSchedulerAdapter.runTask(service.plugin(), () -> {
+                Entity entity = Bukkit.getEntity(entityId);
+                if (!(entity instanceof LivingEntity livingEntity) || !livingEntity.isValid()) {
+                    result.completeExceptionally(new IllegalStateException("Entity is no longer available: " + entityId));
+                    return;
+                }
+                try {
+                    var entityTask = FoliaSchedulerAdapter.runEntityTask(service.plugin(), livingEntity, () -> {
+                        try {
+                            result.complete(operation.apply(livingEntity));
+                        } catch (Throwable throwable) {
+                            result.completeExceptionally(throwable);
+                        }
+                    });
+                    if (entityTask == null) {
+                        result.completeExceptionally(new IllegalStateException(
+                                "Entity owner scheduling was rejected: " + entityId));
+                    }
+                } catch (Throwable throwable) {
+                    result.completeExceptionally(throwable);
+                }
+            });
+            if (lookupTask == null) {
+                result.completeExceptionally(new IllegalStateException(
+                        "Entity lookup scheduling was rejected: " + entityId));
+            }
+        } catch (Throwable throwable) {
+            result.completeExceptionally(throwable);
+        }
+        return result;
+    }
+
+    private UUID parseUuid(String value) {
+        if (Texts.isBlank(value)) {
+            return null;
+        }
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
     private String firstNonBlank(String left, String right) {
         return Texts.isBlank(left) ? right : left;
+    }
+
+    private record SourceImpactSnapshot(double x, double y, double z, float yaw) {
+    }
+
+    private record TargetApplicationResult(boolean applied,
+            int cooldownTicks,
+            AttackerSideEffectsIntent attackerIntent) {
+
+        private static TargetApplicationResult failed() {
+            return new TargetApplicationResult(false, 0, null);
+        }
+    }
+
+    private record AttackerSideEffectsIntent(UUID attackerId,
+            AttributeSnapshot attackerSnapshot,
+            double recoveryAmount,
+            DamageMessageDispatcher.MessageIntent message,
+            boolean player) {
     }
 
     private record DamageCalculationPlan(DamageContext damageContext,

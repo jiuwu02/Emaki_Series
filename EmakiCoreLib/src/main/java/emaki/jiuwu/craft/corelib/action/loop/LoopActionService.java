@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
@@ -215,9 +214,10 @@ public final class LoopActionService implements Listener {
 
     private void schedule(LoopTaskRecord record, long delayTicks) {
         Runnable task = () -> tick(record);
-        TaskHandle handle = record.async
-                ? FoliaSchedulerAdapter.runAsyncLater(owner, task, Math.max(0L, delayTicks) * 50L, TimeUnit.MILLISECONDS)
-                : FoliaSchedulerAdapter.runTaskLater(owner, task, delayTicks);
+        Player player = record.context.player();
+        TaskHandle handle = player == null
+                ? FoliaSchedulerAdapter.runTaskLater(owner, task, delayTicks)
+                : FoliaSchedulerAdapter.runEntityTaskLater(owner, player, task, delayTicks);
         record.handle = handle;
     }
 

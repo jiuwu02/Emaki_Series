@@ -1399,7 +1399,8 @@ public final class WebConsoleRegistry {
     }
 
     private static String normalizeIcon(String iconSvg) {
-        return Texts.isBlank(iconSvg) ? DEFAULT_ICON_SVG : iconSvg;
+        String sanitized = WebSvgIconSanitizer.sanitize(iconSvg);
+        return Texts.isBlank(sanitized) ? DEFAULT_ICON_SVG : sanitized;
     }
 
     private static String svgPath(String d) {

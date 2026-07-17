@@ -6,12 +6,17 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
+import emaki.jiuwu.craft.forge.loader.PlayerDataStore.GuaranteeCounterUpdate;
 import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -24,6 +29,8 @@ final class ForgeExecutionService {
 
     private static final String DEFAULT_ACTION_FAILURE_KEY = "forge.error.action_failed";
 
+    private final Plugin plugin;
+    private final SessionValidator sessionValidator;
     private final ForgeActionCoordinator actionCoordinator;
     private final QualityCalculationService qualityCalculationService;
     private final ForgePlanResolver forgePlanResolver;
@@ -34,7 +41,9 @@ final class ForgeExecutionService {
     private final JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry;
     private final JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry;
 
-    ForgeExecutionService(ForgeActionCoordinator actionCoordinator,
+    ForgeExecutionService(Plugin plugin,
+            SessionValidator sessionValidator,
+            ForgeActionCoordinator actionCoordinator,
             QualityCalculationService qualityCalculationService,
             ForgePlanResolver forgePlanResolver,
             ResultItemGiver resultItemGiver,
@@ -42,11 +51,14 @@ final class ForgeExecutionService {
             ResultItemPostProcessor resultItemPostProcessor,
             JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry,
             JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry) {
-        this(actionCoordinator, qualityCalculationService, forgePlanResolver, resultItemGiver, craftRecorder, resultItemPostProcessor,
-                new ForgeFailureResolver(), javaScriptForgeRuleRegistry, javaScriptResultHookRegistry);
+        this(plugin, sessionValidator, actionCoordinator, qualityCalculationService, forgePlanResolver, resultItemGiver,
+                craftRecorder, resultItemPostProcessor, new ForgeFailureResolver(),
+                javaScriptForgeRuleRegistry, javaScriptResultHookRegistry);
     }
 
-    ForgeExecutionService(ForgeActionCoordinator actionCoordinator,
+    ForgeExecutionService(Plugin plugin,
+            SessionValidator sessionValidator,
+            ForgeActionCoordinator actionCoordinator,
             QualityCalculationService qualityCalculationService,
             ForgePlanResolver forgePlanResolver,
             ResultItemGiver resultItemGiver,
@@ -55,6 +67,8 @@ final class ForgeExecutionService {
             ForgeFailureResolver forgeFailureResolver,
             JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry,
             JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry) {
+        this.plugin = plugin;
+        this.sessionValidator = sessionValidator;
         this.actionCoordinator = actionCoordinator;
         this.qualityCalculationService = qualityCalculationService;
         this.forgePlanResolver = forgePlanResolver;
@@ -70,7 +84,8 @@ final class ForgeExecutionService {
             Recipe recipe,
             GuiItems guiItems,
             ForgeService.PreparedForge preparedForge,
-            ValidationResult validation) {
+            ValidationResult validation,
+            long sessionGeneration) {
         ForgeResult result = new ForgeResult();
         if (validation != null && !validation.success()) {
             result.setErrorKey(validation.errorKey());
@@ -78,7 +93,7 @@ final class ForgeExecutionService {
             return CompletableFuture.completedFuture(finish(player, recipe, result));
         }
         return actionCoordinator.executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
-                .thenApply(preBatch -> {
+                .thenCompose(preBatch -> callPlayerOwner(player, sessionGeneration, () -> {
                     if (!preBatch.success()) {
                         return buildActionFailure(player, recipe, guiItems, result, preBatch);
                     }
@@ -125,13 +140,14 @@ final class ForgeExecutionService {
                         return finish(player, recipe, result);
                     }
                     if (player != null) {
-                        qualityCalculationService.applyGuaranteeOutcome(
+                        GuaranteeCounterUpdate guaranteeUpdate = qualityCalculationService.resolveGuaranteeUpdate(
                                 player.getUniqueId(),
+                                sessionGeneration,
                                 recipe,
                                 forgePlan.rolledQualityTier(),
                                 forgePlan.forceQualityApplied()
                         );
-                        craftRecorder.record(player.getUniqueId(), recipe.id());
+                        craftRecorder.record(player.getUniqueId(), sessionGeneration, recipe.id(), guaranteeUpdate);
                     }
                     result.setSuccess(true);
                     result.setResultItem(resultItem);
@@ -139,7 +155,44 @@ final class ForgeExecutionService {
                     actionCoordinator.triggerPhase(player, recipe, guiItems, "success", resultItem, result.quality(), result.multiplier(), null, null);
                     actionCoordinator.triggerQualityActions(player, recipe, guiItems, resultItem, forgePlan.qualityTier(), result.quality(), result.multiplier());
                     return finish(player, recipe, result);
-                });
+                }));
+    }
+
+    private CompletableFuture<ForgeResult> callPlayerOwner(Player player,
+            long generation,
+            Supplier<ForgeResult> operation) {
+        if (player == null || plugin == null || operation == null) {
+            return CompletableFuture.completedFuture(staleSessionResult());
+        }
+        CompletableFuture<ForgeResult> future = new CompletableFuture<>();
+        try {
+            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                if (sessionValidator == null
+                        || !sessionValidator.isCurrent(player.getUniqueId(), generation)) {
+                    future.complete(staleSessionResult());
+                    return;
+                }
+                try {
+                    future.complete(operation.get());
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+            if (scheduled == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "Forge player-owner scheduling was rejected."));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    private ForgeResult staleSessionResult() {
+        ForgeResult result = new ForgeResult();
+        result.setErrorKey(DEFAULT_ACTION_FAILURE_KEY);
+        result.setReplacements(Map.of("reason", "player session is no longer current"));
+        return result;
     }
 
     private JavaScriptForgeRuleRegistry.Decision applyJavaScriptForgeRules(Player player, Recipe recipe, GuiItems guiItems, double successRate) {
@@ -196,6 +249,12 @@ final class ForgeExecutionService {
     }
 
     @FunctionalInterface
+    interface SessionValidator {
+
+        boolean isCurrent(UUID playerId, long generation);
+    }
+
+    @FunctionalInterface
     interface ForgePlanResolver {
 
         ForgeService.PreparedForge resolve(Player player, Recipe recipe, GuiItems guiItems, ForgeService.PreparedForge preparedForge);
@@ -223,7 +282,10 @@ final class ForgeExecutionService {
     @FunctionalInterface
     interface CraftRecorder {
 
-        void record(UUID playerId, String recipeId);
+        void record(UUID playerId,
+                long generation,
+                String recipeId,
+                GuaranteeCounterUpdate guaranteeUpdate);
     }
 
     @FunctionalInterface

@@ -21,12 +21,16 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
     }
 
     public void refreshOnlinePlayers() {
-        if (!Bukkit.isPrimaryThread()) {
-            FoliaSchedulerAdapter.runTask(plugin, this::refreshOnlinePlayers);
-            return;
-        }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            refreshPlayerInventory(player);
+            try {
+                if (FoliaSchedulerAdapter.runEntityTask(
+                        plugin, player, () -> refreshPlayerInventory(player)) == null) {
+                    plugin.getLogger().warning("Player refresh scheduling was rejected for " + player.getUniqueId());
+                }
+            } catch (Throwable throwable) {
+                plugin.getLogger().warning("Failed to schedule player refresh for " + player.getUniqueId()
+                        + ": " + throwable.getMessage());
+            }
         }
     }
 

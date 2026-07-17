@@ -52,6 +52,7 @@ public record AttemptPreview(boolean eligible,
 
     /** Canonical constructor; defensively copies all collection fields. */
     public AttemptPreview {
+        successRate = Double.isFinite(successRate) ? Math.max(0D, Math.min(100D, successRate)) : 0D;
         costs = costs == null ? List.of() : List.copyOf(costs);
         successDeltaStats = successDeltaStats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(successDeltaStats));
         unlockingMilestones = unlockingMilestones == null ? Set.of() : Set.copyOf(unlockingMilestones);

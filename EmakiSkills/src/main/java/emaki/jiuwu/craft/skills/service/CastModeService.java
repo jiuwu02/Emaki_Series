@@ -23,24 +23,20 @@ public final class CastModeService {
         if (player == null) {
             return;
         }
-        PlayerSkillProfile profile = dataStore.get(player);
-        if (profile == null) {
-            return;
-        }
-        profile.setCastModeEnabled(enabled);
-        profile.markDirty();
+        dataStore.mutate(player, profile -> {
+            profile.setCastModeEnabled(enabled);
+            profile.markDirty();
+        });
     }
 
     public void toggleCastMode(Player player) {
         if (player == null) {
             return;
         }
-        PlayerSkillProfile profile = dataStore.get(player);
-        if (profile == null) {
-            return;
-        }
-        profile.setCastModeEnabled(!profile.castModeEnabled());
-        profile.markDirty();
+        dataStore.mutate(player, profile -> {
+            profile.setCastModeEnabled(!profile.castModeEnabled());
+            profile.markDirty();
+        });
     }
 
     public String getEntryKeyType() {
