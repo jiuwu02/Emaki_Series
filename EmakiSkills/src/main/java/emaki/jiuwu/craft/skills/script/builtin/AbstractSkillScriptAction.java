@@ -132,7 +132,7 @@ abstract class AbstractSkillScriptAction implements SkillScriptAction {
             String fallback,
             Function<Location, T> action) {
         String selector = arg(arguments, argumentName, fallback).toLowerCase(java.util.Locale.ROOT);
-        Entity caster = context == null ? null : context.caster();
+        var caster = context == null ? null : context.caster();
         if ("caster".equals(selector) || "self".equals(selector) || "player".equals(selector)) {
             return callOnEntity(context, caster, () -> action.apply(caster.getLocation()));
         }

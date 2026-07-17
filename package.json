@@ -26,12 +26,7 @@
     "build:web:item": "npm run build -w emakiitem-web-console-extension",
     "build:web:level": "npm run build -w emakilevel-web-console-extension",
     "build:web:codex": "npm run build -w emakicodex-web-console-extension",
-    "web:diagnose": "node scripts/web-diagnose.mjs",
-    "web:schema-check": "node scripts/web-diagnose.mjs",
-    "web:plugin-check": "node scripts/web-diagnose.mjs",
-    "web:build-matrix": "npm run build:web",
-    "web:regression-codex": "node scripts/web-diagnose.mjs",
-    "web:regression-config": "node scripts/web-diagnose.mjs"
+    "web:build-matrix": "npm run build:web"
   },
   "dependencies": {
     "react": "latest",
