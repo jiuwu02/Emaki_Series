@@ -170,24 +170,40 @@ final class ItemOperationExecutor {
             List<String> contentLines = templateRenderer.renderContent(operation, variables, context, ledger.debugLogger(), "item_operation.lore.record." + action);
             Object rawAnchor = templateRenderer.resolveSearchPattern(operation);
             String anchor = rawAnchor == null ? "" : templateRenderer.renderTemplate(rawAnchor, variables, context, ledger.debugLogger(), "item_operation.lore.anchor.record." + action);
-            boolean recognized = loreOperations.getProcessor(action) != null;
+            LoreOperationProcessor processor = loreOperations.getProcessor(action);
+            boolean recognized = processor != null;
             debug(context, "lore action | action=" + action
                     + " | recognized=" + recognized
                     + " | anchor=" + summarize(anchor)
                     + " | content=" + summarize(contentLines)
                     + " | raw=" + summarizeMap(operation));
+            if (!recognized) {
+                continue;
+            }
 
             List<String> originalLines = List.of();
             if ("replace_line".equals(action) || "delete_line".equals(action)) {
                 originalLines = findMatchingLines(currentLore, anchor);
             }
 
-            records.add(new ItemOperationEntry.LoreOperationRecord(action, contentLines, anchor, originalLines));
+            records.add(records.isEmpty()
+                    ? new ItemOperationEntry.LoreOperationRecord(
+                            action,
+                            contentLines,
+                            anchor,
+                            originalLines,
+                            new ArrayList<>(currentLore)
+                    )
+                    : new ItemOperationEntry.LoreOperationRecord(
+                            action,
+                            contentLines,
+                            anchor,
+                            originalLines
+                    ));
+            processor.process(currentLore, new LoreOperationProcessor.Context(operation, contentLines, anchor, variables));
         }
 
         int beforeSize = existingLore == null ? 0 : existingLore.size();
-        loreOperations.apply(currentLore, operations, variables, context, ledger.debugLogger());
-
         ItemTextBridge.setLoreLines(itemMeta, currentLore.isEmpty() ? null : currentLore);
         debug(context, "lore result | beforeLines=" + beforeSize + " | afterLines=" + currentLore.size());
 

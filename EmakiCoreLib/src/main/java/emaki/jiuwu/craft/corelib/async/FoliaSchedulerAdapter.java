@@ -56,6 +56,15 @@ public final class FoliaSchedulerAdapter {
         return compat(plugin).runEntityTaskLater(plugin, entity, task, delayTicks);
     }
 
+    public static TaskHandle runEntityTaskLater(
+            Plugin plugin,
+            Entity entity,
+            Runnable task,
+            Runnable retired,
+            long delayTicks) {
+        return compat(plugin).runEntityTaskLater(plugin, entity, task, retired, delayTicks);
+    }
+
     public static TaskHandle runAtLocation(Plugin plugin, Location location, Runnable task) {
         return compat(plugin).runAtLocation(plugin, location, task);
     }

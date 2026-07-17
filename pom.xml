@@ -58,7 +58,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.5.1</emaki.corelib.version>
+        <emaki.corelib.version>4.5.2</emaki.corelib.version>
         <paper.api.version>1.21.11-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>
@@ -84,6 +84,9 @@
         <bstats.version>3.2.1</bstats.version>
         <caffeine.version>3.2.4</caffeine.version>
         <graalvm.polyglot.version>25.0.3</graalvm.polyglot.version>
+        <junit.jupiter.version>5.13.1</junit.jupiter.version>
+        <mockito.version>5.20.0</mockito.version>
+        <maven.surefire.version>3.5.5</maven.surefire.version>
     </properties>
 
     <dependencyManagement>
@@ -322,6 +325,18 @@
                 <artifactId>bstats-bukkit</artifactId>
                 <version>${bstats.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -403,6 +418,11 @@
                     <configuration>
                         <encoding>${project.build.sourceEncoding}</encoding>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.surefire.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

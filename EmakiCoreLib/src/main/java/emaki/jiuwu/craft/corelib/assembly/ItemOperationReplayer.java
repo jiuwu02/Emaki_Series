@@ -12,22 +12,29 @@ import net.kyori.adventure.text.Component;
 
 final class ItemOperationReplayer {
 
-    void replay(ItemStack itemStack, List<ItemOperationEntry> entries) {
+    List<ItemOperationEntry> replay(ItemStack itemStack, List<ItemOperationEntry> entries) {
         if (itemStack == null || itemStack.getType().isAir() || entries == null || entries.isEmpty()) {
-            return;
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return;
+            return entries == null ? List.of() : List.copyOf(entries);
         }
         // Lore is committed via itemMeta first; the name is then injected as a
         // component so a translatable base name survives instead of being
         // flattened to a legacy string.
-        boolean loreChanged = replayLoreOperations(itemMeta, entries);
-        if (loreChanged) {
-            itemStack.setItemMeta(itemMeta);
+        List<ItemOperationEntry> refreshedEntries = replayLore(itemStack, entries);
+        replayNameOperations(itemStack, refreshedEntries);
+        return refreshedEntries;
+    }
+
+    List<ItemOperationEntry> replayLore(ItemStack itemStack, List<ItemOperationEntry> entries) {
+        if (itemStack == null || itemStack.getType().isAir() || entries == null || entries.isEmpty()) {
+            return entries == null ? List.of() : List.copyOf(entries);
         }
-        replayNameOperations(itemStack, entries);
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null || !hasLoreRecords(entries)) {
+            return List.copyOf(entries);
+        }
+        List<ItemOperationEntry> refreshedEntries = replayLoreOperations(itemMeta, entries);
+        itemStack.setItemMeta(itemMeta);
+        return refreshedEntries;
     }
 
     private void replayNameOperations(ItemStack itemStack, List<ItemOperationEntry> entries) {
@@ -54,30 +61,60 @@ final class ItemOperationReplayer {
         LedgerNameComposer.writeName(itemStack, itemMeta, result);
     }
 
-    private boolean replayLoreOperations(ItemMeta itemMeta, List<ItemOperationEntry> entries) {
-        boolean hasRecords = false;
+    private boolean hasLoreRecords(List<ItemOperationEntry> entries) {
+        for (ItemOperationEntry entry : entries) {
+            if (entry != null && entry.loreRecords() != null && !entry.loreRecords().isEmpty()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private List<ItemOperationEntry> replayLoreOperations(ItemMeta itemMeta, List<ItemOperationEntry> entries) {
         List<String> currentLore = new ArrayList<>();
         List<String> existingLore = ItemTextBridge.loreLines(itemMeta);
         if (existingLore != null) {
             currentLore.addAll(existingLore);
         }
+        List<ItemOperationEntry> refreshedEntries = new ArrayList<>(entries.size());
         for (ItemOperationEntry entry : entries) {
             if (entry == null || entry.loreRecords() == null || entry.loreRecords().isEmpty()) {
+                if (entry != null) {
+                    refreshedEntries.add(entry);
+                }
                 continue;
             }
+            List<ItemOperationEntry.LoreOperationRecord> refreshedRecords = new ArrayList<>();
             for (ItemOperationEntry.LoreOperationRecord record : entry.loreRecords()) {
                 if (record == null) {
                     continue;
                 }
-                hasRecords = true;
+                refreshedRecords.add(refreshedRecords.isEmpty()
+                        ? new ItemOperationEntry.LoreOperationRecord(
+                                record.action(),
+                                record.renderedLines(),
+                                record.anchor(),
+                                record.originalLines(),
+                                new ArrayList<>(currentLore)
+                        )
+                        : new ItemOperationEntry.LoreOperationRecord(
+                                record.action(),
+                                record.renderedLines(),
+                                record.anchor(),
+                                record.originalLines()
+                        ));
                 replayLoreOperation(currentLore, record);
             }
-        }
-        if (!hasRecords) {
-            return false;
+            refreshedEntries.add(new ItemOperationEntry(
+                    entry.operationId(),
+                    entry.sourceNamespace(),
+                    entry.timestamp(),
+                    entry.nameRecords(),
+                    refreshedRecords
+            ));
         }
         ItemTextBridge.setLoreLines(itemMeta, currentLore.isEmpty() ? null : currentLore);
-        return true;
+        return List.copyOf(refreshedEntries);
     }
 
     private void replayLoreOperation(List<String> lore, ItemOperationEntry.LoreOperationRecord record) {
@@ -102,18 +139,14 @@ final class ItemOperationReplayer {
         if (renderedLines == null || renderedLines.isEmpty()) {
             return;
         }
-        for (String line : renderedLines) {
-            lore.add(0, line);
-        }
+        lore.addAll(0, renderedLines);
     }
 
     private void insert(List<String> lore, List<String> renderedLines, String anchor, boolean below) {
         if (renderedLines == null || renderedLines.isEmpty()) {
             return;
         }
-        for (String line : renderedLines) {
-            lore.add(findInsertIndex(lore, anchor, below), line);
-        }
+        lore.addAll(findInsertIndex(lore, anchor, below), renderedLines);
     }
 
     private int findInsertIndex(List<String> lore, String anchor, boolean below) {

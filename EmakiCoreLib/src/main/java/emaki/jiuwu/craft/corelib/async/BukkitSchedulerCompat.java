@@ -43,7 +43,12 @@ final class BukkitSchedulerCompat implements SchedulerCompat {
     }
 
     @Override
-    public TaskHandle runEntityTaskLater(Plugin plugin, Entity entity, Runnable task, long delayTicks) {
+    public TaskHandle runEntityTaskLater(
+            Plugin plugin,
+            Entity entity,
+            Runnable task,
+            Runnable retired,
+            long delayTicks) {
         return runTaskLater(plugin, task, delayTicks);
     }
 

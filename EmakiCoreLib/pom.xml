@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.5.1</version>
+    <version>4.5.2</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -192,6 +192,16 @@
             <groupId>org.graalvm.polyglot</groupId>
             <artifactId>js</artifactId>
             <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

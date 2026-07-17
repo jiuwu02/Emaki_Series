@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -13,7 +15,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -26,6 +27,8 @@ import emaki.jiuwu.craft.skills.model.SkillSourceType;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 
 public final class EquipmentSkillCollector {
+
+    private static final int MAX_LOGGED_LORE_FAILURES = 128;
 
     private static final Map<EquipmentSlot, String> SLOT_NAMES = Map.of(
             EquipmentSlot.HAND, "main_hand",
@@ -49,6 +52,8 @@ public final class EquipmentSkillCollector {
     private final NamespacedKey activeSlotKey;
     private final NamespacedKey triggerBindingsKey;
     private final Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier;
+    private final Logger logger;
+    private final Map<LoreFailureKey, Boolean> loggedLoreFailures = new LinkedHashMap<>();
 
     public EquipmentSkillCollector(JavaPlugin plugin,
             Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier) {
@@ -56,6 +61,7 @@ public final class EquipmentSkillCollector {
         this.activeSlotKey = new NamespacedKey("emaki_skills", "item.skills.active_slot");
         this.triggerBindingsKey = new NamespacedKey("emaki_skills", "item.skills.triggers");
         this.skillDefinitionsSupplier = skillDefinitionsSupplier;
+        this.logger = plugin == null ? null : plugin.getLogger();
     }
 
     public List<UnlockedSkillEntry> collect(Player player) {
@@ -66,14 +72,23 @@ public final class EquipmentSkillCollector {
         PlayerInventory inventory = player.getInventory();
         Map<String, SkillDefinition> definitions = skillDefinitionsSupplier.get();
 
+        UUID playerId = player.getUniqueId();
         for (EquipmentSlot slot : SCANNED_SLOTS) {
             ItemStack item = inventory.getItem(slot);
-            if (item == null || item.getType() == Material.AIR) {
+            if (item == null) {
+                continue;
+            }
+            Material material = item.getType();
+            if (material == Material.AIR) {
                 continue;
             }
             String slotName = SLOT_NAMES.getOrDefault(slot, slot.name().toLowerCase(java.util.Locale.ROOT));
             collectFromPdc(item, slotName, result);
-            collectFromLore(item, slotName, definitions, result);
+            try {
+                collectFromLore(item, slotName, definitions, result);
+            } catch (RuntimeException | LinkageError failure) {
+                logLoreFailure(playerId, slotName, material, failure);
+            }
         }
         return result;
     }
@@ -101,11 +116,7 @@ public final class EquipmentSkillCollector {
     }
 
     private void collectFromPdc(ItemStack item, String slotName, List<UnlockedSkillEntry> sink) {
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        var pdc = item.getPersistentDataContainer();
         String raw = pdc.get(pdcKey, PersistentDataType.STRING);
         if (raw == null || raw.isBlank()) {
             return;
@@ -123,11 +134,10 @@ public final class EquipmentSkillCollector {
     }
 
     private Map<String, String> readTriggerBindings(ItemStack item, String slotName) {
-        ItemMeta meta = item == null ? null : item.getItemMeta();
-        if (meta == null) {
+        if (item == null) {
             return Map.of();
         }
-        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        var pdc = item.getPersistentDataContainer();
         String requiredSlot = pdc.get(activeSlotKey, PersistentDataType.STRING);
         if (!EquipmentSlotMatcher.matches(slotName, requiredSlot)) {
             return Map.of();
@@ -187,5 +197,25 @@ public final class EquipmentSkillCollector {
                 }
             }
         }
+    }
+
+    private void logLoreFailure(UUID playerId, String slotName, Material material, Throwable failure) {
+        if (logger == null) {
+            return;
+        }
+        LoreFailureKey key = new LoreFailureKey(playerId, slotName, material, failure.getClass());
+        synchronized (loggedLoreFailures) {
+            if (loggedLoreFailures.containsKey(key) || loggedLoreFailures.size() >= MAX_LOGGED_LORE_FAILURES) {
+                return;
+            }
+            loggedLoreFailures.put(key, Boolean.TRUE);
+        }
+        logger.warning("[EquipmentSkillCollector] Lore read failed: player=" + playerId
+                + ", slot=" + slotName
+                + ", material=" + material
+                + ", exception=" + failure.getClass().getName());
+    }
+
+    private record LoreFailureKey(UUID playerId, String slotName, Material material, Class<?> failureType) {
     }
 }

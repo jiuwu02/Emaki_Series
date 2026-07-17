@@ -18,7 +18,11 @@ interface SchedulerCompat {
 
     TaskHandle runEntityTask(Plugin plugin, Entity entity, Runnable task);
 
-    TaskHandle runEntityTaskLater(Plugin plugin, Entity entity, Runnable task, long delayTicks);
+    default TaskHandle runEntityTaskLater(Plugin plugin, Entity entity, Runnable task, long delayTicks) {
+        return runEntityTaskLater(plugin, entity, task, null, delayTicks);
+    }
+
+    TaskHandle runEntityTaskLater(Plugin plugin, Entity entity, Runnable task, Runnable retired, long delayTicks);
 
     TaskHandle runAtLocation(Plugin plugin, Location location, Runnable task);
 

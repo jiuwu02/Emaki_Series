@@ -37,7 +37,7 @@ public final class EmakiItemSetService {
     private final EmakiItemIdentifier identifier;
     private final EmakiItemPdcWriter pdcWriter;
     private final ItemSetLoreRenderer loreRenderer;
-    private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
+    private final ItemOperationLedger itemOperationLedger;
     private final java.util.function.Supplier<AppConfig> configSupplier;
     // 记录每个玩家上次各套装的激活件数，用于边沿触发 ItemSetBonusChangeEvent，避免每次背包刷新都派发。
     private final Map<java.util.UUID, Map<String, Integer>> lastActiveCounts = new java.util.concurrent.ConcurrentHashMap<>();
@@ -49,6 +49,17 @@ public final class EmakiItemSetService {
             EmakiItemPdcWriter pdcWriter,
             ItemSetLoreRenderer loreRenderer,
             java.util.function.Supplier<AppConfig> configSupplier) {
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, new ItemOperationLedger());
+    }
+
+    EmakiItemSetService(EmakiItemLoader itemLoader,
+            EmakiItemSetLoader setLoader,
+            EmakiItemFactory itemFactory,
+            EmakiItemIdentifier identifier,
+            EmakiItemPdcWriter pdcWriter,
+            ItemSetLoreRenderer loreRenderer,
+            java.util.function.Supplier<AppConfig> configSupplier,
+            ItemOperationLedger itemOperationLedger) {
         this.itemLoader = itemLoader;
         this.setLoader = setLoader;
         this.itemFactory = itemFactory;
@@ -56,6 +67,7 @@ public final class EmakiItemSetService {
         this.pdcWriter = pdcWriter;
         this.loreRenderer = loreRenderer;
         this.configSupplier = configSupplier;
+        this.itemOperationLedger = itemOperationLedger == null ? new ItemOperationLedger() : itemOperationLedger;
     }
 
     public int refreshEquippedSets(Player player, String trigger) {
@@ -201,12 +213,16 @@ public final class EmakiItemSetService {
         return changed;
     }
 
-    private ItemStack clearSetPresentation(ItemStack itemStack, EmakiItemDefinition definition) {
+    ItemStack clearSetPresentation(ItemStack itemStack, EmakiItemDefinition definition) {
         ItemStack updated = itemStack;
-        if (definition.setMembership().configured()) {
-            itemOperationLedger.revert(updated, setOperationId(definition.setMembership().setId()));
+        String setId = definition != null && definition.setMembership().configured()
+                ? definition.setMembership().setId()
+                : identifier.setId(updated);
+        if (Texts.isNotBlank(setId)) {
+            itemOperationLedger.revert(updated, thresholdOperationId(setId));
+            itemOperationLedger.revert(updated, staticLoreOperationId(setId));
         }
-        stripSetLore(updated);
+        stripSetLore(updated, identifier.setLoreLines(updated));
         pdcWriter.clearDynamicSet(updated, definition);
         return updated;
     }
@@ -220,7 +236,7 @@ public final class EmakiItemSetService {
                 || !java.util.Objects.equals(previousLoreLines, identifier.setLoreLines(itemStack));
     }
 
-    private void stripSetLore(ItemStack itemStack) {
+    private void stripSetLore(ItemStack itemStack, Integer setLoreLines) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return;
         }
@@ -228,12 +244,12 @@ public final class EmakiItemSetService {
         if (itemMeta == null) {
             return;
         }
-        List<String> strippedLore = stripPreviousSetLore(ItemTextBridge.loreLines(itemMeta), identifier.setLoreLines(itemStack));
+        List<String> strippedLore = stripPreviousSetLore(ItemTextBridge.loreLines(itemMeta), setLoreLines);
         ItemTextBridge.setLoreLines(itemMeta, strippedLore);
         itemStack.setItemMeta(itemMeta);
     }
 
-    private List<String> stripPreviousSetLore(List<String> lore, Integer setLoreLines) {
+    static List<String> stripPreviousSetLore(List<String> lore, Integer setLoreLines) {
         List<String> result = lore == null || lore.isEmpty() ? new ArrayList<>() : new ArrayList<>(lore);
         int lines = setLoreLines == null ? 0 : Math.max(0, setLoreLines);
         if (lines <= 0 || result.isEmpty()) {
@@ -243,34 +259,35 @@ public final class EmakiItemSetService {
         return new ArrayList<>(result.subList(0, keep));
     }
 
-    private ItemStack renderSetItem(ItemStack itemStack,
+    static List<String> staticLoreBlock(List<String> baseLore, List<String> setLore) {
+        if (setLore == null || setLore.isEmpty()) {
+            return List.of();
+        }
+        List<String> block = new ArrayList<>();
+        if (baseLore != null && !baseLore.isEmpty()) {
+            block.add("");
+        }
+        block.addAll(setLore);
+        return List.copyOf(block);
+    }
+
+    ItemStack renderSetItem(ItemStack itemStack,
             EmakiItemDefinition definition,
             ItemSetMembership membership,
             EquippedSetState state) {
         if (itemStack == null || definition == null || state == null || state.definition() == null) {
             return itemStack;
         }
-        itemOperationLedger.revert(itemStack, setOperationId(membership.setId()));
+        String setId = membership.setId();
+        itemOperationLedger.revert(itemStack, thresholdOperationId(setId));
+        itemOperationLedger.revert(itemStack, staticLoreOperationId(setId));
+
+        Integer legacySetLoreLines = identifier.setLoreLines(itemStack);
+        stripSetLore(itemStack, legacySetLoreLines);
+
         List<String> setLore = loreRenderer.render(state);
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        int appendedLoreLines = 0;
-        if (itemMeta != null) {
-            List<String> lore = stripPreviousSetLore(ItemTextBridge.loreLines(itemMeta), identifier.setLoreLines(itemStack));
-            List<String> mergedLore = new ArrayList<>();
-            if (lore != null && !lore.isEmpty()) {
-                mergedLore.addAll(lore);
-            }
-            if (!setLore.isEmpty()) {
-                if (!mergedLore.isEmpty()) {
-                    mergedLore.add("");
-                    appendedLoreLines++;
-                }
-                mergedLore.addAll(setLore);
-                appendedLoreLines += setLore.size();
-            }
-            ItemTextBridge.setLoreLines(itemMeta, mergedLore);
-            itemStack.setItemMeta(itemMeta);
-        }
+        applyStaticSetLore(itemStack, setId, setLore);
+
         List<ItemSetThreshold> activeThresholds = state.activeThresholds();
         List<Integer> activeThresholdNumbers = activeThresholds.stream().map(ItemSetThreshold::requiredPieces).toList();
         Object nameActions = state.mergedNameActions();
@@ -294,12 +311,29 @@ public final class EmakiItemSetService {
                 state.activeCount(),
                 state.definition().totalPieces(),
                 activeThresholdNumbers,
-                appendedLoreLines,
+                0,
                 state.mergedAttributes(),
                 state.mergedSkills(),
                 setSignature
         );
         return itemStack;
+    }
+
+    private void applyStaticSetLore(ItemStack itemStack, String setId, List<String> setLore) {
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        List<String> baseLore = itemMeta == null ? List.of() : ItemTextBridge.loreLines(itemMeta);
+        List<String> block = staticLoreBlock(baseLore, setLore);
+        if (block.isEmpty()) {
+            return;
+        }
+        itemOperationLedger.apply(
+                itemStack,
+                staticLoreOperationId(setId),
+                SET_DISPLAY_NAMESPACE,
+                List.of(),
+                List.of(Map.of("action", "append", "content", block)),
+                Map.of()
+        );
     }
 
     private void applySetDisplayActions(ItemStack itemStack,
@@ -311,9 +345,8 @@ public final class EmakiItemSetService {
         if (itemStack == null || definition == null || membership == null || state == null) {
             return;
         }
-        String operationId = setOperationId(membership.setId());
+        String operationId = thresholdOperationId(membership.setId());
         if (!hasActions(nameActions) && !hasActions(loreActions)) {
-            itemOperationLedger.revert(itemStack, operationId);
             return;
         }
         itemOperationLedger.apply(
@@ -340,8 +373,12 @@ public final class EmakiItemSetService {
         return variables;
     }
 
-    private String setOperationId(String setId) {
+    static String thresholdOperationId(String setId) {
         return "emakiitem:set_display:" + Texts.normalizeId(setId);
+    }
+
+    static String staticLoreOperationId(String setId) {
+        return "emakiitem:set_static_lore:" + Texts.normalizeId(setId);
     }
 
     private boolean hasActions(Object raw) {

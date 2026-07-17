@@ -100,9 +100,10 @@ public final class LoreOperationRegistry {
 
         @Override
         public void process(List<String> lines, Context context) {
-            for (String line : context.content()) {
-                lines.add(0, line);
+            if (context.content().isEmpty()) {
+                return;
             }
+            lines.addAll(0, context.content());
         }
     }
 
@@ -116,9 +117,11 @@ public final class LoreOperationRegistry {
 
         @Override
         public void process(List<String> lines, Context context) {
-            for (String line : context.content()) {
-                lines.add(findInsertIndex(lines, context.anchor(), below), line);
+            if (context.content().isEmpty()) {
+                return;
             }
+            int insertIndex = findInsertIndex(lines, context.anchor(), below);
+            lines.addAll(insertIndex, context.content());
         }
     }
 

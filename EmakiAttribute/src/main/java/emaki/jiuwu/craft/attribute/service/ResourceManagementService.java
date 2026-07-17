@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -23,6 +22,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.async.TaskHandle;
 
 final class ResourceManagementService {
 
@@ -38,7 +38,11 @@ final class ResourceManagementService {
 
     public void resyncAllPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            syncPlayer(player, ResourceSyncReason.MANUAL, null, false);
+            FoliaSchedulerAdapter.runEntityTask(service.plugin(), player, () -> {
+                if (isPlayerUsable(player)) {
+                    syncPlayer(player, ResourceSyncReason.MANUAL, null, false);
+                }
+            });
         }
     }
 
@@ -47,26 +51,37 @@ final class ResourceManagementService {
         double intervalSeconds = intervalTicks / 20D;
         Map<String, ResourceDefinition> resources = service.resourceDefinitions();
         for (Player player : Bukkit.getOnlinePlayers()) {
-            AttributeSnapshot snapshot = service.collectCombatSnapshot(player);
-            for (ResourceDefinition resourceDefinition : resources.values()) {
-                ResourceState existing = readResourceState(player, resourceDefinition.id());
-                if (existing == null) {
-                    continue;
+            FoliaSchedulerAdapter.runEntityTask(service.plugin(), player, () -> {
+                if (isPlayerUsable(player)) {
+                    regeneratePlayer(player, intervalSeconds, resources);
                 }
-                double regenPerSecond = resourceDefinition.regenPerSecond();
-                for (AttributeDefinition definition : service.registryService().resourceRegenDefinitions().getOrDefault(resourceDefinition.id(), List.of())) {
-                    Double value = snapshot == null ? null : snapshot.values().get(definition.id());
-                    if (value == null) {
-                        continue;
-                    }
-                    regenPerSecond += value;
-                }
-                if (regenPerSecond == 0D) {
-                    continue;
-                }
-                double nextValue = existing.currentValue() + (regenPerSecond * intervalSeconds);
-                syncResource(player, resourceDefinition, snapshot, ResourceSyncReason.REGEN, nextValue);
+            });
+        }
+    }
+
+    private void regeneratePlayer(
+            Player player,
+            double intervalSeconds,
+            Map<String, ResourceDefinition> resources) {
+        AttributeSnapshot snapshot = service.collectCombatSnapshot(player);
+        for (ResourceDefinition resourceDefinition : resources.values()) {
+            ResourceState existing = readResourceState(player, resourceDefinition.id());
+            if (existing == null) {
+                continue;
             }
+            double regenPerSecond = resourceDefinition.regenPerSecond();
+            for (AttributeDefinition definition : service.registryService().resourceRegenDefinitions().getOrDefault(resourceDefinition.id(), List.of())) {
+                Double value = snapshot == null ? null : snapshot.values().get(definition.id());
+                if (value == null) {
+                    continue;
+                }
+                regenPerSecond += value;
+            }
+            if (regenPerSecond == 0D) {
+                continue;
+            }
+            double nextValue = existing.currentValue() + (regenPerSecond * intervalSeconds);
+            syncResource(player, resourceDefinition, snapshot, ResourceSyncReason.REGEN, nextValue);
         }
     }
 
@@ -105,21 +120,30 @@ final class ResourceManagementService {
         if (!pendingEquipmentSyncs.add(playerId)) {
             return;
         }
-        FoliaSchedulerAdapter.runEntityTaskLater(
-                service.plugin(),
-                player,
-                () -> {
-                    try {
-                        Player online = Bukkit.getPlayer(playerId);
-                        if (online != null && online.isOnline()) {
-                            syncPlayer(online, ResourceSyncReason.EQUIPMENT, null, false);
+        Runnable cleanupPending = () -> pendingEquipmentSyncs.remove(playerId);
+        try {
+            TaskHandle task = FoliaSchedulerAdapter.runEntityTaskLater(
+                    service.plugin(),
+                    player,
+                    () -> {
+                        try {
+                            if (isPlayerUsable(player)) {
+                                syncPlayer(player, ResourceSyncReason.EQUIPMENT, null, false);
+                            }
+                        } finally {
+                            cleanupPending.run();
                         }
-                    } finally {
-                        pendingEquipmentSyncs.remove(playerId);
-                    }
-                },
-                Math.max(1, service.config().syncDelayTicks())
-        );
+                    },
+                    cleanupPending,
+                    Math.max(1, service.config().syncDelayTicks())
+            );
+            if (task == null) {
+                cleanupPending.run();
+            }
+        } catch (RuntimeException | LinkageError exception) {
+            cleanupPending.run();
+            throw exception;
+        }
     }
 
     public void scheduleLivingEntitySync(LivingEntity entity) {
@@ -306,7 +330,11 @@ final class ResourceManagementService {
     void resetHealthDisplayScaling() {
         healthDisplayScalingWarningLogged = false;
         for (Player player : Bukkit.getOnlinePlayers()) {
-            resetHealthDisplayScaling(player);
+            FoliaSchedulerAdapter.runEntityTask(
+                    service.plugin(),
+                    player,
+                    () -> resetHealthDisplayScaling(player)
+            );
         }
     }
 
@@ -341,18 +369,20 @@ final class ResourceManagementService {
         }
     }
 
+    private static boolean isPlayerUsable(Player player) {
+        return player != null && player.isOnline() && player.isValid();
+    }
+
     private void schedulePlayer(Player player, Consumer<Player> action) {
         if (player == null || action == null) {
             return;
         }
-        UUID playerId = player.getUniqueId();
         FoliaSchedulerAdapter.runEntityTaskLater(
                 service.plugin(),
                 player,
                 () -> {
-                    Player online = Bukkit.getPlayer(playerId);
-                    if (online != null && online.isOnline()) {
-                        action.accept(online);
+                    if (isPlayerUsable(player)) {
+                        action.accept(player);
                     }
                 },
                 Math.max(1, service.config().syncDelayTicks())
@@ -363,14 +393,12 @@ final class ResourceManagementService {
         if (entity == null || action == null) {
             return;
         }
-        UUID entityId = entity.getUniqueId();
         FoliaSchedulerAdapter.runEntityTaskLater(
                 service.plugin(),
                 entity,
                 () -> {
-                    Entity current = Bukkit.getEntity(entityId);
-                    if (current instanceof LivingEntity livingEntity && livingEntity.isValid() && !livingEntity.isDead()) {
-                        action.accept(livingEntity);
+                    if (entity.isValid() && !entity.isDead()) {
+                        action.accept(entity);
                     }
                 },
                 Math.max(1, service.config().syncDelayTicks())

@@ -87,13 +87,31 @@ public record ItemOperationEntry(
             String action,
             List<String> renderedLines,
             String anchor,
-            List<String> originalLines) {
+            List<String> originalLines,
+            List<String> beforeLines,
+            boolean beforeRecorded) {
+
+        public LoreOperationRecord(String action,
+                List<String> renderedLines,
+                String anchor,
+                List<String> originalLines) {
+            this(action, renderedLines, anchor, originalLines, List.of(), false);
+        }
+
+        public LoreOperationRecord(String action,
+                List<String> renderedLines,
+                String anchor,
+                List<String> originalLines,
+                List<String> beforeLines) {
+            this(action, renderedLines, anchor, originalLines, beforeLines, true);
+        }
 
         public LoreOperationRecord {
             action = Texts.lower(action);
             renderedLines = renderedLines == null ? List.of() : List.copyOf(renderedLines);
             anchor = Texts.toStringSafe(anchor);
             originalLines = originalLines == null ? List.of() : List.copyOf(originalLines);
+            beforeLines = beforeLines == null ? List.of() : List.copyOf(beforeLines);
         }
 
         public Map<String, Object> toMap() {
@@ -108,6 +126,9 @@ public record ItemOperationEntry(
             if (!originalLines.isEmpty()) {
                 map.put("original", new ArrayList<>(originalLines));
             }
+            if (beforeRecorded) {
+                map.put("before", new ArrayList<>(beforeLines));
+            }
             return map;
         }
 
@@ -119,10 +140,12 @@ public record ItemOperationEntry(
             List<String> lines = toStringList(map.get("lines"));
             String anchor = Texts.toStringSafe(map.get("anchor"));
             List<String> original = toStringList(map.get("original"));
+            boolean beforeRecorded = map.containsKey("before");
+            List<String> before = toStringList(map.get("before"));
             if (Texts.isBlank(action)) {
                 return null;
             }
-            return new LoreOperationRecord(action, lines, anchor, original);
+            return new LoreOperationRecord(action, lines, anchor, original, before, beforeRecorded);
         }
 
         private static List<String> toStringList(Object raw) {

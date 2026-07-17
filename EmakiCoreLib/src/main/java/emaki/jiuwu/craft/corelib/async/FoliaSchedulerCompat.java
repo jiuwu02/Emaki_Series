@@ -102,7 +102,12 @@ final class FoliaSchedulerCompat implements SchedulerCompat {
     }
 
     @Override
-    public TaskHandle runEntityTaskLater(Plugin plugin, Entity entity, Runnable task, long delayTicks) {
+    public TaskHandle runEntityTaskLater(
+            Plugin plugin,
+            Entity entity,
+            Runnable task,
+            Runnable retired,
+            long delayTicks) {
         if (entity == null || !folia) {
             return runTaskLater(plugin, task, delayTicks);
         }
@@ -111,7 +116,7 @@ final class FoliaSchedulerCompat implements SchedulerCompat {
         }
         long safeDelay = Math.max(1L, delayTicks);
         try {
-            return wrap(entity.getScheduler().runDelayed(plugin, ignored -> task.run(), null, safeDelay));
+            return wrap(entity.getScheduler().runDelayed(plugin, ignored -> task.run(), retired, safeDelay));
         } catch (Throwable throwable) {
             throw scheduleFailure("runEntityTaskLater", throwable);
         }

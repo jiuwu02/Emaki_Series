@@ -129,7 +129,10 @@ public final class ItemOperationLedger {
         if (itemStack == null || itemStack.getType().isAir() || entries == null || entries.isEmpty()) {
             return;
         }
-        replayer.replay(itemStack, entries);
+        writeAll(itemStack, replayer.replay(itemStack, entries));
+    }
+
+    void replaceAll(ItemStack itemStack, List<ItemOperationEntry> entries) {
         writeAll(itemStack, entries);
     }
 
