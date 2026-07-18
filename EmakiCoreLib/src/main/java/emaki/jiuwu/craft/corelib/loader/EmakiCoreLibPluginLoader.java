@@ -22,8 +22,9 @@ public final class EmakiCoreLibPluginLoader implements PluginLoader {
 
     @Override
     public void classloader(PluginClasspathBuilder classpathBuilder) {
-        Path dataDirectory = classpathBuilder.getContext().getDataDirectory();
-        for (Path library : new RuntimeLibraryLoader(dataDirectory).prepare()) {
+        var context = classpathBuilder.getContext();
+        Path dataDirectory = context.getDataDirectory();
+        for (Path library : new RuntimeLibraryLoader(dataDirectory, context.getLogger()).prepare()) {
             classpathBuilder.addLibrary(new JarLibrary(library));
         }
     }
