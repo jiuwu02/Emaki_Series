@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.5.5"
+version: "4.5.6"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
 
@@ -34,6 +34,8 @@ console:
       required_directory_missing: "The required directory is missing."
       path_not_directory: "The specified path is not a directory."
       directory_not_readable: "The directory is not readable."
+      attribute_sources_disabled: "Both Lore and PDC item attribute sources are disabled, so all item attributes are inactive."
+      attribute_sources_match_requires_both: "Match mode requires both Lore and PDC attribute reading; otherwise all item attributes are inactive."
   combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>Config load failed: %error%</red>"

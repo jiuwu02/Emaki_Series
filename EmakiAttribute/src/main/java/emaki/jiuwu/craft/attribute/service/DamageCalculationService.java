@@ -11,6 +11,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
@@ -666,21 +667,29 @@ final class DamageCalculationService {
                 JavaScriptDamagePipelineRegistry.ATTACKER_HEAL_INTENT, 0D));
         int cooldownTicks = 0;
         if (sameOwner) {
-            recoveryCalculator.applyRecovery(target, recoveryAmount);
+            double sameOwnerRecovery = recoveryAmount;
+            runPostDamageEffect("same-owner-recovery", () -> recoveryCalculator.applyRecovery(target, sameOwnerRecovery));
             recoveryAmount = 0D;
             if (targetPlayer != null) {
-                cooldownTicks = service.startAttackCooldown(
-                        targetPlayer,
-                        damageContext.attackerSnapshot(),
-                        targetPlayer.getInventory().getItemInMainHand()
+                cooldownTicks = completePostDamageEffect(
+                        "same-owner-cooldown",
+                        () -> service.startAttackCooldown(
+                                targetPlayer,
+                                damageContext.attackerSnapshot(),
+                                targetPlayer.getInventory().getItemInMainHand()
+                        ),
+                        0
                 );
-                messageDispatcher.dispatch(targetPlayer, messages.attacker());
+                runPostDamageEffect("same-owner-message", () -> messageDispatcher.dispatch(targetPlayer, messages.attacker()));
             }
         } else {
-            messageDispatcher.dispatch(targetPlayer, messages.target());
+            runPostDamageEffect("target-message", () -> messageDispatcher.dispatch(targetPlayer, messages.target()));
         }
-        replayTargetScriptIntents(target, targetPlayer, damageContext.variables());
-        service.scheduleHealthSync(target);
+        runPostDamageEffect(
+                "target-script-intents",
+                () -> replayTargetScriptIntents(target, targetPlayer, damageContext.variables())
+        );
+        runPostDamageEffect("target-health-sync", () -> service.scheduleHealthSync(target));
 
         boolean applied = !applyDamage || remainingDamage > 0D || appliedDamage > 0D;
         AttackerSideEffectsIntent attackerIntent = sameOwner
@@ -704,22 +713,53 @@ final class DamageCalculationService {
             return CompletableFuture.completedFuture(true);
         }
         return callEntityOwner(intent.attackerId(), attacker -> {
-            if (!attacker.isValid() || attacker.isDead()) {
+            if (!attacker.isValid()) {
                 return false;
             }
             if (intent.recoveryAmount() > 0D) {
-                recoveryCalculator.applyRecovery(attacker, intent.recoveryAmount());
+                runPostDamageEffect(
+                        "attacker-recovery",
+                        () -> recoveryCalculator.applyRecovery(attacker, intent.recoveryAmount())
+                );
             }
             if (attacker instanceof Player player) {
-                service.startAttackCooldown(
-                        player,
-                        intent.attackerSnapshot(),
-                        player.getInventory().getItemInMainHand()
+                runPostDamageEffect(
+                        "attacker-cooldown",
+                        () -> service.startAttackCooldown(
+                                player,
+                                intent.attackerSnapshot(),
+                                player.getInventory().getItemInMainHand()
+                        )
                 );
-                messageDispatcher.dispatch(player, intent.message());
+                runPostDamageEffect("attacker-message", () -> messageDispatcher.dispatch(player, intent.message()));
             }
             return true;
         }).handle((ignored, throwable) -> true);
+    }
+
+    private void runPostDamageEffect(String phase, Runnable operation) {
+        completePostDamageEffect(phase, () -> {
+            operation.run();
+            return null;
+        }, null);
+    }
+
+    private <T> T completePostDamageEffect(String phase, Supplier<T> operation, T fallback) {
+        if (operation == null) {
+            return fallback;
+        }
+        try {
+            return operation.get();
+        } catch (RuntimeException | LinkageError exception) {
+            if (service.plugin() != null) {
+                service.plugin().getLogger().log(
+                        Level.WARNING,
+                        "Damage post-effect '" + phase + "' failed; remaining terminal effects will continue.",
+                        exception
+                );
+            }
+            return fallback;
+        }
     }
 
     private void replayTargetScriptIntents(LivingEntity target,
@@ -729,7 +769,7 @@ final class DamageCalculationService {
             return;
         }
         double healing = variables.getDouble(JavaScriptDamagePipelineRegistry.TARGET_HEAL_INTENT, 0D);
-        if (healing > 0D) {
+        if (healing > 0D && target.isValid() && !target.isDead()) {
             double healed = Math.min(target.getMaxHealth(), target.getHealth() + healing);
             target.setHealth(Math.max(0D, healed));
         }

@@ -61,10 +61,6 @@ public final class WebConsoleService {
         if (config == null || !config.enabled()) {
             return;
         }
-        if (!config.runtimeOptIn()) {
-            plugin.getLogger().warning("Web Console remains stopped because web_console.runtime_opt_in is false; review the bind, password, and security mode before enabling it.");
-            return;
-        }
         if (!config.isLoopbackOnly()) {
             plugin.getLogger().warning("Web Console requires a loopback-only web_console.host.");
             return;

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.attribute.config;
 
 import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.WARN;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -32,6 +33,13 @@ public final class AttributeConfigPrecheckContributor extends AbstractModuleConf
         addLoaderIssues("lore_formats", plugin.loreFormatRegistry() == null ? null : plugin.loreFormatRegistry().issues(), issues);
         addLoaderIssues("presets", plugin.presetRegistry() == null ? null : plugin.presetRegistry().issues(), issues);
         addLoaderIssues("pdc_read_rules", plugin.pdcReadRuleLoader() == null ? null : plugin.pdcReadRuleLoader().issues(), issues);
+        AttributeConfig attributeConfig = plugin.configModel();
+        if (!attributeConfig.readLoreAttributes() && !attributeConfig.readPdcAttributes()) {
+            addMessageIssue("config.yml:attribute_sources", WARN, "attribute_sources_disabled", issues);
+        } else if (attributeConfig.requireLorePdcMatch()
+                && (!attributeConfig.readLoreAttributes() || !attributeConfig.readPdcAttributes())) {
+            addMessageIssue("config.yml:attribute_sources.require_lore_pdc_match", WARN, "attribute_sources_match_requires_both", issues);
+        }
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

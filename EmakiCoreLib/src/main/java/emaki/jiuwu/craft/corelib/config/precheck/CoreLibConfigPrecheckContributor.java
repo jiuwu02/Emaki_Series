@@ -322,9 +322,6 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
         }
         var script = config.scriptConfig();
         var security = script.security();
-        if (script.enabled() && !script.runtimeOptIn()) {
-            addMessageIssue("script.runtime_opt_in", ConfigPrecheckSeverity.ERROR, "script_runtime_opt_in_required", issues);
-        }
         if (security.allowActionDispatch() && security.maxActionDepth() > 5) {
             addMessageIssue("script.security.max_action_depth", ConfigPrecheckSeverity.WARN, "script_action_depth_large", issues);
         }
@@ -335,9 +332,6 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
             return;
         }
         var web = config.webConsoleConfig();
-        if (web.enabled() && !web.runtimeOptIn()) {
-            addMessageIssue("web_console.runtime_opt_in", ConfigPrecheckSeverity.ERROR, "web_runtime_opt_in_required", issues);
-        }
         if (web.enabled() && !web.isLoopbackOnly()) {
             addMessageIssue("web_console.host", ConfigPrecheckSeverity.ERROR, "web_loopback_required", issues);
         }

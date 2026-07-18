@@ -113,35 +113,49 @@ final class ResourceManagementService {
     }
 
     public void scheduleEquipmentSync(Player player) {
+        scheduleEquipmentSync(player, "unspecified");
+    }
+
+    public void scheduleEquipmentSync(Player player, String trigger) {
         if (player == null) {
             return;
         }
         UUID playerId = player.getUniqueId();
+        String triggerName = trigger == null || trigger.isBlank() ? "unspecified" : trigger;
+        debugEquipmentSync(player, "S1", "request trigger=" + triggerName);
         if (!pendingEquipmentSyncs.add(playerId)) {
+            debugEquipmentSync(player, "S2", "merged trigger=" + triggerName + " pending=true");
             return;
         }
+        debugEquipmentSync(player, "S2", "scheduled trigger=" + triggerName + " pending=true");
         Runnable cleanupPending = () -> pendingEquipmentSyncs.remove(playerId);
         try {
             TaskHandle task = FoliaSchedulerAdapter.runEntityTaskLater(
                     service.plugin(),
                     player,
                     () -> {
-                        try {
-                            if (isPlayerUsable(player)) {
-                                syncPlayer(player, ResourceSyncReason.EQUIPMENT, null, false);
-                            }
-                        } finally {
-                            cleanupPending.run();
+                        cleanupPending.run();
+                        debugEquipmentSync(player, "S3", "execute trigger=" + triggerName + " pending=false");
+                        if (isPlayerUsable(player)) {
+                            syncPlayer(player, ResourceSyncReason.EQUIPMENT, null, false);
+                            debugEquipmentSync(player, "S4", "completed trigger=" + triggerName);
+                        } else {
+                            debugEquipmentSync(player, "S4", "skipped trigger=" + triggerName + " usable=false");
                         }
                     },
-                    cleanupPending,
+                    () -> {
+                        cleanupPending.run();
+                        debugEquipmentSync(player, "S4", "cancelled trigger=" + triggerName + " pending=false");
+                    },
                     Math.max(1, service.config().syncDelayTicks())
             );
             if (task == null) {
                 cleanupPending.run();
+                debugEquipmentSync(player, "S4", "rejected trigger=" + triggerName + " pending=false");
             }
         } catch (RuntimeException | LinkageError exception) {
             cleanupPending.run();
+            debugEquipmentSync(player, "S4", "failed trigger=" + triggerName + " error=" + exception.getClass().getSimpleName());
             throw exception;
         }
     }
@@ -367,6 +381,17 @@ final class ResourceManagementService {
             player.setHealthScaled(false);
         } catch (IllegalArgumentException ignored) {
         }
+    }
+
+    private void debugEquipmentSync(Player player, String step, String detail) {
+        if (service.plugin() == null || service.plugin().debugLogger() == null) {
+            return;
+        }
+        service.plugin().debugLogger().logRaw(
+                "resync",
+                player,
+                "[DEBUG:attribute-equipment-sync:" + step + "] " + detail
+        );
     }
 
     private static boolean isPlayerUsable(Player player) {

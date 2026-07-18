@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.5.4"
+version: "4.5.6"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -19,9 +19,8 @@ language: "zh_CN"
 release_default_data: true
 
 web_console:
-  # 内置 Web 管理台，默认关闭。启用前请修改 auth.password，并显式确认 runtime_opt_in。
+  # 内置 Web 管理台，默认关闭。启用前请修改 auth.password，并保持回环地址、只读模式等安全边界。
   enabled: false
-  runtime_opt_in: false
   host: "127.0.0.1"
   port: 38765
   public_access_warning: true
@@ -91,10 +90,9 @@ action:
     #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
 
 script:
-  # JavaScript 默认关闭；同时设置 enabled 与 runtime_opt_in 为 true 才会启动。
+  # JavaScript 默认关闭；enabled 是唯一启动开关。
   # 超时支持数字毫秒、ms、s、t；单次请求 <=0 时使用 default，并被夹在 1..max。
   enabled: false
-  runtime_opt_in: false
   engine:
     type: "graaljs"
     # 默认脚本超时；单次 runjs/invoke 未指定或 <=0 时使用。

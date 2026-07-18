@@ -164,7 +164,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
 
     @Override
     public boolean enabled() {
-        return state.get() == ServiceState.ACTIVE && config.runtimeEnabled();
+        return state.get() == ServiceState.ACTIVE && config.enabled();
     }
 
     @Override

@@ -2,26 +2,26 @@ package emaki.jiuwu.craft.corelib.library;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.jar.JarFile;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.jar.JarFile;
 
-import org.bukkit.plugin.java.JavaPlugin;
-import sun.misc.Unsafe;
-
+/**
+ * Prepares CoreLib's runtime libraries for Paper's plugin loading phase.
+ *
+ * <p>The loader only owns the plugin data directory cache. It does not inject
+ * URLs into a plugin classloader; the Paper {@code PluginLoader} adds each
+ * prepared jar through {@code JarLibrary} after this class returns.</p>
+ */
 public final class RuntimeLibraryLoader {
 
     private static final String ALIYUN_REPO = "https://maven.aliyun.com/repository/central";
@@ -31,141 +31,80 @@ public final class RuntimeLibraryLoader {
     private static final int DOWNLOAD_CONNECT_TIMEOUT_MS = 8000;
     private static final int DOWNLOAD_READ_TIMEOUT_MS = 30000;
 
-    private static final MethodHandle ADD_URL_HANDLE;
-
-    static {
-        MethodHandle handle = null;
-        try {
-            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-            unsafeField.setAccessible(true);
-            Unsafe unsafe = (Unsafe) unsafeField.get(null);
-
-            Field implLookupField = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-            long offset = unsafe.staticFieldOffset(implLookupField);
-            MethodHandles.Lookup trustedLookup = (MethodHandles.Lookup) unsafe.getObject(MethodHandles.Lookup.class, offset);
-
-            handle = trustedLookup.findVirtual(URLClassLoader.class, "addURL", MethodType.methodType(void.class, URL.class));
-        } catch (Throwable ignored) {
-        }
-        ADD_URL_HANDLE = handle;
-    }
-
-    private final JavaPlugin plugin;
     private final Logger logger;
     private final Path cacheDirectory;
 
-    public RuntimeLibraryLoader(JavaPlugin plugin) {
-        this.plugin = plugin;
-        this.logger = plugin.getLogger();
-        this.cacheDirectory = plugin.getDataFolder().toPath().resolve("libraries");
+    public RuntimeLibraryLoader(Path dataDirectory) {
+        if (dataDirectory == null) {
+            throw new IllegalArgumentException("CoreLib data directory cannot be null");
+        }
+        this.logger = Logger.getLogger("EmakiCoreLib");
+        this.cacheDirectory = dataDirectory.resolve("libraries");
     }
 
-    public void load() {
+    /**
+     * Ensures every configured library exists as a valid local jar.
+     *
+     * @return the prepared jars in dependency declaration order
+     * @throws IllegalStateException when one or more libraries cannot be prepared
+     */
+    public List<Path> prepare() {
         List<RuntimeLibrary> libraries = libraries();
-        if (libraries.isEmpty()) {
-            return;
-        }
-        if (ADD_URL_HANDLE == null) {
-            logger.warning("[LibraryLoader] ClassLoader 注入不可用，跳过自定义库加载。");
-            return;
-        }
-
         ensureCacheDirectory();
 
-        List<RuntimeLibrary> missingDownloadable = libraries.stream()
-                .filter(RuntimeLibrary::downloadable)
+        List<RuntimeLibrary> missing = libraries.stream()
                 .filter(library -> !validCached(resolveLocalPath(library)))
                 .toList();
-        String preferredRepo = missingDownloadable.isEmpty() ? ALIYUN_REPO : probePreferredRepository();
+        String preferredRepo = missing.isEmpty() ? ALIYUN_REPO : probePreferredRepository();
         String fallbackRepo = preferredRepo.equals(ALIYUN_REPO) ? CENTRAL_REPO : ALIYUN_REPO;
 
-        int prepared = 0;
-        int prepareFailed = 0;
-        List<RuntimeLibrary> readyLibraries = new ArrayList<>();
-        logger.info("[LibraryLoader] 正在准备依赖库 (共 " + libraries.size() + " 个)...");
+        List<Path> prepared = new ArrayList<>(libraries.size());
+        List<RuntimeLibrary> failed = new ArrayList<>();
+        logger.info("[LibraryLoader] 正在准备 CoreLib 本地依赖库 (共 " + libraries.size() + " 个)...");
         for (RuntimeLibrary library : libraries) {
             Path localFile = resolveLocalPath(library);
             if (prepareLibrary(library, localFile, preferredRepo, fallbackRepo)) {
-                prepared++;
-                readyLibraries.add(library);
+                prepared.add(localFile);
             } else {
-                prepareFailed++;
+                failed.add(library);
                 logger.warning("[LibraryLoader]   ✗ " + library + " (准备失败)");
             }
         }
-        logger.info("[LibraryLoader] 依赖库准备完成 (" + prepared + "/" + libraries.size()
-                + (prepareFailed > 0 ? ", 失败=" + prepareFailed : "") + ")");
 
-        logger.info("[LibraryLoader] 正在注入依赖库 (共 " + readyLibraries.size() + " 个)...");
-        List<RuntimeLibrary> injectedLibraries = new ArrayList<>();
-        int injectFailed = 0;
-        for (RuntimeLibrary library : readyLibraries) {
-            Path localFile = resolveLocalPath(library);
-            if (injectToClassLoader(localFile)) {
-                injectedLibraries.add(library);
-            } else {
-                injectFailed++;
-                logger.warning("[LibraryLoader]   ✗ " + library + " (注入失败)");
-            }
+        if (!failed.isEmpty()) {
+            throw new IllegalStateException("CoreLib runtime libraries could not be prepared: " + failed);
         }
-
-        logger.info("[LibraryLoader] 正在验证依赖库 (共 " + injectedLibraries.size() + " 个)...");
-        int loaded = 0;
-        int verifyFailed = 0;
-        for (RuntimeLibrary library : injectedLibraries) {
-            if (verifyClassProbes(library)) {
-                loaded++;
-                logger.info("[LibraryLoader]   ✓ " + library);
-            } else {
-                verifyFailed++;
-                logger.warning("[LibraryLoader]   ✗ " + library + " (验证失败)");
-            }
-        }
-
-        int loadFailed = injectFailed + verifyFailed;
-        logger.info("[LibraryLoader] 依赖库加载完成 (" + loaded + "/" + libraries.size()
-                + (loadFailed > 0 ? ", 失败=" + loadFailed : "") + ")");
+        logger.info("[LibraryLoader] CoreLib 本地依赖库准备完成 (" + prepared.size() + "/" + libraries.size() + ")");
+        return List.copyOf(prepared);
     }
 
     private List<RuntimeLibrary> libraries() {
         return List.of(
-                RuntimeLibrary.maven("adventure-api", new LibraryCoordinate("net.kyori", "adventure-api", "4.26.1"),
-                        "net.kyori.adventure.text.Component"),
-                RuntimeLibrary.maven("adventure-key", new LibraryCoordinate("net.kyori", "adventure-key", "4.26.1"),
-                        "net.kyori.adventure.key.Key"),
+                RuntimeLibrary.maven("adventure-api", new LibraryCoordinate("net.kyori", "adventure-api", "4.26.1")),
+                RuntimeLibrary.maven("adventure-key", new LibraryCoordinate("net.kyori", "adventure-key", "4.26.1")),
                 RuntimeLibrary.maven("examination-api", new LibraryCoordinate("net.kyori", "examination-api", "1.3.0")),
                 RuntimeLibrary.maven("examination-string", new LibraryCoordinate("net.kyori", "examination-string", "1.3.0")),
                 RuntimeLibrary.maven("adventure-nbt", new LibraryCoordinate("net.kyori", "adventure-nbt", "4.21.0")),
-                RuntimeLibrary.maven("adventure-text-minimessage", new LibraryCoordinate("net.kyori", "adventure-text-minimessage", "4.26.1"),
-                        "net.kyori.adventure.text.minimessage.MiniMessage"),
-                RuntimeLibrary.maven("adventure-text-serializer-plain", new LibraryCoordinate("net.kyori", "adventure-text-serializer-plain", "4.26.1"),
-                        "net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer"),
-                RuntimeLibrary.maven("adventure-text-serializer-legacy", new LibraryCoordinate("net.kyori", "adventure-text-serializer-legacy", "4.26.1"),
-                        "net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer"),
+                RuntimeLibrary.maven("adventure-text-minimessage", new LibraryCoordinate("net.kyori", "adventure-text-minimessage", "4.26.1")),
+                RuntimeLibrary.maven("adventure-text-serializer-plain", new LibraryCoordinate("net.kyori", "adventure-text-serializer-plain", "4.26.1")),
+                RuntimeLibrary.maven("adventure-text-serializer-legacy", new LibraryCoordinate("net.kyori", "adventure-text-serializer-legacy", "4.26.1")),
                 RuntimeLibrary.maven("adventure-text-serializer-gson", new LibraryCoordinate("net.kyori", "adventure-text-serializer-gson", "4.21.0")),
                 RuntimeLibrary.maven("adventure-text-serializer-gson-legacy-impl", new LibraryCoordinate("net.kyori", "adventure-text-serializer-gson-legacy-impl", "4.21.0")),
                 RuntimeLibrary.maven("adventure-text-serializer-json", new LibraryCoordinate("net.kyori", "adventure-text-serializer-json", "4.21.0")),
                 RuntimeLibrary.maven("adventure-text-serializer-json-legacy-impl", new LibraryCoordinate("net.kyori", "adventure-text-serializer-json-legacy-impl", "4.21.0")),
                 RuntimeLibrary.maven("adventure-text-serializer-commons", new LibraryCoordinate("net.kyori", "adventure-text-serializer-commons", "4.21.0")),
                 RuntimeLibrary.maven("option", new LibraryCoordinate("net.kyori", "option", "1.1.0")),
-                RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.8.0"),
-                        "com.google.gson.Gson"),
-                RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7"),
-                        "dev.dejvokep.boostedyaml.YamlDocument"),
-                RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8"),
-                        "net.objecthunter.exp4j.ExpressionBuilder"),
-                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4"),
-                        "com.github.benmanes.caffeine.cache.Caffeine"),
-                RuntimeLibrary.maven("graal-polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", "25.0.3"),
-                        "org.graalvm.polyglot.Context"),
+                RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.8.0")),
+                RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7")),
+                RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
+                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4")),
+                RuntimeLibrary.maven("graal-polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", "25.0.3")),
                 RuntimeLibrary.maven("graal-collections", new LibraryCoordinate("org.graalvm.sdk", "collections", "25.0.3")),
                 RuntimeLibrary.maven("graal-nativeimage", new LibraryCoordinate("org.graalvm.sdk", "nativeimage", "25.0.3")),
                 RuntimeLibrary.maven("graal-word", new LibraryCoordinate("org.graalvm.sdk", "word", "25.0.3")),
-                RuntimeLibrary.maven("graal-js-language", new LibraryCoordinate("org.graalvm.js", "js-language", "25.0.3"),
-                        "com.oracle.truffle.js.lang.JavaScriptLanguage"),
+                RuntimeLibrary.maven("graal-js-language", new LibraryCoordinate("org.graalvm.js", "js-language", "25.0.3")),
                 RuntimeLibrary.maven("graal-regex", new LibraryCoordinate("org.graalvm.regex", "regex", "25.0.3")),
-                RuntimeLibrary.maven("graal-truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", "25.0.3"),
-                        "com.oracle.truffle.api.TruffleLanguage"),
+                RuntimeLibrary.maven("graal-truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", "25.0.3")),
                 RuntimeLibrary.maven("graal-icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "25.0.3")),
                 RuntimeLibrary.maven("graal-xz", new LibraryCoordinate("org.graalvm.shadowed", "xz", "25.0.3"))
         );
@@ -177,46 +116,16 @@ public final class RuntimeLibraryLoader {
             return true;
         }
         deleteIfExists(localFile);
-        if (library.fallbackResource() != null && extractBundledLibrary(library, localFile)) {
-            logger.info("[LibraryLoader]   ✓ " + library + " (随包释放)");
-            return true;
-        }
-        if (!library.downloadable()) {
-            return false;
-        }
         boolean success = downloadLibrary(library.coordinate(), localFile, preferredRepo);
         if (!success) {
             success = downloadLibrary(library.coordinate(), localFile, fallbackRepo);
         }
         if (success && validCached(localFile)) {
-            long sizeKb = sizeKb(localFile);
-            logger.info("[LibraryLoader]   ✓ " + library + " (下载, " + formatSize(sizeKb) + ")");
+            logger.info("[LibraryLoader]   ✓ " + library + " (下载, " + formatSize(sizeKb(localFile)) + ")");
             return true;
         }
         deleteIfExists(localFile);
         return false;
-    }
-
-    private boolean extractBundledLibrary(RuntimeLibrary library, Path localFile) {
-        String resource = library.fallbackResource();
-        if (resource == null) {
-            return false;
-        }
-        try (InputStream inputStream = plugin.getResource(resource)) {
-            if (inputStream == null) {
-                logger.warning("[LibraryLoader] 随包依赖不存在: " + resource);
-                return false;
-            }
-            Files.createDirectories(localFile.getParent());
-            Path tempFile = localFile.resolveSibling(localFile.getFileName() + ".tmp");
-            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-            Files.move(tempFile, localFile, StandardCopyOption.REPLACE_EXISTING);
-            return validCached(localFile);
-        } catch (Exception exception) {
-            logger.log(Level.FINE, "[LibraryLoader] 随包依赖释放失败: " + resource, exception);
-            deleteIfExists(localFile);
-            return false;
-        }
     }
 
     private String probePreferredRepository() {
@@ -224,7 +133,6 @@ public final class RuntimeLibraryLoader {
 
         ProbeResult aliyun = probeRepository(ALIYUN_REPO, "阿里云镜像");
         ProbeResult central = probeRepository(CENTRAL_REPO, "Maven Central");
-
         if (aliyun.reachable && central.reachable) {
             ProbeResult chosen = aliyun.latencyMs <= central.latencyMs ? aliyun : central;
             logger.info("[LibraryLoader] 已选择仓库: " + chosen.name + " (延迟 " + chosen.latencyMs + "ms)");
@@ -244,20 +152,23 @@ public final class RuntimeLibraryLoader {
 
     private ProbeResult probeRepository(String repoUrl, String name) {
         long start = System.currentTimeMillis();
+        HttpURLConnection connection = null;
         try {
             URL url = URI.create(repoUrl + "/org/apache/maven/maven-parent/1/maven-parent-1.pom").toURL();
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("HEAD");
             connection.setConnectTimeout(PROBE_TIMEOUT_MS);
             connection.setReadTimeout(PROBE_TIMEOUT_MS);
             connection.setInstanceFollowRedirects(true);
             connection.setRequestProperty("User-Agent", "EmakiCoreLib-LibraryLoader");
             int responseCode = connection.getResponseCode();
-            connection.disconnect();
-            long latency = System.currentTimeMillis() - start;
-            return new ProbeResult(name, responseCode >= 200 && responseCode < 400, latency);
+            return new ProbeResult(name, responseCode >= 200 && responseCode < 400, System.currentTimeMillis() - start);
         } catch (Exception exception) {
             return new ProbeResult(name, false, System.currentTimeMillis() - start);
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
@@ -267,66 +178,34 @@ public final class RuntimeLibraryLoader {
                 + "/" + library.version()
                 + "/" + library.artifactId() + "-" + library.version() + ".jar";
         String downloadUrl = repoUrl + "/" + artifactPath;
-
+        Path tempFile = localFile.resolveSibling(localFile.getFileName() + ".tmp");
+        HttpURLConnection connection = null;
         try {
             Files.createDirectories(localFile.getParent());
             URL url = URI.create(downloadUrl).toURL();
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(DOWNLOAD_CONNECT_TIMEOUT_MS);
             connection.setReadTimeout(DOWNLOAD_READ_TIMEOUT_MS);
             connection.setInstanceFollowRedirects(true);
             connection.setRequestProperty("User-Agent", "EmakiCoreLib-LibraryLoader");
-
-            int responseCode = connection.getResponseCode();
-            if (responseCode != 200) {
-                connection.disconnect();
+            if (connection.getResponseCode() != 200) {
                 return false;
             }
-
-            Path tempFile = localFile.resolveSibling(localFile.getFileName() + ".tmp");
             try (InputStream inputStream = connection.getInputStream()) {
                 Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
             }
-            connection.disconnect();
-
             Files.move(tempFile, localFile, StandardCopyOption.REPLACE_EXISTING);
             return true;
         } catch (Exception exception) {
             logger.log(Level.FINE, "[LibraryLoader] 下载失败: " + downloadUrl, exception);
+            deleteIfExists(tempFile);
             return false;
-        }
-    }
-
-    private boolean injectToClassLoader(Path jarPath) {
-        try {
-            ClassLoader classLoader = plugin.getClass().getClassLoader();
-            if (!(classLoader instanceof URLClassLoader urlClassLoader)) {
-                logger.warning("[LibraryLoader] ClassLoader 不是 URLClassLoader: " + classLoader.getClass().getName());
-                return false;
-            }
-            ADD_URL_HANDLE.invoke(urlClassLoader, jarPath.toUri().toURL());
-            return true;
-        } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[LibraryLoader] ClassLoader 注入失败: " + jarPath.getFileName(), throwable);
-            return false;
-        }
-    }
-
-    private boolean verifyClassProbes(RuntimeLibrary library) {
-        if (library.classProbes().isEmpty()) {
-            return true;
-        }
-        ClassLoader classLoader = plugin.getClass().getClassLoader();
-        for (String className : library.classProbes()) {
-            try {
-                Class.forName(className, false, classLoader);
-            } catch (Throwable throwable) {
-                logger.log(Level.WARNING, "[LibraryLoader] 类验证失败: " + className + " from " + library, throwable);
-                return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
             }
         }
-        return true;
     }
 
     private Path resolveLocalPath(RuntimeLibrary library) {
@@ -349,7 +228,7 @@ public final class RuntimeLibraryLoader {
             try (JarFile ignored = new JarFile(path.toFile())) {
                 return true;
             }
-        } catch (IOException exception) {
+        } catch (IOException | SecurityException exception) {
             logger.log(Level.FINE, "[LibraryLoader] 依赖缓存损坏: " + path, exception);
             return false;
         }
@@ -363,6 +242,14 @@ public final class RuntimeLibraryLoader {
         }
     }
 
+    private void ensureCacheDirectory() {
+        try {
+            Files.createDirectories(cacheDirectory);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Cannot create CoreLib runtime library cache: " + cacheDirectory, exception);
+        }
+    }
+
     private long sizeKb(Path path) {
         try {
             return Files.size(path) / 1024;
@@ -371,36 +258,20 @@ public final class RuntimeLibraryLoader {
         }
     }
 
-    private void ensureCacheDirectory() {
-        try {
-            Files.createDirectories(cacheDirectory);
-        } catch (IOException exception) {
-            logger.warning("[LibraryLoader] 无法创建缓存目录: " + cacheDirectory);
-        }
-    }
-
     private String formatSize(long sizeKb) {
         if (sizeKb < 1024) {
             return sizeKb + "KB";
         }
-        return String.format("%.1fMB", sizeKb / 1024.0);
+        return String.format(Locale.ROOT, "%.1fMB", sizeKb / 1024.0);
     }
 
     private record ProbeResult(String name, boolean reachable, long latencyMs) {
     }
 
-    private record RuntimeLibrary(String id,
-            LibraryCoordinate coordinate,
-            boolean downloadable,
-            String fallbackResource,
-            List<String> classProbes) {
+    private record RuntimeLibrary(String id, LibraryCoordinate coordinate) {
 
-        static RuntimeLibrary maven(String id, LibraryCoordinate coordinate, String... classProbes) {
-            return new RuntimeLibrary(id, coordinate, true, null, List.of(classProbes));
-        }
-
-        static RuntimeLibrary bundled(String id, LibraryCoordinate coordinate, String fallbackResource, String... classProbes) {
-            return new RuntimeLibrary(id, coordinate, false, fallbackResource, List.of(classProbes));
+        static RuntimeLibrary maven(String id, LibraryCoordinate coordinate) {
+            return new RuntimeLibrary(id, coordinate);
         }
 
         @Override

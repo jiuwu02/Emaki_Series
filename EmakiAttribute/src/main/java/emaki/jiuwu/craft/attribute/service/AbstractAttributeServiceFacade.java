@@ -229,6 +229,10 @@ abstract class AbstractAttributeServiceFacade implements AttributeServiceFacade 
         resourceManagementServiceRef().scheduleEquipmentSync(player);
     }
 
+    public void scheduleEquipmentSync(Player player, String trigger) {
+        resourceManagementServiceRef().scheduleEquipmentSync(player, trigger);
+    }
+
     @Override
     public void scheduleLivingEntitySync(LivingEntity entity) {
         resourceManagementServiceRef().scheduleLivingEntitySync(entity);

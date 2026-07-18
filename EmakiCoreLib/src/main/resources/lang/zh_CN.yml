@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.5.4"
+version: "4.5.6"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -69,9 +69,7 @@ console:
       loop_stop_if_offline_invalid: "%action% 的 stop_if_offline 必须是布尔值。"
       loop_stop_if_dead_invalid: "%action% 的 stop_if_dead 必须是布尔值。"
       loop_stop_on_failure_invalid: "%action% 的 stop_on_failure 必须是布尔值。"
-      script_runtime_opt_in_required: "JavaScript 已启用，但未显式确认 runtime_opt_in。"
       script_action_depth_large: "脚本动作深度过大，可能导致动作链难以追踪。"
-      web_runtime_opt_in_required: "Web Console 已启用，但未显式确认 runtime_opt_in。"
       web_loopback_required: "Web Console 仅允许绑定回环地址。"
       web_readonly_required: "Web Console 仅允许使用只读安全模式。"
       web_password_unsafe: "Web Console 已启用，但密码为空或仍为默认值。"

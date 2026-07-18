@@ -9,6 +9,9 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record AttributeConfig(String language,
         boolean releaseDefaultData,
+        boolean readLoreAttributes,
+        boolean readPdcAttributes,
+        boolean requireLorePdcMatch,
         boolean hardLockDamage,
         String defaultDamageType,
         String projectileDamageType,
@@ -25,7 +28,27 @@ public record AttributeConfig(String language,
         List<DamageCauseRule> allowedDamageCauses) {
 
     public static AttributeConfig defaults() {
-        return new AttributeConfig("zh_CN", true, true, "physical", "projectile", true, "physical", 20, 1, false, 20D, defaultProfileDefaults(), true, 0.4D, true, List.of());
+        return new AttributeConfig(
+                "zh_CN",
+                true,
+                true,
+                true,
+                false,
+                true,
+                "physical",
+                "projectile",
+                true,
+                "physical",
+                20,
+                1,
+                false,
+                20D,
+                defaultProfileDefaults(),
+                true,
+                0.4D,
+                true,
+                List.of()
+        );
     }
 
     public static AttributeConfig fromConfig(YamlSection configuration) {
@@ -35,6 +58,9 @@ public record AttributeConfig(String language,
         AttributeConfig defaults = defaults();
         String language = ConfigNodes.string(configuration, "language", "zh_CN");
         boolean releaseDefaultData = Boolean.TRUE.equals(configuration.getBoolean("release_default_data", true));
+        boolean readLoreAttributes = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.read_lore_attributes", true));
+        boolean readPdcAttributes = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.read_pdc_attributes", true));
+        boolean requireLorePdcMatch = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.require_lore_pdc_match", false));
         boolean hardLockDamage = Boolean.TRUE.equals(configuration.getBoolean("hard_lock_damage", true));
         String defaultDamageType = ConfigNodes.string(configuration, "default_damage_type", "physical");
         String projectileDamageType = ConfigNodes.string(configuration, "projectile_damage_type", "projectile");
@@ -65,6 +91,9 @@ public record AttributeConfig(String language,
         return new AttributeConfig(
                 language,
                 releaseDefaultData,
+                readLoreAttributes,
+                readPdcAttributes,
+                requireLorePdcMatch,
                 hardLockDamage,
                 defaultDamageType,
                 projectileDamageType,

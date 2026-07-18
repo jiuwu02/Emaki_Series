@@ -7,7 +7,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record WebConsoleConfig(
         boolean enabled,
-        boolean runtimeOptIn,
         String host,
         int port,
         boolean publicAccessWarning,
@@ -19,7 +18,6 @@ public record WebConsoleConfig(
 
     public static WebConsoleConfig defaults() {
         return new WebConsoleConfig(
-                false,
                 false,
                 "127.0.0.1",
                 38765,
@@ -42,7 +40,6 @@ public record WebConsoleConfig(
         YamlSection historySection = section.getSection("history");
         return new WebConsoleConfig(
                 section.getBoolean("enabled", defaults.enabled()),
-                section.getBoolean("runtime_opt_in", defaults.runtimeOptIn()),
                 safeString(section.getString("host", defaults.host()), defaults.host()),
                 clampPort(section.getInt("port", defaults.port())),
                 section.getBoolean("public_access_warning", defaults.publicAccessWarning()),
@@ -51,10 +48,6 @@ public record WebConsoleConfig(
                 ConfigBrowser.fromConfig(browserSection, defaults.configBrowser()),
                 History.fromConfig(historySection, defaults.history())
         );
-    }
-
-    public boolean runtimeEnabled() {
-        return enabled && runtimeOptIn;
     }
 
     public boolean isLoopbackOnly() {

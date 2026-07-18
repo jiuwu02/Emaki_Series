@@ -9,7 +9,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record ScriptConfig(boolean enabled,
-        boolean runtimeOptIn,
         Engine engine,
         Paths paths,
         Action action,
@@ -20,7 +19,6 @@ public record ScriptConfig(boolean enabled,
 
     public static ScriptConfig defaults() {
         return new ScriptConfig(
-                false,
                 false,
                 Engine.defaults(),
                 Paths.defaults(),
@@ -39,7 +37,6 @@ public record ScriptConfig(boolean enabled,
         }
         return new ScriptConfig(
                 section.getBoolean("enabled", defaults.enabled()),
-                section.getBoolean("runtime_opt_in", defaults.runtimeOptIn()),
                 Engine.fromConfig(section.getSection("engine")),
                 Paths.fromConfig(section.getSection("paths")),
                 Action.fromConfig(section.getSection("action")),
@@ -48,10 +45,6 @@ public record ScriptConfig(boolean enabled,
                 ServerApi.fromConfig(section.getSection("server_api")),
                 Debug.fromConfig(section.getSection("debug"))
         );
-    }
-
-    public boolean runtimeEnabled() {
-        return enabled && runtimeOptIn;
     }
 
     public long clampTimeoutMillis(long requested) {

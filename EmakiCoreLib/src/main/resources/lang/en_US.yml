@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.5.4"
+version: "4.5.6"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -69,9 +69,7 @@ console:
       loop_stop_if_offline_invalid: "%action% stop_if_offline must be boolean."
       loop_stop_if_dead_invalid: "%action% stop_if_dead must be boolean."
       loop_stop_on_failure_invalid: "%action% stop_on_failure must be boolean."
-      script_runtime_opt_in_required: "JavaScript is enabled without the explicit runtime opt-in."
       script_action_depth_large: "Large script action depth may cause difficult-to-trace action chains."
-      web_runtime_opt_in_required: "Web Console is enabled without the explicit runtime opt-in."
       web_loopback_required: "Web Console requires a loopback-only bind."
       web_readonly_required: "Web Console requires readonly security mode."
       web_password_unsafe: "Web Console is enabled but its password is blank or still uses the default value."

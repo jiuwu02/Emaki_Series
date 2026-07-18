@@ -130,10 +130,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onLoad() {
-        // Runtime libraries are provided by EmakiCoreLibPluginLoader (declared as
-        // `loader:` in paper-plugin.yml) before this plugin is instantiated. Under
-        // the Paper plugin classloader the legacy RuntimeLibraryLoader's addURL
-        // injection is not applicable, so no library loading happens here.
+        // Runtime libraries are prepared by EmakiCoreLibPluginLoader (declared as
+        // `loader:` in paper-plugin.yml) before this plugin is instantiated.
     }
 
     @Override
@@ -321,10 +319,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         if (configModel == null || configModel.scriptConfig() == null || !configModel.scriptConfig().enabled()) {
             messageService.info("console.script_engine_disabled");
-            return;
-        }
-        if (!configModel.scriptConfig().runtimeOptIn()) {
-            getLogger().warning("JavaScript remains disabled because script.runtime_opt_in is false; enable it only after reviewing the script security boundary.");
             return;
         }
         try {
@@ -540,7 +534,16 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private CoreLibConfig loadConfigModel() {
         try {
             File file = new File(getDataFolder(), "config.yml");
-            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(this, file, "config.yml", "version");
+            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
+                    this,
+                    file,
+                    "config.yml",
+                    "version",
+                    previous -> {
+                        previous.root().set("web_console.runtime_opt_in", null);
+                        previous.root().set("script.runtime_opt_in", null);
+                    }
+            );
             logVersionUpdate("config.yml", versionedFile);
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
