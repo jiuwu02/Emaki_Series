@@ -96,7 +96,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
                 if (result != null && !result.success()
                         && result.failureMessage() != null
                         && !result.failureMessage().isBlank()) {
-                    messageService.send(player, result.failureMessage());
+                    messageService.send(player, result.failureMessage(), result.replacements());
                 }
                 future.complete(null);
             });

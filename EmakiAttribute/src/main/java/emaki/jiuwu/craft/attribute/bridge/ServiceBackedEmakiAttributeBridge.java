@@ -41,7 +41,8 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
 
     @Override
     public boolean consumeResource(Player player, String resourceId, double amount) {
-        if (player == null || Texts.isBlank(resourceId) || amount < 0D || attributeService == null) {
+        if (player == null || Texts.isBlank(resourceId) || amount < 0D || attributeService == null
+                || !org.bukkit.Bukkit.isOwnedByCurrentRegion(player)) {
             return false;
         }
         ResourceState state = attributeService.readResourceState(player, resourceId);
@@ -52,19 +53,17 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
         if (definition == null) {
             return false;
         }
-        // 自定义资源消费对外开放，可取消、可改消费量；bridge 由外部插件调用，线程不定，仅主线程派发。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
-            PlayerResourceConsumeEvent consumeEvent = new PlayerResourceConsumeEvent(
-                    player, resourceId, amount, state.currentValue(), state.currentMax());
-            org.bukkit.Bukkit.getPluginManager().callEvent(consumeEvent);
-            if (consumeEvent.isCancelled()) {
-                return false;
-            }
-            amount = consumeEvent.getAmount();
-            // 改写后重新校验：消费量非法或超出当前余额则中止。
-            if (amount < 0D || state.currentValue() < amount) {
-                return false;
-            }
+        // 自定义资源消费对外开放，可取消、可改消费量；仅在当前线程拥有玩家实体时派发。
+        PlayerResourceConsumeEvent consumeEvent = new PlayerResourceConsumeEvent(
+                player, resourceId, amount, state.currentValue(), state.currentMax());
+        org.bukkit.Bukkit.getPluginManager().callEvent(consumeEvent);
+        if (consumeEvent.isCancelled()) {
+            return false;
+        }
+        amount = consumeEvent.getAmount();
+        // 改写后重新校验：消费量非法或超出当前余额则中止。
+        if (amount < 0D || state.currentValue() < amount) {
+            return false;
         }
         AttributeSnapshot snapshot = attributeService.collectPlayerCombatSnapshot(player);
         attributeService.syncResource(
@@ -79,7 +78,8 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
 
     @Override
     public double readAttributeValue(Player player, String attributeId) {
-        if (player == null || Texts.isBlank(attributeId) || attributeService == null) {
+        if (player == null || Texts.isBlank(attributeId) || attributeService == null
+                || !org.bukkit.Bukkit.isOwnedByCurrentRegion(player)) {
             return 0D;
         }
         AttributeSnapshot snapshot = attributeService.collectPlayerCombatSnapshot(player);
@@ -105,7 +105,8 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
     }
 
     private ResourceState readResourceState(Player player, String resourceId) {
-        if (player == null || Texts.isBlank(resourceId) || attributeService == null) {
+        if (player == null || Texts.isBlank(resourceId) || attributeService == null
+                || !org.bukkit.Bukkit.isOwnedByCurrentRegion(player)) {
             return null;
         }
         return attributeService.readResourceState(player, resourceId);

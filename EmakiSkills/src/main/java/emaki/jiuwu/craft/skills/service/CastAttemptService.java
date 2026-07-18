@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
@@ -164,8 +165,14 @@ public final class CastAttemptService {
         CompletableFuture<CastAttemptResult> gate = new CompletableFuture<>();
         CompletableFuture<CastAttemptResult> existing = inFlight.putIfAbsent(plan.key(), gate);
         if (existing != null) {
-            return onCaster(plan.player(), () -> completedFailure(
-                    FailureReason.FORCED_DELAY_ACTIVE, "cast.forced_delay"));
+            return onCaster(plan.player(), () -> {
+                PlayerSkillProfile profile = dataStore.get(plan.player());
+                long until = profile == null ? 0L : profile.timingState().forcedGlobalCastDelayUntil();
+                return completedFailure(
+                        FailureReason.FORCED_DELAY_ACTIVE,
+                        "cast.forced_delay",
+                        cooldownReplacements(until, plan.definition()));
+            });
         }
 
         CompletableFuture<CastAttemptResult> attempt = onCaster(plan.player(), () -> attemptOnDomain(plan));
@@ -194,13 +201,23 @@ public final class CastAttemptService {
 
         PlayerCastTimingState timing = profile.timingState();
         if (timing.isForcedDelayActive()) {
-            return completedFailure(FailureReason.FORCED_DELAY_ACTIVE, "cast.forced_delay");
+            return completedFailure(
+                    FailureReason.FORCED_DELAY_ACTIVE,
+                    "cast.forced_delay",
+                    cooldownReplacements(timing.forcedGlobalCastDelayUntil(), definition));
         }
         if (timing.isGlobalCooldownActive()) {
-            return completedFailure(FailureReason.GLOBAL_COOLDOWN_ACTIVE, "cast.global_cooldown");
+            return completedFailure(
+                    FailureReason.GLOBAL_COOLDOWN_ACTIVE,
+                    "cast.global_cooldown",
+                    cooldownReplacements(timing.globalCooldownUntil(), definition));
         }
         if (timing.isSkillOnCooldown(definition.id())) {
-            return completedFailure(FailureReason.SKILL_COOLDOWN_ACTIVE, "cast.skill_cooldown");
+            Long until = timing.skillCooldownUntilBySkillId().get(definition.id());
+            return completedFailure(
+                    FailureReason.SKILL_COOLDOWN_ACTIVE,
+                    "cast.skill_cooldown",
+                    cooldownReplacements(until == null ? 0L : until, definition));
         }
 
         if (!definition.conditions().emptyGroup()) {
@@ -329,9 +346,12 @@ public final class CastAttemptService {
             };
             if (!sufficient) {
                 String message = Texts.isNotBlank(cost.failureMessage())
-                        ? cost.failureMessage()
-                        : "cast.resource_insufficient";
-                return CastAttemptResult.fail(FailureReason.RESOURCE_INSUFFICIENT, message);
+                        ? resolvePlaceholders(player, cost.failureMessage())
+                        : cost.targetId();
+                return CastAttemptResult.fail(
+                        FailureReason.RESOURCE_INSUFFICIENT,
+                        "cast.resource_insufficient",
+                        Map.of("message", message));
             }
         }
         return null;
@@ -431,8 +451,25 @@ public final class CastAttemptService {
         return future;
     }
 
+    private static Map<String, ?> cooldownReplacements(long until, SkillDefinition definition) {
+        double remainingSeconds = Math.max(0L, until - System.currentTimeMillis()) / 1000D;
+        String skill = definition == null || Texts.isBlank(definition.displayName())
+                ? definition == null ? "" : definition.id()
+                : definition.displayName();
+        return Map.of(
+                "remaining", Numbers.formatNumber(remainingSeconds, "0.#"),
+                "skill", skill
+        );
+    }
+
     private static CompletableFuture<CastAttemptResult> completedFailure(FailureReason reason, String message) {
-        return CompletableFuture.completedFuture(CastAttemptResult.fail(reason, message));
+        return completedFailure(reason, message, Map.of());
+    }
+
+    private static CompletableFuture<CastAttemptResult> completedFailure(FailureReason reason,
+            String message,
+            Map<String, ?> replacements) {
+        return CompletableFuture.completedFuture(CastAttemptResult.fail(reason, message, replacements));
     }
 
     private record CastKey(String playerUuid, String skillId) {

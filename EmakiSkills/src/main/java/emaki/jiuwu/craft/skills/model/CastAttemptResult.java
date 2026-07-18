@@ -1,8 +1,22 @@
 package emaki.jiuwu.craft.skills.model;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public record CastAttemptResult(boolean success,
         FailureReason failureReason,
-        String failureMessage) {
+        String failureMessage,
+        Map<String, ?> replacements) {
+
+    public CastAttemptResult {
+        replacements = replacements == null
+                ? Map.of()
+                : Map.copyOf(new LinkedHashMap<>(replacements));
+    }
+
+    public CastAttemptResult(boolean success, FailureReason failureReason, String failureMessage) {
+        this(success, failureReason, failureMessage, Map.of());
+    }
 
     public static CastAttemptResult ok() {
         return new CastAttemptResult(true, null, null);
@@ -10,6 +24,10 @@ public record CastAttemptResult(boolean success,
 
     public static CastAttemptResult fail(FailureReason reason, String message) {
         return new CastAttemptResult(false, reason, message);
+    }
+
+    public static CastAttemptResult fail(FailureReason reason, String message, Map<String, ?> replacements) {
+        return new CastAttemptResult(false, reason, message, replacements);
     }
 
     public enum FailureReason {
