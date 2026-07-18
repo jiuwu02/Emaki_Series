@@ -75,6 +75,8 @@ export type WebEditorField = {
   optionLabelPrefix?: string;
   rows?: number;
   wide?: boolean;
+  componentCapabilities?: ItemComponentCapability[];
+  reservedComponentIds?: string[];
 };
 
 export type WebEditorSection = {
@@ -202,6 +204,17 @@ export type ItemDocument = {
 
 export type ItemDocumentData = Record<string, unknown>;
 
+export type ItemComponentCapability = {
+  id: string;
+  minimumVersion?: string;
+  minVersion?: string;
+  supported?: boolean;
+  currentSupport?: boolean | 'supported' | 'unsupported' | 'unknown' | string;
+  genericBridgeSupported?: boolean;
+  valueFormat?: string;
+  reason?: string;
+};
+
 export type ItemPreviewStep = {
   action: string;
   value?: string;
@@ -257,15 +270,24 @@ export type GuiTemplateData = {
   [key: string]: unknown;
 };
 
+export type GuiItemDefinition = {
+  source?: unknown;
+  amount?: unknown;
+  components?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
 export type GuiSlotDefinition = {
   type?: string;
   slots?: number[] | number | string;
+  item?: GuiItemDefinition | string;
   item_source?: unknown;
   item_sources?: unknown;
-  item?: string;
   material?: string;
   display_name?: unknown;
+  item_name?: unknown;
   lore?: unknown;
+  components?: unknown;
   hidden_components?: unknown;
   enchantments?: unknown;
   custom_model_data?: unknown;

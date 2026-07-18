@@ -24,10 +24,12 @@ slots:
       - 6
       - 7
       - 8
-    item: "BLACK_STAINED_GLASS_PANE"
-    display_name: "<gray>"
-    hidden_components:
-      - "tooltip"
+    item:
+      source: "BLACK_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
 
   side_frame:
     slots:
@@ -40,10 +42,12 @@ slots:
       - 42
       - 43
       - 44
-    item: "BLACK_STAINED_GLASS_PANE"
-    display_name: "<gray>"
-    hidden_components:
-      - "tooltip"
+    item:
+      source: "BLACK_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
 
   core_frame:
     slots:
@@ -61,31 +65,37 @@ slots:
       - 30
       - 33
       - 35
-    item: "gray_stained_glass_pane"
-    display_name: "<dark_gray>"
-    hidden_components:
-      - "tooltip"
+    item:
+      source: "gray_stained_glass_pane"
+      components:
+        custom_name: "<dark_gray>"
+        tooltip_display:
+          hide_tooltip: true
 
   blueprint_inputs:
     slots:
       - 10
       - 19
     type: "blueprint_inputs"
-    item: "guster_banner_pattern"
-    display_name: "<light_purple>放入图纸</light_purple>"
-    lore:
-      - "<gray>配方会按图纸物品源自动匹配"
+    item:
+      source: "guster_banner_pattern"
+      components:
+        custom_name: "<light_purple>放入图纸</light_purple>"
+        lore:
+          - "<gray>配方会按图纸物品源自动匹配"
 
   capacity_display:
     slots:
       - 16
     type: "capacity_display"
-    item: "BLAST_FURNACE"
-    display_name: "<gray>锻造容量</gray>"
-    lore:
-      - "<gray>当前容量: <yellow>%current%</yellow>"
-      - "<gray>容量上限: <gold>%max%</gold>"
-      - "<gray>状态: %capacity_state%</gray>"
+    item:
+      source: "BLAST_FURNACE"
+      components:
+        custom_name: "<gray>锻造容量</gray>"
+        lore:
+          - "<gray>当前容量: <yellow>%current%</yellow>"
+          - "<gray>容量上限: <gold>%max%</gold>"
+          - "<gray>状态: %capacity_state%</gray>"
 
   required_materials:
     slots:
@@ -93,10 +103,12 @@ slots:
       - 11
       - 29
     type: "required_materials"
-    item: "BARRIER"
-    display_name: "<gold>放入必需材料</gold>"
-    lore:
-      - "<gray>这里会接收配方固定材料"
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<gold>放入必需材料</gold>"
+        lore:
+          - "<gray>这里会接收配方固定材料"
 
   optional_materials:
     slots:
@@ -107,20 +119,24 @@ slots:
       - 31
       - 32
     type: "optional_materials"
-    item: "BARRIER"
-    display_name: "<green>放入可选材料</green>"
-    lore:
-      - "<gray>可选材料会按配方生效并消耗容量"
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<green>放入可选材料</green>"
+        lore:
+          - "<gray>可选材料会按配方生效并消耗容量"
 
   confirm:
     slots:
       - 34
     type: "confirm"
-    item: "ANVIL"
-    display_name: "<green>确认锻造</green>"
-    lore:
-      - "<gray>当前容量: <yellow>%current%/%max%</yellow>"
-      - "<yellow>点击后开始执行锻造"
+    item:
+      source: "ANVIL"
+      components:
+        custom_name: "<green>确认锻造</green>"
+        lore:
+          - "<gray>当前容量: <yellow>%current%/%max%</yellow>"
+          - "<yellow>点击后开始执行锻造"
     sounds:
       click:
         sound: "ui.button.click"
@@ -129,12 +145,14 @@ slots:
 
 virtual_items:
   confirm_blocked:
-    item: "BARRIER"
-    display_name: "<red>无法锻造</red>"
-    lore:
-      - "<gray>当前容量: <yellow>%current%/%max%</yellow></gray>"
-      - "<red>可选材料容量已超出上限</red>"
-      - "<gray>减少材料后再试一次</gray>"
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<red>无法锻造</red>"
+        lore:
+          - "<gray>当前容量: <yellow>%current%/%max%</yellow></gray>"
+          - "<red>可选材料容量已超出上限</red>"
+          - "<gray>减少材料后再试一次</gray>"
 
 texts:
   capacity_state:

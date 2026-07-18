@@ -1,17 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, type ApiClient, type ActionTypesResult } from './api';
-import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, type ActionEntry } from './components';
+import { Button, CollapsibleSection, ChangedPathsProvider, DisclosureChevron, EditorChrome, InlineError, ItemComponentsEditor, KvTable, MiniText, NumberListEditor, PropRow as BasePropRow, SectionHead, StandardActionsField, StandardEconomyProviderSelect, StandardEffectsEditor, StringListEditor, ToastNotice, VariablesMapEditor, parseActionList, type ActionEntry } from './components';
 import { asList, asRecord, asStringList, displaySource, firstItemSource, materialFromItemSource, setDeepValue, parseYaml, type AnyMap } from './itemEditor';
 import { isConcretePath, isGlobPath, resolveSurfaceDocumentPath } from './documentPaths';
 import { t, getLocale } from './i18n';
-import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
+import { changedPathSet, diffRecords, fieldLabel, getDeepValue, humanizeFieldLabel, isChangedFieldPath, itemComponentsValue, itemSourceValue, materialShortName, materialUrls, optionLabel, subscribeTextureBases, textValue, valuesEqual } from './lib';
 import { MINECRAFT_MATERIALS, searchMaterials } from './minecraftMaterials';
 import { getSourceDocumentAdapter, isKind, type SurfaceOutlineState, type SurfaceToolbarState } from './registry';
 import { fileDisplayTitle } from './lib';
 import { CORE_ITEM_FIELD_TYPE_SET, standardDisplayActionFields } from './itemFieldKit';
 import { getEffectTypeDefinition } from './effectTypeRegistry';
 import { getItemFieldRenderer, getItemPreviewFallback } from './itemFieldRegistry';
-import type { ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
+import type { ItemComponentCapability, ItemPreviewResult, ItemPreviewStep, WebEditorDescriptor, WebEditorField, WebEditorSection, WebRegistryFile, WebRegistryModule } from './types';
 import { serializeItemYaml } from './itemEditor';
 
 type Props = { module: WebRegistryModule; file: WebRegistryFile; api: ApiClient; childPath?: string; refreshKey?: number; editor?: WebEditorDescriptor; onReload?: () => void; setToolbar?: (state: SurfaceToolbarState | null) => void; setOutline?: (state: SurfaceOutlineState) => void; showLocalChrome?: boolean };
@@ -27,7 +27,8 @@ const EditorContext = React.createContext<{
   editorFields: Record<string, WebEditorField>;
   changedPaths: Set<string>;
   economyProviders: string[];
-}>({ moduleId: '', editorFields: {}, changedPaths: new Set(), economyProviders: DEFAULT_ECONOMY_PROVIDERS });
+  componentCapabilities: ItemComponentCapability[];
+}>({ moduleId: '', editorFields: {}, changedPaths: new Set(), economyProviders: DEFAULT_ECONOMY_PROVIDERS, componentCapabilities: [] });
 
 export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0, editor, onReload, setToolbar, setOutline, showLocalChrome = true }: Props) {
   const [data, setData] = useState<AnyMap>({});
@@ -53,6 +54,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const [history, setHistory] = useState<SnapshotHistory>({ undo: [], redo: [] });
 
   const [actionTypesResult, setActionTypesResult] = useState<ActionTypesResult | null>(null);
+  const [componentCapabilities, setComponentCapabilities] = useState<ItemComponentCapability[]>([]);
   const [economyProviders, setEconomyProviders] = useState<string[]>(DEFAULT_ECONOMY_PROVIDERS);
 
   const filePath = useMemo(() => resolveSurfaceFilePath(file, childPath), [file, childPath]);
@@ -62,15 +64,17 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const sections = useMemo(() => editor?.sections?.length ? editor.sections : defaultSections(), [editor]);
   const editorFields = useMemo(() => editorFieldMap(editor), [editor]);
   const sourceAdapter = getSourceDocumentAdapter(file, editor);
+  const parseDocument = sourceAdapter?.parse ?? parseYaml;
+  const serializeDocument = sourceAdapter?.serialize ?? serializeItemYaml;
   const itemLikeKind = isKind(file.kind, 'ITEM') || isKind(file.kind, 'GEM');
   const resolvedChildPath = childPath && isConcretePath(childPath) ? childPath : (isGlobPath(file.path) && isConcretePath(filePath) ? filePath : undefined);
   const sourceContext = useMemo(() => ({ module, file, childPath: resolvedChildPath, path: filePath, editor }), [module, file, resolvedChildPath, filePath, editor?.id]);
-  const draftContent = useMemo(() => sourceError ? sourceText : serializeItemYaml(data), [sourceError, sourceText, data]);
+  const draftContent = useMemo(() => sourceError ? sourceText : serializeDocument(data), [sourceError, sourceText, data, serializeDocument]);
   const sourceContent = draftContent;
   const changes = useMemo(() => diffRecords(data, originalData, '', 18), [data, originalData]);
   const changedPaths = useMemo(() => changedPathSet(changes), [changes]);
   const semanticDirty = !sourceError && changes.length > 0;
-  const editorContext = useMemo(() => ({ moduleId: module.id, editorFields, changedPaths, economyProviders }), [module.id, editorFields, changedPaths, economyProviders]);
+  const editorContext = useMemo(() => ({ moduleId: module.id, editorFields, changedPaths, economyProviders, componentCapabilities }), [module.id, editorFields, changedPaths, economyProviders, componentCapabilities]);
 
   useEffect(() => {
     if (!toast) return;
@@ -93,12 +97,13 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     readDocument.then(doc => {
       if (cancelled) return;
       try {
-        const parsed = parseYaml(doc.content) as AnyMap;
+        const originalParsed = parseYaml(doc.content) as AnyMap;
+        const parsed = asRecord(parseDocument(doc.content));
         setData(parsed);
-        setOriginalData(parsed);
+        setOriginalData(originalParsed);
         setOriginalContent(doc.content);
         setRevision(doc.revision);
-        setSourceText(doc.content);
+        setSourceText(serializeDocument(parsed));
         setSourceError(null);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -118,10 +123,11 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [api, module.id, file.kind, filePath, refreshKey, sourceAdapter, sourceContext]);
+  }, [api, module.id, file.kind, filePath, refreshKey, sourceAdapter, sourceContext, parseDocument, serializeDocument]);
 
   useEffect(() => {
     api.actionTypes().then(setActionTypesResult).catch(err => void api.reportFrontendError({ message: err instanceof Error ? err.message : String(err), source: 'item-action-types', detail: module.id }));
+    api.itemComponentCapabilities().then(setComponentCapabilities).catch(() => setComponentCapabilities([]));
     api.economyProviders().then(result => setEconomyProviders(mergeOptions(result.providers, DEFAULT_ECONOMY_PROVIDERS))).catch(() => setEconomyProviders(DEFAULT_ECONOMY_PROVIDERS));
   }, [api]);
 
@@ -209,7 +215,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
     setData(prev => {
       const next = setDeepValue(prev, path.split('.'), value);
       if (!valuesEqual(prev, next)) rememberHistory(prev);
-      setSourceText(serializeItemYaml(next));
+      setSourceText(serializeDocument(next));
       setSourceError(null);
       return next;
     });
@@ -218,7 +224,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
   const updateSource = (nextSource: string) => {
     setSourceText(nextSource);
     try {
-      const parsed = parseYaml(nextSource) as AnyMap;
+      const parsed = asRecord(parseDocument(nextSource));
       if (!valuesEqual(data, parsed)) rememberHistory(data);
       setData(parsed);
       setSourceError(null);
@@ -235,7 +241,7 @@ export function ItemEditorSurface({ module, file, api, childPath, refreshKey = 0
 
   function applySnapshot(snapshot: AnyMap) {
     setData(snapshot);
-    setSourceText(serializeItemYaml(snapshot));
+    setSourceText(serializeDocument(snapshot));
     setSourceError(null);
   }
 
@@ -414,6 +420,7 @@ function DefaultFieldEditor({ field, data, value, changed, setField, actionTypes
   if (type === 'numberList') return <PropRow label={label} path={field.path} changed={changed} wide><NumberListEditor items={asList(value).map(item => Number(item) || 0)} onChange={items => setField(field.path, items)} /></PropRow>;
   if (type === 'variablesMap') return <PropRow label={label} path={field.path} changed={changed} wide><VariablesMapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
   if (type === 'map' || type === 'dynamicMap' || type === 'objectMap') return <PropRow label={label} path={field.path} changed={changed} wide><MapEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
+  if (type === 'itemComponents') return <PropRow label={label} path={field.path} changed={changed} wide><ItemComponentsEditor value={value} onChange={next => setField(field.path, next)} capabilities={field.componentCapabilities?.length ? field.componentCapabilities : context.componentCapabilities} reservedIds={field.reservedComponentIds} /></PropRow>;
   if (type === 'actions') return <PropRow label={label} path={field.path} changed={changed} wide><StandardActionsField value={value} onChange={next => setField(field.path, next)} path={field.path} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} actionTypes={actionTypesResult ?? undefined} /></PropRow>;
   if (type === 'effects') return <PropRow label={label} path={field.path} changed={false} wide><StandardEffectsEditor value={value} path={field.path} onChange={next => setField(field.path, next)} moduleId={context.moduleId} namespace={context.moduleId} editorFields={context.editorFields} actionTypes={actionTypesResult ?? undefined} /></PropRow>;
   if (type === 'json') return <PropRow label={label} path={field.path} changed={changed} wide><GenericObjectEditor value={value} onChange={next => setField(field.path, next)} /></PropRow>;
@@ -520,7 +527,8 @@ function GenericObjectEditor({ value, reservedKeys, onChange }: { value: unknown
 }
 
 function resolvePreviewBaseLore(data: AnyMap, fallback: string[]): string[] {
-  const configuredLore = asStringList(data.lore);
+  const components = itemComponentsValue(data);
+  const configuredLore = asStringList(components['minecraft:lore'] ?? components.lore ?? data.lore);
   return configuredLore.length > 0 ? configuredLore : fallback;
 }
 
@@ -681,10 +689,11 @@ function localItemPreview(moduleId: string, editorId: string | undefined, kind: 
   const pluginPreview = pluginFallback?.({ data, previewLevel, baseName, baseLore, moduleId, editorId, kind });
   if (pluginPreview) return pluginPreview;
   const variables = asRecord(data.variables);
-  const displayName = renderLocalTemplate(textValue(data.display_name ?? data.item_name ?? data.id, baseName), variables);
+  const components = itemComponentsValue(data);
+  const displayName = renderLocalTemplate(textValue(components['minecraft:custom_name'] ?? components['minecraft:item_name'] ?? components.display_name ?? components.item_name ?? data.display_name ?? data.item_name ?? data.id, baseName), variables);
   const lore = resolvePreviewBaseLore(data, baseLore).map(line => renderLocalTemplate(line, variables));
   const textPreview = applyLocalDisplayActions(displayName, lore, collectDisplayActions(data, 'name_actions', 'name_action', 'name_action', previewLevel), collectDisplayActions(data, 'lore_actions', 'lore_action', 'lore_action', previewLevel), variables);
-  const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || data.material || data.item || 'stone');
+  const material = materialFromItemSource(firstItemSource(data.item_sources ?? asRecord(data.match).item_sources) || itemSourceValue(data) || 'stone');
   return {
     kind: 'generic_item',
     id: textValue(data.id),
@@ -993,8 +1002,8 @@ function hasPreviewValue(value: unknown): boolean {
 function GenericPreviewPane({ moduleId, fileKind, editor, data, preview, layerPreview, previewPending, previewError, previewLevel, setPreviewLevel, baseName, baseLore }: { moduleId: string; fileKind?: string; editor?: WebEditorDescriptor; data: AnyMap; preview: ItemPreviewResult | null; layerPreview: AnyMap | null; previewPending: boolean; previewError: PreviewError | null; previewLevel: number; setPreviewLevel: (level: number) => void; baseName: string; baseLore: string[] }) {
   const isSetPreview = isSetEditor(fileKind, editor);
   const setDraftPreview = isSetPreview ? buildSetDraftPreview(data) : null;
-  const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? preview?.material);
-  const material = materialFromItemSource(source || data.material || preview?.material);
+  const source = firstItemSource(data.item_sources ?? asRecord(data.match).item_sources ?? itemSourceValue(data) ?? preview?.material);
+  const material = materialFromItemSource(source || preview?.material);
   const levels = configuredPreviewLevels(data, preview);
   const hasLevels = !isSetPreview && levels.length > 0;
   const [, refreshTextureOrder] = useState(0);
@@ -1400,9 +1409,11 @@ function defaultSections(): WebEditorSection[] {
     title: t('core.item.basic'),
     fields: [
       { path: 'id', label: 'ID', type: 'text' },
-      { path: 'material', label: t('core.item.material'), type: 'text' },
-      { path: 'display_name', label: t('core.item.displayName'), type: 'text' },
-      { path: 'lore', label: 'Lore', type: 'stringList', wide: true },
+      { path: 'item.source', label: t('core.gui.itemSource'), type: 'text' },
+      { path: 'item.amount', label: t('core.item.amount'), type: 'number' },
+      { path: 'item.components.minecraft:custom_name', label: t('core.item.displayName'), type: 'text' },
+      { path: 'item.components.minecraft:lore', label: 'Lore', type: 'stringList', wide: true },
+      { path: 'item.components', label: t('core.item.components'), type: 'itemComponents', wide: true, reservedComponentIds: ['minecraft:custom_name', 'minecraft:lore'] },
       ...standardDisplayActionFields()
     ]
   }];

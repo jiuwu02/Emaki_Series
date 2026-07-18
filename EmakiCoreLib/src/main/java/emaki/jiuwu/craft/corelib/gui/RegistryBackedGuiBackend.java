@@ -4,6 +4,8 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
+
 /**
  * A {@link GuiBackend} that delegates to whichever backend is currently active
  * in the {@link GuiBackendRegistry}.
@@ -21,9 +23,15 @@ import org.bukkit.inventory.ItemStack;
 public final class RegistryBackedGuiBackend implements GuiBackend {
 
     private final GuiBackendRegistry registry;
+    private final ConfiguredItemService configuredItemService;
 
     public RegistryBackedGuiBackend(GuiBackendRegistry registry) {
+        this(registry, null);
+    }
+
+    public RegistryBackedGuiBackend(GuiBackendRegistry registry, ConfiguredItemService configuredItemService) {
         this.registry = registry;
+        this.configuredItemService = configuredItemService;
     }
 
     /** {@return the backend currently selected by {@code gui.backend}} */
@@ -49,6 +57,11 @@ public final class RegistryBackedGuiBackend implements GuiBackend {
     @Override
     public String name() {
         return resolveActive().name();
+    }
+
+    @Override
+    public ConfiguredItemService configuredItemService() {
+        return configuredItemService;
     }
 
     @Override

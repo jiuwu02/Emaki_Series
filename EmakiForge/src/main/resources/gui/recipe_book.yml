@@ -59,10 +59,12 @@ slots:
       - 43
       - 44
     type: "recipe_list"
-    item: "book"
-    display_name: "<gray>暂无配方</gray>"
-    lore:
-      - "<gray>这一页没有更多配方了"
+    item:
+      source: "book"
+      components:
+        custom_name: "<gray>暂无配方</gray>"
+        lore:
+          - "<gray>这一页没有更多配方了"
 
   footer_fill:
     slots:
@@ -72,19 +74,23 @@ slots:
       - 50
       - 51
       - 52
-    item: "gray_stained_glass_pane"
-    display_name: "<gray>"
-    hidden_components:
-      - "tooltip"
+    item:
+      source: "gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
 
   prev_page:
     slots:
       - 45
     type: "prev_page"
-    item: "ARROW"
-    display_name: "<gray>上一页</gray>"
-    lore:
-      - "<gray>当前页码: <yellow>%page%/%pages%</yellow>"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<gray>上一页</gray>"
+        lore:
+          - "<gray>当前页码: <yellow>%page%/%pages%</yellow>"
     sounds:
       click:
         sound: "ui.button.click"
@@ -95,10 +101,12 @@ slots:
     slots:
       - 49
     type: "close"
-    item: "BARRIER"
-    display_name: "<red>关闭</red>"
-    lore:
-      - "<gray>关闭配方图鉴</gray>"
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<red>关闭</red>"
+        lore:
+          - "<gray>关闭配方图鉴</gray>"
     sounds:
       click:
         sound: "ui.button.click"
@@ -109,10 +117,12 @@ slots:
     slots:
       - 53
     type: "next_page"
-    item: "ARROW"
-    display_name: "<gray>下一页</gray>"
-    lore:
-      - "<gray>当前页码: <yellow>%page%/%pages%</yellow>"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<gray>下一页</gray>"
+        lore:
+          - "<gray>当前页码: <yellow>%page%/%pages%</yellow>"
     sounds:
       click:
         sound: "ui.button.click"
@@ -121,12 +131,14 @@ slots:
 
 virtual_items:
   recipe_entry:
-    display_name: "%recipe_name%"
-    lore:
-      - "%unlock_state%"
-      - "<gray>配方ID: %recipe_id%</gray>"
-      - "%crafted_state%"
-      - "%click_hint%"
+    item:
+      components:
+        custom_name: "%recipe_name%"
+        lore:
+          - "%unlock_state%"
+          - "<gray>配方ID: %recipe_id%</gray>"
+          - "%crafted_state%"
+          - "%click_hint%"
 
 texts:
   recipe_entry:

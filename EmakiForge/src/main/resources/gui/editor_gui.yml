@@ -14,10 +14,12 @@ slots:
   background:
     slots:
       - "0-53"
-    item: "gray_stained_glass_pane"
-    display_name: "<gray>"
-    hidden_components:
-      - "tooltip"
+    item:
+      source: "gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
 
 pages:
   index:

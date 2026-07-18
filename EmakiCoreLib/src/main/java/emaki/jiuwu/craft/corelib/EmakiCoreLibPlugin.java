@@ -41,6 +41,7 @@ import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.OraxenBlockBridgeProvider;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -107,6 +108,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final ScriptModuleRegistry scriptModuleRegistry = new ScriptModuleRegistry();
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
+    private ConfiguredItemService configuredItemService;
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
     private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
@@ -483,6 +485,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         bStatsService = new BStatsService(this, messageService);
         debugLogger = new DebugLogger(this, languageLoader);
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
+        configuredItemService = new ConfiguredItemService(this, itemSourceService);
         configPrecheckService = new ConfigPrecheckService(messageService);
         loopActionService = new LoopActionService(this);
         getServer().getPluginManager().registerEvents(loopActionService, this);
@@ -495,7 +498,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         languageLoader.load();
         guiBackendRegistry = new emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry(messageService);
         guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
-        guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry);
+        guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
         itemAssemblyService = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
         itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
         gameplayEventPublisher = new emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher(
@@ -714,6 +717,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return itemSourceService;
     }
 
+    public ConfiguredItemService configuredItemService() {
+        return configuredItemService;
+    }
+
     public EmakiNamespaceRegistry namespaceRegistry() {
         return namespaceRegistry;
     }
@@ -790,6 +797,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(WebConsoleService.class, webConsoleService);
         registerService(PdcService.class, pdcService);
         registerService(ItemSourceService.class, itemSourceService);
+        registerService(ConfiguredItemService.class, configuredItemService);
         registerService(EmakiNamespaceRegistry.class, namespaceRegistry);
         registerService(EmakiItemLayerCodecRegistry.class, itemLayerCodecRegistry);
         registerService(CraftEngineBlockBridge.class, craftEngineBlockBridge);

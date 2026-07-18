@@ -18,33 +18,39 @@ slots:
       - 11
       - 13
       - 15
-    display_name: "<gold>%skill%</gold>"
-    lore:
-      - "<gray>槽位: <white>%slot%</white></gray>"
-      - "<gray>触发器: <white>%trigger%</white></gray>"
-      - "<gray>等级: <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow></gray>"
-      - "<gray>冷却: <aqua>%cooldown%s</aqua></gray>"
-      - "<dark_gray>空槽位可从技能池中选择技能装备</dark_gray>"
+    item:
+      components:
+        custom_name: "<gold>%skill%</gold>"
+        lore:
+          - "<gray>槽位: <white>%slot%</white></gray>"
+          - "<gray>触发器: <white>%trigger%</white></gray>"
+          - "<gray>等级: <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow></gray>"
+          - "<gray>冷却: <aqua>%cooldown%s</aqua></gray>"
+          - "<dark_gray>空槽位可从技能池中选择技能装备</dark_gray>"
 
   # 施法模式按钮 (位置 4)
   cast_mode_toggle:
     type: cast_mode_toggle
     slots:
       - 4
-    item: "ender_eye"
-    display_name: "<gold>施法模式: %state%</gold>"
-    lore:
-      - "<gray>点击切换施法模式</gray>"
+    item:
+      source: "ender_eye"
+      components:
+        custom_name: "<gold>施法模式: %state%</gold>"
+        lore:
+          - "<gray>点击切换施法模式</gray>"
 
   # 刷新按钮 (位置 8)
   refresh:
     type: refresh
     slots:
       - 8
-    item: "sunflower"
-    display_name: "<yellow>刷新技能池</yellow>"
-    lore:
-      - "<gray>重新扫描装备技能</gray>"
+    item:
+      source: "sunflower"
+      components:
+        custom_name: "<yellow>刷新技能池</yellow>"
+        lore:
+          - "<gray>重新扫描装备技能</gray>"
 
   # 下半区 - 技能池 (第4-5行, 位置 28-34, 37-43)
   skill_pool:
@@ -64,53 +70,63 @@ slots:
       - 41
       - 42
       - 43
-    display_name: "<green>%skill%</green>"
-    lore:
-      - "<gray>ID: <white>%skill_id%</white></gray>"
-      - "<gray>等级: <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow></gray>"
-      - "<gray>冷却: <aqua>%cooldown%s</aqua></gray>"
-      - "<gray>来源: <white>%source%</white></gray>"
-      - "<yellow>点击装备到空槽位</yellow>"
+    item:
+      components:
+        custom_name: "<green>%skill%</green>"
+        lore:
+          - "<gray>ID: <white>%skill_id%</white></gray>"
+          - "<gray>等级: <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow></gray>"
+          - "<gray>冷却: <aqua>%cooldown%s</aqua></gray>"
+          - "<gray>来源: <white>%source%</white></gray>"
+          - "<yellow>点击装备到空槽位</yellow>"
 
   # 上一页 (位置 45)
   page_prev:
     type: page_prev
     slots:
       - 45
-    item: "arrow"
-    display_name: "<gray>上一页</gray>"
-    lore:
-      - "<dark_gray>点击翻到上一页</dark_gray>"
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>上一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到上一页</dark_gray>"
 
   # 页码信息 (位置 49)
   page_info:
     type: page_info
     slots:
       - 49
-    item: "book"
-    display_name: "<gray>第 %current_page%/%total_pages% 页</gray>"
-    lore:
-      - "<dark_gray>已解锁技能: %unlocked_count%</dark_gray>"
+    item:
+      source: "book"
+      components:
+        custom_name: "<gray>第 %current_page%/%total_pages% 页</gray>"
+        lore:
+          - "<dark_gray>已解锁技能: %unlocked_count%</dark_gray>"
 
   # 下一页 (位置 53)
   page_next:
     type: page_next
     slots:
       - 53
-    item: "arrow"
-    display_name: "<gray>下一页</gray>"
-    lore:
-      - "<dark_gray>点击翻到下一页</dark_gray>"
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>下一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到下一页</dark_gray>"
 
   # 关闭按钮 (位置 0)
   close:
     type: close
     slots:
       - 0
-    item: "barrier"
-    display_name: "<red>关闭</red>"
-    lore:
-      - "<dark_gray>关闭技能界面</dark_gray>"
+    item:
+      source: "barrier"
+      components:
+        custom_name: "<red>关闭</red>"
+        lore:
+          - "<dark_gray>关闭技能界面</dark_gray>"
 
   # 装饰边框
   border:
@@ -147,7 +163,9 @@ slots:
       - 50
       - 51
       - 52
-    item: "black_stained_glass_pane"
-    display_name: " "
-    lore:
-      - ""
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: " "
+        lore:
+          - ""

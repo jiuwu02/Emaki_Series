@@ -3,6 +3,7 @@
  */
 import type { GuiSlotDefinition, GuiTemplateData, WebEditorDescriptor, WebEditorField } from '../types';
 import { getLocale } from '../i18n';
+import { canonicalizeGuiSlotItem, canonicalizeGuiTemplateItems, itemComponentsValue, itemSourceValue } from './itemStructure';
 import { serializeYaml } from './yaml';
 
 export type SlotOccupancy = {
@@ -146,14 +147,17 @@ export function loreLines(value: unknown): string[] {
 }
 
 export function slotItemText(slot: GuiSlotDefinition | null | undefined): string {
-  if (!slot) return '';
-  return itemSourceText(slot.item_source) || itemSourceText(slot.item_sources) || itemSourceText(slot.material) || itemSourceText(slot.item);
+  return slot ? itemSourceText(itemSourceValue(slot)) : '';
 }
 
-export function withSlotItem(slot: GuiSlotDefinition, item: unknown): GuiSlotDefinition {
-  const next = { ...slot };
-  delete next.item;
-  return { ...next, item_source: item == null ? undefined : String(item) };
+export function slotItemComponents(slot: GuiSlotDefinition | null | undefined): Record<string, unknown> {
+  return slot ? itemComponentsValue(slot) : {};
+}
+
+export function withSlotItem(slot: GuiSlotDefinition, source: unknown): GuiSlotDefinition {
+  const canonical = canonicalizeGuiSlotItem(slot);
+  const item = canonical.item && typeof canonical.item === 'object' && !Array.isArray(canonical.item) ? canonical.item : {};
+  return { ...canonical, item: { ...item, source: source == null ? undefined : String(source) } };
 }
 
 function itemSourceText(value: unknown): string {
@@ -163,7 +167,7 @@ function itemSourceText(value: unknown): string {
 }
 
 export function serializeGuiYaml(data: GuiTemplateData): string {
-  return serializeYaml(data as Record<string, unknown>);
+  return serializeYaml(canonicalizeGuiTemplateItems(data) as Record<string, unknown>);
 }
 
 export const COMMON_MATERIALS = [

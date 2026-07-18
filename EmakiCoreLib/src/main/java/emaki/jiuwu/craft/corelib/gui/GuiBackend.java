@@ -4,6 +4,8 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
+
 /**
  * Strategy for how a {@link GuiSession} is presented to and synchronised with a
  * player.
@@ -49,6 +51,11 @@ public interface GuiBackend {
      * Backend identifier, e.g. {@code "bukkit"} or {@code "packet"}.
      */
     String name();
+
+    /** Optional shared configured-item service carried by CoreLib's backend proxy. */
+    default ConfiguredItemService configuredItemService() {
+        return null;
+    }
 
     /**
      * Releases backend-wide resources (packet listeners, virtual windows).

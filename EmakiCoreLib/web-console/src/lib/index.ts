@@ -9,5 +9,6 @@ export { moduleDisplayName, moduleDisplaySummary, fileDisplayTitle, fileDisplayC
 export { diffRecords, changedPathSet, isChangedPath, isChangedFieldPath, getDeepValue, valuesEqual, type ChangePathInput, type ChangePathMatchMode } from './changeTracking';
 export { renderMiniMessageParts, textValue, type MiniMessagePart } from './miniMessage';
 export { asRecord, asList, asStringList, setDeepValue, cleanMap, itemKind, firstItemSource, materialFromItemSource, displaySource, effectsByType, mapEntries, variableEntries, slotRows, markOpenSlots, upgradeLevels, concise, type AnyMap } from './itemUtils';
+export { canonicalizeGuiSlotItem, canonicalizeGuiTemplateItems, canonicalizeItemDocument, itemDefinition, itemSourceValue, itemAmountValue, itemComponentsValue, LEGACY_ITEM_COMPONENT_KEYS, type ItemComponentCapability } from './itemStructure';
 export { serializeItemYaml } from '../itemEditor';
-export { BUKKIT_GUI_TYPES, DEFAULT_GUI_TYPE, clampRows, guiColumns, guiField, guiSlotCount, guiTypeOptions, normalizeGuiType, parseSlotList, buildOccupancy, loreLines, serializeGuiYaml, supportsRows, COMMON_MATERIALS, type SlotOccupancy } from './guiUtils';
+export { BUKKIT_GUI_TYPES, DEFAULT_GUI_TYPE, clampRows, guiColumns, guiField, guiSlotCount, guiTypeOptions, normalizeGuiType, parseSlotList, buildOccupancy, loreLines, slotItemText, slotItemComponents, withSlotItem, serializeGuiYaml, supportsRows, COMMON_MATERIALS, type SlotOccupancy } from './guiUtils';

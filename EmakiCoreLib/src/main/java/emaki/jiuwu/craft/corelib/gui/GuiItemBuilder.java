@@ -8,7 +8,10 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -19,6 +22,10 @@ public final class GuiItemBuilder {
     public interface ItemFactory {
 
         ItemStack create(ItemSource source, int amount);
+
+        default ConfiguredItemService configuredItemService() {
+            return null;
+        }
     }
 
     public record Request(String item,
@@ -39,6 +46,25 @@ public final class GuiItemBuilder {
         if (request == null) {
             return barrier(1);
         }
+        ConfiguredItemDefinition definition = ItemComponentParser.toDefinition(
+                request.item(),
+                request.components(),
+                request.amount(),
+                request.replacements()
+        );
+        ConfiguredItemService configuredItems = itemFactory == null ? null : itemFactory.configuredItemService();
+        if (configuredItems != null) {
+            return build(definition, request.replacements(), configuredItems);
+        }
+        return buildLegacy(new Request(
+                definition.source(),
+                ItemComponentParser.fromDefinition(definition),
+                definition.amount(),
+                Map.of()
+        ), itemFactory);
+    }
+
+    private static ItemStack buildLegacy(Request request, ItemFactory itemFactory) {
         ItemStack itemStack = baseItem(request.item(), request.amount(), itemFactory);
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta != null) {
@@ -56,13 +82,50 @@ public final class GuiItemBuilder {
         return build(new Request(item, components, amount, replacements), itemFactory);
     }
 
+    public static ItemStack build(ConfiguredItemDefinition definition,
+            Map<String, ?> replacements,
+            ConfiguredItemService configuredItemService) {
+        int amount = definition == null ? 1 : definition.amount();
+        ItemBuildResult result = buildResult(definition, replacements, configuredItemService);
+        ItemStack itemStack = result.itemStack();
+        return itemStack == null || result.hasErrors() ? barrier(amount) : itemStack;
+    }
+
+    public static ItemBuildResult buildResult(ConfiguredItemDefinition definition,
+            Map<String, ?> replacements,
+            ConfiguredItemService configuredItemService) {
+        return configuredItemService == null
+                ? ItemBuildResult.unavailable("Configured item service is unavailable.")
+                : configuredItemService.create(definition, replacements);
+    }
+
+    public static ItemStack apply(ItemStack baseItem,
+            ConfiguredItemDefinition definition,
+            Map<String, ?> replacements,
+            ConfiguredItemService configuredItemService) {
+        ItemBuildResult result = configuredItemService == null
+                ? ItemBuildResult.unavailable("Configured item service is unavailable.")
+                : configuredItemService.apply(baseItem, definition, replacements);
+        ItemStack itemStack = result.itemStack();
+        return itemStack == null || result.hasErrors()
+                ? barrier(baseItem == null ? 1 : baseItem.getAmount())
+                : itemStack;
+    }
+
     public static ItemStack apply(ItemStack baseItem,
             ItemComponentParser.ItemComponents components,
             Map<String, ?> replacements) {
+        int amount = baseItem == null ? 1 : baseItem.getAmount();
+        ConfiguredItemDefinition definition = ItemComponentParser.toDefinition(
+                null,
+                components,
+                amount,
+                replacements
+        );
         ItemStack itemStack = baseItem == null ? barrier(1) : baseItem.clone();
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta != null) {
-            ItemComponentParser.apply(itemMeta, formatComponents(components, replacements));
+            ItemComponentParser.apply(itemMeta, ItemComponentParser.fromDefinition(definition));
             itemStack.setItemMeta(itemMeta);
         }
         return itemStack;

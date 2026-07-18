@@ -4,8 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.Material;
-
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
@@ -13,9 +11,7 @@ import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTr
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
-import emaki.jiuwu.craft.item.model.ItemComponentsConfig;
-import emaki.jiuwu.craft.item.model.ItemConditions;
-import emaki.jiuwu.craft.item.model.ItemSetMembership;
+import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 
 public final class JavaScriptItemDefinitionRegistry {
 
@@ -23,13 +19,17 @@ public final class JavaScriptItemDefinitionRegistry {
     private static final String REGISTRATION_TYPE = "item_definition";
 
     private final EmakiItemPlugin plugin;
+    private final EmakiItemDefinitionParser parser;
     private final Map<String, Entry> definitions = new LinkedHashMap<>();
 
     public JavaScriptItemDefinitionRegistry(EmakiItemPlugin plugin) {
         this.plugin = plugin;
+        this.parser = new EmakiItemDefinitionParser(plugin == null ? null : plugin.getLogger());
     }
 
-    public synchronized boolean register(ScriptModuleContext context, Map<String, ?> rawDefinition, JavaScriptRegistrationTracker tracker) {
+    public synchronized boolean register(ScriptModuleContext context,
+            Map<String, ?> rawDefinition,
+            JavaScriptRegistrationTracker tracker) {
         if (rawDefinition == null) {
             recordError(context, tracker, "", "register", "Item definition cannot be null.");
             return false;
@@ -100,119 +100,119 @@ public final class JavaScriptItemDefinitionRegistry {
         return definitions.keySet().stream().sorted().toList();
     }
 
-    public EmakiItemDefinition parseDefinition(String id, Map<String, ?> rawDefinition, ScriptModuleContext context, JavaScriptRegistrationTracker tracker) {
-        Material material = material(rawDefinition);
-        if (material == null || !material.isItem()) {
-            recordError(context, tracker, id, "register", "Item definition material/source must resolve to a vanilla item material.");
-            return null;
+    /** Uses the same plain-map parser path as YAML definitions. */
+    public EmakiItemDefinition parseDefinition(String id,
+            Map<String, ?> rawDefinition,
+            ScriptModuleContext context,
+            JavaScriptRegistrationTracker tracker) {
+        Map<String, Object> normalized = normalizeScriptDefinition(id, rawDefinition);
+        EmakiItemDefinition definition = parser.parse(normalized, "javascript:" + scriptPath(context));
+        if (definition == null) {
+            recordError(context, tracker, id, "register", "Item definition failed shared source/component validation.");
         }
-        Map<String, Object> componentMap = objectMap(rawDefinition.get("components"));
-        Object customModelData = firstPresent(rawDefinition, componentMap, "custom_model_data", "customModelData");
-        ItemComponentsConfig components = new ItemComponentsConfig(
-                ConfigNodes.toPlainData(customModelData),
-                firstText(rawDefinition, componentMap, "item_model", "itemModel"),
-                firstText(rawDefinition, componentMap, "tooltip_style", "tooltipStyle"),
-                Map.of(),
-                List.of(),
-                bool(firstPresent(rawDefinition, componentMap, "hide_tooltip", "hideTooltip"), false),
-                bool(firstPresent(rawDefinition, componentMap, "unbreakable", "unbreakable"), false),
-                boolObject(firstPresent(rawDefinition, componentMap, "enchantment_glint_override", "enchantmentGlintOverride")),
-                intObject(firstPresent(rawDefinition, componentMap, "max_stack_size", "maxStackSize")),
-                firstText(rawDefinition, componentMap, "rarity", "rarity"),
-                null,
-                null,
-                null,
-                List.of(),
-                ""
-        );
-        return new EmakiItemDefinition(
-                id,
-                material,
-                ConfigNodes.toPlainData(rawDefinition.containsKey("display_name") ? rawDefinition.get("display_name") : rawDefinition.get("displayName")),
-                value(rawDefinition, "item_name", value(rawDefinition, "itemName", "")),
-                ConfigNodes.toPlainData(rawDefinition.get("lore")),
-                ConfigNodes.toPlainData(rawDefinition.get("name_actions")),
-                ConfigNodes.toPlainData(rawDefinition.get("lore_actions")),
-                variables(rawDefinition),
-                components,
-                objectMap(rawDefinition.get("ea_attributes")),
-                stringList(firstPresent(rawDefinition, Map.of(), "skills", "es_skills", "esSkills")),
-                stringMap(firstPresent(rawDefinition, Map.of(), "skillTriggers", "skill_triggers", "es_skill_triggers", "esSkillTriggers")),
-                value(rawDefinition, "equip_slot", "all"),
-                ItemSetMembership.empty(),
-                ItemConditions.empty(),
-                actionMap(rawDefinition.get("actions")),
-                null,
-                null,
-                intValue(rawDefinition.get("amount"), 1),
-                false
-        );
+        return definition;
     }
 
-    private Material material(Map<String, ?> rawDefinition) {
-        String materialText = value(rawDefinition, "material", "");
-        Material material = ItemSourceUtil.resolveVanillaMaterial(materialText);
-        if (material != null) {
-            return material;
-        }
-        String sourceText = value(rawDefinition, "source", "");
-        if (Texts.isBlank(sourceText)) {
-            return null;
-        }
-        return ItemSourceUtil.resolveVanillaMaterial(sourceText);
-    }
+    private Map<String, Object> normalizeScriptDefinition(String id, Map<String, ?> rawDefinition) {
+        Map<String, Object> normalized = plainMap(rawDefinition);
+        normalized.put("id", Texts.normalizeId(id));
+        alias(normalized, "displayName", "display_name");
+        alias(normalized, "itemName", "item_name");
+        alias(normalized, "nameActions", "name_actions");
+        alias(normalized, "loreActions", "lore_actions");
+        alias(normalized, "equipSlot", "equip_slot");
+        alias(normalized, "eaAttributes", "ea_attributes");
+        alias(normalized, "skills", "es_skills");
+        alias(normalized, "esSkills", "es_skills");
+        alias(normalized, "skillTriggers", "skill_triggers");
+        alias(normalized, "esSkillTriggers", "es_skill_triggers");
+        aliasLegacyComponentFields(normalized);
+        normalizeLegacyVanillaSource(normalized);
 
-    private Map<String, Object> variables(Map<String, ?> rawDefinition) {
-        Map<String, Object> result = new LinkedHashMap<>(objectMap(rawDefinition.get("variables")));
-        Map<String, Object> metadata = objectMap(rawDefinition.get("metadata"));
+        Object componentsRaw = normalized.get("components");
+        if (componentsRaw instanceof Map<?, ?> componentsMap) {
+            Map<String, Object> components = plainMap(componentsMap);
+            aliasLegacyComponentFields(components);
+            normalized.put("components", components);
+        }
+
+        Object itemRaw = normalized.get("item");
+        if (itemRaw instanceof Map<?, ?> itemMap) {
+            Map<String, Object> item = plainMap(itemMap);
+            alias(item, "displayName", "display_name");
+            alias(item, "itemName", "item_name");
+            aliasLegacyComponentFields(item);
+            Object itemComponentsRaw = item.get("components");
+            if (itemComponentsRaw instanceof Map<?, ?> itemComponentsMap) {
+                Map<String, Object> itemComponents = plainMap(itemComponentsMap);
+                aliasLegacyComponentFields(itemComponents);
+                item.put("components", itemComponents);
+            }
+            normalizeLegacyVanillaSource(item);
+            normalized.put("item", item);
+        }
+
+        Map<String, Object> variables = plainMap(normalized.get("variables"));
+        Map<String, Object> metadata = plainMap(normalized.get("metadata"));
         if (!metadata.isEmpty()) {
-            result.put("metadata", metadata);
+            variables.put("metadata", metadata);
         }
-        List<String> tags = stringList(rawDefinition.get("tags"));
+        List<String> tags = Texts.asStringList(normalized.get("tags"));
         if (!tags.isEmpty()) {
-            result.put("tags", tags);
+            variables.put("tags", tags);
         }
-        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+        if (!variables.isEmpty()) {
+            normalized.put("variables", variables);
+        }
+        return normalized;
     }
 
-    private Map<String, Object> objectMap(Object raw) {
+    private void aliasLegacyComponentFields(Map<String, Object> values) {
+        alias(values, "customModelData", "custom_model_data");
+        alias(values, "itemModel", "item_model");
+        alias(values, "tooltipStyle", "tooltip_style");
+        alias(values, "itemFlags", "item_flags");
+        alias(values, "hideTooltip", "hide_tooltip");
+        alias(values, "enchantmentGlintOverride", "enchantment_glint_override");
+        alias(values, "maxStackSize", "max_stack_size");
+        alias(values, "maxDamage", "max_damage");
+        alias(values, "attributeModifiers", "attribute_modifiers");
+    }
+
+    private void normalizeLegacyVanillaSource(Map<String, Object> values) {
+        Object rawSource = values.get("source");
+        if (!(rawSource instanceof String source) || ItemSourceUtil.parse(source) != null) {
+            return;
+        }
+        var material = ItemSourceUtil.resolveVanillaMaterial(source);
+        if (material != null && material.isItem()) {
+            values.put("source", ItemSourceUtil.canonicalVanillaShorthand(material.name()));
+        }
+    }
+
+    private Map<String, Object> plainMap(Object raw) {
         Map<String, Object> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
-            if (Texts.isNotBlank(entry.getKey())) {
-                result.put(Texts.normalizeId(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
-            }
+        ConfigNodes.entries(raw).forEach((key, value) -> result.put(key, ConfigNodes.toPlainData(value)));
+        return result;
+    }
+
+    private void alias(Map<String, Object> values, String source, String target) {
+        if (!values.containsKey(source)) {
+            return;
         }
-        return result.isEmpty() ? Map.of() : Map.copyOf(result);
-    }
-
-    private Map<String, List<String>> actionMap(Object raw) {
-        Map<String, List<String>> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
-            List<String> lines = stringList(entry.getValue());
-            if (Texts.isNotBlank(entry.getKey()) && !lines.isEmpty()) {
-                result.put(Texts.normalizeId(entry.getKey()), lines);
-            }
+        if (!values.containsKey(target)) {
+            values.put(target, values.get(source));
         }
-        return result.isEmpty() ? Map.of() : Map.copyOf(result);
-    }
-
-    private List<String> stringList(Object raw) {
-        return Texts.asStringList(raw).stream().filter(Texts::isNotBlank).map(String::trim).toList();
-    }
-
-    private Map<String, String> stringMap(Object raw) {
-        Map<String, String> result = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
-            String key = Texts.normalizeId(entry.getKey());
-            String value = Texts.normalizeId(Texts.toStringSafe(entry.getValue())).replace('-', '_');
-            if (Texts.isNotBlank(key) && Texts.isNotBlank(value)) {
-                result.put(key, value);
-            }
+        if (!source.equals(target)) {
+            values.remove(source);
         }
-        return result.isEmpty() ? Map.of() : Map.copyOf(result);
     }
 
-    private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
+    private void recordError(ScriptModuleContext context,
+            JavaScriptRegistrationTracker tracker,
+            String id,
+            String phase,
+            String message) {
         if (tracker != null) {
             tracker.recordError(scriptPath(context), REGISTRATION_TYPE, id, phase, message);
         }
@@ -231,71 +231,7 @@ public final class JavaScriptItemDefinitionRegistry {
         if (raw instanceof Boolean value) {
             return value;
         }
-        if (raw == null) {
-            return fallback;
-        }
-        return Boolean.parseBoolean(Texts.toStringSafe(raw));
-    }
-
-    private static Boolean boolObject(Object raw) {
-        if (raw == null) {
-            return null;
-        }
-        if (raw instanceof Boolean value) {
-            return value;
-        }
-        String text = Texts.toStringSafe(raw);
-        return Texts.isBlank(text) ? null : Boolean.parseBoolean(text);
-    }
-
-    private static Integer intObject(Object raw) {
-        if (raw instanceof Number number) {
-            return number.intValue();
-        }
-        try {
-            String text = Texts.toStringSafe(raw);
-            return Texts.isBlank(text) ? null : Integer.parseInt(text);
-        } catch (NumberFormatException exception) {
-            return null;
-        }
-    }
-
-    private static int intValue(Object raw, int fallback) {
-        if (raw instanceof Number number) {
-            return number.intValue();
-        }
-        try {
-            return Integer.parseInt(Texts.toStringSafe(raw));
-        } catch (NumberFormatException exception) {
-            return fallback;
-        }
-    }
-
-    private static Object firstPresent(Map<String, ?> rawDefinition, Map<String, Object> componentMap, String... keys) {
-        if (keys == null || keys.length == 0) {
-            return null;
-        }
-        if (rawDefinition != null) {
-            for (String key : keys) {
-                if (rawDefinition.containsKey(key)) {
-                    return rawDefinition.get(key);
-                }
-            }
-        }
-        if (componentMap != null) {
-            for (String key : keys) {
-                String normalized = Texts.normalizeId(key);
-                if (componentMap.containsKey(normalized)) {
-                    return componentMap.get(normalized);
-                }
-            }
-        }
-        return null;
-    }
-
-    private static String firstText(Map<String, ?> rawDefinition, Map<String, Object> componentMap, String snakeKey, String camelKey) {
-        String text = Texts.toStringSafe(firstPresent(rawDefinition, componentMap, snakeKey, camelKey));
-        return Texts.isBlank(text) ? "" : text;
+        return raw == null ? fallback : Boolean.parseBoolean(Texts.toStringSafe(raw));
     }
 
     private static String scriptPath(ScriptModuleContext context) {

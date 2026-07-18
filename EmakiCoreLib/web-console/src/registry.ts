@@ -148,7 +148,7 @@ export type InsightDefinitionContext = {
   path?: string;
 };
 
-export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string, extra?: { options?: string[]; optionLabelPrefix?: string }];
+export type StandardGuiFieldEntry = [path: string, label: string, comment: string, type: string, extra?: Partial<WebEditorField>];
 export type ConfigMetaFieldEntry = [path: string, label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
 export type ConfigRuleFieldEntry = [label: string, comment: string, type?: string, extra?: ConfigNodeMetaOverride];
 export type ConfigFileSchemaEntry = { pathPrefix?: string; pathPattern?: string; fields: ConfigMetaFieldEntry[] };
@@ -799,11 +799,14 @@ export function standardGuiFields(entries: StandardGuiFieldEntry[] = []): Record
     ['rows', '箱子行数', '仅 CHEST 类型可用，范围 1-6。', 'number'],
     ['type', '槽位类型', '插件业务识别的槽位语义。', 'text'],
     ['slots', '槽位', '槽位索引列表或槽位配置。', 'list'],
-    ['item', '物品', '槽位显示物品，支持原版材料或 ItemSource。', 'text'],
-    ['display_name', '显示名', '槽位物品显示名称，支持 MiniMessage。', 'text'],
-    ['lore', 'Lore', '槽位物品描述，每行一条。', 'stringList']
+    ['item.source', '物品来源', '槽位基础物品来源，支持原版材料或 ItemSource。', 'text'],
+    ['item.amount', '数量', '槽位基础物品堆叠数量。', 'number'],
+    ['item.components', '物品组件', 'namespaced component id 到任意 YAML/JSON 等价值的映射。', 'itemComponents', { reservedComponentIds: ['minecraft:custom_name', 'minecraft:item_name', 'minecraft:lore'] }],
+    ['item.components.minecraft:custom_name', '显示名', '槽位物品显示名称，支持 MiniMessage。', 'text'],
+    ['item.components.minecraft:item_name', '原版名称', '影响堆叠判断的原版 item_name 组件。', 'text'],
+    ['item.components.minecraft:lore', 'Lore', '槽位物品描述，每行一条。', 'stringList']
   ];
-  return Object.fromEntries([...base, ...entries].map(([path, label, comment, type, extra]) => [path, { path, label, comment, type, options: extra?.options ? [...extra.options] : undefined, optionLabelPrefix: extra?.optionLabelPrefix }]));
+  return Object.fromEntries([...base, ...entries].map(([path, label, comment, type, extra]) => [path, { ...(extra ?? {}), path, label, comment, type, options: extra?.options ? [...extra.options] : undefined }]));
 }
 
 export function registerSourceDocumentAdapter(reg: { kind?: string; moduleId?: string; editorId?: string; adapter: SourceDocumentAdapter; priority?: number }): void {

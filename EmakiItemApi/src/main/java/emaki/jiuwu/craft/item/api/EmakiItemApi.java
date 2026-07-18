@@ -6,6 +6,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+
 /**
  * Static public API facade for creating and identifying EmakiItem custom items.
  *
@@ -86,6 +88,17 @@ public final class EmakiItemApi {
     }
 
     /**
+     * Returns the normalized shared item definition.
+     *
+     * @param id the item definition id
+     * @return the shared definition, or {@code null} when unavailable or unknown
+     */
+    public static @Nullable ConfiguredItemDefinition definition(@NotNull String id) {
+        Bridge resolved = bridge;
+        return resolved == null ? null : resolved.definition(id);
+    }
+
+    /**
      * Returns the configured display name for a definition.
      *
      * @param id the item definition id
@@ -128,6 +141,11 @@ public final class EmakiItemApi {
         /** {@return an immutable view of all loaded item definition ids} */
         @NotNull
         Set<String> definitionIds();
+
+        /** {@return the normalized shared definition, or null when unknown} */
+        default @Nullable ConfiguredItemDefinition definition(@NotNull String id) {
+            return null;
+        }
 
         /**
          * Returns the configured display name for a definition.

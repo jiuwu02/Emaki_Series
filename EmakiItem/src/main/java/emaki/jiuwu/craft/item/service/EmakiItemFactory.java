@@ -1,41 +1,33 @@
 package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.inventory.EquipmentSlotGroup;
-import org.bukkit.inventory.ItemFlag;
-import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
+import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
-import emaki.jiuwu.craft.item.model.ItemComponentsConfig;
-import emaki.jiuwu.craft.item.model.VanillaAttributeModifierConfig;
 import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 
 public final class EmakiItemFactory {
 
     private static final String DISPLAY_OPERATION_NAMESPACE = "emakiitem:item_display";
+    private static final List<String> RANDOM_TYPES = List.of(
+            "range", "uniform", "gaussian", "normal", "skew_normal", "triangle"
+    );
 
     private final EmakiItemLoader loader;
     private final EmakiItemIdResolver idResolver;
@@ -48,7 +40,10 @@ public final class EmakiItemFactory {
         this(loader, idResolver, pdcWriter, null);
     }
 
-    public EmakiItemFactory(EmakiItemLoader loader, EmakiItemIdResolver idResolver, EmakiItemPdcWriter pdcWriter, JavaScriptItemFactoryRegistry javaScriptFactories) {
+    public EmakiItemFactory(EmakiItemLoader loader,
+            EmakiItemIdResolver idResolver,
+            EmakiItemPdcWriter pdcWriter,
+            JavaScriptItemFactoryRegistry javaScriptFactories) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
@@ -64,18 +59,29 @@ public final class EmakiItemFactory {
         if (definition == null) {
             return null;
         }
-        ItemStack itemStack = definition.hasRandomElements()
-                ? build(definition)
-                : prototypeCache.computeIfAbsent(definition.id(), ignored -> build(definition)).clone();
-        // amount<=0 视为"未显式指定"，回退到 definition 配置的默认数量；>0 显式覆盖。
+        ItemStack itemStack;
+        if (definition.hasRandomElements()) {
+            itemStack = build(definition);
+        } else {
+            ItemStack prototype = prototypeCache.get(definition.id());
+            if (prototype == null) {
+                prototype = build(definition);
+                if (prototype != null) {
+                    prototypeCache.put(definition.id(), prototype.clone());
+                }
+            }
+            itemStack = prototype == null ? null : prototype.clone();
+        }
+        if (itemStack == null) {
+            return null;
+        }
+        // amount<=0 means no explicit override and falls back to the definition amount.
         int resolved = amount > 0 ? amount : definition.amount();
         itemStack.setAmount(Math.max(1, Math.min(resolved, itemStack.getMaxStackSize())));
         return fireCreateEvent(id, itemStack.getAmount(), itemStack);
     }
 
     private ItemStack fireCreateEvent(String id, int amount, ItemStack itemStack) {
-        // 物品创建可能由 CoreLib 物品源解析、异步奖励发放等路径触发；
-        // Bukkit 同步事件只能在主线程派发，异步路径下跳过事件以避免 AsyncCatcher。
         if (!Bukkit.isPrimaryThread()) {
             return itemStack;
         }
@@ -93,26 +99,47 @@ public final class EmakiItemFactory {
             return null;
         }
         ItemStack itemStack = build(definition);
+        if (itemStack == null) {
+            return null;
+        }
         itemStack.setAmount(Math.max(1, Math.min(amount, itemStack.getMaxStackSize())));
         return itemStack;
     }
 
     private ItemStack build(EmakiItemDefinition definition) {
-        ItemStack itemStack = baseItem(definition);
-        Map<String, Object> variables = resolveBuildVariables(definition.variables());
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta != null) {
-            applyText(itemMeta, definition, variables);
-            applyComponents(itemMeta, definition, variables);
-            itemStack.setItemMeta(itemMeta);
+        PreparedBuild prepared = prepareBuild(definition);
+        return prepared == null ? null : finishBuild(prepared.itemStack(), definition, prepared.variables());
+    }
+
+    PreparedBuild prepareBuild(EmakiItemDefinition definition) {
+        if (definition == null) {
+            return null;
         }
-        pdcWriter.write(itemStack, definition, variables);
-        applyDisplayActions(itemStack, definition, variables);
+        Map<String, Object> variables = resolveBuildVariables(definition.variables());
+        ConfiguredItemDefinition resolvedDefinition = resolveItemDefinition(definition.itemDefinition(), variables).withAmount(1);
+        ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(resolvedDefinition);
+        if (!result.success() || result.itemStack() == null) {
+            return null;
+        }
+        return new PreparedBuild(result.itemStack(), resolvedDefinition, variables);
+    }
+
+    ItemStack finishBuild(ItemStack itemStack,
+            EmakiItemDefinition definition,
+            Map<String, Object> variables) {
+        if (itemStack == null || definition == null) {
+            return null;
+        }
+        pdcWriter.write(itemStack, definition, variables == null ? Map.of() : variables);
+        applyDisplayActions(itemStack, definition, variables == null ? Map.of() : variables);
         return itemStack;
     }
 
-    private void applyDisplayActions(ItemStack itemStack, EmakiItemDefinition definition, Map<String, Object> variables) {
-        if (itemStack == null || definition == null || (!hasActions(definition.nameActions()) && !hasActions(definition.loreActions()))) {
+    private void applyDisplayActions(ItemStack itemStack,
+            EmakiItemDefinition definition,
+            Map<String, Object> variables) {
+        if (itemStack == null || definition == null
+                || (!hasActions(definition.nameActions()) && !hasActions(definition.loreActions()))) {
             return;
         }
         itemOperationLedger.apply(
@@ -126,25 +153,16 @@ public final class EmakiItemFactory {
     }
 
     private boolean hasActions(Object raw) {
-        if (raw == null) return false;
-        if (raw instanceof Map<?, ?> map) return !map.isEmpty();
-        if (raw instanceof Iterable<?> iterable) return iterable.iterator().hasNext();
+        if (raw == null) {
+            return false;
+        }
+        if (raw instanceof Map<?, ?> map) {
+            return !map.isEmpty();
+        }
+        if (raw instanceof Iterable<?> iterable) {
+            return iterable.iterator().hasNext();
+        }
         return Texts.isNotBlank(raw);
-    }
-
-    private ItemStack baseItem(EmakiItemDefinition definition) {
-        if (definition == null || Texts.isBlank(definition.components().raw())) {
-            return new ItemStack(definition.material(), 1);
-        }
-        String materialKey = definition.material().getKey().toString();
-        String raw = definition.components().raw().trim();
-        String itemString = raw.startsWith(materialKey) ? raw : materialKey + raw;
-        try {
-            ItemStack itemStack = Bukkit.getItemFactory().createItemStack(itemString);
-            return itemStack == null || itemStack.getType().isAir() ? new ItemStack(definition.material(), 1) : itemStack;
-        } catch (IllegalArgumentException exception) {
-            return new ItemStack(definition.material(), 1);
-        }
     }
 
     private Map<String, Object> resolveBuildVariables(Map<String, Object> rawVariables) {
@@ -155,186 +173,64 @@ public final class EmakiItemFactory {
         return resolved.isEmpty() ? Map.of() : Map.copyOf(resolved);
     }
 
-    private void applyText(ItemMeta itemMeta, EmakiItemDefinition definition, Map<String, Object> variables) {
-        String displayName = ExpressionEngine.evaluateStringConfig(definition.displayName(), variables);
-        if (Texts.isNotBlank(displayName)) {
-            ItemTextBridge.customName(itemMeta, MiniMessages.parse(displayName));
+    private ConfiguredItemDefinition resolveItemDefinition(ConfiguredItemDefinition definition,
+            Map<String, Object> variables) {
+        if (definition == null) {
+            return new ConfiguredItemDefinition(null, 1, Map.of());
         }
-        if (Texts.isNotBlank(definition.itemName())) {
-            itemMeta.itemName(MiniMessages.parse(ExpressionEngine.evaluateStringConfig(definition.itemName(), variables)));
-        }
-        List<String> lore = ExpressionEngine.evaluateStringLinesConfig(definition.lore(), variables);
-        if (!lore.isEmpty()) {
-            ItemTextBridge.setLoreLines(itemMeta, lore);
-        }
+        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
+        definition.components().forEach((componentId, patch) -> patches.put(componentId,
+                patch.operation() == ItemComponentPatch.Operation.SET
+                        ? ItemComponentPatch.set(resolveComponentValue(componentId, patch.value(), variables))
+                        : patch));
+        String source = definition.source() == null
+                ? null
+                : Texts.formatTemplate(definition.source(), variables);
+        return new ConfiguredItemDefinition(source, definition.amount(), patches);
     }
 
-    private void applyComponents(ItemMeta itemMeta, EmakiItemDefinition definition, Map<String, Object> variables) {
-        ItemComponentsConfig components = definition.components();
-        applyCustomModelData(itemMeta, components.customModelData());
-        if (Texts.isNotBlank(components.itemModel())) {
-            NamespacedKey key = NamespacedKey.fromString(components.itemModel());
-            if (key != null) {
-                itemMeta.setItemModel(key);
-            }
+    private Object resolveComponentValue(String componentId, Object raw, Map<String, Object> variables) {
+        if ("minecraft:custom_name".equals(componentId) || "minecraft:item_name".equals(componentId)) {
+            return ExpressionEngine.evaluateStringConfig(raw, variables);
         }
-        if (Texts.isNotBlank(components.tooltipStyle())) {
-            NamespacedKey key = NamespacedKey.fromString(components.tooltipStyle());
-            if (key != null) {
-                itemMeta.setTooltipStyle(key);
-            }
+        if ("minecraft:lore".equals(componentId)) {
+            return ExpressionEngine.evaluateStringLinesConfig(raw, variables);
         }
-        components.enchantments().forEach((id, level) -> {
-            Enchantment enchantment = resolveEnchantment(id);
-            if (enchantment != null) {
-                itemMeta.addEnchant(enchantment, level, true);
-            }
-        });
-        for (String flag : components.itemFlags()) {
-            try {
-                itemMeta.addItemFlags(ItemFlag.valueOf(flag.toUpperCase(Locale.ROOT)));
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        if (components.hideTooltip()) {
-            itemMeta.setHideTooltip(true);
-        }
-        itemMeta.setUnbreakable(components.unbreakable());
-        if (components.enchantmentGlintOverride() != null) {
-            itemMeta.setEnchantmentGlintOverride(components.enchantmentGlintOverride());
-        }
-        if (components.maxStackSize() != null && components.maxStackSize() > 0) {
-            itemMeta.setMaxStackSize(components.maxStackSize());
-        }
-        if (Texts.isNotBlank(components.rarity())) {
-            try {
-                itemMeta.setRarity(ItemRarity.valueOf(components.rarity().toUpperCase(Locale.ROOT)));
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
-        if (itemMeta instanceof Damageable damageable && components.damage() != null) {
-            damageable.setDamage(Math.max(0, components.damage()));
-            if (components.maxDamage() != null && components.maxDamage() > 0) {
-                damageable.setMaxDamage(components.maxDamage());
-            }
-        }
-        if (components.enchantable() != null && components.enchantable() >= 0) {
-            itemMeta.setEnchantable(components.enchantable());
-        }
-        applyAttributeModifiers(itemMeta, definition, variables);
+        return resolvePlainValue(raw, variables);
     }
 
-    private void applyCustomModelData(ItemMeta itemMeta, Object raw) {
-        if (raw == null) {
-            return;
+    private Object resolvePlainValue(Object raw, Map<String, Object> variables) {
+        Object value = ConfigNodes.toPlainData(raw);
+        if (value instanceof String text) {
+            return Texts.formatTemplate(text, variables);
         }
-        if (raw instanceof Number number) {
-            CustomModelDataComponent component = itemMeta.getCustomModelDataComponent();
-            component.setFloats(List.of(number.floatValue()));
-            itemMeta.setCustomModelDataComponent(component);
-            return;
-        }
-        if (!(raw instanceof Map<?, ?> map)) {
-            Integer value = Numbers.tryParseInt(raw, null);
-            if (value != null) {
-                CustomModelDataComponent component = itemMeta.getCustomModelDataComponent();
-                component.setFloats(List.of(value.floatValue()));
-                itemMeta.setCustomModelDataComponent(component);
+        if (value instanceof Map<?, ?> map) {
+            if (isRandomConfig(map)) {
+                return ExpressionEngine.evaluateRandomConfig(map, variables);
             }
-            return;
+            Map<String, Object> resolved = new LinkedHashMap<>();
+            map.forEach((key, nested) -> {
+                if (key != null) {
+                    resolved.put(String.valueOf(key), resolvePlainValue(nested, variables));
+                }
+            });
+            return resolved;
         }
-        CustomModelDataComponent component = itemMeta.getCustomModelDataComponent();
-        component.setFloats(floatList(map.get("floats")));
-        component.setFlags(booleanList(map.get("flags")));
-        component.setStrings(stringList(map.get("strings")));
-        component.setColors(colorList(map.get("colors")));
-        itemMeta.setCustomModelDataComponent(component);
+        if (value instanceof Iterable<?> iterable) {
+            List<Object> resolved = new ArrayList<>();
+            iterable.forEach(nested -> resolved.add(resolvePlainValue(nested, variables)));
+            return resolved;
+        }
+        return value;
     }
 
-    private void applyAttributeModifiers(ItemMeta itemMeta, EmakiItemDefinition definition, Map<String, Object> variables) {
-        for (VanillaAttributeModifierConfig config : definition.components().attributeModifiers()) {
-            Attribute attribute = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(config.attribute()));
-            Double amount = resolveNumber(config.amount(), variables);
-            if (attribute == null || amount == null) {
-                continue;
-            }
-            AttributeModifier.Operation operation = switch (Texts.normalizeId(config.operation())) {
-                case "add_scalar" -> AttributeModifier.Operation.ADD_SCALAR;
-                case "multiply_scalar_1" -> AttributeModifier.Operation.MULTIPLY_SCALAR_1;
-                default -> AttributeModifier.Operation.ADD_NUMBER;
-            };
-            NamespacedKey key = NamespacedKey.fromString(config.name());
-            if (key == null) {
-                key = new NamespacedKey("emakiitem", definition.id() + "/" + config.attribute());
-            }
-            itemMeta.addAttributeModifier(attribute, new AttributeModifier(key, amount, operation, slot(config.slot())));
-        }
+    private boolean isRandomConfig(Map<?, ?> map) {
+        String type = Texts.normalizeId(Texts.toStringSafe(map.get("type"))).replace('-', '_');
+        return RANDOM_TYPES.contains(type);
     }
 
-    private Double resolveNumber(Object raw, Map<String, Object> variables) {
-        if (raw instanceof Number number) {
-            return number.doubleValue();
-        }
-        if (raw instanceof Map<?, ?>) {
-            return ExpressionEngine.evaluateRandomConfig(raw, variables);
-        }
-        return Numbers.tryParseDouble(ExpressionEngine.evaluateStringConfig(raw, variables), null);
-    }
-
-    private EquipmentSlotGroup slot(String raw) {
-        return switch (Texts.normalizeId(raw)) {
-            case "hand", "mainhand", "main_hand" -> EquipmentSlotGroup.HAND;
-            case "off_hand", "offhand" -> EquipmentSlotGroup.OFFHAND;
-            case "head", "helmet" -> EquipmentSlotGroup.HEAD;
-            case "chest", "chestplate" -> EquipmentSlotGroup.CHEST;
-            case "legs", "leggings" -> EquipmentSlotGroup.LEGS;
-            case "feet", "boots" -> EquipmentSlotGroup.FEET;
-            default -> EquipmentSlotGroup.ANY;
-        };
-    }
-
-    private Enchantment resolveEnchantment(String raw) {
-        if (Texts.isBlank(raw)) {
-            return null;
-        }
-        String keyText = raw.contains(":") ? raw : "minecraft:" + raw.toLowerCase(Locale.ROOT);
-        NamespacedKey key = NamespacedKey.fromString(keyText);
-        return key == null ? null : Registry.ENCHANTMENT.get(key);
-    }
-
-    private List<Float> floatList(Object raw) {
-        List<Float> result = new ArrayList<>();
-        for (String entry : Texts.asStringList(raw)) {
-            Double value = Numbers.tryParseDouble(entry, null);
-            if (value != null) {
-                result.add(value.floatValue());
-            }
-        }
-        return result;
-    }
-
-    private List<Boolean> booleanList(Object raw) {
-        List<Boolean> result = new ArrayList<>();
-        for (String entry : Texts.asStringList(raw)) {
-            result.add(Boolean.parseBoolean(entry));
-        }
-        return result;
-    }
-
-    private List<String> stringList(Object raw) {
-        return Texts.asStringList(raw);
-    }
-
-    private List<org.bukkit.Color> colorList(Object raw) {
-        List<org.bukkit.Color> result = new ArrayList<>();
-        for (String entry : Texts.asStringList(raw)) {
-            String value = entry.startsWith("#") ? entry.substring(1) : entry;
-            try {
-                int rgb = Integer.parseInt(value, 16);
-                result.add(org.bukkit.Color.fromRGB(rgb));
-            } catch (RuntimeException ignored) {
-            }
-        }
-        return result;
+    record PreparedBuild(ItemStack itemStack,
+            ConfiguredItemDefinition itemDefinition,
+            Map<String, Object> variables) {
     }
 }

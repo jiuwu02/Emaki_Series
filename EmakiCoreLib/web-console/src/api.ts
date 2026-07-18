@@ -1,6 +1,6 @@
 import { isGlobPath } from './documentPaths';
 import { t } from './i18n';
-import type { ConfigFile, GuiDocument, ItemDocument, ItemPreviewResult, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
+import type { ConfigFile, GuiDocument, ItemComponentCapability, ItemDocument, ItemPreviewResult, ModuleStatus, RuntimeLibrary, WebConfigNode, WebRegistry } from './types';
 
 export type ActionTypesResult = { nameActions: string[]; loreActions: string[] };
 export type EconomyProvidersResult = { providers: string[]; availableProviders: string[] };
@@ -38,6 +38,7 @@ export class ApiError extends Error {
 
 export class ApiClient {
   private actionTypesCache: ActionTypesResult | null = null;
+  private componentCapabilitiesCache: ItemComponentCapability[] | null = null;
   private economyProvidersCache: EconomyProvidersResult | null = null;
 
   constructor(private token: string | null, private onUnauthorized: () => void) { }
@@ -251,6 +252,13 @@ export class ApiClient {
     const data = await this.request('/api/items/action-types');
     this.actionTypesCache = { nameActions: data.nameActions ?? [], loreActions: data.loreActions ?? [] };
     return this.actionTypesCache;
+  }
+
+  async itemComponentCapabilities(): Promise<ItemComponentCapability[]> {
+    if (this.componentCapabilitiesCache) return this.componentCapabilitiesCache;
+    const data = await this.request('/api/items/component-capabilities');
+    this.componentCapabilitiesCache = Array.isArray(data.capabilities) ? data.capabilities as ItemComponentCapability[] : [];
+    return this.componentCapabilitiesCache;
   }
 
   async insightSearch(query: string): Promise<InsightSearchResult[]> {

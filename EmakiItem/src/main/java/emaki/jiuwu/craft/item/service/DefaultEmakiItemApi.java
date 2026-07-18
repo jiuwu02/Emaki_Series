@@ -4,6 +4,7 @@ import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -40,6 +41,12 @@ public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
     @Override
     public Set<String> definitionIds() {
         return loader.all().keySet();
+    }
+
+    @Override
+    public ConfiguredItemDefinition definition(String id) {
+        var definition = loader.get(id);
+        return definition == null ? null : definition.itemDefinition();
     }
 
     @Override

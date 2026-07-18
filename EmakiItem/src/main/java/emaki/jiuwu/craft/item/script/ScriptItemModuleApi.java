@@ -72,7 +72,14 @@ public final class ScriptItemModuleApi {
                         ? null
                         : plugin.itemFactory().rebuildBase(itemDefinition, itemDefinition.amount());
                 Map<String, Object> summary = ScriptServiceApiSupport.itemSummary(itemStack);
-                if (!summary.isEmpty()) {
+                if (itemDefinition != null) {
+                    Map<String, Object> snapshot = new LinkedHashMap<>(summary);
+                    Map<String, Object> normalizedItem = itemDefinition.normalizedItemSnapshot();
+                    snapshot.put("schemaVersion", 2);
+                    snapshot.put("item", normalizedItem);
+                    snapshot.put("components", normalizedItem.getOrDefault("components", Map.of()));
+                    items.put(id, ScriptSnapshots.immutableMap(snapshot));
+                } else if (!summary.isEmpty()) {
                     items.put(id, summary);
                 }
             }

@@ -5,12 +5,20 @@ function register() {
 
   item.registerDefinition({
     id: "js_event_sword",
-    source: "minecraft:diamond_sword",
-    display_name: "<red>JS 活动之剑</red>",
-    lore: [
-      "<gray>由 JavaScript 运行时注册</gray>",
-      "<yellow>攻击 +10</yellow>"
-    ],
+    // 注册控制字段：同 ID YAML 已存在时，只有 override=true 才允许覆盖。
+    override: false,
+    item: {
+      source: "minecraft:diamond_sword",
+      amount: 1,
+      components: {
+        "minecraft:custom_name": "<red>JS 活动之剑</red>",
+        "minecraft:lore": [
+          "<gray>由 JavaScript 运行时注册</gray>",
+          "<yellow>攻击 +10</yellow>"
+        ],
+        "minecraft:enchantment_glint_override": true
+      }
+    },
     ea_attributes: {
       attack_damage: 10
     },
@@ -36,12 +44,19 @@ function createRelic(ctx) {
   }
   const roll = emaki.random.integer(0, 99);
   return {
-    source: "minecraft:nether_star",
-    display_name: roll >= 50 ? "<light_purple>闪耀随机遗物</light_purple>" : "<aqua>随机遗物</aqua>",
-    lore: [
-      "<gray>由 JavaScript Factory 动态生成</gray>",
-      "<dark_gray>roll=" + roll + "</dark_gray>"
-    ],
+    item: {
+      source: "minecraft:nether_star",
+      amount: ctx.amount,
+      components: {
+        "minecraft:custom_name": roll >= 50
+          ? "<light_purple>闪耀随机遗物</light_purple>"
+          : "<aqua>随机遗物</aqua>",
+        "minecraft:lore": [
+          "<gray>由 JavaScript Factory 动态生成</gray>",
+          "<dark_gray>roll=" + roll + "</dark_gray>"
+        ]
+      }
+    },
     variables: {
       roll: roll
     }

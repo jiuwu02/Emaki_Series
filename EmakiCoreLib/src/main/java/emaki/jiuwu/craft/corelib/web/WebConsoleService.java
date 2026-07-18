@@ -123,6 +123,7 @@ public final class WebConsoleService {
             createContext("/api/resources/save", postAuth(this::handleResourceSave));
             createContext("/api/items/preview", postAuth(this::handleItemPreview));
             createContext("/api/items/action-types", auth(this::handleItemActionTypes));
+            createContext("/api/items/component-capabilities", auth(this::handleItemComponentCapabilities));
             createContext("/api/economy/providers", auth(this::handleEconomyProviders));
             createContext("/api/insight/search", auth(this::handleInsightSearch));
             createContext("/api/insight/references", auth(this::handleInsightReferences));
@@ -1018,6 +1019,24 @@ public final class WebConsoleService {
 
     private void handleItemActionTypes(WebRequestContext context) throws IOException {
         runServerError(context, () -> context.ok(itemPreviewService.actionTypes()));
+    }
+
+    private void handleItemComponentCapabilities(WebRequestContext context) throws IOException {
+        runServerError(context, () -> {
+            var configuredItems = plugin.configuredItemService();
+            var capabilities = configuredItems == null
+                    ? java.util.List.<java.util.Map<String, Object>>of()
+                    : configuredItems.capabilities().stream()
+                            .map(capability -> java.util.Map.<String, Object>of(
+                                    "id", capability.componentId(),
+                                    "minimumVersion", capability.minimumMinecraftVersion(),
+                                    "supported", capability.supported(),
+                                    "genericBridgeSupported", capability.genericBridgeSupported(),
+                                    "valueFormat", capability.valueFormat()
+                            ))
+                            .toList();
+            context.ok(java.util.Map.of("capabilities", capabilities));
+        });
     }
 
     private void handleInsightSearch(WebRequestContext context) throws IOException {

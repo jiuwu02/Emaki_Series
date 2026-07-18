@@ -9,21 +9,42 @@ import java.util.logging.Logger;
 
 import org.bukkit.Material;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssue;
+import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class EmakiItemDefinitionParser {
 
     private final Logger logger;
+    private final ConfiguredItemParser configuredItemParser;
+    private final LegacyConfiguredItemConverter legacyConverter;
 
     public EmakiItemDefinitionParser(Logger logger) {
+        this(logger, new ConfiguredItemParser());
+    }
+
+    public EmakiItemDefinitionParser(Logger logger, ConfiguredItemParser configuredItemParser) {
         this.logger = logger;
+        this.configuredItemParser = configuredItemParser == null ? new ConfiguredItemParser() : configuredItemParser;
+        this.legacyConverter = new LegacyConfiguredItemConverter(this.configuredItemParser);
+    }
+
+    public EmakiItemDefinition parse(Map<String, ?> root, String source) {
+        return parse(root == null ? null : new MapYamlSection(root), source);
     }
 
     public EmakiItemDefinition parse(YamlSection root, String source) {
@@ -31,33 +52,47 @@ public final class EmakiItemDefinitionParser {
             return null;
         }
         String id = Texts.normalizeId(root.getString("id"));
-        String materialName = root.getString("material", "");
-        Material material = ItemSourceUtil.resolveVanillaMaterial(materialName);
-        if (Texts.isBlank(id) || material == null || !material.isItem()) {
-            warning("Skipping item definition " + source + ": invalid id or material '" + materialName + "'.");
+        if (Texts.isBlank(id)) {
+            warning("Skipping item definition " + source + ": invalid or missing id.");
+            return null;
+        }
+        ConfiguredItemDefinition itemDefinition;
+        try {
+            itemDefinition = parseConfiguredItem(root, id, source);
+        } catch (IllegalArgumentException exception) {
+            warning("Skipping item definition " + source + ": " + exception.getMessage());
             return null;
         }
         List<Map<?, ?>> effects = root.getMapList("effects");
         Map<String, Object> variables = parseVariables(root, effects);
+        Map<String, Object> resolvedValidationVariables;
+        try {
+            resolvedValidationVariables = variables.isEmpty()
+                    ? Map.of()
+                    : ExpressionEngine.resolveMixedVariables(variables, Map.of());
+        } catch (RuntimeException exception) {
+            warning("Skipping item definition " + source + ": variable validation failed: " + exception.getMessage());
+            return null;
+        }
+        if (!validateConfiguredItem(itemDefinition, source, resolvedValidationVariables)) {
+            return null;
+        }
+
         Map<String, Object> attributes = parseAttributes(root, effects);
-        ItemComponentsConfig components = parseComponents(root.getSection("components"), id);
-        boolean random = containsRandom(root.get("lore"))
-                || containsRandom(root.get("display_name"))
+        boolean random = containsRandom(itemDefinition.components().values().stream()
+                .filter(patch -> patch.operation() == ItemComponentPatch.Operation.SET)
+                .map(ItemComponentPatch::value)
+                .toList())
                 || containsRandom(root.get("name_actions"))
                 || containsRandom(root.get("lore_actions"))
                 || containsRandom(root.get("variables"))
-                || containsRandom(effects)
-                || components.attributeModifiers().stream().anyMatch(VanillaAttributeModifierConfig::randomAmount);
+                || containsRandom(effects);
         return new EmakiItemDefinition(
                 id,
-                material,
-                root.get("display_name"),
-                root.getString("item_name", ""),
-                root.get("lore"),
+                itemDefinition,
                 parseDisplayActions(root, effects, "name_action", "name_actions", "name_action"),
                 parseDisplayActions(root, effects, "lore_action", "lore_actions", "lore_action"),
                 variables,
-                components,
                 attributes,
                 parseSkills(root, effects),
                 parseSkillTriggers(root, effects),
@@ -67,9 +102,169 @@ public final class EmakiItemDefinitionParser {
                 parseActions(root.getSection("actions")),
                 parseUpdate(root.getSection("update"), id, source),
                 parseRepair(root.getSection("repair")),
-                root.getInt("amount", 1),
                 random
         );
+    }
+
+    private ConfiguredItemDefinition parseConfiguredItem(YamlSection root, String itemId, String sourceLabel) {
+        Object nestedItem = root.get("item");
+        boolean hasNestedItem = nestedItem instanceof Map<?, ?> || nestedItem instanceof YamlSection || nestedItem instanceof String;
+        Object configuredNode = hasNestedItem ? nestedItem : root;
+        ConfiguredItemDefinition shared = configuredItemParser.parse(configuredNode);
+        String itemSource = shared.source();
+        if (Texts.isBlank(itemSource) && hasNestedItem && root.get("source") != null) {
+            itemSource = configuredItemParser.parse(Map.of("source", root.get("source"))).source();
+        }
+        if (Texts.isBlank(itemSource)) {
+            itemSource = legacyMaterialSource(root.getString("material", ""));
+        }
+        int amount = hasNestedItem && ConfigNodes.contains(configuredNode, "amount")
+                ? shared.amount()
+                : Math.max(1, root.getInt("amount", shared.amount()));
+
+        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
+        patches.putAll(shared.components());
+        removeLegacyOnlyComponentPatches(patches, configuredNode);
+        ConfiguredItemDefinition converted = legacyConverter.convert(itemSource, amount, configuredNode, Map.of());
+        patches.putAll(converted.components());
+        YamlSection legacyComponents = ConfigNodes.section(configuredNode, "components");
+        patches.putAll(parseComponents(legacyComponents, itemId).toComponentPatches());
+        overlayLegacyTextComponents(patches, configuredNode);
+
+        if (hasNestedItem) {
+            ConfiguredItemDefinition rootLegacy = legacyConverter.convert(itemSource, amount, root, Map.of());
+            rootLegacy.components().forEach(patches::putIfAbsent);
+            parseComponents(root.getSection("components"), itemId).toComponentPatches().forEach(patches::putIfAbsent);
+            overlayLegacyTextComponentsFallback(patches, root);
+        }
+        warnIgnoredRawComponent(configuredNode, sourceLabel);
+        if (hasNestedItem) {
+            warnIgnoredRawComponent(root, sourceLabel);
+        }
+        return new ConfiguredItemDefinition(itemSource, amount, patches);
+    }
+
+    private void removeLegacyOnlyComponentPatches(Map<String, ItemComponentPatch> patches, Object raw) {
+        Object components = ConfigNodes.get(raw, "components");
+        for (String legacyKey : List.of("raw", "item_flags", "hide_tooltip", "hide-tooltip",
+                "hidden_components", "custommodeldata", "item-model", "display_name")) {
+            if (ConfigNodes.contains(components, legacyKey)) {
+                patches.remove("minecraft:" + legacyKey);
+            }
+        }
+    }
+
+    private void overlayLegacyTextComponents(Map<String, ItemComponentPatch> patches, Object raw) {
+        Object displayName = first(raw, "display_name", "displayName");
+        if (displayName != null) {
+            patches.put("minecraft:custom_name", ItemComponentPatch.set(ConfigNodes.toPlainData(displayName)));
+        }
+        Object itemName = first(raw, "item_name", "itemName");
+        if (itemName != null && Texts.isNotBlank(itemName)) {
+            patches.put("minecraft:item_name", ItemComponentPatch.set(ConfigNodes.toPlainData(itemName)));
+        }
+        if (ConfigNodes.contains(raw, "lore")) {
+            Object lore = ConfigNodes.get(raw, "lore");
+            patches.put("minecraft:lore", ItemComponentPatch.set(ConfigNodes.toPlainData(lore == null ? List.of() : lore)));
+        }
+    }
+
+    private void overlayLegacyTextComponentsFallback(Map<String, ItemComponentPatch> patches, Object raw) {
+        Map<String, ItemComponentPatch> legacyText = new LinkedHashMap<>();
+        overlayLegacyTextComponents(legacyText, raw);
+        legacyText.forEach(patches::putIfAbsent);
+    }
+
+    private Object first(Object raw, String... keys) {
+        for (String key : keys) {
+            if (ConfigNodes.contains(raw, key)) {
+                return ConfigNodes.get(raw, key);
+            }
+        }
+        return null;
+    }
+
+    private String legacyMaterialSource(String materialName) {
+        Material material = ItemSourceUtil.resolveVanillaMaterial(materialName);
+        return material == null || !material.isItem()
+                ? null
+                : "minecraft-" + material.name().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean validateConfiguredItem(ConfiguredItemDefinition definition,
+            String source,
+            Map<String, Object> variables) {
+        if (!EmakiCoreLibApi.available()) {
+            warning("Skipping item definition " + source + ": EmakiCoreLib configured-item API is unavailable.");
+            return false;
+        }
+        ItemBuildResult result;
+        try {
+            result = EmakiCoreLibApi.createConfiguredItem(resolveValidationDefinition(definition, variables));
+        } catch (RuntimeException | LinkageError exception) {
+            warning("Skipping item definition " + source + ": configured-item validation API failed: " + exception.getMessage());
+            return false;
+        }
+        for (ItemBuildIssue issue : result.issues()) {
+            warning("Item definition " + source + " [" + Texts.toStringSafe(issue.componentId()) + "]: " + issue.message());
+        }
+        if (!result.success() || result.hasErrors() || result.itemStack() == null) {
+            warning("Skipping item definition " + source + ": item source or component validation failed.");
+            return false;
+        }
+        return true;
+    }
+
+    private ConfiguredItemDefinition resolveValidationDefinition(ConfiguredItemDefinition definition,
+            Map<String, Object> variables) {
+        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
+        definition.components().forEach((componentId, patch) -> patches.put(componentId,
+                patch.operation() == ItemComponentPatch.Operation.SET
+                        ? ItemComponentPatch.set(resolveValidationValue(componentId, patch.value(), variables))
+                        : patch));
+        String source = definition.source() == null
+                ? null
+                : Texts.formatTemplate(definition.source(), variables);
+        return new ConfiguredItemDefinition(source, definition.amount(), patches);
+    }
+
+    private Object resolveValidationValue(String componentId, Object raw, Map<String, Object> variables) {
+        if ("minecraft:custom_name".equals(componentId) || "minecraft:item_name".equals(componentId)) {
+            return ExpressionEngine.evaluateStringConfig(raw, variables);
+        }
+        if ("minecraft:lore".equals(componentId)) {
+            return ExpressionEngine.evaluateStringLinesConfig(raw, variables);
+        }
+        Object value = ConfigNodes.toPlainData(raw);
+        if (value instanceof String text) {
+            return Texts.formatTemplate(text, variables);
+        }
+        if (value instanceof Map<?, ?> map) {
+            String type = Texts.normalizeId(Texts.toStringSafe(map.get("type"))).replace('-', '_');
+            if (List.of("range", "uniform", "gaussian", "normal", "skew_normal", "triangle").contains(type)) {
+                return ExpressionEngine.evaluateRandomConfig(map, variables);
+            }
+            Map<String, Object> resolved = new LinkedHashMap<>();
+            map.forEach((key, nested) -> {
+                if (key != null) {
+                    resolved.put(String.valueOf(key), resolveValidationValue(componentId, nested, variables));
+                }
+            });
+            return resolved;
+        }
+        if (value instanceof Iterable<?> iterable) {
+            List<Object> resolved = new ArrayList<>();
+            iterable.forEach(nested -> resolved.add(resolveValidationValue(componentId, nested, variables)));
+            return resolved;
+        }
+        return value;
+    }
+
+    private void warnIgnoredRawComponent(Object raw, String source) {
+        Object components = ConfigNodes.get(raw, "components");
+        if (Texts.isNotBlank(ConfigNodes.get(components, "raw"))) {
+            warning("Item definition " + source + " uses legacy components.raw; the shared item model cannot safely normalize this free-form item string, so it was ignored.");
+        }
     }
 
     private ItemComponentsConfig parseComponents(YamlSection section, String itemId) {

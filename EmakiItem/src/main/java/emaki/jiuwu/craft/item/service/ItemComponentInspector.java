@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 public final class ItemComponentInspector {
 
@@ -70,6 +71,17 @@ public final class ItemComponentInspector {
             json.put(entry.id(), jsonValue(entry));
         }
         return JsonWriter.write(json);
+    }
+
+    public String prettyYaml(ItemStack itemStack) {
+        return YamlFiles.dump(Map.of("components", yamlComponents(parse(raw(itemStack)).values()))).stripTrailing();
+    }
+
+    public String prettyYaml(ItemStack itemStack, String componentId) {
+        String normalizedId = normalizeComponentId(componentId);
+        ComponentEntry entry = parse(raw(itemStack)).get(normalizedId);
+        Collection<ComponentEntry> entries = entry == null ? List.of() : List.of(entry);
+        return YamlFiles.dump(Map.of("components", yamlComponents(entries))).stripTrailing();
     }
 
     public ComponentEntry component(ItemStack itemStack, String componentId) {
@@ -137,6 +149,31 @@ public final class ItemComponentInspector {
             return Map.of("removed", true);
         }
         return parseJsonishValue(entry.value());
+    }
+
+    private Map<String, Object> yamlComponents(Collection<ComponentEntry> entries) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        List<String> unset = new ArrayList<>();
+        for (ComponentEntry entry : entries == null ? List.<ComponentEntry>of() : entries) {
+            if (entry == null) {
+                continue;
+            }
+            String yamlId = yamlComponentId(entry.id());
+            if (entry.removed()) {
+                unset.add(yamlId);
+            } else {
+                result.put(yamlId, parseJsonishValue(entry.value()));
+            }
+        }
+        if (!unset.isEmpty()) {
+            result.put("$unset", List.copyOf(unset));
+        }
+        return result;
+    }
+
+    private String yamlComponentId(String componentId) {
+        String normalized = normalizeComponentId(componentId);
+        return normalized.startsWith("minecraft:") ? normalized.substring("minecraft:".length()) : normalized;
     }
 
     private Object parseJsonishValue(String raw) {

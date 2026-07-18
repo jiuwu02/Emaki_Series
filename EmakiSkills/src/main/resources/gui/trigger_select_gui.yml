@@ -28,20 +28,24 @@ slots:
       - 23
       - 24
       - 25
-    display_name: "<green>%trigger%</green>"
-    lore:
-      - "<gray>ID: <white>%trigger_id%</white></gray>"
-      - "<gray>%description%</gray>"
-      - "<dark_gray>冲突: %conflict%</dark_gray>"
+    item:
+      components:
+        custom_name: "<green>%trigger%</green>"
+        lore:
+          - "<gray>ID: <white>%trigger_id%</white></gray>"
+          - "<gray>%description%</gray>"
+          - "<dark_gray>冲突: %conflict%</dark_gray>"
 
   back:
     type: back
     slots:
       - 31
-    item: "arrow"
-    display_name: "<yellow>返回</yellow>"
-    lore:
-      - "<gray>返回技能界面</gray>"
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<yellow>返回</yellow>"
+        lore:
+          - "<gray>返回技能界面</gray>"
 
   border:
     type: filler
@@ -67,7 +71,9 @@ slots:
       - 33
       - 34
       - 35
-    item: "black_stained_glass_pane"
-    display_name: " "
-    lore:
-      - ""
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: " "
+        lore:
+          - ""

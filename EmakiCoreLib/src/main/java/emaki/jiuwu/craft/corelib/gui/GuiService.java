@@ -20,6 +20,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
 public final class GuiService implements Listener, GuiSessionRegistry {
@@ -28,6 +29,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
     private final Map<UUID, GuiSession> sessions = new ConcurrentHashMap<>();
     private final AsyncGuiRenderer asyncGuiRenderer;
     private final GuiBackend backend;
+    private final ConfiguredItemService configuredItemService;
 
     public GuiService(JavaPlugin plugin,
             AsyncTaskScheduler asyncTaskScheduler,
@@ -45,6 +47,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                 performanceMonitor
         );
         this.backend = backend == null ? new BukkitGuiBackend() : backend;
+        this.configuredItemService = this.backend.configuredItemService();
     }
 
     public GuiSession open(GuiOpenRequest request) {
@@ -94,6 +97,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                 request.template(),
                 request.replacements(),
                 request.itemFactory(),
+                configuredItemService,
                 request.renderer(),
                 request.handler(),
                 resolveBackend(),

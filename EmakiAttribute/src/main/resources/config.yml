@@ -8,7 +8,7 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.5.7"
+version: "4.6.0"
 
 # 语言文件 ID
 language: zh_CN

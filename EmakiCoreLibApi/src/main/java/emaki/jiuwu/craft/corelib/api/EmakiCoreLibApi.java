@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.api;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -12,6 +14,9 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionDescriptor;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 
 /**
  * Static public API facade for the shared EmakiCoreLib runtime core.
@@ -97,6 +102,55 @@ public final class EmakiCoreLibApi {
     public static @NotNull String itemDisplayName(@Nullable ItemStack itemStack) {
         Bridge resolved = bridge;
         return resolved == null ? "" : resolved.itemDisplayName(itemStack);
+    }
+
+    /** Creates an item from a version-independent configured definition. */
+    public static @NotNull ItemBuildResult createConfiguredItem(@Nullable ConfiguredItemDefinition definition) {
+        return createConfiguredItem(definition, Map.of());
+    }
+
+    /** Creates an item after recursively replacing string values in the definition. */
+    public static @NotNull ItemBuildResult createConfiguredItem(@Nullable ConfiguredItemDefinition definition,
+            @Nullable Map<String, ?> replacements) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? ItemBuildResult.unavailable("EmakiCoreLib is unavailable.")
+                : resolved.createConfiguredItem(definition, replacements == null ? Map.of() : replacements);
+    }
+
+    /** Applies a configured definition as a patch to an existing item stack. */
+    public static @NotNull ItemBuildResult applyConfiguredItem(@Nullable ItemStack itemStack,
+            @Nullable ConfiguredItemDefinition definition) {
+        return applyConfiguredItem(itemStack, definition, Map.of());
+    }
+
+    /** Applies a configured definition after recursively replacing its string values. */
+    public static @NotNull ItemBuildResult applyConfiguredItem(@Nullable ItemStack itemStack,
+            @Nullable ConfiguredItemDefinition definition,
+            @Nullable Map<String, ?> replacements) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? ItemBuildResult.unavailable("EmakiCoreLib is unavailable.")
+                : resolved.applyConfiguredItem(itemStack, definition, replacements == null ? Map.of() : replacements);
+    }
+
+    /** {@return the current runtime/catalog item component capabilities} */
+    public static @NotNull List<ItemComponentCapability> itemComponentCapabilities() {
+        Bridge resolved = bridge;
+        return resolved == null ? List.of() : List.copyOf(resolved.itemComponentCapabilities());
+    }
+
+    /** {@return one component capability, or null when the id is unknown} */
+    public static @Nullable ItemComponentCapability itemComponentCapability(@Nullable String componentId) {
+        if (componentId == null || componentId.isBlank()) {
+            return null;
+        }
+        String trimmed = componentId.trim().toLowerCase(Locale.ROOT);
+        String normalized = trimmed.contains(":") ? trimmed : "minecraft:" + trimmed;
+        return itemComponentCapabilities().stream()
+                .filter(capability -> capability.componentId().equals(normalized))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -194,6 +248,24 @@ public final class EmakiCoreLibApi {
         /** {@return unified MiniMessage display name for a real item stack} */
         @NotNull
         String itemDisplayName(@Nullable ItemStack itemStack);
+
+        /** Creates an item from a configured definition. */
+        default @NotNull ItemBuildResult createConfiguredItem(@Nullable ConfiguredItemDefinition definition,
+                @Nullable Map<String, ?> replacements) {
+            return ItemBuildResult.unavailable("Configured item creation is unsupported by this EmakiCoreLib bridge.");
+        }
+
+        /** Applies configured component patches to an existing item. */
+        default @NotNull ItemBuildResult applyConfiguredItem(@Nullable ItemStack itemStack,
+                @Nullable ConfiguredItemDefinition definition,
+                @Nullable Map<String, ?> replacements) {
+            return ItemBuildResult.unavailable("Configured item patching is unsupported by this EmakiCoreLib bridge.");
+        }
+
+        /** {@return the current runtime/catalog component capabilities} */
+        default @NotNull List<ItemComponentCapability> itemComponentCapabilities() {
+            return List.of();
+        }
 
         /** Registers an external action. */
         @NotNull

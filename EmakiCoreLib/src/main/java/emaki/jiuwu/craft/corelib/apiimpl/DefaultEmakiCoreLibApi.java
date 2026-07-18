@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.apiimpl;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -15,6 +16,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionDescriptor;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
@@ -58,6 +63,30 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         ItemSource source = plugin.itemSourceService().identifyItem(itemStack);
         String displayName = plugin.itemSourceService().displayName(source);
         return Texts.isBlank(displayName) ? ItemTextBridge.effectiveNameText(itemStack) : displayName;
+    }
+
+    @Override
+    public ItemBuildResult createConfiguredItem(ConfiguredItemDefinition definition, Map<String, ?> replacements) {
+        ConfiguredItemService service = plugin.configuredItemService();
+        return service == null
+                ? ItemBuildResult.unavailable("CoreLib configured item service is unavailable.")
+                : service.create(definition, replacements);
+    }
+
+    @Override
+    public ItemBuildResult applyConfiguredItem(ItemStack itemStack,
+            ConfiguredItemDefinition definition,
+            Map<String, ?> replacements) {
+        ConfiguredItemService service = plugin.configuredItemService();
+        return service == null
+                ? ItemBuildResult.unavailable("CoreLib configured item service is unavailable.")
+                : service.apply(itemStack, definition, replacements);
+    }
+
+    @Override
+    public List<ItemComponentCapability> itemComponentCapabilities() {
+        ConfiguredItemService service = plugin.configuredItemService();
+        return service == null ? List.of() : service.capabilities();
     }
 
     @Override

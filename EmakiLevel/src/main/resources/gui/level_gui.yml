@@ -28,61 +28,73 @@ slots:
       - 32
       - 33
       - 34
-    display_name: "<gold>%type_display_name%</gold> <gray>Lv.%level%</gray>"
-    lore:
-      - "<gray>等级: <yellow>%level%</yellow><dark_gray>/</dark_gray><gold>%max_level%</gold></gray>"
-      - "<gray>经验: <aqua>%exp%</aqua><dark_gray>/</dark_gray><blue>%required_exp%</blue></gray>"
-      - "<gray>累计: <white>%total_exp%</white></gray>"
-      - "<gray>进度: %progress_bar% <white>%progress_percent%%</white></gray>"
-      - "<gray>状态: %status%</gray>"
-      - ""
-      - "<yellow>左键</yellow><gray>查看详情</gray>"
-      - "<yellow>右键</yellow><gray>手动升级一次</gray>"
-      - "<yellow>Shift+右键</yellow><gray>连续升级</gray>"
+    item:
+      components:
+        custom_name: "<gold>%type_display_name%</gold> <gray>Lv.%level%</gray>"
+        lore:
+          - "<gray>等级: <yellow>%level%</yellow><dark_gray>/</dark_gray><gold>%max_level%</gold></gray>"
+          - "<gray>经验: <aqua>%exp%</aqua><dark_gray>/</dark_gray><blue>%required_exp%</blue></gray>"
+          - "<gray>累计: <white>%total_exp%</white></gray>"
+          - "<gray>进度: %progress_bar% <white>%progress_percent%%</white></gray>"
+          - "<gray>状态: %status%</gray>"
+          - ""
+          - "<yellow>左键</yellow><gray>查看详情</gray>"
+          - "<yellow>右键</yellow><gray>手动升级一次</gray>"
+          - "<yellow>Shift+右键</yellow><gray>连续升级</gray>"
 
   top_button:
     type: top_button
     slots:
       - 4
-    item: "gold_ingot"
-    display_name: "<gold>%type_display_name% 排行榜</gold>"
-    lore:
-      - "<gray>查看当前选中等级类型的排行榜</gray>"
-      - "<yellow>点击打开</yellow>"
+    item:
+      source: "gold_ingot"
+      components:
+        custom_name: "<gold>%type_display_name% 排行榜</gold>"
+        lore:
+          - "<gray>查看当前选中等级类型的排行榜</gray>"
+          - "<yellow>点击打开</yellow>"
 
   page_prev:
     type: page_prev
     slots:
       - 45
-    item: "arrow"
-    display_name: "<gray>上一页</gray>"
-    lore:
-      - "<dark_gray>点击翻到上一页</dark_gray>"
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>上一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到上一页</dark_gray>"
 
   page_info:
     type: page_info
     slots:
       - 49
-    item: "book"
-    display_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
-    lore:
-      - "<gray>等级类型数量: <white>%type_count%</white></gray>"
+    item:
+      source: "book"
+      components:
+        custom_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
+        lore:
+          - "<gray>等级类型数量: <white>%type_count%</white></gray>"
 
   page_next:
     type: page_next
     slots:
       - 53
-    item: "arrow"
-    display_name: "<gray>下一页</gray>"
-    lore:
-      - "<dark_gray>点击翻到下一页</dark_gray>"
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>下一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到下一页</dark_gray>"
 
   close:
     type: close
     slots:
       - 0
-    item: "barrier"
-    display_name: "<red>关闭</red>"
+    item:
+      source: "barrier"
+      components:
+        custom_name: "<red>关闭</red>"
 
   border:
     type: filler
@@ -115,5 +127,7 @@ slots:
       - 50
       - 51
       - 52
-    item: "black_stained_glass_pane"
-    display_name: " "
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: " "

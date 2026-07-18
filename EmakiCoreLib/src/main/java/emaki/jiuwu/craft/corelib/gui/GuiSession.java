@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.kyori.adventure.text.Component;
@@ -23,6 +24,7 @@ public final class GuiSession implements InventoryHolder {
     private final Player viewer;
     private final GuiTemplate template;
     private final GuiItemBuilder.ItemFactory itemFactory;
+    private final ConfiguredItemService configuredItemService;
     private final GuiRenderer renderer;
     private final GuiSessionHandler handler;
     private final GuiBackend backend;
@@ -37,6 +39,7 @@ public final class GuiSession implements InventoryHolder {
             GuiTemplate template,
             Map<String, ?> replacements,
             GuiItemBuilder.ItemFactory itemFactory,
+            ConfiguredItemService configuredItemService,
             GuiRenderer renderer,
             GuiSessionHandler handler,
             GuiBackend backend,
@@ -45,6 +48,7 @@ public final class GuiSession implements InventoryHolder {
         this.viewer = viewer;
         this.template = template;
         this.itemFactory = itemFactory;
+        this.configuredItemService = configuredItemService;
         this.renderer = renderer;
         this.handler = handler == null ? new GuiSessionHandler() {
         } : handler;
@@ -106,13 +110,15 @@ public final class GuiSession implements InventoryHolder {
                 GuiTemplate.ResolvedSlot resolved = new GuiTemplate.ResolvedSlot(slot, inventorySlot, index);
                 ItemStack rendered = renderer == null ? null : renderer.render(this, resolved);
                 if (rendered == null) {
-                    rendered = GuiItemBuilder.build(
-                            slot.item(),
-                            slot.components(),
-                            1,
-                            replacements,
-                            itemFactory
-                    );
+                    rendered = configuredItemService == null
+                            ? GuiItemBuilder.build(
+                                    slot.item(),
+                                    slot.components(),
+                                    1,
+                                    replacements,
+                                    itemFactory
+                            )
+                            : GuiItemBuilder.build(slot.itemDefinition(), replacements, configuredItemService);
                 }
                 renderedSlots.put(inventorySlot, rendered);
             }

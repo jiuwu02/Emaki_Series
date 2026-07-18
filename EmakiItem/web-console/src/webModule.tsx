@@ -1,5 +1,5 @@
 import React from 'react';
-import { DisclosureChevron, ItemEditorSurface, PropRow, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, coreEffectDefinition, defineCapabilities, defineEmakiPluginWebModule, defineFileKindLabel, defineItemEditor, defineItemFieldRenderer, defineLocales, defineSourceDocumentAdapter, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, payloadEffectDefinition, textValue, type AnyMap, type ConfigMetaFieldEntry, type ItemFieldRendererContext } from 'emaki-web-console';
+import { DisclosureChevron, ItemEditorSurface, PropRow, StandardEffectsEditor, StringListEditor, asList, asRecord, asStringList, canonicalizeItemDocument, coreEffectDefinition, defineCapabilities, defineEmakiPluginWebModule, defineFileKindLabel, defineItemEditor, defineItemFieldRenderer, defineLocales, defineSourceDocumentAdapter, fieldLabel, getLocale, humanizeFieldLabel, localeText, optionLabel, parseYaml, payloadEffectDefinition, serializeItemYaml, textValue, type AnyMap, type ConfigMetaFieldEntry, type ItemFieldRendererContext } from 'emaki-web-console';
 
 export const emakiItemWebModule = (() => {
   const MODULE = 'EmakiItem';
@@ -9,12 +9,10 @@ export const emakiItemWebModule = (() => {
   type ConfigSpec = [path: string, label: string, comment: string, type: string];
   type ItemFieldSpec = [path: string, label: string, comment: string, type: string, extra?: Record<string, unknown>];
 
-  const RARITIES = ['common', 'uncommon', 'rare', 'epic'];
   const CONDITION_TYPES = ['all_of', 'any_of', 'none_of', 'at_least', 'exactly'];
   const ATTRIBUTE_OPERATIONS = ['add_number', 'add_scalar', 'multiply_scalar_1'];
   const EQUIPMENT_SLOTS = ['any', 'hand', 'mainhand', 'offhand', 'head', 'chest', 'legs', 'feet', 'body'];
   const EQUIP_SLOTS = ['all', 'hand', 'main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
-  const ITEM_FLAGS = ['HIDE_ENCHANTS', 'HIDE_ATTRIBUTES', 'HIDE_UNBREAKABLE', 'HIDE_DESTROYS', 'HIDE_PLACED_ON', 'HIDE_ADDITIONAL_TOOLTIP', 'HIDE_DYE', 'HIDE_ARMOR_TRIM'];
   const SET_SLOTS = ['main_hand', 'off_hand', 'helmet', 'chestplate', 'leggings', 'boots'];
   const copy = localeText;
   type SetDocumentContext = { path?: string; childPath?: string };
@@ -51,6 +49,10 @@ export const emakiItemWebModule = (() => {
   const missingSetPathError = (context?: SetDocumentContext) => {
     const path = normalizeDocumentPath(context?.childPath || context?.path) || 'unknown';
     return new Error(copy(`请选择具体套装文件。当前路径：${path}`, `Select a concrete set file. Current path: ${path}`));
+  };
+  const missingItemPathError = (context?: SetDocumentContext) => {
+    const path = normalizeDocumentPath(context?.childPath || context?.path) || 'unknown';
+    return new Error(copy(`请选择具体物品文件。当前路径：${path}`, `Select a concrete item file. Current path: ${path}`));
   };
 
   const configFields: ConfigSpec[] = [
@@ -120,11 +122,12 @@ export const emakiItemWebModule = (() => {
 
   const itemEditorFields: ItemFieldSpec[] = [
     ['id', 'ID', '物品定义唯一标识，加载时会 normalize。', 'text'],
-    ['material', '材质', 'Bukkit Material，必须是原版物品。', 'material'],
+    ['item.source', '物品来源', '基础物品来源，支持原版材料或 CoreLib ItemSource。', 'text'],
+    ['item.amount', '数量', '基础物品堆叠数量。', 'number'],
     ['equip_slot', '生效槽位', '控制属性与技能在哪个装备槽位生效，不负责原版穿戴拦截。', 'enum', { options: EQUIP_SLOTS, optionLabelPrefix: 'equipSlot' }],
-    ['display_name', '显示名称', '支持 MiniMessage 与 %变量% 占位。', 'text'],
-    ['item_name', '原版 item_name', '原版 item_name 组件，不参与变量渲染。', 'text'],
-    ['lore', 'Lore', '支持 MiniMessage 与 %变量% 占位。', 'stringList', { wide: true }],
+    ['item.components.minecraft:custom_name', '显示名称', 'minecraft:custom_name，支持 MiniMessage 与 %变量% 占位。', 'text'],
+    ['item.components.minecraft:item_name', '原版 item_name', 'minecraft:item_name，不参与变量渲染。', 'text'],
+    ['item.components.minecraft:lore', 'Lore', 'minecraft:lore，支持 MiniMessage 与 %变量% 占位。', 'stringList', { wide: true }],
     ['name_actions', '名称动作链', '生成显示名称时执行的标准动作链。', 'actions', { wide: true }],
     ['lore_actions', 'Lore 动作链', '生成 Lore 时执行的标准动作链。', 'actions', { wide: true }],
     ['update.enabled', '启用更新', '关闭时其余 update 字段不会生效。', 'boolean'],
@@ -143,21 +146,7 @@ export const emakiItemWebModule = (() => {
     ['variables', '变量', '表达式变量映射，支持固定值、公式、随机数值、随机文本、随机字符、权重随机字符和条件字符。', 'variablesMap', { wide: true }],
     ['ea_attributes', 'EA 属性', 'EmakiAttribute 属性数值映射。', 'map', { wide: true }],
     ['es_skills', 'ES 技能', 'EmakiSkills 技能 ID 列表。', 'stringList', { wide: true }],
-    ['components.custom_model_data', '模型数据', '数字或 1.21.4+ floats、flags、strings、colors 复合结构。', 'json', { wide: true }],
-    ['components.item_model', '物品模型', '资源包 item model 标识。', 'text'],
-    ['components.tooltip_style', 'Tooltip 样式', '资源包 tooltip_style 标识。', 'text'],
-    ['components.enchantments', '附魔', '附魔 ID 到等级的映射。', 'map', { wide: true }],
-    ['components.item_flags', '物品标志', 'Bukkit ItemFlag 固定值。', 'multiEnum', { options: ITEM_FLAGS, optionLabelPrefix: 'itemFlag', wide: true }],
-    ['components.hide_tooltip', '隐藏 Tooltip', '写入 hide_tooltip 组件。', 'boolean'],
-    ['components.unbreakable', '不可破坏', '写入 unbreakable 组件。', 'boolean'],
-    ['components.enchantment_glint_override', '附魔光效', '覆盖附魔光效。', 'boolean'],
-    ['components.max_stack_size', '最大堆叠', 'max_stack_size 组件。', 'number'],
-    ['components.rarity', '稀有度', 'Minecraft rarity 固定值。', 'enum', { options: RARITIES, optionLabelPrefix: 'rarity' }],
-    ['components.damage', '当前损伤', 'damage 组件。', 'number'],
-    ['components.max_damage', '最大耐久', 'max_damage 组件。', 'number'],
-    ['components.enchantable', '可附魔等级', 'enchantable 组件。', 'number'],
-    ['components.attribute_modifiers', '属性修饰符', '原版 attribute_modifiers 列表。', 'attributeModifiers', { wide: true }],
-    ['components.raw', 'Raw 组件', '高级用法，直接传递给 Bukkit。', 'textarea', { wide: true, rows: 3 }],
+    ['item.components', '原版组件', 'namespaced component id 到任意 YAML/JSON 等价值的映射；未知组件会完整保留。', 'itemComponents', { wide: true, reservedComponentIds: ['minecraft:custom_name', 'minecraft:item_name', 'minecraft:lore'] }],
     ['set.id', '套装 ID', '对应 sets/ 目录下的套装定义。', 'text'],
     ['set.piece', '套装部件', '此物品在套装中的部件标识。', 'text'],
     ['condition.entries', '条件表达式', '支持玩家变量的条件表达式列表。', 'stringList', { wide: true }],
@@ -306,6 +295,18 @@ export const emakiItemWebModule = (() => {
     'emakiitem.field.display_name': 'Display Name',
     'emakiitem.field.lore': 'Lore',
     'emakiitem.field.item_sources': 'Item Sources',
+    'emakiitem.field.item.source': 'Item Source',
+    'emakiitem.comment.item.source': 'Base item source. Vanilla materials and CoreLib ItemSource values are accepted.',
+    'emakiitem.field.item.amount': 'Amount',
+    'emakiitem.comment.item.amount': 'Base item stack amount.',
+    'emakiitem.field.item.components.minecraft:custom_name': 'Display Name',
+    'emakiitem.comment.item.components.minecraft:custom_name': 'minecraft:custom_name; supports MiniMessage and variable placeholders.',
+    'emakiitem.field.item.components.minecraft:item_name': 'Vanilla Item Name',
+    'emakiitem.comment.item.components.minecraft:item_name': 'minecraft:item_name; it is not rendered with variables.',
+    'emakiitem.field.item.components.minecraft:lore': 'Lore',
+    'emakiitem.comment.item.components.minecraft:lore': 'minecraft:lore; supports MiniMessage and variable placeholders.',
+    'emakiitem.field.item.components': 'Vanilla Components',
+    'emakiitem.comment.item.components': 'Maps namespaced component IDs to arbitrary YAML/JSON-equivalent values while preserving unknown components.',
     'emakiitem.option.equipSlot.all': 'All slots',
     'emakiitem.option.equipSlot.hand': 'Either hand',
     'emakiitem.option.equipSlot.main_hand': 'Main hand',
@@ -329,6 +330,28 @@ export const emakiItemWebModule = (() => {
     { kind: 'SET', moduleId: MODULE, editorId: SET_EDITOR_ID, component: ItemEditorSurface, label: copy('EmakiItem 套装', 'EmakiItem Set'), priority: 120 },
     { kind: 'SET', moduleId: MODULE, component: ItemEditorSurface, label: copy('EmakiItem 套装', 'EmakiItem Set'), priority: 110 }
   ];
+
+  const itemSourceDocumentAdapter = defineSourceDocumentAdapter({
+    kind: 'ITEM',
+    editorId: EDITOR_ID,
+    priority: 120,
+    adapter: {
+      read: (api, context) => {
+        const path = concreteSetPath(context);
+        if (!path) return Promise.reject(missingItemPathError(context));
+        return api.readTextDocument({ kind: context.file.kind, moduleId: context.module.id, path });
+      },
+      save: (api, context, content, revision) => {
+        const path = concreteSetPath(context);
+        if (!path) return Promise.reject(missingItemPathError(context));
+        return api.saveTextDocument({ kind: context.file.kind, moduleId: context.module.id, path }, content, revision);
+      },
+      parse: content => canonicalizeItemDocument(parseYaml(content)),
+      serialize: data => serializeItemYaml(canonicalizeItemDocument(asRecord(data))),
+      language: 'yaml',
+      defaultContent: context => defaultItemContent(context.name)
+    }
+  });
 
   const sourceDocumentAdapter = defineSourceDocumentAdapter({
     kind: 'SET',
@@ -367,13 +390,13 @@ export const emakiItemWebModule = (() => {
     baseLore: [copy('<dark_gray>根据当前 YAML 草稿生成的物品预览</dark_gray>', '<dark_gray>Preview generated from the current YAML draft</dark_gray>')],
     preview: { kindLabels: { generic_item: 'emakiitem.preview.kind.generic_item', default: 'emakiitem.preview.kind.generic_item' }, layeredModule: 'item', layeredRoute: 'preview-layered' },
     rename: { module: 'item', previewRoute: 'rename-preview', applyRoute: 'rename-apply', aliasRoute: 'alias-list' },
-    allowedFieldTypes: ['effects', 'attributeModifiers', 'repairMaterials'],
+    allowedFieldTypes: ['effects', 'attributeModifiers', 'repairMaterials', 'itemComponents'],
     sections: [
-      { title: copy('基础信息', 'Basic info'), titleKey: 'emakiitem.section.basic', fields: fields(['id', 'material', 'equip_slot', 'display_name', 'item_name', 'lore']) },
+      { title: copy('基础信息', 'Basic info'), titleKey: 'emakiitem.section.basic', fields: fields(['id', 'item.source', 'item.amount', 'equip_slot', 'item.components.minecraft:custom_name', 'item.components.minecraft:item_name', 'item.components.minecraft:lore']) },
       { title: copy('显示动作链', 'Display actions'), titleKey: 'emakiitem.section.displayActions', collapsible: true, defaultCollapsed: true, fields: fields(['name_actions', 'lore_actions']) },
       { title: copy('更新策略', 'Update policy'), titleKey: 'emakiitem.section.update', collapsible: true, defaultCollapsed: true, fields: fields(['update.enabled', 'update.version', 'update.preserve_amount', 'update.preserve_damage', 'update.preserve_unknown_attribute_sources', 'update.triggers.join', 'update.triggers.held_change', 'update.triggers.inventory_click', 'update.triggers.inventory_drag', 'update.triggers.pickup', 'update.triggers.interact', 'update.triggers.command']) },
       { title: copy('效果与变量', 'Effects and variables'), titleKey: 'emakiitem.section.effects', collapsible: true, defaultCollapsed: true, fields: fields(['effects']) },
-      { title: copy('原版组件', 'Vanilla components'), titleKey: 'emakiitem.section.components', collapsible: true, defaultCollapsed: true, fields: fields(['components.custom_model_data', 'components.item_model', 'components.tooltip_style', 'components.enchantments', 'components.item_flags', 'components.hide_tooltip', 'components.unbreakable', 'components.enchantment_glint_override', 'components.max_stack_size', 'components.rarity', 'components.damage', 'components.max_damage', 'components.enchantable', 'components.attribute_modifiers', 'components.raw']) },
+      { title: copy('原版组件', 'Vanilla components'), titleKey: 'emakiitem.section.components', collapsible: true, defaultCollapsed: true, fields: fields(['item.components']) },
       { title: copy('套装归属', 'Set binding'), titleKey: 'emakiitem.section.setBinding', collapsible: true, defaultCollapsed: true, fields: fields(['set.id', 'set.piece']) },
       { title: copy('装备条件', 'Equipment conditions'), titleKey: 'emakiitem.section.conditions', collapsible: true, defaultCollapsed: true, fields: fields(['condition.entries', 'condition.type', 'condition.required_count', 'condition.invalid_as_failure', 'condition.on_fail.message', 'condition.on_pass.actions', 'condition.on_fail.actions']) },
       { title: copy('修复配置', 'Repair config'), titleKey: 'emakiitem.section.repair', collapsible: true, defaultCollapsed: true, fields: fields(['repair.enabled', 'repair.materials', 'repair.economy.enabled', 'repair.economy.restore', 'repair.economy.currencies', 'repair.disabled_display.name_prefix', 'repair.disabled_display.lore_append', 'repair.on_disabled', 'repair.on_repaired']) },
@@ -395,6 +418,22 @@ export const emakiItemWebModule = (() => {
       { title: copy('套装效果', 'Set effects'), titleKey: 'emakiitem.section.thresholds', collapsible: true, fields: setFields(['thresholds']) }
     ]
   };
+
+  function defaultItemContent(name: string): string {
+    const id = name.split('/').pop()?.replace(/\.(ya?ml)$/i, '').trim() || 'new_item';
+    return serializeItemYaml({
+      id,
+      item: {
+        source: 'STONE',
+        amount: 1,
+        components: {
+          'minecraft:custom_name': `<gray>${id}</gray>`,
+          'minecraft:lore': []
+        }
+      },
+      equip_slot: 'all'
+    });
+  }
 
   function defaultSetContent(name: string): string {
     const id = name.split('/').pop()?.replace(/\.(ya?ml)$/i, '').trim() || 'new_set';
@@ -690,7 +729,7 @@ export const emakiItemWebModule = (() => {
       ruleFields: commonItemFields
     },
     surfaces,
-    sourceDocumentAdapters: [sourceDocumentAdapter],
+    sourceDocumentAdapters: [itemSourceDocumentAdapter, sourceDocumentAdapter],
     itemEditors: [
       defineItemEditor({ editorId: EDITOR_ID, descriptor: itemEditorDescriptor, fields: itemEditorFields.map(([path, label, comment, type, extra]) => ({ path, label, comment, type, ...(extra ?? {}) })) }),
       defineItemEditor({ editorId: SET_EDITOR_ID, descriptor: setEditorDescriptor, fields: setEditorFields.map(([path, label, comment, type, extra]) => ({ path, label, comment, type, ...(extra ?? {}) })) })

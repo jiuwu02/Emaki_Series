@@ -105,6 +105,9 @@ final class ItemCommandRouter implements TabExecutor {
             switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
                 case "give", "inspect", "update" -> completePlayers(result, args[1]);
                 case "components", "component" -> {
+                    if ("yaml".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                        result.add("yaml");
+                    }
                     completePlayers(result, args[1]);
                     if (sender instanceof Player player) {
                         completeComponentIds(result, player, args[1]);
@@ -116,9 +119,25 @@ final class ItemCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 3 && ("components".equalsIgnoreCase(args[0]) || "component".equalsIgnoreCase(args[0]))) {
+            if ("yaml".equalsIgnoreCase(args[1])) {
+                completePlayers(result, args[2]);
+                if (sender instanceof Player player) {
+                    completeComponentIds(result, player, args[2]);
+                }
+                return result;
+            }
             Player target = Bukkit.getPlayerExact(args[1]);
             if (target != null) {
                 completeComponentIds(result, target, args[2]);
+            }
+            return result;
+        }
+        if (args.length == 4
+                && ("components".equalsIgnoreCase(args[0]) || "component".equalsIgnoreCase(args[0]))
+                && "yaml".equalsIgnoreCase(args[1])) {
+            Player target = Bukkit.getPlayerExact(args[2]);
+            if (target != null) {
+                completeComponentIds(result, target, args[3]);
             }
             return result;
         }
@@ -266,7 +285,14 @@ final class ItemCommandRouter implements TabExecutor {
                 plugin.messageService().send(sender, "command.components.not_found", Map.of("id", componentId));
                 return true;
             }
-            sendComponentEntry(sender, entry.id(), plugin.componentInspector().prettyJson(held, entry.id()));
+            String output = target.yaml()
+                    ? plugin.componentInspector().prettyYaml(held, entry.id())
+                    : plugin.componentInspector().prettyJson(held, entry.id());
+            sendComponentEntry(sender, entry.id(), output);
+            return true;
+        }
+        if (target.yaml()) {
+            sendComponentOutput(sender, plugin.componentInspector().prettyYaml(held));
             return true;
         }
         for (ItemComponentInspector.ComponentEntry entry : components.values()) {
@@ -276,22 +302,31 @@ final class ItemCommandRouter implements TabExecutor {
     }
 
     private ComponentTarget componentTarget(CommandSender sender, String[] args) {
-        if (args.length < 2) {
-            return new ComponentTarget(sender instanceof Player player ? player : null, "");
+        int index = 1;
+        boolean yaml = args.length > index && "yaml".equalsIgnoreCase(args[index]);
+        if (yaml) {
+            index++;
         }
-        Player named = Bukkit.getPlayerExact(args[1]);
+        if (args.length <= index) {
+            return new ComponentTarget(sender instanceof Player player ? player : null, "", yaml);
+        }
+        Player named = Bukkit.getPlayerExact(args[index]);
         if (named != null) {
-            return new ComponentTarget(named, args.length >= 3 ? args[2] : "");
+            return new ComponentTarget(named, args.length > index + 1 ? args[index + 1] : "", yaml);
         }
         if (sender instanceof Player player) {
-            return new ComponentTarget(player, args[1]);
+            return new ComponentTarget(player, args[index], yaml);
         }
-        return new ComponentTarget(null, "");
+        return new ComponentTarget(null, "", yaml);
     }
 
-    private void sendComponentEntry(CommandSender sender, String componentId, String json) {
+    private void sendComponentEntry(CommandSender sender, String componentId, String output) {
         plugin.messageService().sendComponent(sender, MiniMessages.parse(componentHeader(componentId)));
-        for (String line : Texts.toStringSafe(json).split("\\R", -1)) {
+        sendComponentOutput(sender, output);
+    }
+
+    private void sendComponentOutput(CommandSender sender, String output) {
+        for (String line : Texts.toStringSafe(output).split("\\R", -1)) {
             plugin.messageService().sendComponent(sender, MiniMessages.parse("<dark_gray>|</dark_gray> <white>" + MiniMessages.escape(line) + "</white>"));
         }
     }
@@ -512,7 +547,7 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("list [page]", plugin.messageService().message("command.help.desc.list"));
         lines.put("give <player> <id> [amount]", plugin.messageService().message("command.help.desc.give"));
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
-        lines.put("components [player] [component_id]", plugin.messageService().message("command.help.desc.components"));
+        lines.put("components [yaml] [player] [component_id]", plugin.messageService().message("command.help.desc.components"));
         lines.put("repair", plugin.messageService().message("command.help.desc.repair"));
         lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
         lines.put("alias list|add|remove", "管理物品 ID alias。");
@@ -532,6 +567,6 @@ final class ItemCommandRouter implements TabExecutor {
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
 
-    private record ComponentTarget(Player player, String componentId) {
+    private record ComponentTarget(Player player, String componentId, boolean yaml) {
     }
 }

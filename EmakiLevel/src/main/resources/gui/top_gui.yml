@@ -28,62 +28,76 @@ slots:
       - 32
       - 33
       - 34
-    display_name: "<gold>#%rank%</gold> <white>%player%</white>"
-    lore:
-      - "<gray>等级: <yellow>%level%</yellow></gray>"
-      - "<gray>累计经验: <aqua>%total_exp%</aqua></gray>"
-      - "<gray>类型: <white>%type_display_name%</white></gray>"
+    item:
+      components:
+        custom_name: "<gold>#%rank%</gold> <white>%player%</white>"
+        lore:
+          - "<gray>等级: <yellow>%level%</yellow></gray>"
+          - "<gray>累计经验: <aqua>%total_exp%</aqua></gray>"
+          - "<gray>类型: <white>%type_display_name%</white></gray>"
 
   type_info:
     type: type_info
     slots:
       - 4
-    item: "experience_bottle"
-    display_name: "<gold>%type_display_name%</gold>"
-    lore:
-      - "<gray>等级类型: <white>%type%</white></gray>"
-      - "<gray>收录玩家: <aqua>%entry_count%</aqua></gray>"
+    item:
+      source: "experience_bottle"
+      components:
+        custom_name: "<gold>%type_display_name%</gold>"
+        lore:
+          - "<gray>等级类型: <white>%type%</white></gray>"
+          - "<gray>收录玩家: <aqua>%entry_count%</aqua></gray>"
 
   page_prev:
     type: page_prev
     slots:
       - 45
-    item: "arrow"
-    display_name: "<gray>上一页</gray>"
-    lore:
-      - "<dark_gray>点击翻到上一页</dark_gray>"
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>上一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到上一页</dark_gray>"
 
   page_info:
     type: page_info
     slots:
       - 49
-    item: "book"
-    display_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
-    lore:
-      - "<gray>排行榜条目: <white>%entry_count%</white></gray>"
+    item:
+      source: "book"
+      components:
+        custom_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
+        lore:
+          - "<gray>排行榜条目: <white>%entry_count%</white></gray>"
 
   page_next:
     type: page_next
     slots:
       - 53
-    item: "arrow"
-    display_name: "<gray>下一页</gray>"
-    lore:
-      - "<dark_gray>点击翻到下一页</dark_gray>"
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>下一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到下一页</dark_gray>"
 
   back:
     type: back
     slots:
       - 48
-    item: "spectral_arrow"
-    display_name: "<yellow>返回等级面板</yellow>"
+    item:
+      source: "spectral_arrow"
+      components:
+        custom_name: "<yellow>返回等级面板</yellow>"
 
   close:
     type: close
     slots:
       - 0
-    item: "barrier"
-    display_name: "<red>关闭</red>"
+    item:
+      source: "barrier"
+      components:
+        custom_name: "<red>关闭</red>"
 
   border:
     type: filler
@@ -115,5 +129,7 @@ slots:
       - 50
       - 51
       - 52
-    item: "black_stained_glass_pane"
-    display_name: " "
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: " "

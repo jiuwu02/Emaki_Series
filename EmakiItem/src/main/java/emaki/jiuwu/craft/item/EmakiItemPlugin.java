@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -141,6 +142,12 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
                 ids.addAll(javaScriptDefinitionRegistry.ids());
             }
             return Set.copyOf(ids);
+        }
+
+        @Override
+        public @Nullable ConfiguredItemDefinition definition(String id) {
+            var definition = idResolver == null ? null : idResolver.resolveDefinition(id);
+            return definition == null ? null : definition.itemDefinition();
         }
 
         @Override

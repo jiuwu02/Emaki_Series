@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.5.2"
+version: "2.6.1"
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>You do not have permission.</red>"
@@ -67,7 +67,7 @@ command:
       list: "List item ids"
       give: "Give an item to a player"
       inspect: "Inspect held EmakiItem"
-      components: "Print held item components as JSON"
+      components: "Print held item components (JSON by default, optional yaml)"
       repair: "Open the item repair GUI"
       update: "Refresh item updates and set lore"
       reload: "Reload config and items"

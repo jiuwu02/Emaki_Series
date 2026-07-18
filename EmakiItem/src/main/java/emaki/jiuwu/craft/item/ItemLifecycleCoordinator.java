@@ -119,7 +119,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 idResolver,
                 itemFactory,
                 identifier,
-                pdcAttributeGateway::copyPayloads
+                pdcAttributeGateway::copyPayloads,
+                coreLibPlugin.itemAssemblyService()
         );
         EmakiItemSetService setService = new EmakiItemSetService(
                 itemLoader,

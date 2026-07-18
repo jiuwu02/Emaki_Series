@@ -23,10 +23,12 @@ slots:
       - 6
       - 7
       - 8
-    item: "minecraft-gray_stained_glass_pane"
-    display_name: "<gray>"
-    hidden_components:
-      - "tooltip"
+    item:
+      source: "minecraft-gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
 
   bottom_frame:
     slots:
@@ -38,10 +40,12 @@ slots:
       - 42
       - 43
       - 44
-    item: "minecraft-gray_stained_glass_pane"
-    display_name: "<gray>"
-    hidden_components:
-      - "tooltip"
+    item:
+      source: "minecraft-gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
 
   side_frame:
     slots:
@@ -51,74 +55,90 @@ slots:
       - 26
       - 27
       - 35
-    item: "minecraft-black_stained_glass_pane"
-    display_name: "<dark_gray>"
-    hidden_components:
-      - "tooltip"
+    item:
+      source: "minecraft-black_stained_glass_pane"
+      components:
+        custom_name: "<dark_gray>"
+        tooltip_display:
+          hide_tooltip: true
 
   target_item:
     slots:
       - 13
     type: "target_item"
-    item: "minecraft-light_blue_stained_glass_pane"
-    display_name: "<aqua>放入待修复装备</aqua>"
-    lore:
-      - "<gray>支持已启用 repair 的 EmakiItem 装备"
-      - "<gray>Shift 点击背包物品可快速放入"
+    item:
+      source: "minecraft-light_blue_stained_glass_pane"
+      components:
+        custom_name: "<aqua>放入待修复装备</aqua>"
+        lore:
+          - "<gray>支持已启用 repair 的 EmakiItem 装备"
+          - "<gray>Shift 点击背包物品可快速放入"
 
   preview_display:
     slots:
       - 15
     type: "preview_display"
-    item: "minecraft-book"
-    display_name: "<gold>修复预览</gold>"
-    lore:
-      - "<gray>这里会展示耐久、材料与经济修复状态"
+    item:
+      source: "minecraft-book"
+      components:
+        custom_name: "<gold>修复预览</gold>"
+        lore:
+          - "<gray>这里会展示耐久、材料与经济修复状态"
 
   material_input_1:
     slots:
       - 19
     type: "material_input_1"
-    item: "minecraft-diamond"
-    display_name: "<yellow>修复材料槽 I</yellow>"
-    lore:
-      - "<gray>放入配置中允许的 item_sources 材料"
+    item:
+      source: "minecraft-diamond"
+      components:
+        custom_name: "<yellow>修复材料槽 I</yellow>"
+        lore:
+          - "<gray>放入配置中允许的 item_sources 材料"
 
   material_input_2:
     slots:
       - 20
     type: "material_input_2"
-    item: "minecraft-netherite_ingot"
-    display_name: "<yellow>修复材料槽 II</yellow>"
-    lore:
-      - "<gray>可拆分放入不同材料组合"
+    item:
+      source: "minecraft-netherite_ingot"
+      components:
+        custom_name: "<yellow>修复材料槽 II</yellow>"
+        lore:
+          - "<gray>可拆分放入不同材料组合"
 
   material_input_3:
     slots:
       - 29
     type: "material_input_3"
-    item: "minecraft-iron_ingot"
-    display_name: "<yellow>修复材料槽 III</yellow>"
-    lore:
-      - "<gray>修复成功后仅扣除本次需要的数量"
+    item:
+      source: "minecraft-iron_ingot"
+      components:
+        custom_name: "<yellow>修复材料槽 III</yellow>"
+        lore:
+          - "<gray>修复成功后仅扣除本次需要的数量"
 
   material_input_4:
     slots:
       - 30
     type: "material_input_4"
-    item: "minecraft-gold_ingot"
-    display_name: "<yellow>修复材料槽 IV</yellow>"
-    lore:
-      - "<gray>关闭界面会返还未消耗材料"
+    item:
+      source: "minecraft-gold_ingot"
+      components:
+        custom_name: "<yellow>修复材料槽 IV</yellow>"
+        lore:
+          - "<gray>关闭界面会返还未消耗材料"
 
   material_repair:
     slots:
       - 40
     type: "material_repair"
-    item: "minecraft-anvil"
-    display_name: "<green>材料修复</green>"
-    lore:
-      - "<gray>点击后结算材料并修复装备"
+    item:
+      source: "minecraft-anvil"
+      components:
+        custom_name: "<green>材料修复</green>"
+        lore:
+          - "<gray>点击后结算材料并修复装备"
     sounds:
       click:
         sound: "ui.button.click"
@@ -129,10 +149,12 @@ slots:
     slots:
       - 24
     type: "economy_repair"
-    item: "minecraft-emerald"
-    display_name: "<green>经济修复</green>"
-    lore:
-      - "<gray>点击后扣除配置货币并修复装备"
+    item:
+      source: "minecraft-emerald"
+      components:
+        custom_name: "<green>经济修复</green>"
+        lore:
+          - "<gray>点击后扣除配置货币并修复装备"
     sounds:
       click:
         sound: "ui.button.click"

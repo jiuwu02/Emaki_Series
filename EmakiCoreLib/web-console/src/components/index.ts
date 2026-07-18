@@ -11,6 +11,7 @@ export { SectionHead, CollapsibleSection, DisclosureChevron, type CollapsibleSec
 export { StableListEditor, type StableListEditorProps, type StableListEditorRenderArgs } from './StableListEditor';
 export { KvTable, type KvEntry, type KvTableProps } from './KvTable';
 export { VariablesMapEditor } from './VariablesMapEditor';
+export { ItemComponentsEditor, type ItemComponentsEditorProps } from './ItemComponentsEditor';
 export { StringListEditor } from './StringListEditor';
 export { NumberListEditor } from './NumberListEditor';
 export { ActionsEditor, parseActionList, serializeActionList, parseNameActions, parseLoreActions, type ActionEntry, type ActionsEditorProps } from './ActionsEditor';
