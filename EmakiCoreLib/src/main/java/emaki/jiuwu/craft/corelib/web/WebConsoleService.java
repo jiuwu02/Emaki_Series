@@ -62,15 +62,15 @@ public final class WebConsoleService {
             return;
         }
         if (!config.runtimeOptIn()) {
-            plugin.getLogger().warning("Web Console startup refused: set web_console.runtime_opt_in=true after reviewing bind, password, and security mode.");
+            plugin.getLogger().warning("Web Console remains stopped because web_console.runtime_opt_in is false; review the bind, password, and security mode before enabling it.");
             return;
         }
         if (!config.isLoopbackOnly()) {
-            plugin.getLogger().warning("Web Console startup refused: P0 release isolation requires a loopback-only web_console.host.");
+            plugin.getLogger().warning("Web Console requires a loopback-only web_console.host.");
             return;
         }
         if (!config.isReadOnly()) {
-            plugin.getLogger().warning("Web Console startup refused: P0 release isolation requires web_console.security.mode=readonly.");
+            plugin.getLogger().warning("Web Console requires web_console.security.mode=readonly.");
             return;
         }
         if (config.hasUnsafeDefaultPassword()) {

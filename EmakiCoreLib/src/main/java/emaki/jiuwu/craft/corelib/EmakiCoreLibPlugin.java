@@ -139,11 +139,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     @Override
     public void onEnable() {
         capabilityProbe = CapabilityProbe.detect(getServer());
-        if (capabilityProbe.folia()) {
-            getLogger().severe("Emaki Series P0 release is not approved for Folia. CoreLib startup has been refused.");
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
         initializeServices();
@@ -329,7 +324,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             return;
         }
         if (!configModel.scriptConfig().runtimeOptIn()) {
-            getLogger().warning("JavaScript startup refused: set script.runtime_opt_in=true only after reviewing the script security boundary.");
+            getLogger().warning("JavaScript remains disabled because script.runtime_opt_in is false; enable it only after reviewing the script security boundary.");
             return;
         }
         try {

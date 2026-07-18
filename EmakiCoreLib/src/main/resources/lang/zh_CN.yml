@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.5.3"
+version: "4.5.4"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -72,8 +72,8 @@ console:
       script_runtime_opt_in_required: "JavaScript 已启用，但未显式确认 runtime_opt_in。"
       script_action_depth_large: "脚本动作深度过大，可能导致动作链难以追踪。"
       web_runtime_opt_in_required: "Web Console 已启用，但未显式确认 runtime_opt_in。"
-      web_loopback_required: "P0 发布隔离要求 Web Console 仅绑定回环地址。"
-      web_readonly_required: "P0 发布隔离要求 Web Console 使用只读模式。"
+      web_loopback_required: "Web Console 仅允许绑定回环地址。"
+      web_readonly_required: "Web Console 仅允许使用只读安全模式。"
       web_password_unsafe: "Web Console 已启用，但密码为空或仍为默认值。"
       web_max_request_body_invalid: "max_request_body_kb 必须大于 0。"
       web_allowed_modules_missing: "配置写入已启用，但未设置 allowed_modules 白名单。"
@@ -212,7 +212,7 @@ command:
   web_bind_hint: "<yellow>当前 host 是绑定地址，客户端通常不能直接访问；下面提供本机回退链接</yellow>"
   web_click_open: "<aqua>点击打开：</aqua><click:open_url:'%url%'><hover:show_text:'<yellow>点击在浏览器中打开 Web Console</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
   web_disabled_hint: "<yellow>提示：web_console.enabled 当前为 false，链接可能无法连接</yellow>"
-  web_unsafe_password: "<yellow>提示：Web Console 密码为空或仍为默认值，服务会拒绝启动。请修改 web_console.auth.password</yellow>"
+  web_unsafe_password: "<yellow>提示：Web Console 密码为空或仍为默认值，服务将保持停止。请修改 web_console.auth.password</yellow>"
   help_header: "<aqua>EmakiCoreLib 命令：</aqua>"
   help_web: "<green>%root% web</green><gray> - 输出可点击的 Web Console 链接</gray>"
   help_reload: "<green>%root% reload</green><gray> - 重载 CoreLib 配置与 Web Console</gray>"
@@ -226,6 +226,6 @@ command:
 web_console:
   started: "<gray>Web Console 已启动: <aqua>%url%</aqua></gray>"
   start_failed: "<red>Web Console 启动失败</red>"
-  unsafe_password: "<red>已启用但密码仍为默认值 change-me，Web Console 拒绝启动。请修改 config.yml 的 web_console.auth.password</red>"
+  unsafe_password: "<red>已启用但密码仍为默认值 change-me，Web Console 将保持停止。请修改 config.yml 的 web_console.auth.password</red>"
   request_failed: "<red>请求处理失败: %uri%</red>"
   yaml_parse_failed: "<red>解析 web-console.yml 失败</red>"

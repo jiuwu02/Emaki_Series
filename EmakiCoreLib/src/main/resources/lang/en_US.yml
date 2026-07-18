@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.5.3"
+version: "4.5.4"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -72,8 +72,8 @@ console:
       script_runtime_opt_in_required: "JavaScript is enabled without the explicit runtime opt-in."
       script_action_depth_large: "Large script action depth may cause difficult-to-trace action chains."
       web_runtime_opt_in_required: "Web Console is enabled without the explicit runtime opt-in."
-      web_loopback_required: "P0 release isolation requires a loopback-only Web Console bind."
-      web_readonly_required: "P0 release isolation requires readonly Web Console mode."
+      web_loopback_required: "Web Console requires a loopback-only bind."
+      web_readonly_required: "Web Console requires readonly security mode."
       web_password_unsafe: "Web Console is enabled but its password is blank or still uses the default value."
       web_max_request_body_invalid: "max_request_body_kb must be greater than 0."
       web_allowed_modules_missing: "Config write is enabled without an allowed_modules allowlist."
@@ -212,7 +212,7 @@ command:
   web_bind_hint: "<yellow>The current host is a bind address and usually cannot be accessed directly by clients; a localhost fallback link is provided below</yellow>"
   web_click_open: "<aqua>Click to open: </aqua><click:open_url:'%url%'><hover:show_text:'<yellow>Click to open the Web Console in your browser</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
   web_disabled_hint: "<yellow>Hint: web_console.enabled is currently false, so the link may not be reachable</yellow>"
-  web_unsafe_password: "<yellow>Hint: the Web Console password is empty or still using the default value, so the service will refuse to start. Please update web_console.auth.password</yellow>"
+  web_unsafe_password: "<yellow>Hint: the Web Console password is empty or still using the default value, so the service will remain stopped. Please update web_console.auth.password</yellow>"
   help_header: "<aqua>EmakiCoreLib commands:</aqua>"
   help_web: "<green>%root% web</green><gray> - Print a clickable Web Console link</gray>"
   help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration and the Web Console</gray>"
@@ -226,6 +226,6 @@ command:
 web_console:
   started: "<gray>Web Console started: <aqua>%url%</aqua></gray>"
   start_failed: "<red>Failed to start the Web Console</red>"
-  unsafe_password: "<red>The Web Console is enabled but the password is still the default value change-me, so startup was refused. Please update config.yml web_console.auth.password</red>"
+  unsafe_password: "<red>The Web Console is enabled but the password is still the default value change-me, so it will remain stopped. Please update config.yml web_console.auth.password</red>"
   request_failed: "<red>Failed to handle request: %uri%</red>"
   yaml_parse_failed: "<red>Failed to parse web-console.yml</red>"
