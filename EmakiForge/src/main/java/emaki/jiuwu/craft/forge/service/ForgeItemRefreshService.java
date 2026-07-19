@@ -4,20 +4,28 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -65,22 +73,22 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         }
         PlayerInventory inventory = player.getInventory();
         ItemStack[] storage = inventory.getStorageContents();
-        boolean storageChanged = refreshArray(storage);
+        boolean storageChanged = refreshArray(player, "storage", storage);
         if (storageChanged) {
             inventory.setStorageContents(storage);
         }
         ItemStack[] armor = inventory.getArmorContents();
-        boolean armorChanged = refreshArray(armor);
+        boolean armorChanged = refreshArmor(player, armor);
         if (armorChanged) {
             inventory.setArmorContents(armor);
         }
         ItemStack offHand = inventory.getItemInOffHand();
-        ItemStack refreshedOffHand = refreshItem(offHand);
+        ItemStack refreshedOffHand = refreshItem(player, "offhand", offHand);
         if (refreshedOffHand != offHand) {
             inventory.setItemInOffHand(refreshedOffHand);
         }
         ItemStack cursor = player.getItemOnCursor();
-        ItemStack refreshedCursor = refreshItem(cursor);
+        ItemStack refreshedCursor = refreshItem(player, "cursor", cursor);
         if (refreshedCursor != cursor) {
             player.setItemOnCursor(refreshedCursor);
         }
@@ -91,13 +99,17 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (itemEntity == null || !itemEntity.isValid()) {
             return;
         }
-        ItemStack refreshed = refreshItem(itemEntity.getItemStack());
+        ItemStack refreshed = refreshItem(null, "dropped", itemEntity.getItemStack());
         if (refreshed != itemEntity.getItemStack()) {
             itemEntity.setItemStack(refreshed);
         }
     }
 
     public ItemStack refreshItem(ItemStack itemStack) {
+        return refreshItem(null, "direct", itemStack);
+    }
+
+    private ItemStack refreshItem(Player player, String target, ItemStack itemStack) {
         RefreshPlan plan = buildRefreshPlan(itemStack);
         if (plan == null || !plan.shouldRefresh()) {
             return itemStack;
@@ -105,6 +117,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (itemAssemblyService == null) {
             return itemStack;
         }
+        debugForgeRefresh(player, target, "input", plan, itemStack);
         EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(
                 plan.recipe(),
                 plan.materials(),
@@ -113,8 +126,16 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 plan.forgedAt(),
                 null
         );
-        ItemStack rebuilt = itemAssemblyService.preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(snapshot)));
+        EmakiItemAssemblyRequest request = new EmakiItemAssemblyRequest(
+                null,
+                0,
+                itemStack,
+                List.of(snapshot),
+                player == null ? null : player.getUniqueId()
+        );
+        ItemStack rebuilt = itemAssemblyService.preview(request, target, plugin.debugLogger());
         if (rebuilt == null) {
+            debugForgeRefresh(player, target, "assembly_failed", plan, null);
             warnOnce(
                     "refresh_failed|" + plan.recipe().id() + "|" + plan.signature(),
                     "console.forge_refresh_failed",
@@ -122,22 +143,42 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             );
             return itemStack;
         }
+        debugForgeRefresh(player, target, "assembly_output", plan, rebuilt);
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
         pdcAttributeWriter.apply(plan.recipe(), plan.materials(), plan.multiplier(), plan.qualityTier(), rebuilt);
         applyRefreshOperations(rebuilt, plan);
+        debugForgeRefresh(player, target, "output", plan, rebuilt);
         return rebuilt;
     }
 
-    private boolean refreshArray(ItemStack[] items) {
+    private boolean refreshArray(Player player, String targetPrefix, ItemStack[] items) {
         if (items == null || items.length == 0) {
             return false;
         }
         boolean changed = false;
         for (int index = 0; index < items.length; index++) {
             ItemStack original = items[index];
-            ItemStack refreshed = refreshItem(original);
+            ItemStack refreshed = refreshItem(player, targetPrefix + ":" + index, original);
             if (refreshed != original) {
                 items[index] = refreshed;
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    private boolean refreshArmor(Player player, ItemStack[] armor) {
+        if (armor == null || armor.length == 0) {
+            return false;
+        }
+        String[] slots = {"feet", "legs", "chest", "head"};
+        boolean changed = false;
+        for (int index = 0; index < armor.length; index++) {
+            ItemStack original = armor[index];
+            String target = "armor:" + (index < slots.length ? slots[index] : index);
+            ItemStack refreshed = refreshItem(player, target, original);
+            if (refreshed != original) {
+                armor[index] = refreshed;
                 changed = true;
             }
         }
@@ -254,6 +295,70 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     private String snapshotIdentity(Map<String, Object> audit) {
         String signature = audit == null ? "" : Texts.toStringSafe(audit.get("materials_signature"));
         return Texts.isBlank(signature) ? "unknown" : signature;
+    }
+
+    private void debugForgeRefresh(Player player, String target, String phase, RefreshPlan plan, ItemStack itemStack) {
+        DebugLogger debugLogger = plugin.debugLogger();
+        if (debugLogger == null || !debugLogger.shouldLog("forge", player)) {
+            return;
+        }
+        debugLogger.logRaw("forge", player, "[DEBUG:FORGE_REFRESH]"
+                + " phase=" + Texts.toStringSafe(phase)
+                + " target=" + Texts.toStringSafe(target)
+                + " recipe=" + (plan == null || plan.recipe() == null ? "-" : plan.recipe().id())
+                + " materials_signature=" + shortValue(plan == null ? "" : plan.signature())
+                + " item=" + itemStateSummary(itemStack));
+    }
+
+    private String itemStateSummary(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return "empty";
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        List<ItemOperationEntry> entries = operationLedger.readAll(itemStack);
+        int loreSize = itemMeta == null ? 0 : ItemTextBridge.loreLines(itemMeta).size();
+        return "type=" + itemStack.getType()
+                + " lore=" + loreSize
+                + " set_signature=" + shortValue(pdcString(itemMeta, "set_signature"))
+                + " set_lore_lines=" + Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), "-")
+                + " operations=" + entries.stream()
+                        .filter(Objects::nonNull)
+                        .map(entry -> entry.sourceNamespace() + ":" + entry.operationId())
+                        .toList();
+    }
+
+    private String pdcString(ItemMeta itemMeta, String field) {
+        if (itemMeta == null || Texts.isBlank(field)) {
+            return "";
+        }
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
+        for (NamespacedKey key : container.getKeys()) {
+            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.STRING)) {
+                return Texts.toStringSafe(container.get(key, PersistentDataType.STRING));
+            }
+        }
+        return "";
+    }
+
+    private Integer pdcInteger(ItemMeta itemMeta, String field) {
+        if (itemMeta == null || Texts.isBlank(field)) {
+            return null;
+        }
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
+        for (NamespacedKey key : container.getKeys()) {
+            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.INTEGER)) {
+                return container.get(key, PersistentDataType.INTEGER);
+            }
+        }
+        return null;
+    }
+
+    private String shortValue(String value) {
+        String safe = Texts.toStringSafe(value);
+        if (safe.isBlank()) {
+            return "-";
+        }
+        return safe.length() <= 16 ? safe : safe.substring(0, 16);
     }
 
     private void warnOnce(String cacheKey, String messageKey, Map<String, ?> replacements) {

@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
@@ -335,7 +336,7 @@ public final class EmakiItemSetService {
         return new ArrayList<>(result.subList(0, keep));
     }
 
-    private void stripTrailingSetLore(ItemStack itemStack, List<String> setLore) {
+    private void stripMatchingSetLore(ItemStack itemStack, List<String> setLore) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return;
         }
@@ -344,7 +345,7 @@ public final class EmakiItemSetService {
             return;
         }
         List<String> currentLore = ItemTextBridge.loreLines(itemMeta);
-        List<String> strippedLore = stripTrailingSetLoreBlocks(currentLore, setLore);
+        List<String> strippedLore = stripMatchingLoreBlocks(currentLore, setLore, true);
         if (currentLore.equals(strippedLore)) {
             return;
         }
@@ -354,13 +355,30 @@ public final class EmakiItemSetService {
 
     static List<String> stripTrailingSetLoreBlocks(List<String> lore, List<String> setLore) {
         List<String> result = lore == null || lore.isEmpty() ? new ArrayList<>() : new ArrayList<>(lore);
-        if (setLore == null || setLore.isEmpty()) {
+        List<String> canonicalSetLore = canonicalLoreLines(setLore);
+        if (canonicalSetLore.isEmpty()) {
             return result;
         }
-        while (endsWith(result, setLore)) {
-            result.subList(result.size() - setLore.size(), result.size()).clear();
-            if (!result.isEmpty() && result.getLast().isEmpty()) {
-                result.removeLast();
+        while (endsWith(result, canonicalSetLore)) {
+            result.subList(result.size() - canonicalSetLore.size(), result.size()).clear();
+            removeSeparatorBefore(result, result.size());
+        }
+        return result;
+    }
+
+    static List<String> stripMatchingLoreBlocks(List<String> lore, List<String> block, boolean removeSeparator) {
+        List<String> result = lore == null || lore.isEmpty() ? new ArrayList<>() : new ArrayList<>(lore);
+        List<String> canonicalBlock = canonicalLoreLines(block);
+        if (canonicalBlock.isEmpty()) {
+            return result;
+        }
+        for (int start = result.size() - canonicalBlock.size(); start >= 0; start--) {
+            if (!matchesAt(result, canonicalBlock, start)) {
+                continue;
+            }
+            result.subList(start, start + canonicalBlock.size()).clear();
+            if (removeSeparator) {
+                removeSeparatorBefore(result, start);
             }
         }
         return result;
@@ -375,10 +393,7 @@ public final class EmakiItemSetService {
             return;
         }
         List<String> currentLore = ItemTextBridge.loreLines(itemMeta);
-        List<String> strippedLore = new ArrayList<>(currentLore);
-        while (endsWith(strippedLore, block)) {
-            strippedLore.subList(strippedLore.size() - block.size(), strippedLore.size()).clear();
-        }
+        List<String> strippedLore = stripMatchingLoreBlocks(currentLore, block, false);
         if (!currentLore.equals(strippedLore)) {
             ItemTextBridge.setLoreLines(itemMeta, strippedLore);
             itemStack.setItemMeta(itemMeta);
@@ -394,16 +409,46 @@ public final class EmakiItemSetService {
     }
 
     private static boolean endsWith(List<String> lines, List<String> suffix) {
-        if (lines == null || suffix == null || suffix.isEmpty() || lines.size() < suffix.size()) {
+        return lines != null
+                && suffix != null
+                && !suffix.isEmpty()
+                && lines.size() >= suffix.size()
+                && matchesAt(lines, suffix, lines.size() - suffix.size());
+    }
+
+    private static boolean matchesAt(List<String> lines, List<String> canonicalBlock, int start) {
+        if (lines == null || canonicalBlock == null || canonicalBlock.isEmpty()
+                || start < 0 || start + canonicalBlock.size() > lines.size()) {
             return false;
         }
-        int offset = lines.size() - suffix.size();
-        for (int index = 0; index < suffix.size(); index++) {
-            if (!java.util.Objects.equals(lines.get(offset + index), suffix.get(index))) {
+        for (int offset = 0; offset < canonicalBlock.size(); offset++) {
+            if (!canonicalLoreLine(lines.get(start + offset)).equals(canonicalBlock.get(offset))) {
                 return false;
             }
         }
         return true;
+    }
+
+    private static void removeSeparatorBefore(List<String> lines, int start) {
+        int separatorIndex = start - 1;
+        if (separatorIndex >= 0 && MiniMessages.plainText(lines.get(separatorIndex)).isBlank()) {
+            lines.remove(separatorIndex);
+        }
+    }
+
+    static List<String> canonicalLoreLines(List<String> lore) {
+        if (lore == null || lore.isEmpty()) {
+            return List.of();
+        }
+        List<String> canonical = new ArrayList<>(lore.size());
+        for (String line : lore) {
+            canonical.add(canonicalLoreLine(line));
+        }
+        return List.copyOf(canonical);
+    }
+
+    private static String canonicalLoreLine(String line) {
+        return MiniMessages.serialize(MiniMessages.parse(Texts.toStringSafe(line)));
     }
 
     static boolean isSetPresentationCurrent(String existingSignature,
@@ -427,14 +472,15 @@ public final class EmakiItemSetService {
     }
 
     static List<String> staticLoreBlock(List<String> baseLore, List<String> setLore) {
-        if (setLore == null || setLore.isEmpty()) {
+        List<String> canonicalSetLore = canonicalLoreLines(setLore);
+        if (canonicalSetLore.isEmpty()) {
             return List.of();
         }
         List<String> block = new ArrayList<>();
         if (baseLore != null && !baseLore.isEmpty()) {
             block.add("");
         }
-        block.addAll(setLore);
+        block.addAll(canonicalSetLore);
         return List.copyOf(block);
     }
 
@@ -467,8 +513,8 @@ public final class EmakiItemSetService {
         if (!staticLoreReverted) {
             stripSetLore(itemStack, previousSetLoreLines);
         }
-        // 即使账本声称回滚成功，也要清理仍残留在尾部的重复块，避免异常状态被再次追加。
-        stripTrailingSetLore(itemStack, target.setLore());
+        // 即使账本声称回滚成功，也要清理任意位置残留的完整套装块，避免异常状态被再次追加或固化。
+        stripMatchingSetLore(itemStack, target.setLore());
 
         int staticLoreLines = applyStaticSetLore(itemStack, setId, target.setLore());
         applySetDisplayActions(itemStack, definition, membership, state, target.nameActions(), target.loreActions());
@@ -489,7 +535,7 @@ public final class EmakiItemSetService {
     }
 
     private SetPresentationTarget buildPresentationTarget(EmakiItemDefinition definition, EquippedSetState state) {
-        List<String> setLore = loreRenderer.render(state);
+        List<String> setLore = canonicalLoreLines(loreRenderer.render(state));
         List<Integer> activeThresholdNumbers = state.activeThresholds().stream()
                 .map(ItemSetThreshold::requiredPieces)
                 .toList();
@@ -577,21 +623,15 @@ public final class EmakiItemSetService {
     }
 
     static int countLoreBlocks(List<String> lore, List<String> block) {
-        if (lore == null || block == null || block.isEmpty() || lore.size() < block.size()) {
+        List<String> canonicalBlock = canonicalLoreLines(block);
+        if (lore == null || canonicalBlock.isEmpty() || lore.size() < canonicalBlock.size()) {
             return 0;
         }
         int count = 0;
-        for (int start = 0; start <= lore.size() - block.size(); start++) {
-            boolean matches = true;
-            for (int offset = 0; offset < block.size(); offset++) {
-                if (!java.util.Objects.equals(lore.get(start + offset), block.get(offset))) {
-                    matches = false;
-                    break;
-                }
-            }
-            if (matches) {
+        for (int start = 0; start <= lore.size() - canonicalBlock.size(); start++) {
+            if (matchesAt(lore, canonicalBlock, start)) {
                 count++;
-                start += block.size() - 1;
+                start += canonicalBlock.size() - 1;
             }
         }
         return count;

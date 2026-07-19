@@ -5,15 +5,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -53,19 +58,54 @@ public final class EmakiItemAssemblyService {
     }
 
     public ItemStack preview(EmakiItemAssemblyRequest request) {
+        return preview(request, "direct", null);
+    }
+
+    public ItemStack preview(EmakiItemAssemblyRequest request, String debugTarget, DebugLogger debugLogger) {
         return measure("assembly-preview", () -> {
+            UUID playerId = request == null ? null : request.feedbackPlayerId();
+            boolean debugEnabled = debugLogger != null && debugLogger.shouldLog("forge", playerId);
+            if (debugEnabled) {
+                debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_INPUT]", debugTarget,
+                        "request_layers=" + (request == null ? List.of() : request.layerSnapshots().stream()
+                                .map(EmakiItemLayerSnapshot::namespaceId).toList())
+                                + " removed=" + (request == null ? List.of() : request.removedNamespaceIds())
+                                + " item=" + itemStateSummary(request == null ? null : request.existingItem()));
+            }
             AssemblyContext context = resolveContext(request);
             if (context == null || context.baseSource() == null) {
+                if (debugEnabled) {
+                    debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget, "result=null reason=no_context");
+                }
                 return null;
+            }
+            if (debugEnabled) {
+                debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_CONTEXT]", debugTarget,
+                        "base=" + ItemSourceUtil.toShorthand(context.baseSource())
+                                + " amount=" + context.amount()
+                                + " base_lore=" + context.baseLore().size()
+                                + " active_layers=" + context.activeLayers()
+                                + " previous_layers=" + context.previousActiveLayers()
+                                + " operations=" + operationIds(context.operationEntries())
+                                + " assembly_signature=" + shortValue(context.assemblySignature()));
             }
             String cacheKey = context.assemblySignature();
             ItemStack cached = previewCache.get(cacheKey);
             if (cached != null) {
-                return cached.clone();
+                ItemStack result = cached.clone();
+                if (debugEnabled) {
+                    debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
+                            "source=cache item=" + itemStateSummary(result));
+                }
+                return result;
             }
             ItemStack rendered = renderPreview(context);
             if (rendered != null) {
                 previewCache.put(cacheKey, rendered.clone());
+            }
+            if (debugEnabled) {
+                debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
+                        "source=render item=" + itemStateSummary(rendered));
             }
             return rendered;
         });
@@ -484,6 +524,69 @@ public final class EmakiItemAssemblyService {
         }
         List<ItemOperationEntry> entries = operationLedger.readAll(existingItem);
         return entries == null || entries.isEmpty() ? List.of() : List.copyOf(entries);
+    }
+
+    private void debugAssembly(DebugLogger debugLogger, UUID playerId, String anchor, String target, String details) {
+        debugLogger.logRaw("forge", playerId, anchor
+                + " target=" + Texts.toStringSafe(target)
+                + " " + Texts.toStringSafe(details));
+    }
+
+    private String itemStateSummary(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return "empty";
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        List<ItemOperationEntry> entries = operationLedger.readAll(itemStack);
+        return "type=" + itemStack.getType()
+                + " lore=" + currentLore(itemStack).size()
+                + " set_signature=" + shortValue(pdcString(itemMeta, "set_signature"))
+                + " set_lore_lines=" + Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), "-")
+                + " operations=" + operationIds(entries);
+    }
+
+    private List<String> operationIds(List<ItemOperationEntry> entries) {
+        if (entries == null || entries.isEmpty()) {
+            return List.of();
+        }
+        return entries.stream()
+                .filter(Objects::nonNull)
+                .map(entry -> entry.sourceNamespace() + ":" + entry.operationId())
+                .toList();
+    }
+
+    private String pdcString(ItemMeta itemMeta, String field) {
+        if (itemMeta == null || Texts.isBlank(field)) {
+            return "";
+        }
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
+        for (NamespacedKey key : container.getKeys()) {
+            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.STRING)) {
+                return Texts.toStringSafe(container.get(key, PersistentDataType.STRING));
+            }
+        }
+        return "";
+    }
+
+    private Integer pdcInteger(ItemMeta itemMeta, String field) {
+        if (itemMeta == null || Texts.isBlank(field)) {
+            return null;
+        }
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
+        for (NamespacedKey key : container.getKeys()) {
+            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.INTEGER)) {
+                return container.get(key, PersistentDataType.INTEGER);
+            }
+        }
+        return null;
+    }
+
+    private String shortValue(String value) {
+        String safe = Texts.toStringSafe(value);
+        if (safe.isBlank()) {
+            return "-";
+        }
+        return safe.length() <= 16 ? safe : safe.substring(0, 16);
     }
 
     private void applyBaseLore(ItemStack itemStack, List<String> baseLore) {
