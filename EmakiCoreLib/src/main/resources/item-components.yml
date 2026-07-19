@@ -28,7 +28,7 @@ components:
     format: common, uncommon, rare, or epic
   - id: minecraft:enchantments
     since: "1.20.5"
-    format: vanilla enchantment component map
+    format: direct enchantment resource id to level map (Minecraft 1.21.5+)
   - id: minecraft:can_place_on
     since: "1.20.5"
     format: vanilla adventure predicate map
@@ -37,7 +37,7 @@ components:
     format: vanilla adventure predicate map
   - id: minecraft:attribute_modifiers
     since: "1.20.5"
-    format: vanilla attribute modifier list/map
+    format: direct attribute modifier list (Minecraft 1.21.5+)
   - id: minecraft:custom_model_data
     since: "1.20.5"
     format: map containing floats/flags/strings/colors
@@ -74,7 +74,7 @@ components:
     format: vanilla weapon properties map
   - id: minecraft:enchantable
     since: "1.21.2"
-    format: positive integer value/map
+    format: map containing positive integer value
   - id: minecraft:equippable
     since: "1.21.2"
     format: vanilla equippable map

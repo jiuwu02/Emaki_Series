@@ -69,7 +69,7 @@ public final class LegacyConfiguredItemConverter {
 
         Map<String, Integer> enchantments = parseEnchantments(legacyValue(raw, "enchantments"));
         if (!enchantments.isEmpty()) {
-            patches.put("minecraft:enchantments", ItemComponentPatch.set(Map.of("levels", enchantments)));
+            patches.put("minecraft:enchantments", ItemComponentPatch.set(enchantments));
         }
 
         Object tooltipDisplayRaw = legacyValue(raw, "tooltip_display");

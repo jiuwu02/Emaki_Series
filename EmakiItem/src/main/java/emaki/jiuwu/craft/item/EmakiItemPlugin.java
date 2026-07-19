@@ -72,7 +72,7 @@ import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakiitem";
-    private static final Set<String> DEBUG_MODULES = Set.of("create", "update", "identify");
+    private static final Set<String> DEBUG_MODULES = Set.of("create", "update", "identify", "set", "item_operation");
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  __  ______  ______  __    __  ______
 /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ \\/\\__  _\\/\\  ___\\/\\ "-./  \\/\\  ___\\

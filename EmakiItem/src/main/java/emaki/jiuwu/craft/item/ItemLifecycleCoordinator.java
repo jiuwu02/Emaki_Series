@@ -129,7 +129,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 identifier,
                 pdcWriter,
                 new ItemSetLoreRenderer(),
-                plugin::appConfig
+                plugin::appConfig,
+                plugin::debugLogger
         );
         ItemComponentInspector componentInspector = new ItemComponentInspector();
         ItemComponentPlaceholderResolver componentPlaceholderResolver = new ItemComponentPlaceholderResolver(componentInspector);

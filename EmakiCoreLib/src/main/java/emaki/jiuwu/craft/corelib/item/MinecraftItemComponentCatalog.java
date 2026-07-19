@@ -62,10 +62,10 @@ public final class MinecraftItemComponentCatalog {
         add(result, "item_name", "1.20.5", "MiniMessage string or vanilla text component map/list");
         add(result, "lore", "1.20.5", "MiniMessage string/list or vanilla text component list");
         add(result, "rarity", "1.20.5", "common, uncommon, rare, or epic");
-        add(result, "enchantments", "1.20.5", "vanilla enchantment component map");
+        add(result, "enchantments", "1.20.5", "direct enchantment resource id to level map (Minecraft 1.21.5+)");
         add(result, "can_place_on", "1.20.5", "vanilla adventure predicate map");
         add(result, "can_break", "1.20.5", "vanilla adventure predicate map");
-        add(result, "attribute_modifiers", "1.20.5", "vanilla attribute modifier list/map");
+        add(result, "attribute_modifiers", "1.20.5", "direct attribute modifier list (Minecraft 1.21.5+)");
         add(result, "custom_model_data", "1.20.5", "map containing floats/flags/strings/colors");
         add(result, "repair_cost", "1.20.5", "non-negative integer");
         add(result, "enchantment_glint_override", "1.20.5", "boolean");
@@ -77,7 +77,7 @@ public final class MinecraftItemComponentCatalog {
         add(result, "damage_resistant", "1.21.2", "damage type tag map");
         add(result, "tool", "1.20.5", "vanilla tool rules map");
         add(result, "weapon", "1.21.5", "vanilla weapon properties map");
-        add(result, "enchantable", "1.21.2", "positive integer value/map");
+        add(result, "enchantable", "1.21.2", "map containing positive integer value");
         add(result, "equippable", "1.21.2", "vanilla equippable map");
         add(result, "repairable", "1.21.2", "repair item/tag map");
         addUnit(result, "glider", "1.21.2");

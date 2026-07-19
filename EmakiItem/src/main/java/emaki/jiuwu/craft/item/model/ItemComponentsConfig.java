@@ -52,8 +52,8 @@ public record ItemComponentsConfig(Object customModelData,
     public static ItemComponentsConfig fromDefinition(ConfiguredItemDefinition definition) {
         Map<String, ItemComponentPatch> patches = definition == null ? Map.of() : definition.components();
         Map<String, Object> tooltip = mapValue(patches, "minecraft:tooltip_display");
-        Map<String, Object> enchantmentValue = mapValue(patches, "minecraft:enchantments");
-        Map<String, Integer> enchantments = integerMap(enchantmentValue.get("levels"));
+        Object enchantmentValue = value(patches, "minecraft:enchantments");
+        Map<String, Integer> enchantments = integerMap(componentValue(enchantmentValue, "levels"));
         List<String> hiddenComponents = Texts.asStringList(tooltip.get("hidden_components"));
         return new ItemComponentsConfig(
                 legacyCustomModelData(value(patches, "minecraft:custom_model_data")),
@@ -68,7 +68,7 @@ public record ItemComponentsConfig(Object customModelData,
                 stringValue(patches, "minecraft:rarity"),
                 integerValue(patches, "minecraft:damage"),
                 integerValue(patches, "minecraft:max_damage"),
-                integerValue(patches, "minecraft:enchantable"),
+                integerValue(patches, "minecraft:enchantable", "value"),
                 attributeModifiers(value(patches, "minecraft:attribute_modifiers")),
                 ""
         );
@@ -85,7 +85,7 @@ public record ItemComponentsConfig(Object customModelData,
         putText(patches, "minecraft:item_model", itemModel);
         putText(patches, "minecraft:tooltip_style", tooltipStyle);
         if (!enchantments.isEmpty()) {
-            patches.put("minecraft:enchantments", ItemComponentPatch.set(Map.of("levels", enchantments)));
+            patches.put("minecraft:enchantments", ItemComponentPatch.set(enchantments));
         }
         Map<String, Object> tooltip = new LinkedHashMap<>();
         List<String> hiddenComponents = itemFlags.stream()
@@ -110,7 +110,9 @@ public record ItemComponentsConfig(Object customModelData,
         putText(patches, "minecraft:rarity", rarity);
         put(patches, "minecraft:damage", damage);
         put(patches, "minecraft:max_damage", maxDamage);
-        put(patches, "minecraft:enchantable", enchantable);
+        if (enchantable != null) {
+            patches.put("minecraft:enchantable", ItemComponentPatch.set(Map.of("value", enchantable)));
+        }
         if (!attributeModifiers.isEmpty()) {
             List<Map<String, Object>> modifiers = new ArrayList<>();
             for (VanillaAttributeModifierConfig modifier : attributeModifiers) {
@@ -118,7 +120,7 @@ public record ItemComponentsConfig(Object customModelData,
                     continue;
                 }
                 Map<String, Object> value = new LinkedHashMap<>();
-                value.put("type", namespaced(modifier.attribute()));
+                value.put("type", componentAttributeType(modifier.attribute()));
                 value.put("amount", ConfigNodes.toPlainData(modifier.amount()));
                 value.put("operation", componentOperation(modifier.operation()));
                 value.put("slot", componentSlot(modifier.slot()));
@@ -130,7 +132,7 @@ public record ItemComponentsConfig(Object customModelData,
                 modifiers.add(value);
             }
             if (!modifiers.isEmpty()) {
-                patches.put("minecraft:attribute_modifiers", ItemComponentPatch.set(Map.of("modifiers", modifiers)));
+                patches.put("minecraft:attribute_modifiers", ItemComponentPatch.set(modifiers));
             }
         }
         return patches.isEmpty() ? Map.of() : Map.copyOf(patches);
@@ -231,6 +233,14 @@ public record ItemComponentsConfig(Object customModelData,
         return Numbers.tryParseInt(value(patches, id), null);
     }
 
+    private static Integer integerValue(Map<String, ItemComponentPatch> patches, String id, String nestedKey) {
+        return Numbers.tryParseInt(componentValue(value(patches, id), nestedKey), null);
+    }
+
+    private static Object componentValue(Object raw, String nestedKey) {
+        return ConfigNodes.contains(raw, nestedKey) ? ConfigNodes.get(raw, nestedKey) : raw;
+    }
+
     private static Boolean booleanValue(Map<String, ItemComponentPatch> patches, String id) {
         Object value = value(patches, id);
         return value instanceof Boolean bool ? bool : value == null ? null : Boolean.parseBoolean(String.valueOf(value));
@@ -255,7 +265,7 @@ public record ItemComponentsConfig(Object customModelData,
     }
 
     private static List<VanillaAttributeModifierConfig> attributeModifiers(Object raw) {
-        Object modifiersRaw = ConfigNodes.get(raw, "modifiers");
+        Object modifiersRaw = raw instanceof Iterable<?> ? raw : ConfigNodes.get(raw, "modifiers");
         List<VanillaAttributeModifierConfig> result = new ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(modifiersRaw)) {
             String attribute = stripMinecraftNamespace(ConfigNodes.string(entry, "type", ""));
@@ -273,6 +283,14 @@ public record ItemComponentsConfig(Object customModelData,
             ));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    private static String componentAttributeType(String value) {
+        String normalized = namespaced(value);
+        String legacyPrefix = "minecraft:generic.";
+        return normalized.startsWith(legacyPrefix)
+                ? "minecraft:" + normalized.substring(legacyPrefix.length())
+                : normalized;
     }
 
     private static String namespaced(String value) {
