@@ -67,7 +67,6 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -123,7 +122,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             = new emaki.jiuwu.craft.corelib.event.EmakiEventBus();
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
-    private WebConsoleService webConsoleService;
     private CoreLibCommandRouter commandRouter;
     private final EmakiCoreLibApi.Bridge coreLibApiBridge = new DefaultEmakiCoreLibApi(this);
     private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
@@ -166,10 +164,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             } catch (RuntimeException exception) {
                 getLogger().info("EmakiCoreLib stopped.");
             }
-        }
-        if (webConsoleService != null) {
-            webConsoleService.stop();
-            webConsoleService = null;
         }
         if (metrics != null) {
             metrics.close();
@@ -284,7 +278,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             languageLoader.load();
             languageLoader.setLanguage(configModel.language());
         }
-        reloadWebConsole();
         reloadScriptSystem();
         if (javaScriptService != null && javaScriptService.enabled()) {
             for (RunJavaScriptAction action : RunJavaScriptAction.createAll(javaScriptService, configModel.scriptConfig())) {
@@ -358,15 +351,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 this::debugLogger
         );
         javaScriptActionExtensionLoader.reload();
-    }
-
-    private void reloadWebConsole() {
-        if (webConsoleService == null) {
-            webConsoleService = new WebConsoleService(this, configModel.webConsoleConfig());
-        }
-        webConsoleService.stop();
-        webConsoleService.restart(configModel.webConsoleConfig());
-        refreshServiceRegistry();
     }
 
     private void registerPublicApiService() {
@@ -542,10 +526,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     file,
                     "config.yml",
                     "version",
-                    previous -> {
-                        previous.root().set("web_console.runtime_opt_in", null);
-                        previous.root().set("script.runtime_opt_in", null);
-                    }
+                    previous -> previous.root().set("script.runtime_opt_in", null)
             );
             logVersionUpdate("config.yml", versionedFile);
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
@@ -753,10 +734,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return debugLogger;
     }
 
-    public WebConsoleService webConsoleService() {
-        return webConsoleService;
-    }
-
     public JavaScriptRegistrationTracker javaScriptRegistrationTracker() {
         return javaScriptActionExtensionLoader == null ? null : javaScriptActionExtensionLoader.registrationTracker();
     }
@@ -794,7 +771,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(JavaScriptService.class, javaScriptService);
         registerService(ScriptService.class, javaScriptService);
         registerService(ScriptModuleRegistry.class, scriptModuleRegistry);
-        registerService(WebConsoleService.class, webConsoleService);
         registerService(PdcService.class, pdcService);
         registerService(ItemSourceService.class, itemSourceService);
         registerService(ConfiguredItemService.class, configuredItemService);

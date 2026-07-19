@@ -1,8 +1,5 @@
 package emaki.jiuwu.craft.gem;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,8 +26,7 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.action.GemActionRegistrar;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
@@ -143,7 +139,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         registerActions();
         registerEventHandlers();
         registerPublicApiService();
-        registerWebConsole();
+        ItemLayerPreviewRegistry.register(this, new GemItemLayerPreviewProvider(this));
         ensurePlaceholderExpansion();
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -156,8 +152,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
-        WebItemLayerPreviewRegistry.unregister(this);
+        ItemLayerPreviewRegistry.unregister(this);
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
@@ -237,36 +232,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             getServer().getPluginManager().registerEvents(guiService, this);
         }
         getServer().getPluginManager().registerEvents(new GemItemObtainListener(this), this);
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-        WebItemLayerPreviewRegistry.register(this, new GemItemLayerPreviewProvider(this));
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
-        scriptMethod("pluginName", "pluginName()", "pluginName()");
-        scriptMethod("ready", "ready()", "ready()");
-        scriptMethod("registerSocketRule", "registerSocketRule(definition)", "registerSocketRule({ id: \"fire_set_bonus\", function: \"checkSocket\" })");
-        scriptMethod("unregisterSocketRule", "unregisterSocketRule(id)", "unregisterSocketRule(\"fire_set_bonus\")");
-        scriptMethod("registeredSocketRules", "registeredSocketRules()", "registeredSocketRules()");
-        scriptMethod("registerSetBonus", "registerSetBonus(definition)", "registerSetBonus({ id: \"set_bonus\", function: \"bonus\" })");
-        scriptMethod("unregisterSetBonus", "unregisterSetBonus(id)", "unregisterSetBonus(\"set_bonus\")");
-        scriptMethod("registeredSetBonuses", "registeredSetBonuses()", "registeredSetBonuses()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:gem", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
     }
 
     private void registerPublicApiService() {

@@ -27,7 +27,6 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 import emaki.jiuwu.craft.cooking.action.NutritionActionRegistrar;
@@ -169,7 +168,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerEventHandlers();
         registerActions();
         registerPublicApiService();
-        registerWebConsole();
         registerPlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -188,7 +186,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (coreLibPlugin.actionRegistry() != null) {
             coreLibPlugin.actionRegistry().unregisterAll(this);
         }
-        WebConsoleRegistry.unregisterModule(this);
         EmakiCookingApi.uninstall(cookingApiBridge);
         if (nutritionService != null) {
             nutritionService.shutdown();
@@ -402,35 +399,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void registerActions() {
         new NutritionActionRegistrar(this).register(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).actionRegistry());
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
-        scriptMethod("pluginName", "pluginName()", "pluginName()");
-        scriptMethod("ready", "ready()", "ready()");
-        scriptMethod("registerResultRule", "registerResultRule(definition)", "registerResultRule({ id: \"holiday_extra_food\", function: \"modifyResult\" })");
-        scriptMethod("unregisterResultRule", "unregisterResultRule(id)", "unregisterResultRule(\"holiday_extra_food\")");
-        scriptMethod("registeredResultRules", "registeredResultRules()", "registeredResultRules()");
-        scriptMethod("onComplete", "onComplete(definition)", "onComplete({ id: \"complete_reward\", function: \"reward\" })");
-        scriptMethod("unregisterCompleteHook", "unregisterCompleteHook(id)", "unregisterCompleteHook(\"complete_reward\")");
-        scriptMethod("registeredCompleteHooks", "registeredCompleteHooks()", "registeredCompleteHooks()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:cooking", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
     }
 
     private void registerConfigPrecheckContributor() {

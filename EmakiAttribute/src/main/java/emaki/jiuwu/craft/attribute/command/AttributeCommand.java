@@ -33,7 +33,7 @@ import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.web.WebJson;
+import emaki.jiuwu.craft.corelib.util.Jsons;
 
 public final class AttributeCommand implements TabExecutor {
 
@@ -266,7 +266,7 @@ public final class AttributeCommand implements TabExecutor {
         messages().sendRaw(sender, buildDumpSignatureMessage(snapshot));
         messages().sendRaw(sender, buildDumpValuesMessage(snapshot));
         if (args.length >= 3 && "json".equalsIgnoreCase(args[2])) {
-            messages().sendRaw(sender, WebJson.stringify(attributeService.attributeTraceService().trace(target, "").toMap()));
+            messages().sendRaw(sender, Jsons.stringify(attributeService.attributeTraceService().trace(target, "").toMap()));
         }
         for (Map.Entry<String, ResourceState> entry : dumpResources(target).entrySet()) {
             ResourceState state = entry.getValue();
@@ -735,7 +735,7 @@ public final class AttributeCommand implements TabExecutor {
             return;
         }
         if (exportJson) {
-            messages().sendRaw(sender, WebJson.stringify(record.toMap()));
+            messages().sendRaw(sender, Jsons.stringify(record.toMap()));
             return;
         }
         messages().sendRaw(sender, formatTraceSummary(record));

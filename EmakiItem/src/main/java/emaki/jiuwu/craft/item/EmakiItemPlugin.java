@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.item;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -35,10 +34,6 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
-import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
-import emaki.jiuwu.craft.corelib.web.insight.WebInsightAliasRegistry;
-import emaki.jiuwu.craft.corelib.web.insight.WebInsightAliasResolver;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.action.ItemActionRegistrar;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
@@ -178,7 +173,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerActions();
         registerCommandHandler();
         registerEventHandlers();
-        registerWebConsole();
         ensurePlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -195,9 +189,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             metrics.close();
             metrics = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
-        WebPluginApiRegistry.unregister(this);
-        WebInsightAliasRegistry.unregister(this);
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
@@ -285,77 +276,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         getServer().getPluginManager().registerEvents(new ItemUpdateListener(this), this);
         getServer().getPluginManager().registerEvents(new ItemDurabilityListener(this, repairService), this);
         getServer().getPluginManager().registerEvents(new ItemRepairListener(this, repairService), this);
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("exists", "exists(id)", "exists(\"example_item\")");
-        scriptMethod("create", "create(id, amount)", "create(\"example_item\", 1)");
-        scriptMethod("identify", "identify(itemKey)", "identify(\"item\")");
-        scriptMethod("definitionIds", "definitionIds()", "definitionIds()");
-        scriptMethod("displayName", "displayName(id)", "displayName(\"example_item\")");
-        scriptMethod("registerDefinition", "registerDefinition(definition)", "registerDefinition({ id: \"event_sword\", source: \"minecraft:diamond_sword\" })");
-        scriptMethod("unregisterDefinition", "unregisterDefinition(id)", "unregisterDefinition(\"event_sword\")");
-        scriptMethod("registeredDefinitions", "registeredDefinitions()", "registeredDefinitions()");
-        scriptMethod("registerFactory", "registerFactory(definition)", "registerFactory({ id: \"random_relic\", function: \"createRelic\" })");
-        scriptMethod("unregisterFactory", "unregisterFactory(id)", "unregisterFactory(\"random_relic\")");
-        scriptMethod("registeredFactories", "registeredFactories()", "registeredFactories()");
-        scriptMethod("createFactory", "createFactory(id, amount)", "createFactory(\"random_relic\", 1)");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:item", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-        WebInsightAliasRegistry.register(this, new WebInsightAliasResolver() {
-            @Override
-            public String idType() {
-                return "emaki_item";
-            }
-
-            @Override
-            public AliasResolution resolve(String sourceId) {
-                if (aliasLoader == null) {
-                    return null;
-                }
-                emaki.jiuwu.craft.item.model.EmakiItemAlias alias = aliasLoader.get(sourceId);
-                return alias == null ? null : new AliasResolution(alias.oldId(), alias.targetId());
-            }
-        });
-        WebPluginApiRegistry.register(this, "item", "alias-list", request -> Map.of("ok", true, "aliases", aliasLoader == null ? Map.of() : aliasLoader.all().values().stream()
-                .map(alias -> Map.of(
-                        "oldId", alias.oldId(),
-                        "targetId", alias.targetId(),
-                        "migratePdc", alias.migratePdc(),
-                        "rewriteDisplay", alias.rewriteDisplay(),
-                        "expiresAfter", alias.expiresAfter()))
-                .toList()));
-        WebPluginApiRegistry.register(this, "item", "rename-preview", request -> {
-            request.requirePost();
-            return migrationService.preview(request.string("oldId"), request.string("newId"));
-        });
-        WebPluginApiRegistry.register(this, "item", "rename-apply", request -> {
-            request.requirePost();
-            request.requireConfigWriteAllowed();
-            String mode = Texts.lower(request.string("mode"));
-            boolean replaceReferences = !"alias_only".equals(mode);
-            boolean keepAlias = "alias_only".equals(mode) || "replace_and_alias".equals(mode);
-            return migrationService.apply(request.string("oldId"), request.string("newId"), replaceReferences, keepAlias, request.longMap("revisions"), request);
-        });
-        WebPluginApiRegistry.register(this, "item", "preview-layered", request -> {
-            request.requirePost();
-            return layerPreviewService.preview(request.string("content"), request.string("itemId"), request.map("layers"));
-        });
     }
 
     private void ensurePlaceholderExpansion() {

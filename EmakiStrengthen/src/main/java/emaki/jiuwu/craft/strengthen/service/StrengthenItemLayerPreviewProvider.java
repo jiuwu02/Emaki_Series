@@ -8,14 +8,14 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewProvider;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRequest;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewResult;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewProvider;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRequest;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewResult;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
-public final class StrengthenItemLayerPreviewProvider implements WebItemLayerPreviewProvider {
+public final class StrengthenItemLayerPreviewProvider implements ItemLayerPreviewProvider {
 
     private static final String LAYER_ID = "strengthen";
 
@@ -36,10 +36,10 @@ public final class StrengthenItemLayerPreviewProvider implements WebItemLayerPre
     }
 
     @Override
-    public WebItemLayerPreviewResult preview(WebItemLayerPreviewRequest request) {
+    public ItemLayerPreviewResult preview(ItemLayerPreviewRequest request) {
         ItemStack input = request == null ? null : request.currentItem();
         if (input == null || input.getType().isAir()) {
-            return WebItemLayerPreviewResult.unavailable(LAYER_ID, "基础物品不可用。", Map.of(), Map.of());
+            return ItemLayerPreviewResult.unavailable(LAYER_ID, "基础物品不可用。", Map.of(), Map.of());
         }
         StrengthenState state = plugin.attemptService().readState(input);
         String requestedRecipeId = Texts.lower(option(request.options(), "recipeId"));
@@ -48,18 +48,18 @@ public final class StrengthenItemLayerPreviewProvider implements WebItemLayerPre
         if (recipe == null) {
             Map<String, Object> selected = new LinkedHashMap<>();
             selected.put("recipeId", Texts.toStringSafe(recipeId));
-            return new WebItemLayerPreviewResult(LAYER_ID, false, "没有任何强化配方匹配当前 EmakiItem。", null, details(state, recipeId, null), options(null, state, 0, 0), selected);
+            return new ItemLayerPreviewResult(LAYER_ID, false, "没有任何强化配方匹配当前 EmakiItem。", null, details(state, recipeId, null), options(null, state, 0, 0), selected);
         }
         int maxStar = Math.max(0, recipe.limits().maxStar());
         if (maxStar <= 0) {
-            return WebItemLayerPreviewResult.unavailable(LAYER_ID, "强化配方没有可预览的星级阶段。", details(state, recipeId, recipe), Map.of());
+            return ItemLayerPreviewResult.unavailable(LAYER_ID, "强化配方没有可预览的星级阶段。", details(state, recipeId, recipe), Map.of());
         }
         int defaultStar = Numbers.clamp(Math.max(1, state.currentStar() + 1), 1, maxStar);
         int targetStar = Numbers.clamp(Numbers.tryParseInt(request.options().get("star"), defaultStar), 1, maxStar);
         int targetTemper = Numbers.clamp(Numbers.tryParseInt(request.options().get("temper"), state.temperLevel()), 0, recipe.limits().maxTemper());
         ItemStack preview = plugin.attemptService().applyAdminState(input.clone(), targetStar, targetTemper, recipe.id());
         if (preview == null || preview.getType().isAir()) {
-            return WebItemLayerPreviewResult.unavailable(LAYER_ID, "强化层预览重建失败。", details(state, recipe.id(), recipe), options(recipe, state, targetStar, targetTemper));
+            return ItemLayerPreviewResult.unavailable(LAYER_ID, "强化层预览重建失败。", details(state, recipe.id(), recipe), options(recipe, state, targetStar, targetTemper));
         }
         Map<String, Object> details = details(state, recipe.id(), recipe);
         details.put("routeSummary", Map.of(
@@ -68,7 +68,7 @@ public final class StrengthenItemLayerPreviewProvider implements WebItemLayerPre
                 "branching", recipe.branchTree() != null
         ));
         details.put("source", state.baseSourceSignature());
-        return WebItemLayerPreviewResult.available(
+        return ItemLayerPreviewResult.available(
                 LAYER_ID,
                 "已按真实强化层重建预览。",
                 preview,

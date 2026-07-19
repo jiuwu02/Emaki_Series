@@ -1,11 +1,3 @@
-# Node / npm workspaces
-node_modules/
-**/node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
 # Java / Maven / IDE build output
 target/
 *.class

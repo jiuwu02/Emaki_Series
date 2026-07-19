@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.5.11"
+version: "4.5.12"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -70,11 +70,6 @@ console:
       loop_stop_if_dead_invalid: "%action% 的 stop_if_dead 必须是布尔值。"
       loop_stop_on_failure_invalid: "%action% 的 stop_on_failure 必须是布尔值。"
       script_action_depth_large: "脚本动作深度过大，可能导致动作链难以追踪。"
-      web_loopback_required: "Web Console 仅允许绑定回环地址。"
-      web_readonly_required: "Web Console 仅允许使用只读安全模式。"
-      web_password_unsafe: "Web Console 已启用，但密码为空或仍为默认值。"
-      web_max_request_body_invalid: "max_request_body_kb 必须大于 0。"
-      web_allowed_modules_missing: "配置写入已启用，但未设置 allowed_modules 白名单。"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   economy_bridge_ready: "<gray>经济桥接已接入: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>已接入方块源: <aqua>%provider%</aqua></gray>"
@@ -161,36 +156,11 @@ debug:
     resolve: "解析物品来源 | 输入=%input% | 结果=%result%"
     create: "创建物品 | 来源=%source% | 数量=%amount% | 成功=%success%"
 
-# Web Console 调试命令
-web_debug:
-  request: "[WebDebug][%label%] %method% %uri% → %status% (%elapsed%ms) from %remote%"
-  frontend_error: "[WebDebug][前端][ERROR] %message% | source=%source% | detail=%detail% | url=%url% | stack=%stack%"
-  frontend_event: "[WebDebug][前端][EVENT] %event% | type=%type% | target=%target% | label=%label% | value=%value% | detail=%detail% | url=%url%"
-  event_type:
-    click: "点击"
-    change: "修改输入"
-    submit: "提交表单"
-    shortcut: "快捷键"
-    login_submit: "提交登录"
-    login_success: "登录成功"
-    login_failed: "登录失败"
-    logout_submit: "请求登出"
-  enabled_all: "<green>Web Console 调试模式已开启（前端+后端）</green>"
-  enabled_frontend: "<green>Web Console 前端调试已开启（静态资源与扩展脚本）</green>"
-  enabled_backend: "<green>Web Console 后端调试已开启（API 请求）</green>"
-  disabled_all: "<yellow>Web Console 调试模式已关闭</yellow>"
-  disabled_frontend: "<yellow>Web Console 前端调试已关闭</yellow>"
-  disabled_backend: "<yellow>Web Console 后端调试已关闭</yellow>"
-  disabled_config: "<yellow>Web Console 未启用，无法开启调试日志。请先在 config.yml 中设置 web_console.enabled: true，然后执行 /emakicorelib reload。</yellow>"
-  not_running: "<red>Web Console 未运行，无法开启调试日志。请检查启动日志或执行 /emakicorelib reload。</red>"
-  no_permission: "<red>你没有权限操作 Web Console 调试模式</red>"
-
 # 命令消息
 command:
-  no_permission_web: "<red>你没有权限查看 Web Console 链接</red>"
   no_permission_reload: "<red>你没有权限重载 EmakiCoreLib</red>"
   no_permission_admin: "<red>你没有权限执行 EmakiCoreLib 管理命令</red>"
-  reload_success: "<green>EmakiCoreLib 已重载，Web Console 已按新配置重新启动</green>"
+  reload_success: "<green>EmakiCoreLib 已重载</green>"
   reload_failed_precheck: "<red>EmakiCoreLib 预检失败，本次重载已取消，旧配置仍保持生效</red>"
   check_no_report: "<yellow>暂无预检报告，请先执行 /corelib check</yellow>"
   check_fix_unavailable: "<yellow>当前版本仅支持只读预检，暂未启用自动修复</yellow>"
@@ -206,24 +176,9 @@ command:
   action_execute_started: "<gray>正在执行 Action: <aqua>%line%</aqua></gray>"
   action_execute_success: "<green>Action 执行完成：成功 <yellow>%success%</yellow>，跳过 <yellow>%skipped%</yellow></green>"
   action_execute_failed: "<red>Action 执行失败: <aqua>%action%</aqua> - %error%</red>"
-  web_address: "<aqua>Web Console 地址：</aqua><white>%url%</white>"
-  web_bind_hint: "<yellow>当前 host 是绑定地址，客户端通常不能直接访问；下面提供本机回退链接</yellow>"
-  web_click_open: "<aqua>点击打开：</aqua><click:open_url:'%url%'><hover:show_text:'<yellow>点击在浏览器中打开 Web Console</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
-  web_disabled_hint: "<yellow>提示：web_console.enabled 当前为 false，链接可能无法连接</yellow>"
-  web_unsafe_password: "<yellow>提示：Web Console 密码为空或仍为默认值，服务将保持停止。请修改 web_console.auth.password</yellow>"
   help_header: "<aqua>EmakiCoreLib 命令：</aqua>"
-  help_web: "<green>%root% web</green><gray> - 输出可点击的 Web Console 链接</gray>"
-  help_reload: "<green>%root% reload</green><gray> - 重载 CoreLib 配置与 Web Console</gray>"
+  help_reload: "<green>%root% reload</green><gray> - 重载 CoreLib 配置</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - 执行配置预检或查看最近报告</gray>"
   help_script: "<green>%root% script [list|inspect|reload]</green><gray> - 查看或重载 JavaScript 扩展</gray>"
   help_action: "<green>%root% action [list|run <actionId> key=value ...]</green><gray> - 查看并直接执行已注册 Action</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消循环 Action 任务</gray>"
-  help_webdebug: "<green>%root% webdebug [frontend|backend|all]</green><gray> - Web Console 启用后开关前端/后端调试日志</gray>"
-
-# Web Console 服务日志
-web_console:
-  started: "<gray>Web Console 已启动: <aqua>%url%</aqua></gray>"
-  start_failed: "<red>Web Console 启动失败</red>"
-  unsafe_password: "<red>已启用但密码仍为默认值 change-me，Web Console 将保持停止。请修改 config.yml 的 web_console.auth.password</red>"
-  request_failed: "<red>请求处理失败: %uri%</red>"
-  yaml_parse_failed: "<red>解析 web-console.yml 失败</red>"

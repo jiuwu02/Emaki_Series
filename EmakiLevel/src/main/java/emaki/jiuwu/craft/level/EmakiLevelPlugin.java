@@ -32,8 +32,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
-import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.level.action.LevelActionRegistrar;
@@ -60,7 +58,6 @@ import emaki.jiuwu.craft.level.papi.LevelPlaceholderExpansion;
 import emaki.jiuwu.craft.level.placeholder.LevelCorePlaceholderResolver;
 import emaki.jiuwu.craft.level.service.LevelAntiAbuseService;
 import emaki.jiuwu.craft.level.service.LevelAttributeBridge;
-import emaki.jiuwu.craft.level.service.LevelCurveService;
 import emaki.jiuwu.craft.level.service.LevelExperienceRuleService;
 import emaki.jiuwu.craft.level.service.LevelGuiService;
 import emaki.jiuwu.craft.level.service.LevelMessageService;
@@ -86,7 +83,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/   \\/_____/\\/_____/
 """;
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> STATIC_FILES = List.of("web-console.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
             "requirements.yml",
             "gui/level_gui.yml",
@@ -130,7 +126,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private GuiService guiService;
     private LevelTypeRegistry typeRegistry;
     private RequirementService requirementService;
-    private LevelCurveService curveService;
     private PlayerLevelDataStore dataStore;
     private LevelPdcService pdcService;
     private LevelExperienceRuleService experienceRuleService;
@@ -353,7 +348,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         releaseBundledScripts();
         registerActions();
         registerCorePlaceholders();
-        registerWebConsole();
         registerPlaceholderExpansion();
         registerAttributeBridge();
         registerMythicDrops();
@@ -395,8 +389,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
             gameplaySubscriber.unsubscribe();
             gameplaySubscriber = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
-        WebPluginApiRegistry.unregister(this);
         EmakiLevelApi.uninstall(levelApiBridge);
         if (dataStore != null) {
             PlayerLevelDataStore.FlushResult flushResult = dataStore.flushAndSeal(5L, TimeUnit.SECONDS);
@@ -470,7 +462,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
                 this,
                 messages,
                 VERSIONED_FILES,
-                STATIC_FILES,
+                List.of(),
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
                 new BootstrapHooks() {
@@ -499,7 +491,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         guiService = new GuiService(this, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
         typeRegistry = new LevelTypeRegistry();
         requirementService = new RequirementService();
-        curveService = new LevelCurveService(typeRegistry, requirementService);
         var playerDataFiles = coreLib.asyncYamlFiles(this);
         dataStore = new PlayerLevelDataStore(this, () -> playerDataFiles);
         pdcService = new LevelPdcService(appConfig.pdcNamespace(), appConfig.pdcEnabled());
@@ -566,33 +557,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         messages.info("console.actions_registered");
     }
 
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("typeIds", "typeIds()", "typeIds()");
-        scriptMethod("type", "type(typeId)", "type(\"combat\")");
-        scriptMethod("level", "level(playerUuid, typeId)", "level(playerUuid, \"combat\")");
-        scriptMethod("exp", "exp(playerUuid, typeId)", "exp(playerUuid, \"combat\")");
-        scriptMethod("totalExp", "totalExp(playerUuid, typeId)", "totalExp(playerUuid, \"combat\")");
-        scriptMethod("requiredExp", "requiredExp(playerUuid, typeId, targetLevel)", "requiredExp(playerUuid, \"combat\", 10)");
-        scriptMethod("registerExpRule", "registerExpRule(definition)", "registerExpRule({ id: \"weekend_bonus\", function: \"modifyExp\" })");
-        scriptMethod("unregisterExpRule", "unregisterExpRule(id)", "unregisterExpRule(\"weekend_bonus\")");
-        scriptMethod("registeredExpRules", "registeredExpRules()", "registeredExpRules()");
-        scriptMethod("onLevelUp", "onLevelUp(definition)", "onLevelUp({ id: \"level_reward\", function: \"reward\" })");
-        scriptMethod("unregisterLevelUpHook", "unregisterLevelUpHook(id)", "unregisterLevelUpHook(\"level_reward\")");
-        scriptMethod("registeredLevelUpHooks", "registeredLevelUpHooks()", "registeredLevelUpHooks()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:level", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
-    }
-
     private void registerCorePlaceholders() {
         if (coreLib == null || coreLib.placeholderRegistry() == null) {
             return;
@@ -602,15 +566,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         }
         corePlaceholderResolver = new LevelCorePlaceholderResolver(this);
         coreLib.placeholderRegistry().register(corePlaceholderResolver);
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-        WebPluginApiRegistry.register(this, "level", "curve", request -> {
-            request.requirePost();
-            return curveService.curves(request.stringList("types"), request.integer("fromLevel", 1), request.integer("toLevel", 0));
-        });
     }
 
     private void registerPlaceholderExpansion() {

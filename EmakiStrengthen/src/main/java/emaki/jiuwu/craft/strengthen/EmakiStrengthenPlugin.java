@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.strengthen;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -32,9 +31,7 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
-import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.action.StrengthenActionRegistrar;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
@@ -54,7 +51,6 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenItemLayerPreviewProvider;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
-import emaki.jiuwu.craft.strengthen.service.StrengthenRoutePreviewService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenChanceRuleRegistry;
 import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenResultHookRegistry;
@@ -100,7 +96,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenAttemptService attemptService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
-    private StrengthenRoutePreviewService routePreviewService;
     private JavaScriptStrengthenChanceRuleRegistry javaScriptChanceRuleRegistry;
     private JavaScriptStrengthenResultHookRegistry javaScriptResultHookRegistry;
     private StrengthenPlaceholderExpansion placeholderExpansion;
@@ -147,7 +142,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         registerActions();
         registerCommandHandler();
         registerEventHandlers();
-        registerWebConsole();
+        ItemLayerPreviewRegistry.register(this, new StrengthenItemLayerPreviewProvider(this));
         ensurePlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -161,13 +156,11 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
-        WebPluginApiRegistry.unregister(this);
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
         }
-        WebItemLayerPreviewRegistry.unregister(this);
+        ItemLayerPreviewRegistry.unregister(this);
         EmakiStrengthenApi.uninstall(strengthenApiBridge);
         getServer().getServicesManager().unregisterAll(this);
         if (metrics != null) {
@@ -212,7 +205,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         attemptService = components.attemptService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
-        routePreviewService = new StrengthenRoutePreviewService(this);
         javaScriptChanceRuleRegistry = new JavaScriptStrengthenChanceRuleRegistry(this);
         javaScriptResultHookRegistry = new JavaScriptStrengthenResultHookRegistry(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
@@ -241,40 +233,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(strengthenGuiService, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("canStrengthen", "canStrengthen(itemKey)", "canStrengthen(\"item\")");
-        scriptMethod("readState", "readState(itemKey)", "readState(\"item\")");
-        scriptMethod("rebuild", "rebuild(itemKey)", "rebuild(\"item\")");
-        scriptMethod("registerChanceRule", "registerChanceRule(definition)", "registerChanceRule({ id: \"vip_bonus\", function: \"modifyChance\" })");
-        scriptMethod("unregisterChanceRule", "unregisterChanceRule(id)", "unregisterChanceRule(\"vip_bonus\")");
-        scriptMethod("registeredChanceRules", "registeredChanceRules()", "registeredChanceRules()");
-        scriptMethod("onResult", "onResult(definition)", "onResult({ id: \"result_reward\", function: \"handleResult\" })");
-        scriptMethod("unregisterResultHook", "unregisterResultHook(id)", "unregisterResultHook(\"result_reward\")");
-        scriptMethod("registeredResultHooks", "registeredResultHooks()", "registeredResultHooks()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:strengthen", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-        WebItemLayerPreviewRegistry.register(this, new StrengthenItemLayerPreviewProvider(this));
-        WebPluginApiRegistry.register(this, "strengthen", "route-preview", request -> {
-            request.requirePost();
-            return routePreviewService.preview(request.string("recipeId"));
-        });
     }
 
     private void ensurePlaceholderExpansion() {
@@ -352,10 +310,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public StrengthenRefreshService refreshService() {
         return refreshService;
-    }
-
-    public StrengthenRoutePreviewService routePreviewService() {
-        return routePreviewService;
     }
 
     public StrengthenGuiService strengthenGuiService() {

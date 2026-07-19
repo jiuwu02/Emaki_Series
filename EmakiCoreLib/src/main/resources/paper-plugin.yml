@@ -11,13 +11,9 @@ permissions:
     description: Allows all EmakiCoreLib administrative commands
     default: op
     children:
-      emakicorelib.web: true
       emakicorelib.reload: true
-  emakicorelib.web:
-    description: Allows viewing the clickable Web Console link
-    default: op
   emakicorelib.reload:
-    description: Allows reloading EmakiCoreLib configuration and Web Console
+    description: Allows reloading EmakiCoreLib configuration
     default: op
 dependencies:
   server:

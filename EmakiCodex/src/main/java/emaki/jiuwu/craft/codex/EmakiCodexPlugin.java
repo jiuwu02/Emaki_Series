@@ -35,7 +35,6 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
 /**
@@ -90,7 +89,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
-        WebConsoleRegistry.registerFromYaml(this);
         registerActions();
         reloadPluginState();
         registerCommandHandler();
@@ -111,7 +109,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             metrics.close();
             metrics = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
         lifecycleCoordinator.shutdown(this);
     }
 

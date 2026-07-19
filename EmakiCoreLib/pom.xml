@@ -12,13 +12,9 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.5.11</version>
+    <version>4.5.12</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
-
-    <properties>
-        <skip.web.console>false</skip.web.console>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -214,29 +210,6 @@
             </resource>
         </resources>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.5.0</version>
-                <executions>
-                    <execution>
-                        <id>build-web-console</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <workingDirectory>${project.basedir}/..</workingDirectory>
-                            <executable>npm</executable>
-                            <arguments>
-                                <argument>run</argument>
-                                <argument>build:web:core</argument>
-                            </arguments>
-                            <skip>${skip.web.console}</skip>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

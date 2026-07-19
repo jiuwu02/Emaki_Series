@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.5.11"
+version: "4.5.12"
 
 general:
   prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
@@ -70,11 +70,6 @@ console:
       loop_stop_if_dead_invalid: "%action% stop_if_dead must be boolean."
       loop_stop_on_failure_invalid: "%action% stop_on_failure must be boolean."
       script_action_depth_large: "Large script action depth may cause difficult-to-trace action chains."
-      web_loopback_required: "Web Console requires a loopback-only bind."
-      web_readonly_required: "Web Console requires readonly security mode."
-      web_password_unsafe: "Web Console is enabled but its password is blank or still uses the default value."
-      web_max_request_body_invalid: "max_request_body_kb must be greater than 0."
-      web_allowed_modules_missing: "Config write is enabled without an allowed_modules allowlist."
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   economy_bridge_ready: "<gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
@@ -161,36 +156,11 @@ debug:
     resolve: "Resolve item source | input=%input% | result=%result%"
     create: "Create item | source=%source% | amount=%amount% | success=%success%"
 
-# Web Console debug command
-web_debug:
-  request: "[WebDebug][%side%] %method% %uri% → %status% (%elapsed%ms) from %remote%"
-  frontend_error: "[WebDebug][frontend][ERROR] %message% | source=%source% | detail=%detail% | url=%url% | stack=%stack%"
-  frontend_event: "[WebDebug][frontend][EVENT] %event% | type=%type% | target=%target% | label=%label% | value=%value% | detail=%detail% | url=%url%"
-  event_type:
-    click: "Click"
-    change: "Input changed"
-    submit: "Form submitted"
-    shortcut: "Shortcut"
-    login_submit: "Login submitted"
-    login_success: "Login succeeded"
-    login_failed: "Login failed"
-    logout_submit: "Logout requested"
-  enabled_all: "<green>Web Console debug enabled (frontend + backend)</green>"
-  enabled_frontend: "<green>Web Console frontend debug enabled (static assets and extension scripts)</green>"
-  enabled_backend: "<green>Web Console backend debug enabled (API requests)</green>"
-  disabled_all: "<yellow>Web Console debug disabled</yellow>"
-  disabled_frontend: "<yellow>Web Console frontend debug disabled</yellow>"
-  disabled_backend: "<yellow>Web Console backend debug disabled</yellow>"
-  disabled_config: "<yellow>Web Console is disabled, so debug logs cannot be enabled. Set web_console.enabled: true in config.yml, then run /emakicorelib reload.</yellow>"
-  not_running: "<red>Web Console is not running, so debug logs cannot be enabled. Check the startup log or run /emakicorelib reload.</red>"
-  no_permission: "<red>You do not have permission to change Web Console debug mode</red>"
-
 # Command messages
 command:
-  no_permission_web: "<red>You do not have permission to view the Web Console link</red>"
   no_permission_reload: "<red>You do not have permission to reload EmakiCoreLib</red>"
   no_permission_admin: "<red>You do not have permission to run EmakiCoreLib admin commands</red>"
-  reload_success: "<green>EmakiCoreLib has been reloaded, and the Web Console has restarted with the new configuration</green>"
+  reload_success: "<green>EmakiCoreLib has been reloaded</green>"
   reload_failed_precheck: "<red>EmakiCoreLib precheck failed. Reload was cancelled and the previous config is still active</red>"
   check_no_report: "<yellow>No precheck report is available. Run /corelib check first</yellow>"
   check_fix_unavailable: "<yellow>This version only supports read-only prechecks; automatic fixes are not enabled yet</yellow>"
@@ -206,24 +176,9 @@ command:
   action_execute_started: "<gray>Executing Action: <aqua>%line%</aqua></gray>"
   action_execute_success: "<green>Action execution completed: success <yellow>%success%</yellow>, skipped <yellow>%skipped%</yellow></green>"
   action_execute_failed: "<red>Action execution failed: <aqua>%action%</aqua> - %error%</red>"
-  web_address: "<aqua>Web Console address: </aqua><white>%url%</white>"
-  web_bind_hint: "<yellow>The current host is a bind address and usually cannot be accessed directly by clients; a localhost fallback link is provided below</yellow>"
-  web_click_open: "<aqua>Click to open: </aqua><click:open_url:'%url%'><hover:show_text:'<yellow>Click to open the Web Console in your browser</yellow>'><green><underlined>%url%</underlined></green></hover></click>"
-  web_disabled_hint: "<yellow>Hint: web_console.enabled is currently false, so the link may not be reachable</yellow>"
-  web_unsafe_password: "<yellow>Hint: the Web Console password is empty or still using the default value, so the service will remain stopped. Please update web_console.auth.password</yellow>"
   help_header: "<aqua>EmakiCoreLib commands:</aqua>"
-  help_web: "<green>%root% web</green><gray> - Print a clickable Web Console link</gray>"
-  help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration and the Web Console</gray>"
+  help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - Run config prechecks or show the latest report</gray>"
   help_script: "<green>%root% script [list|inspect|reload]</green><gray> - View or reload JavaScript extensions</gray>"
   help_action: "<green>%root% action [list|run <actionId> key=value ...]</green><gray> - View and directly execute registered Actions</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - View or cancel loop Action tasks</gray>"
-  help_webdebug: "<green>%root% webdebug [frontend|backend|all]</green><gray> - Toggle frontend/backend debug logs after the Web Console is enabled</gray>"
-
-# Web Console service logs
-web_console:
-  started: "<gray>Web Console started: <aqua>%url%</aqua></gray>"
-  start_failed: "<red>Failed to start the Web Console</red>"
-  unsafe_password: "<red>The Web Console is enabled but the password is still the default value change-me, so it will remain stopped. Please update config.yml web_console.auth.password</red>"
-  request_failed: "<red>Failed to handle request: %uri%</red>"
-  yaml_parse_failed: "<red>Failed to parse web-console.yml</red>"

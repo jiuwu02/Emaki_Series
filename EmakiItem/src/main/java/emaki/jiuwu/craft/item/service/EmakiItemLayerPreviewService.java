@@ -11,10 +11,10 @@ import org.bukkit.inventory.meta.ItemMeta;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewProvider;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRequest;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewResult;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewProvider;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRegistry;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRequest;
+import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewResult;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -44,16 +44,16 @@ public final class EmakiItemLayerPreviewService {
         ItemStack current = base;
         Map<String, Object> basePreview = itemPreview("base", base != null, "", base, Map.of("itemId", itemId, "setPreview", setPreview));
         List<Map<String, Object>> layers = new ArrayList<>();
-        Map<String, WebItemLayerPreviewProvider> providers = providersById();
+        Map<String, ItemLayerPreviewProvider> providers = providersById();
         for (String id : BUILTIN_LAYER_IDS) {
-            WebItemLayerPreviewProvider provider = providers.remove(id);
+            ItemLayerPreviewProvider provider = providers.remove(id);
             if (provider == null) {
                 layers.add(unregisteredLayer(id));
                 continue;
             }
             Map<String, Object> options = layerOptionsFor(layerOptions, id);
             boolean enabled = layerEnabled(options);
-            WebItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, options);
+            ItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, options);
             boolean applied = enabled && result.available() && result.itemStack() != null;
             if (applied) {
                 current = result.itemStack();
@@ -63,10 +63,10 @@ public final class EmakiItemLayerPreviewService {
             layerMap.put("applied", applied);
             layers.add(layerMap);
         }
-        for (WebItemLayerPreviewProvider provider : providers.values()) {
+        for (ItemLayerPreviewProvider provider : providers.values()) {
             Map<String, Object> options = layerOptionsFor(layerOptions, provider.id());
             boolean enabled = layerEnabled(options);
-            WebItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, options);
+            ItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, options);
             boolean applied = enabled && result.available() && result.itemStack() != null;
             if (applied) {
                 current = result.itemStack();
@@ -137,17 +137,17 @@ public final class EmakiItemLayerPreviewService {
         itemStack.setItemMeta(itemMeta);
     }
 
-    private WebItemLayerPreviewResult previewProvider(WebItemLayerPreviewProvider provider, String itemId, ItemStack base, ItemStack current, Map<String, Object> options) {
+    private ItemLayerPreviewResult previewProvider(ItemLayerPreviewProvider provider, String itemId, ItemStack base, ItemStack current, Map<String, Object> options) {
         try {
-            return provider.preview(new WebItemLayerPreviewRequest(itemId, base, current == null ? base : current, options));
+            return provider.preview(new ItemLayerPreviewRequest(itemId, base, current == null ? base : current, options));
         } catch (RuntimeException exception) {
-            return WebItemLayerPreviewResult.unavailable(provider.id(), provider.id() + " 预览失败：" + exception.getMessage(), Map.of(), Map.of());
+            return ItemLayerPreviewResult.unavailable(provider.id(), provider.id() + " 预览失败：" + exception.getMessage(), Map.of(), Map.of());
         }
     }
 
-    private Map<String, WebItemLayerPreviewProvider> providersById() {
-        Map<String, WebItemLayerPreviewProvider> providers = new LinkedHashMap<>();
-        for (WebItemLayerPreviewProvider provider : WebItemLayerPreviewRegistry.providers()) {
+    private Map<String, ItemLayerPreviewProvider> providersById() {
+        Map<String, ItemLayerPreviewProvider> providers = new LinkedHashMap<>();
+        for (ItemLayerPreviewProvider provider : ItemLayerPreviewRegistry.providers()) {
             providers.put(Texts.lower(provider.id()), provider);
         }
         return providers;
@@ -194,13 +194,13 @@ public final class EmakiItemLayerPreviewService {
             case "gem" -> "EmakiGem";
             default -> id;
         };
-        return WebItemLayerPreviewResult.unavailable(id, pluginName + " 未加载。", Map.of(), Map.of())
+        return ItemLayerPreviewResult.unavailable(id, pluginName + " 未加载。", Map.of(), Map.of())
                 .toLayerMap(itemPreview(id, false, pluginName + " 未加载。", null, Map.of()));
     }
 
     private EmakiItemDefinition parseDefinition(String content, String fallbackId, List<Map<String, Object>> warnings) {
         try {
-            EmakiItemDefinition parsed = parser.parse(YamlFiles.load(content == null ? "" : content), "web-preview");
+            EmakiItemDefinition parsed = parser.parse(YamlFiles.load(content == null ? "" : content), "layer-preview");
             if (parsed != null) {
                 return parsed;
             }

@@ -30,7 +30,6 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
         checkLoopConfig(safeConfig.loopConfig(), issues);
         checkTemplates(safeConfig.loopConfig(), safeConfig.actionTemplates(), context, issues);
         checkScriptSecurity(safeConfig, issues);
-        checkWebConsole(safeConfig, issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", ConfigPrecheckSeverity.INFO, "passed", issues);
         }
@@ -327,35 +326,4 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
         }
     }
 
-    private void checkWebConsole(CoreLibConfig config, List<ConfigPrecheckIssue> issues) {
-        if (config.webConsoleConfig() == null || config.webConsoleConfig().security() == null) {
-            return;
-        }
-        var web = config.webConsoleConfig();
-        if (web.enabled() && !web.isLoopbackOnly()) {
-            addMessageIssue("web_console.host", ConfigPrecheckSeverity.ERROR, "web_loopback_required", issues);
-        }
-        if (web.enabled() && !web.isReadOnly()) {
-            addMessageIssue("web_console.security.mode", ConfigPrecheckSeverity.ERROR, "web_readonly_required", issues);
-        }
-        if (web.enabled() && web.hasUnsafeDefaultPassword()) {
-            addMessageIssue("web_console.auth.password", ConfigPrecheckSeverity.ERROR, "web_password_unsafe", issues);
-        }
-        if (web.security().maxRequestBodyKb() <= 0) {
-            addMessageIssue(
-                    "web_console.security.max_request_body_kb",
-                    ConfigPrecheckSeverity.ERROR,
-                    "web_max_request_body_invalid",
-                    issues
-            );
-        }
-        if (web.enabled() && web.security().mode().configWriteAllowed() && web.security().allowedModules().isEmpty()) {
-            addMessageIssue(
-                    "web_console.security.allowed_modules",
-                    ConfigPrecheckSeverity.WARN,
-                    "web_allowed_modules_missing",
-                    issues
-            );
-        }
-    }
 }

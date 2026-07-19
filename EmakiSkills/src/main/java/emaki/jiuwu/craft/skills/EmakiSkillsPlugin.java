@@ -23,7 +23,6 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.skills.action.SkillsActionRegistrar;
 import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
@@ -150,7 +149,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         registerCommandHandler();
         registerEventHandlers();
         registerCoreLibActions();
-        registerWebConsole();
         registerPublicApi();
         ensurePlaceholderExpansion();
         if (actionBarService != null) {
@@ -165,7 +163,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         unregisterCoreLibActions();
         ConfigPrecheckLifecycleSupport.unregister("skills");
         coreLib().scriptModuleRegistry().unregister("skills");
-        WebConsoleRegistry.unregisterModule(this);
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
@@ -307,28 +304,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void releaseBundledScripts() {
         coreLib().releaseBundledScripts(this, "examples", false, java.util.List.of("skills_upgrade_success.js", "js_lightning_strike.js"));
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("hasScriptAction", "hasScriptAction(actionId)", "hasScriptAction(\"attribute_damage\")");
-        scriptMethod("registeredScriptActions", "registeredScriptActions()", "registeredScriptActions()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:skills", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
     }
 
     private void registerScriptModule() {

@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.5.11"
+version: "4.5.12"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -17,35 +17,6 @@ language: "zh_CN"
 # 是否释放内置示例资源。
 # false 时不会自动生成 scripts/examples 下的示例脚本。
 release_default_data: true
-
-web_console:
-  # 内置 Web 管理台，默认关闭。启用前请修改 auth.password，并保持回环地址、只读模式等安全边界。
-  enabled: false
-  host: "127.0.0.1"
-  port: 38765
-  public_access_warning: true
-  auth:
-    username: "EmakiAdmin"
-    password: "change-me"
-    session_timeout_minutes: 60
-  security:
-    # 安全模式：readonly / config-write / script-write / admin。
-    mode: "readonly"
-    max_request_body_kb: 256
-    allowed_modules: []
-  config_browser:
-    max_file_size_kb: 512
-    allowed_extensions:
-      - ".yml"
-      - ".yaml"
-      - ".json"
-      - ".txt"
-  history:
-    enabled: true
-    max_snapshots_per_file: 50
-    max_age_days: 30
-    record_web_writes: true
-    record_delete_backup: true
 
 # 菜单(GUI)渲染后端
 gui:

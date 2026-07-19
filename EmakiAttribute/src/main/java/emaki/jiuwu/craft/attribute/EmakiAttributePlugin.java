@@ -54,8 +54,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
-import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 
 public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements EmakiServiceRegistry {
 
@@ -121,7 +119,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         lifecycleCoordinator.registerListener(this);
         ensurePlaceholderExpansion();
         registerSkillScriptActions();
-        registerWebConsole();
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
@@ -135,8 +132,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             javaScriptAttributeExtensionLoader.close();
             javaScriptAttributeExtensionLoader = null;
         }
-        WebPluginApiRegistry.unregister(this);
-        WebConsoleRegistry.unregisterModule(this);
         PdcAttributeApi.uninstall(pdcAttributeApi);
         Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
@@ -490,66 +485,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         } catch (Exception exception) {
             getLogger().warning("Failed to register attribute_damage skill action: " + exception.getMessage());
         }
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("registerSource", "registerSource(sourceId)", "registerSource(\"custom_source\")");
-        scriptMethod("unregisterSource", "unregisterSource(sourceId)", "unregisterSource(\"custom_source\")");
-        scriptMethod("isRegisteredSource", "isRegisteredSource(sourceId)", "isRegisteredSource(\"custom_source\")");
-        scriptMethod("registeredSources", "registeredSources()", "registeredSources()");
-        scriptMethod("read", "read(itemKey, sourceId)", "read(\"item\", \"custom_source\")");
-        scriptMethod("readAll", "readAll(itemKey)", "readAll(\"item\")");
-        scriptMethod("write", "write(itemKey, sourceId, attributes, meta)", "write(\"item\", \"custom_source\", {}, {})");
-        scriptMethod("clear", "clear(itemKey, sourceId)", "clear(\"item\", \"custom_source\")");
-        scriptMethod("clearAll", "clearAll(itemKey)", "clearAll(\"item\")");
-        scriptMethod("applyDamage", "applyDamage(attacker, target, damageTypeId, baseDamage, damageContext)", "applyDamage(attacker, target, \"physical\", 10, {})");
-        scriptMethod("calculateDamage", "calculateDamage(attacker, target, damageTypeId, baseDamage, damageContext)", "calculateDamage(attacker, target, \"physical\", 10, {})");
-        scriptMethod("setDamageTypeOverride", "setDamageTypeOverride(entity, damageTypeId)", "setDamageTypeOverride(entity, \"physical\")");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:attribute", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-        WebPluginApiRegistry.register(this, "attribute", "source-trace", request -> {
-            request.requirePost();
-            org.bukkit.entity.Player player = Bukkit.getPlayerExact(request.string("player"));
-            if (player == null) {
-                return java.util.Map.of("ok", false, "error", "player_not_found", "player", request.string("player"));
-            }
-            return java.util.Map.of("ok", true, "report", attributeService.attributeTraceService().trace(player, request.string("attributeId")).toMap());
-        });
-        WebPluginApiRegistry.register(this, "attribute", "damage-trace", request -> {
-            request.requirePost();
-            org.bukkit.entity.Player player = Bukkit.getPlayerExact(request.string("player"));
-            if (player == null) {
-                return java.util.Map.of("ok", false, "error", "player_not_found", "player", request.string("player"));
-            }
-            String action = request.string("action");
-            if ("clear".equalsIgnoreCase(action)) {
-                boolean cleared = attributeService.damageTraceService().clear(player.getUniqueId());
-                return java.util.Map.of("ok", true, "cleared", cleared);
-            }
-            java.util.List<java.util.Map<String, Object>> records = attributeService.damageTraceService().list(player.getUniqueId()).stream()
-                    .map(emaki.jiuwu.craft.attribute.model.DamageTraceRecord::toMap)
-                    .toList();
-            return java.util.Map.of(
-                    "ok", true,
-                    "records", records,
-                    "last", records.isEmpty() ? java.util.Map.of() : records.get(0)
-            );
-        });
     }
 
 }

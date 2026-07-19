@@ -27,7 +27,6 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.action.ForgeActionRegistrar;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
@@ -118,7 +117,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerActions();
         registerEventHandlers();
         registerPublicApiService();
-        registerWebConsole();
         ensurePlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -131,7 +129,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
@@ -203,35 +200,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(playerDataListener, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
-        scriptMethod("pluginName", "pluginName()", "pluginName()");
-        scriptMethod("ready", "ready()", "ready()");
-        scriptMethod("registerForgeRule", "registerForgeRule(definition)", "registerForgeRule({ id: \"moon_phase_bonus\", function: \"modifyForge\" })");
-        scriptMethod("unregisterForgeRule", "unregisterForgeRule(id)", "unregisterForgeRule(\"moon_phase_bonus\")");
-        scriptMethod("registeredForgeRules", "registeredForgeRules()", "registeredForgeRules()");
-        scriptMethod("onResult", "onResult(definition)", "onResult({ id: \"forge_result\", function: \"handleResult\" })");
-        scriptMethod("unregisterResultHook", "unregisterResultHook(id)", "unregisterResultHook(\"forge_result\")");
-        scriptMethod("registeredResultHooks", "registeredResultHooks()", "registeredResultHooks()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:forge", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
     }
 
     private void registerPublicApiService() {

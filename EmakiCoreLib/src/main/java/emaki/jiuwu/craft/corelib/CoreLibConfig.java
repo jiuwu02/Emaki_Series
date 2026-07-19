@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
-import emaki.jiuwu.craft.corelib.web.WebConsoleConfig;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record CoreLibConfig(
@@ -14,14 +13,13 @@ public record CoreLibConfig(
         Map<String, List<String>> actionTemplates,
         LoopConfig loopConfig,
         ScriptConfig scriptConfig,
-        WebConsoleConfig webConsoleConfig,
         GuiConfig guiConfig,
         GameplayEventConfig gameplayEventConfig
 ) {
 
     public static CoreLibConfig defaults() {
         return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
-                WebConsoleConfig.defaults(), GuiConfig.defaults(), GameplayEventConfig.defaults());
+                GuiConfig.defaults(), GameplayEventConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -43,7 +41,6 @@ public record CoreLibConfig(
                 Map.copyOf(templates),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 ScriptConfig.fromConfig(configuration.getSection("script")),
-                WebConsoleConfig.fromConfig(configuration.getSection("web_console")),
                 GuiConfig.fromConfig(configuration.getSection("gui")),
                 GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events"))
         );

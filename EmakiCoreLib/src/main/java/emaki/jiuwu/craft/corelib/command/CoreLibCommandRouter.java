@@ -25,16 +25,12 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.web.WebConsoleConfig;
-import emaki.jiuwu.craft.corelib.web.WebConsoleService;
 
 public final class CoreLibCommandRouter implements TabExecutor {
 
-    private static final String PERMISSION_WEB = "emakicorelib.web";
     private static final String PERMISSION_RELOAD = "emakicorelib.reload";
     private static final String PERMISSION_ADMIN = "emakicorelib.admin";
-    private static final List<String> SUB_COMMANDS = List.of("help", "web", "webconsole", "url", "link", "reload", "check", "debug", "webdebug", "script", "action", "actions");
-    private static final List<String> WEBDEBUG_MODES = List.of("frontend", "backend", "all");
+    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "script", "action", "actions");
     private static final List<String> SCRIPT_MODES = List.of("list", "inspect", "reload");
     private static final List<String> ACTION_MODES = List.of("list", "run");
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
@@ -58,11 +54,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
                 sendHelp(sender, label);
                 yield true;
             }
-            case "web", "webconsole", "url", "link" -> handleWebConsoleLink(sender);
             case "reload" -> handleReload(sender);
             case "check" -> handleCheck(sender, args);
             case "debug" -> handleDebug(sender, args);
-            case "webdebug" -> handleWebDebug(sender, args);
             case "script" -> handleScript(sender, args);
             case "action", "actions" -> handleAction(sender, args);
             default -> {
@@ -82,8 +76,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
                     result.add(subCommand);
                 }
             }
-        } else if (args.length == 2 && "webdebug".equalsIgnoreCase(args[0])) {
-            complete(args[1], WEBDEBUG_MODES, result);
         } else if (args.length == 2 && "check".equalsIgnoreCase(args[0])) {
             complete(args[1], CHECK_MODES, result);
             complete(args[1], plugin.configPrecheckService().registry().moduleIds(), result);
@@ -117,28 +109,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
             }
         }
         return result;
-    }
-
-    private boolean handleWebConsoleLink(CommandSender sender) {
-        if (!sender.hasPermission(PERMISSION_WEB)) {
-            sendLang(sender, "command.no_permission_web");
-            return true;
-        }
-        WebConsoleConfig config = plugin.configModel().webConsoleConfig();
-        String configuredUrl = webConsoleUrl(config.host(), config.port());
-        String clickableUrl = clickableUrl(config.host(), config.port());
-        sendLang(sender, "command.web_address", Map.of("url", configuredUrl));
-        if (!configuredUrl.equals(clickableUrl)) {
-            sendLang(sender, "command.web_bind_hint");
-        }
-        sendLang(sender, "command.web_click_open", Map.of("url", clickableUrl));
-        if (!config.enabled()) {
-            sendLang(sender, "command.web_disabled_hint");
-        }
-        if (config.hasUnsafeDefaultPassword()) {
-            sendLang(sender, "command.web_unsafe_password");
-        }
-        return true;
     }
 
     private boolean handleReload(CommandSender sender) {
@@ -373,39 +343,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
         return true;
     }
 
-    private boolean handleWebDebug(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_RELOAD)) {
-            sendLang(sender, "web_debug.no_permission");
-            return true;
-        }
-        WebConsoleConfig config = plugin.configModel().webConsoleConfig();
-        if (config == null || !config.enabled()) {
-            sendLang(sender, "web_debug.disabled_config");
-            return true;
-        }
-        WebConsoleService service = plugin.webConsoleService();
-        if (service == null) {
-            sendLang(sender, "web_debug.not_running");
-            return true;
-        }
-        String mode = args.length >= 2 ? args[1].toLowerCase(java.util.Locale.ROOT) : "all";
-        switch (mode) {
-            case "frontend" -> {
-                boolean enabled = service.toggleDebugFrontend();
-                sendLang(sender, enabled ? "web_debug.enabled_frontend" : "web_debug.disabled_frontend");
-            }
-            case "backend" -> {
-                boolean enabled = service.toggleDebugBackend();
-                sendLang(sender, enabled ? "web_debug.enabled_backend" : "web_debug.disabled_backend");
-            }
-            default -> {
-                boolean enabled = service.toggleDebug();
-                sendLang(sender, enabled ? "web_debug.enabled_all" : "web_debug.disabled_all");
-            }
-        }
-        return true;
-    }
-
     private void sendScriptList(CommandSender sender) {
         Map<String, Object> status = plugin.javaScriptExtensionStatus();
         Object scripts = status.get("globalExtensionScripts");
@@ -474,13 +411,11 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private void sendHelp(CommandSender sender, String label) {
         String root = "/" + (label == null || label.isBlank() ? "emakicorelib" : label);
         sendLang(sender, "command.help_header");
-        sendLang(sender, "command.help_web", Map.of("root", root));
         sendLang(sender, "command.help_reload", Map.of("root", root));
         sendLang(sender, "command.help_check", Map.of("root", root));
         sendLang(sender, "command.help_script", Map.of("root", root));
         sendLang(sender, "command.help_action", Map.of("root", root));
         sendLang(sender, "command.help_debug_loops", Map.of("root", root));
-        sendLang(sender, "command.help_webdebug", Map.of("root", root));
     }
 
     private void complete(String rawPrefix, List<String> options, List<String> result) {
@@ -500,26 +435,5 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private void sendLang(CommandSender sender, String key, Map<String, ?> replacements) {
         MessageService messageService = plugin.messageService();
         messageService.sendRaw(sender, messageService.message(key, replacements));
-    }
-
-    private String clickableUrl(String host, int port) {
-        String normalizedHost = normalizeHost(host);
-        if ("0.0.0.0".equals(normalizedHost) || "::".equals(normalizedHost) || "[::]".equals(normalizedHost)) {
-            normalizedHost = "127.0.0.1";
-        }
-        return webConsoleUrl(normalizedHost, port);
-    }
-
-    private String webConsoleUrl(String host, int port) {
-        String normalizedHost = normalizeHost(host);
-        if (normalizedHost.contains(":") && !normalizedHost.startsWith("[")) {
-            normalizedHost = "[" + normalizedHost + "]";
-        }
-        return "http://" + normalizedHost + ":" + port + "/";
-    }
-
-    private String normalizeHost(String host) {
-        String normalized = Texts.toStringSafe(host).trim();
-        return normalized.isEmpty() ? "127.0.0.1" : normalized;
     }
 }
