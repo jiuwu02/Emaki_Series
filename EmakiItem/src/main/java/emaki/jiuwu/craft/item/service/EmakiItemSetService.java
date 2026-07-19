@@ -6,7 +6,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -45,6 +47,8 @@ public final class EmakiItemSetService {
     private final ItemOperationLedger itemOperationLedger;
     private final Supplier<AppConfig> configSupplier;
     private final Supplier<DebugLogger> debugLoggerSupplier;
+    private final Logger logger;
+    private final Set<String> warnedMissingSetDefinitions = java.util.concurrent.ConcurrentHashMap.newKeySet();
     // 记录每个玩家上次各套装的激活件数，用于边沿触发 ItemSetBonusChangeEvent，避免每次背包刷新都派发。
     private final Map<java.util.UUID, Map<String, Integer>> lastActiveCounts = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -55,7 +59,7 @@ public final class EmakiItemSetService {
             EmakiItemPdcWriter pdcWriter,
             ItemSetLoreRenderer loreRenderer,
             Supplier<AppConfig> configSupplier) {
-        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, () -> null, null);
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, () -> null, null, null);
     }
 
     public EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -66,7 +70,19 @@ public final class EmakiItemSetService {
             ItemSetLoreRenderer loreRenderer,
             Supplier<AppConfig> configSupplier,
             Supplier<DebugLogger> debugLoggerSupplier) {
-        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, debugLoggerSupplier, null);
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, debugLoggerSupplier, null, null);
+    }
+
+    public EmakiItemSetService(EmakiItemLoader itemLoader,
+            EmakiItemSetLoader setLoader,
+            EmakiItemFactory itemFactory,
+            EmakiItemIdentifier identifier,
+            EmakiItemPdcWriter pdcWriter,
+            ItemSetLoreRenderer loreRenderer,
+            Supplier<AppConfig> configSupplier,
+            Supplier<DebugLogger> debugLoggerSupplier,
+            Logger logger) {
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, debugLoggerSupplier, logger, null);
     }
 
     EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -77,7 +93,7 @@ public final class EmakiItemSetService {
             ItemSetLoreRenderer loreRenderer,
             Supplier<AppConfig> configSupplier,
             ItemOperationLedger itemOperationLedger) {
-        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, () -> null, itemOperationLedger);
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, () -> null, null, itemOperationLedger);
     }
 
     private EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -88,6 +104,7 @@ public final class EmakiItemSetService {
             ItemSetLoreRenderer loreRenderer,
             Supplier<AppConfig> configSupplier,
             Supplier<DebugLogger> debugLoggerSupplier,
+            Logger logger,
             ItemOperationLedger itemOperationLedger) {
         this.itemLoader = itemLoader;
         this.setLoader = setLoader;
@@ -97,6 +114,7 @@ public final class EmakiItemSetService {
         this.loreRenderer = loreRenderer;
         this.configSupplier = configSupplier;
         this.debugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
+        this.logger = logger;
         this.itemOperationLedger = itemOperationLedger == null ? new ItemOperationLedger(this.debugLoggerSupplier) : itemOperationLedger;
     }
 
@@ -109,16 +127,11 @@ public final class EmakiItemSetService {
             return 0;
         }
         List<EquippedItem> equippedItems = readEquippedItems(player);
+        Set<String> visibleSetIds = collectVisibleSetIds(player, equippedItems);
         Map<String, Set<String>> equippedPiecesBySet = collectEquippedPieces(player, trigger, equippedItems);
-        Map<String, Set<String>> allPiecesBySet = collectAllPieces(player, equippedPiecesBySet);
-        Map<String, EquippedSetState> states = buildStates(equippedPiecesBySet);
-        for (String setId : allPiecesBySet.keySet()) {
-            states.computeIfAbsent(setId, id -> {
-                ItemSetDefinition definition = setLoader.get(id);
-                return definition != null ? new EquippedSetState(definition, Set.of()) : null;
-            });
-        }
-        states.values().removeIf(java.util.Objects::isNull);
+        SetStateSnapshot stateSnapshot = buildStates(visibleSetIds, equippedPiecesBySet, setLoader::get);
+        Map<String, EquippedSetState> states = stateSnapshot.states();
+        debugSetStateSnapshot(player, trigger, visibleSetIds, equippedPiecesBySet, stateSnapshot);
         int changed = 0;
         for (EquippedItem equippedItem : equippedItems) {
             ItemStack snapshot = equippedItem.itemStack();
@@ -135,6 +148,10 @@ public final class EmakiItemSetService {
             Integer existingLoreLines = identifier.setLoreLines(snapshot);
             if (membership.configured()) {
                 EquippedSetState state = states.get(membership.setId());
+                if (state == null) {
+                    diagnoseMissingSetDefinition(player, trigger, equippedItem.slot(), definition, membership);
+                    continue;
+                }
                 int previousLoreSize = loreSize(snapshot);
                 SetPresentationTarget target = buildPresentationTarget(definition, state);
                 SetPresentationInspection beforeInspection = inspectSetPresentation(snapshot, membership.setId(), target);
@@ -157,13 +174,14 @@ public final class EmakiItemSetService {
                 }
             }
         }
-        changed += cleanInventorySetLore(player, states);
-        fireSetBonusChangeEvents(player, states, trigger);
+        changed += cleanInventorySetLore(player, states, trigger);
+        fireSetBonusChangeEvents(player, states, stateSnapshot.missingDefinitions(), trigger);
         return changed;
     }
 
     private void fireSetBonusChangeEvents(Player player,
             Map<String, EquippedSetState> states,
+            Set<String> missingDefinitions,
             String trigger) {
         java.util.UUID uuid = player.getUniqueId();
         Map<String, Integer> previous = lastActiveCounts.getOrDefault(uuid, Map.of());
@@ -172,6 +190,12 @@ public final class EmakiItemSetService {
             EquippedSetState state = entry.getValue();
             if (state != null && state.activeCount() > 0) {
                 current.put(entry.getKey(), state.activeCount());
+            }
+        }
+        for (String setId : missingDefinitions == null ? Set.<String>of() : missingDefinitions) {
+            Integer preservedCount = previous.get(setId);
+            if (preservedCount != null && preservedCount > 0) {
+                current.putIfAbsent(setId, preservedCount);
             }
         }
         // 套装激活件数变化对外开放，after 边沿通知；仅在主线程派发。
@@ -209,7 +233,8 @@ public final class EmakiItemSetService {
     }
 
     private int cleanInventorySetLore(Player player,
-            Map<String, EquippedSetState> states) {
+            Map<String, EquippedSetState> states,
+            String trigger) {
         PlayerInventory inventory = player.getInventory();
         int changed = 0;
         Set<Integer> equippedSlots = new java.util.HashSet<>(Set.of(40, 39, 38, 37, 36));
@@ -231,29 +256,24 @@ public final class EmakiItemSetService {
             ItemSetMembership membership = definition.setMembership();
             if (membership.configured()) {
                 EquippedSetState state = states.get(membership.setId());
-                if (state != null) {
-                    String existingSignature = identifier.setSignature(snapshot);
-                    Integer existingLoreLines = identifier.setLoreLines(snapshot);
-                    int previousLoreSize = loreSize(snapshot);
-                    SetPresentationTarget target = buildPresentationTarget(definition, state);
-                    SetPresentationInspection beforeInspection = inspectSetPresentation(snapshot, membership.setId(), target);
-                    ItemStack rendered = renderSetItem(snapshot.clone(), definition, membership, state, target, beforeInspection);
-                    boolean presentationChanged = !snapshot.equals(rendered);
-                    boolean committed = !presentationChanged
-                            || writeInventoryIfUnchanged(inventory, slot, snapshot, rendered);
-                    debugSetLore(player, "inventory", "slot_" + slot, definition.id(), existingSignature, existingLoreLines,
-                            previousLoreSize, rendered, presentationChanged, committed, beforeInspection,
-                            membership.setId(), target);
-                    if (presentationChanged && committed) {
-                        changed++;
-                    }
-                } else if (hasSetPresentation(snapshot)) {
-                    ItemStack cleared = clearSetPresentation(snapshot.clone(), definition);
-                    boolean committed = writeInventoryIfUnchanged(inventory, slot, snapshot, cleared);
-                    debugSetWrite(player, "inventory", "slot_" + slot, definition.id(), "clear", committed);
-                    if (committed) {
-                        changed++;
-                    }
+                if (state == null) {
+                    diagnoseMissingSetDefinition(player, trigger, "slot_" + slot, definition, membership);
+                    continue;
+                }
+                String existingSignature = identifier.setSignature(snapshot);
+                Integer existingLoreLines = identifier.setLoreLines(snapshot);
+                int previousLoreSize = loreSize(snapshot);
+                SetPresentationTarget target = buildPresentationTarget(definition, state);
+                SetPresentationInspection beforeInspection = inspectSetPresentation(snapshot, membership.setId(), target);
+                ItemStack rendered = renderSetItem(snapshot.clone(), definition, membership, state, target, beforeInspection);
+                boolean presentationChanged = !snapshot.equals(rendered);
+                boolean committed = !presentationChanged
+                        || writeInventoryIfUnchanged(inventory, slot, snapshot, rendered);
+                debugSetLore(player, "inventory", "slot_" + slot, definition.id(), existingSignature, existingLoreLines,
+                        previousLoreSize, rendered, presentationChanged, committed, beforeInspection,
+                        membership.setId(), target);
+                if (presentationChanged && committed) {
+                    changed++;
                 }
             } else if (hasSetPresentation(snapshot)) {
                 ItemStack cleared = clearSetPresentation(snapshot.clone(), definition);
@@ -677,6 +697,45 @@ public final class EmakiItemSetService {
         return itemMeta == null ? List.of() : ItemTextBridge.loreLines(itemMeta);
     }
 
+    private void diagnoseMissingSetDefinition(Player player,
+            String trigger,
+            String slot,
+            EmakiItemDefinition itemDefinition,
+            ItemSetMembership membership) {
+        String setId = membership == null ? "" : membership.setId();
+        String itemId = itemDefinition == null ? "" : itemDefinition.id();
+        if (logger != null && Texts.isNotBlank(setId) && warnedMissingSetDefinitions.add(setId)) {
+            logger.warning("Set definition '" + setId + "' referenced by EmakiItem '" + itemId
+                    + "' is unavailable; preserving the existing set presentation and cached state.");
+        }
+        DebugLogger debugLogger = debugLoggerSupplier.get();
+        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
+            return;
+        }
+        debugLogger.logRaw("set", player, "[DEBUG:SET_STATE] trigger=" + Texts.toStringSafe(trigger)
+                + " slot=" + Texts.toStringSafe(slot)
+                + " item=" + itemId
+                + " set=" + setId
+                + " state=missing_definition"
+                + " action=preserve");
+    }
+
+    private void debugSetStateSnapshot(Player player,
+            String trigger,
+            Set<String> visibleSetIds,
+            Map<String, Set<String>> equippedPiecesBySet,
+            SetStateSnapshot snapshot) {
+        DebugLogger debugLogger = debugLoggerSupplier.get();
+        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
+            return;
+        }
+        debugLogger.logRaw("set", player, "[DEBUG:SET_STATE] trigger=" + Texts.toStringSafe(trigger)
+                + " visible=" + (visibleSetIds == null ? Set.of() : visibleSetIds)
+                + " active_pieces=" + (equippedPiecesBySet == null ? Map.of() : equippedPiecesBySet)
+                + " states=" + snapshot.states().keySet()
+                + " missing=" + snapshot.missingDefinitions());
+    }
+
     private void debugSetSlot(Player player,
             String trigger,
             String actualSlot,
@@ -821,41 +880,53 @@ public final class EmakiItemSetService {
         return matched;
     }
 
-    private Map<String, Set<String>> collectAllPieces(Player player, Map<String, Set<String>> equippedPieces) {
-        Map<String, Set<String>> result = new LinkedHashMap<>(equippedPieces.size());
-        equippedPieces.forEach((setId, pieces) -> result.put(setId, new LinkedHashSet<>(pieces)));
+    private Set<String> collectVisibleSetIds(Player player, List<EquippedItem> equippedItems) {
+        Set<String> result = new LinkedHashSet<>();
+        for (EquippedItem equippedItem : equippedItems == null ? List.<EquippedItem>of() : equippedItems) {
+            collectVisibleSetId(result, equippedItem.itemStack());
+        }
         PlayerInventory inventory = player.getInventory();
         Set<Integer> equippedSlots = new java.util.HashSet<>(Set.of(40, 39, 38, 37, 36));
         equippedSlots.add(inventory.getHeldItemSlot());
         for (int slot = 0; slot < inventory.getSize(); slot++) {
-            if (equippedSlots.contains(slot)) {
-                continue;
+            if (!equippedSlots.contains(slot)) {
+                collectVisibleSetId(result, inventory.getItem(slot));
             }
-            ItemStack itemStack = inventory.getItem(slot);
-            if (itemStack == null || itemStack.getType().isAir()) {
-                continue;
-            }
-            String id = identifier.identify(itemStack);
-            EmakiItemDefinition definition = Texts.isBlank(id) ? null : itemLoader.get(id);
-            if (definition == null || !definition.setMembership().configured()) {
-                continue;
-            }
-            ItemSetMembership membership = definition.setMembership();
-            result.computeIfAbsent(membership.setId(), ignored -> new LinkedHashSet<>())
-                    .add(membership.effectivePieceId(definition.id()));
         }
         return result;
     }
 
-    private Map<String, EquippedSetState> buildStates(Map<String, Set<String>> equippedPiecesBySet) {
-        Map<String, EquippedSetState> result = new LinkedHashMap<>();
-        equippedPiecesBySet.forEach((setId, pieces) -> {
-            ItemSetDefinition definition = setLoader.get(setId);
-            if (definition != null) {
-                result.put(setId, new EquippedSetState(definition, pieces));
+    private void collectVisibleSetId(Set<String> sink, ItemStack itemStack) {
+        if (sink == null || itemStack == null || itemStack.getType().isAir()) {
+            return;
+        }
+        String id = identifier.identify(itemStack);
+        EmakiItemDefinition definition = Texts.isBlank(id) ? null : itemLoader.get(id);
+        if (definition != null && definition.setMembership().configured()) {
+            sink.add(definition.setMembership().setId());
+        }
+    }
+
+    static SetStateSnapshot buildStates(Set<String> visibleSetIds,
+            Map<String, Set<String>> equippedPiecesBySet,
+            Function<String, ItemSetDefinition> definitionResolver) {
+        Map<String, EquippedSetState> states = new LinkedHashMap<>();
+        Set<String> missingDefinitions = new LinkedHashSet<>();
+        for (String setId : visibleSetIds == null ? Set.<String>of() : visibleSetIds) {
+            if (Texts.isBlank(setId)) {
+                continue;
             }
-        });
-        return result;
+            ItemSetDefinition definition = definitionResolver == null ? null : definitionResolver.apply(setId);
+            if (definition == null) {
+                missingDefinitions.add(setId);
+                continue;
+            }
+            Set<String> equippedPieces = equippedPiecesBySet == null
+                    ? Set.of()
+                    : equippedPiecesBySet.getOrDefault(setId, Set.of());
+            states.put(setId, new EquippedSetState(definition, equippedPieces));
+        }
+        return new SetStateSnapshot(states, missingDefinitions);
     }
 
     private boolean writeInventoryIfUnchanged(PlayerInventory inventory,
@@ -879,6 +950,16 @@ public final class EmakiItemSetService {
             return second == null || second.getType().isAir();
         }
         return first.equals(second);
+    }
+
+    record SetStateSnapshot(Map<String, EquippedSetState> states, Set<String> missingDefinitions) {
+
+        SetStateSnapshot {
+            states = states == null || states.isEmpty() ? Map.of() : Map.copyOf(states);
+            missingDefinitions = missingDefinitions == null || missingDefinitions.isEmpty()
+                    ? Set.of()
+                    : Set.copyOf(missingDefinitions);
+        }
     }
 
     private record SetPresentationTarget(

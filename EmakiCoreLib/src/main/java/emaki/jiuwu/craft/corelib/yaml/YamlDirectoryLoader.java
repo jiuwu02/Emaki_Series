@@ -48,6 +48,11 @@ public abstract class YamlDirectoryLoader<T> {
                 loaded = true;
                 return 0;
             }
+            try {
+                beforeFilesLoaded(directory, List.copyOf(files));
+            } catch (RuntimeException exception) {
+                onPreparationFailure(directory, exception);
+            }
             for (File file : files) {
                 try {
                     YamlSection configuration = YamlFiles.load(file);
@@ -137,6 +142,16 @@ public abstract class YamlDirectoryLoader<T> {
                 "file", file.getName(),
                 "error", Texts.toStringSafe(exception.getMessage())
         ));
+    }
+
+    protected void beforeFilesLoaded(File directory, List<File> files) {
+    }
+
+    protected void onPreparationFailure(File directory, RuntimeException exception) {
+        String message = "Failed to prepare " + typeName() + " configuration files in "
+                + directory.getPath() + ": " + Texts.toStringSafe(exception.getMessage());
+        issues.add(message);
+        plugin.getLogger().warning(message);
     }
 
     protected abstract String directoryName();

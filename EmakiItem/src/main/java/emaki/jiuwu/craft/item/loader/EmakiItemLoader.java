@@ -10,6 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.item.loader.migration.configureditem.ConfiguredItemMigrationBridge;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 
@@ -30,16 +31,23 @@ public final class EmakiItemLoader {
             plugin.getLogger().warning("Could not create items directory: " + directory.getPath());
         }
         Map<String, EmakiItemDefinition> loaded = new LinkedHashMap<>();
-        for (File file : files(directory)) {
-            EmakiItemDefinition definition = parser.parse(YamlFiles.load(file), file.getPath());
-            if (definition == null) {
-                continue;
+        File[] files = files(directory);
+        ConfiguredItemMigrationBridge.migrate(plugin, files);
+        for (File file : files) {
+            try {
+                EmakiItemDefinition definition = parser.parse(YamlFiles.load(file), file.getPath());
+                if (definition == null) {
+                    continue;
+                }
+                if (loaded.containsKey(definition.id())) {
+                    plugin.getLogger().warning("Duplicate EmakiItem id '" + definition.id() + "' in " + file.getPath() + ", keeping first definition.");
+                    continue;
+                }
+                loaded.put(definition.id(), definition);
+            } catch (RuntimeException exception) {
+                plugin.getLogger().warning("Could not load EmakiItem definition " + file.getPath()
+                        + ": " + Texts.toStringSafe(exception.getMessage()));
             }
-            if (loaded.containsKey(definition.id())) {
-                plugin.getLogger().warning("Duplicate EmakiItem id '" + definition.id() + "' in " + file.getPath() + ", keeping first definition.");
-                continue;
-            }
-            loaded.put(definition.id(), definition);
         }
         definitions = new ConcurrentHashMap<>(loaded);
         return definitions.size();
