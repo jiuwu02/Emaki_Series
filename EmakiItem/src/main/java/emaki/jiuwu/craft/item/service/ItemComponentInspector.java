@@ -52,6 +52,27 @@ public final class ItemComponentInspector {
         return entry != null && !entry.removed();
     }
 
+    public ComponentValueParseResult parseComponentValue(String rawValue) {
+        String value = Texts.toStringSafe(rawValue).trim();
+        if (value.isEmpty()) {
+            return ComponentValueParseResult.failure("Component value cannot be blank.");
+        }
+        String unquoted = unquote(value);
+        String candidate = unquoted == null ? value : unquoted;
+        Object parsed = JsonParser.parse(candidate);
+        if (parsed != JsonParser.INVALID) {
+            return ComponentValueParseResult.success(parsed);
+        }
+        if (unquoted != null) {
+            return ComponentValueParseResult.success(unquoted);
+        }
+        if (looksStructured(value)) {
+            return ComponentValueParseResult.failure("Malformed structured component value.");
+        }
+        Object scalar = parseScalar(value);
+        return ComponentValueParseResult.success(scalar == JsonParser.INVALID ? value : scalar);
+    }
+
     public String value(ItemStack itemStack, String componentId) {
         ComponentEntry entry = component(itemStack, componentId);
         return entry == null || entry.removed() ? "" : entry.value();
@@ -192,6 +213,14 @@ public final class ItemComponentInspector {
         }
         Object scalar = parseScalar(value);
         return scalar == JsonParser.INVALID ? value : scalar;
+    }
+
+    private boolean looksStructured(String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+        char first = value.charAt(0);
+        return first == '{' || first == '[' || first == '"' || first == '\'';
     }
 
     private static Object parseScalar(String value) {
@@ -377,6 +406,21 @@ public final class ItemComponentInspector {
             }
         }
         return -1;
+    }
+
+    public record ComponentValueParseResult(boolean success, Object value, String errorMessage) {
+
+        public ComponentValueParseResult {
+            errorMessage = errorMessage == null ? "" : errorMessage;
+        }
+
+        public static ComponentValueParseResult success(Object value) {
+            return new ComponentValueParseResult(true, value, "");
+        }
+
+        public static ComponentValueParseResult failure(String message) {
+            return new ComponentValueParseResult(false, null, message);
+        }
     }
 
     public record ComponentEntry(String id, String value, boolean removed) {

@@ -239,6 +239,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
+        getServer().getPluginManager().registerEvents(strengthenGuiService, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
     }
 

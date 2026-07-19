@@ -185,26 +185,39 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
     PdcAttributeViews collectContributionViews(Player player, ItemStack itemStack, String actualSlot) {
         Map<String, PdcAttributePayload> payloads = readAll(itemStack);
         PdcAttributeCollection raw = collectRawContribution(payloads.values());
+        ItemSlotGate itemSlotGate = resolveItemSlotGate(payloads.values(), actualSlot);
         if (player == null || payloads.isEmpty()) {
-            return new PdcAttributeViews(raw, raw);
+            return new PdcAttributeViews(raw, raw, itemSlotGate.declaredSlots(), itemSlotGate.matched());
         }
-        return new PdcAttributeViews(raw, collectFilteredContribution(player, itemStack, payloads, actualSlot));
+        return new PdcAttributeViews(
+                raw,
+                collectFilteredContribution(player, itemStack, payloads, actualSlot, itemSlotGate),
+                itemSlotGate.declaredSlots(),
+                itemSlotGate.matched()
+        );
     }
 
     private PdcAttributeCollection collectFilteredContribution(Player player,
             ItemStack itemStack,
             Map<String, PdcAttributePayload> payloads,
-            String actualSlot) {
+            String actualSlot,
+            ItemSlotGate itemSlotGate) {
         List<String> loreLines = readLoreLines(itemStack);
         Map<String, Double> values = new LinkedHashMap<>();
         List<Object> signatureParts = new ArrayList<>();
+        signatureParts.add(Map.of(
+                "scope", "item_slot_gate",
+                "actual_slot", Texts.toStringSafe(actualSlot),
+                "declared_slots", itemSlotGate.declaredSlots(),
+                "matched", itemSlotGate.matched()
+        ));
         for (Map.Entry<String, PdcAttributePayload> entry : payloads.entrySet()) {
             String sourceId = entry.getKey();
             PdcAttributePayload payload = entry.getValue();
             PdcReadRule rule = ruleLoader == null ? null : ruleLoader.get(sourceId);
             boolean slotMatched = matchesEquipmentSlot(payload, actualSlot);
             if (rule == null) {
-                if (slotMatched) {
+                if (itemSlotGate.matched() && slotMatched) {
                     mergeValues(values, payload.attributes());
                 }
                 signatureParts.add(Map.of(
@@ -212,12 +225,13 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
                         "mode", "default",
                         "payload", payload.toMap(),
                         "actual_slot", Texts.toStringSafe(actualSlot),
-                        "slot_matched", slotMatched
+                        "slot_matched", slotMatched,
+                        "item_slot_matched", itemSlotGate.matched()
                 ));
                 continue;
             }
             FilterOutcome outcome = evaluateRule(player, payload, rule, loreLines);
-            if (slotMatched && outcome.accepted()) {
+            if (itemSlotGate.matched() && slotMatched && outcome.accepted()) {
                 mergeValues(values, payload.attributes());
             }
             signatureParts.add(Map.of(
@@ -226,8 +240,9 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
                     "rule", rule.toMap(),
                     "actual_slot", Texts.toStringSafe(actualSlot),
                     "slot_matched", slotMatched,
+                    "item_slot_matched", itemSlotGate.matched(),
                     "resolved_conditions", outcome.resolvedConditions(),
-                    "accepted", outcome.accepted() && slotMatched
+                    "accepted", outcome.accepted() && slotMatched && itemSlotGate.matched()
             ));
         }
         return new PdcAttributeCollection(
@@ -492,6 +507,32 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
         return lines.isEmpty() ? List.of() : List.copyOf(lines);
     }
 
+    static ItemSlotGate resolveItemSlotGate(Collection<PdcAttributePayload> payloads, String actualSlot) {
+        if (payloads == null || payloads.isEmpty()) {
+            return new ItemSlotGate(List.of(), true);
+        }
+        Set<String> declaredSlots = new LinkedHashSet<>();
+        boolean matched = true;
+        for (PdcAttributePayload payload : payloads) {
+            if (payload == null) {
+                continue;
+            }
+            String requiredSlot = payload.meta().get(EquipmentSlotMatcher.ACTIVE_SLOT_META_KEY);
+            if (Texts.isBlank(requiredSlot)) {
+                continue;
+            }
+            String normalizedRequired = EquipmentSlotMatcher.normalizeRequired(requiredSlot);
+            declaredSlots.add(normalizedRequired);
+            if (!EquipmentSlotMatcher.matches(actualSlot, normalizedRequired)) {
+                matched = false;
+            }
+        }
+        return new ItemSlotGate(
+                declaredSlots.isEmpty() ? List.of() : List.copyOf(declaredSlots),
+                matched
+        );
+    }
+
     private boolean matchesEquipmentSlot(PdcAttributePayload payload, String actualSlot) {
         if (payload == null) {
             return true;
@@ -608,11 +649,26 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
         }
     }
 
-    record PdcAttributeViews(PdcAttributeCollection raw, PdcAttributeCollection filtered) {
+    record PdcAttributeViews(PdcAttributeCollection raw,
+            PdcAttributeCollection filtered,
+            List<String> declaredSlots,
+            boolean itemSlotMatched) {
 
         PdcAttributeViews {
             raw = raw == null ? new PdcAttributeCollection(Map.of(), "") : raw;
             filtered = filtered == null ? raw : filtered;
+            declaredSlots = declaredSlots == null ? List.of() : List.copyOf(declaredSlots);
+        }
+
+        boolean hasExplicitSlotConstraint() {
+            return !declaredSlots.isEmpty();
+        }
+    }
+
+    record ItemSlotGate(List<String> declaredSlots, boolean matched) {
+
+        ItemSlotGate {
+            declaredSlots = declaredSlots == null ? List.of() : List.copyOf(declaredSlots);
         }
     }
 

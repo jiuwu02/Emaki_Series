@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -15,6 +16,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
@@ -520,39 +523,50 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         return rebuilt;
     }
 
-    public void triggerSuccessActions(Player player, StrengthenRecipe recipe, String resultSlotId, ItemStack resultItem, int star, int temper) {
-        triggerSuccessActions(player, recipe, resultSlotId, resultItem, star, temper, "");
-    }
-
-    public void triggerSuccessActions(Player player, StrengthenRecipe recipe, String resultSlotId, ItemStack resultItem,
-            int star, int temper, String operationId) {
-        actionCoordinator.triggerSuccessActions(player, recipe, resultSlotId, resultItem, star, temper, operationId);
-    }
-
-    public void triggerFailureActions(Player player,
+    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
-            ItemStack resultItem,
+            CoreActionItemTarget itemTarget,
+            int star,
+            int temper) {
+        return triggerSuccessActions(player, recipe, resultSlotId, itemTarget, star, temper, "");
+    }
+
+    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
+            StrengthenRecipe recipe,
+            String resultSlotId,
+            CoreActionItemTarget itemTarget,
+            int star,
+            int temper,
+            String operationId) {
+        return actionCoordinator.triggerSuccessActions(
+                player, recipe, resultSlotId, itemTarget, star, temper, operationId);
+    }
+
+    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+            StrengthenRecipe recipe,
+            String resultSlotId,
+            CoreActionItemTarget itemTarget,
             int wasStar,
             int resultStar,
             int temper,
             boolean dropped,
             boolean protectionApplied) {
-        triggerFailureActions(player, recipe, resultSlotId, resultItem, wasStar, resultStar, temper,
+        return triggerFailureActions(player, recipe, resultSlotId, itemTarget, wasStar, resultStar, temper,
                 dropped, protectionApplied, "");
     }
 
-    public void triggerFailureActions(Player player,
+    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
-            ItemStack resultItem,
+            CoreActionItemTarget itemTarget,
             int wasStar,
             int resultStar,
             int temper,
             boolean dropped,
             boolean protectionApplied,
             String operationId) {
-        actionCoordinator.triggerFailureActions(player, recipe, resultSlotId, resultItem, wasStar, resultStar,
+        return actionCoordinator.triggerFailureActions(player, recipe, resultSlotId, itemTarget, wasStar, resultStar,
                 temper, dropped, protectionApplied, operationId);
     }
 

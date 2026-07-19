@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
@@ -15,6 +16,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore.GuaranteeCounterUpdate;
 import emaki.jiuwu.craft.forge.model.ForgeResult;
@@ -93,69 +95,145 @@ final class ForgeExecutionService {
             return CompletableFuture.completedFuture(finish(player, recipe, result));
         }
         return actionCoordinator.executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
-                .thenCompose(preBatch -> callPlayerOwner(player, sessionGeneration, () -> {
-                    if (!preBatch.success()) {
-                        return buildActionFailure(player, recipe, guiItems, result, preBatch);
+                .thenCompose(preBatch -> callPlayerOwnerAsync(player, sessionGeneration, () -> prepareResultActions(
+                        player, recipe, guiItems, preparedForge, sessionGeneration, result, preBatch)));
+    }
+
+    private CompletionStage<ForgeResult> prepareResultActions(Player player,
+            Recipe recipe,
+            GuiItems guiItems,
+            ForgeService.PreparedForge preparedForge,
+            long sessionGeneration,
+            ForgeResult result,
+            ActionBatchResult preBatch) {
+        if (!preBatch.success()) {
+            return CompletableFuture.completedFuture(buildActionFailure(player, recipe, guiItems, result, preBatch));
+        }
+        if (recipe.hasFailureMechanism()) {
+            JavaScriptForgeRuleRegistry.Decision decision = applyJavaScriptForgeRules(
+                    player, recipe, guiItems, recipe.successRate());
+            if (decision.cancelled()) {
+                result.setErrorKey("forge.craft.failed");
+                result.setReplacements(Map.of(
+                        "outcome_type", Texts.isBlank(decision.message()) ? "cancelled" : decision.message()));
+                actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D,
+                        result.errorKey(), "cancelled");
+                return CompletableFuture.completedFuture(finish(player, recipe, result));
+            }
+            double roll = ThreadLocalRandom.current().nextDouble(100D);
+            if (roll >= decision.successRate()) {
+                ForgeFailureResolver.ForgeFailureResult failureResult = forgeFailureResolver.resolve(recipe, guiItems, player);
+                result.setErrorKey("forge.craft.failed");
+                result.setReplacements(Map.of("outcome_type", failureResult.outcomeType()));
+                actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D,
+                        result.errorKey(), failureResult.outcomeType());
+                return CompletableFuture.completedFuture(finish(player, recipe, result));
+            }
+        }
+
+        ForgeService.PreparedForge forgePlan = forgePlanResolver.resolve(player, recipe, guiItems, preparedForge);
+        if (forgePlan == null || forgePlan.request() == null) {
+            result.setErrorKey("forge.error.item_create");
+            result.setReplacements(Map.of());
+            actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D,
+                    result.errorKey(), "Unable to prepare forge assembly request.");
+            return CompletableFuture.completedFuture(finish(player, recipe, result));
+        }
+        result.setQuality(forgePlan.quality());
+        result.setMultiplier(forgePlan.multiplier());
+        ItemStack resultItem = resultItemGiver.preview(forgePlan.request());
+        if (resultItem == null) {
+            result.setErrorKey("forge.error.item_create");
+            result.setReplacements(Map.of());
+            actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality(),
+                    result.multiplier(), result.errorKey(), "Unable to create forge result item.");
+            return CompletableFuture.completedFuture(finish(player, recipe, result));
+        }
+        if (resultItemPostProcessor != null) {
+            resultItemPostProcessor.process(player, recipe, guiItems, forgePlan, resultItem);
+        }
+
+        CoreActionItemTarget itemTarget = new CoreActionItemTarget(resultItem);
+        return actionCoordinator.awaitPhase(player, recipe, guiItems, "result", resultItem, itemTarget,
+                result.quality(), result.multiplier(), null, null)
+                .thenCompose(_ -> actionCoordinator.awaitPhase(player, recipe, guiItems, "success", resultItem,
+                        itemTarget, result.quality(), result.multiplier(), null, null))
+                .thenCompose(_ -> actionCoordinator.awaitQualityActions(player, recipe, guiItems, resultItem,
+                        itemTarget, forgePlan.qualityTier(), result.quality(), result.multiplier()))
+                .thenCompose(_ -> callPlayerOwner(player, sessionGeneration,
+                        () -> deliverResult(player, recipe, guiItems, forgePlan, sessionGeneration, result, itemTarget)));
+    }
+
+    private ForgeResult deliverResult(Player player,
+            Recipe recipe,
+            GuiItems guiItems,
+            ForgeService.PreparedForge forgePlan,
+            long sessionGeneration,
+            ForgeResult result,
+            CoreActionItemTarget itemTarget) {
+        ItemStack resultItem = itemTarget.itemStack();
+        if (!resultItemGiver.deliver(player, resultItem)) {
+            result.setErrorKey("forge.error.item_create");
+            result.setReplacements(Map.of());
+            actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality(),
+                    result.multiplier(), result.errorKey(), "Unable to deliver forge result item.");
+            return finish(player, recipe, result);
+        }
+        if (player != null) {
+            GuaranteeCounterUpdate guaranteeUpdate = qualityCalculationService.resolveGuaranteeUpdate(
+                    player.getUniqueId(),
+                    sessionGeneration,
+                    recipe,
+                    forgePlan.rolledQualityTier(),
+                    forgePlan.forceQualityApplied()
+            );
+            craftRecorder.record(player.getUniqueId(), sessionGeneration, recipe.id(), guaranteeUpdate);
+        }
+        result.setSuccess(true);
+        result.setResultItem(resultItem);
+        return finish(player, recipe, result);
+    }
+
+    private CompletableFuture<ForgeResult> callPlayerOwnerAsync(Player player,
+            long generation,
+            Supplier<? extends CompletionStage<ForgeResult>> operation) {
+        if (player == null || plugin == null || operation == null) {
+            return CompletableFuture.completedFuture(staleSessionResult());
+        }
+        CompletableFuture<ForgeResult> future = new CompletableFuture<>();
+        try {
+            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                if (sessionValidator == null
+                        || !sessionValidator.isCurrent(player.getUniqueId(), generation)) {
+                    future.complete(staleSessionResult());
+                    return;
+                }
+                try {
+                    CompletionStage<ForgeResult> stage = operation.get();
+                    if (stage == null) {
+                        future.completeExceptionally(new IllegalStateException(
+                                "Forge player-owner operation returned no completion stage."));
+                        return;
                     }
-                    if (recipe.hasFailureMechanism()) {
-                        JavaScriptForgeRuleRegistry.Decision decision = applyJavaScriptForgeRules(player, recipe, guiItems, recipe.successRate());
-                        if (decision.cancelled()) {
-                            result.setErrorKey("forge.craft.failed");
-                            result.setReplacements(Map.of("outcome_type", Texts.isBlank(decision.message()) ? "cancelled" : decision.message()));
-                            actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D, result.errorKey(), "cancelled");
-                            return finish(player, recipe, result);
+                    stage.whenComplete((value, throwable) -> {
+                        if (throwable != null) {
+                            future.completeExceptionally(throwable);
+                        } else {
+                            future.complete(value);
                         }
-                        double roll = ThreadLocalRandom.current().nextDouble(100D);
-                        if (roll >= decision.successRate()) {
-                            ForgeFailureResolver.ForgeFailureResult failureResult = forgeFailureResolver.resolve(recipe, guiItems, player);
-                            result.setErrorKey("forge.craft.failed");
-                            result.setReplacements(Map.of("outcome_type", failureResult.outcomeType()));
-                            actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D, result.errorKey(), failureResult.outcomeType());
-                            return finish(player, recipe, result);
-                        }
-                    }
-                    ForgeService.PreparedForge forgePlan = forgePlanResolver.resolve(player, recipe, guiItems, preparedForge);
-                    if (forgePlan == null || forgePlan.request() == null) {
-                        result.setErrorKey("forge.error.item_create");
-                        result.setReplacements(Map.of());
-                        actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, null, 1D, result.errorKey(), "Unable to prepare forge assembly request.");
-                        return finish(player, recipe, result);
-                    }
-                    result.setQuality(forgePlan.quality());
-                    result.setMultiplier(forgePlan.multiplier());
-                    ItemStack resultItem = resultItemGiver.preview(forgePlan.request());
-                    if (resultItem == null) {
-                        result.setErrorKey("forge.error.item_create");
-                        result.setReplacements(Map.of());
-                        actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality(), result.multiplier(), result.errorKey(), "Unable to create forge result item.");
-                        return finish(player, recipe, result);
-                    }
-                    if (resultItemPostProcessor != null) {
-                        resultItemPostProcessor.process(player, recipe, guiItems, forgePlan, resultItem);
-                    }
-                    if (!resultItemGiver.deliver(player, resultItem)) {
-                        result.setErrorKey("forge.error.item_create");
-                        result.setReplacements(Map.of());
-                        actionCoordinator.triggerPhase(player, recipe, guiItems, "failure", null, result.quality(), result.multiplier(), result.errorKey(), "Unable to deliver forge result item.");
-                        return finish(player, recipe, result);
-                    }
-                    if (player != null) {
-                        GuaranteeCounterUpdate guaranteeUpdate = qualityCalculationService.resolveGuaranteeUpdate(
-                                player.getUniqueId(),
-                                sessionGeneration,
-                                recipe,
-                                forgePlan.rolledQualityTier(),
-                                forgePlan.forceQualityApplied()
-                        );
-                        craftRecorder.record(player.getUniqueId(), sessionGeneration, recipe.id(), guaranteeUpdate);
-                    }
-                    result.setSuccess(true);
-                    result.setResultItem(resultItem);
-                    actionCoordinator.triggerPhase(player, recipe, guiItems, "result", resultItem, result.quality(), result.multiplier(), null, null);
-                    actionCoordinator.triggerPhase(player, recipe, guiItems, "success", resultItem, result.quality(), result.multiplier(), null, null);
-                    actionCoordinator.triggerQualityActions(player, recipe, guiItems, resultItem, forgePlan.qualityTier(), result.quality(), result.multiplier());
-                    return finish(player, recipe, result);
-                }));
+                    });
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+            if (scheduled == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "Forge player-owner scheduling was rejected."));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
     }
 
     private CompletableFuture<ForgeResult> callPlayerOwner(Player player,

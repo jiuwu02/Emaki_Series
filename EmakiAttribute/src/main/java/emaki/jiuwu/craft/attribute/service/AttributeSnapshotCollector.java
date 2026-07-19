@@ -241,7 +241,7 @@ final class AttributeSnapshotCollector {
         for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
             org.bukkit.inventory.ItemStack itemStack = itemResolver.apply(index);
             String slotName = EQUIPMENT_SLOT_NAMES[index];
-            PdcAttributeService.PdcAttributeViews views = playerOrNull == null || !service.config().readPdcAttributes()
+            PdcAttributeService.PdcAttributeViews views = !service.config().readPdcAttributes()
                     ? null
                     : service.pdcAttributeService().collectContributionViews(playerOrNull, itemStack, slotName);
             AttributeSnapshot itemSnapshot = views == null
@@ -250,7 +250,7 @@ final class AttributeSnapshotCollector {
             if (itemSnapshot == null) {
                 continue;
             }
-            if (playerOrNull == null || views == null) {
+            if (views == null) {
                 if (collectValues) {
                     mergeValues(values, itemSnapshot.values());
                 }
@@ -259,16 +259,27 @@ final class AttributeSnapshotCollector {
             }
             if (collectValues) {
                 Map<String, Double> effectiveValues = itemSnapshot.values();
-                if (!views.raw().values().equals(views.filtered().values())) {
+                if (views.hasExplicitSlotConstraint() && !views.itemSlotMatched()) {
+                    debugAttributeSlotGate(playerOrNull, slotName, views.declaredSlots());
+                    effectiveValues = resolveEquipmentItemValues(
+                            Map.of(),
+                            Map.of(),
+                            service.config().readLoreAttributes(),
+                            service.config().readPdcAttributes(),
+                            service.config().requireLorePdcMatch(),
+                            false
+                    );
+                } else if (!views.raw().values().equals(views.filtered().values())) {
                     LoreParser.ParsedLore parsedLore = service.config().readLoreAttributes()
                             ? parseLore(itemStack)
                             : emptyParsedLore();
-                    effectiveValues = resolveItemSourceValues(
+                    effectiveValues = resolveEquipmentItemValues(
                             parsedLore.snapshot().values(),
                             views.filtered().values(),
                             service.config().readLoreAttributes(),
-                            true,
-                            service.config().requireLorePdcMatch()
+                            service.config().readPdcAttributes(),
+                            service.config().requireLorePdcMatch(),
+                            true
                     );
                     expandParentAttributeBonuses(effectiveValues, service.registryService().attributeDefinitions());
                 }
@@ -292,7 +303,9 @@ final class AttributeSnapshotCollector {
         }
         signatureParts.add(EQUIPMENT_SLOT_NAMES[slotIndex] + ":" + SignatureUtil.combine(
                 itemSignature,
-                views.filtered().sourceSignature()
+                views.filtered().sourceSignature(),
+                "declared_slots=" + String.join(",", views.declaredSlots()),
+                "item_slot_matched=" + views.itemSlotMatched()
         ));
     }
 
@@ -333,6 +346,24 @@ final class AttributeSnapshotCollector {
                 }
             }
         }
+    }
+
+    static Map<String, Double> resolveEquipmentItemValues(Map<String, Double> loreValues,
+            Map<String, Double> pdcValues,
+            boolean readLoreAttributes,
+            boolean readPdcAttributes,
+            boolean requireLorePdcMatch,
+            boolean itemSlotMatched) {
+        if (!itemSlotMatched) {
+            return new LinkedHashMap<>();
+        }
+        return resolveItemSourceValues(
+                loreValues,
+                pdcValues,
+                readLoreAttributes,
+                readPdcAttributes,
+                requireLorePdcMatch
+        );
     }
 
     static Map<String, Double> resolveItemSourceValues(Map<String, Double> loreValues,
@@ -589,6 +620,19 @@ final class AttributeSnapshotCollector {
 
     private static PdcAttributeService.PdcAttributeCollection emptyPdcContribution() {
         return new PdcAttributeService.PdcAttributeCollection(Map.of(), "");
+    }
+
+    private void debugAttributeSlotGate(Player player, String actualSlot, List<String> declaredSlots) {
+        if (player == null || service.plugin() == null || service.plugin().debugLogger() == null) {
+            return;
+        }
+        service.plugin().debugLogger().logRaw(
+                "resync",
+                player,
+                "[DEBUG:attribute-slot-gate] actual_slot=" + Texts.toStringSafe(actualSlot)
+                        + " declared_slots=" + String.join(",", declaredSlots == null ? List.of() : declaredSlots)
+                        + " matched=false result=reject_item_sources"
+        );
     }
 
     private List<FusionRule> fusionRules() {

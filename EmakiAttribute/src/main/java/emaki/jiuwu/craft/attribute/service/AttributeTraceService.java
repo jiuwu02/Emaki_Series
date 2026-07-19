@@ -96,18 +96,26 @@ public final class AttributeTraceService {
             Map<String, Double> rawPdc = views.raw().values();
             Map<String, Double> filteredPdc = views.filtered().values();
             Map<String, Double> loreApprox = subtract(itemSnapshot.values(), rawPdc);
+            boolean itemSlotMatched = views.itemSlotMatched();
             for (Map.Entry<String, Double> entry : loreApprox.entrySet()) {
-                addTrace(reconstructed, traces, entry.getKey(), entry.getValue(), "EmakiAttribute", "lore", slot, label + " / Lore", slot, "", "lore", true, "", filter);
+                if (itemSlotMatched) {
+                    addTrace(reconstructed, traces, entry.getKey(), entry.getValue(), "EmakiAttribute", "lore", slot, label + " / Lore", slot, "", "lore", true, "", filter);
+                } else {
+                    addRejectedTrace(traces, entry.getKey(), entry.getValue(), "lore", slot, label + " / Lore（槽位未通过）", "lore", filter);
+                }
             }
             for (Map.Entry<String, Double> entry : rawPdc.entrySet()) {
                 String id = Texts.normalizeId(entry.getKey());
                 double raw = entry.getValue() == null ? 0D : entry.getValue();
                 double effective = filteredPdc.getOrDefault(id, 0D);
-                boolean passed = Math.abs(effective) > 1.0E-9D;
+                boolean passed = itemSlotMatched && Math.abs(effective) > 1.0E-9D;
                 if (passed) {
                     addTrace(reconstructed, traces, id, effective, "EmakiAttribute", "pdc", slot, label + " / PDC", slot, "", "pdc", true, "", filter, raw, effective);
-                } else if (matches(filter, id)) {
-                    traces.add(new AttributeContributionTrace(id, 0D, "EmakiAttribute", "pdc", slot, label + " / PDC（条件未通过）", slot, "", "pdc", false, "", raw, 0D));
+                } else {
+                    String rejectedLabel = itemSlotMatched
+                            ? label + " / PDC（条件未通过）"
+                            : label + " / PDC（槽位未通过）";
+                    addRejectedTrace(traces, id, raw, "pdc", slot, rejectedLabel, "pdc", filter);
                 }
             }
         }
@@ -262,6 +270,36 @@ public final class AttributeTraceService {
         if (matches(filter, id)) {
             traces.add(new AttributeContributionTrace(id, value, sourceModule, sourceType, sourceId, sourceLabel, slot, itemId, layer, conditionPassed, formula, rawValue, finalValue));
         }
+    }
+
+    private void addRejectedTrace(List<AttributeContributionTrace> traces,
+            String attributeId,
+            Double rawValue,
+            String sourceType,
+            String slot,
+            String sourceLabel,
+            String layer,
+            String filter) {
+        String id = Texts.normalizeId(attributeId);
+        if (Texts.isBlank(id) || !matches(filter, id)) {
+            return;
+        }
+        double raw = rawValue == null ? 0D : rawValue;
+        traces.add(new AttributeContributionTrace(
+                id,
+                0D,
+                "EmakiAttribute",
+                sourceType,
+                slot,
+                sourceLabel,
+                slot,
+                "",
+                layer,
+                false,
+                "",
+                raw,
+                0D
+        ));
     }
 
     private Map<String, Double> subtract(Map<String, Double> left, Map<String, Double> right) {
