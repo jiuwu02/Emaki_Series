@@ -8,12 +8,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
@@ -118,33 +121,40 @@ public final class EmakiItemSetService {
         states.values().removeIf(java.util.Objects::isNull);
         int changed = 0;
         for (EquippedItem equippedItem : equippedItems) {
-            ItemStack original = equippedItem.itemStack();
-            if (original == null || original.getType().isAir()) {
+            ItemStack snapshot = equippedItem.itemStack();
+            if (snapshot == null || snapshot.getType().isAir()) {
                 continue;
             }
-            String id = identifier.identify(original);
+            String id = identifier.identify(snapshot);
             EmakiItemDefinition definition = Texts.isBlank(id) ? null : itemLoader.get(id);
             if (definition == null) {
                 continue;
             }
             ItemSetMembership membership = definition.setMembership();
-            String existingSignature = identifier.setSignature(original);
-            Integer existingLoreLines = identifier.setLoreLines(original);
+            String existingSignature = identifier.setSignature(snapshot);
+            Integer existingLoreLines = identifier.setLoreLines(snapshot);
             if (membership.configured()) {
                 EquippedSetState state = states.get(membership.setId());
-                int previousLoreSize = loreSize(original);
-                ItemStack rendered = renderSetItem(original, definition, membership, state);
-                boolean presentationChanged = rendered != original || setPresentationChanged(existingSignature, existingLoreLines, rendered);
+                int previousLoreSize = loreSize(snapshot);
+                SetPresentationTarget target = buildPresentationTarget(definition, state);
+                SetPresentationInspection beforeInspection = inspectSetPresentation(snapshot, membership.setId(), target);
+                ItemStack rendered = renderSetItem(snapshot.clone(), definition, membership, state, target, beforeInspection);
+                boolean presentationChanged = !snapshot.equals(rendered);
+                boolean committed = !presentationChanged
+                        || equippedItem.writeIfUnchanged(player.getInventory(), snapshot, rendered);
                 debugSetLore(player, trigger, equippedItem.slot(), definition.id(), existingSignature, existingLoreLines,
-                        previousLoreSize, rendered, presentationChanged);
-                if (presentationChanged) {
-                    equippedItem.write(player.getInventory(), rendered);
+                        previousLoreSize, rendered, presentationChanged, committed, beforeInspection,
+                        membership.setId(), target);
+                if (presentationChanged && committed) {
                     changed++;
                 }
-            } else if (hasSetPresentation(original)) {
-                ItemStack cleared = clearSetPresentation(original, definition);
-                equippedItem.write(player.getInventory(), cleared);
-                changed++;
+            } else if (hasSetPresentation(snapshot)) {
+                ItemStack cleared = clearSetPresentation(snapshot.clone(), definition);
+                boolean committed = equippedItem.writeIfUnchanged(player.getInventory(), snapshot, cleared);
+                debugSetWrite(player, trigger, equippedItem.slot(), definition.id(), "clear", committed);
+                if (committed) {
+                    changed++;
+                }
             }
         }
         changed += cleanInventorySetLore(player, states);
@@ -208,11 +218,12 @@ public final class EmakiItemSetService {
             if (equippedSlots.contains(slot)) {
                 continue;
             }
-            ItemStack original = inventory.getItem(slot);
-            if (original == null || original.getType().isAir()) {
+            ItemStack current = inventory.getItem(slot);
+            if (current == null || current.getType().isAir()) {
                 continue;
             }
-            String id = identifier.identify(original);
+            ItemStack snapshot = current.clone();
+            String id = identifier.identify(snapshot);
             EmakiItemDefinition definition = Texts.isBlank(id) ? null : itemLoader.get(id);
             if (definition == null) {
                 continue;
@@ -221,28 +232,36 @@ public final class EmakiItemSetService {
             if (membership.configured()) {
                 EquippedSetState state = states.get(membership.setId());
                 if (state != null) {
-                    String existingSignature = identifier.setSignature(original);
-                    Integer existingLoreLines = identifier.setLoreLines(original);
-                    int previousLoreSize = loreSize(original);
-                    ItemStack rendered = renderSetItem(original, definition, membership, state);
-                    boolean presentationChanged = rendered != original || setPresentationChanged(existingSignature, existingLoreLines, rendered);
+                    String existingSignature = identifier.setSignature(snapshot);
+                    Integer existingLoreLines = identifier.setLoreLines(snapshot);
+                    int previousLoreSize = loreSize(snapshot);
+                    SetPresentationTarget target = buildPresentationTarget(definition, state);
+                    SetPresentationInspection beforeInspection = inspectSetPresentation(snapshot, membership.setId(), target);
+                    ItemStack rendered = renderSetItem(snapshot.clone(), definition, membership, state, target, beforeInspection);
+                    boolean presentationChanged = !snapshot.equals(rendered);
+                    boolean committed = !presentationChanged
+                            || writeInventoryIfUnchanged(inventory, slot, snapshot, rendered);
                     debugSetLore(player, "inventory", "slot_" + slot, definition.id(), existingSignature, existingLoreLines,
-                            previousLoreSize, rendered, presentationChanged);
-                    if (presentationChanged) {
-                        inventory.setItem(slot, rendered);
+                            previousLoreSize, rendered, presentationChanged, committed, beforeInspection,
+                            membership.setId(), target);
+                    if (presentationChanged && committed) {
                         changed++;
                     }
-                } else {
-                    if (hasSetPresentation(original)) {
-                        ItemStack cleared = clearSetPresentation(original, definition);
-                        inventory.setItem(slot, cleared);
+                } else if (hasSetPresentation(snapshot)) {
+                    ItemStack cleared = clearSetPresentation(snapshot.clone(), definition);
+                    boolean committed = writeInventoryIfUnchanged(inventory, slot, snapshot, cleared);
+                    debugSetWrite(player, "inventory", "slot_" + slot, definition.id(), "clear", committed);
+                    if (committed) {
                         changed++;
                     }
                 }
-            } else if (hasSetPresentation(original)) {
-                ItemStack cleared = clearSetPresentation(original, definition);
-                inventory.setItem(slot, cleared);
-                changed++;
+            } else if (hasSetPresentation(snapshot)) {
+                ItemStack cleared = clearSetPresentation(snapshot.clone(), definition);
+                boolean committed = writeInventoryIfUnchanged(inventory, slot, snapshot, cleared);
+                debugSetWrite(player, "inventory", "slot_" + slot, definition.id(), "clear", committed);
+                if (committed) {
+                    changed++;
+                }
             }
         }
         return changed;
@@ -255,24 +274,22 @@ public final class EmakiItemSetService {
                 ? definition.setMembership().setId()
                 : identifier.setId(updated);
         boolean staticLoreReverted = false;
+        List<String> recordedStaticBlock = List.of();
         if (Texts.isNotBlank(setId)) {
+            recordedStaticBlock = staticOperationBlock(itemOperationLedger.find(updated, staticLoreOperationId(setId)));
             itemOperationLedger.revert(updated, thresholdOperationId(setId));
             staticLoreReverted = itemOperationLedger.revert(updated, staticLoreOperationId(setId));
         }
         if (!staticLoreReverted) {
             stripSetLore(updated, previousSetLoreLines);
         }
+        stripTrailingExactLoreBlocks(updated, recordedStaticBlock);
         pdcWriter.clearDynamicSet(updated, definition);
         return updated;
     }
 
     private boolean hasSetPresentation(ItemStack itemStack) {
         return Texts.isNotBlank(identifier.setSignature(itemStack)) || identifier.setLoreLines(itemStack) != null;
-    }
-
-    private boolean setPresentationChanged(String previousSignature, Integer previousLoreLines, ItemStack itemStack) {
-        return !java.util.Objects.equals(previousSignature == null ? "" : previousSignature, identifier.setSignature(itemStack))
-                || !java.util.Objects.equals(previousLoreLines, identifier.setLoreLines(itemStack));
     }
 
     private void stripSetLore(ItemStack itemStack, Integer setLoreLines) {
@@ -329,6 +346,33 @@ public final class EmakiItemSetService {
         return result;
     }
 
+    private void stripTrailingExactLoreBlocks(ItemStack itemStack, List<String> block) {
+        if (itemStack == null || itemStack.getType().isAir() || block == null || block.isEmpty()) {
+            return;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return;
+        }
+        List<String> currentLore = ItemTextBridge.loreLines(itemMeta);
+        List<String> strippedLore = new ArrayList<>(currentLore);
+        while (endsWith(strippedLore, block)) {
+            strippedLore.subList(strippedLore.size() - block.size(), strippedLore.size()).clear();
+        }
+        if (!currentLore.equals(strippedLore)) {
+            ItemTextBridge.setLoreLines(itemMeta, strippedLore);
+            itemStack.setItemMeta(itemMeta);
+        }
+    }
+
+    private List<String> staticOperationBlock(ItemOperationEntry operation) {
+        if (operation == null || operation.loreRecords().size() != 1) {
+            return List.of();
+        }
+        ItemOperationEntry.LoreOperationRecord record = operation.loreRecords().getFirst();
+        return "append".equals(record.action()) ? record.renderedLines() : List.of();
+    }
+
     private static boolean endsWith(List<String> lines, List<String> suffix) {
         if (lines == null || suffix == null || suffix.isEmpty() || lines.size() < suffix.size()) {
             return false;
@@ -345,12 +389,21 @@ public final class EmakiItemSetService {
     static boolean isSetPresentationCurrent(String existingSignature,
             Integer existingLoreLines,
             String expectedSignature,
-            List<String> expectedSetLore) {
+            List<String> expectedSetLore,
+            int actualSetLoreBlocks,
+            int staticOperationLoreLines,
+            boolean thresholdOperationCurrent) {
         if (!java.util.Objects.equals(Texts.toStringSafe(existingSignature), Texts.toStringSafe(expectedSignature))) {
             return false;
         }
-        return expectedSetLore == null || expectedSetLore.isEmpty()
-                || existingLoreLines != null && existingLoreLines > 0;
+        boolean expectsStaticLore = expectedSetLore != null && !expectedSetLore.isEmpty();
+        int expectedBlocks = expectsStaticLore ? 1 : 0;
+        int expectedLoreLines = expectsStaticLore ? staticOperationLoreLines : 0;
+        return staticOperationLoreLines >= 0
+                && existingLoreLines != null
+                && existingLoreLines == expectedLoreLines
+                && actualSetLoreBlocks == expectedBlocks
+                && thresholdOperationCurrent;
     }
 
     static List<String> staticLoreBlock(List<String> baseLore, List<String> setLore) {
@@ -372,14 +425,19 @@ public final class EmakiItemSetService {
         if (itemStack == null || definition == null || state == null || state.definition() == null) {
             return itemStack;
         }
-        List<String> setLore = loreRenderer.render(state);
-        List<ItemSetThreshold> activeThresholds = state.activeThresholds();
-        List<Integer> activeThresholdNumbers = activeThresholds.stream().map(ItemSetThreshold::requiredPieces).toList();
-        Object nameActions = state.mergedNameActions();
-        Object loreActions = state.mergedLoreActions();
-        String setSignature = buildSetSignature(definition, state, activeThresholdNumbers, setLore, nameActions, loreActions);
+        SetPresentationTarget target = buildPresentationTarget(definition, state);
+        SetPresentationInspection inspection = inspectSetPresentation(itemStack, membership.setId(), target);
+        return renderSetItem(itemStack, definition, membership, state, target, inspection);
+    }
+
+    private ItemStack renderSetItem(ItemStack itemStack,
+            EmakiItemDefinition definition,
+            ItemSetMembership membership,
+            EquippedSetState state,
+            SetPresentationTarget target,
+            SetPresentationInspection inspection) {
         Integer previousSetLoreLines = identifier.setLoreLines(itemStack);
-        if (isSetPresentationCurrent(identifier.setSignature(itemStack), previousSetLoreLines, setSignature, setLore)) {
+        if (inspection.current()) {
             return itemStack;
         }
 
@@ -388,11 +446,12 @@ public final class EmakiItemSetService {
         boolean staticLoreReverted = itemOperationLedger.revert(itemStack, staticLoreOperationId(setId));
         if (!staticLoreReverted) {
             stripSetLore(itemStack, previousSetLoreLines);
-            stripTrailingSetLore(itemStack, setLore);
         }
+        // 即使账本声称回滚成功，也要清理仍残留在尾部的重复块，避免异常状态被再次追加。
+        stripTrailingSetLore(itemStack, target.setLore());
 
-        int staticLoreLines = applyStaticSetLore(itemStack, setId, setLore);
-        applySetDisplayActions(itemStack, definition, membership, state, nameActions, loreActions);
+        int staticLoreLines = applyStaticSetLore(itemStack, setId, target.setLore());
+        applySetDisplayActions(itemStack, definition, membership, state, target.nameActions(), target.loreActions());
         pdcWriter.writeDynamicSet(
                 itemStack,
                 definition,
@@ -400,13 +459,122 @@ public final class EmakiItemSetService {
                 membership.effectivePieceId(definition.id()),
                 state.activeCount(),
                 state.definition().totalPieces(),
-                activeThresholdNumbers,
+                target.activeThresholdNumbers(),
                 staticLoreLines,
                 state.mergedAttributes(),
                 state.mergedSkills(),
-                setSignature
+                target.signature()
         );
         return itemStack;
+    }
+
+    private SetPresentationTarget buildPresentationTarget(EmakiItemDefinition definition, EquippedSetState state) {
+        List<String> setLore = loreRenderer.render(state);
+        List<Integer> activeThresholdNumbers = state.activeThresholds().stream()
+                .map(ItemSetThreshold::requiredPieces)
+                .toList();
+        Object nameActions = state.mergedNameActions();
+        Object loreActions = state.mergedLoreActions();
+        boolean expectsThresholdLoreOperation = hasActions(loreActions);
+        boolean expectsThresholdOperation = hasActions(nameActions) || expectsThresholdLoreOperation;
+        String signature = buildSetSignature(
+                definition,
+                state,
+                activeThresholdNumbers,
+                setLore,
+                nameActions,
+                loreActions
+        );
+        return new SetPresentationTarget(
+                List.copyOf(setLore),
+                activeThresholdNumbers,
+                nameActions,
+                loreActions,
+                signature,
+                expectsThresholdOperation,
+                expectsThresholdLoreOperation
+        );
+    }
+
+    private SetPresentationInspection inspectSetPresentation(ItemStack itemStack,
+            String setId,
+            SetPresentationTarget target) {
+        List<String> lore = loreLines(itemStack);
+        ItemOperationEntry staticOperation = itemOperationLedger.find(itemStack, staticLoreOperationId(setId));
+        ItemOperationEntry thresholdOperation = itemOperationLedger.find(itemStack, thresholdOperationId(setId));
+        int staticOperationLoreLines = staticOperationLoreLines(staticOperation, target.setLore());
+        boolean thresholdOperationPresent = thresholdOperation != null && !thresholdOperation.isEmpty();
+        List<String> blockInspectionLore = lore;
+        boolean blockCountFromThresholdSnapshot = false;
+        boolean thresholdLoreSnapshotCurrent = true;
+        if (target.expectsThresholdLoreOperation()) {
+            ItemOperationEntry.LoreOperationRecord firstLoreRecord = thresholdOperation == null
+                    || thresholdOperation.loreRecords().isEmpty()
+                    ? null
+                    : thresholdOperation.loreRecords().getFirst();
+            thresholdLoreSnapshotCurrent = firstLoreRecord != null && firstLoreRecord.beforeRecorded();
+            if (thresholdLoreSnapshotCurrent) {
+                blockInspectionLore = firstLoreRecord.beforeLines();
+                blockCountFromThresholdSnapshot = true;
+            }
+        }
+        int actualSetLoreBlocks = countLoreBlocks(blockInspectionLore, target.setLore());
+        boolean thresholdOperationCurrent = thresholdOperationPresent == target.expectsThresholdOperation()
+                && thresholdLoreSnapshotCurrent;
+        Integer marker = identifier.setLoreLines(itemStack);
+        String signature = identifier.setSignature(itemStack);
+        boolean current = isSetPresentationCurrent(
+                signature,
+                marker,
+                target.signature(),
+                target.setLore(),
+                actualSetLoreBlocks,
+                staticOperationLoreLines,
+                thresholdOperationCurrent
+        );
+        return new SetPresentationInspection(
+                actualSetLoreBlocks,
+                staticOperationLoreLines,
+                thresholdOperationPresent,
+                blockCountFromThresholdSnapshot,
+                current
+        );
+    }
+
+    private int staticOperationLoreLines(ItemOperationEntry operation, List<String> expectedSetLore) {
+        boolean expectsStaticLore = expectedSetLore != null && !expectedSetLore.isEmpty();
+        if (!expectsStaticLore) {
+            return operation == null ? 0 : -1;
+        }
+        if (operation == null || operation.loreRecords().size() != 1) {
+            return -1;
+        }
+        ItemOperationEntry.LoreOperationRecord record = operation.loreRecords().getFirst();
+        if (!"append".equals(record.action()) || !record.beforeRecorded() || !endsWith(record.renderedLines(), expectedSetLore)) {
+            return -1;
+        }
+        return record.renderedLines().size();
+    }
+
+    static int countLoreBlocks(List<String> lore, List<String> block) {
+        if (lore == null || block == null || block.isEmpty() || lore.size() < block.size()) {
+            return 0;
+        }
+        int count = 0;
+        for (int start = 0; start <= lore.size() - block.size(); start++) {
+            boolean matches = true;
+            for (int offset = 0; offset < block.size(); offset++) {
+                if (!java.util.Objects.equals(lore.get(start + offset), block.get(offset))) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) {
+                count++;
+                start += block.size() - 1;
+            }
+        }
+        return count;
     }
 
     private String buildSetSignature(EmakiItemDefinition definition,
@@ -498,11 +666,15 @@ public final class EmakiItemSetService {
     }
 
     private int loreSize(ItemStack itemStack) {
+        return loreLines(itemStack).size();
+    }
+
+    private List<String> loreLines(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
-            return 0;
+            return List.of();
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
-        return itemMeta == null ? 0 : ItemTextBridge.loreLines(itemMeta).size();
+        return itemMeta == null ? List.of() : ItemTextBridge.loreLines(itemMeta);
     }
 
     private void debugSetSlot(Player player,
@@ -538,29 +710,64 @@ public final class EmakiItemSetService {
             Integer previousLoreLines,
             int previousLoreSize,
             ItemStack rendered,
-            boolean changed) {
+            boolean changed,
+            boolean committed,
+            SetPresentationInspection before,
+            String setId,
+            SetPresentationTarget target) {
         DebugLogger debugLogger = debugLoggerSupplier.get();
         if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
             return;
         }
+        SetPresentationInspection after = inspectSetPresentation(rendered, setId, target);
         debugLogger.logRaw("set", player, "[DEBUG:SET_LORE] trigger=" + Texts.toStringSafe(trigger)
                 + " slot=" + Texts.toStringSafe(slot)
                 + " item=" + Texts.toStringSafe(itemId)
                 + " signature=" + Texts.toStringSafe(previousSignature) + "->" + Texts.toStringSafe(identifier.setSignature(rendered))
                 + " marker=" + previousLoreLines + "->" + identifier.setLoreLines(rendered)
                 + " lore_size=" + previousLoreSize + "->" + loreSize(rendered)
-                + " changed=" + changed);
+                + " blocks=" + before.actualSetLoreBlocks() + "->" + after.actualSetLoreBlocks()
+                + " block_source=" + (before.blockCountFromThresholdSnapshot() ? "threshold_before" : "item")
+                + "->" + (after.blockCountFromThresholdSnapshot() ? "threshold_before" : "item")
+                + " ledger_lines=" + before.staticOperationLoreLines() + "->" + after.staticOperationLoreLines()
+                + " threshold_ledger=" + before.thresholdOperationPresent() + "->" + after.thresholdOperationPresent()
+                + " current=" + before.current() + "->" + after.current()
+                + " changed=" + changed
+                + " committed=" + committed
+                + " folia=" + FoliaSchedulerAdapter.isFolia()
+                + " primary=" + Bukkit.isPrimaryThread()
+                + " owner=" + Bukkit.isOwnedByCurrentRegion(player)
+                + " thread=" + Thread.currentThread().getName());
+    }
+
+    private void debugSetWrite(Player player,
+            String trigger,
+            String slot,
+            String itemId,
+            String operation,
+            boolean committed) {
+        DebugLogger debugLogger = debugLoggerSupplier.get();
+        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
+            return;
+        }
+        debugLogger.logRaw("set", player, "[DEBUG:SET_WRITE] trigger=" + Texts.toStringSafe(trigger)
+                + " slot=" + Texts.toStringSafe(slot)
+                + " item=" + Texts.toStringSafe(itemId)
+                + " operation=" + Texts.toStringSafe(operation)
+                + " committed=" + committed
+                + " owner=" + Bukkit.isOwnedByCurrentRegion(player)
+                + " thread=" + Thread.currentThread().getName());
     }
 
     private List<EquippedItem> readEquippedItems(Player player) {
         PlayerInventory inventory = player.getInventory();
         return List.of(
-                new EquippedItem("main_hand", inventory.getItemInMainHand()),
-                new EquippedItem("off_hand", inventory.getItemInOffHand()),
-                new EquippedItem("helmet", inventory.getHelmet()),
-                new EquippedItem("chestplate", inventory.getChestplate()),
-                new EquippedItem("leggings", inventory.getLeggings()),
-                new EquippedItem("boots", inventory.getBoots())
+                new EquippedItem("main_hand", cloneItem(inventory.getItemInMainHand())),
+                new EquippedItem("off_hand", cloneItem(inventory.getItemInOffHand())),
+                new EquippedItem("helmet", cloneItem(inventory.getHelmet())),
+                new EquippedItem("chestplate", cloneItem(inventory.getChestplate())),
+                new EquippedItem("leggings", cloneItem(inventory.getLeggings())),
+                new EquippedItem("boots", cloneItem(inventory.getBoots()))
         );
     }
 
@@ -651,9 +858,71 @@ public final class EmakiItemSetService {
         return result;
     }
 
+    private boolean writeInventoryIfUnchanged(PlayerInventory inventory,
+            int slot,
+            ItemStack expected,
+            ItemStack updated) {
+        ItemStack current = inventory.getItem(slot);
+        if (!sameItem(current, expected)) {
+            return false;
+        }
+        inventory.setItem(slot, updated);
+        return true;
+    }
+
+    private static ItemStack cloneItem(ItemStack itemStack) {
+        return itemStack == null ? null : itemStack.clone();
+    }
+
+    private static boolean sameItem(ItemStack first, ItemStack second) {
+        if (first == null || first.getType().isAir()) {
+            return second == null || second.getType().isAir();
+        }
+        return first.equals(second);
+    }
+
+    private record SetPresentationTarget(
+            List<String> setLore,
+            List<Integer> activeThresholdNumbers,
+            Object nameActions,
+            Object loreActions,
+            String signature,
+            boolean expectsThresholdOperation,
+            boolean expectsThresholdLoreOperation) {
+    }
+
+    private record SetPresentationInspection(
+            int actualSetLoreBlocks,
+            int staticOperationLoreLines,
+            boolean thresholdOperationPresent,
+            boolean blockCountFromThresholdSnapshot,
+            boolean current) {
+    }
+
     private record EquippedItem(String slot, ItemStack itemStack) {
 
-        void write(PlayerInventory inventory, ItemStack itemStack) {
+        boolean writeIfUnchanged(PlayerInventory inventory, ItemStack expected, ItemStack updated) {
+            ItemStack current = read(inventory);
+            if (!sameItem(current, expected)) {
+                return false;
+            }
+            write(inventory, updated);
+            return true;
+        }
+
+        private ItemStack read(PlayerInventory inventory) {
+            return switch (slot) {
+                case "main_hand" -> inventory.getItemInMainHand();
+                case "off_hand" -> inventory.getItemInOffHand();
+                case "helmet" -> inventory.getHelmet();
+                case "chestplate" -> inventory.getChestplate();
+                case "leggings" -> inventory.getLeggings();
+                case "boots" -> inventory.getBoots();
+                default -> null;
+            };
+        }
+
+        private void write(PlayerInventory inventory, ItemStack itemStack) {
             switch (slot) {
                 case "main_hand" -> inventory.setItemInMainHand(itemStack);
                 case "off_hand" -> inventory.setItemInOffHand(itemStack);

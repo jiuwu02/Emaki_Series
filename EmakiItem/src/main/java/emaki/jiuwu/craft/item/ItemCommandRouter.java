@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -207,18 +208,24 @@ final class ItemCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.item_not_found", Map.of("id", id));
             return true;
         }
-        int amount = itemStack.getAmount();
-        Map<Integer, ItemStack> leftovers = target.getInventory().addItem(itemStack);
-        leftovers.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
-        plugin.actionService().execute(target, definition, "give", Map.of("amount", amount), itemStack);
-        plugin.updateService().updatePlayerItems(target, "give");
-        plugin.setService().refreshEquippedSets(target, "give");
-        plugin.scheduleAttributeEquipmentSync(target);
-        plugin.messageService().send(sender, "general.give_success", Map.of(
-                "player", target.getName(),
-                "id", id,
-                "amount", amount
-        ));
+        runForPlayer(target, "give", () -> {
+            if (!target.isOnline()) {
+                runForSender(sender, () -> plugin.messageService().send(sender, "general.player_not_found"));
+                return;
+            }
+            int amount = itemStack.getAmount();
+            Map<Integer, ItemStack> leftovers = target.getInventory().addItem(itemStack);
+            leftovers.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
+            plugin.actionService().execute(target, definition, "give", Map.of("amount", amount), itemStack);
+            plugin.updateService().updatePlayerItems(target, "give");
+            plugin.setService().refreshEquippedSets(target, "give");
+            plugin.scheduleAttributeEquipmentSync(target);
+            runForSender(sender, () -> plugin.messageService().send(sender, "general.give_success", Map.of(
+                    "player", target.getName(),
+                    "id", id,
+                    "amount", amount
+            )));
+        });
         return true;
     }
 
@@ -367,12 +374,18 @@ final class ItemCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.player_not_found");
             return true;
         }
-        int changed = plugin.updateService().updatePlayerItems(target, "command");
-        changed += plugin.setService().refreshEquippedSets(target, "command");
-        if (changed > 0) {
-            plugin.scheduleAttributeEquipmentSync(target);
-        }
-        plugin.messageService().send(sender, "general.update_success", Map.of("player", target.getName(), "count", changed));
+        runForPlayer(target, "update", () -> {
+            int changed = plugin.updateService().updatePlayerItems(target, "command");
+            changed += plugin.setService().refreshEquippedSets(target, "command");
+            if (changed > 0) {
+                plugin.scheduleAttributeEquipmentSync(target);
+            }
+            int changedCount = changed;
+            runForSender(sender, () -> plugin.messageService().send(sender, "general.update_success", Map.of(
+                    "player", target.getName(),
+                    "count", changedCount
+            )));
+        });
         return true;
     }
 
@@ -485,8 +498,33 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length >= 3 && "inventory".equalsIgnoreCase(args[1])) {
             if ("all".equalsIgnoreCase(args[2])) {
-                int changed = plugin.migrationService().migrateAllOnlineInventories();
-                plugin.messageService().sendRaw(sender, "<green>在线玩家背包迁移完成：</green> " + changed + " 件物品。");
+                List<Player> targets = List.copyOf(Bukkit.getOnlinePlayers());
+                if (targets.isEmpty()) {
+                    plugin.messageService().sendRaw(sender, "<green>在线玩家背包迁移完成：</green> 0 件物品。");
+                    return true;
+                }
+                AtomicInteger totalChanged = new AtomicInteger();
+                AtomicInteger remaining = new AtomicInteger(targets.size());
+                java.util.function.IntConsumer complete = changed -> {
+                    totalChanged.addAndGet(changed);
+                    if (remaining.decrementAndGet() == 0) {
+                        runForSender(sender, () -> plugin.messageService().sendRaw(sender,
+                                "<green>在线玩家背包迁移完成：</green> " + totalChanged.get() + " 件物品。"));
+                    }
+                };
+                for (Player target : targets) {
+                    boolean accepted = runForPlayer(target, "migrate_inventory", () -> {
+                        int changed = target.isOnline() ? plugin.migrationService().migrateInventory(target) : 0;
+                        int refreshed = target.isOnline() ? plugin.setService().refreshEquippedSets(target, "command") : 0;
+                        if (changed + refreshed > 0) {
+                            plugin.scheduleAttributeEquipmentSync(target);
+                        }
+                        complete.accept(changed);
+                    });
+                    if (!accepted) {
+                        complete.accept(0);
+                    }
+                }
                 return true;
             }
             Player target = Bukkit.getPlayerExact(args[2]);
@@ -494,8 +532,15 @@ final class ItemCommandRouter implements TabExecutor {
                 plugin.messageService().send(sender, "general.player_not_found");
                 return true;
             }
-            int changed = plugin.migrationService().migrateInventory(target);
-            plugin.messageService().sendRaw(sender, "<green>背包迁移完成：</green> " + target.getName() + " / " + changed + " 件物品。");
+            runForPlayer(target, "migrate_inventory", () -> {
+                int changed = plugin.migrationService().migrateInventory(target);
+                int refreshed = plugin.setService().refreshEquippedSets(target, "command");
+                if (changed + refreshed > 0) {
+                    plugin.scheduleAttributeEquipmentSync(target);
+                }
+                runForSender(sender, () -> plugin.messageService().sendRaw(sender,
+                        "<green>背包迁移完成：</green> " + target.getName() + " / " + changed + " 件物品。"));
+            });
             return true;
         }
         plugin.messageService().sendRaw(sender, "<red>用法：</red> /ei migrate id <old> <new> --dry-run|--apply 或 /ei migrate inventory <player|all>");
@@ -516,12 +561,46 @@ final class ItemCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean runForPlayer(Player player, String operation, Runnable task) {
+        if (player == null || task == null) {
+            return false;
+        }
+        boolean owner = Bukkit.isOwnedByCurrentRegion(player);
+        debugCommandDomain(player, operation, owner ? "direct" : "scheduled", owner);
+        if (owner) {
+            task.run();
+            return true;
+        }
+        boolean accepted = FoliaSchedulerAdapter.runEntityTask(plugin, player, task) != null;
+        if (!accepted) {
+            debugCommandDomain(player, operation, "rejected", false);
+        }
+        return accepted;
+    }
+
     private void runForSender(CommandSender sender, Runnable task) {
         if (sender instanceof Player player) {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            if (Bukkit.isOwnedByCurrentRegion(player)) {
+                task.run();
+            } else {
+                FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            }
             return;
         }
         FoliaSchedulerAdapter.runTask(plugin, task);
+    }
+
+    private void debugCommandDomain(Player player, String operation, String stage, boolean owner) {
+        var debugLogger = plugin.debugLogger();
+        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
+            return;
+        }
+        debugLogger.logRaw("set", player, "[DEBUG:SET_COMMAND] operation=" + Texts.toStringSafe(operation)
+                + " stage=" + Texts.toStringSafe(stage)
+                + " folia=" + FoliaSchedulerAdapter.isFolia()
+                + " primary=" + Bukkit.isPrimaryThread()
+                + " owner=" + owner
+                + " thread=" + Thread.currentThread().getName());
     }
 
     private void completePlayers(List<String> result, String prefix) {
