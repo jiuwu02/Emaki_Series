@@ -112,6 +112,11 @@ final class GemGuiInteractionController {
                 plugin.messageService().send(state.player(), "command.inlay.max_same_id", Map.of("gem", gemDefinition.id()));
                 return;
             }
+            GemStateService.RelationshipCheck relationshipCheck = plugin.stateService().validateInlayRelationships(currentState, gemDefinition);
+            if (!relationshipCheck.allowed()) {
+                plugin.messageService().send(state.player(), relationshipCheck.messageKey(), relationshipCheck.placeholders());
+                return;
+            }
             returnPendingInput(state);
             state.setPendingOperation(new GemGuiSession.PendingOperation(
                     GemGuiSession.PendingType.INLAY,
@@ -123,6 +128,11 @@ final class GemGuiInteractionController {
         }
         if (currentState.assignment(slotIndex) == null) {
             plugin.messageService().send(state.player(), "command.extract.slot_empty", Map.of("slot", slotIndex));
+            return;
+        }
+        GemStateService.RelationshipCheck relationshipCheck = plugin.stateService().validateExtractionRelationships(currentState, slotIndex);
+        if (!relationshipCheck.allowed()) {
+            plugin.messageService().send(state.player(), relationshipCheck.messageKey(), relationshipCheck.placeholders());
             return;
         }
         returnPendingInput(state);

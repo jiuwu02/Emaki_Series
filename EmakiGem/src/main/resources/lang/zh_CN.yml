@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.5.5"
+version: "2.5.6"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -69,6 +69,8 @@ loader:
   load_failed: "<red>加载 %type% 文件 %file% 失败: %error%</red>"
   invalid_config: "<red>%type% 文件 %file% 配置无效，已跳过加载。</red>"
   gem_missing_item_source: "<red>宝石文件 %file% 的 item_sources 缺失或无效，已拒绝加载: %id%，当前值: %item_sources%</red>"
+  gem_relationship_self_reference: "<red>宝石文件 %file% 在 required_gems 或 conflicting_gems 中引用自身，已拒绝加载: %id%</red>"
+  gem_relationship_conflict: "<red>宝石文件 %file% 同时将 %related_gem% 声明为依赖与冲突，已拒绝加载: %id%</red>"
 
 gem:
   error:
@@ -115,12 +117,15 @@ command:
     socket_incompatible: "<red>宝石与插槽 #%slot% 的类型 <yellow>%type%</yellow> 不兼容。</red>"
     max_same_type: "<red>该装备已达到同类型宝石上限: %type%</red>"
     max_same_id: "<red>该装备已达到同 ID 宝石上限: %gem%</red>"
+    dependency_missing: "<red>无法镶嵌 <yellow>%gem%</yellow>：装备中缺少依赖宝石 <gold>%required_gem%</gold>。</red>"
+    gem_conflict: "<red>无法镶嵌 <yellow>%gem%</yellow>：它与已镶嵌的 <gold>%conflict_gem%</gold> 冲突。</red>"
     chance_failed: "<red>镶嵌失败，本次未写入装备。</red>"
     apply_failed: "<red>镶嵌失败，无法写回装备状态。</red>"
     success: "<green>已将 <yellow>%gem%</yellow> 镶嵌到插槽 <gold>#%slot%</gold>。</green>"
 
   extract:
     slot_empty: "<red>插槽 #%slot% 中没有可取出的宝石。</red>"
+    dependency_required: "<red>无法取出 <yellow>%gem%</yellow>：已镶嵌的 <gold>%dependent_gem%</gold> 仍依赖它。</red>"
     apply_failed: "<red>拆卸失败，无法写回装备状态。</red>"
     success: "<green>已从插槽 <gold>#%slot%</gold> 取出 <yellow>%gem%</yellow>。</green>"
 

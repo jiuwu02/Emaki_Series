@@ -83,6 +83,10 @@ public final class GemExtractService {
         if (instance == null || gemDefinition == null) {
             return Result.failure("command.extract.slot_empty", Map.of("slot", slotIndex));
         }
+        GemStateService.RelationshipCheck relationshipCheck = stateService.validateExtractionRelationships(currentState, slotIndex);
+        if (!relationshipCheck.allowed()) {
+            return Result.failure(relationshipCheck.messageKey(), relationshipCheck.placeholders());
+        }
         if (!evaluateConditions(actor)) {
             return Result.failure("gem.error.condition_not_met", Map.of());
         }

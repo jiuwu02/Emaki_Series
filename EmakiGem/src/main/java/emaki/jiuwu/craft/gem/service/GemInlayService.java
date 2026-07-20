@@ -138,6 +138,10 @@ public final class GemInlayService {
         if (stateService.countAssignmentsByGemId(currentState, gemDefinition.id()) >= itemDefinition.maxSameId()) {
             return new InlayResult(Result.failure("command.inlay.max_same_id", Map.of("gem", gemDefinition.id())), equipment);
         }
+        GemStateService.RelationshipCheck relationshipCheck = stateService.validateInlayRelationships(currentState, gemDefinition);
+        if (!relationshipCheck.allowed()) {
+            return new InlayResult(Result.failure(relationshipCheck.messageKey(), relationshipCheck.placeholders()), equipment);
+        }
         if (!evaluateConditions(actor)) {
             return new InlayResult(Result.failure("gem.error.condition_not_met", Map.of()), equipment);
         }
@@ -286,6 +290,11 @@ public final class GemInlayService {
         if (instance == null || gemDefinition == null) {
             return new ExtractDirectResult(
                     GemExtractService.Result.failure("command.extract.slot_empty", Map.of("slot", slotIndex)), equipment, null);
+        }
+        GemStateService.RelationshipCheck relationshipCheck = stateService.validateExtractionRelationships(currentState, slotIndex);
+        if (!relationshipCheck.allowed()) {
+            return new ExtractDirectResult(
+                    GemExtractService.Result.failure(relationshipCheck.messageKey(), relationshipCheck.placeholders()), equipment, null);
         }
         if (!evaluateConditions(actor)) {
             return new ExtractDirectResult(

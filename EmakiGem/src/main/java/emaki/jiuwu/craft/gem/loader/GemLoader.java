@@ -50,6 +50,24 @@ public final class GemLoader extends YamlDirectoryLoader<GemDefinition> {
         GemDefinition definition = GemDefinition.fromConfig(configuration);
         if (definition == null) {
             issue("loader.invalid_config", Map.of("type", typeName(), "file", file.getName()));
+            return null;
+        }
+        if (definition.dependencies().contains(definition.id()) || definition.conflicts().contains(definition.id())) {
+            issue("loader.gem_relationship_self_reference", Map.of(
+                    "file", file.getName(),
+                    "id", definition.id()
+            ));
+            return null;
+        }
+        for (String dependency : definition.dependencies()) {
+            if (definition.conflicts().contains(dependency)) {
+                issue("loader.gem_relationship_conflict", Map.of(
+                        "file", file.getName(),
+                        "id", definition.id(),
+                        "related_gem", dependency
+                ));
+                return null;
+            }
         }
         return definition;
     }

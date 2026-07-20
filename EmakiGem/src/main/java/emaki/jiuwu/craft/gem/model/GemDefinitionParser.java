@@ -55,6 +55,8 @@ final class GemDefinitionParser {
                 parseAttributes(section),
                 parseSkillEffects(section.getMapList("effects")),
                 socketCompatibility,
+                section.getStringList("required_gems"),
+                section.getStringList("conflicting_gems"),
                 parseNameActions(section),
                 parseLoreActions(section),
                 parseCostConfig(section.getSection("inlay_cost")),

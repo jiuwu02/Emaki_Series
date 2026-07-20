@@ -26,6 +26,8 @@ public final class GemDefinition {
     private final Map<String, Object> attributes;
     private final List<String> skillIds;
     private final Set<String> socketCompatibility;
+    private final List<String> dependencies;
+    private final List<String> conflicts;
     private final Object nameActions;
     private final Object loreActions;
     private final CostConfig inlayCost;
@@ -46,6 +48,8 @@ public final class GemDefinition {
             Map<String, Object> attributes,
             List<String> skillIds,
             Set<String> socketCompatibility,
+            List<String> dependencies,
+            List<String> conflicts,
             Object nameActions,
             Object loreActions,
             CostConfig inlayCost,
@@ -65,6 +69,8 @@ public final class GemDefinition {
         this.attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
         this.skillIds = normalizeSkillIds(skillIds);
         this.socketCompatibility = socketCompatibility == null ? Set.of() : Set.copyOf(socketCompatibility);
+        this.dependencies = normalizeGemIds(dependencies);
+        this.conflicts = normalizeGemIds(conflicts);
         this.nameActions = ConfigNodes.toPlainData(nameActions);
         this.loreActions = ConfigNodes.toPlainData(loreActions);
         this.inlayCost = inlayCost == null ? CostConfig.none() : inlayCost;
@@ -117,6 +123,14 @@ public final class GemDefinition {
 
     public Set<String> socketCompatibility() {
         return socketCompatibility;
+    }
+
+    public List<String> dependencies() {
+        return dependencies;
+    }
+
+    public List<String> conflicts() {
+        return conflicts;
     }
 
     public Object nameActions() {
@@ -234,15 +248,23 @@ public final class GemDefinition {
     }
 
     static List<String> normalizeSkillIds(List<String> rawSkillIds) {
-        if (rawSkillIds == null || rawSkillIds.isEmpty()) {
+        return normalizeIds(rawSkillIds);
+    }
+
+    private static List<String> normalizeGemIds(List<String> rawGemIds) {
+        return normalizeIds(rawGemIds);
+    }
+
+    private static List<String> normalizeIds(List<String> rawIds) {
+        if (rawIds == null || rawIds.isEmpty()) {
             return List.of();
         }
         List<String> result = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
-        for (String rawSkillId : rawSkillIds) {
-            String skillId = Texts.normalizeId(rawSkillId);
-            if (Texts.isNotBlank(skillId) && seen.add(skillId)) {
-                result.add(skillId);
+        for (String rawId : rawIds) {
+            String id = Texts.normalizeId(rawId);
+            if (Texts.isNotBlank(id) && seen.add(id)) {
+                result.add(id);
             }
         }
         return List.copyOf(result);

@@ -81,15 +81,18 @@ public final class PlayerSkillStateService {
         if (profile == null) {
             return false;
         }
+        Set<String> unlockedIds = unlockedSkillIds(player);
         SkillSlotBinding current = profile.getBinding(slotIndex);
-        if (current == null || !canEquipSkill(profile, slotIndex, definition)) {
+        if (current == null || !unlockedIds.contains(definition.id()) || !canEquipSkill(profile, slotIndex, definition)) {
             return false;
         }
-        if (fireSlotChange(player, slotIndex, skillId, null, PlayerSkillSlotChangeEvent.Action.EQUIP)) {
+        if (fireSlotChange(player, slotIndex, definition.id(), null, PlayerSkillSlotChangeEvent.Action.EQUIP)) {
             return false;
         }
-        return dataStore.mutate(player, active ->
-                active.setBinding(slotIndex, new SkillSlotBinding(slotIndex, skillId, current.triggerId())));
+        return dataStore.mutate(player, active -> {
+            active.setBinding(slotIndex, new SkillSlotBinding(slotIndex, definition.id(), current.triggerId()));
+            stabilizeBindings(active, unlockedIds);
+        });
     }
 
     public boolean unequipSkill(Player player, int slotIndex) {
@@ -107,7 +110,11 @@ public final class PlayerSkillStateService {
         if (fireSlotChange(player, slotIndex, current.skillId(), null, PlayerSkillSlotChangeEvent.Action.UNEQUIP)) {
             return false;
         }
-        return dataStore.mutate(player, active -> active.clearSlot(slotIndex));
+        Set<String> unlockedIds = unlockedSkillIds(player);
+        return dataStore.mutate(player, active -> {
+            active.clearSlot(slotIndex);
+            stabilizeBindings(active, unlockedIds);
+        });
     }
 
     public boolean bindTrigger(Player player, int slotIndex, String triggerId) {
@@ -119,7 +126,7 @@ public final class PlayerSkillStateService {
             return false;
         }
         SkillSlotBinding current = profile.getBinding(slotIndex);
-        if (current == null || current.isEmpty()) {
+        if (current == null || current.isEmpty() || !isValidTrigger(triggerId)) {
             return false;
         }
 
@@ -132,13 +139,12 @@ public final class PlayerSkillStateService {
             return false;
         }
 
-        return dataStore.mutate(player, active ->
-                active.setBinding(slotIndex, new SkillSlotBinding(slotIndex, current.skillId(), triggerId)));
+        Set<String> unlockedIds = unlockedSkillIds(player);
+        return dataStore.mutate(player, active -> {
+            active.setBinding(slotIndex, new SkillSlotBinding(slotIndex, current.skillId(), triggerId));
+            stabilizeBindings(active, unlockedIds);
+        });
     }
-
-
-
-
 
     private boolean fireSlotChange(Player player,
             int slotIndex,
@@ -172,32 +178,69 @@ public final class PlayerSkillStateService {
     }
 
     public void validateBindings(Player player) {
-        if (player == null) {
+        if (player == null || dataStore.get(player) == null) {
             return;
         }
-        if (dataStore.get(player) == null) {
-            return;
-        }
-        List<UnlockedSkillEntry> unlocked = getUnlockedSkills(player);
-        Set<String> unlockedIds = new HashSet<>();
-        for (UnlockedSkillEntry entry : unlocked) {
-            unlockedIds.add(entry.skillId());
-        }
+        Set<String> unlockedIds = unlockedSkillIds(player);
+        dataStore.mutate(player, profile -> stabilizeBindings(profile, unlockedIds));
+    }
 
-        dataStore.mutate(player, profile -> {
-            for (SkillSlotBinding binding : List.copyOf(profile.bindings())) {
-                if (binding.isEmpty()) {
+    private Set<String> unlockedSkillIds(Player player) {
+        Set<String> unlockedIds = new HashSet<>();
+        for (UnlockedSkillEntry entry : getUnlockedSkills(player)) {
+            if (entry != null && entry.skillId() != null && !entry.skillId().isBlank()) {
+                unlockedIds.add(entry.skillId());
+            }
+        }
+        return Set.copyOf(unlockedIds);
+    }
+
+    private void stabilizeBindings(PlayerSkillProfile profile, Set<String> unlockedIds) {
+        if (profile == null) {
+            return;
+        }
+        Set<String> safeUnlockedIds = unlockedIds == null ? Set.of() : unlockedIds;
+        boolean changed;
+        do {
+            PlayerSkillProfile snapshot = profile.copy();
+            Set<Integer> invalidSlots = new HashSet<>();
+            for (SkillSlotBinding binding : snapshot.bindings()) {
+                if (binding == null || binding.isEmpty()) {
                     continue;
                 }
                 SkillDefinition definition = registryService.getDefinition(binding.skillId());
-                if (!unlockedIds.contains(binding.skillId())
+                if (!safeUnlockedIds.contains(binding.skillId())
                         || !isValidTrigger(binding.triggerId())
+                        || hasTriggerConflict(snapshot, binding)
                         || definition == null
-                        || !canEquipSkill(profile, binding.slotIndex(), definition)) {
-                    profile.clearSlot(binding.slotIndex());
+                        || !canEquipSkill(snapshot, binding.slotIndex(), definition)) {
+                    invalidSlots.add(binding.slotIndex());
                 }
             }
-        });
+            changed = !invalidSlots.isEmpty();
+            for (int slotIndex : invalidSlots) {
+                profile.clearSlot(slotIndex);
+            }
+        } while (changed);
+    }
+
+    private boolean hasTriggerConflict(PlayerSkillProfile profile, SkillSlotBinding candidate) {
+        if (profile == null || candidate == null || candidate.triggerId() == null || candidate.triggerId().isBlank()) {
+            return false;
+        }
+        for (SkillSlotBinding binding : profile.bindings()) {
+            if (binding == null
+                    || binding.slotIndex() == candidate.slotIndex()
+                    || binding.isEmpty()
+                    || binding.triggerId() == null
+                    || binding.triggerId().isBlank()) {
+                continue;
+            }
+            if (conflictResolver.conflicts(candidate.triggerId(), binding.triggerId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean canEquipSkill(PlayerSkillProfile profile, int targetSlot, SkillDefinition definition) {
@@ -272,7 +315,10 @@ public final class PlayerSkillStateService {
     }
 
     private boolean isValidTrigger(String triggerId) {
-        if (triggerId == null || triggerRegistry == null) {
+        if (triggerId == null || triggerId.isBlank()) {
+            return true;
+        }
+        if (triggerRegistry == null) {
             return false;
         }
         SkillTriggerDefinition definition = triggerRegistry.get(triggerId);

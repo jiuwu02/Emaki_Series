@@ -11,10 +11,28 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
+import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemState;
 
 public final class GemStateService {
+
+    public record RelationshipCheck(boolean allowed, String messageKey, Map<String, Object> placeholders) {
+
+        public RelationshipCheck {
+            messageKey = messageKey == null ? "" : messageKey;
+            placeholders = placeholders == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(placeholders));
+        }
+
+        public static RelationshipCheck pass() {
+            return new RelationshipCheck(true, "", Map.of());
+        }
+
+        public static RelationshipCheck denied(String messageKey, Map<String, Object> placeholders) {
+            return new RelationshipCheck(false, messageKey, placeholders);
+        }
+    }
 
     private static final String NAMESPACE_ID = "gem";
 
@@ -134,6 +152,81 @@ public final class GemStateService {
         pdcAttributeWriter.clear(rebuilt);
         pdcAttributeWriter.applySkills(rebuilt, java.util.List.of());
         return rebuilt;
+    }
+
+    public RelationshipCheck validateInlayRelationships(GemState state, GemDefinition candidate) {
+        if (state == null || candidate == null) {
+            return RelationshipCheck.pass();
+        }
+        for (String dependencyId : candidate.dependencies()) {
+            if (countAssignmentsByGemId(state, dependencyId) > 0) {
+                continue;
+            }
+            return RelationshipCheck.denied("command.inlay.dependency_missing", Map.of(
+                    "gem", candidate.displayName(),
+                    "gem_id", candidate.id(),
+                    "required_gem", gemDisplayName(dependencyId),
+                    "required_gem_id", dependencyId
+            ));
+        }
+        for (GemItemInstance existingInstance : state.socketAssignments().values()) {
+            if (existingInstance == null) {
+                continue;
+            }
+            String existingGemId = existingInstance.gemId();
+            GemDefinition existingDefinition = plugin.gemLoader().get(existingGemId);
+            boolean conflicts = candidate.conflicts().contains(existingGemId)
+                    || existingDefinition != null && existingDefinition.conflicts().contains(candidate.id());
+            if (!conflicts) {
+                continue;
+            }
+            return RelationshipCheck.denied("command.inlay.gem_conflict", Map.of(
+                    "gem", candidate.displayName(),
+                    "gem_id", candidate.id(),
+                    "conflict_gem", existingDefinition == null
+                            ? existingGemId
+                            : existingDefinition.displayNameForLevel(existingInstance.level()),
+                    "conflict_gem_id", existingGemId
+            ));
+        }
+        return RelationshipCheck.pass();
+    }
+
+    public RelationshipCheck validateExtractionRelationships(GemState state, int slotIndex) {
+        if (state == null) {
+            return RelationshipCheck.pass();
+        }
+        GemItemInstance removedInstance = state.assignment(slotIndex);
+        if (removedInstance == null || countAssignmentsByGemId(state, removedInstance.gemId()) > 1) {
+            return RelationshipCheck.pass();
+        }
+        for (Map.Entry<Integer, GemItemInstance> entry : state.socketAssignments().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .toList()) {
+            if (entry.getKey() == slotIndex || entry.getValue() == null) {
+                continue;
+            }
+            GemItemInstance dependentInstance = entry.getValue();
+            GemDefinition dependentDefinition = plugin.gemLoader().get(dependentInstance.gemId());
+            if (dependentDefinition == null || !dependentDefinition.dependencies().contains(removedInstance.gemId())) {
+                continue;
+            }
+            GemDefinition removedDefinition = plugin.gemLoader().get(removedInstance.gemId());
+            return RelationshipCheck.denied("command.extract.dependency_required", Map.of(
+                    "gem", removedDefinition == null
+                            ? removedInstance.gemId()
+                            : removedDefinition.displayNameForLevel(removedInstance.level()),
+                    "gem_id", removedInstance.gemId(),
+                    "dependent_gem", dependentDefinition.displayNameForLevel(dependentInstance.level()),
+                    "dependent_gem_id", dependentDefinition.id()
+            ));
+        }
+        return RelationshipCheck.pass();
+    }
+
+    private String gemDisplayName(String gemId) {
+        GemDefinition definition = plugin.gemLoader().get(gemId);
+        return definition == null ? gemId : definition.displayName();
     }
 
     public int firstClosedSlot(GemItemDefinition itemDefinition, GemState state, SocketTypePredicate predicate) {
