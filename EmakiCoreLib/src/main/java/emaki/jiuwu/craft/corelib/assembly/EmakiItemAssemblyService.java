@@ -96,24 +96,48 @@ public final class EmakiItemAssemblyService {
                                 + " assembly_signature=" + shortValue(context.assemblySignature()));
             }
             String cacheKey = context.assemblySignature();
-            ItemStack cached = previewCache.get(cacheKey);
-            if (cached != null) {
-                ItemStack result = cached.clone();
+            ItemStack rendered = previewCache.get(cacheKey);
+            String source = "cache";
+            if (rendered != null) {
+                rendered = rendered.clone();
+                if (!hasRequiredOperations(rendered, context.operationEntries())) {
+                    previewCache.invalidate(cacheKey);
+                    rendered = null;
+                    source = "render_after_invalid_cache";
+                }
+            }
+            if (rendered == null) {
+                if (!"render_after_invalid_cache".equals(source)) {
+                    source = "render";
+                }
+                rendered = renderPreview(context);
+                if (rendered != null && !hasRequiredOperations(rendered, context.operationEntries())) {
+                    if (debugEnabled) {
+                        debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
+                                "result=null reason=operation_loss expected=" + operationIds(context.operationEntries())
+                                        + " actual=" + operationIds(operationLedger.readAll(rendered)));
+                    }
+                    return null;
+                }
+                if (rendered != null) {
+                    previewCache.put(cacheKey, rendered.clone());
+                }
+            }
+            ItemStack result = restoreExistingPersistentData(request.existingItem(), rendered, context);
+            if (result != null && !hasRequiredOperations(result, context.operationEntries())) {
                 if (debugEnabled) {
                     debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
-                            "source=cache item=" + itemStateSummary(result));
+                            "result=null reason=operation_loss_after_pdc_merge expected="
+                                    + operationIds(context.operationEntries())
+                                    + " actual=" + operationIds(operationLedger.readAll(result)));
                 }
-                return result;
-            }
-            ItemStack rendered = renderPreview(context);
-            if (rendered != null) {
-                previewCache.put(cacheKey, rendered.clone());
+                return null;
             }
             if (debugEnabled) {
                 debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
-                        "source=render item=" + itemStateSummary(rendered));
+                        "source=" + source + " item=" + itemStateSummary(result));
             }
-            return rendered;
+            return result;
         });
     }
 
@@ -335,6 +359,59 @@ public final class EmakiItemAssemblyService {
         );
         operationLedger.replay(itemStack, context.operationEntries());
         return itemStack;
+    }
+
+    private ItemStack restoreExistingPersistentData(ItemStack existingItem,
+            ItemStack rendered,
+            AssemblyContext context) {
+        if (existingItem == null || rendered == null || !requiresRenderedAssembly(context)) {
+            return rendered;
+        }
+        ItemMeta existingMeta = existingItem.getItemMeta();
+        ItemMeta renderedMeta = rendered.getItemMeta();
+        if (existingMeta == null || renderedMeta == null) {
+            return rendered;
+        }
+        List<ItemOperationEntry> currentOperations = operationLedger.readAll(rendered);
+        existingMeta.getPersistentDataContainer().copyTo(renderedMeta.getPersistentDataContainer(), false);
+        rendered.setItemMeta(renderedMeta);
+        dataManager.writeAssemblyData(
+                rendered,
+                CURRENT_SCHEMA_VERSION,
+                context.baseSource(),
+                context.amount(),
+                context.baseCustomName(),
+                context.baseLore(),
+                context.activeLayers(),
+                context.previousActiveLayers(),
+                context.assemblySignature(),
+                context.layerSnapshots().values()
+        );
+        operationLedger.replaceAll(rendered, currentOperations);
+        return rendered;
+    }
+
+    private boolean hasRequiredOperations(ItemStack itemStack, List<ItemOperationEntry> expectedEntries) {
+        if (expectedEntries == null || expectedEntries.isEmpty()) {
+            return true;
+        }
+        if (itemStack == null) {
+            return false;
+        }
+        List<ItemOperationEntry> actualEntries = operationLedger.readAll(itemStack);
+        for (ItemOperationEntry expected : expectedEntries) {
+            if (expected == null || expected.isEmpty()) {
+                continue;
+            }
+            boolean found = actualEntries.stream()
+                    .filter(Objects::nonNull)
+                    .anyMatch(actual -> expected.operationId().equals(actual.operationId())
+                            && expected.sourceNamespace().equals(actual.sourceNamespace()));
+            if (!found) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private boolean requiresRenderedAssembly(AssemblyContext context) {

@@ -180,6 +180,11 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             return itemStack;
         }
         debugForgeRefresh(player, target, "assembly_output", plan, rebuilt);
+        StateLoss stateLoss = detectStateLoss(itemStack, rebuilt);
+        if (stateLoss.detected()) {
+            debugForgeStateLoss(player, target, plan, stateLoss, itemStack, rebuilt);
+            return itemStack;
+        }
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
         pdcAttributeWriter.apply(plan.recipe(), plan.materials(), plan.multiplier(), plan.qualityTier(), rebuilt);
         applyRefreshOperations(rebuilt, plan);
@@ -346,6 +351,62 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 + " item=" + itemStateSummary(itemStack));
     }
 
+    private StateLoss detectStateLoss(ItemStack original, ItemStack rebuilt) {
+        if (original == null || rebuilt == null) {
+            return new StateLoss(true, List.of("item"), operationIds(original));
+        }
+        ItemMeta originalMeta = original.getItemMeta();
+        ItemMeta rebuiltMeta = rebuilt.getItemMeta();
+        Set<NamespacedKey> originalKeys = originalMeta == null
+                ? Set.of()
+                : originalMeta.getPersistentDataContainer().getKeys();
+        Set<NamespacedKey> rebuiltKeys = rebuiltMeta == null
+                ? Set.of()
+                : rebuiltMeta.getPersistentDataContainer().getKeys();
+        List<String> missingPdc = originalKeys.stream()
+                .filter(key -> !rebuiltKeys.contains(key))
+                .map(NamespacedKey::toString)
+                .sorted()
+                .toList();
+        List<String> originalOperations = operationIds(original);
+        Set<String> rebuiltOperations = new LinkedHashSet<>(operationIds(rebuilt));
+        List<String> missingOperations = originalOperations.stream()
+                .filter(operationId -> !rebuiltOperations.contains(operationId))
+                .toList();
+        return new StateLoss(!missingPdc.isEmpty() || !missingOperations.isEmpty(), missingPdc, missingOperations);
+    }
+
+    private void debugForgeStateLoss(Player player,
+            String target,
+            RefreshPlan plan,
+            StateLoss stateLoss,
+            ItemStack original,
+            ItemStack rebuilt) {
+        DebugLogger debugLogger = plugin.debugLogger();
+        if (debugLogger == null || !debugLogger.shouldLog("forge", player)) {
+            return;
+        }
+        debugLogger.logRaw("forge", player, "[DEBUG:FORGE_REFRESH]"
+                + " phase=state_loss"
+                + " target=" + Texts.toStringSafe(target)
+                + " recipe=" + (plan == null || plan.recipe() == null ? "-" : plan.recipe().id())
+                + " materials_signature=" + shortValue(plan == null ? "" : plan.signature())
+                + " missing_pdc=" + stateLoss.missingPdc()
+                + " missing_operations=" + stateLoss.missingOperations()
+                + " original=" + itemStateSummary(original)
+                + " rebuilt=" + itemStateSummary(rebuilt)
+                + " action=preserve_original");
+    }
+
+    private List<String> operationIds(ItemStack itemStack) {
+        return operationLedger.readAll(itemStack).stream()
+                .filter(Objects::nonNull)
+                .map(entry -> entry.sourceNamespace() + ":" + entry.operationId())
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
     private String itemStateSummary(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return "empty";
@@ -484,6 +545,9 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     }
 
     public record RefreshSummary(int players, int refreshed) {
+    }
+
+    private record StateLoss(boolean detected, List<String> missingPdc, List<String> missingOperations) {
     }
 
     private record RefreshPlan(boolean shouldRefresh,
