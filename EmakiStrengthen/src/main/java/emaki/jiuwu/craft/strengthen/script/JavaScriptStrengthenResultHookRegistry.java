@@ -76,9 +76,9 @@ public final class JavaScriptStrengthenResultHookRegistry {
         return hooks.keySet().stream().sorted().toList();
     }
 
-    /**
-     * Dispatches result hooks asynchronously and returns without waiting for script execution.
-     */
+
+
+
     public void fire(Player player, AttemptResult result) {
         if (result == null || plugin == null || !accepting.get()) {
             return;

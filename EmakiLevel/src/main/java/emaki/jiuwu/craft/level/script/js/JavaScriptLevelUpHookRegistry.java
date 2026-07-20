@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 
 public final class JavaScriptLevelUpHookRegistry {
 
-    /** JavaScript registration type id for level up hooks (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "level_up_hook";
 
     private final EmakiLevelPlugin plugin;

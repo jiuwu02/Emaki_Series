@@ -46,7 +46,7 @@ import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
 final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiForgePlugin, ForgeRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiForge</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "forge";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");

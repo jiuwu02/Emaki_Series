@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Shows a client-only advancement toast through EmakiCodex's PacketEvents bridge. */
+
 public final class ShowAchievementToastAction implements Action {
 
     private static final String ID = "showachievementtoast";
@@ -120,7 +120,7 @@ public final class ShowAchievementToastAction implements Action {
                     }
                 }
             } catch (RuntimeException ignored) {
-                // Fall through to a vanilla material fallback.
+
             }
         }
         String normalized = Texts.toStringSafe(rawIcon).replace("minecraft:", "").replace('-', '_').toUpperCase(Locale.ROOT);
@@ -195,7 +195,7 @@ public final class ShowAchievementToastAction implements Action {
         try {
             invokeBridge("remove", player, key, "", "", new ItemStack(Material.BOOK), DEFAULT_FRAME);
         } catch (Throwable ignored) {
-            // Best-effort client cleanup; the toast has already been sent.
+
         }
     }
 

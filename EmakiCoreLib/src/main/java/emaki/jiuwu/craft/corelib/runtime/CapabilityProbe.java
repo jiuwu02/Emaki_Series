@@ -8,9 +8,9 @@ import org.bukkit.plugin.PluginManager;
 
 import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 
-/**
- * Fail-closed runtime capability probe. Platform facts are snapshotted while plugin enabled state remains dynamic.
- */
+
+
+
 public final class CapabilityProbe {
 
     private final Server server;

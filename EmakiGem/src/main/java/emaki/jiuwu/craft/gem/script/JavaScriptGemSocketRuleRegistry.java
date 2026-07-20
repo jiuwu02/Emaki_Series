@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.gem.model.GemItemInstance;
 
 public final class JavaScriptGemSocketRuleRegistry {
 
-    /** JavaScript registration type id for gem socket rules (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "gem_socket_rule";
 
     private final EmakiGemPlugin plugin;

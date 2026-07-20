@@ -565,7 +565,7 @@ public final class PlayerDataStore {
                 sessionEpochs.computeIfAbsent(uuid, ignored -> new AtomicLong())
                         .accumulateAndGet(recovered.epoch(), Math::max);
             } catch (IllegalArgumentException ignored) {
-                // Ignore non-player YAML files in the data directory.
+
             } catch (RuntimeException exception) {
                 logLoadFailure(uuid, exception);
             }

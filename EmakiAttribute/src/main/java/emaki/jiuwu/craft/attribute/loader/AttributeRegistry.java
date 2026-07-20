@@ -516,11 +516,11 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         return "([+-]?\\d+(?:\\.\\d+)?)(?:\\s*[-~～]\\s*([+-]?\\d+(?:\\.\\d+)?))?";
     }
 
-    /**
-     * A numeric value parsed from a lore line. When {@link #min()} and
-     * {@link #max()} differ the source declared a range such as
-     * {@code 1-5}, which feeds per-hit random rolling.
-     */
+
+
+
+
+
     public record MatchedRange(String min, String max) {
 
         public boolean hasRange() {

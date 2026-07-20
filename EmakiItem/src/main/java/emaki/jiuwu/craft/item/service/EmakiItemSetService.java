@@ -50,7 +50,7 @@ public final class EmakiItemSetService {
     private final Logger logger;
     private final ThreadOwnership threadOwnership;
     private final Set<String> warnedMissingSetDefinitions = java.util.concurrent.ConcurrentHashMap.newKeySet();
-    // 记录每个玩家上次各套装的激活件数，用于边沿触发 ItemSetBonusChangeEvent，避免每次背包刷新都派发。
+
     private final Map<java.util.UUID, Map<String, Integer>> lastActiveCounts = new java.util.concurrent.ConcurrentHashMap<>();
 
     public EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -217,7 +217,7 @@ public final class EmakiItemSetService {
                 current.putIfAbsent(setId, preservedCount);
             }
         }
-        // 套装激活件数变化对外开放，after 边沿通知；仅在当前线程拥有玩家实体时派发。
+
         boolean entityOwned = threadOwnership != null && threadOwnership.isEntityOwned(player);
         Set<String> setIds = new LinkedHashSet<>(previous.keySet());
         setIds.addAll(current.keySet());
@@ -244,7 +244,7 @@ public final class EmakiItemSetService {
         }
     }
 
-    /** Clears cached set state for a player (e.g. on quit) to avoid leaks. */
+
     public void clearCachedState(java.util.UUID uuid) {
         if (uuid != null) {
             lastActiveCounts.remove(uuid);
@@ -531,7 +531,7 @@ public final class EmakiItemSetService {
         if (!staticLoreReverted) {
             stripSetLore(itemStack, previousSetLoreLines);
         }
-        // 即使账本声称回滚成功，也要清理任意位置残留的完整套装块，避免异常状态被再次追加或固化。
+
         stripMatchingSetLore(itemStack, target.setLore());
 
         int staticLoreLines = applyStaticSetLore(itemStack, setId, target.setLore());

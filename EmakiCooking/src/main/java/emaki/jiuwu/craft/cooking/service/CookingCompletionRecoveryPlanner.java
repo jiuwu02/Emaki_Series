@@ -8,9 +8,9 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Status;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Unit;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
 
-/**
- * Pure recovery decisions for cooking-completion operations.
- */
+
+
+
 public final class CookingCompletionRecoveryPlanner {
 
     public enum NextStep {

@@ -11,9 +11,9 @@ import java.util.Optional;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
-/**
- * Durable, immutable state for one cooking-completion saga.
- */
+
+
+
 public record CookingCompletionOperation(
         String operationId,
         String completionKey,

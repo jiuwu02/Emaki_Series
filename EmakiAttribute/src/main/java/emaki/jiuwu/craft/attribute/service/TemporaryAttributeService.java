@@ -99,11 +99,11 @@ public final class TemporaryAttributeService implements AutoCloseable {
         return TemporaryAttributeResult.missing(normalizedEffectId);
     }
 
-    /**
-     * Adds one temporary attribute for every attribute definition carrying the
-     * given tag. Each attribute receives its own effect id ({@code prefix:attributeId})
-     * so multiple tagged attributes never overwrite each other.
-     */
+
+
+
+
+
     public int addByTag(LivingEntity entity,
             String effectPrefix,
             String tag,
@@ -128,10 +128,10 @@ public final class TemporaryAttributeService implements AutoCloseable {
         return applied;
     }
 
-    /**
-     * Removes every temporary attribute whose attribute definition carries the
-     * given tag from the entity.
-     */
+
+
+
+
     public int removeByTag(LivingEntity entity, String tag) {
         if (entity == null) {
             return 0;

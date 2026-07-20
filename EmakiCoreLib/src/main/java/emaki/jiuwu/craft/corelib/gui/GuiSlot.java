@@ -7,7 +7,7 @@ import java.util.Objects;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Immutable GUI slot definition with legacy accessors retained for ABI compatibility. */
+
 public final class GuiSlot {
 
     private final String key;

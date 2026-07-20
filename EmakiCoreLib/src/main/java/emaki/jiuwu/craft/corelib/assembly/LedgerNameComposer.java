@@ -10,29 +10,29 @@ import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.kyori.adventure.text.Component;
 
-/**
- * Composes ledger item names as adventure {@link Component}s and writes them
- * back while preserving translatable base names.
- *
- * <p>The operation ledger historically round-tripped names through legacy
- * strings ({@code getDisplayName}/{@code setDisplayName}). Legacy serialization
- * cannot represent a translation key, so a vanilla item name such as
- * {@code item.minecraft.diamond_sword} was flattened to the server locale
- * (e.g. English) whenever a name operation ran. This helper keeps the base name
- * as a component and only treats the configured prefix/postfix segments as
- * MiniMessage text, so vanilla items keep their localized name while suffixes
- * like {@code [+1]} are still appended.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
 final class LedgerNameComposer {
 
     private LedgerNameComposer() {
     }
 
-    /**
-     * Resolves the base name component for an item that has no ledger-applied
-     * name overlay yet: an existing custom name when present, otherwise the
-     * item's effective (translatable) name.
-     */
+
+
+
+
+
     static Component resolveBaseName(ItemStack itemStack, ItemMeta itemMeta) {
         if (ItemTextBridge.hasCustomName(itemMeta)) {
             Component customName = ItemTextBridge.customName(itemMeta);
@@ -43,12 +43,12 @@ final class LedgerNameComposer {
         return ItemTextBridge.effectiveName(itemStack);
     }
 
-    /**
-     * Builds the final name from a {@link LocalNameState} reduced from a single
-     * batch of name operations. When the state uses an explicit template that
-     * template becomes the base; otherwise {@code baseName} is preserved as-is
-     * so a translation key survives.
-     */
+
+
+
+
+
+
     static Component composeFromState(LocalNameState state, Component baseName) {
         if (state == null) {
             return baseName;
@@ -74,12 +74,12 @@ final class LedgerNameComposer {
         return result;
     }
 
-    /**
-     * Builds the final name by replaying an ordered list of name records on top
-     * of {@code baseName}. A {@code replace} record swaps the base for its
-     * rendered value; {@code prepend_prefix}/{@code append_suffix} wrap the
-     * current component. Unknown actions are ignored.
-     */
+
+
+
+
+
+
     static Component composeFromRecords(Component baseName, List<ItemOperationEntry.NameOperationRecord> records) {
         Component current = normalize(baseName);
         if (records == null || records.isEmpty()) {
@@ -109,10 +109,10 @@ final class LedgerNameComposer {
         };
     }
 
-    /**
-     * Writes the composed name back through Paper's ItemMeta component API so
-     * Adventure components and translation keys survive without SNBT parsing.
-     */
+
+
+
+
     static void writeName(ItemStack itemStack, ItemMeta itemMeta, Component name) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return;

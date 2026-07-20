@@ -21,13 +21,13 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 
-/**
- * 营养增/减/设置动作。实现 CoreLib 的 {@link Action} 接口，由 EmakiCooking 注册到 CoreLib 的
- * ActionRegistry（CoreLib 不感知"营养"玩法概念）。
- *
- * <p>实现参考 EmakiLevel 的 {@code LevelOperationAction}：同一个类 + enum 区分 ADD/REMOVE/SET，
- * {@code amount} 用 STRING 类型以支持表达式。</p>
- */
+
+
+
+
+
+
+
 public final class NutritionOperationAction implements Action {
 
     private final EmakiCookingPlugin plugin;

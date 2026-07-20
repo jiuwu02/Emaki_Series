@@ -7,28 +7,28 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.corelib.service.MessageService;
 
-/**
- * CoreLib-wide registry of {@link GuiBackend} implementations.
- *
- * <p>CoreLib ships the built-in {@code bukkit} backend and, when the optional
- * PacketEvents plugin is present, the {@code packet} backend (installed by
- * {@code PacketBackendInstaller} during CoreLib enable). Every plugin's
- * {@link GuiService} shares the single registry instance owned by
- * {@link emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin}.</p>
- *
- * <p>The configured backend name comes from {@code gui.backend} and is resolved
- * lazily through {@link #activeBackend()} so a backend registered after CoreLib
- * has enabled is still picked up the next time a menu opens.</p>
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class GuiBackendRegistry {
 
-    /** The built-in backend name that is always available. */
+
     public static final String BUKKIT = "bukkit";
 
     private final MessageService messageService;
     private final BukkitGuiBackend bukkitBackend = new BukkitGuiBackend();
     private final Map<String, GuiBackend> backends = new ConcurrentHashMap<>();
-    /** Preserves registration order so {@code auto} picks a deterministic backend. */
+
     private final Set<String> registrationOrder = java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<>());
     private final Set<String> warnedNames = ConcurrentHashMap.newKeySet();
 
@@ -39,10 +39,10 @@ public final class GuiBackendRegistry {
         register(BUKKIT, bukkitBackend);
     }
 
-    /**
-     * Registers a backend under the given name. Re-registering the same name
-     * replaces the previous instance (and shuts the old one down).
-     */
+
+
+
+
     public void register(String name, GuiBackend backend) {
         if (name == null || backend == null) {
             return;
@@ -53,15 +53,15 @@ public final class GuiBackendRegistry {
         if (previous != null && previous != backend) {
             safeShutdown(previous);
         }
-        // A newly available backend may satisfy a previously failed lookup, so
-        // allow the warning to fire again if it later disappears.
+
+
         warnedNames.remove(key);
     }
 
-    /**
-     * Removes a backend by name and shuts it down. The built-in {@code bukkit}
-     * backend cannot be removed.
-     */
+
+
+
+
     public void unregister(String name) {
         if (name == null) {
             return;
@@ -77,10 +77,10 @@ public final class GuiBackendRegistry {
         }
     }
 
-    /**
-     * Sets the configured backend name (the {@code gui.backend} value). Resets
-     * the warn-once state so a configuration change can warn again.
-     */
+
+
+
+
     public void setConfiguredName(String name) {
         String normalized = name == null ? BUKKIT : normalize(name);
         if (!normalized.equals(this.configuredName)) {
@@ -93,21 +93,21 @@ public final class GuiBackendRegistry {
         return configuredName;
     }
 
-    /**
-     * Resolves the active backend for the configured {@code gui.backend} value.
-     *
-     * <p>Four-state resolution:</p>
-     * <ul>
-     *   <li>{@code bukkit} — the built-in backend.</li>
-     *   <li>{@code packet} — the registered {@code packet} backend, or a
-     *       warn-once fallback to bukkit when no such backend is registered
-     *       (e.g. PacketEvents not installed).</li>
-     *   <li>{@code auto} — the first registered non-bukkit backend, or a silent
-     *       fallback to bukkit when none is present (mirrors the legacy
-     *       factory's auto semantics, which never warned).</li>
-     *   <li>anything else — a warn-once fallback to bukkit.</li>
-     * </ul>
-     */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public GuiBackend activeBackend() {
         String name = configuredName;
         if (BUKKIT.equals(name)) {
@@ -129,7 +129,7 @@ public final class GuiBackendRegistry {
         return bukkitBackend;
     }
 
-    /** Shuts down every registered backend. Invoked when CoreLib disables. */
+
     public void shutdownAll() {
         for (GuiBackend backend : backends.values()) {
             safeShutdown(backend);
@@ -168,7 +168,7 @@ public final class GuiBackendRegistry {
         try {
             backend.shutdown();
         } catch (RuntimeException | LinkageError ignored) {
-            // A backend tearing down on server stop must not break disable.
+
         }
     }
 

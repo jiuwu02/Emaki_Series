@@ -743,16 +743,16 @@ public final class SteamerRuntimeService implements Listener {
         return existing == null ? loaded : existing;
     }
 
-    /**
-     * 返回该玩家当前打开的蒸锅工位坐标，没有则空。
-     */
+
+
+
     Optional<StationCoordinates> viewingStation(UUID viewerId) {
         return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
     }
 
-    /**
-     * 构建蒸锅运行态快照。空态返回空。热源在工作方块下方。
-     */
+
+
+
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();

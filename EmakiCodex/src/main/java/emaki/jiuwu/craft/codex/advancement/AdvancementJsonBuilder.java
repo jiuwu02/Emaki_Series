@@ -18,16 +18,16 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 
-/**
- * Builds the vanilla advancement JSON string consumed by
- * {@code Bukkit.getUnsafe().loadAdvancement(key, json)}.
- *
- * <p>Uses the 1.20.5+/1.21 schema: {@code display.icon.id} (not {@code item}),
- * a {@code minecraft:impossible} manual criterion, and text components serialized
- * from MiniMessage via {@link GsonComponentSerializer}. Root nodes carry a
- * background and omit {@code parent}; children reference their parent's full key.
- */
-@SuppressWarnings("deprecation") // Material#getKey is soft-deprecated but the stable id source on Spigot
+
+
+
+
+
+
+
+
+
+@SuppressWarnings("deprecation")
 public final class AdvancementJsonBuilder {
 
     private final ItemSourceService itemSourceService;
@@ -36,14 +36,14 @@ public final class AdvancementJsonBuilder {
         this.itemSourceService = itemSourceService;
     }
 
-    /**
-     * Builds the JSON for one advancement node.
-     *
-     * @param page       the owning page (supplies background and key namespace)
-     * @param definition the node definition
-     * @param parentKey  the full parent advancement key, or {@code null} for the root
-     * @return the advancement JSON string
-     */
+
+
+
+
+
+
+
+
     public String build(AdvancementPage page, AdvancementDefinition definition, String parentKey) {
         JsonObject root = new JsonObject();
 
@@ -89,8 +89,8 @@ public final class AdvancementJsonBuilder {
         if (Texts.isBlank(iconShorthand)) {
             return "minecraft:book";
         }
-        // Try to resolve the shorthand to a real ItemStack so custom items still map to
-        // a vanilla material id for the advancement icon (custom textures come from resource packs).
+
+
         ItemSource source = ItemSourceUtil.parse(iconShorthand);
         if (source != null && itemSourceService != null) {
             ItemStack stack = itemSourceService.createItem(source, 1);
@@ -98,7 +98,7 @@ public final class AdvancementJsonBuilder {
                 return stack.getType().getKey().toString();
             }
         }
-        // Fall back to interpreting the shorthand's identifier as a vanilla material name.
+
         String identifier = source == null ? iconShorthand : source.getIdentifier();
         String normalized = identifier.contains(":") ? identifier : "minecraft:" + identifier;
         return normalized;

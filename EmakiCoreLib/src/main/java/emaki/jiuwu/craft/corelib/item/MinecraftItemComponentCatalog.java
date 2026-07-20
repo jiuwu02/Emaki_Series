@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-/** Version catalog used alongside runtime Paper capability discovery. */
+
 public final class MinecraftItemComponentCatalog {
 
     public record Entry(String componentId,

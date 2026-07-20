@@ -8,9 +8,9 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 
-/**
- * Owns the CoreLib asynchronous shutdown order: reject file work, drain physical operations, then stop workers.
- */
+
+
+
 public final class CorePluginLifecycle {
 
     public enum State {

@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Immutable EmakiItem business definition backed by CoreLib's shared item model. */
+
 public final class EmakiItemDefinition {
 
     private final String id;
@@ -44,10 +44,10 @@ public final class EmakiItemDefinition {
     private final int amount;
     private final boolean hasRandomElements;
 
-    /**
-     * Legacy record-compatible constructor. Its descriptor and parameter order are
-     * intentionally unchanged.
-     */
+
+
+
+
     public EmakiItemDefinition(String id,
             Material material,
             Object displayName,
@@ -93,7 +93,7 @@ public final class EmakiItemDefinition {
         );
     }
 
-    /** Creates a definition whose item data is entirely represented by CoreLib's shared model. */
+
     public EmakiItemDefinition(String id,
             ConfiguredItemDefinition itemDefinition,
             Object nameActions,
@@ -283,7 +283,7 @@ public final class EmakiItemDefinition {
         return SignatureUtil.stableSignature(signatureData);
     }
 
-    /** Returns a server-version-independent, plain-data snapshot of the shared item definition. */
+
     public Map<String, Object> normalizedItemSnapshot() {
         Map<String, Object> componentSnapshot = new LinkedHashMap<>();
         itemDefinition.components().forEach((componentId, patch) -> {

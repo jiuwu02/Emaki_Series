@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.gem.model.GemState;
 
 public final class JavaScriptGemSetBonusRegistry {
 
-    /** JavaScript registration type id for gem set bonuses (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "gem_set_bonus";
 
     private final EmakiGemPlugin plugin;

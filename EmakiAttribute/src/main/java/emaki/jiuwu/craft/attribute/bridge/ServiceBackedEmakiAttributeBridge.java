@@ -60,7 +60,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
         if (definition == null) {
             return false;
         }
-        // 自定义资源消费对外开放，可取消、可改消费量；仅在当前线程拥有玩家实体时派发。
+
         PlayerResourceConsumeEvent consumeEvent = new PlayerResourceConsumeEvent(
                 player, resourceId, amount, state.currentValue(), state.currentMax());
         org.bukkit.Bukkit.getPluginManager().callEvent(consumeEvent);
@@ -68,7 +68,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
             return false;
         }
         amount = consumeEvent.getAmount();
-        // 改写后重新校验：消费量非法或超出当前余额则中止。
+
         if (amount < 0D || state.currentValue() < amount) {
             return false;
         }

@@ -6,9 +6,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 
-/**
- * Monotonic per-station mutation ledger used to reject stale async save/delete completions.
- */
+
+
+
 final class StationStateVersionLedger {
 
     record Mutation(long version, boolean tombstone) {

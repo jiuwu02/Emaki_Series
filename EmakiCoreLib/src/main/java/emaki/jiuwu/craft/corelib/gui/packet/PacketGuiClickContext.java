@@ -9,23 +9,23 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientCl
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiClickType;
 
-/**
- * {@link GuiClickContext} backed by a virtual packet window.
- *
- * <p>The cursor lives on {@link PacketGuiBackend.PacketWindow#cursor()} rather
- * than the real player cursor (which a packet window does not own). Number-key
- * and off-hand "held" sources still map to the real player inventory slots,
- * exactly as the Bukkit backend does, because those are genuine player slots.</p>
- *
- * <p>Vanilla window-click semantics used here:</p>
- * <ul>
- *   <li>{@link WindowClickType#PICKUP} button 0 = left, 1 = right.</li>
- *   <li>{@link WindowClickType#QUICK_MOVE} = shift transfer.</li>
- *   <li>{@link WindowClickType#SWAP} button 0..8 = number key (hotbar),
- *       button 40 = swap off-hand.</li>
- *   <li>{@link WindowClickType#PICKUP_ALL} = double click (collect to cursor).</li>
- * </ul>
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 final class PacketGuiClickContext implements GuiClickContext {
 
     private static final int OFFHAND_BUTTON = 40;
@@ -146,9 +146,9 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public boolean isUnsupportedKeyboardClick() {
-        // The only keyboard-style window actions are SWAP (number key / off-hand)
-        // and DROP. Number-key/off-hand swaps are supported; anything else that
-        // is not a normal pickup/quick-move is treated as unsupported.
+
+
+
         return mode() == WindowClickType.THROW;
     }
 
@@ -171,21 +171,21 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public void setCancelled(boolean cancelled) {
-        // No-op: the packet backend is authoritative and never applied the click
-        // server-side; re-sending window items after the handler resolves state.
+
+
     }
 
-    /**
-     * Maps a container raw slot in the player-inventory region to a Bukkit
-     * player-inventory slot index. Returns -1 when the raw slot is in the top
-     * (GUI) region.
-     */
+
+
+
+
+
     private int toPlayerInventorySlot(int rawSlot) {
         int offset = rawSlot - window.topSize();
         if (offset < 0 || offset >= 36) {
             return -1;
         }
-        // Container layout: main inventory (27) then hotbar (9).
+
         if (offset < 27) {
             return offset + 9;
         }

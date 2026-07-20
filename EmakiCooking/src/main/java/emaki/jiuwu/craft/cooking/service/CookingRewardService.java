@@ -71,10 +71,10 @@ public final class CookingRewardService {
         this.recipeService = recipeService;
     }
 
-    /**
-     * Legacy non-journaled delivery entry point. Runtime completion paths use
-     * {@link CookingCompletionCoordinator}; this method remains for explicit reward Actions.
-     */
+
+
+
+
     public void deliver(RecipeDocument recipe,
             Player player,
             Location location,
@@ -106,10 +106,10 @@ public final class CookingRewardService {
         });
     }
 
-    /**
-     * Resolves all conditions, scripts, event mutations, random rolls and item assembly without
-     * delivering any reward side effect. The returned units are safe to persist in PREPARED.
-     */
+
+
+
+
     PreparedReward prepare(String operationId,
             RecipeDocument recipe,
             Player player,

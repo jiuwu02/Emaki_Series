@@ -570,16 +570,16 @@ public final class OvenRuntimeService implements Listener {
         return existing == null ? loaded : existing;
     }
 
-    /**
-     * 返回该玩家当前打开的烤炉工位坐标，没有则空。
-     */
+
+
+
     Optional<StationCoordinates> viewingStation(UUID viewerId) {
         return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
     }
 
-    /**
-     * 构建烤炉运行态快照。空态返回空。
-     */
+
+
+
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();

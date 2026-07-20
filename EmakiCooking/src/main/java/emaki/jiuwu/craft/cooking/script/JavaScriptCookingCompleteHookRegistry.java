@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 
 public final class JavaScriptCookingCompleteHookRegistry {
 
-    /** JavaScript registration type id for cooking complete hooks (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "cooking_complete_hook";
 
     private final EmakiCookingPlugin plugin;
@@ -79,14 +79,14 @@ public final class JavaScriptCookingCompleteHookRegistry {
         return hooks.keySet().stream().sorted().toList();
     }
 
-    /**
-     * Runs complete-hook scripts as a planning step and freezes their returned Action lines.
-     *
-     * <p>The synchronous script API rejects queued Bukkit side effects, so this method can be
-     * called before the completion journal reaches PREPARED without replaying world/player
-     * mutations. Recovery executes only the returned frozen Action lines and never invokes the
-     * hook scripts again.
-     */
+
+
+
+
+
+
+
+
     public List<String> prepareActions(JavaScriptCookingResultRuleRegistry.DeliveryPlan plan) {
         if (plan == null || plugin == null) {
             return List.of();
@@ -204,7 +204,7 @@ public final class JavaScriptCookingCompleteHookRegistry {
         return Set.copyOf(result);
     }
 
-    // 工位类型别名：把脚本作者可能写的简写映射到正式枚举 folderName，避免 station 过滤不命中。
+
     private static final Map<String, String> STATION_ALIASES = Map.of(
             "fermenter", "fermentation_barrel",
             "fermentation", "fermentation_barrel");

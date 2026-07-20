@@ -2,9 +2,9 @@ package emaki.jiuwu.craft.cooking.model;
 
 import java.util.Locale;
 
-/**
- * 营养阈值比较运算符。用于判断玩家某营养值与阈值的关系。
- */
+
+
+
 public enum NutritionCompare {
 
     GREATER_OR_EQUAL(">="),
@@ -35,10 +35,10 @@ public enum NutritionCompare {
         };
     }
 
-    /**
-     * 解析比较运算符，支持符号（{@code >=}）与别名（{@code gte}/{@code at_least} 等）。
-     * 无法识别时默认 {@link #GREATER_OR_EQUAL}。
-     */
+
+
+
+
     public static NutritionCompare parse(String raw) {
         if (raw == null) {
             return GREATER_OR_EQUAL;

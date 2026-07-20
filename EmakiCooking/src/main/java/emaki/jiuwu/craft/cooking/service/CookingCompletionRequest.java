@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
-/** Frozen-at-submit inputs used to create one durable cooking completion operation. */
+
 record CookingCompletionRequest(
         String discriminator,
         StationType stationType,

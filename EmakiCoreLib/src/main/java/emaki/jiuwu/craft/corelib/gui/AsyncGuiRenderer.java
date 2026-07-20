@@ -16,11 +16,11 @@ final class AsyncGuiRenderer {
         this.performanceMonitor = performanceMonitor;
     }
 
-    /**
-     * Prepares GUI slot items on the configured async scheduler when available.
-     * Renderer and item factory implementations used by the session must not
-     * touch Bukkit thread-affine APIs while this method is running off-thread.
-     */
+
+
+
+
+
     CompletableFuture<Map<Integer, org.bukkit.inventory.ItemStack>> prepare(GuiSession session) {
         if (session == null) {
             return CompletableFuture.completedFuture(Map.of());

@@ -71,9 +71,9 @@ final class ItemOperationExecutor {
             return ExecutionResult.EMPTY;
         }
 
-        // Lore lives on itemMeta and must be committed first; the name is then
-        // injected as a component so a translatable base name is preserved and
-        // not overwritten by a later setItemMeta.
+
+
+
         itemStack.setItemMeta(itemMeta);
         if (!nameRecords.isEmpty()) {
             applyNameState(context, itemStack, nameState);

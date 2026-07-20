@@ -26,7 +26,7 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class JavaScriptForgeResultHookRegistry {
 
-    /** JavaScript registration type id for forge result hooks (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "forge_result_hook";
 
     private final EmakiForgePlugin plugin;

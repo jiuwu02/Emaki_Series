@@ -420,9 +420,9 @@ public final class ChoppingBoardRuntimeService {
         return true;
     }
 
-    /**
-     * 构建砧板运行态快照。无输入物品时返回空。
-     */
+
+
+
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();

@@ -38,33 +38,33 @@ import emaki.jiuwu.craft.corelib.gui.GuiSessionRegistry;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.SoundParser;
 
-/**
- * Packet-driven virtual GUI backend.
- *
- * <p>Unlike the built-in Bukkit backend this never opens a server-side
- * container. It sends the open-screen / window-items packets directly (the same
- * approach Hypixel and InvUI v2 take) so the same window id can be re-used when
- * the row count changes, which keeps the player's cursor from resetting.</p>
- *
- * <p>The server is authoritative: after every client click the full window
- * contents and the (virtual) carried item are re-sent, so the client's
- * optimistic prediction is always overwritten. The client's reported item data
- * is therefore ignored entirely, which also avoids the 1.21.5+ hashed-stack
- * representation. Only the clicked slot, button and click mode are consumed.</p>
- *
- * <p>This backend is a CoreLib-wide singleton shared by every plugin's
- * {@code GuiService}; per-viewer routing is resolved through the
- * {@link GuiSessionRegistry} carried by the session it opened.</p>
- *
- * <p><b>Caveat:</b> this is protocol-level code that cannot be validated in the
- * build environment. It only loads when the optional PacketEvents plugin is
- * present (CoreLib declares it as a soft-dependency) and is only active when
- * {@code gui.backend} selects {@code packet}/{@code auto}; the default
- * {@code bukkit} backend is unaffected.</p>
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class PacketGuiBackend implements GuiBackend, Listener {
 
-    /** Player inventory raw slots that follow the top container (main + hotbar). */
+
     private static final int PLAYER_INVENTORY_SLOTS = 36;
 
     private final JavaPlugin plugin;
@@ -124,8 +124,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
         int desiredSize = topSize(session);
         if (desiredSize != window.topSize) {
-            // Row count changed: reuse the same window id and re-open in place so
-            // the cursor is preserved, then refill.
+
+
             window.topSize = desiredSize;
             window.topItems = new org.bukkit.inventory.ItemStack[desiredSize];
             sendOpenWindow(viewer, window);
@@ -168,7 +168,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         try {
             PacketEvents.getAPI().getEventManager().unregisterListener(clickListener);
         } catch (RuntimeException | LinkageError ignored) {
-            // PacketEvents may already be tearing down on server stop.
+
         }
         HandlerList.unregisterAll(this);
         registered = false;
@@ -201,7 +201,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                     return;
                 }
             } catch (RuntimeException | LinkageError exception) {
-                // Scheduler is already unavailable; fall through to metadata-only cleanup.
+
             }
             retired.run();
             return;
@@ -234,7 +234,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     private int nextWindowId() {
-        // Window id 0 is the player inventory; keep ids in the 1..100 byte range.
+
         int id = windowIdCounter.getAndUpdate(current -> current >= 100 ? 1 : current + 1);
         return id;
     }
@@ -246,7 +246,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
 
     private void sendOpenWindow(Player viewer, PacketWindow window) {
         int rows = Math.max(1, Math.min(6, window.topSize / 9));
-        int type = rows - 1; // generic_9x1..9x6 => 0..5 on 1.14+
+        int type = rows - 1;
         WrapperPlayServerOpenWindow open = new WrapperPlayServerOpenWindow(
                 window.windowId,
                 type,
@@ -275,7 +275,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             items.add(PacketItems.toPacket(window.topItems[slot]));
         }
         PlayerInventory inventory = viewer.getInventory();
-        // Player inventory layout in a container: main slots 9..35 then hotbar 0..8.
+
         for (int slot = 9; slot < 36; slot++) {
             items.add(PacketItems.toPacket(inventory.getItem(slot)));
         }
@@ -312,16 +312,16 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 return;
             }
         } catch (RuntimeException | LinkageError exception) {
-            // PacketEvents may still deliver packets while the scheduler is shutting down.
+
         }
         if (retired != null) {
             retired.run();
         }
     }
 
-    /**
-     * Handles an inbound click on a packet window on the main thread.
-     */
+
+
+
     private void handleClick(Player viewer, WrapperPlayClientClickWindow packet) {
         PacketWindow window = windows.get(viewer.getUniqueId());
         if (window == null || packet.getWindowId() != window.windowId) {
@@ -343,8 +343,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         } else {
             session.handler().onPlayerInventoryClick(session, click);
         }
-        // Always re-assert authoritative state so the client never keeps an
-        // optimistic prediction (and the cursor stays correct).
+
+
         sendWindowItems(viewer, window);
     }
 
@@ -384,9 +384,9 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
     }
 
-    /**
-     * Mutable virtual window state for one viewer.
-     */
+
+
+
     static final class PacketWindow {
 
         private final int windowId;
@@ -428,10 +428,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
     }
 
-    /**
-     * PacketEvents listener translating client window packets into handler calls
-     * on the server main thread.
-     */
+
+
+
+
     private final class ClickListener extends PacketListenerAbstract {
 
         private ClickListener() {

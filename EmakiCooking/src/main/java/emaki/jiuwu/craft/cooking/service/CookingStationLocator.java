@@ -12,19 +12,19 @@ import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingStationTracker.RecentStation;
 
-/**
- * 工位定位器：把玩家关联到具体工位运行态快照，供工位占位符使用。
- *
- * <p>定位优先级：</p>
- * <ol>
- *   <li>玩家最近一次交互的工位（{@link CookingStationTracker}），并校验玩家仍在同一
- *       世界且与工位距离不超过内置上限，避免玩家走远后仍返回旧工位。</li>
- *   <li>玩家正打开某个 GUI 工位（蒸锅 / 烤炉 / 榨汁机 / 发酵桶）会话时，取该工位快照，
- *       作为"打开 GUI 后停留、不再点击方块"场景的兜底。</li>
- * </ol>
- *
- * <p>距离上限为内置常量，不暴露为配置字段。</p>
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class CookingStationLocator {
 
     private static final double MAX_STATION_DISTANCE = 5.0D;
@@ -36,12 +36,12 @@ public final class CookingStationLocator {
         this.plugin = plugin;
     }
 
-    /**
-     * 解析玩家当前关联工位的运行态快照。
-     *
-     * @param player 目标玩家，可为 null
-     * @return 命中工位时的快照，否则空
-     */
+
+
+
+
+
+
     public Optional<StationSnapshot> snapshotForViewer(Player player) {
         if (player == null) {
             return Optional.empty();

@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Re-sends registered EmakiCodex advancement packets to one online player. */
+
 public final class ResyncAdvancementAction implements Action {
 
     private final EmakiCodexPlugin plugin;

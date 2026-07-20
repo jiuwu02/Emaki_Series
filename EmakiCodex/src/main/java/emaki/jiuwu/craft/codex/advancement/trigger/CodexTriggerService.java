@@ -16,20 +16,20 @@ import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Turns gameplay events into automatic advancement grants.
- *
- * <p>Given a normalized trigger key and the domain variables produced by a listener, it scans
- * every loaded advancement node for a matching {@link AdvancementTrigger}. When a trigger's
- * condition group passes (an empty condition always passes), the owning node's manual {@code codex}
- * criterion is awarded through {@link AdvancementService}, which flows into the existing
- * completion pipeline (toast, announce, {@code actions.complete} actions).
- *
- * <p>Definitions are read live from {@link AdvancementPageLoader} on every fire, so a
- * {@code /codex reload} that reloads the pages takes effect immediately without re-registering
- * listeners. Grants are idempotent: awarding an already-completed criterion is a no-op and does
- * not re-run {@code actions.complete}.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class CodexTriggerService {
 
     private final EmakiCodexPlugin plugin;
@@ -44,14 +44,14 @@ public final class CodexTriggerService {
         this.advancementService = advancementService;
     }
 
-    /**
-     * Evaluates all advancement triggers for a gameplay event and grants every node whose
-     * trigger matches and whose condition passes.
-     *
-     * @param player     the acting player (ignored when {@code null})
-     * @param triggerKey the normalized trigger key, e.g. {@code entity_kill}
-     * @param variables  domain variables exposed to the condition as {@code %name%} placeholders
-     */
+
+
+
+
+
+
+
+
     public void fire(Player player, String triggerKey, Map<String, ?> variables) {
         if (player == null || !plugin.appConfig().advancementEnabled()
                 || !plugin.appConfig().advancementTriggersEnabled()) {
@@ -76,11 +76,11 @@ public final class CodexTriggerService {
         }
     }
 
-    /**
-     * Evaluates a trigger's condition. A blank condition always passes; an expression that
-     * cannot be evaluated (null result) is treated as a failure so a malformed condition never
-     * grants by accident.
-     */
+
+
+
+
+
     private boolean conditionPasses(Player player, AdvancementTrigger trigger, Map<String, ?> variables) {
         if (!trigger.hasCondition()) {
             return true;
@@ -106,10 +106,10 @@ public final class CodexTriggerService {
         return result;
     }
 
-    /**
-     * Resolves the condition line: domain variables ({@code %entity_type%} etc.) are substituted
-     * first, then any remaining placeholders are handed to PlaceholderAPI when installed.
-     */
+
+
+
+
     private String resolvePlaceholders(Player player, Map<String, ?> variables, String line) {
         String replaced = Texts.formatTemplate(line, variables);
         if (player == null || Texts.isBlank(replaced)
@@ -123,10 +123,10 @@ public final class CodexTriggerService {
         }
     }
 
-    /**
-     * Builds the bare {@code page/node} grant id, normalized the same way the registrar builds
-     * advancement keys so {@link AdvancementService#grant} resolves it to a registered node.
-     */
+
+
+
+
     private String grantId(AdvancementPage page, AdvancementDefinition definition) {
         return (page.pageId() + "/" + definition.id())
                 .toLowerCase(Locale.ROOT)

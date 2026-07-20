@@ -310,7 +310,7 @@ public final class ItemComponentInspector {
                 result.put(id, new ComponentEntry(id, removed ? "" : paperDataValue(itemStack, type), removed));
             }
         } catch (RuntimeException | LinkageError _) {
-            // Keep legacy getAsComponentString diagnostics as the stable fallback.
+
         }
         return result;
     }

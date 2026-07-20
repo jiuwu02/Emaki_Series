@@ -8,9 +8,9 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.5.11"
+version: "4.5.12"
 general:
-  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiAttribute</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
 console:
   plugin_starting: "<gray>正在启动...</gray>"

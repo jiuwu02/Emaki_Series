@@ -115,11 +115,11 @@ final class CookingStationListener implements Listener {
         grinderRuntimeService.handleInteraction(interaction);
     }
 
-    /**
-     * 命中工位类型时触发 {@link CookingStationInteractEvent}。事件在分发到各工位服务
-     * 之前同步触发，{@code CookingStationTracker} 监听该事件写入"最近交互工位"，因此
-     * 随后进行的配方条件占位符求值即可读到当前工位。事件为只读通知，不影响交互取消。
-     */
+
+
+
+
+
     private void fireInteractEvent(StationInteraction interaction, StationType stationType) {
         if (interaction == null) {
             return;
@@ -137,12 +137,12 @@ final class CookingStationListener implements Listener {
         ));
     }
 
-    /**
-     * 判定交互命中的工位类型：逐一匹配 7 种工位方块源，命中即返回。纯内存匹配，开销可忽略。
-     *
-     * @param interaction 交互上下文
-     * @return 命中的工位类型；未命中时 null
-     */
+
+
+
+
+
+
     private StationType resolveStationType(StationInteraction interaction) {
         if (blockMatcher == null) {
             return null;

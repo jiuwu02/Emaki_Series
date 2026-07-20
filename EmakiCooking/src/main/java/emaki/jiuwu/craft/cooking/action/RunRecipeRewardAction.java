@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
-/** Runs configured recipe reward outputs/actions through CookingRewardService's unified outlet. */
+
 public final class RunRecipeRewardAction implements Action {
 
     private final EmakiCookingPlugin plugin;

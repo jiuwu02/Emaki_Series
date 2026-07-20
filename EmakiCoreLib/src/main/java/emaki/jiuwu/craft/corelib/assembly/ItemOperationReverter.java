@@ -111,21 +111,21 @@ final class ItemOperationReverter {
         itemStack.setItemMeta(itemMeta);
     }
 
-    /**
-     * Deterministically rebuilds the item name after one or more entries were
-     * removed. The base name is re-derived from the item type (after clearing
-     * the overlaid custom name) so a translatable vanilla name is preserved,
-     * then the name records of every <em>remaining</em> ledger entry are
-     * replayed on top. This keeps name contributions from other namespaces
-     * (e.g. gem prefixes) intact while removing the reverted ones.
-     */
+
+
+
+
+
+
+
+
     private void rebuildName(ItemStack itemStack) {
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) {
             return;
         }
-        // Clear the overlaid name so effectiveName resolves the original
-        // (translatable) base name rather than the flattened, suffixed name.
+
+
         ItemTextBridge.customName(itemMeta, null);
         itemStack.setItemMeta(itemMeta);
 

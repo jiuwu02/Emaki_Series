@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 
 public final class JavaScriptLevelExpRuleRegistry {
 
-    /** JavaScript registration type id for level exp rules (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "level_exp_rule";
 
     private final EmakiLevelPlugin plugin;

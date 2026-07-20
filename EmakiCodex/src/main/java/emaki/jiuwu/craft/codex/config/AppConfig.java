@@ -2,9 +2,9 @@ package emaki.jiuwu.craft.codex.config;
 
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
-/**
- * Parsed main configuration for EmakiCodex. Immutable snapshot rebuilt on every reload.
- */
+
+
+
 public final class AppConfig extends BaseAppConfig {
 
     public static final String CURRENT_VERSION = "1.0.14";
@@ -77,22 +77,22 @@ public final class AppConfig extends BaseAppConfig {
         return removeOnDisable;
     }
 
-    /**
-     * {@return whether the PacketEvents coordinate channel should inject configured x/y
-     * positions into outgoing advancement packets} Only effective when PacketEvents is
-     * installed; otherwise per-node {@code x}/{@code y} are ignored and the client
-     * auto-lays-out the tree.
-     */
+
+
+
+
+
+
     public boolean packetCoordinates() {
         return packetCoordinates;
     }
 
-    /**
-     * {@return whether gameplay-event advancement triggers are active} When {@code false}, the
-     * trigger listener does nothing and advancements can only be granted manually via command
-     * or the {@code codex-grant-advancement} action. Only meaningful when
-     * {@link #advancementEnabled()} is also true.
-     */
+
+
+
+
+
+
     public boolean advancementTriggersEnabled() {
         return advancementTriggersEnabled;
     }

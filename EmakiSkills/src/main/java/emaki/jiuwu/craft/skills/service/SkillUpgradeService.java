@@ -207,7 +207,7 @@ public final class SkillUpgradeService {
         );
 
         double successRate = preview == null ? 100D : preview.successRate();
-        // 技能升级前对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费。
+
         SkillPreUpgradeEvent preUpgradeEvent = new SkillPreUpgradeEvent(
                 player, definition.id(), currentLevel, targetLevel, maxLevel, successRate);
         org.bukkit.Bukkit.getPluginManager().callEvent(preUpgradeEvent);
@@ -276,7 +276,7 @@ public final class SkillUpgradeService {
             double successRate,
             boolean success,
             boolean downgraded) {
-        // 技能升级结果对外开放，after 通知；仅主线程派发。
+
         org.bukkit.Bukkit.getPluginManager().callEvent(new SkillUpgradeEvent(
                 player, definition.id(), fromLevel, toLevel, successRate, success, downgraded));
     }

@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 
 public final class JavaScriptCookingResultRuleRegistry {
 
-    /** JavaScript registration type id for cooking result rules (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "cooking_result_rule";
 
     private final EmakiCookingPlugin plugin;
@@ -232,7 +232,7 @@ public final class JavaScriptCookingResultRuleRegistry {
         return Set.copyOf(result);
     }
 
-    // 工位类型别名：把脚本作者可能写的简写映射到正式枚举 folderName，避免 station 过滤不命中。
+
     private static final Map<String, String> STATION_ALIASES = Map.of(
             "fermenter", "fermentation_barrel",
             "fermentation", "fermentation_barrel");

@@ -30,17 +30,17 @@ import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
-/**
- * 营养系统核心服务。负责：
- * <ul>
- *   <li>增/减/设置营养值（按营养类型 min~max 截断）；</li>
- *   <li>食用物品时按物品来源匹配 {@code food_sources} 增加营养；</li>
- *   <li>单类型阈值与组合阈值（膳食均衡反胃）的边沿触发，执行 CoreLib 动作；</li>
- *   <li>定时落盘。</li>
- * </ul>
- *
- * <p>同步调用面只读取已激活缓存；需要从磁盘加载时必须使用数据存储的显式异步 API。</p>
- */
+
+
+
+
+
+
+
+
+
+
+
 public final class NutritionService {
 
     private final EmakiCookingPlugin plugin;
@@ -52,7 +52,7 @@ public final class NutritionService {
     private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
 
-    // 阈值满足状态（边沿触发）：单类型 key = ruleId + ":" + typeId；组合 key = ruleId
+
     private final Map<UUID, Set<String>> metSingleKeys = new ConcurrentHashMap<>();
     private final Map<UUID, Set<String>> metComboKeys = new ConcurrentHashMap<>();
 
@@ -92,9 +92,9 @@ public final class NutritionService {
         return dataStore;
     }
 
-    /**
-     * 重新加载营养配置并重置定时任务；同时为已激活玩家补齐新增类型默认值并重算阈值状态。
-     */
+
+
+
     public void reload() {
         this.enabled = settingsService.nutritionEnabled();
         this.foodSources = settingsService.nutritionFoodSources();
@@ -118,7 +118,7 @@ public final class NutritionService {
         cancelSaveTask();
     }
 
-    // ===================== 数值读写 =====================
+
 
     public double value(UUID uuid, String typeId) {
         NutritionTypeConfig type = typeRegistry.type(typeId).orElse(null);
@@ -168,13 +168,13 @@ public final class NutritionService {
         return result;
     }
 
-    // ===================== 食用接入 =====================
 
-    /**
-     * 玩家食用一个物品时调用：识别物品来源，匹配 {@code food_sources} 并增加对应营养、执行额外动作。
-     *
-     * @return 是否命中了任意食物来源规则
-     */
+
+
+
+
+
+
     public boolean applyFood(Player player, ItemStack itemStack) {
         if (!enabled || player == null || itemStack == null || itemStack.getType().isAir()) {
             return false;
@@ -234,7 +234,7 @@ public final class NutritionService {
         return false;
     }
 
-    // ===================== 阈值判定 =====================
+
 
     public boolean recheckThresholds(Player player) {
         if (!enabled || player == null) {
@@ -341,7 +341,7 @@ public final class NutritionService {
                 player, kind, ruleId, typeId, met, value, threshold, matchedCount, requiredCount));
     }
 
-    // ===================== 动作与占位符 =====================
+
 
     private void runActions(Player player, PlayerNutritionData data, List<String> actions, String phase,
             Map<String, Object> extra) {
@@ -359,9 +359,9 @@ public final class NutritionService {
         return ActionContext.create(plugin, player, phase, false);
     }
 
-    /**
-     * 构造全部营养值占位符：{@code nutrition_<type>} 与 {@code nutrition_<type>_max}。
-     */
+
+
+
     public Map<String, Object> nutritionPlaceholders(PlayerNutritionData data) {
         Map<String, Object> placeholders = new LinkedHashMap<>();
         for (NutritionTypeConfig type : typeRegistry.all()) {
@@ -389,9 +389,9 @@ public final class NutritionService {
         return placeholders;
     }
 
-    /**
-     * 统计满足组合阈值条件的营养类型数量（供占位符/命令查询使用）。
-     */
+
+
+
     public int comboCount(UUID uuid, NutritionComboThreshold rule) {
         if (uuid == null || rule == null) {
             return 0;
@@ -421,7 +421,7 @@ public final class NutritionService {
         return Texts.toStringSafe(value);
     }
 
-    // ===================== 定时落盘 =====================
+
 
     private void restartSaveTask() {
         cancelSaveTask();

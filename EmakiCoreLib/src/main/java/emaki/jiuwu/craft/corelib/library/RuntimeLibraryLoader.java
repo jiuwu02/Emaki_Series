@@ -17,13 +17,13 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
-/**
- * Prepares CoreLib's runtime libraries for Paper's plugin loading phase.
- *
- * <p>The loader only owns the plugin data directory cache. It does not inject
- * URLs into a plugin classloader; the Paper {@code PluginLoader} adds each
- * prepared jar through {@code JarLibrary} after this class returns.</p>
- */
+
+
+
+
+
+
+
 public final class RuntimeLibraryLoader {
 
     private static final String ALIYUN_REPO = "https://maven.aliyun.com/repository/central";
@@ -48,12 +48,12 @@ public final class RuntimeLibraryLoader {
         this.cacheDirectory = dataDirectory.resolve("libraries");
     }
 
-    /**
-     * Ensures every configured library exists as a valid local jar.
-     *
-     * @return the prepared jars in dependency declaration order
-     * @throws IllegalStateException when one or more libraries cannot be prepared
-     */
+
+
+
+
+
+
     public List<Path> prepare() {
         List<RuntimeLibrary> libraries = libraries();
         ensureCacheDirectory();

@@ -38,7 +38,7 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitKind;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionRecoveryPlanner.NextStep;
 
-/** Coordinates durable station commit and idempotent/retryable completion delivery. */
+
 public final class CookingCompletionCoordinator {
 
     private static final long RETRY_DELAY_TICKS = 20L;
@@ -100,10 +100,10 @@ public final class CookingCompletionCoordinator {
                 && activeByStation.containsKey(stationKey(stationType, coordinates));
     }
 
-    /**
-     * Plans and freezes a completion, durably writes PREPARED, then starts the state machine.
-     * Returns false when the station already owns a non-terminal completion.
-     */
+
+
+
+
     public boolean submit(CookingCompletionRequest request) {
         if (!accepting.get() || request == null || request.stationType() == null || request.coordinates() == null) {
             return false;
@@ -136,7 +136,7 @@ public final class CookingCompletionCoordinator {
         return true;
     }
 
-    /** Loads active journals, normalizes crash points, and resumes each operation. */
+
     public CompletableFuture<Void> recover() {
         if (!accepting.get()) {
             return CompletableFuture.completedFuture(null);

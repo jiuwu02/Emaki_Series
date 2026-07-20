@@ -12,9 +12,9 @@ import org.bukkit.plugin.PluginManager;
 
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
-/**
- * Fail-closed snapshot of server execution capabilities.
- */
+
+
+
 public final class PlatformCapabilities {
 
     private static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";

@@ -19,21 +19,21 @@ import emaki.jiuwu.craft.corelib.event.gameplay.GameplayEvent;
 import emaki.jiuwu.craft.corelib.event.gameplay.MythicKillEvent;
 import emaki.jiuwu.craft.corelib.event.gameplay.TameGameplayEvent;
 
-/**
- * Subscribes EmakiCodex to CoreLib's shared gameplay events and forwards each one to
- * {@link CodexTriggerService} as a trigger key with domain variables. This replaces the old
- * self-registered {@code CodexTriggerListener}: the Bukkit event handling, MythicMobs reflection
- * and brew-stand attribution now live once inside CoreLib's
- * {@link emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher}.
- *
- * <p>Codex has no experience, anti-abuse or attribution-window policy of its own, so every event
- * is forwarded unconditionally; {@link CodexTriggerService} decides which advancements match and
- * whether their conditions pass. The {@code crop_harvest} trigger is derived here from a block
- * break flagged {@code mature}, preserving the previous listener's behavior.
- */
+
+
+
+
+
+
+
+
+
+
+
+
 public final class CodexGameplaySubscriber {
 
-    /** Grace window for attributing a finished brew, preserved from the old CodexTriggerListener. */
+
     private static final long BREW_ATTRIBUTION_EXPIRE_TICKS = 600L;
 
     private final EmakiCodexPlugin plugin;
@@ -45,10 +45,10 @@ public final class CodexGameplaySubscriber {
         this.triggerService = triggerService;
     }
 
-    /**
-     * Registers all gameplay subscriptions on the shared bus, owned by this plugin so they are
-     * released together on {@link #unsubscribe()} or plugin disable.
-     */
+
+
+
+
     public void subscribe(EmakiEventBus eventBus) {
         subscribe(eventBus, EntityKillEvent.class, this::forward);
         subscribe(eventBus, MythicKillEvent.class, this::forward);
@@ -60,7 +60,7 @@ public final class CodexGameplaySubscriber {
         subscribe(eventBus, BlockBreakGameplayEvent.class, this::onBlockBreak);
     }
 
-    /** Releases every subscription created by {@link #subscribe(EmakiEventBus)}. */
+
     public void unsubscribe() {
         for (EmakiEventBus.Subscription subscription : subscriptions) {
             subscription.unsubscribe();
@@ -81,7 +81,7 @@ public final class CodexGameplaySubscriber {
     }
 
     private void onBrew(BrewGameplayEvent event) {
-        // CoreLib keeps a looser attribution window; enforce Codex's original, tighter grace here.
+
         if (event.ageTicks() <= BREW_ATTRIBUTION_EXPIRE_TICKS) {
             forward(event);
         }

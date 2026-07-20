@@ -26,7 +26,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-/** Durable phase journal for level-up cost/state/reward sagas. */
+
 final class LevelOperationJournal {
 
     enum Phase {

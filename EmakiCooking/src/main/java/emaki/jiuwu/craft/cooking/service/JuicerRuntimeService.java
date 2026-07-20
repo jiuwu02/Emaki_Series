@@ -502,16 +502,16 @@ public final class JuicerRuntimeService implements Listener {
         return loaded;
     }
 
-    /**
-     * 返回该玩家当前打开的榨汁机工位坐标，没有则空。
-     */
+
+
+
     Optional<StationCoordinates> viewingStation(UUID viewerId) {
         return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
     }
 
-    /**
-     * 构建榨汁机运行态快照。空态返回空。榨汁机无热源，进度按累计按压次数计。
-     */
+
+
+
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();

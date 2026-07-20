@@ -125,7 +125,7 @@ public final class PlayerLevelService {
             double oldExp = entry.exp();
             double appliedAmount = adjustedAmount;
             Player player = Bukkit.getPlayer(uuid);
-            // addExp 可能被第三方通过公开 API 在异步线程调用；Bukkit 同步事件只能在玩家 owner 上派发。
+
             if (ownsPlayer(player)) {
                 PlayerExpGainEvent gainEvent = new PlayerExpGainEvent(player, type.id(), oldLevel, oldExp, appliedAmount, reason);
                 Bukkit.getPluginManager().callEvent(gainEvent);

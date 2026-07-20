@@ -29,7 +29,7 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class JavaScriptForgeRuleRegistry {
 
-    /** JavaScript registration type id for forge rules (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "forge_rule";
 
     private final EmakiForgePlugin plugin;

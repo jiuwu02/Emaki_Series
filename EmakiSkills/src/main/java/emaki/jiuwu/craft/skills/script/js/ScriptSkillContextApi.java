@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.script.SkillScriptIntentExecutor;
 
-/** Snapshot-only JavaScript facade. All live side effects are recorded as intents. */
+
 public final class ScriptSkillContextApi {
 
     private final SkillScriptIntentExecutor.WorkerContext context;

@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-/** Parses the shared configured-item shape from YAML sections or plain maps. */
+
 public final class ConfiguredItemParser {
 
     public ConfiguredItemDefinition parse(YamlSection section) {

@@ -8,10 +8,10 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.0.3"
+version: "4.0.4"
 
 general:
-  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCooking</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此操作。</red>"
   player_only: "<red>此命令只能由玩家执行。</red>"
   unknown_command: "<red>未知命令。</red>"

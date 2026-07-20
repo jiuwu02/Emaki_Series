@@ -6,9 +6,9 @@ import java.util.UUID;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * 玩家的营养数据。按营养类型 id 持有当前数值，并通过 revision 跟踪持久化状态。
- */
+
+
+
 public final class PlayerNutritionData {
 
     private final UUID uuid;
@@ -41,9 +41,9 @@ public final class PlayerNutritionData {
         return Map.copyOf(values);
     }
 
-    /**
-     * 读取指定营养类型的当前值；不存在时返回 {@code fallback}。
-     */
+
+
+
     public double value(String typeId, double fallback) {
         Double value = values.get(Texts.normalizeId(typeId));
         return value == null ? fallback : value;
@@ -57,9 +57,9 @@ public final class PlayerNutritionData {
         return values.containsKey(Texts.normalizeId(typeId));
     }
 
-    /**
-     * 直接写入指定营养类型的值（调用方负责截断）。值发生变化时递增 revision。
-     */
+
+
+
     public void set(String typeId, double value) {
         String id = Texts.normalizeId(typeId);
         Double previous = values.put(id, value);

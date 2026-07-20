@@ -205,7 +205,7 @@ public final class ScriptServiceApiSupport {
                 return Math.round(floats.get(0));
             }
         } catch (RuntimeException | LinkageError ignored) {
-            // 自定义模型数据读取失败时安全跳过该可选字段。
+
         }
         return null;
     }

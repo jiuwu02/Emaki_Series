@@ -18,37 +18,37 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUp
 import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 
-/**
- * Overrides the on-screen grid position of EmakiCodex advancements by rewriting the
- * outgoing {@link WrapperPlayServerUpdateAdvancements} packet.
- *
- * <p>Vanilla advancement JSON (used by {@code Bukkit.getUnsafe().loadAdvancement}) cannot
- * express a node position, so the client auto-lays-out the tree from the {@code parent}
- * graph. This listener leaves that server-side registration untouched and only patches the
- * {@link AdvancementDisplay#setX(float)}/{@link AdvancementDisplay#setY(float)} values of
- * our own advancements as they leave the server, giving servers precise control over layout
- * when PacketEvents is present. It never adds, removes, or completes advancements, so the
- * {@code actions.complete} action pipeline and {@code PlayerAdvancementDoneEvent} are unaffected.
- *
- * <p>This class references PacketEvents types directly, so it is only ever instantiated by
- * {@link AdvancementPacketGateway} after PacketEvents is confirmed present. When PacketEvents
- * is absent the class is never loaded, avoiding {@code NoClassDefFoundError}. Callbacks run on
- * a netty thread and only read the registrar's concurrent map plus mutate the packet object;
- * no Bukkit API is touched.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class AdvancementPacketCoordinateChannel extends PacketListenerAbstract {
 
     private final AdvancementRegistrar registrar;
     private final String namespace;
     private final Logger logger;
 
-    /**
-     * @param registrar the registrar used to resolve a packet advancement key back to its
-     *                  configured definition (and therefore its x/y coordinates)
-     * @param namespace the namespace of EmakiCodex advancement keys (e.g. {@code emakicodex});
-     *                  packets for any other namespace are ignored
-     * @param logger    the plugin logger for best-effort warnings
-     */
+
+
+
+
+
+
+
     public AdvancementPacketCoordinateChannel(AdvancementRegistrar registrar, String namespace, Logger logger) {
         super(PacketListenerPriority.NORMAL);
         this.registrar = registrar;
@@ -77,8 +77,8 @@ public final class AdvancementPacketCoordinateChannel extends PacketListenerAbst
                 event.markForReEncode(true);
             }
         } catch (Throwable throwable) {
-            // A malformed/edge packet must never break advancement delivery; fall back to
-            // the client's auto-layout by leaving the packet untouched.
+
+
             logger.log(Level.WARNING, "[Codex] Advancement coordinate injection skipped: " + throwable.getMessage());
         }
     }

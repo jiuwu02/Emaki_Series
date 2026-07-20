@@ -4,13 +4,13 @@ import java.util.Map;
 
 import org.bukkit.entity.Player;
 
-/**
- * Fired on any {@link org.bukkit.event.player.PlayerFishEvent}. {@code state} is the fishing
- * state name (e.g. {@code CAUGHT_FISH}, {@code FISHING}); subscribers decide which states matter.
- *
- * @param player the fishing player
- * @param state  the {@code PlayerFishEvent.State} name
- */
+
+
+
+
+
+
+
 public record FishGameplayEvent(Player player, String state)
         implements GameplayEvent {
 

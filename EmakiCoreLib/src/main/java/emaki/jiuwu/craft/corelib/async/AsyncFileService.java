@@ -21,9 +21,9 @@ import java.util.function.Supplier;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler.TaskPriority;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
-/**
- * Serializes physical file operations per canonical path and provides owner-scoped shutdown barriers.
- */
+
+
+
 public final class AsyncFileService implements AutoCloseable {
 
     public record WriteRequest(Path path, String taskName, Runnable task) {

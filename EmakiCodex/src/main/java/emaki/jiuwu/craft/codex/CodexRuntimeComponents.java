@@ -18,10 +18,10 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
-/**
- * Immutable bundle of every runtime service produced by {@link CodexLifecycleCoordinator}
- * during initialization and handed to {@link EmakiCodexPlugin}.
- */
+
+
+
+
 record CodexRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         MessageService messageService,

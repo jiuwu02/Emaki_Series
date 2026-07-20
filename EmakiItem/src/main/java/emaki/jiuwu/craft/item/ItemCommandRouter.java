@@ -207,7 +207,7 @@ final class ItemCommandRouter implements TabExecutor {
             return true;
         }
         String id = Texts.normalizeId(args[2]);
-        // 未显式提供数量时传 0（哨兵），交由物品工厂回退到 definition 配置的默认数量。
+
         int requestedAmount = args.length >= 4 ? Math.max(1, Numbers.tryParseInt(args[3], 1)) : 0;
         ItemStack itemStack = plugin.itemFactory().create(id, requestedAmount);
         EmakiItemDefinition definition = plugin.idResolver().resolveDefinition(id);

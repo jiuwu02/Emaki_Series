@@ -593,16 +593,16 @@ public final class FermentationBarrelRuntimeService implements Listener {
         return loaded;
     }
 
-    /**
-     * 返回该玩家当前打开的发酵桶工位坐标，没有则空。
-     */
+
+
+
     Optional<StationCoordinates> viewingStation(UUID viewerId) {
         return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
     }
 
-    /**
-     * 构建发酵桶运行态快照。空态返回空。发酵桶无热源，进度按发酵时间计。
-     */
+
+
+
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();

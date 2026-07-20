@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Shared runtime service for configured item creation and component patching. */
+
 public final class ConfiguredItemService {
 
     private final Plugin plugin;
@@ -161,7 +161,7 @@ public final class ConfiguredItemService {
                         "Component requires Minecraft " + catalogEntry.minimumMinecraftVersion()
                                 + "; current server is " + catalog.serverVersion() + ". Patch was skipped."));
             } else {
-                // Known parser-only components are still safe for a vanilla source because the full item is decoded once.
+
                 accepted.put(componentId, entry.getValue());
             }
         }

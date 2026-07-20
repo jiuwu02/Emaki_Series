@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Resets EmakiCodex progress for one player by revoking registered nodes one by one. */
+
 public final class ResetAdvancementAction implements Action {
 
     public enum Mode {

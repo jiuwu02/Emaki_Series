@@ -16,10 +16,10 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
 
-/**
- * Root command handler for {@code /codex}. Admin actions gate on {@code emakicodex.admin};
- * reload also accepts {@code emakicodex.reload}; debug accepts {@code emakicodex.debug}.
- */
+
+
+
+
 final class CodexCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_ROOT = "emakicodex";
@@ -145,7 +145,7 @@ final class CodexCommandRouter implements TabExecutor {
                 plugin.executionDispatcher().runGlobal(plugin, task);
             }
         } catch (Throwable ignored) {
-            // Command feedback is best-effort once the owner-domain mutation has completed.
+
         }
     }
 

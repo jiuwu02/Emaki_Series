@@ -15,13 +15,13 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 
-/**
- * Compatibility facade for legacy CoreLib scheduler calls.
- *
- * <p>New code should inject {@link ExecutionDispatcher} directly. This facade
- * keeps the old async package surface while routing every operation through the
- * neutral execution backend selected by CoreLib.</p>
- */
+
+
+
+
+
+
+
 public final class FoliaSchedulerAdapter {
 
     private static volatile ExecutionDispatcher cachedDispatcher;

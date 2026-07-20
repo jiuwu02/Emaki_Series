@@ -38,10 +38,10 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
-/**
- * EmakiCodex main plugin: registers vanilla advancements driven by corelib actions.
- * Follows the EmakiForge lifecycle skeleton.
- */
+
+
+
+
 public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider, EmakiServiceRegistry {
 
@@ -56,6 +56,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\____-\\ \\_____\\/\\_\\/\\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/____/ \\/_____/\\/_/\\/_/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0xF59E0B;
+    private static final int STARTUP_ASCII_END_COLOR = 0xEC4899;
 
     private final CodexLifecycleCoordinator lifecycleCoordinator = new CodexLifecycleCoordinator();
     private final CodexCommandRouter commandRouter = new CodexCommandRouter(this);
@@ -88,7 +90,12 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
@@ -228,7 +235,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return threadOwnership;
     }
 
-    /** Bridge implementation backing the public {@link EmakiCodexApi} facade. */
+
     private final class CodexApiBridge implements EmakiCodexApi.Bridge {
 
         @Override

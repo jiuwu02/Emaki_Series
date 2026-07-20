@@ -72,7 +72,7 @@ public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
         if (player == null || Texts.isBlank(key) || plugin.nutritionService() == null) {
             return "";
         }
-        // 组合阈值当前达标类型数量：nutrition_combo_count_<ruleId>
+
         if (key.startsWith("combo_count_")) {
             String ruleId = Texts.normalizeId(key.substring("combo_count_".length()));
             return plugin.nutritionService().comboThresholds().stream()
@@ -81,21 +81,21 @@ public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
                     .map(rule -> String.valueOf(plugin.nutritionService().comboCount(player.getUniqueId(), rule)))
                     .orElse("");
         }
-        // 营养上限：nutrition_<type>_max
+
         if (key.endsWith("_max")) {
             String typeId = Texts.normalizeId(key.substring(0, key.length() - "_max".length()));
             return plugin.nutritionTypeRegistry().type(typeId)
                     .map(type -> formatValue(type.max()))
                     .orElse("");
         }
-        // 营养下限：nutrition_<type>_min
+
         if (key.endsWith("_min")) {
             String typeId = Texts.normalizeId(key.substring(0, key.length() - "_min".length()));
             return plugin.nutritionTypeRegistry().type(typeId)
                     .map(type -> formatValue(type.min()))
                     .orElse("");
         }
-        // 当前营养值：nutrition_<type>
+
         String typeId = Texts.normalizeId(key);
         if (!plugin.nutritionTypeRegistry().contains(typeId)) {
             return "";
@@ -119,13 +119,13 @@ public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
             return "";
         }
         StationSnapshot station = snapshot.get();
-        // 显式工位类型形式：station_<type>_<field>，仅当关联工位类型匹配时返回
+
         String folderName = station.stationType().folderName();
         String fieldKey = key;
         if (key.startsWith(folderName + "_")) {
             fieldKey = key.substring(folderName.length() + 1);
         } else if (matchesOtherStationPrefix(key)) {
-            // 指定了别的工位类型但与当前关联工位不符，返回空串
+
             return "";
         }
         return resolveStationField(station, fieldKey);

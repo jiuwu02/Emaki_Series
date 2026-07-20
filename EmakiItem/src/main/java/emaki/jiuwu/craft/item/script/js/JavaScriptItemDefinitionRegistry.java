@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 
 public final class JavaScriptItemDefinitionRegistry {
 
-    /** JavaScript registration type id for item definitions (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "item_definition";
 
     private final EmakiItemPlugin plugin;
@@ -100,7 +100,7 @@ public final class JavaScriptItemDefinitionRegistry {
         return definitions.keySet().stream().sorted().toList();
     }
 
-    /** Uses the same plain-map parser path as YAML definitions. */
+
     public EmakiItemDefinition parseDefinition(String id,
             Map<String, ?> rawDefinition,
             ScriptModuleContext context,

@@ -8,9 +8,9 @@ import java.util.Optional;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 
-/**
- * 营养类型注册表，持有当前加载的全部营养类型定义并提供查询能力。
- */
+
+
+
 public final class NutritionTypeRegistry {
 
     private volatile Map<String, NutritionTypeConfig> types = Map.of();

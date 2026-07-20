@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptEntitySnapshot.EntityView;
 import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Pure Java damage snapshot and worker-local mutation accumulator. */
+
 public final class ScriptDamageContextApi {
 
     private final EntityView source;

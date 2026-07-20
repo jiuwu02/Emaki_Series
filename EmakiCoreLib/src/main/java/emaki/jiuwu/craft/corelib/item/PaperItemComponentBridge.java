@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import io.papermc.paper.datacomponent.DataComponentType;
 
-/** Generic Paper bridge that never references concrete data-component value classes. */
+
 final class PaperItemComponentBridge {
 
     private static final String DATA_COMPONENT_TYPES_CLASS = "io.papermc.paper.datacomponent.DataComponentTypes";
@@ -117,7 +117,7 @@ final class PaperItemComponentBridge {
                 addType(destination, value);
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
-            // Registry discovery below is the wider fallback when static fields differ by version.
+
         }
     }
 
@@ -131,7 +131,7 @@ final class PaperItemComponentBridge {
                 }
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
-            // Static DataComponentTypes discovery remains available on supported Paper versions.
+
         }
     }
 

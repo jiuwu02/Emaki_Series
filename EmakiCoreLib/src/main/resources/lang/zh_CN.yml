@@ -9,10 +9,10 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.5.14"
+version: "4.5.15"
 
 general:
-  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
 
 gui:
   backend:

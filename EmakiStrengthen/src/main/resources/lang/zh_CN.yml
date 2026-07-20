@@ -8,10 +8,10 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.5.5"
+version: "4.5.6"
 
 general:
-  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiStrengthen</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#FACC15:#F97316>EmakiStrengthen</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此操作。</red>"
   player_only: "<red>此命令只能由玩家执行。</red>"
   player_not_found: "<red>未找到目标玩家。</red>"

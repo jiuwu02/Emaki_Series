@@ -18,10 +18,10 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-/**
- * Loads advancement pages from {@code advancements/*.yml}. Each file defines one page
- * (a vanilla advancement tab) with a root advancement and any number of child nodes.
- */
+
+
+
+
 public final class AdvancementPageLoader extends YamlDirectoryLoader<AdvancementPage> {
 
     public AdvancementPageLoader(JavaPlugin plugin) {

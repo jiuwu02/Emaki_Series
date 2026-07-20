@@ -8,7 +8,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import net.kyori.adventure.text.Component;
 
-/** Encodes JSON-equivalent YAML values into the vanilla item component command syntax. */
+
 public final class MinecraftComponentValueCodec {
 
     private volatile Object gsonSerializer;
@@ -129,7 +129,7 @@ public final class MinecraftComponentValueCodec {
                 return text;
             }
         } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-            // Paper includes the Gson serializer; retain a valid plain JSON fallback if it is unavailable.
+
         }
         return "{\"text\":" + quote(MiniMessages.plain(component)) + "}";
     }

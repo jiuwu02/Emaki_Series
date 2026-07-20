@@ -11,7 +11,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.graalvm.polyglot.HostAccess;
 
-/** Captures script-visible entity data before work crosses into a Graal worker. */
+
 public final class ScriptEntitySnapshot {
 
     private ScriptEntitySnapshot() {

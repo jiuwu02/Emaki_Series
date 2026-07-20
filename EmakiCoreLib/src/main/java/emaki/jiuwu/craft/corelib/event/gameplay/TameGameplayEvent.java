@@ -5,12 +5,12 @@ import java.util.Map;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
-/**
- * Fired when a player tames an entity.
- *
- * @param player     the taming player
- * @param entityType the tamed entity's type
- */
+
+
+
+
+
+
 public record TameGameplayEvent(Player player, EntityType entityType)
         implements GameplayEvent {
 

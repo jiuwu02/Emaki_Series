@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-/** Durable receiver acknowledgements keyed by the stable cooking delivery unit id. */
+
 final class CookingDeliveryLedgerStore {
 
     private static final int SCHEMA_VERSION = 1;

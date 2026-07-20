@@ -24,11 +24,11 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Collects side-effect intents while guest JavaScript runs on an isolated worker.
- * The guest thread can only append immutable intent data; Bukkit/API work is
- * dispatched after the polyglot context has closed.
- */
+
+
+
+
+
 public final class ScriptDeferredOperationQueue {
 
     private static final ThreadLocal<ModuleCapture> MODULE_CAPTURE = new ThreadLocal<>();

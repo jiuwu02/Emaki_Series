@@ -12,9 +12,9 @@ import java.util.function.Function;
 
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
-/**
- * Session-aware nutrition cache with generation and revision CAS checks.
- */
+
+
+
 final class PlayerNutritionDataCache {
 
     enum SessionState {

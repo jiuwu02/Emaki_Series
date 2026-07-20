@@ -236,7 +236,7 @@ final class CookingCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.no_permission");
             return true;
         }
-        // /ec nutrition get [player] [type]
+
         Player target;
         String typeArg;
         if (args.length >= 3 && org.bukkit.Bukkit.getPlayerExact(args[2]) != null) {
@@ -280,7 +280,7 @@ final class CookingCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.no_permission");
             return true;
         }
-        // /ec nutrition <set|add|remove> <player> <type> <value>
+
         if (args.length < 5) {
             plugin.messageService().send(sender, "nutrition.usage");
             return true;

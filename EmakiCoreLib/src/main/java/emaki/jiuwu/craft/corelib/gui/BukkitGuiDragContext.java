@@ -8,9 +8,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * {@link GuiDragContext} backed by a Bukkit {@link InventoryDragEvent}.
- */
+
+
+
 final class BukkitGuiDragContext implements GuiDragContext {
 
     private final InventoryDragEvent event;

@@ -384,7 +384,7 @@ final class StrengthenGuiInteractionController {
             switch (state.completionPhase()) {
                 case OPEN, PROCESSING -> returnItems(state);
                 case COMMITTED -> {
-                    // The committed continuation owns delivery and escrow settlement.
+
                 }
                 case RESULT_DELIVERED -> {
                     returnAttemptLeftovers(state.player(), state, state.preview());
@@ -392,7 +392,7 @@ final class StrengthenGuiInteractionController {
                     state.setProcessing(false);
                 }
                 case ESCROW_CLEARED, COMPLETED -> {
-                    // Escrow has already been settled.
+
                 }
             }
             if (cursorItem != null) {

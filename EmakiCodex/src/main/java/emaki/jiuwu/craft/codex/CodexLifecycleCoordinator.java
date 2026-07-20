@@ -24,10 +24,10 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-/**
- * Builds and reloads EmakiCodex's runtime services, mirroring the EmakiForge lifecycle
- * pattern. Advancement registration and player resync run on reload.
- */
+
+
+
+
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>";
@@ -78,12 +78,12 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 advancementPacketGateway, triggerService, executionDispatcher, threadOwnership);
     }
 
-    /**
-     * Reloads configs, re-registers advancements, and resyncs online players. Runs
-     * synchronously on the main thread.
-     *
-     * @param plugin the plugin
-     */
+
+
+
+
+
+
     public void reload(EmakiCodexPlugin plugin) {
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
@@ -99,16 +99,16 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
     }
 
-    /**
-     * After advancements are re-registered on reload, refresh the client advancement
-     * screen for online players. With PacketEvents present the tree is re-pushed live
-     * (no relog needed); without it, we cannot resend runtime advancements, so we tell
-     * admins that online players must reconnect. Silent when no one is online or when
-     * nothing was registered.
-     *
-     * @param plugin     the plugin
-     * @param registered how many advancement nodes were just registered
-     */
+
+
+
+
+
+
+
+
+
+
     private void resyncAdvancements(EmakiCodexPlugin plugin, int registered) {
         if (registered <= 0 || org.bukkit.Bukkit.getOnlinePlayers().isEmpty()) {
             return;

@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.skills.model.SkillSourceType;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.provider.SkillSourceProvider;
 
-/** Provides manually learned skills through the normal SkillSourceRegistry boundary. */
+
 public final class ManualSkillSourceService implements SkillSourceProvider {
 
     private static final String SOURCE_ID = "manual";

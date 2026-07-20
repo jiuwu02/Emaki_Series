@@ -4,7 +4,7 @@ import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
-/** Registers EmakiCodex actions into CoreLib's ActionRegistry. */
+
 public final class CodexActionRegistrar {
 
     private static final String SOURCE = "emakicodex";

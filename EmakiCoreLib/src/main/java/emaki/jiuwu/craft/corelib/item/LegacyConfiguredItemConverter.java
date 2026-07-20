@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
-/** Converts the legacy GUI item fields into the shared component model. */
+
 public final class LegacyConfiguredItemConverter {
 
     private final ConfiguredItemParser parser;

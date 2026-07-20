@@ -1,8 +1,8 @@
 package emaki.jiuwu.craft.corelib.runtime;
 
-/**
- * Explicit execution domains used by CoreLib scheduling and lifecycle boundaries.
- */
+
+
+
 public enum ExecutionDomain {
     SERVER_GLOBAL(false, false),
     LOCATION_REGION(true, false),

@@ -79,6 +79,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\/\\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0x38BDF8;
+    private static final int STARTUP_ASCII_END_COLOR = 0x8B5CF6;
     private static final int BSTATS_PLUGIN_ID = 31768;
 
     private BStatsRegistration metrics;
@@ -140,7 +142,12 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
         registerScriptModule();

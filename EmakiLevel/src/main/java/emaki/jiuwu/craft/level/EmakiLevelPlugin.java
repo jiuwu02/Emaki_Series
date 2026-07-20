@@ -84,6 +84,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\__| \\ \\_____\\ \\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/   \\/_____/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0x7DD3FC;
+    private static final int STARTUP_ASCII_END_COLOR = 0xC084FC;
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
             "requirements.yml",
@@ -334,7 +336,12 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         executionDispatcher = coreLib.executionDispatcher();
         threadOwnership = coreLib.threadOwnership();

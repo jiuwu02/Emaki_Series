@@ -5,14 +5,14 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * Fired when a player crafts an item via a crafting-table recipe. The {@code result} stack is
- * exposed for rule matching; {@code result_amount} in {@link #variables()} is clamped to at
- * least {@code 1}.
- *
- * @param player the crafting player
- * @param result the recipe result stack
- */
+
+
+
+
+
+
+
+
 public record CraftGameplayEvent(Player player, ItemStack result)
         implements GameplayEvent {
 

@@ -133,7 +133,7 @@ public final class Jsons {
 
         private Map<String, Object> readObject() {
             Map<String, Object> result = new java.util.LinkedHashMap<>();
-            index++; // {
+            index++;
             while (index < json.length()) {
                 skipWhitespace();
                 if (consume('}')) {
@@ -158,7 +158,7 @@ public final class Jsons {
 
         private java.util.List<Object> readArray() {
             java.util.List<Object> result = new java.util.ArrayList<>();
-            index++; // [
+            index++;
             while (index < json.length()) {
                 skipWhitespace();
                 if (consume(']')) {
@@ -203,7 +203,7 @@ public final class Jsons {
 
         private String readString() {
             StringBuilder builder = new StringBuilder();
-            index++; // opening quote
+            index++;
             while (index < json.length()) {
                 char c = json.charAt(index++);
                 if (c == '\\') {

@@ -46,18 +46,18 @@ public record CoreLibConfig(
         );
     }
 
-    /**
-     * Selects which {@link emaki.jiuwu.craft.corelib.gui.GuiBackend} presents
-     * Emaki menus.
-     *
-     * <ul>
-     *   <li>{@code bukkit} — real server-side inventory (default).</li>
-     *   <li>{@code packet} — packet-driven virtual container (requires
-     *       PacketEvents); cursor survives in-place row-count changes.</li>
-     *   <li>{@code auto} — packet when PacketEvents is present, otherwise
-     *       bukkit.</li>
-     * </ul>
-     */
+
+
+
+
+
+
+
+
+
+
+
+
     public record GuiConfig(String backend) {
 
         public GuiConfig {
@@ -76,22 +76,22 @@ public record CoreLibConfig(
         }
     }
 
-    /**
-     * Configuration for the shared gameplay-event publisher
-     * ({@link emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher}).
-     *
-     * <p>When {@code enabled}, CoreLib registers a single Bukkit listener that captures the
-     * common gameplay signals (kills, block breaks, crafting, ...) and republishes them on the
-     * shared event bus for every Emaki plugin. The two attribution windows are deliberately
-     * coarse upper bounds: subscribers may enforce their own tighter, per-rule windows.
-     *
-     * <ul>
-     *   <li>{@code lastDamagerExpireTicks} — how long a projectile / delayed-death attribution
-     *       stays valid for {@code entity_kill} when Bukkit reports no direct killer.</li>
-     *   <li>{@code brewAttributionExpireTicks} — how long the last brewing-stand user stays
-     *       eligible for {@code brew_complete} attribution.</li>
-     * </ul>
-     */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public record GameplayEventConfig(
             boolean enabled,
             int lastDamagerExpireTicks,

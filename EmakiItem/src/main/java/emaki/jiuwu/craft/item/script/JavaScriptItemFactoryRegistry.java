@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
 public final class JavaScriptItemFactoryRegistry {
 
-    /** JavaScript registration type id for item factories (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "item_factory";
 
     private final EmakiItemPlugin plugin;
@@ -129,7 +129,7 @@ public final class JavaScriptItemFactoryRegistry {
         if (definition == null || plugin.itemFactory() == null) {
             return null;
         }
-        // amount<=0 视为"未显式指定"，回退到工厂返回定义里的默认数量。
+
         int resolved = amount > 0 ? amount : definition.amount();
         return plugin.itemFactory().rebuildBase(definition, resolved);
     }

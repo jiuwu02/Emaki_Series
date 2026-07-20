@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.item.migration.configureditem.ConfiguredItemMig
 import emaki.jiuwu.craft.corelib.item.migration.configureditem.ConfiguredItemMigration.FileIssue;
 import emaki.jiuwu.craft.corelib.item.migration.configureditem.ConfiguredItemMigration.MigrationReport;
 
-/** Temporary bridge from the Item loader to the disposable configured-item migration package. */
+
 public final class ConfiguredItemMigrationBridge {
 
     private ConfiguredItemMigrationBridge() {

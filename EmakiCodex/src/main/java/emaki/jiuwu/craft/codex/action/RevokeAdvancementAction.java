@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Revokes one registered EmakiCodex advancement from an online player. */
+
 public final class RevokeAdvancementAction implements Action {
 
     private final EmakiCodexPlugin plugin;

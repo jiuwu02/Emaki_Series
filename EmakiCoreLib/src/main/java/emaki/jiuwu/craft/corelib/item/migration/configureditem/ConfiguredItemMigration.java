@@ -35,13 +35,13 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
-/**
- * Temporary disposable configured-item YAML migration.
- *
- * <p>This package intentionally owns its conversion and BoostedYAML transaction
- * details so the whole compatibility layer can be deleted later without leaving
- * migration-only APIs in long-lived YAML utilities.</p>
- */
+
+
+
+
+
+
+
 public final class ConfiguredItemMigration {
     private static final DateTimeFormatter BACKUP_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss-SSS");
     private static final GeneralSettings GENERAL_SETTINGS = GeneralSettings.builder()
@@ -76,7 +76,7 @@ public final class ConfiguredItemMigration {
     private ConfiguredItemMigration() {
     }
 
-    /** Temporary bridge used by the CoreLib GUI loader. */
+
     public static void migrateGuiFiles(JavaPlugin plugin, Collection<File> files) {
         Objects.requireNonNull(plugin, "plugin");
         MigrationReport report = migrateFiles(plugin.getDataFolder().toPath(), files, ConfiguredItemMigration::convertGui);
@@ -95,7 +95,7 @@ public final class ConfiguredItemMigration {
         }
     }
 
-    /** Temporary bridge used by the Item compatibility package. */
+
     public static MigrationReport migrateLegacyItemFiles(Path dataFolder, Collection<File> files) {
         return migrateFiles(dataFolder, files, ConfiguredItemMigration::convertLegacyItemRoot);
     }
@@ -169,7 +169,7 @@ public final class ConfiguredItemMigration {
                 : Conversion.unchanged(root);
     }
 
-    /** Converts known configured-item holders inside the shared GUI YAML shape. */
+
     private static Conversion convertGui(Map<String, Object> root) {
         Map<String, Object> original = MapYamlSection.normalizeMap(root);
         Map<String, Object> migrated = MapYamlSection.normalizeMap(original);
@@ -183,10 +183,10 @@ public final class ConfiguredItemMigration {
                 : Conversion.changed(migrated, counter.value);
     }
 
-    /**
-     * Pure conversion of one legacy configured-item holder into the canonical
-     * {@code item.source}/{@code item.amount}/{@code item.components} shape.
-     */
+
+
+
+
     private static NodeMigration convertLegacyItemNode(Map<String, ?> node, String itemId) {
         Map<String, Object> original = MapYamlSection.normalizeMap(node);
         Map<String, Object> migrated = MapYamlSection.normalizeMap(original);

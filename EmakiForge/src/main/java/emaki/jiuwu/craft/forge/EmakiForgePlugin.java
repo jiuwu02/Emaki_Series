@@ -56,6 +56,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\   \\ \\_____\\ \\_\\ \\_\\ \\_____\\ \\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/    \\/_____/\\/_/ /_/\\/_____/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0xF59E0B;
+    private static final int STARTUP_ASCII_END_COLOR = 0xEF4444;
     private static final int BSTATS_PLUGIN_ID = 31766;
 
     private BStatsRegistration metrics;
@@ -111,7 +113,12 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");

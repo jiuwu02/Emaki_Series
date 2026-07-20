@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 
-/** Rechecks nutrition thresholds without clearing their edge-trigger state. */
+
 public final class NutritionThresholdRecheckAction implements Action {
 
     private final EmakiCookingPlugin plugin;

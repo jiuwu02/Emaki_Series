@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptEntitySnapshot.WorldView;
 import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Immutable event snapshot plus worker-local mutation intent. */
+
 public final class ScriptDamageEventApi {
 
     private final EntityView attacker;

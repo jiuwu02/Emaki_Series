@@ -16,9 +16,9 @@ final class ItemOperationReplayer {
         if (itemStack == null || itemStack.getType().isAir() || entries == null || entries.isEmpty()) {
             return entries == null ? List.of() : List.copyOf(entries);
         }
-        // Lore is committed via itemMeta first; the name is then injected as a
-        // component so a translatable base name survives instead of being
-        // flattened to a legacy string.
+
+
+
         List<ItemOperationEntry> refreshedEntries = replayLore(itemStack, entries);
         replayNameOperations(itemStack, refreshedEntries);
         return refreshedEntries;

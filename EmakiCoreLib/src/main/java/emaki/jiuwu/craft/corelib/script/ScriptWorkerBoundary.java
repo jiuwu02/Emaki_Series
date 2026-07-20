@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.corelib.script;
 
-/** Marks isolated script-worker execution so live server access can fail closed. */
+
 public final class ScriptWorkerBoundary {
 
     private static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);

@@ -86,7 +86,7 @@ public final class GemExtractService {
         if (!evaluateConditions(actor)) {
             return Result.failure("gem.error.condition_not_met", Map.of());
         }
-        // 拔取宝石对外开放，可取消；命令入口在主线程，仍按统一约定加守卫。
+
         if (threadOwnership.isEntityOwned(target)) {
             GemExtractEvent extractEvent = new GemExtractEvent(target, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());

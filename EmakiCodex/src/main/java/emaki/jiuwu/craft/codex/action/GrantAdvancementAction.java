@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Grants one registered EmakiCodex advancement to an online player. */
+
 public final class GrantAdvancementAction implements Action {
 
     private final EmakiCodexPlugin plugin;

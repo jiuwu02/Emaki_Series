@@ -83,6 +83,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/ /_/\\/_____/\\/_____/\\/_/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0xFF80FF;
+    private static final int STARTUP_ASCII_END_COLOR = 0x00FFFF;
     private static final int BSTATS_PLUGIN_ID = 31763;
 
     private BStatsRegistration metrics;
@@ -135,8 +137,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onLoad() {
-        // Runtime libraries are prepared by EmakiCoreLibPluginLoader (declared as
-        // `loader:` in paper-plugin.yml) before this plugin is instantiated.
+
+
     }
 
     @Override
@@ -149,7 +151,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
         initializeServices();
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         messageService.info("console.plugin_starting");
         itemSourceIntegrationCoordinator.initialize();
         if (!reloadActionSystem()) {
@@ -460,9 +467,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     private void registerCommandHandler() {
         commandRouter = new CoreLibCommandRouter(this, executionDispatcher);
-        // paper-plugin.yml does not support the `commands:` block, so the command
-        // is registered programmatically. The BasicCommand adapter delegates to
-        // the existing router, preserving command name, aliases and permissions.
+
+
+
         registerCommand(
                 "emakicorelib",
                 "EmakiCoreLib management command",
@@ -588,12 +595,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return configModel;
     }
 
-    /**
-     * The shared cross-plugin event bus. Emaki plugins subscribe here (e.g. to
-     * {@link emaki.jiuwu.craft.corelib.event.gameplay.GameplayEvent} subtypes published by
-     * {@link emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher}) instead of
-     * registering their own duplicate Bukkit listeners.
-     */
+
+
+
+
+
+
     public emaki.jiuwu.craft.corelib.event.EmakiEventBus eventBus() {
         return eventBus;
     }
@@ -646,27 +653,27 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return guiBackend;
     }
 
-    /**
-     * The CoreLib-wide GUI backend registry. The built-in {@code bukkit} backend
-     * is always available; the optional {@code packet} backend is installed by
-     * {@link #installPacketBackend()} when PacketEvents is present.
-     */
+
+
+
+
+
     public emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry guiBackendRegistry() {
         return guiBackendRegistry;
     }
 
-    /**
-     * Installs the built-in packet GUI backend when the optional PacketEvents
-     * plugin is present and enabled.
-     *
-     * <p>The packet backend lives inside CoreLib but depends on PacketEvents,
-     * which CoreLib declares only as a {@code softdepend}. To keep CoreLib's zero
-     * hard-dependency guarantee, the PacketEvents-touching classes are reached
-     * only through {@code PacketBackendInstaller} and only after the PacketEvents
-     * plugin is confirmed loaded, with {@link LinkageError} guarded so a missing
-     * or incompatible PacketEvents never breaks startup. When unavailable the
-     * registry keeps only the Bukkit backend.</p>
-     */
+
+
+
+
+
+
+
+
+
+
+
+
     private void installPacketBackend() {
         if (guiBackendRegistry == null) {
             return;

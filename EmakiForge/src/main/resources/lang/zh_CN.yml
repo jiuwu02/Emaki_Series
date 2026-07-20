@@ -10,11 +10,11 @@
 # Emaki Forge 中文语言文件
 
 # version 由资源同步维护
-version: "4.5.5"
+version: "4.5.6"
 
 # 通用消息
 general:
-  prefix: "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiForge</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此操作。</red>"
   player_only: "<red>此命令只能由玩家执行。</red>"
   unknown_command: "<red>未知命令。</red>"

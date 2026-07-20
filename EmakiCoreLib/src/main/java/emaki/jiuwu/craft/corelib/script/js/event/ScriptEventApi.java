@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptEntitySnapshot.EntityView;
 import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Pure Java event snapshot and worker-local mutation state. */
+
 public final class ScriptEventApi {
 
     private final String type;

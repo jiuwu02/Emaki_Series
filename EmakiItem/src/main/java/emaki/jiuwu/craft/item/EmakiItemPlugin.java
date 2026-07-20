@@ -77,6 +77,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\ \\_\\ \\ \\_____\\ \\_\\ \\ \\_\\/\\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/  \\/_/  \\/_____/\\/_/  \\/_/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0x60A5FA;
+    private static final int STARTUP_ASCII_END_COLOR = 0x34D399;
     private static final int BSTATS_PLUGIN_ID = 31770;
 
     private BStatsRegistration metrics;
@@ -166,7 +168,12 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");

@@ -156,7 +156,7 @@ public final class GemInlayService {
         placeholders.put("success_rate", successChance);
 
         GemInlayEvent inlayEvent = new GemInlayEvent(actor, equipment, gemItem, slotIndex, gemDefinition.id(), instance.level(), successChance);
-        // inlayDirect 可能通过公开 API 在异步线程调用；Bukkit 同步事件只能在主线程派发。
+
         if (threadOwnership.isEntityOwned(actor)) {
             org.bukkit.Bukkit.getPluginManager().callEvent(inlayEvent);
             if (inlayEvent.isCancelled()) {
@@ -291,7 +291,7 @@ public final class GemInlayService {
             return new ExtractDirectResult(
                     GemExtractService.Result.failure("gem.error.condition_not_met", Map.of()), equipment, null);
         }
-        // 拔取宝石对外开放，可取消；extractDirect 可能经公开 API 在异步线程调用，事件只在主线程派发。
+
         if (threadOwnership.isEntityOwned(actor)) {
             GemExtractEvent extractEvent = new GemExtractEvent(actor, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());

@@ -131,18 +131,18 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         );
     }
 
-    /**
-     * Resolves the concrete backend to bind to a new session.
-     *
-     * <p>{@code coreLib.guiBackend()} hands every {@link GuiService} a
-     * {@link RegistryBackedGuiBackend} proxy. We unwrap it here (rather than in
-     * the constructor) so the backend is resolved at open time — that lets an
-     * optional backend plugin register after CoreLib has enabled. Each session
-     * then keeps the resolved backend for its whole lifetime, which is also why
-     * {@link #isBukkitBacked(GuiSession)} can still {@code instanceof}-test the
-     * real backend. This unwrap is an internal CoreLib detail; the public
-     * {@code GuiService} constructor signature is unchanged.</p>
-     */
+
+
+
+
+
+
+
+
+
+
+
+
     private GuiBackend resolveBackend() {
         if (backend instanceof RegistryBackedGuiBackend proxy) {
             return proxy.resolveActive();

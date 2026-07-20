@@ -45,13 +45,13 @@ public interface Action {
         return ActionExecutionMode.SYNC;
     }
 
-    /**
-     * Selects the concrete ownership domain for one invocation.
-     *
-     * <p>Bundled actions default to the contextual entity when a player is present,
-     * or the server-global domain otherwise. Public third-party actions are adapted
-     * separately and fail closed on Folia until they explicitly declare a target.</p>
-     */
+
+
+
+
+
+
+
     default ActionExecutionTarget executionTarget(ActionPlanningContext context) {
         if (executionMode() == ActionExecutionMode.ASYNC_IO) {
             return ActionExecutionTarget.async();

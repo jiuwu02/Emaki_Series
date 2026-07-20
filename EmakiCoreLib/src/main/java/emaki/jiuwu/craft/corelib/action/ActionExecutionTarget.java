@@ -5,9 +5,9 @@ import org.bukkit.entity.Entity;
 
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
-/**
- * Concrete scheduler target for one action invocation.
- */
+
+
+
 public record ActionExecutionTarget(
         ExecutionDomain domain,
         Entity entity,

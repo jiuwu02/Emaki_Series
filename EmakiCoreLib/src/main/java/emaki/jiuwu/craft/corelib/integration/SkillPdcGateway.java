@@ -30,13 +30,13 @@ public final class SkillPdcGateway {
         write(itemStack, skillIds, activeSlot, Map.of());
     }
 
-    /**
-     * Writes EmakiSkills item skill payload to PDC.
-     *
-     * <p>{@code boundTriggers} maps {@code skillId -> triggerId}. These bindings are
-     * consumed directly by EmakiSkills from equipped items and do not occupy the
-     * player's normal skill slots.</p>
-     */
+
+
+
+
+
+
+
     public void write(ItemStack itemStack, Collection<String> skillIds, String activeSlot, Map<String, String> boundTriggers) {
         if (itemStack == null) {
             return;

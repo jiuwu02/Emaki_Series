@@ -77,12 +77,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private static final String ROOT_COMMAND = "ecooking";
 
     private static final String STARTUP_ASCII = """
- ______  __    __  ______  __  __   __  ______  ______  ______  __  __   __  __   __  ______    
-/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\  __ \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ "-.\\ \\/\\  ___\\   
-\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\___\\ \\ \\/\\ \\ \\ \\/\\ \\ \\  _"-.\\ \\ \\ \\ \\-.  \\ \\ \\__ \\  
- \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_____\\ \\_\\ \\_\\\\ \\_\\ \\_\\\\"\\_\\ \\_____\\ 
-  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/\\/_/\\/_/ \\/_/\\/_/ \\/_/\\/_____/ 
+ ______  __    __  ______  __  __   __  ______  ______  ______  __  __   __  __   __  ______
+/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\  __ \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ "-.\\ \\/\\  ___\\
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\___\\ \\ \\/\\ \\ \\ \\/\\ \\ \\  _"-.\\ \\ \\ \\ \\-.  \\ \\ \\__ \\
+ \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_____\\ \\_\\ \\_\\\\ \\_\\ \\_\\\\"\\_\\ \\_____\\
+  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/\\/_/\\/_/ \\/_/\\/_/ \\/_/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0x22C55E;
+    private static final int STARTUP_ASCII_END_COLOR = 0xFACC15;
     private static final int BSTATS_PLUGIN_ID = 31765;
 
     private BStatsRegistration metrics;
@@ -161,7 +163,12 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
@@ -373,7 +380,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         getServer().getPluginManager().registerEvents(playerDataListener, this);
         registerMmoItemsNutritionHandler();
         registerNeigeItemsNutritionHandler();
-        // reload 或热插拔时为已在线玩家建立同一套异步会话。
+
         for (org.bukkit.entity.Player online : getServer().getOnlinePlayers()) {
             playerDataListener.ensureSession(online);
         }

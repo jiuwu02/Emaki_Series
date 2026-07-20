@@ -39,27 +39,27 @@ import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.event.EmakiEventBus;
 
-/**
- * The single Bukkit listener that captures common gameplay signals for the whole Emaki suite
- * and republishes them as {@link GameplayEvent}s on the shared {@link EmakiEventBus}.
- *
- * <p>This centralizes three pieces of logic that EmakiLevel and EmakiCodex previously each
- * duplicated:
- * <ul>
- *   <li><b>MythicMobs resolution</b> — reflective lookup of a dying entity's Mythic id/level,
- *       done once here instead of once per plugin;</li>
- *   <li><b>Last-damager attribution</b> — crediting a kill to the last player who damaged the
- *       victim when Bukkit reports no direct killer (projectiles, delayed deaths);</li>
- *   <li><b>Brew-stand user tracking</b> — remembering who last used a brewing stand so a
- *       finished brew can be attributed.</li>
- * </ul>
- *
- * <p>All handlers run at {@link EventPriority#MONITOR} (observe-only), matching the priority the
- * original per-plugin listeners used, so dispatch timing is unchanged. The publisher reads its
- * two attribution windows live from {@code configSupplier} on every use, so a CoreLib reload
- * takes effect without re-registration. Nothing here knows about experience, advancements,
- * anti-abuse, or conditions — subscribers own all downstream policy.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class GameplayEventPublisher implements Listener {
 
     private final Plugin plugin;
@@ -89,9 +89,9 @@ public final class GameplayEventPublisher implements Listener {
         return !config().enabled();
     }
 
-    // ------------------------------------------------------------------
-    // Combat / kills
-    // ------------------------------------------------------------------
+
+
+
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
@@ -138,9 +138,9 @@ public final class GameplayEventPublisher implements Listener {
         return null;
     }
 
-    // ------------------------------------------------------------------
-    // Blocks
-    // ------------------------------------------------------------------
+
+
+
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
@@ -163,9 +163,9 @@ public final class GameplayEventPublisher implements Listener {
         return block.getBlockData() instanceof Ageable ageable && ageable.getAge() >= ageable.getMaximumAge();
     }
 
-    // ------------------------------------------------------------------
-    // Crafting / smelting
-    // ------------------------------------------------------------------
+
+
+
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCraft(CraftItemEvent event) {
@@ -189,9 +189,9 @@ public final class GameplayEventPublisher implements Listener {
         eventBus.publish(new FurnaceExtractGameplayEvent(event.getPlayer(), result, amount));
     }
 
-    // ------------------------------------------------------------------
-    // Fishing / taming
-    // ------------------------------------------------------------------
+
+
+
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onFish(PlayerFishEvent event) {
@@ -209,9 +209,9 @@ public final class GameplayEventPublisher implements Listener {
         eventBus.publish(new TameGameplayEvent(player, event.getEntityType()));
     }
 
-    // ------------------------------------------------------------------
-    // Brewing (open/click record the user; brew completion is delayed one tick)
-    // ------------------------------------------------------------------
+
+
+
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBrewInventoryOpen(InventoryOpenEvent event) {
@@ -287,9 +287,9 @@ public final class GameplayEventPublisher implements Listener {
                 + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
     }
 
-    // ------------------------------------------------------------------
-    // MythicMobs reflection (soft dependency; no compile-time MythicMobs types)
-    // ------------------------------------------------------------------
+
+
+
 
     private MythicMobInfo mythicMobInfo(LivingEntity entity) {
         if (!plugin.getServer().getPluginManager().isPluginEnabled("MythicMobs")) {

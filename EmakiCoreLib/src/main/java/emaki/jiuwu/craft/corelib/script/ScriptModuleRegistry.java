@@ -41,9 +41,9 @@ public final class ScriptModuleRegistry {
         return module == null ? new UnavailableScriptModuleApi(normalizedId) : module;
     }
 
-    /**
-     * Captures module membership and overrides at invocation submission time.
-     */
+
+
+
     public ScriptModulesApi api(ScriptModuleContext context) {
         return new ScriptModulesApi(this, context);
     }

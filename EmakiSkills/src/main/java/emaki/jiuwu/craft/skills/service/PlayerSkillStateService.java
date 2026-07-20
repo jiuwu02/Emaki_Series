@@ -136,10 +136,10 @@ public final class PlayerSkillStateService {
                 active.setBinding(slotIndex, new SkillSlotBinding(slotIndex, current.skillId(), triggerId)));
     }
 
-    /**
-     * Fires the slot change event and returns {@code true} when the change was
-     * cancelled. Callers must already own the player's entity scheduler domain.
-     */
+
+
+
+
     private boolean fireSlotChange(Player player,
             int slotIndex,
             String skillId,

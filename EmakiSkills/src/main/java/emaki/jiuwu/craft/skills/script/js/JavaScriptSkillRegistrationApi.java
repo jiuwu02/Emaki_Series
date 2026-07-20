@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 
 public final class JavaScriptSkillRegistrationApi {
 
-    /** JavaScript registration type id for skill actions (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "skill_action";
 
     private final EmakiSkillsPlugin plugin;

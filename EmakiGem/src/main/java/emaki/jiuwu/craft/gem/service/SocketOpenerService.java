@@ -112,7 +112,7 @@ public final class SocketOpenerService {
             return new OpenResult(failureWithActions(actor, opener, itemDefinition, preferredSlotIndex == null ? -1 : preferredSlotIndex,
                     preferredSlotIndex == null ? "command.open.no_available_slot" : "command.open.slot_unavailable", Map.of()), equipment, openerItem);
         }
-        // 开孔对外开放，可取消；openDirect 可能经公开 API 在异步线程调用，事件只在实体 owner 执行域派发。
+
         if (threadOwnership.isEntityOwned(actor)) {
             GemSocketOpenEvent openEvent = new GemSocketOpenEvent(actor, equipment, openerItem,
                     opener.id(), resolvedSlotIndex, itemDefinition.id());
@@ -176,7 +176,7 @@ public final class SocketOpenerService {
                     Map.of()
             );
         }
-        // 开孔对外开放，可取消；命令入口在主线程，仍按统一约定加守卫。
+
         if (threadOwnership.isEntityOwned(target)) {
             GemSocketOpenEvent openEvent = new GemSocketOpenEvent(target, equipment, openerItem,
                     opener.id(), slotIndex, itemDefinition.id());

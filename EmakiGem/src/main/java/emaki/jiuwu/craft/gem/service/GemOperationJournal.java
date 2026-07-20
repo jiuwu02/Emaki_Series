@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 
-/** Durable phase journal for gem operations that span costs, item state and rewards. */
+
 public final class GemOperationJournal {
 
     public enum Phase {

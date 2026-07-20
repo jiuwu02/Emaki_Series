@@ -26,11 +26,11 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
-/**
- * 玩家营养数据存储。
- *
- * <p>采用 generation/revision CAS 隔离旧会话回调，并通过 owner-scoped 异步文件屏障串行化物理 I/O。</p>
- */
+
+
+
+
+
 public final class PlayerNutritionDataStore {
 
     private static final int SCHEMA_VERSION = 1;
@@ -162,9 +162,9 @@ public final class PlayerNutritionDataStore {
                 });
     }
 
-    /**
-     * 兼容旧同步入口：只读取已激活缓存，不隐式触发文件加载。
-     */
+
+
+
     public PlayerNutritionData getOrLoad(OfflinePlayer player, Map<String, NutritionTypeConfig> types) {
         return player == null ? null : cached(player.getUniqueId());
     }

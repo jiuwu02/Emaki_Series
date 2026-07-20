@@ -62,7 +62,7 @@ public final class StrengthenTransferService {
         int transferredStar = (int) Math.floor(sourceStar * request.decayRate());
         transferredStar = Numbers.clamp(transferredStar, 0, targetRecipe.limits().maxStar());
 
-        // 强化转移对外开放，可取消、可改转移星级；仅在玩家 owner 上触发同步事件。
+
         if (plugin.threadOwnership().isEntityOwned(player)) {
             StrengthenTransferEvent transferEvent = new StrengthenTransferEvent(
                     player, source, target, targetState.recipeId(), sourceStar, transferredStar, request.decayRate());
@@ -70,7 +70,7 @@ public final class StrengthenTransferService {
             if (transferEvent.isCancelled()) {
                 return TransferResult.failure("strengthen.transfer.cancelled");
             }
-            // 改写后重新 clamp 到目标配方最大星级，保持与原校验一致。
+
             transferredStar = Numbers.clamp(transferEvent.getTransferredStar(), 0, targetRecipe.limits().maxStar());
         }
 

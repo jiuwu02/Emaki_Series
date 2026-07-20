@@ -8,41 +8,41 @@ import com.willfp.ecoitems.items.ItemUtilsKt;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Item source resolver bridging Auxilor's EcoItems plugin.
- *
- * <p>EcoItems is built on the eco / libreforge framework and registers its
- * items when the plugin enables, so there is no dedicated "items loaded" event
- * to hook. The managed resolver relies on {@link DirectAccessor#detectLoaded()}
- * probing the registry and leaves {@code registerLoadEventListener} as the
- * default no-op.</p>
- *
- * <p>EcoItems is accessed through its public API just like the other item
- * sources (Nexo / Oraxen / MMOItems). The API types {@link EcoItem} and
- * {@link EcoItems} extend deep eco / libreforge framework super-types
- * ({@code EcoItem} implements {@code com.willfp.libreforge.Holder} and
- * {@code com.willfp.eco.core.registry.Registrable}; {@code EcoItems} extends
- * {@code ConfigCategory}), so both {@code eco} and {@code libreforge} must be on
- * the compile classpath as {@code provided} dependencies for javac to resolve the
- * inheritance hierarchy; none of them are shaded into the jar. Coordinates are
- * pinned to Auxilor's latest public CalVer generation (eco {@code 2026.28},
- * libreforge / EcoItems / libreforge-loader {@code 2026.27}), and the EcoItems
- * classifier choice is critical (verified by bytecode inspection + a real javac
- * compile): EcoItems must use the <b>plain</b> jar (no classifier), whose {@code
- * EcoItems} super-type is the standard {@code com.willfp.libreforge.loader.configs.
- * ConfigCategory} supplied by the public {@code libreforge-loader} artifact. The
- * {@code classifier=all} fat jar instead relocates that super-type to {@code
- * com.willfp.ecoitems.libreforge.loader.configs.ConfigCategory}, a class shipped
- * in no public artifact, which makes javac fail with "cannot find ConfigCategory
- * class file". {@code libreforge-loader} provides {@code ConfigCategory} /
- * {@code LegacyLocation} / {@code LibreforgePlugin}; {@code libreforge} (the
- * {@code classifier=all} fat jar) provides {@code Holder}; {@code eco} provides
- * {@code Registrable} / {@code FastItemStack}. libreforge's pom drags in {@code
- * libreforge.core:common}, which lives only in Auxilor's private repo, so that
- * group is excluded (the all jar is self-contained). Every call is guarded by
- * {@code RuntimeException | LinkageError} so a missing or incompatible EcoItems
- * never breaks CoreLib at runtime.</p>
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 final class EcoItemsItemSourceResolver
         extends AbstractManagedItemSourceResolver<EcoItemsItemSourceResolver.DirectAccessor> {
 

@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptDeferredOperationQueue;
 import emaki.jiuwu.craft.corelib.script.ScriptEntitySnapshot.EntityView;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/** Snapshot-backed server facade with deferred side effects. */
+
 public final class ScriptServerApi {
 
     private final ScriptConfig config;

@@ -67,6 +67,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
    \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/\\/_/  \\/_/    \\/_/  \\/_/ /_/\\/_/\\/_____/\\/_____/  \\/_/  \\/_____/
                                                                                                                 
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0xFB7185;
+    private static final int STARTUP_ASCII_END_COLOR = 0xA78BFA;
     private static final int BSTATS_PLUGIN_ID = 31764;
 
     private BStatsRegistration metrics;
@@ -116,7 +118,12 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         registerPdcAttributeApi();
         registerAttributeServiceFacade();
         registerScriptModule();
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         reloadPluginState(true);
         ensureMmoItemsBridge();
         lifecycleCoordinator.registerCommand(this);

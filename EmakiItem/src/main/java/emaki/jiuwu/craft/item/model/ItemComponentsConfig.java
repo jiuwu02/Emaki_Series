@@ -12,12 +12,12 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Legacy projection of the pre-shared-model EmakiItem component fields.
- *
- * <p>The runtime item path uses {@link ConfiguredItemDefinition}; this record is
- * retained for source/binary compatibility with older integrations.</p>
- */
+
+
+
+
+
+
 public record ItemComponentsConfig(Object customModelData,
         String itemModel,
         String tooltipStyle,
@@ -74,7 +74,7 @@ public record ItemComponentsConfig(Object customModelData,
         );
     }
 
-    /** Converts the legacy constructor fields into shared component patches. */
+
     public Map<String, ItemComponentPatch> toComponentPatches() {
         return toComponentPatches("");
     }

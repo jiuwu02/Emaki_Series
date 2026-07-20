@@ -15,9 +15,9 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 
-/**
- * 玩家营养数据的异步会话生命周期监听器。
- */
+
+
+
 public final class NutritionPlayerDataListener implements Listener {
 
     private final EmakiCookingPlugin plugin;

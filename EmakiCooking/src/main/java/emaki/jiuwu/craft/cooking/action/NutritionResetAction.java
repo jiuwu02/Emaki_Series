@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 
-/** Clears nutrition to type minimums or resets it to configured defaults for one target. */
+
 public final class NutritionResetAction implements Action {
 
     public enum Mode {

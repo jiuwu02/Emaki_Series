@@ -54,7 +54,7 @@ import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
 final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGemPlugin, GemRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiGem</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "gem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");

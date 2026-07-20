@@ -15,6 +15,10 @@ public final class ConsoleOutputs {
     }
 
     public static void sendGradientAscii(JavaPlugin plugin, String asciiArt) {
+        sendGradientAscii(plugin, asciiArt, ASCII_START_COLOR, ASCII_END_COLOR);
+    }
+
+    public static void sendGradientAscii(JavaPlugin plugin, String asciiArt, int startColor, int endColor) {
         if (plugin == null || Texts.isBlank(asciiArt)) {
             return;
         }
@@ -23,11 +27,11 @@ public final class ConsoleOutputs {
                 .replace("\r\n", "\n")
                 .replace("\r", "\n");
         for (String line : normalized.split("\n", -1)) {
-            plugin.getServer().getConsoleSender().sendMessage(buildGradientLine(line));
+            plugin.getServer().getConsoleSender().sendMessage(buildGradientLine(line, startColor, endColor));
         }
     }
 
-    private static Component buildGradientLine(String line) {
+    private static Component buildGradientLine(String line, int startColor, int endColor) {
         if (line == null || line.isEmpty()) {
             return Component.empty();
         }
@@ -35,19 +39,19 @@ public final class ConsoleOutputs {
         int length = line.length();
         for (int index = 0; index < length; index++) {
             float progress = length == 1 ? 0F : (float) index / (length - 1);
-            builder.append(Component.text(line.charAt(index), interpolateColor(progress)));
+            builder.append(Component.text(line.charAt(index), interpolateColor(progress, startColor, endColor)));
         }
         return builder.build();
     }
 
-    private static TextColor interpolateColor(float progress) {
-        int startRed = (ASCII_START_COLOR >> 16) & 0xFF;
-        int startGreen = (ASCII_START_COLOR >> 8) & 0xFF;
-        int startBlue = ASCII_START_COLOR & 0xFF;
+    private static TextColor interpolateColor(float progress, int startColor, int endColor) {
+        int startRed = (startColor >> 16) & 0xFF;
+        int startGreen = (startColor >> 8) & 0xFF;
+        int startBlue = startColor & 0xFF;
 
-        int endRed = (ASCII_END_COLOR >> 16) & 0xFF;
-        int endGreen = (ASCII_END_COLOR >> 8) & 0xFF;
-        int endBlue = ASCII_END_COLOR & 0xFF;
+        int endRed = (endColor >> 16) & 0xFF;
+        int endGreen = (endColor >> 8) & 0xFF;
+        int endBlue = endColor & 0xFF;
 
         int red = Math.round(startRed + (endRed - startRed) * progress);
         int green = Math.round(startGreen + (endGreen - startGreen) * progress);

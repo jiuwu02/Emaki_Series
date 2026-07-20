@@ -166,7 +166,7 @@ public final class GemUpgradeService {
         int targetLevel = preview.targetLevel();
         GemDefinition.GemUpgradeLevel upgradeLevel = preview.upgradeLevel();
         double successChance = effectiveSuccessChance(definition, targetLevel, upgradeLevel.successChance());
-        // 宝石升级对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费，物品形态 slotIndex 传 -1。
+
         if (threadOwnership.isEntityOwned(player)) {
             GemUpgradeEvent upgradeEvent = new GemUpgradeEvent(player, itemStack, definition.id(),
                     instance.level(), targetLevel, -1, successChance);
@@ -264,7 +264,7 @@ public final class GemUpgradeService {
         int targetLevel = preview.targetLevel();
         GemDefinition.GemUpgradeLevel upgradeLevel = preview.upgradeLevel();
         double successChance = effectiveSuccessChance(definition, targetLevel, upgradeLevel.successChance());
-        // 宝石升级对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费，传装备与目标槽位。
+
         if (threadOwnership.isEntityOwned(target)) {
             GemUpgradeEvent upgradeEvent = new GemUpgradeEvent(target, equipment, definition.id(),
                     instance.level(), targetLevel, slotIndex, successChance);

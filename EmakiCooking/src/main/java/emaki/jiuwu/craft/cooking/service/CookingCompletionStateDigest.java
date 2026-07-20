@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Deterministic canonical SHA-256 for station state values.
- */
+
+
+
 public final class CookingCompletionStateDigest {
 
     private static final Set<String> IGNORED_STATION_METADATA = Set.of(

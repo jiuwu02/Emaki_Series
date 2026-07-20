@@ -42,10 +42,10 @@ import emaki.jiuwu.craft.corelib.script.js.event.ScriptEventApi;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * Executes event scripts as bounded synchronous decisions over detached snapshots.
- * The original Bukkit event never crosses the Graal worker boundary.
- */
+
+
+
+
 public final class JavaScriptEventRegistry implements Listener, AutoCloseable {
 
     private static final Map<String, Class<? extends Event>> SUPPORTED_EVENTS = supportedEvents();

@@ -27,10 +27,10 @@ import emaki.jiuwu.craft.skills.api.SkillScriptAction;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
-/**
- * Owns the live skill context while JavaScript receives only detached snapshots
- * and immutable side-effect intents.
- */
+
+
+
+
 public final class SkillScriptIntentExecutor {
 
     private final EmakiSkillsPlugin plugin;

@@ -369,7 +369,7 @@ public final class ItemRepairService {
             ItemStack equipment,
             String source,
             int restoreAmount) {
-        // 物品修复对外开放，可取消、可改修复量；在扣费前派发以保证取消即不扣费。
+
         if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return new ItemRepairEventResult(false, restoreAmount);
         }

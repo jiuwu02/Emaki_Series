@@ -432,9 +432,9 @@ public final class WokRuntimeService {
         return true;
     }
 
-    /**
-     * 构建炒锅运行态快照。无食材时返回空。火力为下方热源实时计算值，不持久化。
-     */
+
+
+
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();

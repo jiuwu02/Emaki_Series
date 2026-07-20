@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Recursively detaches script-visible values into immutable, pure Java data. */
+
 public final class ScriptSnapshots {
 
     private ScriptSnapshots() {

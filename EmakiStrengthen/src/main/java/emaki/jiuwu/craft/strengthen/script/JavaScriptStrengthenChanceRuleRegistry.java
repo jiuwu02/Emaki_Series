@@ -29,7 +29,7 @@ import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 
 public final class JavaScriptStrengthenChanceRuleRegistry {
 
-    /** JavaScript registration type id for strengthen chance rules (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "strengthen_chance_rule";
 
     private final EmakiStrengthenPlugin plugin;

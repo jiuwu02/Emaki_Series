@@ -35,21 +35,21 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 
 import net.kyori.adventure.text.Component;
 
-/**
- * Re-pushes EmakiCodex advancements to already-online players after a reload, so the
- * client advancement screen refreshes without requiring a relog.
- *
- * <p>Minecraft only sends the advancement tree to a client at login. Runtime
- * registration via {@code Bukkit.getUnsafe().loadAdvancement} updates the server
- * registry but never re-notifies online clients. This service rebuilds the same
- * client-facing payload from {@link AdvancementRegistrar}'s ordered snapshot and sends
- * a {@link WrapperPlayServerUpdateAdvancements} with {@code reset=false} (append only,
- * never clearing vanilla/other-plugin advancements) to each online player.
- *
- * <p>This class references PacketEvents types directly, so it is only ever instantiated
- * by {@link AdvancementPacketGateway} after PacketEvents is confirmed present. When
- * PacketEvents is absent the class is never loaded, avoiding {@code NoClassDefFoundError}.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class AdvancementResyncService {
 
     private final JavaPlugin plugin;
@@ -58,11 +58,11 @@ public final class AdvancementResyncService {
     private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
 
-    /**
-     * @param plugin            the owning plugin (logger + key namespace)
-     * @param registrar         the registrar supplying the ordered node snapshot
-     * @param itemSourceService corelib service used to resolve an icon shorthand to an item
-     */
+
+
+
+
+
     public AdvancementResyncService(JavaPlugin plugin,
             AdvancementRegistrar registrar,
             ItemSourceService itemSourceService,
@@ -75,11 +75,11 @@ public final class AdvancementResyncService {
         this.threadOwnership = threadOwnership;
     }
 
-    /**
-     * Rebuilds the advancement payload once and pushes it to every online player.
-     *
-     * @return the number of players the packet was sent to
-     */
+
+
+
+
+
     public CompletableFuture<Integer> resyncAllAsync() {
         List<AdvancementHolder> holders = buildHolders();
         if (holders.isEmpty()) {
@@ -105,12 +105,12 @@ public final class AdvancementResyncService {
                 });
     }
 
-    /**
-     * Rebuilds the payload and pushes it to a single player (e.g. on demand).
-     *
-     * @param player the target player
-     * @return {@code true} when the packet was sent
-     */
+
+
+
+
+
+
     public boolean resync(Player player) {
         List<AdvancementHolder> holders = buildHolders();
         return !holders.isEmpty() && sendTo(player, holders);
@@ -157,11 +157,11 @@ public final class AdvancementResyncService {
         }
     }
 
-    /**
-     * Builds one {@link AdvancementHolder} per registered node from the registrar's
-     * ordered snapshot. A single malformed node is skipped rather than aborting the
-     * whole payload, so one bad icon never blocks the rest of the tree.
-     */
+
+
+
+
+
     private List<AdvancementHolder> buildHolders() {
         List<AdvancementHolder> holders = new ArrayList<>();
         for (AdvancementRegistrar.RegisteredNode node : registrar.registeredNodes()) {
@@ -220,7 +220,7 @@ public final class AdvancementResyncService {
         if (frame == null) {
             return AdvancementType.TASK;
         }
-        // Map by name; PacketEvents' enum order differs from the vanilla frame enum.
+
         return switch (frame) {
             case GOAL -> AdvancementType.GOAL;
             case CHALLENGE -> AdvancementType.CHALLENGE;

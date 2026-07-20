@@ -22,26 +22,26 @@ import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.config.SourceRuleConfig;
 import emaki.jiuwu.craft.level.service.SourceExperienceService;
 
-/**
- * Subscribes EmakiLevel to CoreLib's shared gameplay events and awards source experience.
- *
- * <p>This replaces the seven per-event {@code *SourceListener} classes. CoreLib's
- * {@link emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher} now owns the raw
- * Bukkit event handling, MythicMobs reflection, last-damager attribution and brew-stand user
- * tracking; everything that remains here is EmakiLevel's own <em>business policy</em> and is kept
- * intact:
- * <ul>
- *   <li>last-damager toggle — when {@code last_damager_tracking} is disabled, indirect kills
- *       (no {@code directKill}) are ignored, preserving the old behavior;</li>
- *   <li>anti-abuse — near-spawner scanning, player-placed-block tracking and the
- *       {@code ignore_player_placed_blocks} / {@code placed_block_exp} rules;</li>
- *   <li>per-source attribution windows for brewing;</li>
- *   <li>{@code include_players} for entity kills.</li>
- * </ul>
- *
- * <p>Subscriptions are owned by the plugin so they are released on {@link #unsubscribe()} or
- * plugin disable.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class LevelGameplaySubscriber {
 
     private final EmakiLevelPlugin plugin;
@@ -53,7 +53,7 @@ public final class LevelGameplaySubscriber {
         this.sourceService = new SourceExperienceService(plugin);
     }
 
-    /** Registers every gameplay subscription on the shared bus. */
+
     public void subscribe(EmakiEventBus eventBus) {
         subscribe(eventBus, EntityKillEvent.class, this::onEntityKill);
         subscribe(eventBus, MythicKillEvent.class, this::onMythicKill);
@@ -66,7 +66,7 @@ public final class LevelGameplaySubscriber {
         subscribe(eventBus, BrewGameplayEvent.class, this::onBrew);
     }
 
-    /** Releases every subscription created by {@link #subscribe(EmakiEventBus)}. */
+
     public void unsubscribe() {
         for (EmakiEventBus.Subscription subscription : subscriptions) {
             subscription.unsubscribe();
@@ -79,13 +79,13 @@ public final class LevelGameplaySubscriber {
         subscriptions.add(eventBus.subscribe(plugin, type, handler));
     }
 
-    // ------------------------------------------------------------------
-    // Combat
-    // ------------------------------------------------------------------
+
+
+
 
     private void onEntityKill(EntityKillEvent event) {
-        // Preserve the old last-damager toggle: with tracking off, only vanilla-attributed
-        // (direct) kills award experience.
+
+
         if (!event.directKill() && !plugin.appConfig().lastDamagerTracking()) {
             return;
         }
@@ -126,9 +126,9 @@ public final class LevelGameplaySubscriber {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Blocks
-    // ------------------------------------------------------------------
+
+
+
 
     private void onBlockPlace(BlockPlaceGameplayEvent event) {
         plugin.antiAbuseService().recordPlacedBlock(event.block().getLocation());
@@ -155,9 +155,9 @@ public final class LevelGameplaySubscriber {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Crafting / smelting
-    // ------------------------------------------------------------------
+
+
+
 
     private void onCraft(CraftGameplayEvent event) {
         int amount = Math.max(1, event.result().getAmount());
@@ -180,9 +180,9 @@ public final class LevelGameplaySubscriber {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Fishing / taming
-    // ------------------------------------------------------------------
+
+
+
 
     private void onFish(FishGameplayEvent event) {
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("player_fish")) {
@@ -203,9 +203,9 @@ public final class LevelGameplaySubscriber {
         }
     }
 
-    // ------------------------------------------------------------------
-    // Brewing
-    // ------------------------------------------------------------------
+
+
+
 
     private void onBrew(BrewGameplayEvent event) {
         String potionType = event.potionType();

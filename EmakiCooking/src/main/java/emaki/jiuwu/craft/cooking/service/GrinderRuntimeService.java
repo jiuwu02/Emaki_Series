@@ -265,9 +265,9 @@ public final class GrinderRuntimeService {
         return true;
     }
 
-    /**
-     * 构建研磨机运行态快照。无状态时返回空。研磨机无热源，进度按经过秒数计。
-     */
+
+
+
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();

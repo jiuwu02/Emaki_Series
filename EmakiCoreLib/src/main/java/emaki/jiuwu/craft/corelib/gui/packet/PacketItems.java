@@ -2,10 +2,10 @@ package emaki.jiuwu.craft.corelib.gui.packet;
 
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 
-/**
- * Bukkit ↔ PacketEvents {@code ItemStack} conversion helpers for the packet GUI
- * backend. Null/AIR Bukkit items map to the packet {@code EMPTY} stack.
- */
+
+
+
+
 final class PacketItems {
 
     private PacketItems() {

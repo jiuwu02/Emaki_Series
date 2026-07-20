@@ -40,9 +40,9 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Unit;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitKind;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
 
-/**
- * Durable one-file-per-operation journal for cooking-completion sagas.
- */
+
+
+
 public final class CookingCompletionJournalStore {
 
     private static final int SCHEMA_VERSION = 1;

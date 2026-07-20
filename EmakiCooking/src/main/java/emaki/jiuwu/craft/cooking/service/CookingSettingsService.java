@@ -1080,7 +1080,7 @@ public final class CookingSettingsService {
         return actions == null ? List.of() : actions;
     }
 
-    // ===================== 营养系统配置 =====================
+
 
     public boolean nutritionEnabled() {
         return configuration.getBoolean("nutrition.enabled", true);
@@ -1090,9 +1090,9 @@ public final class CookingSettingsService {
         return Math.max(0, configuration.getInt("nutrition.save_interval_seconds", 300));
     }
 
-    /**
-     * 食物来源规则：吃下匹配来源的物品时按配置增加营养值。
-     */
+
+
+
     public List<NutritionFoodSource> nutritionFoodSources() {
         List<NutritionFoodSource> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
@@ -1111,9 +1111,9 @@ public final class CookingSettingsService {
         return List.copyOf(result);
     }
 
-    /**
-     * 单营养类型阈值规则列表。
-     */
+
+
+
     public List<NutritionSingleThreshold> nutritionSingleThresholds() {
         List<NutritionSingleThreshold> result = new ArrayList<>();
         int index = 0;
@@ -1138,9 +1138,9 @@ public final class CookingSettingsService {
         return List.copyOf(result);
     }
 
-    /**
-     * 组合营养阈值规则列表（达标类型数量满足时触发，例如膳食均衡反胃）。
-     */
+
+
+
     public List<NutritionComboThreshold> nutritionComboThresholds() {
         List<NutritionComboThreshold> result = new ArrayList<>();
         int index = 0;

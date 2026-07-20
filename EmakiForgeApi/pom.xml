@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-forge-api</artifactId>
-    <version>4.5.5</version>
+    <version>4.5.6</version>
     <name>EmakiForgeApi</name>
     <packaging>jar</packaging>
 

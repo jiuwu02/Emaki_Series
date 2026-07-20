@@ -37,15 +37,15 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-/**
- * 通过 Graal 代理成员暴露项目脚本 API 宿主对象，并在所有参数/返回值边界执行深度快照。
- *
- * <p>Bukkit 插件类加载器可能让依赖插件类上的 {@code HostAccess.Export}
- * 注解无法被 CoreLib 创建的 Graal 上下文直接识别。该代理只按
- * HostAccess.Export 注解名称导出成员，避免放宽到 {@code HostAccess.ALL}
- * 或全量 public host access。除显式导出的 API 代理外，传给 JavaScript 的值
- * 只能是基础值、不可变集合或 detached Bukkit 快照。</p>
- */
+
+
+
+
+
+
+
+
+
 public final class ScriptHostObjectProxy implements ProxyObject {
 
     private static final String HOST_ACCESS_EXPORT = "org.graalvm.polyglot.HostAccess$Export";
@@ -62,16 +62,16 @@ public final class ScriptHostObjectProxy implements ProxyObject {
         this.fields = fields;
     }
 
-    /**
-     * Converts a script binding or exported API result to a safe guest value.
-     */
+
+
+
     public static Object wrapIfExported(Object value) {
         return expose(value, true, new IdentityHashMap<>(), 0);
     }
 
-    /**
-     * Produces a detached result value and rejects API/host proxies.
-     */
+
+
+
     public static Object snapshotValue(Object value) {
         return expose(value, false, new IdentityHashMap<>(), 0);
     }

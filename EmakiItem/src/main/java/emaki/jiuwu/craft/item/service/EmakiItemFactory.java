@@ -86,7 +86,7 @@ public final class EmakiItemFactory {
         if (itemStack == null) {
             return null;
         }
-        // amount<=0 means no explicit override and falls back to the definition amount.
+
         int resolved = amount > 0 ? amount : definition.amount();
         itemStack.setAmount(Math.max(1, Math.min(resolved, itemStack.getMaxStackSize())));
         return fireCreateEvent(id, itemStack.getAmount(), itemStack);

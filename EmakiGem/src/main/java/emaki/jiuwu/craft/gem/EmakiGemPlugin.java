@@ -69,6 +69,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\ \\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/  \\/_/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0x22D3EE;
+    private static final int STARTUP_ASCII_END_COLOR = 0xA855F7;
     private static final int BSTATS_PLUGIN_ID = 31767;
 
     private BStatsRegistration metrics;
@@ -129,7 +131,12 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
         if (languageLoader != null) {
