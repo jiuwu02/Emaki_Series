@@ -5,7 +5,6 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -41,7 +40,7 @@ final class GemGuiInteractionController {
     }
 
     private void scheduleRefresh(GemGuiSession state) {
-        FoliaSchedulerAdapter.runEntityTask(plugin, state.player(), () -> renderer.refreshGui(state));
+        plugin.executionDispatcher().runEntity(plugin, state.player(), () -> renderer.refreshGui(state));
     }
 
     private void scheduleSwitchIfNeeded(GemGuiSession state) {
@@ -52,7 +51,7 @@ final class GemGuiInteractionController {
         GuiTemplate template = GemGuiTemplates.resolveGemTemplate(plugin.guiTemplateLoader(), itemDefinition);
         String resolvedId = template == null ? "" : template.id();
         if (!resolvedId.equals(state.currentTemplateId())) {
-            FoliaSchedulerAdapter.runEntityTask(plugin, state.player(), () -> {
+            plugin.executionDispatcher().runEntity(plugin, state.player(), () -> {
                 if (!service.switchTemplate(state)) {
                     renderer.refreshGui(state);
                 }

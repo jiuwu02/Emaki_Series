@@ -16,6 +16,8 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
@@ -41,8 +43,11 @@ public final class ActionExecutor {
             @NotNull ActionRegistry registry,
             @NotNull ActionLineParser lineParser,
             @NotNull PlaceholderRegistry placeholderRegistry,
-            @NotNull ActionTemplateRegistry templateRegistry) {
-        this(plugin, registry, lineParser, placeholderRegistry, templateRegistry, null, null);
+            @NotNull ActionTemplateRegistry templateRegistry,
+            @NotNull ExecutionDispatcher executionDispatcher,
+            @NotNull PlatformCapabilities platformCapabilities) {
+        this(plugin, registry, lineParser, placeholderRegistry, templateRegistry,
+                executionDispatcher, platformCapabilities, null, null);
     }
 
     public ActionExecutor(@NotNull Plugin plugin,
@@ -50,6 +55,8 @@ public final class ActionExecutor {
             @NotNull ActionLineParser lineParser,
             @NotNull PlaceholderRegistry placeholderRegistry,
             @NotNull ActionTemplateRegistry templateRegistry,
+            @NotNull ExecutionDispatcher executionDispatcher,
+            @NotNull PlatformCapabilities platformCapabilities,
             @Nullable AsyncTaskScheduler asyncTaskScheduler,
             @Nullable PerformanceMonitor performanceMonitor) {
         this.plugin = plugin;
@@ -57,7 +64,8 @@ public final class ActionExecutor {
         this.lineParser = lineParser;
         this.placeholderRegistry = placeholderRegistry;
         this.templateProcessor = new ActionTemplateProcessor(plugin, templateRegistry);
-        this.dispatchScheduler = new ActionDispatchScheduler(plugin, asyncTaskScheduler, performanceMonitor);
+        this.dispatchScheduler = new ActionDispatchScheduler(
+                plugin, executionDispatcher, platformCapabilities, asyncTaskScheduler, performanceMonitor);
         this.invocationPlanner = new ActionInvocationPlanner(placeholderRegistry, dispatchScheduler);
     }
 

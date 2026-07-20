@@ -8,7 +8,9 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiRenderer;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -23,6 +25,8 @@ public final class GemGuiService {
 
     private final EmakiGemPlugin plugin;
     private final GuiService guiService;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private final GemGuiStateManager stateManager;
     private final GemGuiRenderer gemRenderer;
     private final GemOpenGuiRenderer openRenderer;
@@ -31,9 +35,14 @@ public final class GemGuiService {
     private final GemOpenGuiInteractionController openInteractionController;
     private final GemUpgradeGuiInteractionController upgradeInteractionController;
 
-    public GemGuiService(EmakiGemPlugin plugin, GuiService guiService) {
+    public GemGuiService(EmakiGemPlugin plugin,
+            GuiService guiService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.guiService = guiService;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         this.stateManager = new GemGuiStateManager();
         this.gemRenderer = new GemGuiRenderer(plugin);
         this.openRenderer = new GemOpenGuiRenderer(plugin);
@@ -48,6 +57,13 @@ public final class GemGuiService {
     }
 
     public boolean open(Player player, GemGuiMode mode) {
+        if (player == null) {
+            return false;
+        }
+        if (!threadOwnership.isEntityOwned(player)) {
+            plugin.getLogger().warning("Cannot open gem GUI outside player ownership: " + player.getUniqueId());
+            return false;
+        }
         return switch (normalizeMode(mode)) {
             case INLAY, EXTRACT -> openEmptyGem(player, mode);
             case OPEN_SOCKET -> openSocket(player, null);
@@ -64,7 +80,14 @@ public final class GemGuiService {
     }
 
     public boolean openSocket(Player player, ItemStack initialTarget) {
-        return openSocket(player, null, null);
+        if (player == null) {
+            return false;
+        }
+        if (!threadOwnership.isEntityOwned(player)) {
+            plugin.getLogger().warning("Cannot open socket GUI outside player ownership: " + player.getUniqueId());
+            return false;
+        }
+        return openSocket(player, initialTarget, null);
     }
 
     public boolean openUpgrade(Player player) {
@@ -72,7 +95,14 @@ public final class GemGuiService {
     }
 
     public boolean openUpgrade(Player player, ItemStack initialGem) {
-        return openUpgrade(player, null, null);
+        if (player == null) {
+            return false;
+        }
+        if (!threadOwnership.isEntityOwned(player)) {
+            plugin.getLogger().warning("Cannot open gem upgrade GUI outside player ownership: " + player.getUniqueId());
+            return false;
+        }
+        return openUpgrade(player, initialGem, null);
     }
 
     public boolean switchTemplate(GemGuiSession state) {
@@ -223,7 +253,7 @@ public final class GemGuiService {
             if (viewer == null) {
                 continue;
             }
-            if (!FoliaSchedulerAdapter.isFolia() && org.bukkit.Bukkit.isPrimaryThread()) {
+            if (threadOwnership.isEntityOwned(viewer)) {
                 close(viewer);
                 continue;
             }
@@ -238,14 +268,20 @@ public final class GemGuiService {
             CompletableFuture<Void> closed = new CompletableFuture<>();
             closes.add(closed);
             try {
-                Object scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, viewer, () -> {
-                    try {
-                        close(viewer);
-                        closed.complete(null);
-                    } catch (Throwable throwable) {
-                        closed.completeExceptionally(throwable);
-                    }
-                });
+                TaskHandle scheduled = executionDispatcher.runEntity(
+                        plugin,
+                        viewer,
+                        () -> {
+                            try {
+                                close(viewer);
+                                closed.complete(null);
+                            } catch (Throwable throwable) {
+                                closed.completeExceptionally(throwable);
+                            }
+                        },
+                        () -> closed.completeExceptionally(new IllegalStateException(
+                                "Viewer owner retired before gem session close: " + viewer.getUniqueId()))
+                );
                 if (scheduled == null) {
                     closed.completeExceptionally(new IllegalStateException(
                             "Viewer owner scheduler rejected gem session close: " + viewer.getUniqueId()));
@@ -259,14 +295,15 @@ public final class GemGuiService {
     }
 
     public void clearAllSessions() {
-        if (FoliaSchedulerAdapter.isFolia()) {
-            throw new IllegalStateException("Use clearAllSessionsAsync() on Folia");
-        }
         clearAllSessionsAsync().join();
     }
 
     public void close(Player player) {
         if (player == null) {
+            return;
+        }
+        if (!threadOwnership.isEntityOwned(player) && player.isOnline()) {
+            plugin.getLogger().warning("Cannot close gem GUI outside player ownership: " + player.getUniqueId());
             return;
         }
         guiService.close(player.getUniqueId());

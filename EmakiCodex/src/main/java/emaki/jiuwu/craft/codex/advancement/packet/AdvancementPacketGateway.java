@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.codex.advancement.packet;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -7,6 +9,8 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerCommon;
 
 import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 /**
@@ -32,6 +36,8 @@ public final class AdvancementPacketGateway {
     private final AdvancementRegistrar registrar;
     private final ItemSourceService itemSourceService;
     private final boolean enabled;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
 
     private PacketListenerCommon registeredListener;
     // Instantiated lazily (references PacketEvents types) only when PacketEvents is present.
@@ -46,11 +52,15 @@ public final class AdvancementPacketGateway {
     public AdvancementPacketGateway(JavaPlugin plugin,
             AdvancementRegistrar registrar,
             ItemSourceService itemSourceService,
-            boolean enabled) {
+            boolean enabled,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.registrar = registrar;
         this.itemSourceService = itemSourceService;
         this.enabled = enabled;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     /**
@@ -107,15 +117,15 @@ public final class AdvancementPacketGateway {
      *
      * @return the number of players re-synced, or {@code -1} when PacketEvents is unavailable
      */
-    public int resyncAll() {
+    public CompletableFuture<Integer> resyncAll() {
         if (!isPacketEventsPresent()) {
-            return -1;
+            return CompletableFuture.completedFuture(-1);
         }
         try {
-            return resyncService().resyncAll();
+            return resyncService().resyncAllAsync();
         } catch (Throwable throwable) {
             plugin.getLogger().warning("[Codex] Advancement resync skipped: " + throwable.getMessage());
-            return -1;
+            return CompletableFuture.completedFuture(-1);
         }
     }
 
@@ -129,7 +139,8 @@ public final class AdvancementPacketGateway {
      * @return {@code true} when the packet was sent
      */
     public boolean resync(org.bukkit.entity.Player player) {
-        if (player == null || !isPacketEventsPresent()) {
+        if (player == null || !isPacketEventsPresent()
+                || threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return false;
         }
         try {
@@ -143,7 +154,8 @@ public final class AdvancementPacketGateway {
 
     private AdvancementResyncService resyncService() {
         if (resyncService == null) {
-            resyncService = new AdvancementResyncService(plugin, registrar, itemSourceService);
+            resyncService = new AdvancementResyncService(
+                    plugin, registrar, itemSourceService, executionDispatcher, threadOwnership);
         }
         return resyncService;
     }

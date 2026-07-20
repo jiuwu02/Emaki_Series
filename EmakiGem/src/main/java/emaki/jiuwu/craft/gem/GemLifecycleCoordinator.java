@@ -13,11 +13,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.gem.script.ScriptGemModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -61,6 +62,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     @Override
     public GemRuntimeComponents initialize(EmakiGemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
+        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
         registerScriptModule(coreLibPlugin);
         releaseBundledScripts(coreLibPlugin, plugin);
@@ -91,7 +94,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                     }
                 }
         );
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
+        GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         GemItemMatcher itemMatcher = new GemItemMatcher(plugin, coreLibPlugin.itemSourceService());
@@ -116,14 +119,17 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 itemMatcher,
                 itemFactory,
                 stateService,
-                actionCoordinator
+                actionCoordinator,
+                threadOwnership
         );
         GemInlayService inlayService = new GemInlayService(
                 plugin,
                 itemMatcher,
                 stateService,
                 economyService,
-                actionCoordinator
+                actionCoordinator,
+                executionDispatcher,
+                threadOwnership
         );
         GemExtractService extractService = new GemExtractService(
                 plugin,
@@ -131,16 +137,22 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 itemFactory,
                 stateService,
                 economyService,
-                actionCoordinator
+                actionCoordinator,
+                executionDispatcher,
+                threadOwnership
         );
         GemUpgradeService upgradeService = new GemUpgradeService(
                 plugin,
                 itemFactory,
                 economyService,
-                actionCoordinator
+                actionCoordinator,
+                executionDispatcher,
+                threadOwnership
         );
-        GemGuiService gemGuiService = new GemGuiService(plugin, guiService);
+        GemGuiService gemGuiService = new GemGuiService(plugin, guiService, executionDispatcher, threadOwnership);
         return new GemRuntimeComponents(
+                executionDispatcher,
+                threadOwnership,
                 appConfigLoader,
                 languageLoader,
                 gemLoader,
@@ -181,7 +193,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         plugin.gemItemLoader().load();
         plugin.guiTemplateLoader().load();
         plugin.itemMatcher().refresh();
-        GemOperationJournal.forPlugin(plugin).recover(plugin.economyService());
+        GemOperationJournal.forPlugin(plugin, plugin.executionDispatcher(), plugin.threadOwnership()).recover(plugin.economyService());
         loadResonances(plugin);
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
         refreshOnlinePlayerItems(plugin);
@@ -218,10 +230,10 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                             "[Reload] Stage " + stage + " failed: " + ex.getMessage())
             )).thenCompose(_ -> {
                 notifyProgress(progressListener, "Applying configuration...");
-                return scheduler.callSync("gem-reload-apply", () -> {
+                return submitGlobalStage(plugin, () -> {
                     plugin.languageLoader().setLanguage(plugin.appConfig().language());
                     plugin.itemMatcher().refresh();
-                    GemOperationJournal.forPlugin(plugin).recover(plugin.economyService());
+                    GemOperationJournal.forPlugin(plugin, plugin.executionDispatcher(), plugin.threadOwnership()).recover(plugin.economyService());
                     loadResonances(plugin);
                     syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
                     refreshOnlinePlayerItems(plugin);
@@ -230,10 +242,22 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                             "count", String.valueOf(plugin.gemLoader().all().size())
                     ));
                     notifyProgress(progressListener, "Reload complete.");
-                    return null;
                 });
             });
         });
+    }
+
+    private CompletableFuture<Void> submitGlobalStage(EmakiGemPlugin plugin, Runnable stage) {
+        try {
+            return plugin.executionDispatcher().submitGlobal(plugin, () -> {
+                stage.run();
+                return null;
+            });
+        } catch (Throwable throwable) {
+            CompletableFuture<Void> failed = new CompletableFuture<>();
+            failed.completeExceptionally(throwable);
+            return failed;
+        }
     }
 
     private void refreshOnlinePlayerItems(EmakiGemPlugin plugin) {
@@ -252,14 +276,10 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
             plugin.pdcAttributeGateway().shutdown();
         }
         if (plugin.gemGuiService() != null) {
-            if (FoliaSchedulerAdapter.isFolia()) {
-                plugin.gemGuiService().clearAllSessionsAsync().exceptionally(throwable -> {
-                    plugin.getLogger().warning("Failed to close gem GUI sessions during shutdown: " + throwable.getMessage());
-                    return null;
-                });
-            } else {
-                plugin.gemGuiService().clearAllSessions();
-            }
+            plugin.gemGuiService().clearAllSessionsAsync().exceptionally(throwable -> {
+                plugin.getLogger().warning("Failed to close gem GUI sessions during shutdown: " + throwable.getMessage());
+                return null;
+            });
         }
     }
 

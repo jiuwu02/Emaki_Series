@@ -33,8 +33,8 @@ import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
@@ -48,13 +48,21 @@ public final class MmoItemsBridge implements Listener {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
+    private final ExecutionDispatcher executionDispatcher;
     private final DirectMmoItemsAccessor accessor;
     private final AttributeContributionProvider contributionProvider;
     private final Set<UUID> trackedProjectiles = ConcurrentHashMap.newKeySet();
 
     public MmoItemsBridge(EmakiAttributePlugin plugin, AttributeService attributeService) {
+        this(plugin, attributeService, null);
+    }
+
+    public MmoItemsBridge(EmakiAttributePlugin plugin,
+            AttributeService attributeService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.attributeService = attributeService;
+        this.executionDispatcher = executionDispatcher;
         this.accessor = new DirectMmoItemsAccessor(plugin);
         this.contributionProvider = new MmoItemsAttributeContributionProvider();
         this.attributeService.registerContributionProvider(contributionProvider);
@@ -225,29 +233,41 @@ public final class MmoItemsBridge implements Listener {
         }
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, target, () -> {
-                if (!target.isValid() || target.isDead()) {
-                    future.complete(false);
-                    return;
-                }
-                try {
-                    target.setNoDamageTicks(0);
-                    double remaining = Math.max(0D, damage);
-                    double absorption = Math.max(0D, target.getAbsorptionAmount());
-                    if (absorption > 0D) {
-                        double absorbed = Math.min(absorption, remaining);
-                        target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
-                        remaining -= absorbed;
-                    }
-                    target.setLastDamage(damage);
-                    if (remaining > 0D) {
-                        target.setHealth(Math.max(0D, target.getHealth() - remaining));
-                    }
-                    future.complete(true);
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            });
+            ExecutionDispatcher dispatcher = executionDispatcher != null ? executionDispatcher : plugin.executionDispatcher();
+            if (dispatcher == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "MMOItems fallback damage dispatcher is unavailable."));
+                return future;
+            }
+            var scheduled = dispatcher.runEntity(
+                    plugin,
+                    target,
+                    () -> {
+                        if (!target.isValid() || target.isDead()) {
+                            future.complete(false);
+                            return;
+                        }
+                        try {
+                            target.setNoDamageTicks(0);
+                            double remaining = Math.max(0D, damage);
+                            double absorption = Math.max(0D, target.getAbsorptionAmount());
+                            if (absorption > 0D) {
+                                double absorbed = Math.min(absorption, remaining);
+                                target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
+                                remaining -= absorbed;
+                            }
+                            target.setLastDamage(damage);
+                            if (remaining > 0D) {
+                                target.setHealth(Math.max(0D, target.getHealth() - remaining));
+                            }
+                            future.complete(true);
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    },
+                    () -> future.completeExceptionally(new IllegalStateException(
+                            "MMOItems fallback damage entity retired before execution."))
+            );
             if (scheduled == null) {
                 future.completeExceptionally(new IllegalStateException(
                         "MMOItems fallback damage scheduling was rejected."));

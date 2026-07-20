@@ -10,7 +10,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -18,8 +17,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -49,6 +48,7 @@ public final class EmakiItemSetService {
     private final Supplier<AppConfig> configSupplier;
     private final Supplier<DebugLogger> debugLoggerSupplier;
     private final Logger logger;
+    private final ThreadOwnership threadOwnership;
     private final Set<String> warnedMissingSetDefinitions = java.util.concurrent.ConcurrentHashMap.newKeySet();
     // 记录每个玩家上次各套装的激活件数，用于边沿触发 ItemSetBonusChangeEvent，避免每次背包刷新都派发。
     private final Map<java.util.UUID, Map<String, Integer>> lastActiveCounts = new java.util.concurrent.ConcurrentHashMap<>();
@@ -60,7 +60,7 @@ public final class EmakiItemSetService {
             EmakiItemPdcWriter pdcWriter,
             ItemSetLoreRenderer loreRenderer,
             Supplier<AppConfig> configSupplier) {
-        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, () -> null, null, null);
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, () -> null, null, null, null);
     }
 
     public EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -71,7 +71,7 @@ public final class EmakiItemSetService {
             ItemSetLoreRenderer loreRenderer,
             Supplier<AppConfig> configSupplier,
             Supplier<DebugLogger> debugLoggerSupplier) {
-        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, debugLoggerSupplier, null, null);
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, debugLoggerSupplier, null, null, null);
     }
 
     public EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -83,7 +83,22 @@ public final class EmakiItemSetService {
             Supplier<AppConfig> configSupplier,
             Supplier<DebugLogger> debugLoggerSupplier,
             Logger logger) {
-        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, debugLoggerSupplier, logger, null);
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier,
+                debugLoggerSupplier, logger, null, null);
+    }
+
+    public EmakiItemSetService(EmakiItemLoader itemLoader,
+            EmakiItemSetLoader setLoader,
+            EmakiItemFactory itemFactory,
+            EmakiItemIdentifier identifier,
+            EmakiItemPdcWriter pdcWriter,
+            ItemSetLoreRenderer loreRenderer,
+            Supplier<AppConfig> configSupplier,
+            Supplier<DebugLogger> debugLoggerSupplier,
+            Logger logger,
+            ThreadOwnership threadOwnership) {
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier,
+                debugLoggerSupplier, logger, null, threadOwnership);
     }
 
     EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -94,7 +109,8 @@ public final class EmakiItemSetService {
             ItemSetLoreRenderer loreRenderer,
             Supplier<AppConfig> configSupplier,
             ItemOperationLedger itemOperationLedger) {
-        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier, () -> null, null, itemOperationLedger);
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier,
+                () -> null, null, itemOperationLedger, null);
     }
 
     private EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -106,7 +122,8 @@ public final class EmakiItemSetService {
             Supplier<AppConfig> configSupplier,
             Supplier<DebugLogger> debugLoggerSupplier,
             Logger logger,
-            ItemOperationLedger itemOperationLedger) {
+            ItemOperationLedger itemOperationLedger,
+            ThreadOwnership threadOwnership) {
         this.itemLoader = itemLoader;
         this.setLoader = setLoader;
         this.itemFactory = itemFactory;
@@ -116,6 +133,7 @@ public final class EmakiItemSetService {
         this.configSupplier = configSupplier;
         this.debugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
         this.logger = logger;
+        this.threadOwnership = threadOwnership;
         this.itemOperationLedger = itemOperationLedger == null ? new ItemOperationLedger(this.debugLoggerSupplier) : itemOperationLedger;
     }
 
@@ -199,8 +217,8 @@ public final class EmakiItemSetService {
                 current.putIfAbsent(setId, preservedCount);
             }
         }
-        // 套装激活件数变化对外开放，after 边沿通知；仅在主线程派发。
-        boolean primaryThread = org.bukkit.Bukkit.isPrimaryThread();
+        // 套装激活件数变化对外开放，after 边沿通知；仅在当前线程拥有玩家实体时派发。
+        boolean entityOwned = threadOwnership != null && threadOwnership.isEntityOwned(player);
         Set<String> setIds = new LinkedHashSet<>(previous.keySet());
         setIds.addAll(current.keySet());
         for (String setId : setIds) {
@@ -209,7 +227,7 @@ public final class EmakiItemSetService {
             if (oldCount == newCount) {
                 continue;
             }
-            if (primaryThread) {
+            if (entityOwned) {
                 EquippedSetState state = states.get(setId);
                 int totalPieces = state != null && state.definition() != null ? state.definition().totalPieces() : 0;
                 List<Integer> activeThresholds = state == null
@@ -833,9 +851,8 @@ public final class EmakiItemSetService {
                 + " current=" + before.current() + "->" + after.current()
                 + " changed=" + changed
                 + " committed=" + committed
-                + " folia=" + FoliaSchedulerAdapter.isFolia()
-                + " primary=" + Bukkit.isPrimaryThread()
-                + " owner=" + Bukkit.isOwnedByCurrentRegion(player)
+                + " global_owner=" + (threadOwnership != null && threadOwnership.isGlobalOwned())
+                + " owner=" + (threadOwnership != null && threadOwnership.isEntityOwned(player))
                 + " thread=" + Thread.currentThread().getName());
     }
 
@@ -854,7 +871,7 @@ public final class EmakiItemSetService {
                 + " item=" + Texts.toStringSafe(itemId)
                 + " operation=" + Texts.toStringSafe(operation)
                 + " committed=" + committed
-                + " owner=" + Bukkit.isOwnedByCurrentRegion(player)
+                + " owner=" + (threadOwnership != null && threadOwnership.isEntityOwned(player))
                 + " thread=" + Thread.currentThread().getName());
     }
 

@@ -15,8 +15,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -38,12 +40,18 @@ final class LevelOperationJournal {
     }
 
     private final Plugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private final Path activeDirectory;
     private final Path completedDirectory;
     private final Object ioLock = new Object();
 
-    LevelOperationJournal(Plugin plugin) {
+    LevelOperationJournal(Plugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         Path root = plugin.getDataFolder().toPath().resolve("data/operation-journal");
         this.activeDirectory = root.resolve("active");
         this.completedDirectory = root.resolve("completed");
@@ -164,12 +172,17 @@ final class LevelOperationJournal {
                         result.remainingCurrencies(), result.remainingMaterials(), "refund_failed"));
             }
         };
-        if (!FoliaSchedulerAdapter.isFolia() && Bukkit.isPrimaryThread()) {
+        if (threadOwnership.isEntityOwned(player)) {
             recovery.run();
             return;
         }
         try {
-            Object scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, player, recovery);
+            TaskHandle scheduled = executionDispatcher.runEntity(
+                    plugin,
+                    player,
+                    recovery,
+                    () -> compensationPending(entry.operationId(), "owner_schedule_retired")
+            );
             if (scheduled == null) {
                 compensationPending(entry.operationId(), "owner_schedule_rejected");
             }

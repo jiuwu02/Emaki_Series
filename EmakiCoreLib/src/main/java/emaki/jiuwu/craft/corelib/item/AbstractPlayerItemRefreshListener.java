@@ -17,16 +17,18 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 
 public abstract class AbstractPlayerItemRefreshListener implements Listener {
 
     private final JavaPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final Map<UUID, TaskHandle> scheduledRefreshes = new HashMap<>();
 
-    protected AbstractPlayerItemRefreshListener(JavaPlugin plugin) {
+    protected AbstractPlayerItemRefreshListener(JavaPlugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
+        this.executionDispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
     }
 
     protected abstract PlayerItemRefreshService refreshService();
@@ -73,7 +75,9 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
     @EventHandler
     public final void onQuit(PlayerQuitEvent event) {
         TaskHandle task = scheduledRefreshes.remove(event.getPlayer().getUniqueId());
-        FoliaSchedulerAdapter.cancelTask(task);
+        if (task != null) {
+            task.cancel();
+        }
     }
 
     protected final void scheduleRefresh(Player player) {
@@ -84,7 +88,7 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
         if (scheduledRefreshes.containsKey(playerId)) {
             return;
         }
-        TaskHandle task = FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+        TaskHandle task = executionDispatcher.runEntity(plugin, player, () -> {
             scheduledRefreshes.remove(playerId);
             if (!player.isOnline()) {
                 return;
@@ -93,7 +97,7 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
             if (refreshService != null) {
                 refreshService.refreshPlayerInventory(player);
             }
-        });
+        }, () -> scheduledRefreshes.remove(playerId));
         if (task != null) {
             scheduledRefreshes.put(playerId, task);
         }

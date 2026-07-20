@@ -17,7 +17,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
@@ -26,10 +26,12 @@ import emaki.jiuwu.craft.gem.model.GemState;
 public final class GemItemObtainListener implements Listener {
 
     private final EmakiGemPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final Set<UUID> pendingRefreshes = ConcurrentHashMap.newKeySet();
 
-    public GemItemObtainListener(EmakiGemPlugin plugin) {
+    public GemItemObtainListener(EmakiGemPlugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
     }
 
     @EventHandler
@@ -81,7 +83,7 @@ public final class GemItemObtainListener implements Listener {
         if (!pendingRefreshes.add(playerId)) {
             return;
         }
-        if (FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+        if (executionDispatcher.runEntity(plugin, player, () -> {
             try {
                 refreshInventory(plugin, player);
             } finally {

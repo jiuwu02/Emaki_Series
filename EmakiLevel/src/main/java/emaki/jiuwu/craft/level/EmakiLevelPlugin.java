@@ -21,7 +21,9 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -113,6 +115,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private static final Set<String> DEBUG_MODULES = Set.of("script");
 
     private EmakiCoreLibPlugin coreLib;
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private AppConfig appConfig = AppConfig.defaults();
     private LevelMessageService messages;
     private DebugLogger debugLogger;
@@ -286,16 +290,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         if (target == null || !target.isOnline()) {
             return false;
         }
-        if (!FoliaSchedulerAdapter.isFolia()) {
-            return Bukkit.isPrimaryThread();
-        }
-        try {
-            return Boolean.TRUE.equals(Bukkit.class
-                    .getMethod("isOwnedByCurrentRegion", org.bukkit.entity.Entity.class)
-                    .invoke(null, target));
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            return false;
-        }
+        return threadOwnership != null && threadOwnership.isEntityOwned(target);
     }
 
     private LevelOperationResult ownerFailure(LevelOperationType operationType, String typeId) {
@@ -316,13 +311,18 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         }
         CompletableFuture<LevelOperationResult> future = new CompletableFuture<>();
         try {
-            Object scheduled = FoliaSchedulerAdapter.runEntityTask(EmakiLevelPlugin.this, target, () -> {
-                try {
-                    future.complete(operation.get());
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            });
+            TaskHandle scheduled = executionDispatcher.runEntity(
+                    EmakiLevelPlugin.this,
+                    target,
+                    () -> {
+                        try {
+                            future.complete(operation.get());
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    },
+                    () -> future.complete(LevelOperationResult.failure("owner_schedule_retired", operationType, typeId))
+            );
             if (scheduled == null) {
                 future.complete(LevelOperationResult.failure("owner_schedule_rejected", operationType, typeId));
             }
@@ -336,6 +336,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     public void onEnable() {
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
         coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        executionDispatcher = coreLib.executionDispatcher();
+        threadOwnership = coreLib.threadOwnership();
         initializeServices();
         registerConfigPrecheckContributor();
         messages.info("console.plugin_starting");
@@ -488,7 +490,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         requirementLoader = new RequirementLoader(this);
         sourceRuleLoader = new SourceRuleLoader(this);
         guiTemplateLoader = new GuiTemplateLoader(this);
-        guiService = new GuiService(this, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
+        guiService = new GuiService(this, executionDispatcher, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
         typeRegistry = new LevelTypeRegistry();
         requirementService = new RequirementService();
         var playerDataFiles = coreLib.asyncYamlFiles(this);
@@ -513,12 +515,14 @@ public final class EmakiLevelPlugin extends JavaPlugin {
                 coreLib.itemSourceService(),
                 coreLib.economyManager(),
                 coreLib.actionExecutor(),
+                executionDispatcher,
+                threadOwnership,
                 appConfig,
                 () -> attributeBridge.resyncAll(),
                 player -> attributeBridge.resync(player),
                 data -> topService.update(data)
         );
-        playerDataListener = new PlayerDataListener(this);
+        playerDataListener = new PlayerDataListener(this, executionDispatcher);
         levelGuiService = new LevelGuiService(this, guiService, guiTemplateLoader);
         levelTopGuiService = new LevelTopGuiService(this, guiService, guiTemplateLoader);
     }
@@ -670,6 +674,14 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
     public EmakiCoreLibPlugin coreLib() {
         return coreLib;
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     public LevelTopService topService() {

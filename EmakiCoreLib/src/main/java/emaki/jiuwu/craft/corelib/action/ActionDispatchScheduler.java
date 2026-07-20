@@ -10,25 +10,28 @@ import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
 final class ActionDispatchScheduler {
 
     private final Plugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    private final PlatformCapabilities platformCapabilities;
     private final AsyncTaskScheduler asyncTaskScheduler;
     private final PerformanceMonitor performanceMonitor;
 
-    ActionDispatchScheduler(Plugin plugin) {
-        this(plugin, null, null);
-    }
-
     ActionDispatchScheduler(Plugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            PlatformCapabilities platformCapabilities,
             AsyncTaskScheduler asyncTaskScheduler,
             PerformanceMonitor performanceMonitor) {
         this.plugin = plugin;
+        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
+        this.platformCapabilities = java.util.Objects.requireNonNull(platformCapabilities, "platformCapabilities");
         this.asyncTaskScheduler = asyncTaskScheduler;
         this.performanceMonitor = performanceMonitor;
     }
@@ -65,11 +68,17 @@ final class ActionDispatchScheduler {
                     : target.failure().errorMessage();
             return CompletableFuture.failedFuture(new IllegalStateException(message));
         }
+        if (!platformCapabilities.supports(target.domain())) {
+            return CompletableFuture.failedFuture(new IllegalStateException(
+                    "Action execution domain is not supported: " + target.domain()));
+        }
         CompletableFuture<T> future = new CompletableFuture<>();
         long safeDelay = Math.max(0L, delayTicks);
         Runnable invocation = () -> invoke(taskName, task, future);
+        Runnable retired = () -> future.completeExceptionally(new IllegalStateException(
+                "Action entity retired before execution for plugin " + effectiveOwner.getName() + "."));
         try {
-            TaskHandle handle = schedule(effectiveOwner, target, invocation, safeDelay);
+            TaskHandle handle = schedule(effectiveOwner, target, invocation, retired, safeDelay);
             if (handle == null && !future.isDone()) {
                 future.completeExceptionally(new IllegalStateException(
                         "Action scheduler rejected execution for plugin " + effectiveOwner.getName() + "."));
@@ -91,14 +100,18 @@ final class ActionDispatchScheduler {
         long safeDelay = Math.max(0L, delayTicks);
         if (safeDelay > 0L) {
             CompletableFuture<ActionResult> future = new CompletableFuture<>();
-            TaskHandle handle = FoliaSchedulerAdapter.runAsyncLater(plugin,
-                    () -> dispatchLegacyAsync(0L, taskName, timeoutMillis, task)
-                            .whenComplete((result, throwable) -> completeLegacy(future, result, throwable)),
-                    Math.multiplyExact(safeDelay, 50L),
-                    TimeUnit.MILLISECONDS);
-            if (handle == null) {
-                future.complete(ActionResult.failure(ActionErrorType.INVALID_STATE,
-                        "Source plugin is disabled."));
+            try {
+                TaskHandle handle = executionDispatcher.runAsyncLater(plugin,
+                        () -> dispatchLegacyAsync(0L, taskName, timeoutMillis, task)
+                                .whenComplete((result, throwable) -> completeLegacy(future, result, throwable)),
+                        Math.multiplyExact(safeDelay, 50L),
+                        TimeUnit.MILLISECONDS);
+                if (handle == null) {
+                    future.complete(ActionResult.failure(ActionErrorType.INVALID_STATE,
+                            "Async action delay scheduling was rejected."));
+                }
+            } catch (Throwable throwable) {
+                future.complete(failure(throwable));
             }
             return future;
         }
@@ -112,29 +125,34 @@ final class ActionDispatchScheduler {
     private TaskHandle schedule(Plugin owner,
             ActionExecutionTarget target,
             Runnable task,
+            Runnable retired,
             long delayTicks) {
         ExecutionDomain domain = target.domain();
         return switch (domain) {
             case SERVER_GLOBAL -> delayTicks > 0L
-                    ? FoliaSchedulerAdapter.runTaskLater(owner, task, delayTicks)
-                    : FoliaSchedulerAdapter.runTask(owner, task);
-            case ENTITY -> scheduleEntity(owner, target.entity(), task, delayTicks);
+                    ? executionDispatcher.runGlobalLater(owner, task, delayTicks)
+                    : executionDispatcher.runGlobal(owner, task);
+            case ENTITY -> scheduleEntity(owner, target.entity(), task, retired, delayTicks);
             case LOCATION_REGION -> scheduleLocation(owner, target.location(), task, delayTicks);
             case ASYNC_COMPUTE -> delayTicks > 0L
-                    ? FoliaSchedulerAdapter.runAsyncLater(owner, task,
+                    ? executionDispatcher.runAsyncLater(owner, task,
                             Math.multiplyExact(delayTicks, 50L), TimeUnit.MILLISECONDS)
-                    : FoliaSchedulerAdapter.runAsync(owner, task);
+                    : executionDispatcher.runAsync(owner, task);
             case PHYSICAL_FILE -> null;
         };
     }
 
-    private TaskHandle scheduleEntity(Plugin owner, Entity entity, Runnable task, long delayTicks) {
+    private TaskHandle scheduleEntity(Plugin owner,
+            Entity entity,
+            Runnable task,
+            Runnable retired,
+            long delayTicks) {
         if (entity == null) {
             return null;
         }
         return delayTicks > 0L
-                ? FoliaSchedulerAdapter.runEntityTaskLater(owner, entity, task, delayTicks)
-                : FoliaSchedulerAdapter.runEntityTask(owner, entity, task);
+                ? executionDispatcher.runEntityLater(owner, entity, task, retired, delayTicks)
+                : executionDispatcher.runEntity(owner, entity, task, retired);
     }
 
     private TaskHandle scheduleLocation(Plugin owner, Location location, Runnable task, long delayTicks) {
@@ -142,8 +160,8 @@ final class ActionDispatchScheduler {
             return null;
         }
         return delayTicks > 0L
-                ? FoliaSchedulerAdapter.runAtLocationLater(owner, location, task, delayTicks)
-                : FoliaSchedulerAdapter.runAtLocation(owner, location, task);
+                ? executionDispatcher.runAtLocationLater(owner, location, task, delayTicks)
+                : executionDispatcher.runAtLocation(owner, location, task);
     }
 
     private <T> void invoke(String taskName,

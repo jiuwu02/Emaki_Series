@@ -17,6 +17,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -73,13 +75,15 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private final StrengthenLifecycleCoordinator lifecycleCoordinator = new StrengthenLifecycleCoordinator();
     private final StrengthenCommandRouter commandRouter = new StrengthenCommandRouter(this);
-    private final StrengthenItemRefreshListener itemRefreshListener = new StrengthenItemRefreshListener(this);
+    private StrengthenItemRefreshListener itemRefreshListener;
     private ItemSourceService coreItemSourceService;
     private DebugCommand debugCommand;
     private final GuiItemBuilder.ItemFactory coreItemFactory = (source, amount) -> {
         return coreItemSourceService == null ? null : coreItemSourceService.createItem(source, amount);
     };
 
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private StrengthenRecipeLoader recipeLoader;
@@ -188,6 +192,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void applyRuntimeComponents(StrengthenRuntimeComponents components) {
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
+        itemRefreshListener = new StrengthenItemRefreshListener(this, executionDispatcher);
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
         recipeLoader = components.recipeLoader();
@@ -274,6 +281,14 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     public GuiService guiService() {

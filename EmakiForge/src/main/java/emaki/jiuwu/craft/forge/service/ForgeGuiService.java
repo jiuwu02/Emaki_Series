@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.forge.service;
 
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -17,13 +19,22 @@ public final class ForgeGuiService {
     private final ForgeGuiRenderer renderer;
     private final ForgeGuiInteractionController interactionController;
 
-    public ForgeGuiService(EmakiForgePlugin plugin, GuiService guiService) {
+    public ForgeGuiService(EmakiForgePlugin plugin,
+            GuiService guiService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.guiService = guiService;
         this.stateManager = new GuiStateManager();
         this.stateSupport = new ForgeGuiStateSupport(plugin);
         this.renderer = new ForgeGuiRenderer(plugin, stateSupport);
-        this.interactionController = new ForgeGuiInteractionController(plugin, stateManager, stateSupport, renderer);
+        this.interactionController = new ForgeGuiInteractionController(
+                plugin,
+                stateManager,
+                stateSupport,
+                renderer,
+                executionDispatcher,
+                threadOwnership);
     }
 
     public boolean openForgeGui(Player player, Recipe recipe) {

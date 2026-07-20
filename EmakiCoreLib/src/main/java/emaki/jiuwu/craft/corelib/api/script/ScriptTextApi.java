@@ -13,8 +13,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.graalvm.polyglot.HostAccess;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.script.ScriptDeferredOperationQueue;
 import emaki.jiuwu.craft.corelib.script.ScriptDeferredOperationQueue.OperationResult;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -24,19 +24,23 @@ import net.kyori.adventure.text.Component;
 public final class ScriptTextApi {
 
     private final Plugin sourcePlugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final ScriptDeferredOperationQueue deferredOperations;
     private final Server server;
 
     public ScriptTextApi() {
-        this(null, null);
+        this(null, null, null);
     }
 
     public ScriptTextApi(Plugin sourcePlugin) {
-        this(sourcePlugin, null);
+        this(sourcePlugin, null, null);
     }
 
-    public ScriptTextApi(Plugin sourcePlugin, ScriptDeferredOperationQueue deferredOperations) {
+    public ScriptTextApi(Plugin sourcePlugin,
+            ExecutionDispatcher executionDispatcher,
+            ScriptDeferredOperationQueue deferredOperations) {
         this.sourcePlugin = sourcePlugin;
+        this.executionDispatcher = executionDispatcher;
         this.deferredOperations = deferredOperations;
         this.server = sourcePlugin == null ? null : sourcePlugin.getServer();
     }
@@ -132,7 +136,7 @@ public final class ScriptTextApi {
     }
 
     private boolean canDefer(String miniMessage) {
-        return sourcePlugin != null && deferredOperations != null && Texts.isNotBlank(miniMessage);
+        return sourcePlugin != null && executionDispatcher != null && deferredOperations != null && Texts.isNotBlank(miniMessage);
     }
 
     private Object unwrap(Object target) {
@@ -187,7 +191,7 @@ public final class ScriptTextApi {
             java.util.function.Supplier<? extends CompletionStage<OperationResult>> operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            TaskHandle handle = FoliaSchedulerAdapter.runTask(sourcePlugin, () -> {
+            TaskHandle handle = executionDispatcher.runGlobal(sourcePlugin, () -> {
                 try {
                     CompletionStage<OperationResult> stage = operation.get();
                     if (stage == null) {
@@ -212,14 +216,15 @@ public final class ScriptTextApi {
     private CompletableFuture<OperationResult> schedulePlayer(Player player, Consumer<Player> operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            TaskHandle handle = FoliaSchedulerAdapter.runEntityTask(sourcePlugin, player, () -> {
+            TaskHandle handle = executionDispatcher.runEntity(sourcePlugin, player, () -> {
                 try {
                     operation.accept(player);
                     future.complete(OperationResult.ok());
                 } catch (Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
-            });
+            }, () -> future.complete(OperationResult.failure(
+                    "Deferred player text operation target retired before execution.")));
             if (handle == null) {
                 future.complete(OperationResult.failure(
                         "Deferred player text operation scheduling was rejected."));

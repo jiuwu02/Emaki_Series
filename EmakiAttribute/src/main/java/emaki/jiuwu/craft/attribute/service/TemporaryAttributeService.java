@@ -18,7 +18,7 @@ import org.bukkit.entity.LivingEntity;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class TemporaryAttributeService implements AutoCloseable {
@@ -344,14 +344,23 @@ public final class TemporaryAttributeService implements AutoCloseable {
         if (plugin == null || !plugin.isEnabled()) {
             return;
         }
-        FoliaSchedulerAdapter.runTask(plugin, () -> {
+        ExecutionDispatcher dispatcher = dispatcher();
+        if (dispatcher == null) {
+            return;
+        }
+        dispatcher.runGlobal(plugin, () -> {
             for (UUID entityId : entityIds) {
                 Entity entity = Bukkit.getEntity(entityId);
                 if (entity instanceof LivingEntity livingEntity && livingEntity.isValid()) {
-                    FoliaSchedulerAdapter.runEntityTask(plugin, livingEntity, () -> invalidateEntity(livingEntity));
+                    dispatcher.runEntity(plugin, livingEntity, () -> invalidateEntity(livingEntity));
                 }
             }
         });
+    }
+
+    private ExecutionDispatcher dispatcher() {
+        ExecutionDispatcher dispatcher = attributeService == null ? null : attributeService.executionDispatcher();
+        return dispatcher != null ? dispatcher : plugin.executionDispatcher();
     }
 
     private void invalidateEntity(LivingEntity entity) {

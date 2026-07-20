@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.attribute.service.MessageService;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -39,10 +39,18 @@ public final class AttributeCommand implements TabExecutor {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
+    private final ExecutionDispatcher executionDispatcher;
 
     public AttributeCommand(EmakiAttributePlugin plugin, AttributeService attributeService) {
+        this(plugin, attributeService, null);
+    }
+
+    public AttributeCommand(EmakiAttributePlugin plugin,
+            AttributeService attributeService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.attributeService = attributeService;
+        this.executionDispatcher = executionDispatcher;
     }
 
     @Override
@@ -166,7 +174,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         messages().send(sender, "command.reload.started");
-        plugin.reloadPluginStateAsync(true, message -> FoliaSchedulerAdapter.runTask(plugin, () -> messages().sendRaw(sender, message)))
+        plugin.reloadPluginStateAsync(true, message -> runGlobal(() -> messages().sendRaw(sender, message)))
                 .thenRun(() -> messages().send(sender, "command.reload.success"))
                 .thenRun(() -> messages().send(sender, "command.reload.summary", Map.of(
                         "attributes", attributeService.attributeRegistry().all().size(),
@@ -174,12 +182,24 @@ public final class AttributeCommand implements TabExecutor {
                         "profiles", attributeService.defaultProfileRegistry().all().size()
                 )))
                 .exceptionally(throwable -> {
-                    FoliaSchedulerAdapter.runTask(plugin, () -> messages().send(sender, "command.reload.failed", Map.of(
+                    runGlobal(() -> messages().send(sender, "command.reload.failed", Map.of(
                             "error", CombatSupport.rootCauseMessage(throwable)
                     )));
                     return null;
                 });
         return true;
+    }
+
+    private void runGlobal(Runnable task) {
+        if (task == null) {
+            return;
+        }
+        ExecutionDispatcher dispatcher = executionDispatcher != null ? executionDispatcher : plugin.executionDispatcher();
+        if (dispatcher != null) {
+            dispatcher.runGlobal(plugin, task);
+            return;
+        }
+        task.run();
     }
 
     private boolean handleResync(CommandSender sender, String[] args) {

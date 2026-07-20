@@ -13,7 +13,6 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -155,10 +154,10 @@ final class StrengthenCommandRouter implements TabExecutor {
 
     private void runForSender(CommandSender sender, Runnable task) {
         if (sender instanceof Player player) {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            plugin.executionDispatcher().runEntity(plugin, player, task);
             return;
         }
-        FoliaSchedulerAdapter.runTask(plugin, task);
+        plugin.executionDispatcher().runGlobal(plugin, task);
     }
 
     private boolean handleInspect(CommandSender sender, String[] args) {

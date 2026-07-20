@@ -13,7 +13,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
-import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
@@ -85,8 +84,7 @@ public final class JavaScriptStrengthenResultHookRegistry {
             return;
         }
         EmakiCoreLibPlugin coreLib = coreLib();
-        AsyncTaskScheduler scheduler = coreLib == null ? null : coreLib.asyncTaskScheduler();
-        if (coreLib == null || scheduler == null || coreLib.javaScriptService() == null
+        if (coreLib == null || plugin.executionDispatcher() == null || coreLib.javaScriptService() == null
                 || !coreLib.javaScriptService().enabled()) {
             return;
         }
@@ -97,22 +95,24 @@ public final class JavaScriptStrengthenResultHookRegistry {
             Map<String, Object> context = toContext(hook.id(), player, result);
             inFlight.incrementAndGet();
             try {
-                var dispatch = scheduler.runAsync(
-                        "strengthen-result-hook-" + safeId(result.operationId()) + "-" + hook.id(),
-                        () -> invokeHook(coreLib, hook, player, result, context));
+                var dispatch = plugin.executionDispatcher().runAsync(
+                        plugin,
+                        () -> {
+                            try {
+                                invokeHook(coreLib, hook, player, result, context);
+                            } catch (RuntimeException | LinkageError exception) {
+                                plugin.getLogger().warning("[JavaScript] Strengthen result hook dispatch failed | operationId="
+                                        + safeId(result.operationId()) + " | hook=" + hook.id() + " | error=" + exception.getMessage());
+                            } finally {
+                                finishInFlight();
+                            }
+                        });
                 if (dispatch == null) {
                     finishInFlight();
                     plugin.getLogger().warning("[JavaScript] Strengthen result hook dispatch returned no task | operationId="
                             + safeId(result.operationId()) + " | hook=" + hook.id());
                     continue;
                 }
-                dispatch.whenComplete((_, throwable) -> {
-                    if (throwable != null) {
-                        plugin.getLogger().warning("[JavaScript] Strengthen result hook dispatch failed | operationId="
-                                + safeId(result.operationId()) + " | hook=" + hook.id() + " | error=" + throwable.getMessage());
-                    }
-                    finishInFlight();
-                });
             } catch (RuntimeException | LinkageError exception) {
                 finishInFlight();
                 plugin.getLogger().warning("[JavaScript] Strengthen result hook scheduling failed | operationId="

@@ -20,6 +20,8 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 
 public final class AttributeService extends AbstractAttributeServiceFacade {
@@ -29,6 +31,8 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     private final EmakiAttributePlugin plugin;
     private final AsyncTaskScheduler asyncTaskScheduler;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private volatile AttributeConfig config;
     private final AttributeRegistry attributeRegistry;
     private final AttributeBalanceRegistry attributeBalanceRegistry;
@@ -65,8 +69,29 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
             AttributePresetRegistry presetRegistry,
             PdcAttributeService pdcAttributeService,
             ParentAttributeService parentAttributeService) {
+        this(plugin, pdcService, asyncTaskScheduler, config, attributeRegistry, attributeBalanceRegistry,
+                damageTypeRegistry, defaultProfileRegistry, loreFormatRegistry, presetRegistry,
+                pdcAttributeService, parentAttributeService, null, null);
+    }
+
+    public AttributeService(EmakiAttributePlugin plugin,
+            PdcService pdcService,
+            AsyncTaskScheduler asyncTaskScheduler,
+            AttributeConfig config,
+            AttributeRegistry attributeRegistry,
+            AttributeBalanceRegistry attributeBalanceRegistry,
+            DamageTypeRegistry damageTypeRegistry,
+            DefaultProfileRegistry defaultProfileRegistry,
+            LoreFormatRegistry loreFormatRegistry,
+            AttributePresetRegistry presetRegistry,
+            PdcAttributeService pdcAttributeService,
+            ParentAttributeService parentAttributeService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.asyncTaskScheduler = asyncTaskScheduler;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         this.config = config == null ? AttributeConfig.defaults() : config;
         this.attributeRegistry = attributeRegistry;
         this.attributeBalanceRegistry = attributeBalanceRegistry;
@@ -202,6 +227,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     AsyncTaskScheduler asyncTaskScheduler() {
         return asyncTaskScheduler;
+    }
+
+    ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     AsyncDamageEngine asyncDamageEngine() {

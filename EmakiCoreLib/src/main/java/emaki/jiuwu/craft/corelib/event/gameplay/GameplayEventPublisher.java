@@ -36,7 +36,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.event.EmakiEventBus;
 
 /**
@@ -63,6 +63,7 @@ import emaki.jiuwu.craft.corelib.event.EmakiEventBus;
 public final class GameplayEventPublisher implements Listener {
 
     private final Plugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final EmakiEventBus eventBus;
     private final Supplier<CoreLibConfig.GameplayEventConfig> configSupplier;
 
@@ -70,9 +71,11 @@ public final class GameplayEventPublisher implements Listener {
     private final Map<String, BrewerUser> brewers = new ConcurrentHashMap<>();
 
     public GameplayEventPublisher(Plugin plugin,
+            ExecutionDispatcher executionDispatcher,
             EmakiEventBus eventBus,
             Supplier<CoreLibConfig.GameplayEventConfig> configSupplier) {
         this.plugin = plugin;
+        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
         this.eventBus = eventBus;
         this.configSupplier = configSupplier;
     }
@@ -238,7 +241,7 @@ public final class GameplayEventPublisher implements Listener {
             return;
         }
         Location brewLocation = location.clone();
-        FoliaSchedulerAdapter.runAtLocationLater(plugin, brewLocation, () -> publishBrew(inventory, brewLocation), 1L);
+        executionDispatcher.runAtLocationLater(plugin, brewLocation, () -> publishBrew(inventory, brewLocation), 1L);
     }
 
     private void publishBrew(BrewerInventory inventory, Location location) {

@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.skills.trigger;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.bukkit.Location;
@@ -33,7 +34,8 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.projectiles.ProjectileSource;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 
 public final class PassiveTriggerSource {
@@ -43,13 +45,15 @@ public final class PassiveTriggerSource {
     private final Supplier<AppConfig> configSupplier;
     private final Map<UUID, ComboState> comboStates = new ConcurrentHashMap<>();
     private PassiveTriggerDispatcher dispatcher_ref;
+    private final AtomicLong timerGeneration = new AtomicLong();
+    private TaskHandle timerTask;
     private long lastTimerDispatchAt;
 
     public PassiveTriggerSource(Supplier<AppConfig> configSupplier) {
         this.configSupplier = configSupplier;
     }
 
-    public void register(JavaPlugin plugin, PassiveTriggerDispatcher dispatcher) {
+    public void register(JavaPlugin plugin, PassiveTriggerDispatcher dispatcher, ExecutionDispatcher executionDispatcher) {
         this.dispatcher_ref = dispatcher;
         plugin.getServer().getPluginManager().registerEvents(new Listener() {
 
@@ -198,7 +202,12 @@ public final class PassiveTriggerSource {
             }
         }, plugin);
 
-        FoliaSchedulerAdapter.runTaskTimer(plugin, () -> {
+        stop();
+        long generation = timerGeneration.incrementAndGet();
+        timerTask = executionDispatcher.runGlobalTimer(plugin, () -> {
+            if (timerGeneration.get() != generation) {
+                return;
+            }
             long intervalMillis = timerIntervalTicks() * 50L;
             long now = System.currentTimeMillis();
             if (now - lastTimerDispatchAt < intervalMillis) {
@@ -206,24 +215,35 @@ public final class PassiveTriggerSource {
             }
             lastTimerDispatchAt = now;
             for (Player player : plugin.getServer().getOnlinePlayers()) {
-                FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-                    if (!player.isOnline()) {
-                        return;
-                    }
-                    dispatcher.dispatch(new TriggerInvocation(
-                            player,
-                            "timer",
-                            null,
-                            player.isSneaking(),
-                            false,
-                            now,
-                            null,
-                            player.getLocation(),
-                            null
-                    ));
-                });
+                try {
+                    executionDispatcher.runEntity(plugin, player, () -> {
+                        if (timerGeneration.get() != generation || !player.isOnline()) {
+                            return;
+                        }
+                        dispatcher.dispatch(new TriggerInvocation(
+                                player,
+                                "timer",
+                                null,
+                                player.isSneaking(),
+                                false,
+                                now,
+                                null,
+                                player.getLocation(),
+                                null
+                        ));
+                    }, () -> { });
+                } catch (Throwable ignored) {
+                }
             }
         }, 1L, 1L);
+    }
+
+    public void stop() {
+        timerGeneration.incrementAndGet();
+        if (timerTask != null) {
+            timerTask.cancel();
+            timerTask = null;
+        }
     }
 
     private long timerIntervalTicks() {

@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.forge.service;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +20,8 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
@@ -38,32 +40,66 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
     private final EmakiForgePlugin plugin;
     private final EmakiItemAssemblyService itemAssemblyService;
+    private final ExecutionDispatcher executionDispatcher;
     private final ForgeLayerSnapshotBuilder snapshotBuilder;
     private final ForgePdcAttributeWriter pdcAttributeWriter;
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
     private final ItemOperationLedger operationLedger;
     private final Set<String> warningCache = new LinkedHashSet<>();
 
-    public ForgeItemRefreshService(EmakiForgePlugin plugin, EmakiItemAssemblyService itemAssemblyService) {
+    public ForgeItemRefreshService(EmakiForgePlugin plugin,
+            EmakiItemAssemblyService itemAssemblyService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
+        this.executionDispatcher = executionDispatcher;
         this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
 
 
-    public void refreshOnlinePlayers() {
-        if (!Bukkit.isPrimaryThread()) {
-            FoliaSchedulerAdapter.runTask(plugin, this::refreshOnlinePlayers);
-            return;
-        }
+    public CompletableFuture<RefreshSummary> refreshOnlinePlayers() {
         synchronized (warningCache) {
             warningCache.clear();
         }
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            refreshPlayerInventory(player);
+        List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
+        if (players.isEmpty()) {
+            return CompletableFuture.completedFuture(new RefreshSummary(0, 0));
         }
+        List<CompletableFuture<Boolean>> refreshes = new ArrayList<>(players.size());
+        for (Player player : players) {
+            CompletableFuture<Boolean> refresh = new CompletableFuture<>();
+            refreshes.add(refresh);
+            try {
+                var scheduled = executionDispatcher.runEntity(
+                        plugin,
+                        player,
+                        () -> {
+                            try {
+                                if (!player.isOnline()) {
+                                    refresh.complete(false);
+                                    return;
+                                }
+                                refreshPlayerInventory(player);
+                                refresh.complete(true);
+                            } catch (Throwable throwable) {
+                                refresh.completeExceptionally(throwable);
+                            }
+                        },
+                        () -> refresh.complete(false));
+                if (scheduled == null) {
+                    refresh.completeExceptionally(new RejectedExecutionException(
+                            "Forge player refresh scheduling was rejected for " + player.getUniqueId()));
+                }
+            } catch (Throwable throwable) {
+                refresh.completeExceptionally(throwable);
+            }
+        }
+        return CompletableFuture.allOf(refreshes.toArray(CompletableFuture[]::new))
+                .thenApply(ignored -> new RefreshSummary(
+                        players.size(),
+                        (int) refreshes.stream().filter(future -> Boolean.TRUE.equals(future.join())).count()));
     }
 
     @Override
@@ -445,6 +481,9 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         variables.put("quality_multiplier", Numbers.formatNumber(multiplier, "0.##"));
         variables.put("multiplier", Numbers.formatNumber(multiplier, "0.##"));
         return variables;
+    }
+
+    public record RefreshSummary(int players, int refreshed) {
     }
 
     private record RefreshPlan(boolean shouldRefresh,

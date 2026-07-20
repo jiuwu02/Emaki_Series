@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -13,8 +14,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.forge.script.ScriptForgeModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -51,6 +52,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_recipe.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
+    private final AtomicLong autoSaveGeneration = new AtomicLong();
 
     @Override
     public ForgeRuntimeComponents initialize(EmakiForgePlugin plugin) {
@@ -86,7 +88,9 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     }
                 }
         );
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
+        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
+        var threadOwnership = coreLibPlugin.threadOwnership();
+        GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin, coreLibPlugin.itemSourceService());
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
@@ -95,16 +99,21 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 coreLibPlugin.asyncTaskScheduler(),
                 coreLibPlugin.performanceMonitor(),
                 coreLibPlugin.itemAssemblyService(),
-                coreLibPlugin::actionExecutor
+                coreLibPlugin::actionExecutor,
+                executionDispatcher,
+                threadOwnership
         );
         ForgeItemRefreshService itemRefreshService = new ForgeItemRefreshService(
                 plugin,
-                coreLibPlugin.itemAssemblyService()
+                coreLibPlugin.itemAssemblyService(),
+                executionDispatcher
         );
-        ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService);
+        ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService, executionDispatcher, threadOwnership);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
         return new ForgeRuntimeComponents(
                 appConfigLoader,
+                executionDispatcher,
+                threadOwnership,
                 languageLoader,
                 recipeLoader,
                 guiTemplateLoader,
@@ -136,9 +145,10 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         plugin.itemIdentifierService().refresh();
         plugin.forgeService().refreshIndexes();
         validateConfiguredExternalSources(plugin);
-        if (plugin.itemRefreshService() != null) {
-            plugin.itemRefreshService().refreshOnlinePlayers();
-        }
+        CompletableFuture<ForgeItemRefreshService.RefreshSummary> refreshFuture = plugin.itemRefreshService() == null
+                ? CompletableFuture.completedFuture(new ForgeItemRefreshService.RefreshSummary(0, 0))
+                : plugin.itemRefreshService().refreshOnlinePlayers();
+        refreshFuture.join();
         plugin.messageService().info("console.recipes_loaded", Map.of(
                 "count", String.valueOf(plugin.recipeLoader().all().size())
         ));
@@ -152,7 +162,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             closeOpenInventories(plugin);
         }
 
-        return runReloadPipelineAsync(scheduler, new ReloadPipelineConfig<TaskHandle, TaskHandle>(
+        return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<TaskHandle, TaskHandle>(
                 "forge",
                 "config-load",
                 "Loading configs...",
@@ -173,9 +183,10 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     plugin.itemIdentifierService().refresh();
                     plugin.forgeService().refreshIndexes();
                     validateConfiguredExternalSources(plugin);
-                    if (plugin.itemRefreshService() != null) {
-                        plugin.itemRefreshService().refreshOnlinePlayers();
-                    }
+                    CompletableFuture<ForgeItemRefreshService.RefreshSummary> refreshFuture = plugin.itemRefreshService() == null
+                            ? CompletableFuture.completedFuture(new ForgeItemRefreshService.RefreshSummary(0, 0))
+                            : plugin.itemRefreshService().refreshOnlinePlayers();
+                    refreshFuture.join();
                     plugin.messageService().info("console.recipes_loaded", Map.of(
                             "count", String.valueOf(plugin.recipeLoader().all().size())
                     ));
@@ -191,21 +202,30 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     public TaskHandle rescheduleAutoSave(EmakiForgePlugin plugin, TaskHandle currentTask) {
-        TaskHandle nextTask = cancelAutoSave(currentTask);
+        cancelAutoSave(currentTask);
         AppConfig config = plugin.appConfig();
-        if (config.historyEnabled() && config.historyAutoSave()) {
-            nextTask = FoliaSchedulerAdapter.runTaskTimer(
-                    plugin,
-                    () -> plugin.playerDataStore().saveAllAsync(),
-                    config.historySaveInterval(),
-                    config.historySaveInterval()
-            );
+        if (!config.historyEnabled() || !config.historyAutoSave()) {
+            autoSaveGeneration.incrementAndGet();
+            return null;
         }
-        return nextTask;
+        long generation = autoSaveGeneration.incrementAndGet();
+        return plugin.executionDispatcher().runGlobalTimer(
+                plugin,
+                () -> {
+                    if (autoSaveGeneration.get() == generation) {
+                        plugin.playerDataStore().saveAllAsync();
+                    }
+                },
+                config.historySaveInterval(),
+                config.historySaveInterval()
+        );
     }
 
     public TaskHandle cancelAutoSave(TaskHandle currentTask) {
-        FoliaSchedulerAdapter.cancelTask(currentTask);
+        autoSaveGeneration.incrementAndGet();
+        if (currentTask != null && !currentTask.isCancelled()) {
+            currentTask.cancel();
+        }
         return null;
     }
 

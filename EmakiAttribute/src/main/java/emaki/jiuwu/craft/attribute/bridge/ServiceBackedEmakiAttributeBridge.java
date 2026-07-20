@@ -12,14 +12,21 @@ import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBridge {
 
     private final AttributeServiceFacade attributeService;
+    private final ThreadOwnership threadOwnership;
 
     public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService) {
+        this(attributeService, null);
+    }
+
+    public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService, ThreadOwnership threadOwnership) {
         this.attributeService = attributeService;
+        this.threadOwnership = threadOwnership;
     }
 
     @Override
@@ -42,7 +49,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
     @Override
     public boolean consumeResource(Player player, String resourceId, double amount) {
         if (player == null || Texts.isBlank(resourceId) || amount < 0D || attributeService == null
-                || !org.bukkit.Bukkit.isOwnedByCurrentRegion(player)) {
+                || !isEntityOwned(player)) {
             return false;
         }
         ResourceState state = attributeService.readResourceState(player, resourceId);
@@ -79,7 +86,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
     @Override
     public double readAttributeValue(Player player, String attributeId) {
         if (player == null || Texts.isBlank(attributeId) || attributeService == null
-                || !org.bukkit.Bukkit.isOwnedByCurrentRegion(player)) {
+                || !isEntityOwned(player)) {
             return 0D;
         }
         AttributeSnapshot snapshot = attributeService.collectPlayerCombatSnapshot(player);
@@ -104,9 +111,13 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
         return attributeService.applyDamage(attacker, target, resolvedType, baseDamage, context);
     }
 
+    private boolean isEntityOwned(Player player) {
+        return threadOwnership != null && threadOwnership.isEntityOwned(player);
+    }
+
     private ResourceState readResourceState(Player player, String resourceId) {
         if (player == null || Texts.isBlank(resourceId) || attributeService == null
-                || !org.bukkit.Bukkit.isOwnedByCurrentRegion(player)) {
+                || !isEntityOwned(player)) {
             return null;
         }
         return attributeService.readResourceState(player, resourceId);

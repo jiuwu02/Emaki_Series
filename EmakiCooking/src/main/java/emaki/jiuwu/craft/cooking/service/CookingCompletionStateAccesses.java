@@ -5,7 +5,9 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 
 final class CookingCompletionStateAccesses {
@@ -21,7 +23,14 @@ final class CookingCompletionStateAccesses {
             return result;
         }
         try {
-            FoliaSchedulerAdapter.runAtLocation(plugin, location, () -> {
+            ExecutionDispatcher dispatcher = plugin instanceof EmakiCookingPlugin cookingPlugin
+                    ? cookingPlugin.executionDispatcher()
+                    : null;
+            if (dispatcher == null) {
+                result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
+                return result;
+            }
+            TaskHandle handle = dispatcher.runAtLocation(plugin, location, () -> {
                 try {
                     action.run();
                     result.complete(null);
@@ -29,6 +38,9 @@ final class CookingCompletionStateAccesses {
                     result.completeExceptionally(error);
                 }
             });
+            if (handle == null) {
+                result.completeExceptionally(new IllegalStateException("Station location execution was rejected"));
+            }
         } catch (Throwable error) {
             result.completeExceptionally(error);
         }

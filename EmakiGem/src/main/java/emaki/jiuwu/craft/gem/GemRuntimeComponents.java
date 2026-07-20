@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.gem;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -27,7 +29,9 @@ import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.GemUpgradeService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
-record GemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
+record GemRuntimeComponents(ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
+        YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         GemLoader gemLoader,
         GemItemLoader gemItemLoader,
@@ -53,6 +57,8 @@ record GemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(GemLoader.class, gemLoader),

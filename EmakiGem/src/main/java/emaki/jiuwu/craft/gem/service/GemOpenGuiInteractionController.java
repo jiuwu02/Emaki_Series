@@ -5,7 +5,6 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -45,7 +44,7 @@ final class GemOpenGuiInteractionController {
         var template = GemGuiTemplates.resolveOpenTemplate(plugin.guiTemplateLoader(), itemDefinition);
         String resolvedId = template == null ? "" : template.id();
         if (!resolvedId.equals(state.currentTemplateId())) {
-            FoliaSchedulerAdapter.runEntityTask(plugin, state.player(), () -> service.switchOpenTemplate(state));
+            plugin.executionDispatcher().runEntity(plugin, state.player(), () -> service.switchOpenTemplate(state));
             return;
         }
         renderer.refreshGui(state);

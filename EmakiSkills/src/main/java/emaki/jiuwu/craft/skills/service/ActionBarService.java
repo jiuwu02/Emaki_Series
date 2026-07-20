@@ -1,14 +1,15 @@
 package emaki.jiuwu.craft.skills.service;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.skills.config.AppConfig;
@@ -27,6 +28,8 @@ public final class ActionBarService {
     private final TriggerRegistry triggerRegistry;
     private final Supplier<Map<String, SkillDefinition>> skillDefsSupplier;
     private final MessageService messageService;
+    private final ExecutionDispatcher executionDispatcher;
+    private final AtomicLong refreshGeneration = new AtomicLong();
     private TaskHandle refreshTask;
 
     public ActionBarService(JavaPlugin plugin,
@@ -35,7 +38,8 @@ public final class ActionBarService {
             Supplier<AppConfig> configSupplier,
             TriggerRegistry triggerRegistry,
             Supplier<Map<String, SkillDefinition>> skillDefsSupplier,
-            MessageService messageService) {
+            MessageService messageService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.dataStore = dataStore;
         this.castModeService = castModeService;
@@ -43,6 +47,7 @@ public final class ActionBarService {
         this.triggerRegistry = triggerRegistry;
         this.skillDefsSupplier = skillDefsSupplier;
         this.messageService = messageService;
+        this.executionDispatcher = executionDispatcher;
     }
 
     public void startRefreshTask() {
@@ -52,12 +57,14 @@ public final class ActionBarService {
             return;
         }
         int interval = config.actionBar().refreshIntervalTicks();
-        refreshTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::refreshAll, interval, interval);
+        long generation = refreshGeneration.incrementAndGet();
+        refreshTask = executionDispatcher.runGlobalTimer(plugin, () -> refreshAll(generation), interval, interval);
     }
 
     public void stopRefreshTask() {
+        refreshGeneration.incrementAndGet();
         if (refreshTask != null) {
-            FoliaSchedulerAdapter.cancelTask(refreshTask);
+            refreshTask.cancel();
             refreshTask = null;
         }
     }
@@ -77,15 +84,30 @@ public final class ActionBarService {
     }
 
     public void refreshAll() {
+        refreshAll(refreshGeneration.get());
+    }
+
+    private void refreshAll(long generation) {
+        if (refreshGeneration.get() != generation) {
+            return;
+        }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-                try {
-                    refreshPlayer(player);
-                } catch (Exception exception) {
-                    plugin.getLogger().warning("[ActionBar] Failed to refresh for "
-                            + player.getName() + ": " + exception.getMessage());
-                }
-            });
+            try {
+                executionDispatcher.runEntity(plugin, player, () -> {
+                    if (refreshGeneration.get() != generation) {
+                        return;
+                    }
+                    try {
+                        refreshPlayer(player);
+                    } catch (Exception exception) {
+                        plugin.getLogger().warning("[ActionBar] Failed to refresh for "
+                                + player.getName() + ": " + exception.getMessage());
+                    }
+                }, () -> { });
+            } catch (Throwable throwable) {
+                plugin.getLogger().warning("[ActionBar] Failed to schedule refresh for "
+                        + player.getName() + ": " + throwable.getMessage());
+            }
         }
     }
 

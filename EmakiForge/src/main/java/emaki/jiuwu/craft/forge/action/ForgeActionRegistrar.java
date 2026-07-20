@@ -21,6 +21,6 @@ public final class ForgeActionRegistrar {
     }
 
     private void register(ActionRegistry registry, ForgeRefreshAction.Operation operation, String id) {
-        registry.register(plugin, "emakiforge", new ForgeRefreshAction(plugin, id, operation));
+        registry.register(plugin, "emakiforge", new ForgeRefreshAction(plugin.itemRefreshService(), id, operation));
     }
 }

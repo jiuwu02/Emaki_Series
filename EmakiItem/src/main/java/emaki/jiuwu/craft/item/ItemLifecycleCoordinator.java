@@ -14,6 +14,8 @@ import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -64,6 +66,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
+        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerScriptModule(coreLibPlugin, plugin);
         releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
@@ -104,7 +108,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry = new JavaScriptItemDefinitionRegistry(plugin);
         JavaScriptItemFactoryRegistry javaScriptFactoryRegistry = new JavaScriptItemFactoryRegistry(plugin, javaScriptDefinitionRegistry);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
+        GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader, javaScriptDefinitionRegistry);
         EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
         EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin);
@@ -113,7 +117,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         EmakiItemPdcWriter pdcWriter = new EmakiItemPdcWriter(identifier, pdcAttributeGateway, new SkillPdcGateway());
-        EmakiItemFactory itemFactory = new EmakiItemFactory(itemLoader, idResolver, pdcWriter, javaScriptFactoryRegistry);
+        EmakiItemFactory itemFactory = new EmakiItemFactory(
+                itemLoader,
+                idResolver,
+                pdcWriter,
+                javaScriptFactoryRegistry,
+                threadOwnership
+        );
         EmakiItemUpdateService updateService = new EmakiItemUpdateService(
                 itemLoader,
                 idResolver,
@@ -131,16 +141,24 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 new ItemSetLoreRenderer(),
                 plugin::appConfig,
                 plugin::debugLogger,
-                plugin.getLogger()
+                plugin.getLogger(),
+                threadOwnership
         );
         ItemComponentInspector componentInspector = new ItemComponentInspector();
         ItemComponentPlaceholderResolver componentPlaceholderResolver = new ItemComponentPlaceholderResolver(componentInspector);
         coreLibPlugin.placeholderRegistry().register(componentPlaceholderResolver);
         EmakiItemActionService actionService = new EmakiItemActionService(plugin, coreLibPlugin.actionExecutor());
         EmakiItemConditionChecker conditionChecker = new EmakiItemConditionChecker(plugin, coreLibPlugin.placeholderRegistry(), actionService);
-        ItemRepairService repairService = new ItemRepairService(plugin, coreLibPlugin::economyManager);
+        ItemRepairService repairService = new ItemRepairService(
+                plugin,
+                coreLibPlugin::economyManager,
+                coreLibPlugin.itemSourceService(),
+                threadOwnership
+        );
         ItemRepairGuiService repairGuiService = new ItemRepairGuiService(plugin, guiService, repairService);
         return new ItemRuntimeComponents(
+                executionDispatcher,
+                threadOwnership,
                 appConfigLoader,
                 languageLoader,
                 messageService,
@@ -213,7 +231,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(ignored -> {
             notifyProgress(progressListener, "Applying configuration...");
-            return scheduler.callSync("item-reload-apply", () -> {
+            return plugin.executionDispatcher().submitGlobal(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
                 plugin.itemFactory().clearCache();

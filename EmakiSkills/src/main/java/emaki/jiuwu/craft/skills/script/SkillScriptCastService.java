@@ -3,13 +3,13 @@ package emaki.jiuwu.craft.skills.script;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
@@ -72,7 +72,7 @@ public final class SkillScriptCastService {
         CompletableFuture<T> future = new CompletableFuture<>();
         AtomicBoolean started = new AtomicBoolean();
         try {
-            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, caster, () -> {
+            Runnable operation = () -> {
                 started.set(true);
                 try {
                     CompletionStage<T> stage = task.get();
@@ -91,10 +91,17 @@ public final class SkillScriptCastService {
                 } catch (Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
-            });
-            if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "Skill cast entity-domain scheduling was rejected."));
+            };
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(caster)) {
+                operation.run();
+            } else {
+                var scheduled = plugin.executionDispatcher().runEntity(plugin, caster, operation,
+                        () -> future.completeExceptionally(new RejectedExecutionException(
+                                "Skill cast entity-domain task retired before execution.")));
+                if (scheduled == null) {
+                    future.completeExceptionally(new RejectedExecutionException(
+                            "Skill cast entity-domain scheduling was rejected."));
+                }
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);

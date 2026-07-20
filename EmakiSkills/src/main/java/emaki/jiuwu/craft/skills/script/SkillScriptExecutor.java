@@ -21,7 +21,6 @@ import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
 import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
@@ -382,12 +381,25 @@ public final class SkillScriptExecutor {
                 flatten(task, future);
             };
             try {
-                var scheduled = delayTicks > 0L
-                        ? FoliaSchedulerAdapter.runEntityTaskLater(context.plugin(), caster, invocation, delayTicks)
-                        : FoliaSchedulerAdapter.runEntityTask(context.plugin(), caster, invocation);
-                if (scheduled == null) {
-                    future.completeExceptionally(new IllegalStateException(
-                            "Skill entity-domain task scheduling was rejected."));
+                if (delayTicks <= 0L
+                        && context.plugin().threadOwnership() != null
+                        && context.plugin().threadOwnership().isEntityOwned(caster)) {
+                    invocation.run();
+                } else {
+                    var scheduled = delayTicks > 0L
+                            ? context.plugin().executionDispatcher().runEntityLater(
+                                    context.plugin(), caster, invocation,
+                                    () -> future.completeExceptionally(new IllegalStateException(
+                                            "Skill entity-domain delayed task retired before execution.")),
+                                    delayTicks)
+                            : context.plugin().executionDispatcher().runEntity(
+                                    context.plugin(), caster, invocation,
+                                    () -> future.completeExceptionally(new IllegalStateException(
+                                            "Skill entity-domain task retired before execution.")));
+                    if (scheduled == null) {
+                        future.completeExceptionally(new IllegalStateException(
+                                "Skill entity-domain task scheduling was rejected."));
+                    }
                 }
             } catch (Throwable throwable) {
                 future.completeExceptionally(throwable);

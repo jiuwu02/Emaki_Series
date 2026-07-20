@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
+import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -28,9 +29,11 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
 
     private final EmakiCoreLibPlugin plugin;
+    private final PlatformCapabilities platformCapabilities;
 
-    public DefaultEmakiCoreLibApi(EmakiCoreLibPlugin plugin) {
+    public DefaultEmakiCoreLibApi(EmakiCoreLibPlugin plugin, PlatformCapabilities platformCapabilities) {
         this.plugin = plugin;
+        this.platformCapabilities = java.util.Objects.requireNonNull(platformCapabilities, "platformCapabilities");
     }
 
     @Override
@@ -98,7 +101,8 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         if (action == null) {
             return CoreActionRegistration.unavailable(CoreActionResult.failure(CoreActionErrorType.INVALID_ARGUMENT, "Action cannot be null."));
         }
-        ActionRegistry.ActionRegistration registration = registry.registerHandle(owner, source, new CoreActionAdapter(action));
+        ActionRegistry.ActionRegistration registration = registry.registerHandle(
+                owner, source, new CoreActionAdapter(action, platformCapabilities));
         return new CoreActionRegistration(
                 registration.actionId(),
                 registration.ownerKey(),

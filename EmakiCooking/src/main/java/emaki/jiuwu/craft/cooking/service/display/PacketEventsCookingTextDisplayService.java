@@ -24,8 +24,9 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -44,16 +45,24 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
 
     private final JavaPlugin plugin;
     private final CookingSettingsService settingsService;
+    private final ExecutionDispatcher executionDispatcher;
+    @SuppressWarnings("unused")
+    private final ThreadOwnership threadOwnership;
     private final Map<String, VirtualText> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
     private final TaskHandle refreshTask;
 
-    public PacketEventsCookingTextDisplayService(JavaPlugin plugin, CookingSettingsService settingsService) {
+    public PacketEventsCookingTextDisplayService(JavaPlugin plugin,
+            CookingSettingsService settingsService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.settingsService = settingsService;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         int interval = settingsService.displayEntitiesRefreshIntervalTicks();
-        refreshTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::refreshAll, interval, interval);
+        refreshTask = executionDispatcher.runGlobalTimer(plugin, this::refreshAll, interval, interval);
     }
 
     static boolean isRuntimeSupported() {
@@ -86,7 +95,7 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
         for (UUID playerId : Set.copyOf(display.visiblePlayers)) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null && player.isOnline()) {
-                PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+                sendPacket(player, packet);
             }
         }
         refreshEntry(display);
@@ -124,7 +133,9 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
 
     @Override
     public void shutdown() {
-        FoliaSchedulerAdapter.cancelTask(refreshTask);
+        if (refreshTask != null) {
+            refreshTask.cancel();
+        }
         HandlerList.unregisterAll(this);
         for (VirtualText display : Set.copyOf(displays.values())) {
             destroyForAllVisible(display);
@@ -151,17 +162,25 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
         Set<UUID> onlinePlayers = new LinkedHashSet<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
             onlinePlayers.add(player.getUniqueId());
-            boolean visible = isVisible(player, display.spec);
-            boolean alreadyVisible = display.visiblePlayers.contains(player.getUniqueId());
-            if (visible && !alreadyVisible) {
-                spawnFor(player, display);
-                display.visiblePlayers.add(player.getUniqueId());
-            } else if (!visible && alreadyVisible) {
-                destroyFor(player, display);
-                display.visiblePlayers.remove(player.getUniqueId());
-            }
+            executionDispatcher.runEntity(plugin, player, () -> refreshVisibilityForPlayer(display, player), () ->
+                    display.visiblePlayers.remove(player.getUniqueId()));
         }
         display.visiblePlayers.removeIf(playerId -> !onlinePlayers.contains(playerId));
+    }
+
+    private void refreshVisibilityForPlayer(VirtualText display, Player player) {
+        if (display == null || player == null || !player.isOnline()) {
+            return;
+        }
+        boolean visible = isVisible(player, display.spec);
+        boolean alreadyVisible = display.visiblePlayers.contains(player.getUniqueId());
+        if (visible && !alreadyVisible) {
+            spawnFor(player, display);
+            display.visiblePlayers.add(player.getUniqueId());
+        } else if (!visible && alreadyVisible) {
+            destroyFor(player, display);
+            display.visiblePlayers.remove(player.getUniqueId());
+        }
     }
 
     private boolean isVisible(Player player, CookingTextDisplaySpec spec) {
@@ -191,8 +210,8 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
                 0,
                 Vector3d.zero()
         );
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, spawnPacket);
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, new WrapperPlayServerEntityMetadata(display.entityId, metadata(display.spec)));
+        sendPacket(player, spawnPacket);
+        sendPacket(player, new WrapperPlayServerEntityMetadata(display.entityId, metadata(display.spec)));
     }
 
     private List<EntityData<?>> metadata(CookingTextDisplaySpec spec) {
@@ -253,7 +272,31 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
     }
 
     private void destroyFor(Player player, VirtualText display) {
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, new WrapperPlayServerDestroyEntities(display.entityId));
+        sendPacket(player, new WrapperPlayServerDestroyEntities(display.entityId));
+    }
+
+    private void sendPacket(Player player, WrapperPlayServerSpawnEntity packet) {
+        sendPacketInternal(player, () -> PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet));
+    }
+
+    private void sendPacket(Player player, WrapperPlayServerEntityMetadata packet) {
+        sendPacketInternal(player, () -> PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet));
+    }
+
+    private void sendPacket(Player player, WrapperPlayServerDestroyEntities packet) {
+        sendPacketInternal(player, () -> PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet));
+    }
+
+    private void sendPacketInternal(Player player, Runnable sender) {
+        if (player == null || sender == null) {
+            return;
+        }
+        executionDispatcher.runEntity(plugin, player, () -> {
+            if (player.isOnline()) {
+                sender.run();
+            }
+        }, () -> {
+        });
     }
 
     private void destroyForAllVisible(VirtualText display) {
@@ -318,7 +361,7 @@ public final class PacketEventsCookingTextDisplayService implements CookingTextD
     }
 
     private void scheduleRefresh() {
-        FoliaSchedulerAdapter.runTask(plugin, this::refreshAll);
+        executionDispatcher.runGlobal(plugin, this::refreshAll);
     }
 
     private static final class VirtualText {

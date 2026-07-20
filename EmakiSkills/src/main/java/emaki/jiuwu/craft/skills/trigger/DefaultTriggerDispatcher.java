@@ -2,12 +2,13 @@ package emaki.jiuwu.craft.skills.trigger;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.BoundSkillTrigger;
@@ -32,6 +33,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
     private final CastAttemptService castAttemptService;
     private final Supplier<AppConfig> configSupplier;
     private final MessageService messageService;
+    private final ExecutionDispatcher executionDispatcher;
 
     public DefaultTriggerDispatcher(Plugin plugin,
             CastModeService castModeService,
@@ -41,7 +43,8 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
             EquipmentSkillCollector equipmentCollector,
             CastAttemptService castAttemptService,
             Supplier<AppConfig> configSupplier,
-            MessageService messageService) {
+            MessageService messageService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.castModeService = castModeService;
         this.triggerRegistry = triggerRegistry;
@@ -51,6 +54,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
         this.castAttemptService = castAttemptService;
         this.configSupplier = configSupplier;
         this.messageService = messageService;
+        this.executionDispatcher = executionDispatcher;
     }
 
     @Override
@@ -92,14 +96,19 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
     private CompletableFuture<Void> reportFailureAsync(Player player, CastAttemptResult result) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+            var scheduled = executionDispatcher.runEntity(plugin, player, () -> {
                 if (result != null && !result.success()
                         && result.failureMessage() != null
                         && !result.failureMessage().isBlank()) {
                     messageService.send(player, result.failureMessage(), result.replacements());
                 }
                 future.complete(null);
-            });
+            }, () -> future.completeExceptionally(new RejectedExecutionException(
+                    "Skills trigger failure reporting retired before execution.")));
+            if (scheduled == null) {
+                future.completeExceptionally(new RejectedExecutionException(
+                        "Skills trigger failure reporting scheduling was rejected."));
+            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }

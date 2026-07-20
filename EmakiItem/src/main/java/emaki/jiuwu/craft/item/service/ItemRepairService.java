@@ -18,6 +18,7 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -79,21 +80,30 @@ public final class ItemRepairService {
     private final EmakiItemPlugin plugin;
     private final Supplier<EconomyManager> economyManagerSupplier;
     private final ItemSourceService itemSourceService;
+    private final ThreadOwnership threadOwnership;
 
     public ItemRepairService(EmakiItemPlugin plugin) {
         this(plugin, null);
     }
 
     public ItemRepairService(EmakiItemPlugin plugin, Supplier<EconomyManager> economyManagerSupplier) {
-        this(plugin, economyManagerSupplier, plugin == null ? null : plugin.itemSourceService());
+        this(plugin, economyManagerSupplier, plugin == null ? null : plugin.itemSourceService(), null);
     }
 
     ItemRepairService(EmakiItemPlugin plugin,
             Supplier<EconomyManager> economyManagerSupplier,
             ItemSourceService itemSourceService) {
+        this(plugin, economyManagerSupplier, itemSourceService, null);
+    }
+
+    public ItemRepairService(EmakiItemPlugin plugin,
+            Supplier<EconomyManager> economyManagerSupplier,
+            ItemSourceService itemSourceService,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.economyManagerSupplier = economyManagerSupplier;
         this.itemSourceService = itemSourceService;
+        this.threadOwnership = threadOwnership;
     }
 
     public boolean isDisabled(@Nullable ItemStack itemStack) {
@@ -360,7 +370,7 @@ public final class ItemRepairService {
             String source,
             int restoreAmount) {
         // 物品修复对外开放，可取消、可改修复量；在扣费前派发以保证取消即不扣费。
-        if (!org.bukkit.Bukkit.isPrimaryThread()) {
+        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return new ItemRepairEventResult(false, restoreAmount);
         }
         emaki.jiuwu.craft.item.api.event.ItemRepairEvent event = new emaki.jiuwu.craft.item.api.event.ItemRepairEvent(

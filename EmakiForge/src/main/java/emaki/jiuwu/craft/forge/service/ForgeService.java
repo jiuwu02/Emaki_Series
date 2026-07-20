@@ -15,6 +15,8 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -60,7 +62,9 @@ public final class ForgeService {
             AsyncTaskScheduler asyncTaskScheduler,
             PerformanceMonitor performanceMonitor,
             EmakiItemAssemblyService itemAssemblyService,
-            Supplier<ActionExecutor> actionExecutorSupplier) {
+            Supplier<ActionExecutor> actionExecutorSupplier,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.layerSnapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.resultItemFactory = new ForgeResultItemFactory(plugin);
@@ -128,6 +132,8 @@ public final class ForgeService {
         );
         this.forgeExecutionService = new ForgeExecutionService(
                 plugin,
+                executionDispatcher,
+                threadOwnership,
                 (playerId, generation) -> plugin.playerDataStore().isCurrentGeneration(playerId, generation),
                 actionCoordinator,
                 qualityCalculationService,

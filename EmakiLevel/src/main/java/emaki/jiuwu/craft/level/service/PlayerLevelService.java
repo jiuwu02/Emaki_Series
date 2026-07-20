@@ -15,6 +15,8 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -47,6 +49,7 @@ public final class PlayerLevelService {
     private final ItemSourceService itemSourceService;
     private final EconomyManager economyManager;
     private final ActionExecutor actionExecutor;
+    private final ThreadOwnership threadOwnership;
     private final LevelOperationJournal operationJournal;
     private final Runnable attributeRefreshAll;
     private final java.util.function.Consumer<Player> attributeRefreshPlayer;
@@ -63,6 +66,8 @@ public final class PlayerLevelService {
             ItemSourceService itemSourceService,
             EconomyManager economyManager,
             ActionExecutor actionExecutor,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership,
             AppConfig config,
             Runnable attributeRefreshAll,
             java.util.function.Consumer<Player> attributeRefreshPlayer,
@@ -77,7 +82,8 @@ public final class PlayerLevelService {
         this.itemSourceService = itemSourceService;
         this.economyManager = economyManager;
         this.actionExecutor = actionExecutor;
-        this.operationJournal = new LevelOperationJournal(plugin);
+        this.threadOwnership = threadOwnership;
+        this.operationJournal = new LevelOperationJournal(plugin, executionDispatcher, threadOwnership);
         this.config = config;
         this.attributeRefreshAll = attributeRefreshAll == null ? () -> { } : attributeRefreshAll;
         this.attributeRefreshPlayer = attributeRefreshPlayer == null ? player -> { } : attributeRefreshPlayer;
@@ -119,8 +125,8 @@ public final class PlayerLevelService {
             double oldExp = entry.exp();
             double appliedAmount = adjustedAmount;
             Player player = Bukkit.getPlayer(uuid);
-            // addExp 可能被第三方通过公开 API 在异步线程调用；Bukkit 同步事件只能在主线程派发。
-            if (Bukkit.isPrimaryThread()) {
+            // addExp 可能被第三方通过公开 API 在异步线程调用；Bukkit 同步事件只能在玩家 owner 上派发。
+            if (ownsPlayer(player)) {
                 PlayerExpGainEvent gainEvent = new PlayerExpGainEvent(player, type.id(), oldLevel, oldExp, appliedAmount, reason);
                 Bukkit.getPluginManager().callEvent(gainEvent);
                 if (gainEvent.isCancelled() || gainEvent.getAmount() <= 0D) {
@@ -357,7 +363,7 @@ public final class PlayerLevelService {
                         requiredExp
                 ));
             }
-            if (Bukkit.isPrimaryThread()) {
+            if (ownsPlayer(player)) {
                 Bukkit.getPluginManager().callEvent(new PlayerLevelUpEvent(player, type.id(), oldLevel, entry.level(), cause));
                 if (oldLevel < type.maxLevel() && entry.level() >= type.maxLevel()) {
                     Bukkit.getPluginManager().callEvent(new PlayerMaxLevelReachedEvent(player, type.id(), type.maxLevel(), cause));
@@ -378,6 +384,10 @@ public final class PlayerLevelService {
             }
         }
         return failure(reason, LevelOperationType.LEVEL_UP, type == null ? "" : type.id());
+    }
+
+    private boolean ownsPlayer(Player player) {
+        return player != null && threadOwnership != null && threadOwnership.isEntityOwned(player);
     }
 
     public void syncAllOnline() {
@@ -531,12 +541,12 @@ public final class PlayerLevelService {
         if (oldLevel == newLevel) {
             return;
         }
-        // 管理途径的等级变更对外开放，after 通知；管理入口可能经公开 API 在异步线程调用，仅主线程派发。
-        if (!Bukkit.isPrimaryThread()) {
+        Player player = Bukkit.getPlayer(uuid);
+        if (!ownsPlayer(player)) {
             return;
         }
         Bukkit.getPluginManager().callEvent(new PlayerLevelChangeEvent(
-                Bukkit.getPlayer(uuid), type.id(), oldLevel, newLevel, operationType));
+                player, type.id(), oldLevel, newLevel, operationType));
     }
 
     private void publishDataChange(PlayerLevelData data) {

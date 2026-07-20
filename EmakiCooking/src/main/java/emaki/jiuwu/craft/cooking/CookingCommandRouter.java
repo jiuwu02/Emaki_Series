@@ -11,7 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 final class CookingCommandRouter implements TabExecutor {
 
@@ -133,11 +133,16 @@ final class CookingCommandRouter implements TabExecutor {
     }
 
     private void runForSender(CommandSender sender, Runnable task) {
-        if (sender instanceof Player player) {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+        ExecutionDispatcher dispatcher = plugin.executionDispatcher();
+        if (dispatcher == null) {
+            task.run();
             return;
         }
-        FoliaSchedulerAdapter.runTask(plugin, task);
+        if (sender instanceof Player player) {
+            dispatcher.runEntity(plugin, player, task, task);
+            return;
+        }
+        dispatcher.runGlobal(plugin, task);
     }
 
     private boolean handleInspect(CommandSender sender, String[] args) {

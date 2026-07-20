@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
@@ -20,8 +21,8 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -45,7 +46,9 @@ public final class GrinderRuntimeService {
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final CookingTextDisplayService textDisplayService;
+    private final ExecutionDispatcher executionDispatcher;
     private final Set<String> activeStations = ConcurrentHashMap.newKeySet();
+    private final Set<String> tickingStations = ConcurrentHashMap.newKeySet();
     private CookingCompletionCoordinator completionCoordinator;
     private TaskHandle tickerTask;
 
@@ -57,7 +60,8 @@ public final class GrinderRuntimeService {
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
-            CookingTextDisplayService textDisplayService) {
+            CookingTextDisplayService textDisplayService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -67,6 +71,7 @@ public final class GrinderRuntimeService {
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.textDisplayService = textDisplayService;
+        this.executionDispatcher = executionDispatcher;
     }
 
     public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
@@ -163,6 +168,7 @@ public final class GrinderRuntimeService {
 
     public void shutdown() {
         cancelTicker();
+        waitForInFlightTicks();
         activeStations.clear();
         textDisplayService.removeStationType(StationType.GRINDER);
     }
@@ -307,16 +313,28 @@ public final class GrinderRuntimeService {
             return;
         }
         int interval = settingsService.grinderCheckDelayTicks();
-        if (tickerTask != null && !FoliaSchedulerAdapter.isTaskCancelled(tickerTask)) {
+        if (tickerTask != null && !tickerTask.isCancelled()) {
             return;
         }
-        tickerTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::tick, interval, interval);
+        tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, interval, interval);
     }
 
     private void cancelTicker() {
         if (tickerTask != null) {
-            FoliaSchedulerAdapter.cancelTask(tickerTask);
+            tickerTask.cancel();
             tickerTask = null;
+        }
+    }
+
+    private void waitForInFlightTicks() {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+        while (!tickingStations.isEmpty() && System.nanoTime() < deadline) {
+            try {
+                Thread.sleep(10L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
     }
 
@@ -325,14 +343,33 @@ public final class GrinderRuntimeService {
             cancelTicker();
             return;
         }
-        stateStore.forEachLoadedState(StationType.GRINDER, (coordinates, section) -> {
-            GrinderState state = readState(section);
-            if (state == null) {
-                activeStations.remove(coordinates.runtimeKey());
-                return;
+        for (String stationKey : List.copyOf(activeStations)) {
+            StationCoordinates coordinates = parseRuntimeKey(stationKey);
+            if (coordinates == null || !tickingStations.add(stationKey)) {
+                continue;
             }
-            processStation(coordinates, state);
-        });
+            Location location = coordinates.location(0.5D, 0.5D, 0.5D);
+            if (location == null || location.getWorld() == null) {
+                tickingStations.remove(stationKey);
+                activeStations.remove(stationKey);
+                continue;
+            }
+            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+                try {
+                    GrinderState state = readState(stateStore.load(coordinates));
+                    if (state == null) {
+                        activeStations.remove(stationKey);
+                        return;
+                    }
+                    processStation(coordinates, state);
+                } finally {
+                    tickingStations.remove(stationKey);
+                }
+            });
+            if (handle == null) {
+                tickingStations.remove(stationKey);
+            }
+        }
         if (activeStations.isEmpty()) {
             cancelTicker();
         }
@@ -427,6 +464,25 @@ public final class GrinderRuntimeService {
                 baseLocation,
                 settingsService.textDisplayProfile(StationType.GRINDER)
         ));
+    }
+
+    private StationCoordinates parseRuntimeKey(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        String[] parts = key.split(":", -1);
+        if (parts.length < 4) {
+            return null;
+        }
+        try {
+            int z = Integer.parseInt(parts[parts.length - 1]);
+            int y = Integer.parseInt(parts[parts.length - 2]);
+            int x = Integer.parseInt(parts[parts.length - 3]);
+            String world = String.join(":", java.util.Arrays.copyOf(parts, parts.length - 3));
+            return new StationCoordinates(world, x, y, z);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
     }
 
     private void appendLine(StringBuilder builder, String line) {

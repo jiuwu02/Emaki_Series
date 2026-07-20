@@ -15,6 +15,8 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -88,6 +90,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private DebugCommand debugCommand;
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private LanguageLoader languageLoader;
     private SkillDefinitionLoader skillDefinitionLoader;
     private LocalResourceDefinitionLoader localResourceDefinitionLoader;
@@ -122,6 +126,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private SkillsPlaceholderExpansion placeholderExpansion;
     private DefaultTriggerDispatcher triggerDispatcher;
     private PassiveTriggerDispatcher passiveTriggerDispatcher;
+    private PassiveTriggerSource passiveTriggerSource;
     private final EmakiSkillsApi.Bridge skillsApiBridge = new EmakiSkillsApi.Bridge() {
         @Override
         public SkillScriptActionRegistry scriptActionRegistry() {
@@ -179,6 +184,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
             metrics = null;
         }
         EmakiSkillsApi.uninstall(skillsApiBridge);
+        if (passiveTriggerSource != null) {
+            passiveTriggerSource.stop();
+            passiveTriggerSource = null;
+        }
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
     }
@@ -207,6 +216,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void applyRuntimeComponents(SkillsRuntimeComponents components) {
         appConfigLoader = components.appConfigLoader();
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
         languageLoader = components.languageLoader();
         skillDefinitionLoader = components.skillDefinitionLoader();
         localResourceDefinitionLoader = components.localResourceDefinitionLoader();
@@ -259,14 +270,15 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         triggerDispatcher = new DefaultTriggerDispatcher(
                 this, castModeService, triggerRegistry, playerSkillDataStore,
                 playerSkillStateService, equipmentSkillCollector,
-                castAttemptService, this::appConfig, messageService);
+                castAttemptService, this::appConfig, messageService, executionDispatcher);
         new InteractTriggerSource().register(this, triggerDispatcher);
         new DropTriggerSource().register(this, triggerDispatcher);
         new HotbarTriggerSource().register(this, triggerDispatcher);
 
         passiveTriggerDispatcher = new PassiveTriggerDispatcher(
                 triggerRegistry, playerSkillStateService, castAttemptService);
-        new PassiveTriggerSource(this::appConfig).register(this, passiveTriggerDispatcher);
+        passiveTriggerSource = new PassiveTriggerSource(this::appConfig);
+        passiveTriggerSource.register(this, passiveTriggerDispatcher, executionDispatcher);
 
         getServer().getPluginManager().registerEvents(
                 new CastModeKeyListener(castModeService, actionBarService, messageService),
@@ -370,6 +382,14 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     public EquipmentSkillCollector equipmentSkillCollector() {

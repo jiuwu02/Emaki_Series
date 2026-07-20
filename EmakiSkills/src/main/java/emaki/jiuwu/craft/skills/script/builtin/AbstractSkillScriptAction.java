@@ -12,7 +12,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.SkillActionParameter;
 import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.api.SkillScriptAction;
@@ -73,16 +73,23 @@ abstract class AbstractSkillScriptAction implements SkillScriptAction {
             Entity entity,
             Supplier<T> task) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        if (context == null || context.plugin() == null || entity == null) {
+        EmakiSkillsPlugin plugin = skillsPlugin(context);
+        if (plugin == null || entity == null) {
             future.completeExceptionally(new IllegalStateException("Skill entity owner domain is unavailable."));
             return future;
         }
         try {
-            var scheduled = FoliaSchedulerAdapter.runEntityTask(
-                    context.plugin(), entity, () -> complete(future, task));
-            if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "Skill entity owner scheduling was rejected."));
+            Runnable operation = () -> complete(future, task);
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(entity)) {
+                operation.run();
+            } else {
+                var scheduled = plugin.executionDispatcher().runEntity(plugin, entity, operation,
+                        () -> future.completeExceptionally(new IllegalStateException(
+                                "Skill entity owner task retired before execution.")));
+                if (scheduled == null) {
+                    future.completeExceptionally(new IllegalStateException(
+                            "Skill entity owner scheduling was rejected."));
+                }
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -97,17 +104,22 @@ abstract class AbstractSkillScriptAction implements SkillScriptAction {
             Location location,
             Supplier<T> task) {
         CompletableFuture<T> future = new CompletableFuture<>();
+        EmakiSkillsPlugin plugin = skillsPlugin(context);
         Location safeLocation = location == null ? null : location.clone();
-        if (context == null || context.plugin() == null || safeLocation == null || safeLocation.getWorld() == null) {
+        if (plugin == null || safeLocation == null || safeLocation.getWorld() == null) {
             future.completeExceptionally(new IllegalStateException("Skill location owner domain is unavailable."));
             return future;
         }
         try {
-            var scheduled = FoliaSchedulerAdapter.runAtLocation(
-                    context.plugin(), safeLocation, () -> complete(future, task));
-            if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "Skill location owner scheduling was rejected."));
+            Runnable operation = () -> complete(future, task);
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isLocationOwned(safeLocation)) {
+                operation.run();
+            } else {
+                var scheduled = plugin.executionDispatcher().runAtLocation(plugin, safeLocation, operation);
+                if (scheduled == null) {
+                    future.completeExceptionally(new IllegalStateException(
+                            "Skill location owner scheduling was rejected."));
+                }
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -158,6 +170,13 @@ abstract class AbstractSkillScriptAction implements SkillScriptAction {
             return callAtLocation(context, safeLocation, () -> action.apply(safeLocation));
         }
         return callOnEntity(context, caster, () -> action.apply(caster.getLocation()));
+    }
+
+    protected EmakiSkillsPlugin skillsPlugin(SkillScriptContext context) {
+        if (context == null || !(context.plugin() instanceof EmakiSkillsPlugin plugin)) {
+            return null;
+        }
+        return plugin;
     }
 
     private <T> void complete(CompletableFuture<T> future, Supplier<T> task) {

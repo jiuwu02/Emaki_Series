@@ -10,6 +10,8 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.event.GemExtractEvent;
@@ -38,6 +40,7 @@ public final class GemExtractService {
     private static final String OPERATION_NAMESPACE = "gem";
 
     private final EmakiGemPlugin plugin;
+    private final ThreadOwnership threadOwnership;
     private final GemItemMatcher itemMatcher;
     private final GemItemFactory itemFactory;
     private final GemStateService stateService;
@@ -51,15 +54,18 @@ public final class GemExtractService {
             GemItemFactory itemFactory,
             GemStateService stateService,
             GemEconomyService economyService,
-            GemActionCoordinator actionCoordinator) {
+            GemActionCoordinator actionCoordinator,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.threadOwnership = threadOwnership;
         this.itemMatcher = itemMatcher;
         this.itemFactory = itemFactory;
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
-        this.operationJournal = GemOperationJournal.forPlugin(plugin);
+        this.operationJournal = GemOperationJournal.forPlugin(plugin, executionDispatcher, threadOwnership);
     }
 
     public Result extract(Player actor, Player target, int slotIndex, boolean bypassCost) {
@@ -81,7 +87,7 @@ public final class GemExtractService {
             return Result.failure("gem.error.condition_not_met", Map.of());
         }
         // 拔取宝石对外开放，可取消；命令入口在主线程，仍按统一约定加守卫。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
+        if (threadOwnership.isEntityOwned(target)) {
             GemExtractEvent extractEvent = new GemExtractEvent(target, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
             org.bukkit.Bukkit.getPluginManager().callEvent(extractEvent);

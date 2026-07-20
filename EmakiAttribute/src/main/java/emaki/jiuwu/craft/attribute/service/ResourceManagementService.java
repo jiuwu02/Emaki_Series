@@ -21,8 +21,8 @@ import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 
 final class ResourceManagementService {
 
@@ -37,8 +37,12 @@ final class ResourceManagementService {
     }
 
     public void resyncAllPlayers() {
+        ExecutionDispatcher dispatcher = dispatcher();
+        if (dispatcher == null) {
+            return;
+        }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            FoliaSchedulerAdapter.runEntityTask(service.plugin(), player, () -> {
+            dispatcher.runEntity(service.plugin(), player, () -> {
                 if (isPlayerUsable(player)) {
                     syncPlayer(player, ResourceSyncReason.MANUAL, null, false);
                 }
@@ -47,11 +51,15 @@ final class ResourceManagementService {
     }
 
     public void regenerateOnlinePlayers() {
+        ExecutionDispatcher dispatcher = dispatcher();
+        if (dispatcher == null) {
+            return;
+        }
         int intervalTicks = Math.max(1, service.config().regenIntervalTicks());
         double intervalSeconds = intervalTicks / 20D;
         Map<String, ResourceDefinition> resources = service.resourceDefinitions();
         for (Player player : Bukkit.getOnlinePlayers()) {
-            FoliaSchedulerAdapter.runEntityTask(service.plugin(), player, () -> {
+            dispatcher.runEntity(service.plugin(), player, () -> {
                 if (isPlayerUsable(player)) {
                     regeneratePlayer(player, intervalSeconds, resources);
                 }
@@ -130,7 +138,13 @@ final class ResourceManagementService {
         debugEquipmentSync(player, "S2", "scheduled trigger=" + triggerName + " pending=true");
         Runnable cleanupPending = () -> pendingEquipmentSyncs.remove(playerId);
         try {
-            TaskHandle task = FoliaSchedulerAdapter.runEntityTaskLater(
+            ExecutionDispatcher dispatcher = dispatcher();
+            if (dispatcher == null) {
+                cleanupPending.run();
+                debugEquipmentSync(player, "S4", "rejected trigger=" + triggerName + " pending=false");
+                return;
+            }
+            TaskHandle task = dispatcher.runEntityLater(
                     service.plugin(),
                     player,
                     () -> {
@@ -343,8 +357,12 @@ final class ResourceManagementService {
 
     void resetHealthDisplayScaling() {
         healthDisplayScalingWarningLogged = false;
+        ExecutionDispatcher dispatcher = dispatcher();
+        if (dispatcher == null) {
+            return;
+        }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            FoliaSchedulerAdapter.runEntityTask(
+            dispatcher.runEntity(
                     service.plugin(),
                     player,
                     () -> resetHealthDisplayScaling(player)
@@ -402,7 +420,11 @@ final class ResourceManagementService {
         if (player == null || action == null) {
             return;
         }
-        FoliaSchedulerAdapter.runEntityTaskLater(
+        ExecutionDispatcher dispatcher = dispatcher();
+        if (dispatcher == null) {
+            return;
+        }
+        dispatcher.runEntityLater(
                 service.plugin(),
                 player,
                 () -> {
@@ -418,7 +440,11 @@ final class ResourceManagementService {
         if (entity == null || action == null) {
             return;
         }
-        FoliaSchedulerAdapter.runEntityTaskLater(
+        ExecutionDispatcher dispatcher = dispatcher();
+        if (dispatcher == null) {
+            return;
+        }
+        dispatcher.runEntityLater(
                 service.plugin(),
                 entity,
                 () -> {
@@ -428,5 +454,10 @@ final class ResourceManagementService {
                 },
                 Math.max(1, service.config().syncDelayTicks())
         );
+    }
+
+    private ExecutionDispatcher dispatcher() {
+        ExecutionDispatcher dispatcher = service.executionDispatcher();
+        return dispatcher != null ? dispatcher : service.plugin().executionDispatcher();
     }
 }

@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -63,6 +64,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     private final EmakiItemAssemblyService itemAssemblyService;
     private final StrengthenPdcAttributeWriter pdcAttributeWriter;
     private final ItemOperationLedger operationLedger;
+    private final ThreadOwnership threadOwnership;
     private final Object lifecycleMonitor = new Object();
     private final LinkedHashMap<String, JournalEntry> operationJournal = new LinkedHashMap<>();
     private boolean accepting = true;
@@ -74,7 +76,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             StrengthenEconomyService economyService,
             StrengthenSnapshotBuilder snapshotBuilder,
             StrengthenActionCoordinator actionCoordinator,
-            EmakiItemAssemblyService itemAssemblyService) {
+            EmakiItemAssemblyService itemAssemblyService,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.recipeResolver = recipeResolver;
         this.materialPlanResolver = new MaterialPlanResolver(recipeResolver);
@@ -83,6 +86,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         this.snapshotBuilder = snapshotBuilder;
         this.actionCoordinator = actionCoordinator;
         this.itemAssemblyService = itemAssemblyService;
+        this.threadOwnership = threadOwnership;
         this.pdcAttributeWriter = new StrengthenPdcAttributeWriter(plugin, PDC_ATTRIBUTE_SOURCE_ID);
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
@@ -262,7 +266,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         }
 
         double rollSuccessRate = sanitizeRate(preview.successRate());
-        if (Bukkit.isPrimaryThread()) {
+        if (isPlayerOwned(player)) {
             StrengthenPreAttemptEvent preAttemptEvent = new StrengthenPreAttemptEvent(
                     player,
                     context.targetItem(),
@@ -330,7 +334,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             plugin.getLogger().warning("Strengthen result hook dispatch failed | operationId="
                     + result.operationId() + " | error=" + exception.getMessage());
         }
-        if (Bukkit.isPrimaryThread()) {
+        if (isPlayerOwned(player)) {
             try {
                 Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
             } catch (RuntimeException | LinkageError exception) {
@@ -339,6 +343,10 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             }
         }
         return result;
+    }
+
+    private boolean isPlayerOwned(Player player) {
+        return threadOwnership != null && player != null && threadOwnership.isEntityOwned(player);
     }
 
     public boolean accepting() {

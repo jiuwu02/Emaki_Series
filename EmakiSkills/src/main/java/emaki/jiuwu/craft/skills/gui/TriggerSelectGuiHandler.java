@@ -5,9 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiDragContext;
@@ -15,6 +13,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
@@ -24,14 +23,14 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
 
     static final String KEY_TARGET_SLOT = "target_slot";
 
-    private final JavaPlugin plugin;
+    private final EmakiSkillsPlugin plugin;
     private final int targetSlot;
     private final PlayerSkillStateService stateService;
     private final TriggerRegistry triggerRegistry;
     private final MessageService messageService;
     private final Runnable onBack;
 
-    public TriggerSelectGuiHandler(JavaPlugin plugin,
+    public TriggerSelectGuiHandler(EmakiSkillsPlugin plugin,
             int targetSlot,
             PlayerSkillStateService stateService,
             TriggerRegistry triggerRegistry,
@@ -107,12 +106,12 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
         }
 
         player.closeInventory();
-        FoliaSchedulerAdapter.runEntityTask(plugin, player, onBack);
+        plugin.executionDispatcher().runEntity(plugin, player, onBack, () -> { });
     }
 
     private void handleBack(Player player) {
         player.closeInventory();
-        FoliaSchedulerAdapter.runEntityTask(plugin, player, onBack);
+        plugin.executionDispatcher().runEntity(plugin, player, onBack, () -> { });
     }
 
 

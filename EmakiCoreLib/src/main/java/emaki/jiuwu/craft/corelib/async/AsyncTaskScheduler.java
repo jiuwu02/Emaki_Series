@@ -4,7 +4,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -19,8 +18,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-
-import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
@@ -49,7 +46,6 @@ public final class AsyncTaskScheduler implements AutoCloseable {
 
     private final ThreadPoolExecutor executor;
     private final ScheduledExecutorService timeoutExecutor;
-    private final Executor syncExecutor;
     private final long defaultTimeoutMillis;
     private final int maxQueuedTasks;
     private final PerformanceMonitor performanceMonitor;
@@ -62,36 +58,20 @@ public final class AsyncTaskScheduler implements AutoCloseable {
     private final AtomicLong sequence = new AtomicLong();
     private final ConcurrentMap<CompletableFuture<?>, ScheduledFuture<?>> delayedTasks = new ConcurrentHashMap<>();
 
-    public AsyncTaskScheduler(Executor syncExecutor,
-            int threadCount,
+    public AsyncTaskScheduler(int threadCount,
             long defaultTimeoutMillis,
             String threadPrefix) {
-        this(syncExecutor, threadCount, defaultTimeoutMillis, threadPrefix, null);
+        this(threadCount, defaultTimeoutMillis, threadPrefix, null);
     }
 
-    public AsyncTaskScheduler(Executor syncExecutor,
-            int threadCount,
+    public AsyncTaskScheduler(int threadCount,
             long defaultTimeoutMillis,
             String threadPrefix,
             PerformanceMonitor performanceMonitor) {
-        this(
-                new ThreadPoolExecutor(
-                        Math.max(1, threadCount),
-                        Math.max(1, threadCount),
-                        30L,
-                        TimeUnit.SECONDS,
-                        new PriorityBlockingQueue<>(),
-                        new NamedThreadFactory(threadPrefix)
-                ),
-                Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(threadPrefix + "-timeout")),
-                syncExecutor,
-                defaultTimeoutMillis,
-                performanceMonitor
-        );
+        this(threadCount, defaultTimeoutMillis, threadPrefix, performanceMonitor, false);
     }
 
-    public AsyncTaskScheduler(Executor syncExecutor,
-            int threadCount,
+    public AsyncTaskScheduler(int threadCount,
             long defaultTimeoutMillis,
             String threadPrefix,
             PerformanceMonitor performanceMonitor,
@@ -106,7 +86,6 @@ public final class AsyncTaskScheduler implements AutoCloseable {
                         new NamedThreadFactory(threadPrefix, useVirtualThreads)
                 ),
                 Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(threadPrefix + "-timeout")),
-                syncExecutor,
                 defaultTimeoutMillis,
                 performanceMonitor
         );
@@ -114,58 +93,35 @@ public final class AsyncTaskScheduler implements AutoCloseable {
 
     public AsyncTaskScheduler(ThreadPoolExecutor executor,
             ScheduledExecutorService timeoutExecutor,
-            Executor syncExecutor,
             long defaultTimeoutMillis,
             PerformanceMonitor performanceMonitor) {
-        this(executor, timeoutExecutor, syncExecutor, defaultTimeoutMillis,
+        this(executor, timeoutExecutor, defaultTimeoutMillis,
                 performanceMonitor, DEFAULT_MAX_QUEUED_TASKS);
     }
 
     public AsyncTaskScheduler(ThreadPoolExecutor executor,
             ScheduledExecutorService timeoutExecutor,
-            Executor syncExecutor,
             long defaultTimeoutMillis,
             PerformanceMonitor performanceMonitor,
             int maxQueuedTasks) {
         this.executor = Objects.requireNonNull(executor, "executor");
         this.timeoutExecutor = Objects.requireNonNull(timeoutExecutor, "timeoutExecutor");
-        this.syncExecutor = syncExecutor == null ? Runnable::run : syncExecutor;
         this.defaultTimeoutMillis = defaultTimeoutMillis <= 0L ? DEFAULT_TIMEOUT_MILLIS : defaultTimeoutMillis;
         this.maxQueuedTasks = Math.max(0, maxQueuedTasks);
         this.performanceMonitor = performanceMonitor;
         this.executor.allowCoreThreadTimeOut(false);
     }
 
-    public static AsyncTaskScheduler forPlugin(Plugin plugin, String threadPrefix) {
-        return forPlugin(plugin, threadPrefix, null);
+    public static AsyncTaskScheduler forPlugin(String threadPrefix,
+            PerformanceMonitor performanceMonitor) {
+        int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
+        return new AsyncTaskScheduler(threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor);
     }
 
-    public static AsyncTaskScheduler forPlugin(Plugin plugin, String threadPrefix, PerformanceMonitor performanceMonitor) {
-        Executor sync = runnable -> {
-            if (runnable == null) {
-                return;
-            }
-            if (plugin == null || !plugin.isEnabled()) {
-                throw new RejectedExecutionException("Plugin is disabled; sync dispatch rejected");
-            }
-            FoliaSchedulerAdapter.runTask(plugin, runnable);
-        };
+    public static AsyncTaskScheduler forPluginVirtual(String threadPrefix,
+            PerformanceMonitor performanceMonitor) {
         int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
-        return new AsyncTaskScheduler(sync, threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor);
-    }
-
-    public static AsyncTaskScheduler forPluginVirtual(Plugin plugin, String threadPrefix, PerformanceMonitor performanceMonitor) {
-        Executor sync = runnable -> {
-            if (runnable == null) {
-                return;
-            }
-            if (plugin == null || !plugin.isEnabled()) {
-                throw new RejectedExecutionException("Plugin is disabled; sync dispatch rejected");
-            }
-            FoliaSchedulerAdapter.runTask(plugin, runnable);
-        };
-        int threads = Math.max(2, Runtime.getRuntime().availableProcessors() / 2);
-        return new AsyncTaskScheduler(sync, threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor, true);
+        return new AsyncTaskScheduler(threads, DEFAULT_TIMEOUT_MILLIS, threadPrefix, performanceMonitor, true);
     }
 
     public <T> CompletableFuture<T> supplyAsync(String taskName, Supplier<T> supplier) {
@@ -296,30 +252,6 @@ public final class AsyncTaskScheduler implements AutoCloseable {
 
     private boolean delayedQueueFull() {
         return delayedTasks.size() >= maxQueuedTasks;
-    }
-
-    public <T> CompletableFuture<T> callSync(String taskName, Supplier<T> supplier) {
-        Objects.requireNonNull(supplier, "supplier");
-        if (!acceptingTasks.get()) {
-            return CompletableFuture.failedFuture(new RejectedExecutionException("Async scheduler is shutting down"));
-        }
-        CompletableFuture<T> future = new CompletableFuture<>();
-        try {
-            syncExecutor.execute(() -> {
-                long startedAt = System.nanoTime();
-                try {
-                    T value = supplier.get();
-                    recordPerformance("async-task:sync:" + safeTaskName(taskName), System.nanoTime() - startedAt, true);
-                    future.complete(value);
-                } catch (Throwable throwable) {
-                    recordPerformance("async-task:sync:" + safeTaskName(taskName), System.nanoTime() - startedAt, false);
-                    future.completeExceptionally(throwable);
-                }
-            });
-        } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
-        }
-        return future;
     }
 
     public AsyncTaskSnapshot snapshot() {

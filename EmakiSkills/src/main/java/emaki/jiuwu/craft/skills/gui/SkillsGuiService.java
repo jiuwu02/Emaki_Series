@@ -5,14 +5,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiRenderer;
@@ -25,6 +24,7 @@ import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -45,7 +45,7 @@ public final class SkillsGuiService {
     private static final String TEMPLATE_SKILLS_GUI = "skills_gui";
     private static final String TEMPLATE_TRIGGER_SELECT = "trigger_select_gui";
 
-    private final JavaPlugin plugin;
+    private final EmakiSkillsPlugin plugin;
     private final GuiService guiService;
     private final GuiTemplateLoader guiTemplateLoader;
     private final PlayerSkillStateService stateService;
@@ -57,7 +57,7 @@ public final class SkillsGuiService {
     private final SkillParameterResolver skillParameterResolver;
     private final MessageService messageService;
 
-    public SkillsGuiService(JavaPlugin plugin,
+    public SkillsGuiService(EmakiSkillsPlugin plugin,
             GuiService guiService,
             GuiTemplateLoader guiTemplateLoader,
             PlayerSkillStateService stateService,
@@ -148,7 +148,7 @@ public final class SkillsGuiService {
             CompletableFuture<Void> close = new CompletableFuture<>();
             closes.add(close);
             try {
-                FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                var scheduled = plugin.executionDispatcher().runEntity(plugin, player, () -> {
                     try {
                         GuiSession session = guiService.getSession(player.getUniqueId());
                         if (session != null && session.owner() == plugin) {
@@ -158,7 +158,12 @@ public final class SkillsGuiService {
                     } catch (Throwable throwable) {
                         close.completeExceptionally(throwable);
                     }
-                });
+                }, () -> close.completeExceptionally(new RejectedExecutionException(
+                        "Skills GUI close operation retired before execution.")));
+                if (scheduled == null) {
+                    close.completeExceptionally(new RejectedExecutionException(
+                            "Skills GUI close operation scheduling was rejected."));
+                }
             } catch (Throwable throwable) {
                 close.completeExceptionally(throwable);
             }

@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -80,10 +82,12 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private BStatsRegistration metrics;
 
     private final ItemLifecycleCoordinator lifecycleCoordinator = new ItemLifecycleCoordinator();
-    private final ItemCommandRouter commandRouter = new ItemCommandRouter(this);
+    private ItemCommandRouter commandRouter;
     private ItemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
 
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private MessageService messageService;
@@ -225,6 +229,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void applyRuntimeComponents(ItemRuntimeComponents components) {
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
@@ -254,6 +260,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         javaScriptFactoryRegistry = components.javaScriptFactoryRegistry();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        commandRouter = new ItemCommandRouter(this, executionDispatcher, threadOwnership);
         registerServices(components);
     }
 
@@ -273,7 +280,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(new ItemTriggerListener(this), this);
-        getServer().getPluginManager().registerEvents(new ItemUpdateListener(this), this);
+        getServer().getPluginManager().registerEvents(
+                new ItemUpdateListener(this, executionDispatcher, threadOwnership),
+                this
+        );
         getServer().getPluginManager().registerEvents(new ItemDurabilityListener(this, repairService), this);
         getServer().getPluginManager().registerEvents(new ItemRepairListener(this, repairService), this);
     }
@@ -285,6 +295,14 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         placeholderExpansion = new ItemPlaceholderExpansion(this);
         placeholderExpansion.register();
         messageService.info("console.papi_registered");
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     @Override

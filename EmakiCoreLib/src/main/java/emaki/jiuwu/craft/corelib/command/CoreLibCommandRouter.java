@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.action.ActionStepResult;
 import emaki.jiuwu.craft.corelib.action.loop.LoopTaskSnapshot;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -38,9 +38,11 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
 
     private final EmakiCoreLibPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
 
-    public CoreLibCommandRouter(EmakiCoreLibPlugin plugin) {
+    public CoreLibCommandRouter(EmakiCoreLibPlugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
+        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
     }
 
     @Override
@@ -189,7 +191,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
                 .withAttribute("command_sender", sender);
         sendLang(sender, "command.action_execute_started", Map.of("line", rawLine));
         plugin.actionExecutor().executeAll(context, List.of(rawLine), true).whenComplete((batch, throwable) ->
-                FoliaSchedulerAdapter.runTask(plugin, () -> sendActionExecutionResult(sender, batch, throwable))
+                dispatchSender(sender, () -> sendActionExecutionResult(sender, batch, throwable))
         );
         return true;
     }
@@ -215,6 +217,14 @@ public final class CoreLibCommandRouter implements TabExecutor {
                             "params", actionParameters(action)
                     )));
                 });
+    }
+
+    private void dispatchSender(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player) {
+            executionDispatcher.runEntity(plugin, player, task, () -> { });
+        } else {
+            executionDispatcher.runGlobal(plugin, task);
+        }
     }
 
     private void sendActionExecutionResult(CommandSender sender, ActionBatchResult batch, Throwable throwable) {

@@ -14,7 +14,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.SkillActionParameter;
 import emaki.jiuwu.craft.skills.api.SkillActionParameterType;
 import emaki.jiuwu.craft.skills.api.SkillActionResult;
@@ -53,6 +53,12 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
     private CompletableFuture<SkillActionResult> executeFlight(SkillScriptContext context,
             Map<String, String> arguments,
             SkillScriptAction.CancellationToken cancellationToken) {
+        EmakiSkillsPlugin plugin = skillsPlugin(context);
+        if (plugin == null) {
+            return CompletableFuture.completedFuture(SkillActionResult.failure(
+                    emaki.jiuwu.craft.skills.api.SkillActionErrorType.INVALID_STATE,
+                    "Projectile skill action requires EmakiSkillsPlugin context."));
+        }
         Player caster = context.caster();
         if (caster == null || !caster.isOnline()) {
             return completed(SkillActionResult.ok());
@@ -111,8 +117,8 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
                     }
                     current.add(velocity);
                     try {
-                        var scheduled = FoliaSchedulerAdapter.runAtLocationLater(
-                                context.plugin(), current.clone(), this::tick, 1L);
+                        var scheduled = plugin.executionDispatcher().runAtLocationLater(
+                                plugin, current.clone(), this::tick, 1L);
                         if (scheduled == null) {
                             completion.completeExceptionally(new IllegalStateException(
                                     "Projectile flight scheduling was rejected."));

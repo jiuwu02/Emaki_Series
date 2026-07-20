@@ -7,11 +7,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -19,6 +21,7 @@ import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -42,7 +45,7 @@ public final class EmakiItemAssemblyService {
     private final ItemOperationLedger operationLedger = new ItemOperationLedger();
     private final CacheManager<String, ItemStack> previewCache =
             new CacheManager<>(PREVIEW_CACHE_SIZE, PREVIEW_CACHE_TTL_MILLIS);
-    private volatile AsyncConfig asyncConfig = new AsyncConfig(null, null);
+    private volatile AsyncConfig asyncConfig = new AsyncConfig(null, null, null, null);
 
     public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
             EmakiItemLayerCodecRegistry codecRegistry,
@@ -53,8 +56,11 @@ public final class EmakiItemAssemblyService {
         this.itemRenderService = new ItemRenderService(namespaceRegistry);
     }
 
-    public void configureAsync(AsyncTaskScheduler asyncTaskScheduler, PerformanceMonitor performanceMonitor) {
-        this.asyncConfig = new AsyncConfig(asyncTaskScheduler, performanceMonitor);
+    public void configureAsync(AsyncTaskScheduler asyncTaskScheduler,
+            ExecutionDispatcher executionDispatcher,
+            Plugin executionOwner,
+            PerformanceMonitor performanceMonitor) {
+        this.asyncConfig = new AsyncConfig(asyncTaskScheduler, executionDispatcher, executionOwner, performanceMonitor);
     }
 
     public ItemStack preview(EmakiItemAssemblyRequest request) {
@@ -116,8 +122,17 @@ public final class EmakiItemAssemblyService {
         if (config.scheduler() == null) {
             return CompletableFuture.completedFuture(preview(request));
         }
-        return config.scheduler().supplyAsync("assembly-preview", AsyncTaskScheduler.TaskPriority.NORMAL, 10_000L, () -> preview(request))
-                .thenCompose(rendered -> config.scheduler().callSync("assembly-preview-sync", () -> rendered == null ? null : rendered.clone()));
+        CompletableFuture<ItemStack> rendered = config.scheduler().supplyAsync(
+                "assembly-preview",
+                AsyncTaskScheduler.TaskPriority.NORMAL,
+                10_000L,
+                () -> preview(request));
+        if (config.executionDispatcher() == null || config.executionOwner() == null) {
+            return rendered.thenApply(itemStack -> itemStack == null ? null : itemStack.clone());
+        }
+        return rendered.thenCompose(itemStack -> config.executionDispatcher().submitGlobal(
+                config.executionOwner(),
+                () -> itemStack == null ? null : itemStack.clone()));
     }
 
     public ItemStack rebuild(ItemStack itemStack) {
@@ -143,13 +158,40 @@ public final class EmakiItemAssemblyService {
         EmakiItemAssemblyRequest effectiveRequest = request == null
                 ? null
                 : request.withFeedbackPlayerId(player == null ? null : player.getUniqueId());
-        return previewAsync(effectiveRequest).thenApply(itemStack -> {
-            if (player == null || itemStack == null) {
-                return itemStack;
+        return previewAsync(effectiveRequest).thenCompose(itemStack -> deliverToPlayerAsync(player, itemStack));
+    }
+
+    private CompletableFuture<ItemStack> deliverToPlayerAsync(Player player, ItemStack itemStack) {
+        if (player == null || itemStack == null) {
+            return CompletableFuture.completedFuture(itemStack);
+        }
+        AsyncConfig config = asyncConfig;
+        if (config.executionDispatcher() == null || config.executionOwner() == null) {
+            if (config.scheduler() != null) {
+                return CompletableFuture.failedFuture(new RejectedExecutionException(
+                        "Async assembly delivery requires an ExecutionDispatcher and owner."));
             }
             deliverToPlayer(player, itemStack);
-            return itemStack;
-        });
+            return CompletableFuture.completedFuture(itemStack);
+        }
+        CompletableFuture<ItemStack> future = new CompletableFuture<>();
+        Runnable retired = () -> future.completeExceptionally(new RejectedExecutionException(
+                "Assembly delivery target retired before item could be delivered."));
+        try {
+            if (config.executionDispatcher().runEntity(config.executionOwner(), player, () -> {
+                try {
+                    deliverToPlayer(player, itemStack);
+                    future.complete(itemStack);
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            }, retired) == null) {
+                retired.run();
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
     }
 
     public boolean isEmakiItem(ItemStack itemStack) {
@@ -630,7 +672,10 @@ public final class EmakiItemAssemblyService {
         T get() throws Exception;
     }
 
-    private record AsyncConfig(AsyncTaskScheduler scheduler, PerformanceMonitor monitor) {
+    private record AsyncConfig(AsyncTaskScheduler scheduler,
+            ExecutionDispatcher executionDispatcher,
+            Plugin executionOwner,
+            PerformanceMonitor monitor) {
 
     }
 

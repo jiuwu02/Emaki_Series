@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.item;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -33,7 +35,9 @@ import emaki.jiuwu.craft.item.service.ItemRepairService;
 import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
 import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 
-record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
+record ItemRuntimeComponents(ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
+        YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         MessageService messageService,
         BootstrapService bootstrapService,
@@ -65,6 +69,8 @@ record ItemRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(MessageService.class, messageService),

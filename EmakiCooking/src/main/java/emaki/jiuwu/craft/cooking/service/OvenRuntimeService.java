@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
@@ -19,8 +20,8 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -28,6 +29,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
@@ -54,10 +56,12 @@ public final class OvenRuntimeService implements Listener {
     private final OvenTickProcessor tickProcessor;
     private final OvenGuiController guiController;
     private final CookingTextDisplayService textDisplayService;
+    private final ExecutionDispatcher executionDispatcher;
     private CookingCompletionCoordinator completionCoordinator;
     private final Map<StationCoordinates, OvenState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> dirtyStations = ConcurrentHashMap.newKeySet();
+    private final Set<StationCoordinates> tickingStations = ConcurrentHashMap.newKeySet();
     private TaskHandle tickerTask;
     private TaskHandle flushTask;
 
@@ -69,7 +73,8 @@ public final class OvenRuntimeService implements Listener {
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
-            CookingTextDisplayService textDisplayService) {
+            CookingTextDisplayService textDisplayService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -78,6 +83,7 @@ public final class OvenRuntimeService implements Listener {
         this.recipeService = recipeService;
         this.itemSourceService = itemSourceService;
         this.textDisplayService = textDisplayService;
+        this.executionDispatcher = executionDispatcher;
         this.codec = new OvenStateCodec();
         this.tickProcessor = new OvenTickProcessor(settingsService, recipeService, rewardService, itemSourceService, codec);
         this.guiController = new OvenGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
@@ -212,9 +218,10 @@ public final class OvenRuntimeService implements Listener {
 
     public void shutdown() {
         guiController.closeAllOpenInventories(false);
+        cancelTicker();
+        waitForInFlightTicks();
         flushDirtyStates();
         cancelFlushTask();
-        cancelTicker();
         textDisplayService.removeStationType(StationType.OVEN);
         activeStations.clear();
         runtimeStates.clear();
@@ -388,10 +395,10 @@ public final class OvenRuntimeService implements Listener {
             cancelTicker();
             return;
         }
-        if (tickerTask != null && !FoliaSchedulerAdapter.isTaskCancelled(tickerTask)) {
+        if (tickerTask != null && !tickerTask.isCancelled()) {
             return;
         }
-        tickerTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::tick, 20L, 20L);
+        tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, 20L, 20L);
     }
 
     private void ensureFlushTask() {
@@ -399,29 +406,15 @@ public final class OvenRuntimeService implements Listener {
             cancelFlushTask();
             return;
         }
-        if (flushTask != null && !FoliaSchedulerAdapter.isTaskCancelled(flushTask)) {
+        if (flushTask != null && !flushTask.isCancelled()) {
             return;
         }
-        flushTask = FoliaSchedulerAdapter.runTaskTimer(
+        flushTask = executionDispatcher.runGlobalTimer(
                 plugin,
                 this::flushDirtyStates,
                 DIRTY_FLUSH_INTERVAL_TICKS,
                 DIRTY_FLUSH_INTERVAL_TICKS
         );
-    }
-
-    private void cancelTicker() {
-        if (tickerTask != null) {
-            FoliaSchedulerAdapter.cancelTask(tickerTask);
-            tickerTask = null;
-        }
-    }
-
-    private void cancelFlushTask() {
-        if (flushTask != null) {
-            FoliaSchedulerAdapter.cancelTask(flushTask);
-            flushTask = null;
-        }
     }
 
     private void flushDirtyStates() {
@@ -430,21 +423,52 @@ public final class OvenRuntimeService implements Listener {
             return;
         }
         for (StationCoordinates coordinates : List.copyOf(dirtyStations)) {
-            OvenState state = runtimeStates.get(coordinates);
-            if (state == null || state.isCompletelyEmpty()) {
-                removeState(coordinates, true);
+            if (coordinates == null) {
                 continue;
             }
-            Map<String, Object> serialized = codec.serializeState(coordinates, state);
-            dirtyStations.remove(coordinates);
-            stateStore.saveAsync(coordinates, serialized).thenAccept(success -> {
-                if (!success) {
-                    dirtyStations.add(coordinates);
-                }
-            });
+            OvenState state = runtimeStates.get(coordinates);
+            if (state == null || state.isCompletelyEmpty()) {
+                dirtyStations.remove(coordinates);
+                continue;
+            }
+            stateStore.saveAsync(coordinates, codec.serializeState(coordinates, state))
+                    .thenAccept(saved -> {
+                        if (Boolean.TRUE.equals(saved)) {
+                            dirtyStations.remove(coordinates);
+                        }
+                        if (dirtyStations.isEmpty()) {
+                            cancelFlushTask();
+                        }
+                    });
         }
         if (dirtyStations.isEmpty()) {
             cancelFlushTask();
+        }
+    }
+
+    private void cancelFlushTask() {
+        if (flushTask != null) {
+            flushTask.cancel();
+            flushTask = null;
+        }
+    }
+
+    private void cancelTicker() {
+        if (tickerTask != null) {
+            tickerTask.cancel();
+            tickerTask = null;
+        }
+    }
+
+    private void waitForInFlightTicks() {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+        while (!tickingStations.isEmpty() && System.nanoTime() < deadline) {
+            try {
+                Thread.sleep(10L);
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
     }
 
@@ -455,7 +479,25 @@ public final class OvenRuntimeService implements Listener {
         }
         long now = System.currentTimeMillis();
         for (StationCoordinates coordinates : List.copyOf(activeStations)) {
-            processStation(coordinates, now);
+            if (coordinates == null || !tickingStations.add(coordinates)) {
+                continue;
+            }
+            Location location = coordinates.location(0.5D, 0.5D, 0.5D);
+            if (location == null || location.getWorld() == null) {
+                tickingStations.remove(coordinates);
+                activeStations.remove(coordinates);
+                continue;
+            }
+            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+                try {
+                    processStation(coordinates, now);
+                } finally {
+                    tickingStations.remove(coordinates);
+                }
+            });
+            if (handle == null) {
+                tickingStations.remove(coordinates);
+            }
         }
         if (activeStations.isEmpty()) {
             cancelTicker();

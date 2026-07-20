@@ -18,6 +18,8 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -92,6 +94,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private CookingStationListener stationListener;
     private DebugCommand debugCommand;
 
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private ChoppingBoardRecipeLoader choppingBoardRecipeLoader;
@@ -199,14 +203,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
                         + ", failures=" + flushResult.failures().size());
             }
         }
-        if (completionCoordinator != null) {
-            var drainResult = completionCoordinator.sealAndDrain(5L, TimeUnit.SECONDS);
-            if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
-                getLogger().warning("Cooking completion journal drain incomplete: pending="
-                        + drainResult.pendingOperations()
-                        + ", failures=" + drainResult.failures().size());
-            }
-        }
         if (grinderRuntimeService != null) {
             grinderRuntimeService.shutdown();
         }
@@ -221,6 +217,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         if (fermentationBarrelRuntimeService != null) {
             fermentationBarrelRuntimeService.shutdown();
+        }
+        if (completionCoordinator != null) {
+            var drainResult = completionCoordinator.sealAndDrain(5L, TimeUnit.SECONDS);
+            if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
+                getLogger().warning("Cooking completion journal drain incomplete: pending="
+                        + drainResult.pendingOperations()
+                        + ", failures=" + drainResult.failures().size());
+            }
         }
         if (stationStateStore != null) {
             var drainResult = stationStateStore.sealAndDrain(5L, TimeUnit.SECONDS);
@@ -271,6 +275,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void applyRuntimeComponents(CookingRuntimeComponents components) {
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
         choppingBoardRecipeLoader = components.choppingBoardRecipeLoader();
@@ -515,6 +521,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public ActionExecutor coreActionExecutor() {
         return coreActionExecutor;
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     public ItemSourceService coreItemSourceService() {

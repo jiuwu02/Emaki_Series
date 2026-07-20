@@ -14,17 +14,19 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 
 public final class PlayerDataListener implements Listener {
 
     private final EmakiLevelPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final Map<UUID, ConnectionSession> sessions = new ConcurrentHashMap<>();
 
-    public PlayerDataListener(EmakiLevelPlugin plugin) {
+    public PlayerDataListener(EmakiLevelPlugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -70,7 +72,17 @@ public final class PlayerDataListener implements Listener {
             if (data == null || !isCurrent(player, session)) {
                 return;
             }
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> applyLoadedSession(player, session, data));
+            try {
+                if (executionDispatcher.runEntity(
+                        plugin,
+                        player,
+                        () -> applyLoadedSession(player, session, data),
+                        () -> logFailure("apply", playerId, new IllegalStateException("owner_schedule_retired"))) == null) {
+                    logFailure("apply", playerId, new IllegalStateException("owner_schedule_rejected"));
+                }
+            } catch (Throwable scheduleFailure) {
+                logFailure("apply", playerId, scheduleFailure);
+            }
         });
     }
 

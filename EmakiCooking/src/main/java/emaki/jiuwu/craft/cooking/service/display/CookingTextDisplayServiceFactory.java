@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.cooking.service.display;
 
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -11,17 +13,20 @@ public final class CookingTextDisplayServiceFactory {
     private CookingTextDisplayServiceFactory() {
     }
 
-    public static CookingTextDisplayService create(JavaPlugin plugin, CookingSettingsService settingsService) {
+    public static CookingTextDisplayService create(JavaPlugin plugin,
+            CookingSettingsService settingsService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         String backend = settingsService.displayEntitiesBackend();
         if ("bukkit".equals(backend)) {
-            return new BukkitCookingTextDisplayService(plugin);
+            return new BukkitCookingTextDisplayService(plugin, executionDispatcher, threadOwnership);
         }
         PluginManager pluginManager = plugin.getServer().getPluginManager();
         boolean packetEventsEnabled = pluginManager.isPluginEnabled(PACKET_EVENTS_PLUGIN);
         if (packetEventsEnabled) {
             try {
                 if (PacketEventsCookingTextDisplayService.isRuntimeSupported()) {
-                    return new PacketEventsCookingTextDisplayService(plugin, settingsService);
+                    return new PacketEventsCookingTextDisplayService(plugin, settingsService, executionDispatcher, threadOwnership);
                 }
                 plugin.getLogger().warning("PacketEvents text display backend requires Minecraft 1.19.4 or newer; using Bukkit text display backend.");
             } catch (LinkageError | RuntimeException exception) {
@@ -30,6 +35,6 @@ public final class CookingTextDisplayServiceFactory {
         } else if ("packet_events".equals(backend)) {
             plugin.getLogger().warning("PacketEvents text display backend was requested but PacketEvents is not enabled; using Bukkit text display backend.");
         }
-        return new BukkitCookingTextDisplayService(plugin);
+        return new BukkitCookingTextDisplayService(plugin, executionDispatcher, threadOwnership);
     }
 }

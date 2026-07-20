@@ -11,7 +11,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 final class ForgeCommandRouter implements TabExecutor {
 
@@ -22,9 +23,15 @@ final class ForgeCommandRouter implements TabExecutor {
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
 
     private final EmakiForgePlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
 
-    ForgeCommandRouter(EmakiForgePlugin plugin) {
+    ForgeCommandRouter(EmakiForgePlugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     @Override
@@ -118,10 +125,18 @@ final class ForgeCommandRouter implements TabExecutor {
 
     private void runForSender(CommandSender sender, Runnable task) {
         if (sender instanceof Player player) {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+            if (threadOwnership.isEntityOwned(player)) {
+                task.run();
+            } else {
+                executionDispatcher.runEntity(plugin, player, task, () -> { });
+            }
             return;
         }
-        FoliaSchedulerAdapter.runTask(plugin, task);
+        if (threadOwnership.isGlobalOwned()) {
+            task.run();
+        } else {
+            executionDispatcher.runGlobal(plugin, task);
+        }
     }
 
     private boolean handleList(CommandSender sender, String[] args) {

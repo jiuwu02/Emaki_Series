@@ -15,7 +15,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -39,19 +41,28 @@ public final class GemOperationJournal {
     private static final Map<EmakiGemPlugin, GemOperationJournal> INSTANCES = new ConcurrentHashMap<>();
 
     private final EmakiGemPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private final Path activeDirectory;
     private final Path completedDirectory;
     private final Object ioLock = new Object();
 
-    private GemOperationJournal(EmakiGemPlugin plugin) {
+    private GemOperationJournal(EmakiGemPlugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         Path root = plugin.getDataFolder().toPath().resolve("data/operation-journal");
         this.activeDirectory = root.resolve("active");
         this.completedDirectory = root.resolve("completed");
     }
 
-    public static GemOperationJournal forPlugin(EmakiGemPlugin plugin) {
-        return INSTANCES.computeIfAbsent(plugin, GemOperationJournal::new);
+    public static GemOperationJournal forPlugin(EmakiGemPlugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
+        return INSTANCES.computeIfAbsent(plugin,
+                ignored -> new GemOperationJournal(plugin, executionDispatcher, threadOwnership));
     }
 
     public String begin(String kind, UUID playerId) {
@@ -177,12 +188,17 @@ public final class GemOperationJournal {
         Runnable recovery = () -> completeAfterRefund(entry.operationId(), "refund_failed",
                 economyService.refundPersistedDetailed(player,
                         decodeCurrencies(entry.currencies()), decodeMaterials(entry.materials())));
-        if (!FoliaSchedulerAdapter.isFolia() && Bukkit.isPrimaryThread()) {
+        if (threadOwnership.isEntityOwned(player)) {
             recovery.run();
             return;
         }
         try {
-            Object scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, player, recovery);
+            TaskHandle scheduled = executionDispatcher.runEntity(
+                    plugin,
+                    player,
+                    recovery,
+                    () -> compensationPending(entry.operationId(), "owner_schedule_retired")
+            );
             if (scheduled == null) {
                 compensationPending(entry.operationId(), "owner_schedule_rejected");
             }

@@ -27,14 +27,15 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
 import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class LoopActionService implements Listener {
 
     private final Plugin owner;
+    private final ExecutionDispatcher executionDispatcher;
     private final AtomicLong sequence = new AtomicLong();
     private final Map<String, LoopTaskRecord> tasks = new ConcurrentHashMap<>();
     private final ActionLineParser lineParser = new ActionLineParser();
@@ -43,8 +44,9 @@ public final class LoopActionService implements Listener {
     private volatile ActionRegistry actionRegistry;
     private volatile Supplier<ActionExecutor> executorSupplier;
 
-    public LoopActionService(Plugin owner) {
+    public LoopActionService(Plugin owner, ExecutionDispatcher executionDispatcher) {
         this.owner = owner;
+        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
     }
 
     public void configure(CoreLibConfig.LoopConfig config,
@@ -215,10 +217,19 @@ public final class LoopActionService implements Listener {
     private void schedule(LoopTaskRecord record, long delayTicks) {
         Runnable task = () -> tick(record);
         Player player = record.context.player();
-        TaskHandle handle = player == null
-                ? FoliaSchedulerAdapter.runTaskLater(owner, task, delayTicks)
-                : FoliaSchedulerAdapter.runEntityTaskLater(owner, player, task, delayTicks);
+        TaskHandle handle;
+        try {
+            handle = player == null
+                    ? executionDispatcher.runGlobalLater(owner, task, delayTicks)
+                    : executionDispatcher.runEntityLater(owner, player, task, () -> remove(record), delayTicks);
+        } catch (Throwable throwable) {
+            remove(record);
+            return;
+        }
         record.handle = handle;
+        if (handle == null) {
+            remove(record);
+        }
     }
 
     private void tick(LoopTaskRecord record) {
@@ -417,7 +428,9 @@ public final class LoopActionService implements Listener {
 
         private void cancel() {
             cancelled = true;
-            FoliaSchedulerAdapter.cancelTask(handle);
+            if (handle != null) {
+                handle.cancel();
+            }
         }
 
         private LoopTaskSnapshot snapshot() {

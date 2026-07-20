@@ -13,6 +13,8 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -69,6 +71,7 @@ public final class GemInlayService {
     private static final String OPERATION_NAMESPACE = "gem";
 
     private final EmakiGemPlugin plugin;
+    private final ThreadOwnership threadOwnership;
     private final GemItemMatcher itemMatcher;
     private final GemStateService stateService;
     private final GemEconomyService economyService;
@@ -80,14 +83,17 @@ public final class GemInlayService {
             GemItemMatcher itemMatcher,
             GemStateService stateService,
             GemEconomyService economyService,
-            GemActionCoordinator actionCoordinator) {
+            GemActionCoordinator actionCoordinator,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.threadOwnership = threadOwnership;
         this.itemMatcher = itemMatcher;
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
-        this.operationJournal = GemOperationJournal.forPlugin(plugin);
+        this.operationJournal = GemOperationJournal.forPlugin(plugin, executionDispatcher, threadOwnership);
     }
 
     public InlayResult inlayDirect(Player actor,
@@ -151,7 +157,7 @@ public final class GemInlayService {
 
         GemInlayEvent inlayEvent = new GemInlayEvent(actor, equipment, gemItem, slotIndex, gemDefinition.id(), instance.level(), successChance);
         // inlayDirect 可能通过公开 API 在异步线程调用；Bukkit 同步事件只能在主线程派发。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
+        if (threadOwnership.isEntityOwned(actor)) {
             org.bukkit.Bukkit.getPluginManager().callEvent(inlayEvent);
             if (inlayEvent.isCancelled()) {
                 return new InlayResult(Result.failure("gem.error.condition_not_met", placeholders), equipment);
@@ -286,7 +292,7 @@ public final class GemInlayService {
                     GemExtractService.Result.failure("gem.error.condition_not_met", Map.of()), equipment, null);
         }
         // 拔取宝石对外开放，可取消；extractDirect 可能经公开 API 在异步线程调用，事件只在主线程派发。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
+        if (threadOwnership.isEntityOwned(actor)) {
             GemExtractEvent extractEvent = new GemExtractEvent(actor, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
             org.bukkit.Bukkit.getPluginManager().callEvent(extractEvent);

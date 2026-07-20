@@ -16,8 +16,10 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 import emaki.jiuwu.craft.attribute.bridge.ServiceBackedEmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -61,6 +63,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
+        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         LanguageLoader languageLoader = new LanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, plugin::configModel);
         AttributeRegistry attributeRegistry = new AttributeRegistry(plugin);
@@ -74,7 +78,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ParentAttributeDataStore parentAttributeDataStore = new ParentAttributeDataStore(plugin);
         ParentAttributeService parentAttributeService = new ParentAttributeService(plugin, parentAttributeDataStore);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
+        GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         AttributePointsGuiService attributePointsGuiService = new AttributePointsGuiService(plugin, guiService, guiTemplateLoader);
         AttributeService attributeService = new AttributeService(
                 plugin,
@@ -88,15 +92,17 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 loreFormatRegistry,
                 presetRegistry,
                 pdcAttributeService,
-                parentAttributeService
+                parentAttributeService,
+                executionDispatcher,
+                threadOwnership
         );
-        EmakiAttributeBridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(attributeService);
+        EmakiAttributeBridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(attributeService, threadOwnership);
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),
                 new PluginIntegrationListener(plugin),
                 new InventoryInteractionListener(attributeService),
-                new CombatDamageListener(plugin, attributeService, combatDebugHandler),
+                new CombatDamageListener(plugin, attributeService, combatDebugHandler, executionDispatcher),
                 attributeService.perfectTakeoverCoordinator(),
                 new CombatDebugListener(attributeService),
                 guiService
@@ -104,8 +110,10 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
                 ? new MythicBridge(plugin, attributeService)
                 : null;
-        AttributeCommand command = new AttributeCommand(plugin, attributeService);
+        AttributeCommand command = new AttributeCommand(plugin, attributeService, executionDispatcher);
         return new AttributeRuntimeComponents(
+                executionDispatcher,
+                threadOwnership,
                 attributeRegistry,
                 attributeBalanceRegistry,
                 damageTypeRegistry,
@@ -193,7 +201,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             boolean resyncPlayers,
             Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
-        return runReloadPipelineAsync(scheduler, new ReloadPipelineConfig<>(
+        return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<>(
                 "attribute",
                 "bootstrap",
                 "正在读取语言与配置...",
@@ -277,7 +285,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.damageTypeRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        ))).thenCompose(configModel -> scheduler.callSync("attribute-reload-finalize", () -> {
+        ))).thenCompose(configModel -> plugin.executionDispatcher().submitGlobal(plugin, () -> {
             notifyProgress(progressListener, "正在刷新缓存并同步在线实体...");
             if (plugin.attributeService() != null) {
                 plugin.attributeService().refreshCaches();
@@ -302,7 +310,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             return nextTask;
         }
         int intervalTicks = Math.max(1, plugin.configModel().regenIntervalTicks());
-        return FoliaSchedulerAdapter.runTaskTimer(
+        return plugin.executionDispatcher().runGlobalTimer(
                 plugin,
                 plugin.attributeService()::regenerateOnlinePlayers,
                 intervalTicks,
@@ -311,7 +319,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     }
 
     public TaskHandle cancelRegenTask(TaskHandle currentTask) {
-        FoliaSchedulerAdapter.cancelTask(currentTask);
+        if (currentTask != null) {
+            currentTask.cancel();
+        }
         return null;
     }
 

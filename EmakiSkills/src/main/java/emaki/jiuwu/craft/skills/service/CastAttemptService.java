@@ -5,16 +5,16 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
@@ -38,7 +38,7 @@ import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 public final class CastAttemptService {
 
-    private final JavaPlugin plugin;
+    private final EmakiSkillsPlugin plugin;
     private final PlayerSkillStateService stateService;
     private final CastModeService castModeService;
     private final PlayerSkillDataStore dataStore;
@@ -51,7 +51,7 @@ public final class CastAttemptService {
     private final Supplier<AppConfig> configSupplier;
     private final Map<CastKey, CompletableFuture<CastAttemptResult>> inFlight = new ConcurrentHashMap<>();
 
-    public CastAttemptService(JavaPlugin plugin,
+    public CastAttemptService(EmakiSkillsPlugin plugin,
             PlayerSkillStateService stateService,
             CastModeService castModeService,
             PlayerSkillDataStore dataStore,
@@ -425,26 +425,37 @@ public final class CastAttemptService {
     private <T> CompletableFuture<T> onCaster(Player player,
             Supplier<? extends CompletionStage<T>> task) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        try {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-                try {
-                    CompletionStage<T> stage = task.get();
-                    if (stage == null) {
-                        future.completeExceptionally(new IllegalStateException(
-                                "Cast entity-domain task returned no completion stage."));
-                        return;
-                    }
-                    stage.whenComplete((result, throwable) -> {
-                        if (throwable != null) {
-                            future.completeExceptionally(throwable);
-                        } else {
-                            future.complete(result);
-                        }
-                    });
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
+        Runnable operation = () -> {
+            try {
+                CompletionStage<T> stage = task.get();
+                if (stage == null) {
+                    future.completeExceptionally(new IllegalStateException(
+                            "Cast entity-domain task returned no completion stage."));
+                    return;
                 }
-            });
+                stage.whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        future.completeExceptionally(throwable);
+                    } else {
+                        future.complete(result);
+                    }
+                });
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        };
+        try {
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+                operation.run();
+                return future;
+            }
+            var scheduled = plugin.executionDispatcher().runEntity(plugin, player, operation,
+                    () -> future.completeExceptionally(new RejectedExecutionException(
+                            "Cast entity-domain task retired before execution.")));
+            if (scheduled == null) {
+                future.completeExceptionally(new RejectedExecutionException(
+                        "Cast entity-domain task scheduling was rejected."));
+            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }

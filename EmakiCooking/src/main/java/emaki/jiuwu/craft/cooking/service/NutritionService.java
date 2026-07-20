@@ -13,8 +13,9 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -48,6 +49,8 @@ public final class NutritionService {
     private final CookingSettingsService settingsService;
     private final NutritionTypeRegistry typeRegistry;
     private final PlayerNutritionDataStore dataStore;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
 
     // 阈值满足状态（边沿触发）：单类型 key = ruleId + ":" + typeId；组合 key = ruleId
     private final Map<UUID, Set<String>> metSingleKeys = new ConcurrentHashMap<>();
@@ -64,13 +67,17 @@ public final class NutritionService {
             ItemSourceService itemSourceService,
             CookingSettingsService settingsService,
             NutritionTypeRegistry typeRegistry,
-            PlayerNutritionDataStore dataStore) {
+            PlayerNutritionDataStore dataStore,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.actionExecutor = actionExecutor;
         this.itemSourceService = itemSourceService;
         this.settingsService = settingsService;
         this.typeRegistry = typeRegistry;
         this.dataStore = dataStore;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     public boolean enabled() {
@@ -176,7 +183,7 @@ public final class NutritionService {
         if (source == null) {
             return false;
         }
-        if (Bukkit.isPrimaryThread()) {
+        if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
             PlayerNutritionConsumeEvent consumeEvent =
                     new PlayerNutritionConsumeEvent(player, itemStack, ItemSourceUtil.toShorthand(source));
             Bukkit.getPluginManager().callEvent(consumeEvent);
@@ -327,7 +334,7 @@ public final class NutritionService {
             double threshold,
             int matchedCount,
             int requiredCount) {
-        if (!Bukkit.isPrimaryThread()) {
+        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return;
         }
         Bukkit.getPluginManager().callEvent(new NutritionThresholdChangeEvent(
@@ -423,12 +430,12 @@ public final class NutritionService {
             return;
         }
         long periodTicks = (long) seconds * 20L;
-        saveTask = FoliaSchedulerAdapter.runTaskTimer(plugin, () -> dataStore.saveAllAsync(), periodTicks, periodTicks);
+        saveTask = executionDispatcher.runGlobalTimer(plugin, () -> dataStore.saveAllAsync(), periodTicks, periodTicks);
     }
 
     private void cancelSaveTask() {
         if (saveTask != null) {
-            FoliaSchedulerAdapter.cancelTask(saveTask);
+            saveTask.cancel();
             saveTask = null;
         }
     }

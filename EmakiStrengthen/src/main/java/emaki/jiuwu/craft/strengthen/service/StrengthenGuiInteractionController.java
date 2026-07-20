@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -184,7 +183,7 @@ final class StrengthenGuiInteractionController {
             return pending != null;
         }
         try {
-            var scheduled = FoliaSchedulerAdapter.runEntityTaskLater(
+            var scheduled = plugin.executionDispatcher().runEntityLater(
                     plugin,
                     pending.player(),
                     () -> settlePendingOnOwner(pending),

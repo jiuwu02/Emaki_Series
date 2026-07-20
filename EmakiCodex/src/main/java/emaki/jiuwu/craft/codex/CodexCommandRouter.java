@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -86,18 +88,65 @@ final class CodexCommandRouter implements TabExecutor {
             return true;
         }
         String advancementId = args[2];
-        boolean ok = grant
+        runOnTargetOwner(target, () -> grant
                 ? plugin.advancementService().grant(target, advancementId)
-                : plugin.advancementService().revoke(target, advancementId);
-        String key = grant ? "command.grant.done" : "command.revoke.done";
-        if (!ok) {
-            plugin.messageService().send(sender, "command.advancement.failed", Map.of("advancement", advancementId));
-            return true;
-        }
-        plugin.messageService().send(sender, key, Map.of(
-                "player", target.getName(),
-                "advancement", advancementId));
+                : plugin.advancementService().revoke(target, advancementId))
+                .whenComplete((ok, throwable) -> {
+                    if (throwable != null || !Boolean.TRUE.equals(ok)) {
+                        sendToSender(sender, () -> plugin.messageService().send(sender,
+                                "command.advancement.failed", Map.of("advancement", advancementId)));
+                        return;
+                    }
+                    String key = grant ? "command.grant.done" : "command.revoke.done";
+                    sendToSender(sender, () -> plugin.messageService().send(sender, key, Map.of(
+                            "player", target.getName(),
+                            "advancement", advancementId)));
+                });
         return true;
+    }
+
+    private CompletableFuture<Boolean> runOnTargetOwner(Player target, Supplier<Boolean> operation) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        if (target == null || !target.isOnline()) {
+            future.complete(false);
+            return future;
+        }
+        Runnable task = () -> {
+            try {
+                future.complete(Boolean.TRUE.equals(operation.get()));
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        };
+        try {
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(target)) {
+                task.run();
+                return future;
+            }
+            var scheduled = plugin.executionDispatcher().runEntity(plugin, target, task, () -> future.complete(false));
+            if (scheduled == null) {
+                future.complete(false);
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    private void sendToSender(CommandSender sender, Runnable task) {
+        try {
+            if (sender instanceof Player player) {
+                if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+                    task.run();
+                } else {
+                    plugin.executionDispatcher().runEntity(plugin, player, task, () -> { });
+                }
+            } else {
+                plugin.executionDispatcher().runGlobal(plugin, task);
+            }
+        } catch (Throwable ignored) {
+            // Command feedback is best-effort once the owner-domain mutation has completed.
+        }
     }
 
     private boolean handleDebug(CommandSender sender, String[] args) {

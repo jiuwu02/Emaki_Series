@@ -6,6 +6,8 @@ import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
@@ -40,7 +42,9 @@ import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
-record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
+record CookingRuntimeComponents(ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
+        YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         ChoppingBoardRecipeLoader choppingBoardRecipeLoader,
         WokRecipeLoader wokRecipeLoader,
@@ -81,6 +85,8 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(ChoppingBoardRecipeLoader.class, choppingBoardRecipeLoader),

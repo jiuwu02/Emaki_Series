@@ -6,6 +6,7 @@ import org.graalvm.polyglot.HostAccess;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.api.script.modules.ScriptCoreLibModuleApi;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptDeferredOperationQueue;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
@@ -37,6 +38,7 @@ public final class EmakiScriptApi {
     public final ScriptServerApi server;
 
     private final Plugin sourcePlugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final ScriptModuleContext moduleContext;
     private final ScriptModuleRegistry moduleRegistry;
     private final ScriptDeferredOperationQueue deferredOperations;
@@ -79,11 +81,7 @@ public final class EmakiScriptApi {
             ScriptModuleRegistry moduleRegistry,
             java.util.Map<String, Object> moduleOverrides) {
         this(context, arguments, actionExecutor, config, scriptPath, sourcePlugin, moduleRegistry,
-                moduleOverrides, new ScriptDeferredOperationQueue(
-                        sourcePlugin == null && context != null ? context.sourcePlugin() : sourcePlugin,
-                        actionExecutor,
-                        context
-                ));
+                moduleOverrides, null, null);
     }
 
     public EmakiScriptApi(ActionContext context,
@@ -94,11 +92,13 @@ public final class EmakiScriptApi {
             Plugin sourcePlugin,
             ScriptModuleRegistry moduleRegistry,
             java.util.Map<String, Object> moduleOverrides,
+            ExecutionDispatcher executionDispatcher,
             ScriptDeferredOperationQueue deferredOperations) {
         ScriptConfig safeConfig = config == null ? ScriptConfig.defaults() : config;
         this.sourcePlugin = sourcePlugin == null && context != null ? context.sourcePlugin() : sourcePlugin;
-        this.deferredOperations = deferredOperations == null
-                ? new ScriptDeferredOperationQueue(this.sourcePlugin, actionExecutor, context)
+        this.executionDispatcher = executionDispatcher;
+        this.deferredOperations = deferredOperations == null && executionDispatcher != null
+                ? new ScriptDeferredOperationQueue(this.sourcePlugin, executionDispatcher, actionExecutor, context)
                 : deferredOperations;
         this.context = safeConfig.context().exposeContext() ? new ScriptContextApi(context, arguments) : null;
         this.player = safeConfig.context().exposePlayer() ? new ScriptPlayerApi(context) : null;
@@ -112,7 +112,7 @@ public final class EmakiScriptApi {
                 ? new ScriptSharedStateApi(context, this.deferredOperations)
                 : null;
         this.text = safeConfig.context().exposeText()
-                ? new ScriptTextApi(this.sourcePlugin, this.deferredOperations)
+                ? new ScriptTextApi(this.sourcePlugin, this.executionDispatcher, this.deferredOperations)
                 : null;
         this.corelib = new ScriptCoreLibModuleApi();
         this.moduleRegistry = moduleRegistry == null ? new ScriptModuleRegistry() : moduleRegistry;

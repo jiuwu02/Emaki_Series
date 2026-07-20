@@ -15,6 +15,8 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -46,6 +48,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
+        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
         registerScriptModule(coreLibPlugin);
         releaseBundledScripts(coreLibPlugin, plugin);
@@ -74,7 +78,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                     }
                 }
         );
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
+        GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
         StrengthenRecipeResolver recipeResolver = new StrengthenRecipeResolver(
@@ -97,11 +101,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 economyService,
                 snapshotBuilder,
                 actionCoordinator,
-                coreLibPlugin.itemAssemblyService()
+                coreLibPlugin.itemAssemblyService(),
+                threadOwnership
         );
-        StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService);
-        StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService);
+        StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService, executionDispatcher);
+        StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService, threadOwnership);
         return new StrengthenRuntimeComponents(
+                executionDispatcher,
+                threadOwnership,
                 appConfigLoader,
                 languageLoader,
                 recipeLoader,
@@ -172,7 +179,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
             notifyProgress(progressListener, "Applying configuration...");
-            return scheduler.<Void>callSync("strengthen-reload-apply", () -> {
+            return submitGlobalStage(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
                 syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
@@ -182,9 +189,21 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                         "count", String.valueOf(plugin.recipeLoader().all().size())
                 ));
                 notifyProgress(progressListener, "Reload complete.");
-                return null;
             });
         })).whenComplete((_, _) -> resumeAccepting(plugin));
+    }
+
+    private CompletableFuture<Void> submitGlobalStage(EmakiStrengthenPlugin plugin, Runnable stage) {
+        try {
+            return plugin.executionDispatcher().submitGlobal(plugin, () -> {
+                stage.run();
+                return null;
+            });
+        } catch (Throwable throwable) {
+            CompletableFuture<Void> failed = new CompletableFuture<>();
+            failed.completeExceptionally(throwable);
+            return failed;
+        }
     }
 
     public void shutdown(EmakiStrengthenPlugin plugin) {

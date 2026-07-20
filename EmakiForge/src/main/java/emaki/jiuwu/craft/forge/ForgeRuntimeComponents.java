@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.forge;
 
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -20,6 +22,8 @@ import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 
 record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
+        ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
         LanguageLoader languageLoader,
         RecipeLoader recipeLoader,
         GuiTemplateLoader guiTemplateLoader,
@@ -38,6 +42,8 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(RecipeLoader.class, recipeLoader),
                 RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),

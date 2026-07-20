@@ -11,6 +11,8 @@ import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -30,7 +32,9 @@ record CodexRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         AdvancementRegistrar advancementRegistrar,
         AdvancementService advancementService,
         AdvancementPacketGateway advancementPacketGateway,
-        CodexTriggerService triggerService) implements RuntimeComponents {
+        CodexTriggerService triggerService,
+        ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {
@@ -45,7 +49,9 @@ record CodexRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(AdvancementRegistrar.class, advancementRegistrar),
                 RuntimeComponents.component(AdvancementService.class, advancementService),
                 RuntimeComponents.component(AdvancementPacketGateway.class, advancementPacketGateway),
-                RuntimeComponents.component(CodexTriggerService.class, triggerService)
+                RuntimeComponents.component(CodexTriggerService.class, triggerService),
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership)
         );
     }
 }

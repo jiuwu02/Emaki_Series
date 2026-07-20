@@ -4,9 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiDragContext;
@@ -14,6 +12,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
@@ -28,7 +27,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
     static final String KEY_CURRENT_PAGE = "current_page";
     static final String KEY_SELECTED_SLOT = "selected_slot";
 
-    private final JavaPlugin plugin;
+    private final EmakiSkillsPlugin plugin;
     private final PlayerSkillStateService stateService;
     private final PlayerSkillDataStore dataStore;
     private final SkillRegistryService registryService;
@@ -36,7 +35,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
     private final MessageService messageService;
     private final SkillsGuiService skillsGuiService;
 
-    public SkillsGuiHandler(JavaPlugin plugin,
+    public SkillsGuiHandler(EmakiSkillsPlugin plugin,
             PlayerSkillStateService stateService,
             PlayerSkillDataStore dataStore,
             SkillRegistryService registryService,
@@ -105,8 +104,8 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
 
         if (click.isShiftClick()) {
             player.closeInventory();
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, () ->
-                    skillsGuiService.openTriggerSelect(player, slotIndex));
+            plugin.executionDispatcher().runEntity(plugin, player, () ->
+                    skillsGuiService.openTriggerSelect(player, slotIndex), () -> { });
         } else {
             stateService.unequipSkill(player, slotIndex);
             messageService.send(player, "gui.skill_unequipped");

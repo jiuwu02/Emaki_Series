@@ -12,6 +12,8 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.event.GemUpgradeEvent;
@@ -57,6 +59,7 @@ public final class GemUpgradeService {
     }
 
     private final EmakiGemPlugin plugin;
+    private final ThreadOwnership threadOwnership;
     private final GemItemFactory itemFactory;
     private final GemEconomyService economyService;
     private final GemActionCoordinator actionCoordinator;
@@ -65,12 +68,15 @@ public final class GemUpgradeService {
     public GemUpgradeService(EmakiGemPlugin plugin,
             GemItemFactory itemFactory,
             GemEconomyService economyService,
-            GemActionCoordinator actionCoordinator) {
+            GemActionCoordinator actionCoordinator,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.threadOwnership = threadOwnership;
         this.itemFactory = itemFactory;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
-        this.operationJournal = GemOperationJournal.forPlugin(plugin);
+        this.operationJournal = GemOperationJournal.forPlugin(plugin, executionDispatcher, threadOwnership);
     }
 
     public Result upgradeHeldGem(Player player, boolean bypassCost) {
@@ -161,7 +167,7 @@ public final class GemUpgradeService {
         GemDefinition.GemUpgradeLevel upgradeLevel = preview.upgradeLevel();
         double successChance = effectiveSuccessChance(definition, targetLevel, upgradeLevel.successChance());
         // 宝石升级对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费，物品形态 slotIndex 传 -1。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
+        if (threadOwnership.isEntityOwned(player)) {
             GemUpgradeEvent upgradeEvent = new GemUpgradeEvent(player, itemStack, definition.id(),
                     instance.level(), targetLevel, -1, successChance);
             org.bukkit.Bukkit.getPluginManager().callEvent(upgradeEvent);
@@ -259,7 +265,7 @@ public final class GemUpgradeService {
         GemDefinition.GemUpgradeLevel upgradeLevel = preview.upgradeLevel();
         double successChance = effectiveSuccessChance(definition, targetLevel, upgradeLevel.successChance());
         // 宝石升级对外开放，可取消、可改成功率；在扣费前派发以保证取消即不扣费，传装备与目标槽位。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
+        if (threadOwnership.isEntityOwned(target)) {
             GemUpgradeEvent upgradeEvent = new GemUpgradeEvent(target, equipment, definition.id(),
                     instance.level(), targetLevel, slotIndex, successChance);
             org.bukkit.Bukkit.getPluginManager().callEvent(upgradeEvent);

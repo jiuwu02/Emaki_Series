@@ -46,8 +46,10 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -75,6 +77,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     private DebugCommand debugCommand;
 
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private AttributeConfig configModel = AttributeConfig.defaults();
     private AttributeRegistry attributeRegistry;
     private AttributeBalanceRegistry attributeBalanceRegistry;
@@ -160,7 +164,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         if (!Bukkit.getPluginManager().isPluginEnabled("MMOItems")) {
             return;
         }
-        mmoItemsBridge = new MmoItemsBridge(this, attributeService);
+        mmoItemsBridge = new MmoItemsBridge(this, attributeService, executionDispatcher);
         getServer().getPluginManager().registerEvents(mmoItemsBridge, this);
         attributeService.resyncAllPlayers();
     }
@@ -215,6 +219,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     }
 
     private void applyRuntimeComponents(AttributeRuntimeComponents components) {
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
         attributeRegistry = components.attributeRegistry();
         attributeBalanceRegistry = components.attributeBalanceRegistry();
         damageTypeRegistry = components.damageTypeRegistry();
@@ -288,6 +294,14 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public AttributeConfig configModel() {
         return configModel;
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     public AttributeRegistry attributeRegistry() {

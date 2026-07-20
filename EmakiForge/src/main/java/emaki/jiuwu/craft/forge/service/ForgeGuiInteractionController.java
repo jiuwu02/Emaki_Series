@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.forge.service;
 
 import java.util.Map;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Predicate;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiDragContext;
@@ -29,15 +31,21 @@ final class ForgeGuiInteractionController {
     private final GuiStateManager stateManager;
     private final ForgeGuiStateSupport stateSupport;
     private final ForgeGuiRenderer renderer;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
 
     ForgeGuiInteractionController(EmakiForgePlugin plugin,
             GuiStateManager stateManager,
             ForgeGuiStateSupport stateSupport,
-            ForgeGuiRenderer renderer) {
+            ForgeGuiRenderer renderer,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.stateManager = stateManager;
         this.stateSupport = stateSupport;
         this.renderer = renderer;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     public GuiSessionHandler createSessionHandler(ForgeGuiSession state) {
@@ -183,13 +191,14 @@ final class ForgeGuiInteractionController {
             return;
         }
         boolean firstCraft = !plugin.playerDataStore().hasCrafted(state.player().getUniqueId(), activeRecipe.id());
-        // 锻造开始对外开放，可取消；这是异步执行链开始前唯一的主线程节点。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
-            ForgeStartEvent startEvent = new ForgeStartEvent(state.player(), finalRecipe.id(), firstCraft, finalRecipe.successRate());
-            org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
-            if (startEvent.isCancelled()) {
-                return;
-            }
+        if (threadOwnership == null || !threadOwnership.isEntityOwned(state.player())) {
+            plugin.messageService().send(state.player(), "forge.error.action_failed", Map.of("reason", "player owner is unavailable"));
+            return;
+        }
+        ForgeStartEvent startEvent = new ForgeStartEvent(state.player(), finalRecipe.id(), firstCraft, finalRecipe.successRate());
+        org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
+        if (startEvent.isCancelled()) {
+            return;
         }
         state.setProcessing(true);
         state.setRecipe(finalRecipe);
@@ -200,11 +209,50 @@ final class ForgeGuiInteractionController {
                 finalRecipe,
                 snapshot,
                 preparedForge
-        ).whenComplete((result, throwable) -> FoliaSchedulerAdapter.runEntityTask(
-                plugin,
-                state.player(),
-                () -> completeForgeAttempt(state, finalRecipe, firstCraft, result, throwable)
+        ).whenComplete((result, throwable) -> completeForgeAttemptOnOwner(
+                state,
+                finalRecipe,
+                firstCraft,
+                result,
+                throwable
         ));
+    }
+
+    private void completeForgeAttemptOnOwner(ForgeGuiSession state,
+            Recipe activeRecipe,
+            boolean firstCraft,
+            ForgeResult result,
+            Throwable throwable) {
+        if (state == null || state.player() == null || executionDispatcher == null) {
+            cleanupRetiredAttempt(state);
+            return;
+        }
+        Runnable completion = () -> completeForgeAttempt(state, activeRecipe, firstCraft, result, throwable);
+        if (threadOwnership != null && threadOwnership.isEntityOwned(state.player())) {
+            completion.run();
+            return;
+        }
+        try {
+            var scheduled = executionDispatcher.runEntity(
+                    plugin,
+                    state.player(),
+                    completion,
+                    () -> cleanupRetiredAttempt(state));
+            if (scheduled == null) {
+                completeForgeAttempt(state, activeRecipe, firstCraft, result,
+                        new RejectedExecutionException("Forge GUI completion scheduling was rejected."));
+            }
+        } catch (Throwable schedulingFailure) {
+            completeForgeAttempt(state, activeRecipe, firstCraft, result, schedulingFailure);
+        }
+    }
+
+    private void cleanupRetiredAttempt(ForgeGuiSession state) {
+        if (state == null) {
+            return;
+        }
+        state.setProcessing(false);
+        stateManager.remove(state);
     }
 
     private void completeForgeAttempt(ForgeGuiSession state,
@@ -246,7 +294,7 @@ final class ForgeGuiInteractionController {
     }
 
     private void fireForgeCompleted(Player player, Recipe recipe, ForgeResult result, boolean success) {
-        if (player == null || recipe == null || !org.bukkit.Bukkit.isPrimaryThread()) {
+        if (player == null || recipe == null || threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return;
         }
         org.bukkit.Bukkit.getPluginManager().callEvent(new ForgeCompletedEvent(

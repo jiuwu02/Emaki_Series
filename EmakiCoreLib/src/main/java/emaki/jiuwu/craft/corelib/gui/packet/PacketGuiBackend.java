@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
@@ -28,7 +30,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerCl
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerOpenWindow;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.gui.GuiBackend;
 import emaki.jiuwu.craft.corelib.gui.GuiClickType;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -66,13 +68,18 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     private static final int PLAYER_INVENTORY_SLOTS = 36;
 
     private final JavaPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final AtomicInteger windowIdCounter = new AtomicInteger(1);
     private final Map<UUID, PacketWindow> windows = new ConcurrentHashMap<>();
     private final ClickListener clickListener = new ClickListener();
     private boolean registered;
 
-    public PacketGuiBackend(JavaPlugin plugin) {
+    public PacketGuiBackend(JavaPlugin plugin, ExecutionDispatcher executionDispatcher) {
+        if (executionDispatcher == null) {
+            throw new IllegalArgumentException("executionDispatcher");
+        }
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
         PacketEvents.getAPI().getEventManager().registerListener(clickListener);
         Bukkit.getPluginManager().registerEvents(this, plugin);
         this.registered = true;
@@ -147,23 +154,15 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         if (!registered) {
             return;
         }
-        for (UUID viewerId : Map.copyOf(windows).keySet()) {
-            PacketWindow window = windows.get(viewerId);
-            if (window == null) {
-                continue;
-            }
-            GuiSession session = window.session;
-            Player viewer = session.viewer();
-            if (viewer != null && viewer.isOnline()) {
-                returnCursor(viewer, window);
-                PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerCloseWindow(window.windowId));
-            }
-            session.handler().onClose(session, new PacketGuiCloseContext(viewer, window));
-            GuiSessionRegistry registry = session.registry();
-            if (registry != null && viewer != null) {
-                registry.removeSession(viewer.getUniqueId(), session);
-            }
-            windows.remove(viewerId, window);
+        Map<UUID, PacketWindow> snapshot = Map.copyOf(windows);
+        CountDownLatch shutdownLatch = new CountDownLatch(snapshot.size());
+        for (Map.Entry<UUID, PacketWindow> entry : snapshot.entrySet()) {
+            closeWindowDuringShutdown(entry.getKey(), entry.getValue(), shutdownLatch);
+        }
+        try {
+            shutdownLatch.await(2L, TimeUnit.SECONDS);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
         }
         windows.clear();
         try {
@@ -173,6 +172,65 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
         HandlerList.unregisterAll(this);
         registered = false;
+    }
+
+    private void closeWindowDuringShutdown(UUID viewerId, PacketWindow window, CountDownLatch shutdownLatch) {
+        if (window == null) {
+            shutdownLatch.countDown();
+            return;
+        }
+        GuiSession session = window.session;
+        Player viewer = session.viewer();
+        if (viewer != null && viewer.isOnline()) {
+            Runnable task = () -> {
+                try {
+                    cleanupWindow(viewerId, window, viewer, true, true);
+                } finally {
+                    shutdownLatch.countDown();
+                }
+            };
+            Runnable retired = () -> {
+                try {
+                    cleanupWindow(viewerId, window, viewer, false, false);
+                } finally {
+                    shutdownLatch.countDown();
+                }
+            };
+            try {
+                if (executionDispatcher.runEntity(plugin, viewer, task, retired) != null) {
+                    return;
+                }
+            } catch (RuntimeException | LinkageError exception) {
+                // Scheduler is already unavailable; fall through to metadata-only cleanup.
+            }
+            retired.run();
+            return;
+        }
+        try {
+            cleanupWindow(viewerId, window, viewer, false, true);
+        } finally {
+            shutdownLatch.countDown();
+        }
+    }
+
+    private void cleanupWindow(UUID viewerId,
+            PacketWindow window,
+            Player viewer,
+            boolean touchPlayer,
+            boolean notifyHandler) {
+        GuiSession session = window.session;
+        if (touchPlayer && viewer != null && viewer.isOnline()) {
+            returnCursor(viewer, window);
+            PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerCloseWindow(window.windowId));
+        }
+        if (notifyHandler) {
+            session.handler().onClose(session, new PacketGuiCloseContext(viewer, window));
+        }
+        GuiSessionRegistry registry = session.registry();
+        if (registry != null && viewer != null) {
+            registry.removeSession(viewer.getUniqueId(), session);
+        }
+        windows.remove(viewerId, window);
     }
 
     private int nextWindowId() {
@@ -246,6 +304,19 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             }
         }
         window.cursor = null;
+    }
+
+    private void dispatchViewerEvent(Player viewer, Runnable task, Runnable retired) {
+        try {
+            if (executionDispatcher.runEntity(plugin, viewer, task, retired) != null) {
+                return;
+            }
+        } catch (RuntimeException | LinkageError exception) {
+            // PacketEvents may still deliver packets while the scheduler is shutting down.
+        }
+        if (retired != null) {
+            retired.run();
+        }
     }
 
     /**
@@ -382,7 +453,9 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                     return;
                 }
                 event.setCancelled(true);
-                FoliaSchedulerAdapter.runEntityTask(plugin, viewer, () -> handleClick(viewer, packet));
+                dispatchViewerEvent(viewer,
+                        () -> handleClick(viewer, packet),
+                        () -> windows.remove(viewer.getUniqueId()));
             } else if (event.getPacketType() == PacketType.Play.Client.CLOSE_WINDOW) {
                 Object playerObject = event.getPlayer();
                 if (!(playerObject instanceof Player viewer)) {
@@ -393,7 +466,9 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 }
                 WrapperPlayClientCloseWindow packet = new WrapperPlayClientCloseWindow(event);
                 int windowId = packet.getWindowId();
-                FoliaSchedulerAdapter.runEntityTask(plugin, viewer, () -> handleClose(viewer, windowId));
+                dispatchViewerEvent(viewer,
+                        () -> handleClose(viewer, windowId),
+                        () -> windows.remove(viewer.getUniqueId()));
             }
         }
     }

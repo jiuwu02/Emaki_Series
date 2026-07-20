@@ -18,7 +18,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -39,9 +40,15 @@ final class ItemCommandRouter implements TabExecutor {
     private static final NamespacedKey SKILL_TRIGGERS_KEY = new NamespacedKey("emaki_skills", "item.skills.triggers");
 
     private final EmakiItemPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
 
-    ItemCommandRouter(EmakiItemPlugin plugin) {
+    ItemCommandRouter(EmakiItemPlugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     @Override
@@ -565,13 +572,13 @@ final class ItemCommandRouter implements TabExecutor {
         if (player == null || task == null) {
             return false;
         }
-        boolean owner = Bukkit.isOwnedByCurrentRegion(player);
+        boolean owner = threadOwnership.isEntityOwned(player);
         debugCommandDomain(player, operation, owner ? "direct" : "scheduled", owner);
         if (owner) {
             task.run();
             return true;
         }
-        boolean accepted = FoliaSchedulerAdapter.runEntityTask(plugin, player, task) != null;
+        boolean accepted = executionDispatcher.runEntity(plugin, player, task) != null;
         if (!accepted) {
             debugCommandDomain(player, operation, "rejected", false);
         }
@@ -580,14 +587,14 @@ final class ItemCommandRouter implements TabExecutor {
 
     private void runForSender(CommandSender sender, Runnable task) {
         if (sender instanceof Player player) {
-            if (Bukkit.isOwnedByCurrentRegion(player)) {
+            if (threadOwnership.isEntityOwned(player)) {
                 task.run();
             } else {
-                FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
+                executionDispatcher.runEntity(plugin, player, task);
             }
             return;
         }
-        FoliaSchedulerAdapter.runTask(plugin, task);
+        executionDispatcher.runGlobal(plugin, task);
     }
 
     private void debugCommandDomain(Player player, String operation, String stage, boolean owner) {
@@ -597,8 +604,7 @@ final class ItemCommandRouter implements TabExecutor {
         }
         debugLogger.logRaw("set", player, "[DEBUG:SET_COMMAND] operation=" + Texts.toStringSafe(operation)
                 + " stage=" + Texts.toStringSafe(stage)
-                + " folia=" + FoliaSchedulerAdapter.isFolia()
-                + " primary=" + Bukkit.isPrimaryThread()
+                + " global_owner=" + threadOwnership.isGlobalOwned()
                 + " owner=" + owner
                 + " thread=" + Thread.currentThread().getName());
     }

@@ -29,15 +29,17 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionPlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class CoreActionAdapter implements Action {
 
     private final CoreAction delegate;
+    private final PlatformCapabilities platformCapabilities;
 
-    CoreActionAdapter(CoreAction delegate) {
+    CoreActionAdapter(CoreAction delegate, PlatformCapabilities platformCapabilities) {
         this.delegate = delegate;
+        this.platformCapabilities = java.util.Objects.requireNonNull(platformCapabilities, "platformCapabilities");
     }
 
     CoreAction delegate() {
@@ -85,7 +87,7 @@ final class CoreActionAdapter implements Action {
     public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
         CoreActionExecutionTarget target = delegate.executionTarget(toApiPlanningContext(context));
         if ((target == null || target.domain() == emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain.UNDECLARED)
-                && !FoliaSchedulerAdapter.isFolia()) {
+                && !platformCapabilities.folia()) {
             return executionMode() == ActionExecutionMode.ASYNC_IO
                     ? ActionExecutionTarget.async()
                     : Action.contextualTarget(context == null ? null : context.actionContext());

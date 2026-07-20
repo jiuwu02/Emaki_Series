@@ -18,7 +18,6 @@ import org.bukkit.entity.LivingEntity;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.api.script.modules.ScriptServiceApiSupport;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.script.ScriptEntitySnapshot;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
@@ -250,16 +249,23 @@ public final class SkillScriptIntentExecutor {
             return future;
         }
         try {
-            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, entity, () -> {
+            Runnable operation = () -> {
                 started.set(true);
                 if (cancellationToken.isCancelled()) {
                     future.complete(IntentResult.failure("Skill intent was cancelled before execution."));
                     return;
                 }
                 flatten(task, future);
-            });
-            if (scheduled == null) {
-                future.complete(IntentResult.failure("Skill intent entity-domain scheduling was rejected."));
+            };
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(entity)) {
+                operation.run();
+            } else {
+                var scheduled = plugin.executionDispatcher().runEntity(plugin, entity, operation,
+                        () -> future.complete(IntentResult.failure(
+                                "Skill intent entity-domain task retired before execution.")));
+                if (scheduled == null) {
+                    future.complete(IntentResult.failure("Skill intent entity-domain scheduling was rejected."));
+                }
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);

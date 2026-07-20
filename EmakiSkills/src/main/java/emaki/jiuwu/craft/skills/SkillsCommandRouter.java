@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
@@ -14,7 +15,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -256,18 +256,29 @@ final class SkillsCommandRouter implements TabExecutor {
 
     private <T> CompletableFuture<T> callForPlayer(Player player, Supplier<T> task) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        try {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-                try {
-                    if (!player.isOnline()) {
-                        future.complete(null);
-                        return;
-                    }
-                    future.complete(task.get());
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
+        Runnable operation = () -> {
+            try {
+                if (!player.isOnline()) {
+                    future.complete(null);
+                    return;
                 }
-            });
+                future.complete(task.get());
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        };
+        try {
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+                operation.run();
+                return future;
+            }
+            var scheduled = plugin.executionDispatcher().runEntity(plugin, player, operation,
+                    () -> future.completeExceptionally(new RejectedExecutionException(
+                            "Skills command player operation retired before execution.")));
+            if (scheduled == null) {
+                future.completeExceptionally(new RejectedExecutionException(
+                        "Skills command player operation scheduling was rejected."));
+            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }
@@ -291,11 +302,23 @@ final class SkillsCommandRouter implements TabExecutor {
     }
 
     private void runForSender(CommandSender sender, Runnable task) {
-        if (sender instanceof Player player) {
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, task);
-            return;
+        try {
+            if (sender instanceof Player player) {
+                if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+                    task.run();
+                    return;
+                }
+                plugin.executionDispatcher().runEntity(plugin, player, task, () -> { });
+                return;
+            }
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isGlobalOwned()) {
+                task.run();
+                return;
+            }
+            plugin.executionDispatcher().runGlobal(plugin, task);
+        } catch (Throwable throwable) {
+            plugin.getLogger().warning("Failed to schedule command response: " + throwable.getMessage());
         }
-        FoliaSchedulerAdapter.runTask(plugin, task);
     }
 
     private boolean handleCastMode(CommandSender sender, String[] args) {

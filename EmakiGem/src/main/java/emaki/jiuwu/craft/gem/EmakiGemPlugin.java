@@ -16,6 +16,8 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -74,6 +76,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private final GemLifecycleCoordinator lifecycleCoordinator = new GemLifecycleCoordinator();
     private final GemCommandRouter commandRouter = new GemCommandRouter(this);
 
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private GemLoader gemLoader;
@@ -185,6 +189,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     private void applyRuntimeComponents(GemRuntimeComponents components) {
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
         gemLoader = components.gemLoader();
@@ -231,7 +237,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         if (guiService != null) {
             getServer().getPluginManager().registerEvents(guiService, this);
         }
-        getServer().getPluginManager().registerEvents(new GemItemObtainListener(this), this);
+        getServer().getPluginManager().registerEvents(new GemItemObtainListener(this, executionDispatcher), this);
     }
 
     private void registerPublicApiService() {
@@ -277,6 +283,14 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public BootstrapService bootstrapService() {
         return bootstrapService;
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     public GuiService guiService() {

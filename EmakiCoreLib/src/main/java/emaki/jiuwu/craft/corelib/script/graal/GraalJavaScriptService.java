@@ -36,6 +36,7 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.script.EmakiScriptApi;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
@@ -59,6 +60,7 @@ public final class GraalJavaScriptService implements JavaScriptService {
     private static final long MAX_CLOSE_DRAIN_MILLIS = 5_000L;
 
     private final Plugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final ScriptConfig config;
     private final ScriptRepository repository;
     private final java.util.function.Supplier<ActionExecutor> actionExecutorSupplier;
@@ -77,7 +79,15 @@ public final class GraalJavaScriptService implements JavaScriptService {
             ScriptConfig config,
             Path scriptRoot,
             java.util.function.Supplier<ActionExecutor> actionExecutorSupplier) {
-        this(plugin, config, scriptRoot, actionExecutorSupplier, null);
+        this(plugin, null, config, scriptRoot, actionExecutorSupplier, null);
+    }
+
+    public GraalJavaScriptService(Plugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ScriptConfig config,
+            Path scriptRoot,
+            java.util.function.Supplier<ActionExecutor> actionExecutorSupplier) {
+        this(plugin, executionDispatcher, config, scriptRoot, actionExecutorSupplier, null);
     }
 
     public GraalJavaScriptService(Plugin plugin,
@@ -85,16 +95,27 @@ public final class GraalJavaScriptService implements JavaScriptService {
             Path scriptRoot,
             java.util.function.Supplier<ActionExecutor> actionExecutorSupplier,
             ScriptModuleRegistry moduleRegistry) {
-        this(plugin, config, scriptRoot, actionExecutorSupplier, moduleRegistry, true);
+        this(plugin, null, config, scriptRoot, actionExecutorSupplier, moduleRegistry, true);
     }
 
     public GraalJavaScriptService(Plugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ScriptConfig config,
+            Path scriptRoot,
+            java.util.function.Supplier<ActionExecutor> actionExecutorSupplier,
+            ScriptModuleRegistry moduleRegistry) {
+        this(plugin, executionDispatcher, config, scriptRoot, actionExecutorSupplier, moduleRegistry, true);
+    }
+
+    public GraalJavaScriptService(Plugin plugin,
+            ExecutionDispatcher executionDispatcher,
             ScriptConfig config,
             Path scriptRoot,
             java.util.function.Supplier<ActionExecutor> actionExecutorSupplier,
             ScriptModuleRegistry moduleRegistry,
             boolean releaseDefaultScripts) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
         this.config = config == null ? ScriptConfig.defaults() : config;
         this.repository = new ScriptRepository(scriptRoot, this.config.security());
         this.actionExecutorSupplier = actionExecutorSupplier;
@@ -285,20 +306,24 @@ public final class GraalJavaScriptService implements JavaScriptService {
         Map<String, Object> moduleOverrides = (Map<String, Object>) ScriptHostObjectProxy.wrapIfExported(request.moduleOverrides());
         ActionExecutor actionExecutor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
         Plugin schedulerOwner = request.sourcePlugin() == null ? plugin : request.sourcePlugin();
-        ScriptDeferredOperationQueue deferredOperations = new ScriptDeferredOperationQueue(
-                schedulerOwner,
-                actionExecutor,
-                request.actionContext()
-        );
+        ScriptDeferredOperationQueue deferredOperations = executionDispatcher == null
+                ? null
+                : new ScriptDeferredOperationQueue(
+                        schedulerOwner,
+                        executionDispatcher,
+                        actionExecutor,
+                        request.actionContext()
+                );
         EmakiScriptApi api = new EmakiScriptApi(
                 request.actionContext(),
                 namedArguments,
                 actionExecutor,
                 config,
                 source.logicalPath(),
-                request.sourcePlugin(),
+                schedulerOwner,
                 moduleRegistry,
                 moduleOverrides,
+                executionDispatcher,
                 deferredOperations
         );
         Object apiBinding = ScriptHostObjectProxy.wrapIfExported(api);

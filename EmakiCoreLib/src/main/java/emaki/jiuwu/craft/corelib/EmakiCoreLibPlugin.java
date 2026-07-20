@@ -60,7 +60,10 @@ import emaki.jiuwu.craft.corelib.script.ScriptService;
 import emaki.jiuwu.craft.corelib.script.graal.GraalJavaScriptService;
 import emaki.jiuwu.craft.corelib.script.js.JavaScriptActionExtensionLoader;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
-import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
+import emaki.jiuwu.craft.corelib.execution.ExecutionBackendLoader;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle;
 import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle.ShutdownReport;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
@@ -94,7 +97,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private emaki.jiuwu.craft.corelib.gui.GuiBackend guiBackend;
     private AsyncFileService asyncFileService;
     private AsyncYamlFiles asyncYamlFiles;
-    private CapabilityProbe capabilityProbe;
+    private PlatformCapabilities platformCapabilities;
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private CorePluginLifecycle corePluginLifecycle;
     private ActionRegistry actionRegistry;
     private ActionTemplateRegistry actionTemplateRegistry;
@@ -123,7 +128,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
     private CoreLibCommandRouter commandRouter;
-    private final EmakiCoreLibApi.Bridge coreLibApiBridge = new DefaultEmakiCoreLibApi(this);
+    private EmakiCoreLibApi.Bridge coreLibApiBridge;
     private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
     private MythicJavaScriptBridge mythicJavaScriptBridge;
     private emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher gameplayEventPublisher;
@@ -136,7 +141,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onEnable() {
-        capabilityProbe = CapabilityProbe.detect(getServer());
+        platformCapabilities = PlatformCapabilities.detect(getServer());
+        ExecutionBackendLoader.LoadedExecution loadedExecution = ExecutionBackendLoader.load(getServer(), platformCapabilities);
+        executionDispatcher = loadedExecution.dispatcher();
+        threadOwnership = loadedExecution.ownership();
+        coreLibApiBridge = new DefaultEmakiCoreLibApi(this, platformCapabilities);
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
         initializeServices();
@@ -192,7 +201,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (javaScriptService != null) {
             javaScriptService.close();
         }
-        EmakiCoreLibApi.uninstall(coreLibApiBridge);
+        if (coreLibApiBridge != null) {
+            EmakiCoreLibApi.uninstall(coreLibApiBridge);
+            coreLibApiBridge = null;
+        }
         if (guiBackendRegistry != null) {
             guiBackendRegistry.shutdownAll();
             guiBackendRegistry = null;
@@ -210,6 +222,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         HandlerList.unregisterAll(this);
         getServer().getServicesManager().unregisterAll(this);
         serviceRegistry.clear();
+        executionDispatcher = null;
+        threadOwnership = null;
+        platformCapabilities = null;
         ExpressionEngine.clearGlobalCache();
         ExpressionEngine.clearThreadLocalCache();
         emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer.clearRegexCache();
@@ -239,7 +254,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         ActionTemplateRegistry candidateTemplateRegistry = new ActionTemplateRegistry();
         PlaceholderRegistry candidatePlaceholderRegistry = new PlaceholderRegistry(this::debugLogger);
         EconomyManager candidateEconomyManager = new EconomyManager(this);
-        LoopActionService effectiveLoopService = loopActionService == null ? new LoopActionService(this) : loopActionService;
+        LoopActionService effectiveLoopService = loopActionService == null
+                ? new LoopActionService(this, executionDispatcher)
+                : loopActionService;
         candidatePlaceholderRegistry.register(new ActionContextPlaceholderResolver());
         candidatePlaceholderRegistry.register(new ActionInlineTokenResolver());
         candidatePlaceholderRegistry.register(new PlaceholderApiResolver());
@@ -291,6 +308,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 new ActionLineParser(),
                 placeholderRegistry,
                 actionTemplateRegistry,
+                executionDispatcher,
+                platformCapabilities,
                 asyncTaskScheduler,
                 performanceMonitor
         );
@@ -319,6 +338,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         try {
             javaScriptService = new GraalJavaScriptService(
                     this,
+                    executionDispatcher,
                     configModel.scriptConfig(),
                     dataPath(configModel.scriptConfig().paths().root()),
                     () -> actionExecutor,
@@ -354,6 +374,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void registerPublicApiService() {
+        if (coreLibApiBridge == null) {
+            coreLibApiBridge = new DefaultEmakiCoreLibApi(this, platformCapabilities);
+        }
         EmakiCoreLibApi.install(coreLibApiBridge);
     }
 
@@ -436,7 +459,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void registerCommandHandler() {
-        commandRouter = new CoreLibCommandRouter(this);
+        commandRouter = new CoreLibCommandRouter(this, executionDispatcher);
         // paper-plugin.yml does not support the `commands:` block, so the command
         // is registered programmatically. The BasicCommand adapter delegates to
         // the existing router, preserving command name, aliases and permissions.
@@ -471,10 +494,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
         configuredItemService = new ConfiguredItemService(this, itemSourceService);
         configPrecheckService = new ConfigPrecheckService(messageService);
-        loopActionService = new LoopActionService(this);
+        loopActionService = new LoopActionService(this, executionDispatcher);
         getServer().getPluginManager().registerEvents(loopActionService, this);
         performanceMonitor = new PerformanceMonitor();
-        asyncTaskScheduler = AsyncTaskScheduler.forPlugin(this, "emaki-corelib-async", performanceMonitor);
+        asyncTaskScheduler = AsyncTaskScheduler.forPlugin(
+                "emaki-corelib-async",
+                performanceMonitor);
         asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
         asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
         corePluginLifecycle = new CorePluginLifecycle();
@@ -484,9 +509,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
         guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
         itemAssemblyService = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
-        itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
+        itemAssemblyService.configureAsync(asyncTaskScheduler, executionDispatcher, this, performanceMonitor);
         gameplayEventPublisher = new emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher(
-                this, eventBus, () -> configModel == null ? null : configModel.gameplayEventConfig());
+                this, executionDispatcher, eventBus, () -> configModel == null ? null : configModel.gameplayEventConfig());
         getServer().getPluginManager().registerEvents(gameplayEventPublisher, this);
         refreshServiceRegistry();
     }
@@ -651,7 +676,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             return;
         }
         try {
-            emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller.install(this, guiBackendRegistry);
+            emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller.install(this, guiBackendRegistry, executionDispatcher);
         } catch (LinkageError | RuntimeException exception) {
             getLogger().warning("Failed to register the packet GUI backend: " + exception.getMessage()
                     + ". EmakiCoreLib will use the Bukkit (entity) backend.");
@@ -682,8 +707,16 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return asyncFileService.openScope(ownerName);
     }
 
-    public CapabilityProbe capabilityProbe() {
-        return capabilityProbe;
+    public PlatformCapabilities platformCapabilities() {
+        return platformCapabilities;
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     public CorePluginLifecycle corePluginLifecycle() {
@@ -759,7 +792,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(AsyncTaskScheduler.class, asyncTaskScheduler);
         registerService(AsyncFileService.class, asyncFileService);
         registerService(AsyncYamlFiles.class, asyncYamlFiles);
-        registerService(CapabilityProbe.class, capabilityProbe);
+        registerService(PlatformCapabilities.class, platformCapabilities);
+        registerService(ExecutionDispatcher.class, executionDispatcher);
+        registerService(ThreadOwnership.class, threadOwnership);
         registerService(CorePluginLifecycle.class, corePluginLifecycle);
         registerService(ActionRegistry.class, actionRegistry);
         registerService(ActionTemplateRegistry.class, actionTemplateRegistry);

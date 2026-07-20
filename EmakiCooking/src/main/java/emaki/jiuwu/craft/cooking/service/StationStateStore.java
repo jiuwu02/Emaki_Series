@@ -38,11 +38,11 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -67,6 +67,8 @@ public final class StationStateStore {
 
     private final JavaPlugin plugin;
     private final FileScope fileScope;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private final NamespacedKey stateKey;
     private final NamespacedKey stationTypeKey;
     private final NamespacedKey stationSourceKey;
@@ -87,17 +89,14 @@ public final class StationStateStore {
     private final AtomicBoolean indexFlushScheduled = new AtomicBoolean(false);
     private volatile TaskHandle indexFlushTask;
 
-    public StationStateStore(JavaPlugin plugin) {
-        this(plugin, (FileScope) null);
-    }
-
-    public StationStateStore(JavaPlugin plugin, AsyncFileService asyncFileService) {
-        this(plugin, asyncFileService == null ? null : asyncFileService.defaultScope());
-    }
-
-    public StationStateStore(JavaPlugin plugin, FileScope fileScope) {
+    public StationStateStore(JavaPlugin plugin,
+            FileScope fileScope,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.fileScope = fileScope;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         this.stateKey = new NamespacedKey(plugin, "station_state");
         this.stationTypeKey = new NamespacedKey(plugin, "station_type");
         this.stationSourceKey = new NamespacedKey(plugin, "station_source");
@@ -122,18 +121,8 @@ public final class StationStateStore {
                 .filter(entry -> entry != null && entry.type() == stationType)
                 .sorted(Comparator.comparing(entry -> entry.coordinates().runtimeKey()))
                 .toList();
-        long skippedUnloaded = typeEntries.stream()
-                .filter(entry -> !isChunkLoaded(entry.coordinates()))
-                .count();
-        if (skippedUnloaded > 0L) {
-            plugin.getLogger().info("Station restore report: type=" + stationType.folderName()
-                    + " skipped_unloaded=" + skippedUnloaded);
-        }
         Map<String, List<StationIndexEntry>> entriesByChunk = new LinkedHashMap<>();
         for (StationIndexEntry entry : typeEntries) {
-            if (!isChunkLoaded(entry.coordinates())) {
-                continue;
-            }
             entriesByChunk.computeIfAbsent(chunkBucketKey(entry.coordinates()), _ -> new ArrayList<>()).add(entry);
         }
         if (entriesByChunk.isEmpty()) {
@@ -152,6 +141,7 @@ public final class StationStateStore {
         if (coordinates == null) {
             return null;
         }
+        requireLocationOwnership(coordinates.location(0, 0, 0));
         ensureIndexLoaded();
         StoredState pdc = readPdcCandidate(coordinates);
         StoredState yaml = readYamlCandidate(coordinates);
@@ -336,6 +326,7 @@ public final class StationStateStore {
         if (block == null) {
             return StorageInspection.empty();
         }
+        requireLocationOwnership(block.getLocation());
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
         YamlSection pdcState = readPdcState(coordinates);
         YamlSection yamlState = readYamlState(coordinates);
@@ -386,6 +377,7 @@ public final class StationStateStore {
         if (block == null) {
             return StationStorageBackend.YAML_FALLBACK;
         }
+        requireLocationOwnership(block.getLocation());
         return tileStateOf(block, false) == null ? StationStorageBackend.YAML_FALLBACK : StationStorageBackend.BLOCK_PDC;
     }
 
@@ -421,18 +413,29 @@ public final class StationStateStore {
                 future.completeExceptionally(throwable);
             }
         };
-        Location location = entries == null || entries.isEmpty() ? null : chunkCenterLocation(entries.getFirst().coordinates());
-        if (location == null || !FoliaSchedulerAdapter.isFolia()) {
-            task.run();
-            return future;
-        }
-        try {
-            if (FoliaSchedulerAdapter.runAtLocation(plugin, location, task) == null) {
-                future.completeExceptionally(new RejectedExecutionException("Location scheduler rejected station restore"));
-            }
-        } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
-        }
+        executionDispatcher.submitGlobal(plugin, () -> entries == null || entries.isEmpty()
+                        ? null
+                        : chunkCenterLocation(entries.getFirst().coordinates()))
+                .whenComplete((location, throwable) -> {
+                    if (throwable != null) {
+                        future.completeExceptionally(throwable);
+                        return;
+                    }
+                    if (location == null) {
+                        future.completeExceptionally(new RejectedExecutionException(
+                                "Station restore target region is unavailable"));
+                        return;
+                    }
+                    try {
+                        TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, task);
+                        if (handle == null) {
+                            future.completeExceptionally(new RejectedExecutionException(
+                                    "Location dispatcher rejected station restore"));
+                        }
+                    } catch (Throwable error) {
+                        future.completeExceptionally(error);
+                    }
+                });
         return future;
     }
 
@@ -523,7 +526,9 @@ public final class StationStateStore {
         TaskHandle task = indexFlushTask;
         indexFlushTask = null;
         indexFlushScheduled.set(false);
-        FoliaSchedulerAdapter.cancelTask(task);
+        if (task != null) {
+            task.cancel();
+        }
     }
 
     private CompletableFuture<Boolean> saveYamlFallbackAsync(StationCoordinates coordinates, Map<String, Object> state, long mutationVersion) {
@@ -1129,31 +1134,21 @@ public final class StationStateStore {
     }
 
     private CompletableFuture<Integer> scanLoadedPdcStationsAsync() {
-        CompletableFuture<List<Chunk>> snapshotFuture = new CompletableFuture<>();
-        Runnable snapshotTask = () -> {
-            try {
-                List<Chunk> chunks = new ArrayList<>();
-                for (World world : Bukkit.getWorlds()) {
-                    chunks.addAll(List.of(world.getLoadedChunks()));
+        CompletableFuture<List<LoadedChunkRef>> snapshotFuture = executionDispatcher.submitGlobal(plugin, () -> {
+            List<LoadedChunkRef> chunks = new ArrayList<>();
+            for (World world : Bukkit.getWorlds()) {
+                for (Chunk chunk : world.getLoadedChunks()) {
+                    chunks.add(new LoadedChunkRef(world.getName(), chunk.getX(), chunk.getZ()));
                 }
-                snapshotFuture.complete(chunks);
-            } catch (Throwable throwable) {
-                snapshotFuture.completeExceptionally(throwable);
             }
-        };
-        try {
-            if (FoliaSchedulerAdapter.runTask(plugin, snapshotTask) == null) {
-                snapshotTask.run();
-            }
-        } catch (Throwable throwable) {
-            snapshotFuture.completeExceptionally(throwable);
-        }
+            return List.copyOf(chunks);
+        });
         return snapshotFuture.thenCompose(chunks -> {
             if (chunks.isEmpty()) {
                 return CompletableFuture.completedFuture(0);
             }
             List<CompletableFuture<Integer>> futures = new ArrayList<>();
-            for (Chunk chunk : chunks) {
+            for (LoadedChunkRef chunk : chunks) {
                 futures.add(scanLoadedPdcChunkAsync(chunk));
             }
             return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
@@ -1164,23 +1159,33 @@ public final class StationStateStore {
         });
     }
 
-    private CompletableFuture<Integer> scanLoadedPdcChunkAsync(Chunk chunk) {
+    private CompletableFuture<Integer> scanLoadedPdcChunkAsync(LoadedChunkRef chunkRef) {
         CompletableFuture<Integer> future = new CompletableFuture<>();
-        if (chunk == null || chunk.getWorld() == null || !chunk.isLoaded()) {
+        if (chunkRef == null) {
             future.complete(0);
             return future;
         }
-        Runnable task = () -> {
-            try {
-                future.complete(scanLoadedPdcChunkSync(chunk));
-            } catch (Throwable throwable) {
-                future.completeExceptionally(throwable);
-            }
-        };
-        Location location = new Location(chunk.getWorld(), (chunk.getX() << 4) + 8D, 0D, (chunk.getZ() << 4) + 8D);
         try {
-            if (FoliaSchedulerAdapter.runAtLocation(plugin, location, task) == null) {
-                task.run();
+            World world = Bukkit.getWorld(chunkRef.worldName());
+            if (world == null) {
+                future.complete(0);
+                return future;
+            }
+            Location location = new Location(world, (chunkRef.chunkX() << 4) + 8D, 0D, (chunkRef.chunkZ() << 4) + 8D);
+            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+                try {
+                    if (!world.isChunkLoaded(chunkRef.chunkX(), chunkRef.chunkZ())) {
+                        future.complete(0);
+                        return;
+                    }
+                    future.complete(scanLoadedPdcChunkSync(world.getChunkAt(chunkRef.chunkX(), chunkRef.chunkZ())));
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            });
+            if (handle == null) {
+                future.completeExceptionally(new RejectedExecutionException(
+                        "Location dispatcher rejected PDC scan"));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -1315,11 +1320,11 @@ public final class StationStateStore {
             return;
         }
         try {
-            indexFlushTask = FoliaSchedulerAdapter.runAsyncLater(plugin, () -> {
+            indexFlushTask = executionDispatcher.runGlobalLater(plugin, () -> {
                 indexFlushTask = null;
                 indexFlushScheduled.set(false);
                 trackOperation(flushDirtyIndexesAsync());
-            }, INDEX_FLUSH_DELAY_SECONDS, TimeUnit.SECONDS);
+            }, INDEX_FLUSH_DELAY_SECONDS * 20L);
         } catch (Throwable throwable) {
             indexFlushTask = null;
             indexFlushScheduled.set(false);
@@ -1436,18 +1441,15 @@ public final class StationStateStore {
             return;
         }
         Location location = coordinates == null ? null : coordinates.location(0, 0, 0);
-        if (location == null || !FoliaSchedulerAdapter.isFolia()) {
-            try {
-                task.run();
-            } catch (Throwable throwable) {
-                if (future != null) {
-                    future.completeExceptionally(throwable);
-                }
+        if (location == null) {
+            if (future != null) {
+                future.completeExceptionally(new RejectedExecutionException(
+                        "Station operation target region is unavailable"));
             }
             return;
         }
         try {
-            if (FoliaSchedulerAdapter.runAtLocation(plugin, location, () -> {
+            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
                 try {
                     task.run();
                 } catch (Throwable throwable) {
@@ -1455,8 +1457,10 @@ public final class StationStateStore {
                         future.completeExceptionally(throwable);
                     }
                 }
-            }) == null && future != null) {
-                future.completeExceptionally(new RejectedExecutionException("Location scheduler rejected station operation"));
+            });
+            if (handle == null && future != null) {
+                future.completeExceptionally(new RejectedExecutionException(
+                        "Location dispatcher rejected station operation"));
             }
         } catch (Throwable throwable) {
             if (future != null) {
@@ -1504,6 +1508,16 @@ public final class StationStateStore {
         }
         World world = Bukkit.getWorld(coordinates.world());
         return world != null && world.isChunkLoaded(coordinates.x() >> 4, coordinates.z() >> 4);
+    }
+
+    private void requireLocationOwnership(Location location) {
+        if (location == null || threadOwnership == null || threadOwnership.isLocationOwned(location)) {
+            return;
+        }
+        throw new IllegalStateException("StationStateStore Bukkit state access requires location ownership");
+    }
+
+    private record LoadedChunkRef(String worldName, int chunkX, int chunkZ) {
     }
 
     private String chunkBucketKey(StationCoordinates coordinates) {

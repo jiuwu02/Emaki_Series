@@ -36,7 +36,7 @@ import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -578,15 +578,27 @@ final class DamageCalculationService {
         }
         CompletableFuture<SourceImpactSnapshot> future = new CompletableFuture<>();
         try {
-            var scheduled = FoliaSchedulerAdapter.runEntityTask(service.plugin(), source, () -> {
-                if (!source.isValid()) {
-                    future.complete(null);
-                    return;
-                }
-                var location = source.getLocation();
-                future.complete(new SourceImpactSnapshot(
-                        location.getX(), location.getY(), location.getZ(), location.getYaw()));
-            });
+            ExecutionDispatcher dispatcher = dispatcher();
+            if (dispatcher == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "Damage source snapshot dispatcher is unavailable."));
+                return future;
+            }
+            var scheduled = dispatcher.runEntity(
+                    service.plugin(),
+                    source,
+                    () -> {
+                        if (!source.isValid()) {
+                            future.complete(null);
+                            return;
+                        }
+                        var location = source.getLocation();
+                        future.complete(new SourceImpactSnapshot(
+                                location.getX(), location.getY(), location.getZ(), location.getYaw()));
+                    },
+                    () -> future.completeExceptionally(new IllegalStateException(
+                            "Damage source retired before snapshot: " + source.getUniqueId()))
+            );
             if (scheduled == null) {
                 future.completeExceptionally(new IllegalStateException(
                         "Damage source snapshot scheduling was rejected."));
@@ -1094,22 +1106,32 @@ final class DamageCalculationService {
         if (entityId == null || operation == null || service.plugin() == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatch is unavailable."));
         }
+        ExecutionDispatcher dispatcher = dispatcher();
+        if (dispatcher == null) {
+            return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatcher is unavailable."));
+        }
         CompletableFuture<T> result = new CompletableFuture<>();
         try {
-            var lookupTask = FoliaSchedulerAdapter.runTask(service.plugin(), () -> {
+            var lookupTask = dispatcher.runGlobal(service.plugin(), () -> {
                 Entity entity = Bukkit.getEntity(entityId);
                 if (!(entity instanceof LivingEntity livingEntity) || !livingEntity.isValid()) {
                     result.completeExceptionally(new IllegalStateException("Entity is no longer available: " + entityId));
                     return;
                 }
                 try {
-                    var entityTask = FoliaSchedulerAdapter.runEntityTask(service.plugin(), livingEntity, () -> {
-                        try {
-                            result.complete(operation.apply(livingEntity));
-                        } catch (Throwable throwable) {
-                            result.completeExceptionally(throwable);
-                        }
-                    });
+                    var entityTask = dispatcher.runEntity(
+                            service.plugin(),
+                            livingEntity,
+                            () -> {
+                                try {
+                                    result.complete(operation.apply(livingEntity));
+                                } catch (Throwable throwable) {
+                                    result.completeExceptionally(throwable);
+                                }
+                            },
+                            () -> result.completeExceptionally(new IllegalStateException(
+                                    "Entity retired before owner operation: " + entityId))
+                    );
                     if (entityTask == null) {
                         result.completeExceptionally(new IllegalStateException(
                                 "Entity owner scheduling was rejected: " + entityId));
@@ -1126,6 +1148,11 @@ final class DamageCalculationService {
             result.completeExceptionally(throwable);
         }
         return result;
+    }
+
+    private ExecutionDispatcher dispatcher() {
+        ExecutionDispatcher dispatcher = service.executionDispatcher();
+        return dispatcher != null ? dispatcher : service.plugin().executionDispatcher();
     }
 
     private UUID parseUuid(String value) {

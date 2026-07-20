@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.strengthen;
 
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
@@ -22,7 +24,9 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
-record StrengthenRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
+record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
+        YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         StrengthenRecipeLoader recipeLoader,
         GuiTemplateLoader guiTemplateLoader,
@@ -43,6 +47,8 @@ record StrengthenRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(StrengthenRecipeLoader.class, recipeLoader),

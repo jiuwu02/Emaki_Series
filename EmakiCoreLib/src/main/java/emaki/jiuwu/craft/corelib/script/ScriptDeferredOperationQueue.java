@@ -20,8 +20,8 @@ import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
@@ -34,15 +34,18 @@ public final class ScriptDeferredOperationQueue {
     private static final ThreadLocal<ModuleCapture> MODULE_CAPTURE = new ThreadLocal<>();
 
     private final Plugin schedulerOwner;
+    private final ExecutionDispatcher executionDispatcher;
     private final ActionExecutor actionExecutor;
     private final ActionContext actionContext;
     private final Queue<DeferredOperation> operations = new ConcurrentLinkedQueue<>();
     private final AtomicBoolean sealed = new AtomicBoolean();
 
     public ScriptDeferredOperationQueue(Plugin schedulerOwner,
+            ExecutionDispatcher executionDispatcher,
             ActionExecutor actionExecutor,
             ActionContext actionContext) {
         this.schedulerOwner = schedulerOwner;
+        this.executionDispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
         this.actionExecutor = actionExecutor;
         this.actionContext = actionContext;
     }
@@ -304,9 +307,11 @@ public final class ScriptDeferredOperationQueue {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         Runnable task = () -> flatten(operation, future);
         try {
+            Runnable retired = () -> future.complete(OperationResult.failure(
+                    "Deferred context entity retired before operation execution."));
             TaskHandle handle = actionContext != null && actionContext.player() != null
-                    ? FoliaSchedulerAdapter.runEntityTask(schedulerOwner, actionContext.player(), task)
-                    : FoliaSchedulerAdapter.runTask(schedulerOwner, task);
+                    ? executionDispatcher.runEntity(schedulerOwner, actionContext.player(), task, retired)
+                    : executionDispatcher.runGlobal(schedulerOwner, task);
             if (handle == null) {
                 future.complete(OperationResult.failure(
                         "Deferred context operation scheduling was rejected."));
@@ -320,7 +325,7 @@ public final class ScriptDeferredOperationQueue {
     private CompletableFuture<OperationResult> scheduleGlobal(Plugin operationOwner, Runnable operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            TaskHandle handle = FoliaSchedulerAdapter.runTask(
+            TaskHandle handle = executionDispatcher.runGlobal(
                     operationOwner, () -> runOperation(operation, future));
             if (handle == null) {
                 future.complete(OperationResult.failure(
@@ -336,7 +341,7 @@ public final class ScriptDeferredOperationQueue {
             Supplier<OperationResult> operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            TaskHandle handle = FoliaSchedulerAdapter.runTask(operationOwner, () -> {
+            TaskHandle handle = executionDispatcher.runGlobal(operationOwner, () -> {
                 try {
                     OperationResult result = operation.get();
                     future.complete(result == null
@@ -359,14 +364,15 @@ public final class ScriptDeferredOperationQueue {
     private CompletableFuture<OperationResult> scheduleEntity(Entity entity, Consumer<Entity> operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            TaskHandle handle = FoliaSchedulerAdapter.runEntityTask(schedulerOwner, entity, () -> {
+            TaskHandle handle = executionDispatcher.runEntity(schedulerOwner, entity, () -> {
                 try {
                     operation.accept(entity);
                     future.complete(OperationResult.ok());
                 } catch (Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
-            });
+            }, () -> future.complete(OperationResult.failure(
+                    "Deferred entity operation target retired before execution.")));
             if (handle == null) {
                 future.complete(OperationResult.failure(
                         "Deferred entity operation scheduling was rejected."));
@@ -381,7 +387,7 @@ public final class ScriptDeferredOperationQueue {
             Function<Entity, ? extends CompletionStage<OperationResult>> operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            TaskHandle handle = FoliaSchedulerAdapter.runEntityTask(schedulerOwner, entity, () -> {
+            TaskHandle handle = executionDispatcher.runEntity(schedulerOwner, entity, () -> {
                 try {
                     CompletionStage<OperationResult> stage = operation.apply(entity);
                     if (stage == null) {
@@ -400,7 +406,8 @@ public final class ScriptDeferredOperationQueue {
                 } catch (Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
-            });
+            }, () -> future.complete(OperationResult.failure(
+                    "Deferred asynchronous entity operation target retired before execution.")));
             if (handle == null) {
                 future.complete(OperationResult.failure(
                         "Deferred asynchronous entity operation scheduling was rejected."));
@@ -414,7 +421,7 @@ public final class ScriptDeferredOperationQueue {
     private CompletableFuture<OperationResult> scheduleLocation(Location location, Runnable operation) {
         CompletableFuture<OperationResult> future = new CompletableFuture<>();
         try {
-            TaskHandle handle = FoliaSchedulerAdapter.runAtLocation(
+            TaskHandle handle = executionDispatcher.runAtLocation(
                     schedulerOwner, location, () -> runOperation(operation, future));
             if (handle == null) {
                 future.complete(OperationResult.failure(

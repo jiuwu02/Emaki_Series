@@ -14,9 +14,8 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
@@ -25,14 +24,14 @@ import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 
 public final class PlayerJoinQuitListener implements Listener {
 
-    private final JavaPlugin plugin;
+    private final EmakiSkillsPlugin plugin;
     private final PlayerSkillDataStore dataStore;
     private final CastModeService castModeService;
     private final ActionBarService actionBarService;
     private final Supplier<AppConfig> configSupplier;
     private final Map<UUID, ConnectionSession> sessions = new ConcurrentHashMap<>();
 
-    public PlayerJoinQuitListener(JavaPlugin plugin,
+    public PlayerJoinQuitListener(EmakiSkillsPlugin plugin,
                                   PlayerSkillDataStore dataStore,
                                   CastModeService castModeService,
                                   ActionBarService actionBarService,
@@ -65,11 +64,15 @@ public final class PlayerJoinQuitListener implements Listener {
             if (profile == null || !isCurrent(player, session)) {
                 return;
             }
-            FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-                if (isCurrent(player, session)) {
-                    applyJoinState(player, profile);
-                }
-            });
+            try {
+                plugin.executionDispatcher().runEntity(plugin, player, () -> {
+                    if (isCurrent(player, session)) {
+                        applyJoinState(player, profile);
+                    }
+                }, () -> { });
+            } catch (Throwable schedulingFailure) {
+                logFailure("join-schedule", playerId, schedulingFailure);
+            }
         });
     }
 

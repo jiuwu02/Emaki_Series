@@ -24,7 +24,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
@@ -49,6 +50,7 @@ public final class CookingCompletionCoordinator {
     private final Logger logger;
     private final RetryScheduler retryScheduler;
     private final FrozenRewardExecutor frozenRewardExecutor;
+    private final ExecutionDispatcher executionDispatcher;
     private final CookingCompletionRecoveryPlanner recoveryPlanner = new CookingCompletionRecoveryPlanner();
     private final Map<StationType, CookingStationStateAccess> stateAccesses = new EnumMap<>(StationType.class);
     private final ConcurrentMap<String, CookingCompletionOperation> operations = new ConcurrentHashMap<>();
@@ -59,13 +61,16 @@ public final class CookingCompletionCoordinator {
 
     public CookingCompletionCoordinator(JavaPlugin plugin,
             CookingRewardService rewardService,
-            FileScope fileScope) {
+            FileScope fileScope,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.rewardService = Objects.requireNonNull(rewardService, "rewardService");
         this.journalStore = new CookingCompletionJournalStore(plugin, fileScope);
         this.deliveryLedger = new CookingDeliveryLedgerStore(plugin, fileScope);
         this.logger = plugin.getLogger();
-        this.retryScheduler = (task, delayTicks) -> FoliaSchedulerAdapter.runTaskLater(this.plugin, task, delayTicks);
+        ExecutionDispatcher dispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
+        this.executionDispatcher = dispatcher;
+        this.retryScheduler = (task, delayTicks) -> dispatcher.runGlobalLater(this.plugin, task, delayTicks);
         this.frozenRewardExecutor = this.rewardService::executeFrozen;
     }
 
@@ -80,6 +85,7 @@ public final class CookingCompletionCoordinator {
         this.logger = Objects.requireNonNull(logger, "logger");
         this.retryScheduler = Objects.requireNonNull(retryScheduler, "retryScheduler");
         this.frozenRewardExecutor = Objects.requireNonNull(frozenRewardExecutor, "frozenRewardExecutor");
+        this.executionDispatcher = null;
     }
 
     public synchronized void register(CookingStationStateAccess access) {
@@ -453,7 +459,11 @@ public final class CookingCompletionCoordinator {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         try {
             Player target = player;
-            FoliaSchedulerAdapter.runEntityTask(plugin, target, () -> {
+            if (executionDispatcher == null) {
+                result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
+                return result;
+            }
+            TaskHandle handle = executionDispatcher.runEntity(plugin, target, () -> {
                 try {
                     ItemStack current = target.getInventory().getItemInMainHand();
                     if (current == null || current.getType().isAir() || !current.isSimilar(template) || current.getAmount() < amount) {
@@ -471,7 +481,10 @@ public final class CookingCompletionCoordinator {
                 } catch (Throwable error) {
                     result.completeExceptionally(error);
                 }
-            });
+            }, () -> result.complete(false));
+            if (handle == null) {
+                result.complete(false);
+            }
         } catch (Throwable error) {
             result.completeExceptionally(error);
         }

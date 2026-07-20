@@ -20,7 +20,9 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -44,6 +46,8 @@ public final class CookingRewardService {
     private final ItemSourceService itemSourceService;
     private final ActionExecutor actionExecutor;
     private final EmakiItemAssemblyService itemAssemblyService;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private final CookingLayerSnapshotBuilder snapshotBuilder = new CookingLayerSnapshotBuilder();
     private CookingRecipeService recipeService;
 
@@ -51,12 +55,16 @@ public final class CookingRewardService {
             MessageService messageService,
             ItemSourceService itemSourceService,
             ActionExecutor actionExecutor,
-            EmakiItemAssemblyService itemAssemblyService) {
+            EmakiItemAssemblyService itemAssemblyService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.itemSourceService = itemSourceService;
         this.actionExecutor = actionExecutor;
         this.itemAssemblyService = itemAssemblyService;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     public void setRecipeService(CookingRecipeService recipeService) {
@@ -155,7 +163,7 @@ public final class CookingRewardService {
         }
 
         boolean effectiveDropResult = dropResult;
-        if (recipe != null && Bukkit.isPrimaryThread()) {
+        if (recipe != null && threadOwnership != null && threadOwnership.isGlobalOwned()) {
             CookingRecipeCompleteEvent completeEvent = new CookingRecipeCompleteEvent(
                     player,
                     location,
@@ -258,14 +266,17 @@ public final class CookingRewardService {
         if (!dropResult && player != null && player.isOnline()) {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
             try {
-                FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
+                TaskHandle handle = executionDispatcher.runEntity(plugin, player, () -> {
                     try {
                         InventoryItemUtil.giveOrDrop(player, itemStack.clone());
                         future.complete(true);
                     } catch (Throwable error) {
                         future.completeExceptionally(error);
                     }
-                });
+                }, () -> future.complete(false));
+                if (handle == null) {
+                    future.complete(false);
+                }
             } catch (Throwable error) {
                 future.completeExceptionally(error);
             }
@@ -277,19 +288,22 @@ public final class CookingRewardService {
         }
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            FoliaSchedulerAdapter.runAtLocation(plugin, dropLocation, () -> {
-                try {
-                    World world = dropLocation.getWorld();
-                    if (world == null) {
-                        future.complete(false);
-                        return;
+                TaskHandle handle = executionDispatcher.runAtLocation(plugin, dropLocation, () -> {
+                    try {
+                        World world = dropLocation.getWorld();
+                        if (world == null) {
+                            future.complete(false);
+                            return;
+                        }
+                        world.dropItemNaturally(dropLocation, itemStack.clone());
+                        future.complete(true);
+                    } catch (Throwable error) {
+                        future.completeExceptionally(error);
                     }
-                    world.dropItemNaturally(dropLocation, itemStack.clone());
-                    future.complete(true);
-                } catch (Throwable error) {
-                    future.completeExceptionally(error);
+                });
+                if (handle == null) {
+                    future.complete(false);
                 }
-            });
         } catch (Throwable error) {
             future.completeExceptionally(error);
         }

@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
@@ -33,21 +34,31 @@ public final class EmakiItemFactory {
     private final EmakiItemIdResolver idResolver;
     private final EmakiItemPdcWriter pdcWriter;
     private final JavaScriptItemFactoryRegistry javaScriptFactories;
+    private final ThreadOwnership threadOwnership;
     private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
     private final ConcurrentHashMap<String, ItemStack> prototypeCache = new ConcurrentHashMap<>();
 
     public EmakiItemFactory(EmakiItemLoader loader, EmakiItemIdResolver idResolver, EmakiItemPdcWriter pdcWriter) {
-        this(loader, idResolver, pdcWriter, null);
+        this(loader, idResolver, pdcWriter, null, null);
     }
 
     public EmakiItemFactory(EmakiItemLoader loader,
             EmakiItemIdResolver idResolver,
             EmakiItemPdcWriter pdcWriter,
             JavaScriptItemFactoryRegistry javaScriptFactories) {
+        this(loader, idResolver, pdcWriter, javaScriptFactories, null);
+    }
+
+    public EmakiItemFactory(EmakiItemLoader loader,
+            EmakiItemIdResolver idResolver,
+            EmakiItemPdcWriter pdcWriter,
+            JavaScriptItemFactoryRegistry javaScriptFactories,
+            ThreadOwnership threadOwnership) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
         this.javaScriptFactories = javaScriptFactories;
+        this.threadOwnership = threadOwnership;
     }
 
     public ItemStack create(String id, int amount) {
@@ -82,7 +93,7 @@ public final class EmakiItemFactory {
     }
 
     private ItemStack fireCreateEvent(String id, int amount, ItemStack itemStack) {
-        if (!Bukkit.isPrimaryThread()) {
+        if (threadOwnership == null || !threadOwnership.isGlobalOwned()) {
             return itemStack;
         }
         EmakiItemCreateEvent event = new EmakiItemCreateEvent(id, amount, null, itemStack);

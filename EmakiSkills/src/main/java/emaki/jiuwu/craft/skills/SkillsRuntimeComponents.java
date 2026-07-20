@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.skills;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -38,6 +40,8 @@ import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 record SkillsRuntimeComponents(
         YamlConfigLoader<AppConfig> appConfigLoader,
+        ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
         LanguageLoader languageLoader,
         SkillDefinitionLoader skillDefinitionLoader,
         LocalResourceDefinitionLoader localResourceDefinitionLoader,
@@ -74,6 +78,8 @@ record SkillsRuntimeComponents(
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(SkillDefinitionLoader.class, skillDefinitionLoader),
                 RuntimeComponents.component(LocalResourceDefinitionLoader.class, localResourceDefinitionLoader),

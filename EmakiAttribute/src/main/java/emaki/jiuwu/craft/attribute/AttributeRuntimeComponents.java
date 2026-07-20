@@ -22,11 +22,15 @@ import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 
-record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
+record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
+        AttributeRegistry attributeRegistry,
         AttributeBalanceRegistry attributeBalanceRegistry,
         DamageTypeRegistry damageTypeRegistry,
         DefaultProfileRegistry defaultProfileRegistry,
@@ -50,6 +54,8 @@ record AttributeRuntimeComponents(AttributeRegistry attributeRegistry,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(AttributeRegistry.class, attributeRegistry),
                 RuntimeComponents.component(AttributeBalanceRegistry.class, attributeBalanceRegistry),
                 RuntimeComponents.component(DamageTypeRegistry.class, damageTypeRegistry),

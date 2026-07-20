@@ -19,29 +19,33 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
 public final class GuiService implements Listener, GuiSessionRegistry {
 
     private final JavaPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final Map<UUID, GuiSession> sessions = new ConcurrentHashMap<>();
     private final AsyncGuiRenderer asyncGuiRenderer;
     private final GuiBackend backend;
     private final ConfiguredItemService configuredItemService;
 
     public GuiService(JavaPlugin plugin,
+            ExecutionDispatcher executionDispatcher,
             AsyncTaskScheduler asyncTaskScheduler,
             PerformanceMonitor performanceMonitor) {
-        this(plugin, asyncTaskScheduler, performanceMonitor, new BukkitGuiBackend());
+        this(plugin, executionDispatcher, asyncTaskScheduler, performanceMonitor, new BukkitGuiBackend());
     }
 
     public GuiService(JavaPlugin plugin,
+            ExecutionDispatcher executionDispatcher,
             AsyncTaskScheduler asyncTaskScheduler,
             PerformanceMonitor performanceMonitor,
             GuiBackend backend) {
-        this.plugin = plugin;
+        this.plugin = java.util.Objects.requireNonNull(plugin, "plugin");
+        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
         this.asyncGuiRenderer = new AsyncGuiRenderer(
                 asyncTaskScheduler,
                 performanceMonitor
@@ -67,26 +71,48 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             return CompletableFuture.completedFuture(null);
         }
         CompletableFuture<GuiSession> future = new CompletableFuture<>();
-        FoliaSchedulerAdapter.runEntityTask(plugin, request.viewer(), () -> {
-            UUID viewerId = request.viewer().getUniqueId();
-            close(viewerId);
-            GuiSession session = newSession(request);
-            sessions.put(viewerId, session);
-            asyncGuiRenderer.prepare(session)
-                    .whenComplete((renderedSlots, throwable) -> FoliaSchedulerAdapter.runEntityTask(plugin, request.viewer(), () -> {
-                        if (throwable != null) {
-                            sessions.remove(viewerId, session);
-                            future.completeExceptionally(throwable);
-                            return;
+        org.bukkit.plugin.Plugin owner = request.owner() == null ? plugin : request.owner();
+        Runnable outerRetired = () -> future.completeExceptionally(new RejectedExecutionException(
+                "GUI viewer retired before open scheduling completed."));
+        try {
+            if (executionDispatcher.runEntity(owner, request.viewer(), () -> {
+                UUID viewerId = request.viewer().getUniqueId();
+                close(viewerId);
+                GuiSession session = newSession(request);
+                sessions.put(viewerId, session);
+                asyncGuiRenderer.prepare(session).whenComplete((renderedSlots, throwable) -> {
+                    Runnable innerRetired = () -> {
+                        sessions.remove(viewerId, session);
+                        future.completeExceptionally(new RejectedExecutionException(
+                                "GUI viewer retired before rendered slots could be applied."));
+                    };
+                    try {
+                        if (executionDispatcher.runEntity(owner, request.viewer(), () -> {
+                            if (throwable != null) {
+                                sessions.remove(viewerId, session);
+                                future.completeExceptionally(throwable);
+                                return;
+                            }
+                            if (sessions.get(viewerId) != session) {
+                                future.complete(null);
+                                return;
+                            }
+                            session.backend().open(session, renderedSlots);
+                            future.complete(session);
+                        }, innerRetired) == null) {
+                            innerRetired.run();
                         }
-                        if (sessions.get(viewerId) != session) {
-                            future.complete(null);
-                            return;
-                        }
-                        session.backend().open(session, renderedSlots);
-                        future.complete(session);
-                    }));
-        });
+                    } catch (Throwable dispatchFailure) {
+                        sessions.remove(viewerId, session);
+                        future.completeExceptionally(dispatchFailure);
+                    }
+                });
+            }, outerRetired) == null) {
+                outerRetired.run();
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
         return future;
     }
 
@@ -154,7 +180,9 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         }
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
-            if (FoliaSchedulerAdapter.runEntityTask(
+            Runnable retired = () -> future.completeExceptionally(new RejectedExecutionException(
+                    "GUI viewer retired before close could complete: " + viewerId));
+            if (executionDispatcher.runEntity(
                     session.owner() == null ? plugin : session.owner(),
                     session.viewer(),
                     () -> {
@@ -164,9 +192,8 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                         } catch (Throwable throwable) {
                             future.completeExceptionally(throwable);
                         }
-                    }) == null) {
-                future.completeExceptionally(new RejectedExecutionException(
-                        "GUI close task was rejected for viewer " + viewerId));
+                    }, retired) == null) {
+                retired.run();
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);

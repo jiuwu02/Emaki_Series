@@ -7,6 +7,7 @@ import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptDeferredOperationQueue;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -19,8 +20,16 @@ public final class ScriptActionApi {
     private final ScriptConfig.Security security;
 
     public ScriptActionApi(ActionExecutor actionExecutor, ActionContext context, ScriptConfig.Security security) {
-        this(new ScriptDeferredOperationQueue(
+        this(null, security);
+    }
+
+    public ScriptActionApi(ActionExecutor actionExecutor,
+            ActionContext context,
+            ExecutionDispatcher executionDispatcher,
+            ScriptConfig.Security security) {
+        this(executionDispatcher == null ? null : new ScriptDeferredOperationQueue(
                 context == null ? null : context.sourcePlugin(),
+                executionDispatcher,
                 actionExecutor,
                 context
         ), security);

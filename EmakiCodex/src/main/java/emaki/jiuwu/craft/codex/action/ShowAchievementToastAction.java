@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -21,7 +23,6 @@ import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -35,6 +36,7 @@ public final class ShowAchievementToastAction implements Action {
     private static final String DEFAULT_ICON = "minecraft-book";
     private static final String DEFAULT_FRAME = "task";
     private static final String DEFAULT_REMOVE_DELAY = "20t";
+    private static final ConcurrentMap<String, UUID> REMOVAL_TOKENS = new ConcurrentHashMap<>();
 
     private final EmakiCodexPlugin plugin;
     private final ItemSourceService itemSourceService;
@@ -166,19 +168,40 @@ public final class ShowAchievementToastAction implements Action {
     }
 
     private void scheduleRemoval(Player player, String key, long removeDelayTicks) {
+        String tokenKey = removalTokenKey(player, key);
+        UUID token = UUID.randomUUID();
+        REMOVAL_TOKENS.put(tokenKey, token);
         if (plugin == null || !plugin.isEnabled()) {
-            removeToast(player, key);
+            removeToast(player, key, tokenKey, token);
             return;
         }
-        FoliaSchedulerAdapter.runEntityTaskLater(plugin, player, () -> removeToast(player, key), removeDelayTicks);
+        try {
+            var scheduled = plugin.executionDispatcher().runEntityLater(plugin, player,
+                    () -> removeToast(player, key, tokenKey, token),
+                    () -> { },
+                    removeDelayTicks);
+            if (scheduled == null) {
+                REMOVAL_TOKENS.remove(tokenKey, token);
+            }
+        } catch (Throwable ignored) {
+            REMOVAL_TOKENS.remove(tokenKey, token);
+        }
     }
 
-    private void removeToast(Player player, String key) {
+    private void removeToast(Player player, String key, String tokenKey, UUID token) {
+        if (!REMOVAL_TOKENS.remove(tokenKey, token)) {
+            return;
+        }
         try {
             invokeBridge("remove", player, key, "", "", new ItemStack(Material.BOOK), DEFAULT_FRAME);
         } catch (Throwable ignored) {
             // Best-effort client cleanup; the toast has already been sent.
         }
+    }
+
+    private String removalTokenKey(Player player, String key) {
+        UUID playerId = player == null ? new UUID(0L, 0L) : player.getUniqueId();
+        return playerId + ":" + key;
     }
 
     private boolean isPacketEventsPresent() {

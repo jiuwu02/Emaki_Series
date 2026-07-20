@@ -1,13 +1,10 @@
 package emaki.jiuwu.craft.forge.action;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -18,8 +15,7 @@ import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 
 public final class ForgeRefreshAction implements Action {
 
@@ -29,12 +25,12 @@ public final class ForgeRefreshAction implements Action {
         ONLINE_PLAYERS
     }
 
-    private final EmakiForgePlugin plugin;
+    private final ForgeItemRefreshService refreshService;
     private final String id;
     private final Operation operation;
 
-    ForgeRefreshAction(EmakiForgePlugin plugin, String id, Operation operation) {
-        this.plugin = plugin;
+    ForgeRefreshAction(ForgeItemRefreshService refreshService, String id, Operation operation) {
+        this.refreshService = refreshService;
         this.id = id;
         this.operation = operation;
     }
@@ -75,7 +71,7 @@ public final class ForgeRefreshAction implements Action {
         if (operation != Operation.ONLINE_PLAYERS) {
             return Action.super.executeAsync(context, arguments);
         }
-        if (plugin == null || plugin.itemRefreshService() == null) {
+        if (refreshService == null) {
             return CompletableFuture.completedFuture(ActionResult.failure(
                     ActionErrorType.INVALID_STATE,
                     "EmakiForge refresh service is not ready."));
@@ -85,7 +81,7 @@ public final class ForgeRefreshAction implements Action {
 
     @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
-        if (plugin == null || plugin.itemRefreshService() == null) {
+        if (refreshService == null) {
             return ActionResult.failure(ActionErrorType.INVALID_STATE, "EmakiForge refresh service is not ready.");
         }
         if (operation == Operation.ONLINE_PLAYERS) {
@@ -98,14 +94,14 @@ public final class ForgeRefreshAction implements Action {
             return ActionResult.failure(ActionErrorType.INVALID_STATE, "Action '" + id + "' requires a player context.");
         }
         if (operation == Operation.PLAYER_INVENTORY) {
-            plugin.itemRefreshService().refreshPlayerInventory(player);
+            refreshService.refreshPlayerInventory(player);
             return ActionResult.ok(Map.of("player", player.getName()));
         }
         ItemStack original = player.getInventory().getItemInMainHand();
         if (original == null || original.getType().isAir()) {
             return ActionResult.skipped("Player is not holding an item.");
         }
-        ItemStack refreshed = plugin.itemRefreshService().refreshItem(original);
+        ItemStack refreshed = refreshService.refreshItem(original);
         boolean changed = refreshed != original;
         if (changed) {
             player.getInventory().setItemInMainHand(refreshed);
@@ -114,46 +110,9 @@ public final class ForgeRefreshAction implements Action {
     }
 
     private CompletionStage<ActionResult> refreshOnlinePlayersAsync() {
-        List<UUID> playerIds = Bukkit.getOnlinePlayers().stream()
-                .map(Player::getUniqueId)
-                .toList();
-        if (playerIds.isEmpty()) {
-            return CompletableFuture.completedFuture(ActionResult.ok(Map.of("players", 0, "refreshed", 0)));
-        }
-        List<CompletableFuture<Boolean>> refreshes = new ArrayList<>(playerIds.size());
-        for (UUID playerId : playerIds) {
-            CompletableFuture<Boolean> refresh = new CompletableFuture<>();
-            refreshes.add(refresh);
-            Player owner = Bukkit.getPlayer(playerId);
-            if (owner == null || !owner.isOnline()) {
-                refresh.complete(false);
-                continue;
-            }
-            try {
-                FoliaSchedulerAdapter.runEntityTask(plugin, owner, () -> {
-                    try {
-                        if (!owner.isOnline() || !owner.getUniqueId().equals(playerId)) {
-                            refresh.complete(false);
-                            return;
-                        }
-                        plugin.itemRefreshService().refreshPlayerInventory(owner);
-                        refresh.complete(true);
-                    } catch (RuntimeException exception) {
-                        refresh.completeExceptionally(exception);
-                    }
-                });
-            } catch (RuntimeException exception) {
-                refresh.completeExceptionally(exception);
-            }
-        }
-        CompletableFuture<?>[] stages = refreshes.stream()
-                .map(stage -> stage.exceptionally(throwable -> false))
-                .toArray(CompletableFuture[]::new);
-        return CompletableFuture.allOf(stages).thenApply(ignored -> {
-            long refreshed = refreshes.stream()
-                    .filter(stage -> Boolean.TRUE.equals(stage.exceptionally(throwable -> false).join()))
-                    .count();
-            return ActionResult.ok(Map.of("players", playerIds.size(), "refreshed", refreshed));
-        });
+        return refreshService.refreshOnlinePlayers()
+                .thenApply(summary -> ActionResult.ok(Map.of(
+                        "players", summary.players(),
+                        "refreshed", summary.refreshed())));
     }
 }

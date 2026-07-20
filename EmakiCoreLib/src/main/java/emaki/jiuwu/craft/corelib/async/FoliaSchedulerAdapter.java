@@ -10,18 +10,21 @@ import org.bukkit.Server;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.execution.ExecutionBackendLoader;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 
 /**
- * Unified scheduler facade for Bukkit, Paper, and Folia runtimes.
+ * Compatibility facade for legacy CoreLib scheduler calls.
  *
- * <p>Public signatures deliberately expose only Bukkit types and Emaki's own
- * {@link TaskHandle}. Paper/Folia-specific scheduler types stay inside the
- * CoreLib compatibility layer.
+ * <p>New code should inject {@link ExecutionDispatcher} directly. This facade
+ * keeps the old async package surface while routing every operation through the
+ * neutral execution backend selected by CoreLib.</p>
  */
 public final class FoliaSchedulerAdapter {
 
-    private static volatile SchedulerCompat cachedCompat;
+    private static volatile ExecutionDispatcher cachedDispatcher;
     private static volatile CapabilityProbe cachedCapabilities;
     private static volatile Server cachedServer;
 
@@ -37,23 +40,26 @@ public final class FoliaSchedulerAdapter {
     }
 
     public static TaskHandle runTask(Plugin plugin, Runnable task) {
-        return compat(plugin).runTask(plugin, task);
+        return wrap(dispatcher(plugin).runGlobal(plugin, task));
     }
 
     public static TaskHandle runTaskLater(Plugin plugin, Runnable task, long delayTicks) {
-        return compat(plugin).runTaskLater(plugin, task, delayTicks);
+        return wrap(dispatcher(plugin).runGlobalLater(plugin, task, delayTicks));
     }
 
     public static TaskHandle runTaskTimer(Plugin plugin, Runnable task, long delayTicks, long periodTicks) {
-        return compat(plugin).runTaskTimer(plugin, task, delayTicks, periodTicks);
+        return wrap(dispatcher(plugin).runGlobalTimer(plugin, task, delayTicks, periodTicks));
     }
 
     public static TaskHandle runEntityTask(Plugin plugin, Entity entity, Runnable task) {
-        return compat(plugin).runEntityTask(plugin, entity, task);
+        if (entity == null || !capabilities(plugin).folia()) {
+            return runTask(plugin, task);
+        }
+        return wrap(dispatcher(plugin).runEntity(plugin, entity, task, null));
     }
 
     public static TaskHandle runEntityTaskLater(Plugin plugin, Entity entity, Runnable task, long delayTicks) {
-        return compat(plugin).runEntityTaskLater(plugin, entity, task, delayTicks);
+        return runEntityTaskLater(plugin, entity, task, null, delayTicks);
     }
 
     public static TaskHandle runEntityTaskLater(
@@ -62,23 +68,32 @@ public final class FoliaSchedulerAdapter {
             Runnable task,
             Runnable retired,
             long delayTicks) {
-        return compat(plugin).runEntityTaskLater(plugin, entity, task, retired, delayTicks);
+        if (entity == null || !capabilities(plugin).folia()) {
+            return runTaskLater(plugin, task, delayTicks);
+        }
+        return wrap(dispatcher(plugin).runEntityLater(plugin, entity, task, retired, delayTicks));
     }
 
     public static TaskHandle runAtLocation(Plugin plugin, Location location, Runnable task) {
-        return compat(plugin).runAtLocation(plugin, location, task);
+        if (location == null || !capabilities(plugin).folia()) {
+            return runTask(plugin, task);
+        }
+        return wrap(dispatcher(plugin).runAtLocation(plugin, location, task));
     }
 
     public static TaskHandle runAtLocationLater(Plugin plugin, Location location, Runnable task, long delayTicks) {
-        return compat(plugin).runAtLocationLater(plugin, location, task, delayTicks);
+        if (location == null || !capabilities(plugin).folia()) {
+            return runTaskLater(plugin, task, delayTicks);
+        }
+        return wrap(dispatcher(plugin).runAtLocationLater(plugin, location, task, delayTicks));
     }
 
     public static TaskHandle runAsync(Plugin plugin, Runnable task) {
-        return compat(plugin).runAsync(plugin, task);
+        return wrap(dispatcher(plugin).runAsync(plugin, task));
     }
 
     public static TaskHandle runAsyncLater(Plugin plugin, Runnable task, long delay, TimeUnit unit) {
-        return compat(plugin).runAsyncLater(plugin, task, delay, unit);
+        return wrap(dispatcher(plugin).runAsyncLater(plugin, task, delay, unit));
     }
 
     public static void cancelTask(TaskHandle task) {
@@ -91,7 +106,7 @@ public final class FoliaSchedulerAdapter {
         return task == null || task.isCancelled();
     }
 
-    private static SchedulerCompat compat(Plugin plugin) {
+    private static ExecutionDispatcher dispatcher(Plugin plugin) {
         Objects.requireNonNull(plugin, "plugin");
         if (!plugin.isEnabled()) {
             throw new RejectedExecutionException("Plugin is disabled; scheduler task rejected: " + plugin.getName());
@@ -100,17 +115,18 @@ public final class FoliaSchedulerAdapter {
         if (server == null) {
             throw new RejectedExecutionException("Server is unavailable; scheduler task rejected: " + plugin.getName());
         }
-        SchedulerCompat resolved = cachedCompat;
+        ExecutionDispatcher resolved = cachedDispatcher;
         if (resolved != null && cachedServer == server) {
             return resolved;
         }
         synchronized (FoliaSchedulerAdapter.class) {
-            if (cachedCompat == null || cachedServer != server) {
+            if (cachedDispatcher == null || cachedServer != server) {
+                PlatformCapabilities platformCapabilities = PlatformCapabilities.detect(server);
                 cachedCapabilities = CapabilityProbe.detect(server);
-                cachedCompat = resolveCompat(server, cachedCapabilities);
+                cachedDispatcher = ExecutionBackendLoader.load(server, platformCapabilities).dispatcher();
                 cachedServer = server;
             }
-            return cachedCompat;
+            return cachedDispatcher;
         }
     }
 
@@ -122,25 +138,28 @@ public final class FoliaSchedulerAdapter {
         synchronized (FoliaSchedulerAdapter.class) {
             if (cachedCapabilities == null || cachedServer != server) {
                 cachedCapabilities = CapabilityProbe.detect(server);
-                cachedCompat = server == null ? null : resolveCompat(server, cachedCapabilities);
+                cachedDispatcher = null;
                 cachedServer = server;
             }
             return cachedCapabilities;
         }
     }
 
-    private static SchedulerCompat resolveCompat(Server server, CapabilityProbe capabilities) {
-        if (!capabilities.folia()) {
-            return new BukkitSchedulerCompat();
+    private static TaskHandle wrap(emaki.jiuwu.craft.corelib.execution.TaskHandle handle) {
+        return handle == null ? null : new ExecutionTaskHandleAdapter(handle);
+    }
+
+    private record ExecutionTaskHandleAdapter(emaki.jiuwu.craft.corelib.execution.TaskHandle delegate)
+            implements TaskHandle {
+
+        @Override
+        public void cancel() {
+            delegate.cancel();
         }
-        try {
-            SchedulerCompat foliaCompat = FoliaSchedulerCompat.createIfSupported(server, true);
-            if (foliaCompat == null) {
-                throw new IllegalStateException("Folia scheduler capabilities were detected but could not be linked");
-            }
-            return foliaCompat;
-        } catch (RuntimeException | LinkageError exception) {
-            throw new IllegalStateException("Failed to initialize the Folia scheduler boundary", exception);
+
+        @Override
+        public boolean isCancelled() {
+            return delegate.isCancelled();
         }
     }
 }

@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
@@ -13,7 +14,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
@@ -32,6 +34,8 @@ final class ForgeExecutionService {
     private static final String DEFAULT_ACTION_FAILURE_KEY = "forge.error.action_failed";
 
     private final Plugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private final SessionValidator sessionValidator;
     private final ForgeActionCoordinator actionCoordinator;
     private final QualityCalculationService qualityCalculationService;
@@ -44,6 +48,8 @@ final class ForgeExecutionService {
     private final JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry;
 
     ForgeExecutionService(Plugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership,
             SessionValidator sessionValidator,
             ForgeActionCoordinator actionCoordinator,
             QualityCalculationService qualityCalculationService,
@@ -53,12 +59,15 @@ final class ForgeExecutionService {
             ResultItemPostProcessor resultItemPostProcessor,
             JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry,
             JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry) {
-        this(plugin, sessionValidator, actionCoordinator, qualityCalculationService, forgePlanResolver, resultItemGiver,
+        this(plugin, executionDispatcher, threadOwnership, sessionValidator, actionCoordinator,
+                qualityCalculationService, forgePlanResolver, resultItemGiver,
                 craftRecorder, resultItemPostProcessor, new ForgeFailureResolver(),
                 javaScriptForgeRuleRegistry, javaScriptResultHookRegistry);
     }
 
     ForgeExecutionService(Plugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership,
             SessionValidator sessionValidator,
             ForgeActionCoordinator actionCoordinator,
             QualityCalculationService qualityCalculationService,
@@ -70,6 +79,8 @@ final class ForgeExecutionService {
             JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry,
             JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         this.sessionValidator = sessionValidator;
         this.actionCoordinator = actionCoordinator;
         this.qualityCalculationService = qualityCalculationService;
@@ -197,38 +208,43 @@ final class ForgeExecutionService {
     private CompletableFuture<ForgeResult> callPlayerOwnerAsync(Player player,
             long generation,
             Supplier<? extends CompletionStage<ForgeResult>> operation) {
-        if (player == null || plugin == null || operation == null) {
+        if (player == null || plugin == null || operation == null || executionDispatcher == null) {
             return CompletableFuture.completedFuture(staleSessionResult());
         }
         CompletableFuture<ForgeResult> future = new CompletableFuture<>();
-        try {
-            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-                if (sessionValidator == null
-                        || !sessionValidator.isCurrent(player.getUniqueId(), generation)) {
-                    future.complete(staleSessionResult());
+        Runnable task = () -> {
+            if (sessionValidator == null || !sessionValidator.isCurrent(player.getUniqueId(), generation)) {
+                future.complete(staleSessionResult());
+                return;
+            }
+            try {
+                CompletionStage<ForgeResult> stage = operation.get();
+                if (stage == null) {
+                    future.completeExceptionally(new IllegalStateException(
+                            "Forge player-owner operation returned no completion stage."));
                     return;
                 }
-                try {
-                    CompletionStage<ForgeResult> stage = operation.get();
-                    if (stage == null) {
-                        future.completeExceptionally(new IllegalStateException(
-                                "Forge player-owner operation returned no completion stage."));
-                        return;
+                stage.whenComplete((value, throwable) -> {
+                    if (throwable != null) {
+                        future.completeExceptionally(throwable);
+                    } else {
+                        future.complete(value);
                     }
-                    stage.whenComplete((value, throwable) -> {
-                        if (throwable != null) {
-                            future.completeExceptionally(throwable);
-                        } else {
-                            future.complete(value);
-                        }
-                    });
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            });
+                });
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        };
+        if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
+            task.run();
+            return future;
+        }
+        try {
+            var scheduled = executionDispatcher.runEntity(plugin, player, task,
+                    () -> future.completeExceptionally(new RejectedExecutionException(
+                            "Forge player-owner operation retired before execution.")));
             if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "Forge player-owner scheduling was rejected."));
+                future.completeExceptionally(new RejectedExecutionException("Forge player-owner scheduling was rejected."));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -239,26 +255,31 @@ final class ForgeExecutionService {
     private CompletableFuture<ForgeResult> callPlayerOwner(Player player,
             long generation,
             Supplier<ForgeResult> operation) {
-        if (player == null || plugin == null || operation == null) {
+        if (player == null || plugin == null || operation == null || executionDispatcher == null) {
             return CompletableFuture.completedFuture(staleSessionResult());
         }
         CompletableFuture<ForgeResult> future = new CompletableFuture<>();
+        Runnable task = () -> {
+            if (sessionValidator == null || !sessionValidator.isCurrent(player.getUniqueId(), generation)) {
+                future.complete(staleSessionResult());
+                return;
+            }
+            try {
+                future.complete(operation.get());
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        };
+        if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
+            task.run();
+            return future;
+        }
         try {
-            var scheduled = FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-                if (sessionValidator == null
-                        || !sessionValidator.isCurrent(player.getUniqueId(), generation)) {
-                    future.complete(staleSessionResult());
-                    return;
-                }
-                try {
-                    future.complete(operation.get());
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            });
+            var scheduled = executionDispatcher.runEntity(plugin, player, task,
+                    () -> future.completeExceptionally(new RejectedExecutionException(
+                            "Forge player-owner operation retired before execution.")));
             if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "Forge player-owner scheduling was rejected."));
+                future.completeExceptionally(new RejectedExecutionException("Forge player-owner scheduling was rejected."));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);

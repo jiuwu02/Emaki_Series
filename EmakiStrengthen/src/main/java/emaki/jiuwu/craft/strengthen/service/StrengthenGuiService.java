@@ -7,6 +7,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -19,17 +20,23 @@ public final class StrengthenGuiService implements Listener {
     private final StrengthenGuiStateManager stateManager;
     private final StrengthenGuiRenderer renderer;
     private final StrengthenGuiInteractionController interactionController;
+    private final ThreadOwnership threadOwnership;
 
-    public StrengthenGuiService(EmakiStrengthenPlugin plugin, GuiService guiService, StrengthenAttemptService attemptService) {
+    public StrengthenGuiService(EmakiStrengthenPlugin plugin,
+            GuiService guiService,
+            StrengthenAttemptService attemptService,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.guiService = guiService;
+        this.threadOwnership = threadOwnership;
         this.stateManager = new StrengthenGuiStateManager();
         this.renderer = new StrengthenGuiRenderer(plugin, attemptService);
         this.interactionController = new StrengthenGuiInteractionController(plugin, stateManager, attemptService, renderer);
     }
 
     public boolean open(Player player) {
-        if (player == null || plugin.attemptService() == null || !plugin.attemptService().accepting()) {
+        if (player == null || plugin.attemptService() == null || !plugin.attemptService().accepting()
+                || !threadOwnership.isEntityOwned(player)) {
             return false;
         }
         if (stateManager.hasPendingSettlement(player)) {

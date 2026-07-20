@@ -12,7 +12,9 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
@@ -59,11 +61,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private BStatsRegistration metrics;
 
     private final ForgeLifecycleCoordinator lifecycleCoordinator = new ForgeLifecycleCoordinator();
-    private final ForgeCommandRouter commandRouter = new ForgeCommandRouter(this);
+    private ForgeCommandRouter commandRouter;
     private final ForgePlayerDataListener playerDataListener = new ForgePlayerDataListener(this);
-    private final ForgeItemRefreshListener itemRefreshListener = new ForgeItemRefreshListener(this);
+    private ForgeItemRefreshListener itemRefreshListener;
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private LanguageLoader languageLoader;
     private RecipeLoader recipeLoader;
     private GuiTemplateLoader guiTemplateLoader;
@@ -165,6 +169,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void applyRuntimeComponents(ForgeRuntimeComponents components) {
         appConfigLoader = components.appConfigLoader();
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
         languageLoader = components.languageLoader();
         recipeLoader = components.recipeLoader();
         guiTemplateLoader = components.guiTemplateLoader();
@@ -178,6 +184,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
+        commandRouter = new ForgeCommandRouter(this, executionDispatcher, threadOwnership);
+        itemRefreshListener = new ForgeItemRefreshListener(this, executionDispatcher);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -248,6 +256,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
     }
 
     public GuiService guiService() {

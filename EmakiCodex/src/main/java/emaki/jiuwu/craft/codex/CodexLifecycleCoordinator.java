@@ -64,16 +64,18 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         AdvancementJsonBuilder jsonBuilder = new AdvancementJsonBuilder(coreLibPlugin.itemSourceService());
         AdvancementRegistrar registrar = new AdvancementRegistrar(plugin, advancementPageLoader, platform, jsonBuilder);
         AdvancementService advancementService = new AdvancementService(registrar);
+        var executionDispatcher = coreLibPlugin.executionDispatcher();
+        var threadOwnership = coreLibPlugin.threadOwnership();
         AdvancementPacketGateway advancementPacketGateway =
                 new AdvancementPacketGateway(plugin, registrar, coreLibPlugin.itemSourceService(),
-                        config.packetCoordinates());
+                        config.packetCoordinates(), executionDispatcher, threadOwnership);
         CodexTriggerService triggerService =
                 new CodexTriggerService(plugin, advancementPageLoader, advancementService);
 
         return new CodexRuntimeComponents(
                 appConfigLoader, languageLoader, messageService, bootstrapService,
                 advancementPageLoader, platform, jsonBuilder, registrar, advancementService,
-                advancementPacketGateway, triggerService);
+                advancementPacketGateway, triggerService, executionDispatcher, threadOwnership);
     }
 
     /**
@@ -111,12 +113,13 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (registered <= 0 || org.bukkit.Bukkit.getOnlinePlayers().isEmpty()) {
             return;
         }
-        int result = plugin.advancementPacketGateway().resyncAll();
-        if (result < 0) {
-            plugin.messageService().info("console.advancements_need_relog");
-        } else if (result > 0) {
-            plugin.messageService().info("console.advancements_resynced", Map.of("count", result));
-        }
+        plugin.advancementPacketGateway().resyncAll().thenAccept(result -> {
+            if (result < 0) {
+                plugin.messageService().info("console.advancements_need_relog");
+            } else if (result > 0) {
+                plugin.messageService().info("console.advancements_resynced", Map.of("count", result));
+            }
+        });
     }
 
     public void shutdown(EmakiCodexPlugin plugin) {

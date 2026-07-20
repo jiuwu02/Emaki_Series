@@ -62,8 +62,8 @@ public final class StrengthenTransferService {
         int transferredStar = (int) Math.floor(sourceStar * request.decayRate());
         transferredStar = Numbers.clamp(transferredStar, 0, targetRecipe.limits().maxStar());
 
-        // 强化转移对外开放，可取消、可改转移星级；转移 GUI 在主线程，仍按统一约定加守卫。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
+        // 强化转移对外开放，可取消、可改转移星级；仅在玩家 owner 上触发同步事件。
+        if (plugin.threadOwnership().isEntityOwned(player)) {
             StrengthenTransferEvent transferEvent = new StrengthenTransferEvent(
                     player, source, target, targetState.recipeId(), sourceStar, transferredStar, request.decayRate());
             org.bukkit.Bukkit.getPluginManager().callEvent(transferEvent);

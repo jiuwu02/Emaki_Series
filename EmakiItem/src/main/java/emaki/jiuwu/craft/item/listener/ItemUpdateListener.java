@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -17,20 +16,27 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
 public final class ItemUpdateListener implements Listener {
 
     private final EmakiItemPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private final Set<UUID> pendingRefresh = ConcurrentHashMap.newKeySet();
     private final AtomicLong refreshSequence = new AtomicLong();
 
-    public ItemUpdateListener(EmakiItemPlugin plugin) {
+    public ItemUpdateListener(EmakiItemPlugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     @EventHandler
@@ -86,16 +92,24 @@ public final class ItemUpdateListener implements Listener {
             return;
         }
         debugRefresh(player, refreshId, trigger, "enqueued", -1);
-        TaskHandle task = FoliaSchedulerAdapter.runEntityTask(plugin, player, () -> {
-            pendingRefresh.remove(playerId);
-            if (!player.isOnline()) {
-                debugRefresh(player, refreshId, trigger, "offline", -1);
-                return;
-            }
-            debugRefresh(player, refreshId, trigger, "executing", -1);
-            int changed = refresh(player, trigger);
-            debugRefresh(player, refreshId, trigger, "completed", changed);
-        });
+        TaskHandle task = executionDispatcher.runEntity(
+                plugin,
+                player,
+                () -> {
+                    pendingRefresh.remove(playerId);
+                    if (!player.isOnline()) {
+                        debugRefresh(player, refreshId, trigger, "offline", -1);
+                        return;
+                    }
+                    debugRefresh(player, refreshId, trigger, "executing", -1);
+                    int changed = refresh(player, trigger);
+                    debugRefresh(player, refreshId, trigger, "completed", changed);
+                },
+                () -> {
+                    pendingRefresh.remove(playerId);
+                    debugRefresh(player, refreshId, trigger, "retired", -1);
+                }
+        );
         if (task == null) {
             pendingRefresh.remove(playerId);
             debugRefresh(player, refreshId, trigger, "rejected", -1);
@@ -116,13 +130,12 @@ public final class ItemUpdateListener implements Listener {
         if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
             return;
         }
-        boolean owner = player != null && Bukkit.isOwnedByCurrentRegion(player);
+        boolean owner = player != null && threadOwnership.isEntityOwned(player);
         debugLogger.logRaw("set", player, "[DEBUG:SET_REFRESH] id=" + refreshId
                 + " stage=" + Texts.toStringSafe(stage)
                 + " trigger=" + Texts.toStringSafe(trigger)
                 + " changed=" + changed
-                + " folia=" + FoliaSchedulerAdapter.isFolia()
-                + " primary=" + Bukkit.isPrimaryThread()
+                + " global_owner=" + threadOwnership.isGlobalOwned()
                 + " owner=" + owner
                 + " thread=" + Thread.currentThread().getName());
     }

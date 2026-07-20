@@ -7,7 +7,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 
 /**
  * Pushes the EmakiCodex advancement tree to a player shortly after they join.
@@ -41,10 +40,10 @@ public final class PlayerConnectionListener implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        FoliaSchedulerAdapter.runEntityTaskLater(plugin, player, () -> {
+        plugin.executionDispatcher().runEntityLater(plugin, player, () -> {
             if (player.isOnline()) {
                 plugin.advancementPacketGateway().resync(player);
             }
-        }, RESYNC_DELAY_TICKS);
+        }, () -> { }, RESYNC_DELAY_TICKS);
     }
 }

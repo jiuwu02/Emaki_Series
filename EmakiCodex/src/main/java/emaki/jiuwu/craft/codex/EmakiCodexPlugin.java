@@ -26,9 +26,10 @@ import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
 import emaki.jiuwu.craft.codex.listener.PlayerConnectionListener;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
@@ -70,6 +71,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private AdvancementService advancementService;
     private AdvancementPacketGateway advancementPacketGateway;
     private CodexTriggerService triggerService;
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
 
     private AdvancementListener advancementListener;
     private CodexGameplaySubscriber gameplaySubscriber;
@@ -128,6 +131,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         advancementService = components.advancementService();
         advancementPacketGateway = components.advancementPacketGateway();
         triggerService = components.triggerService();
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
 
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
@@ -215,6 +220,14 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return debugCommand;
     }
 
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
+    }
+
     /** Bridge implementation backing the public {@link EmakiCodexApi} facade. */
     private final class CodexApiBridge implements EmakiCodexApi.Bridge {
 
@@ -263,19 +276,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private boolean ownsWriteTarget(Player target) {
-        if (target == null || !target.isOnline()) {
-            return false;
-        }
-        if (!FoliaSchedulerAdapter.isFolia()) {
-            return Bukkit.isPrimaryThread();
-        }
-        try {
-            return Boolean.TRUE.equals(Bukkit.class
-                    .getMethod("isOwnedByCurrentRegion", org.bukkit.entity.Entity.class)
-                    .invoke(null, target));
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            return false;
-        }
+        return target != null
+                && target.isOnline()
+                && threadOwnership != null
+                && threadOwnership.isEntityOwned(target);
     }
 
     private CompletableFuture<Boolean> runOwnerWriteAsync(Player target, Supplier<Boolean> operation) {
@@ -283,17 +287,23 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             return CompletableFuture.completedFuture(false);
         }
         if (ownsWriteTarget(target)) {
-            return CompletableFuture.completedFuture(operation.get());
+            try {
+                return CompletableFuture.completedFuture(Boolean.TRUE.equals(operation.get()));
+            } catch (Throwable throwable) {
+                CompletableFuture<Boolean> failed = new CompletableFuture<>();
+                failed.completeExceptionally(throwable);
+                return failed;
+            }
         }
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            Object scheduled = FoliaSchedulerAdapter.runEntityTask(this, target, () -> {
+            var scheduled = executionDispatcher.runEntity(this, target, () -> {
                 try {
-                    future.complete(operation.get());
+                    future.complete(Boolean.TRUE.equals(operation.get()));
                 } catch (Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
-            });
+            }, () -> future.complete(false));
             if (scheduled == null) {
                 future.complete(false);
             }

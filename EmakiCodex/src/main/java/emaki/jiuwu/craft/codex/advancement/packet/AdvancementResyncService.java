@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.codex.advancement.packet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
@@ -24,6 +25,8 @@ import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementFrame;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -52,6 +55,8 @@ public final class AdvancementResyncService {
     private final JavaPlugin plugin;
     private final AdvancementRegistrar registrar;
     private final ItemSourceService itemSourceService;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
 
     /**
      * @param plugin            the owning plugin (logger + key namespace)
@@ -60,10 +65,14 @@ public final class AdvancementResyncService {
      */
     public AdvancementResyncService(JavaPlugin plugin,
             AdvancementRegistrar registrar,
-            ItemSourceService itemSourceService) {
+            ItemSourceService itemSourceService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.registrar = registrar;
         this.itemSourceService = itemSourceService;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     /**
@@ -71,18 +80,29 @@ public final class AdvancementResyncService {
      *
      * @return the number of players the packet was sent to
      */
-    public int resyncAll() {
+    public CompletableFuture<Integer> resyncAllAsync() {
         List<AdvancementHolder> holders = buildHolders();
         if (holders.isEmpty()) {
-            return 0;
+            return CompletableFuture.completedFuture(0);
         }
-        int sent = 0;
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (sendTo(player, holders)) {
-                sent++;
-            }
+        List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
+        if (players.isEmpty()) {
+            return CompletableFuture.completedFuture(0);
         }
-        return sent;
+        List<CompletableFuture<Boolean>> futures = new ArrayList<>(players.size());
+        for (Player player : players) {
+            futures.add(resyncAsync(player, holders));
+        }
+        return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
+                .thenApply(_ -> {
+                    int sent = 0;
+                    for (CompletableFuture<Boolean> future : futures) {
+                        if (Boolean.TRUE.equals(future.getNow(false))) {
+                            sent++;
+                        }
+                    }
+                    return sent;
+                });
     }
 
     /**
@@ -94,6 +114,31 @@ public final class AdvancementResyncService {
     public boolean resync(Player player) {
         List<AdvancementHolder> holders = buildHolders();
         return !holders.isEmpty() && sendTo(player, holders);
+    }
+
+    private CompletableFuture<Boolean> resyncAsync(Player player, List<AdvancementHolder> holders) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        if (player == null || !player.isOnline()) {
+            future.complete(false);
+            return future;
+        }
+        Runnable operation = () -> future.complete(sendTo(player, holders));
+        try {
+            if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
+                operation.run();
+                return future;
+            }
+            var scheduled = executionDispatcher.runEntity(plugin, player, operation,
+                    () -> future.complete(false));
+            if (scheduled == null) {
+                future.complete(false);
+            }
+        } catch (Throwable throwable) {
+            plugin.getLogger().log(Level.WARNING,
+                    "[Codex] Advancement resync scheduling failed for " + player.getName() + ": " + throwable.getMessage());
+            future.complete(false);
+        }
+        return future;
     }
 
     private boolean sendTo(Player player, List<AdvancementHolder> holders) {
