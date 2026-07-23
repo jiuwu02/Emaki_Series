@@ -85,28 +85,27 @@ final class LedgerNameComposer {
         if (records == null || records.isEmpty()) {
             return current;
         }
+        LocalNameState state = new LocalNameState();
         for (ItemOperationEntry.NameOperationRecord record : records) {
             if (record == null) {
                 continue;
             }
-            current = applyRecord(current, record);
+            String action = Texts.lower(record.action());
+            String value = record.renderedValue();
+            switch (action) {
+                case "replace" -> state.replaceBase(value);
+                case "prepend_prefix" -> state.addPrefix(value);
+                case "append_suffix" -> state.addPostfix(value);
+                case "regex_replace" -> state.applyRegexReplace(
+                        record.regexPattern(),
+                        value,
+                        java.util.Map.of()
+                );
+                default -> {
+                }
+            }
         }
-        return current;
-    }
-
-    private static Component applyRecord(Component current, ItemOperationEntry.NameOperationRecord record) {
-        String action = Texts.lower(record.action());
-        String value = record.renderedValue();
-        return switch (action) {
-            case "replace" -> Texts.isBlank(value) ? current : MiniMessages.parse(value);
-            case "prepend_prefix" -> Texts.isBlank(value)
-                    ? current
-                    : Component.empty().append(MiniMessages.parse(value)).append(current);
-            case "append_suffix" -> Texts.isBlank(value)
-                    ? current
-                    : Component.empty().append(current).append(MiniMessages.parse(value));
-            default -> current;
-        };
+        return composeFromState(state, current);
     }
 
 

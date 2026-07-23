@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -59,16 +60,22 @@ final class OvenGuiController {
 
     boolean openGui(Player player, StationCoordinates coordinates) {
         if (player == null || coordinates == null) {
+            if (player != null) {
+                debug(player, coordinates, "open rejected: reason=missing_coordinates");
+            }
             return false;
         }
+        debug(player, coordinates, "open requested");
         OvenGuiHolder existingHolder = findOpenSession(coordinates);
         if (existingHolder != null && !player.getUniqueId().equals(existingHolder.viewerId())) {
+            debug(player, coordinates, "open rejected: reason=in_use viewer=" + existingHolder.viewerId());
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "oven.in_use", Map.of());
             return true;
         }
         OvenGuiHolder holder = new OvenGuiHolder(player.getUniqueId(), coordinates);
         Inventory inventory = createInventory(holder);
         if (inventory == null) {
+            debug(player, coordinates, "open failed: reason=inventory_creation");
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "oven.open_failed", Map.of());
             return false;
         }
@@ -76,6 +83,8 @@ final class OvenGuiController {
         loadInventory(coordinates, inventory);
         openSessions.put(player.getUniqueId(), holder);
         player.openInventory(inventory);
+        debug(player, coordinates, "open completed: size=" + inventory.getSize()
+                + " ingredientSlots=" + ingredientSlots(inventory));
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "oven.opened", Map.of());
         return true;
     }
@@ -256,10 +265,13 @@ final class OvenGuiController {
             return;
         }
         openSessions.remove(holder.viewerId(), holder);
+        debug(player, holder.coordinates(), "close received: suppressSave=" + holder.suppressSave());
         if (holder.suppressSave()) {
+            debug(player, holder.coordinates(), "close completed: save=skipped");
             return;
         }
         processExcessItems(player, event.getInventory());
+        debug(player, holder.coordinates(), "save started: inventorySize=" + event.getInventory().getSize());
         OvenState state = runtimeService.saveInventory(holder.coordinates(), event.getInventory(), player.getUniqueId(), player.getName());
         if (runtimeService.tickProcessor().shouldRemainActive(state, System.currentTimeMillis())) {
             runtimeService.activeStations().add(holder.coordinates());
@@ -267,6 +279,8 @@ final class OvenGuiController {
         } else if (state.isCompletelyEmpty()) {
             runtimeService.activeStations().remove(holder.coordinates());
         }
+        debug(player, holder.coordinates(), "save completed: empty=" + state.isCompletelyEmpty()
+                + " storedSlots=" + state.slotSources().size());
     }
 
     @EventHandler
@@ -275,28 +289,38 @@ final class OvenGuiController {
         if (!(event.getWhoClicked() instanceof Player player) || !isSessionInventory(player, topInventory)) {
             return;
         }
+        StationCoordinates coordinates = viewingCoordinates(player.getUniqueId());
+        debug(player, coordinates, clickDetails(event));
         if (event.isShiftClick()) {
             event.setCancelled(true);
+            debug(player, coordinates, "click rejected: reason=shift_transfer rawSlot=" + event.getRawSlot());
             return;
         }
         int topSize = topInventory.getSize();
         int rawSlot = event.getRawSlot();
         if (rawSlot >= 0 && rawSlot < topSize && !ingredientSlotSet(topInventory).contains(rawSlot)) {
             event.setCancelled(true);
+            debug(player, coordinates, "click rejected: reason=non_ingredient_slot rawSlot=" + rawSlot);
             return;
         }
         if (rawSlot >= 0 && rawSlot < topSize && rejectsRecipeInput(event.getCursor(), player)) {
             event.setCancelled(true);
+            debug(player, coordinates, "click rejected: reason=recipe_validation rawSlot=" + rawSlot
+                    + " item=" + describe(event.getCursor()));
             sendInputRejected(player);
             return;
         }
-        if (rawSlot >= 0 && rawSlot < topSize && event.getHotbarButton() >= 0 && player != null) {
+        if (rawSlot >= 0 && rawSlot < topSize && event.getHotbarButton() >= 0) {
             ItemStack hotbarItem = player.getInventory().getItem(event.getHotbarButton());
             if (rejectsRecipeInput(hotbarItem, player)) {
                 event.setCancelled(true);
+                debug(player, coordinates, "click rejected: reason=hotbar_recipe_validation rawSlot=" + rawSlot
+                        + " hotbar=" + event.getHotbarButton() + " item=" + describe(hotbarItem));
                 sendInputRejected(player);
+                return;
             }
         }
+        debug(player, coordinates, "click allowed: rawSlot=" + rawSlot);
     }
 
     @EventHandler
@@ -305,22 +329,29 @@ final class OvenGuiController {
         if (!(event.getWhoClicked() instanceof Player player) || !isSessionInventory(player, topInventory)) {
             return;
         }
+        StationCoordinates coordinates = viewingCoordinates(player.getUniqueId());
+        debug(player, coordinates, "drag evaluated: type=" + event.getType() + " rawSlots=" + event.getRawSlots()
+                + " oldCursor=" + describe(event.getOldCursor()));
         int topSize = topInventory.getSize();
         Set<Integer> ingredientSlots = ingredientSlotSet(topInventory);
         for (Integer rawSlot : event.getRawSlots()) {
             if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize && !ingredientSlots.contains(rawSlot)) {
                 event.setCancelled(true);
+                debug(player, coordinates, "drag rejected: reason=non_ingredient_slot rawSlot=" + rawSlot);
                 return;
             }
             if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize) {
                 ItemStack newItem = event.getNewItems().get(rawSlot);
                 if (rejectsRecipeInput(newItem, player)) {
                     event.setCancelled(true);
+                    debug(player, coordinates, "drag rejected: reason=recipe_validation rawSlot=" + rawSlot
+                            + " item=" + describe(newItem));
                     sendInputRejected(player);
                     return;
                 }
             }
         }
+        debug(player, coordinates, "drag allowed: rawSlots=" + event.getRawSlots());
     }
 
     String identifySource(ItemStack itemStack) {
@@ -369,5 +400,24 @@ final class OvenGuiController {
 
     private void sendInputRejected(Player player) {
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
+    }
+
+    private void debug(Player player, StationCoordinates coordinates, String message) {
+        GuiDebugSupport.log(plugin, player, "cooking station=" + StationType.OVEN
+                + " coordinates=" + coordinatesKey(coordinates) + " " + message);
+    }
+
+    private String clickDetails(InventoryClickEvent event) {
+        return "click evaluated: rawSlot=" + event.getRawSlot() + " action=" + event.getAction()
+                + " click=" + event.getClick() + " current=" + describe(event.getCurrentItem())
+                + " cursor=" + describe(event.getCursor());
+    }
+
+    private String describe(ItemStack itemStack) {
+        return GuiDebugSupport.describeItem(itemStack);
+    }
+
+    private String coordinatesKey(StationCoordinates coordinates) {
+        return coordinates == null ? "unknown" : coordinates.runtimeKey();
     }
 }

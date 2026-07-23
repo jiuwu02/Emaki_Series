@@ -2,25 +2,25 @@ package emaki.jiuwu.craft.corelib.assembly;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.IntPredicate;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import net.kyori.adventure.text.Component;
 
 final class ItemOperationReverter {
 
     private final ItemOperationLedger ledger;
     private final ItemOperationReplayer replayer = new ItemOperationReplayer();
+    private final ItemLoreReconciler loreReconciler = new ItemLoreReconciler();
 
-    public ItemOperationReverter(ItemOperationLedger ledger) {
+    ItemOperationReverter(ItemOperationLedger ledger) {
         this.ledger = ledger;
     }
 
-    public RevertResult revert(ItemStack itemStack, String operationId) {
+    RevertResult revert(ItemStack itemStack, String operationId) {
         if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(operationId)) {
             return RevertResult.NOT_FOUND;
         }
@@ -29,256 +29,140 @@ final class ItemOperationReverter {
         if (removedIndex < 0) {
             return RevertResult.NOT_FOUND;
         }
-        ItemOperationEntry entry = ledger.remove(itemStack, operationId);
-        if (entry == null) {
-            return RevertResult.NOT_FOUND;
-        }
-        rebuildLoreTail(itemStack, entriesBefore, removedIndex, index -> index != removedIndex);
-        if (!entry.nameRecords().isEmpty()) {
-            rebuildName(itemStack);
-        }
-        return new RevertResult(true, 1);
+        List<ItemOperationEntry> retained = new ArrayList<>(entriesBefore);
+        retained.remove(removedIndex);
+        return rebuild(itemStack, entriesBefore, retained, 1);
     }
 
-    public RevertResult revertAll(ItemStack itemStack, String sourceNamespace) {
+    RevertResult revertAll(ItemStack itemStack, String sourceNamespace) {
         if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(sourceNamespace)) {
             return RevertResult.NOT_FOUND;
         }
         List<ItemOperationEntry> entriesBefore = ledger.readAll(itemStack);
-        int firstRemovedIndex = firstNamespaceIndex(entriesBefore, sourceNamespace);
-        if (firstRemovedIndex < 0) {
+        List<ItemOperationEntry> retained = new ArrayList<>();
+        int removedCount = 0;
+        for (ItemOperationEntry entry : entriesBefore) {
+            if (entry != null && sourceNamespace.equals(entry.sourceNamespace())) {
+                removedCount++;
+            } else if (entry != null) {
+                retained.add(entry);
+            }
+        }
+        if (removedCount == 0) {
             return RevertResult.NOT_FOUND;
         }
-        List<ItemOperationEntry> removed = ledger.removeByNamespace(itemStack, sourceNamespace);
-        if (removed.isEmpty()) {
+        return rebuild(itemStack, entriesBefore, retained, removedCount);
+    }
+
+    private RevertResult rebuild(ItemStack itemStack,
+            List<ItemOperationEntry> entriesBefore,
+            List<ItemOperationEntry> retainedEntries,
+            int removedCount) {
+        ItemStack managedTemplate = ledger.managedDisplayTemplate(itemStack);
+        if (managedTemplate == null) {
             return RevertResult.NOT_FOUND;
         }
-        rebuildLoreTail(itemStack, entriesBefore, firstRemovedIndex,
-                index -> !sourceNamespace.equals(entriesBefore.get(index).sourceNamespace()));
-        if (removed.stream().anyMatch(entry -> !entry.nameRecords().isEmpty())) {
-            rebuildName(itemStack);
+        ItemOperationBaseView baseView = replayer.resolveBaseView(managedTemplate, entriesBefore);
+        boolean assemblyNameOverlay = ledger.hasAssemblyNameOverlay(itemStack, baseView);
+        ItemOperationReplayer.ReplayResult oldProjection = replayer.renderFromBase(
+                managedTemplate,
+                baseView,
+                entriesBefore
+        );
+        ItemOperationReplayer.ReplayResult newProjection = replayer.renderFromBase(
+                managedTemplate,
+                baseView,
+                retainedEntries
+        );
+        if (oldProjection.itemStack() == null || newProjection.itemStack() == null) {
+            return RevertResult.NOT_FOUND;
         }
-        return new RevertResult(true, removed.size());
+
+        List<String> oldManagedLore = currentLore(oldProjection.itemStack());
+        List<String> currentActualLore = currentLore(itemStack);
+        List<String> newManagedLore = currentLore(newProjection.itemStack());
+        ItemLoreReconciler.Reconciliation reconciliation = loreReconciler.reconcile(
+                oldManagedLore,
+                currentActualLore,
+                newManagedLore
+        );
+        if (!loreReconciler.preservesExternalProjection(
+                newManagedLore,
+                reconciliation.lore(),
+                reconciliation.externalLines())) {
+            return RevertResult.NOT_FOUND;
+        }
+
+        ItemOperationLedger.CustomNameUpdate customNameUpdate = ledger.prepareCustomNameUpdate(
+                itemStack,
+                currentCustomName(oldProjection.itemStack()),
+                currentCustomName(newProjection.itemStack()),
+                assemblyNameOverlay || hasNameOverlay(entriesBefore),
+                assemblyNameOverlay || hasNameOverlay(newProjection.entries())
+        );
+        ItemOperationLedger.SnapshotUpdate snapshotUpdate = ledger.preparePresentationSnapshotUpdate(
+                itemStack,
+                newProjection.itemStack(),
+                assemblyNameOverlay
+        );
+        if (!snapshotUpdate.valid()
+                || !writeDisplay(itemStack, customNameUpdate.customName(), reconciliation.lore())) {
+            return RevertResult.NOT_FOUND;
+        }
+        ledger.replaceAll(itemStack, newProjection.entries());
+        ledger.writePresentationSnapshotUpdate(itemStack, snapshotUpdate);
+        ledger.writeCustomNameUpdate(itemStack, customNameUpdate);
+        return new RevertResult(true, removedCount);
     }
 
     private int lastOperationIndex(List<ItemOperationEntry> entries, String operationId) {
-        for (int i = entries.size() - 1; i >= 0; i--) {
-            if (operationId.equals(entries.get(i).operationId())) {
-                return i;
+        for (int index = entries.size() - 1; index >= 0; index--) {
+            if (operationId.equals(entries.get(index).operationId())) {
+                return index;
             }
         }
         return -1;
     }
 
-    private int firstNamespaceIndex(List<ItemOperationEntry> entries, String sourceNamespace) {
-        for (int i = 0; i < entries.size(); i++) {
-            if (sourceNamespace.equals(entries.get(i).sourceNamespace())) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private void rebuildLoreTail(ItemStack itemStack,
-            List<ItemOperationEntry> entriesBefore,
-            int startIndex,
-            IntPredicate keepIndex) {
-        for (int i = entriesBefore.size() - 1; i >= startIndex; i--) {
-            revertLore(itemStack, entriesBefore.get(i));
-        }
-        List<ItemOperationEntry> updatedEntries = new ArrayList<>();
-        for (int i = 0; i < startIndex; i++) {
-            if (keepIndex.test(i)) {
-                updatedEntries.add(entriesBefore.get(i));
-            }
-        }
-        List<ItemOperationEntry> replayEntries = new ArrayList<>();
-        for (int i = startIndex; i < entriesBefore.size(); i++) {
-            if (keepIndex.test(i)) {
-                replayEntries.add(entriesBefore.get(i));
-            }
-        }
-        updatedEntries.addAll(replayer.replayLore(itemStack, replayEntries));
-        ledger.replaceAll(itemStack, updatedEntries);
-    }
-
-    private void revertLore(ItemStack itemStack, ItemOperationEntry entry) {
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return;
-        }
-        revertLoreOperations(itemMeta, entry.loreRecords());
-        itemStack.setItemMeta(itemMeta);
-    }
-
-
-
-
-
-
-
-
-
-    private void rebuildName(ItemStack itemStack) {
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return;
-        }
-
-
-        ItemTextBridge.customName(itemMeta, null);
-        itemStack.setItemMeta(itemMeta);
-
-        itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return;
-        }
-        List<ItemOperationEntry.NameOperationRecord> remainingNameRecords = new ArrayList<>();
-        for (ItemOperationEntry entry : ledger.readAll(itemStack)) {
-            if (entry == null || entry.nameRecords() == null) {
-                continue;
-            }
-            for (ItemOperationEntry.NameOperationRecord record : entry.nameRecords()) {
-                if (record != null) {
-                    remainingNameRecords.add(record);
-                }
-            }
-        }
-        Component baseName = LedgerNameComposer.resolveBaseName(itemStack, itemMeta);
-        Component result = LedgerNameComposer.composeFromRecords(baseName, remainingNameRecords);
-        LedgerNameComposer.writeName(itemStack, itemMeta, result);
-    }
-
-    private void revertLoreOperations(ItemMeta itemMeta, List<ItemOperationEntry.LoreOperationRecord> records) {
-        if (records == null || records.isEmpty()) {
-            return;
-        }
-        List<String> currentLore = new ArrayList<>();
-        List<String> existingLore = ItemTextBridge.loreLines(itemMeta);
-        if (existingLore != null) {
-            currentLore.addAll(existingLore);
-        }
-
-        for (ItemOperationEntry.LoreOperationRecord record : records) {
-            if (record.beforeRecorded()) {
-                currentLore.clear();
-                currentLore.addAll(record.beforeLines());
-                ItemTextBridge.setLoreLines(itemMeta, currentLore.isEmpty() ? null : currentLore);
-                return;
-            }
-        }
-
-        for (int i = records.size() - 1; i >= 0; i--) {
-            revertLoreOperation(currentLore, records.get(i));
-        }
-
-        ItemTextBridge.setLoreLines(itemMeta, currentLore.isEmpty() ? null : currentLore);
-    }
-
-    private void revertLoreOperation(List<String> lore, ItemOperationEntry.LoreOperationRecord record) {
-        if (record.beforeRecorded()) {
-            lore.clear();
-            lore.addAll(record.beforeLines());
-            return;
-        }
-
-        String action = record.action();
-        List<String> renderedLines = record.renderedLines();
-        List<String> originalLines = record.originalLines();
-
-        switch (action) {
-            case "append" -> removeExactBlock(lore, lore.size() - renderedLines.size(), renderedLines);
-            case "prepend" -> removeLegacyPrependBlock(lore, renderedLines);
-            case "insert_below", "search_insert_below", "search_insert" -> removeLegacyInsertBlock(lore, renderedLines, record.anchor(), true);
-            case "insert_above", "search_insert_above" -> removeLegacyInsertBlock(lore, renderedLines, record.anchor(), false);
-            case "replace_line" -> {
-                if (!renderedLines.isEmpty() && !originalLines.isEmpty()) {
-                    String replacement = renderedLines.get(0);
-                    for (int i = 0; i < lore.size(); i++) {
-                        if (loreLineMatches(lore.get(i), replacement)) {
-                            lore.set(i, originalLines.get(0));
-                            break;
-                        }
-                    }
-                }
-            }
-            case "delete_line" -> lore.addAll(originalLines);
-            default -> {
-            }
-        }
-    }
-
-    private void removeLegacyPrependBlock(List<String> lore, List<String> renderedLines) {
-        List<String> legacyOrder = reversed(renderedLines);
-        if (!removeExactBlock(lore, 0, legacyOrder)) {
-            removeExactBlock(lore, 0, renderedLines);
-        }
-    }
-
-    private void removeLegacyInsertBlock(List<String> lore,
-            List<String> renderedLines,
-            String anchor,
-            boolean below) {
-        int anchorIndex = findAnchorIndex(lore, anchor);
-        if (anchorIndex < 0) {
-            removeExactBlock(lore, lore.size() - renderedLines.size(), renderedLines);
-            return;
-        }
-        if (below) {
-            removeExactBlock(lore, anchorIndex + 1, reversed(renderedLines));
-            return;
-        }
-        removeExactBlock(lore, anchorIndex - renderedLines.size(), renderedLines);
-    }
-
-    private int findAnchorIndex(List<String> lore, String anchor) {
-        if (lore == null || Texts.isBlank(anchor)) {
-            return -1;
-        }
-        for (int i = 0; i < lore.size(); i++) {
-            if (Texts.toStringSafe(lore.get(i)).contains(anchor)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private List<String> reversed(List<String> lines) {
-        if (lines == null || lines.isEmpty()) {
-            return List.of();
-        }
-        List<String> reversed = new ArrayList<>(lines);
-        java.util.Collections.reverse(reversed);
-        return reversed;
-    }
-
-    private boolean removeExactBlock(List<String> lore, int startIndex, List<String> expected) {
-        if (lore == null || expected == null || expected.isEmpty() || startIndex < 0 || startIndex + expected.size() > lore.size()) {
+    private boolean hasNameOverlay(List<ItemOperationEntry> entries) {
+        if (entries == null) {
             return false;
         }
-        for (int offset = 0; offset < expected.size(); offset++) {
-            if (!java.util.Objects.equals(lore.get(startIndex + offset), expected.get(offset))) {
-                return false;
+        for (ItemOperationEntry entry : entries) {
+            if (entry != null && entry.nameRecords() != null && !entry.nameRecords().isEmpty()) {
+                return true;
             }
         }
-        lore.subList(startIndex, startIndex + expected.size()).clear();
+        return false;
+    }
+
+    private boolean writeDisplay(ItemStack itemStack, String customName, List<String> lore) {
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return false;
+        }
+        ItemTextBridge.customName(itemMeta, Texts.isBlank(customName) ? null : MiniMessages.parse(customName));
+        ItemTextBridge.setLoreLines(itemMeta, lore);
+        itemStack.setItemMeta(itemMeta);
         return true;
     }
 
-    private boolean loreLineMatches(String loreLine, String target) {
-        if (loreLine == null || target == null) {
-            return false;
-        }
-        if (loreLine.equals(target)) {
-            return true;
-        }
-        String strippedLore = loreLine.replaceAll("<[^>]+>", "").trim();
-        String strippedTarget = target.replaceAll("<[^>]+>", "").trim();
-        return !strippedLore.isEmpty() && strippedLore.equals(strippedTarget);
+    private List<String> currentLore(ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
+        List<String> lore = ItemTextBridge.loreLines(itemMeta);
+        return lore == null || lore.isEmpty() ? List.of() : List.copyOf(lore);
     }
 
-    public record RevertResult(boolean success, int revertedCount) {
+    private String currentCustomName(ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
+        if (!ItemTextBridge.hasCustomName(itemMeta)) {
+            return "";
+        }
+        return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
+    }
 
-        public static final RevertResult NOT_FOUND = new RevertResult(false, 0);
+    record RevertResult(boolean success, int revertedCount) {
+
+        static final RevertResult NOT_FOUND = new RevertResult(false, 0);
     }
 }

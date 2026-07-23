@@ -119,8 +119,14 @@ public final class EmakiItemIdentifier {
         pdcService.set(itemMeta, partition, FIELD_SET_ACTIVE_COUNT, PersistentDataType.INTEGER, Math.max(0, activeCount));
         pdcService.set(itemMeta, partition, FIELD_SET_TOTAL_COUNT, PersistentDataType.INTEGER, Math.max(0, totalCount));
         pdcService.set(itemMeta, partition, FIELD_SET_ACTIVE_THRESHOLDS, PersistentDataType.STRING, activeThresholds == null ? "" : activeThresholds);
-        pdcService.set(itemMeta, partition, FIELD_SET_LORE_LINES, PersistentDataType.INTEGER, Math.max(0, setLoreLines));
+        pdcService.remove(itemMeta, partition, FIELD_SET_LORE_LINES);
         pdcService.set(itemMeta, partition, FIELD_SET_SIGNATURE, PersistentDataType.STRING, setSignature == null ? "" : setSignature);
+    }
+
+    void clearSetLoreLines(ItemMeta itemMeta) {
+        if (itemMeta != null) {
+            pdcService.remove(itemMeta, partition, FIELD_SET_LORE_LINES);
+        }
     }
 
     void clearSetState(ItemMeta itemMeta) {

@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -49,8 +50,10 @@ final class FermentationBarrelGuiController {
     boolean hasOpenSession(StationCoordinates coordinates) { return findOpenSession(coordinates) != null; }
 
     boolean openGui(Player player, StationCoordinates coordinates) {
+        debug(player, coordinates, "open requested");
         FermentationBarrelGuiHolder existing = findOpenSession(coordinates);
         if (existing != null && !player.getUniqueId().equals(existing.viewerId())) {
+            debug(player, coordinates, "open rejected: reason=in_use viewer=" + existing.viewerId());
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "fermentation_barrel.in_use", Map.of());
             return true;
         }
@@ -61,6 +64,8 @@ final class FermentationBarrelGuiController {
         loadInventory(coordinates, inventory);
         openSessions.put(player.getUniqueId(), holder);
         player.openInventory(inventory);
+        debug(player, coordinates, "open completed: size=" + inventory.getSize()
+                + " ingredientSlots=" + ingredientSlots(inventory));
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "fermentation_barrel.opened", Map.of());
         return true;
     }
@@ -178,10 +183,14 @@ final class FermentationBarrelGuiController {
             return;
         }
         openSessions.remove(holder.viewerId(), holder);
+        debug(player, holder.coordinates(), "close received: suppressSave=" + holder.suppressSave());
         if (holder.suppressSave()) {
+            debug(player, holder.coordinates(), "close completed: save=skipped");
             return;
         }
+        debug(player, holder.coordinates(), "save started: inventorySize=" + event.getInventory().getSize());
         runtimeService.saveInventory(holder.coordinates(), event.getInventory(), player.getUniqueId(), player.getName());
+        debug(player, holder.coordinates(), "save completed");
     }
 
     @EventHandler
@@ -190,14 +199,20 @@ final class FermentationBarrelGuiController {
         if (!(event.getWhoClicked() instanceof Player player) || !isSessionInventory(player, top)) {
             return;
         }
+        StationCoordinates coordinates = viewingCoordinates(player.getUniqueId());
+        debug(player, coordinates, clickDetails(event));
         if (event.isShiftClick()) {
             event.setCancelled(true);
+            debug(player, coordinates, "click rejected: reason=shift_transfer rawSlot=" + event.getRawSlot());
             return;
         }
         int rawSlot = event.getRawSlot();
         if (rawSlot >= 0 && rawSlot < top.getSize() && !ingredientSlotSet(top).contains(rawSlot)) {
             event.setCancelled(true);
+            debug(player, coordinates, "click rejected: reason=non_ingredient_slot rawSlot=" + rawSlot);
+            return;
         }
+        debug(player, coordinates, "click allowed: rawSlot=" + rawSlot);
     }
 
     @EventHandler
@@ -206,13 +221,18 @@ final class FermentationBarrelGuiController {
         if (!(event.getWhoClicked() instanceof Player player) || !isSessionInventory(player, top)) {
             return;
         }
+        StationCoordinates coordinates = viewingCoordinates(player.getUniqueId());
+        debug(player, coordinates, "drag evaluated: type=" + event.getType() + " rawSlots=" + event.getRawSlots()
+                + " oldCursor=" + describe(event.getOldCursor()));
         Set<Integer> ingredientSlots = ingredientSlotSet(top);
         for (Integer rawSlot : event.getRawSlots()) {
             if (rawSlot != null && rawSlot >= 0 && rawSlot < top.getSize() && !ingredientSlots.contains(rawSlot)) {
                 event.setCancelled(true);
+                debug(player, coordinates, "drag rejected: reason=non_ingredient_slot rawSlot=" + rawSlot);
                 return;
             }
         }
+        debug(player, coordinates, "drag allowed: rawSlots=" + event.getRawSlots());
     }
 
     List<Integer> ingredientSlots(Inventory inventory) {
@@ -239,5 +259,24 @@ final class FermentationBarrelGuiController {
     String identifySource(ItemStack itemStack) {
         ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         return source == null ? "" : Texts.toStringSafe(ItemSourceUtil.toShorthand(source));
+    }
+
+    private void debug(Player player, StationCoordinates coordinates, String message) {
+        GuiDebugSupport.log(plugin, player, "cooking station=" + StationType.FERMENTATION_BARREL
+                + " coordinates=" + coordinatesKey(coordinates) + " " + message);
+    }
+
+    private String clickDetails(InventoryClickEvent event) {
+        return "click evaluated: rawSlot=" + event.getRawSlot() + " action=" + event.getAction()
+                + " click=" + event.getClick() + " current=" + describe(event.getCurrentItem())
+                + " cursor=" + describe(event.getCursor());
+    }
+
+    private String describe(ItemStack itemStack) {
+        return GuiDebugSupport.describeItem(itemStack);
+    }
+
+    private String coordinatesKey(StationCoordinates coordinates) {
+        return coordinates == null ? "unknown" : coordinates.runtimeKey();
     }
 }

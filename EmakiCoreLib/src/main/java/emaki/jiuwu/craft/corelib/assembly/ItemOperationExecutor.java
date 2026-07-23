@@ -108,17 +108,45 @@ final class ItemOperationExecutor {
 
         for (Map<String, Object> operation : operations) {
             String action = Texts.lower(operation.get("action"));
-            Object rawValue = templateRenderer.resolveOperationValue(operation);
-            String renderedValue = rawValue == null ? "" : templateRenderer.renderTemplate(rawValue, variables, context, ledger.debugLogger(), "item_operation.name.record." + action);
             boolean recognized = nameOperations.getProcessor(action) != null;
+            String regexPattern = "regex_replace".equals(action)
+                    ? Texts.toStringSafe(operation.get("regex_pattern"))
+                    : "";
+            String renderedValue;
+            if ("regex_replace".equals(action)) {
+                renderedValue = Texts.formatTemplate(
+                        Texts.toStringSafe(operation.get("replacement")),
+                        variables
+                );
+            } else {
+                Object rawValue = templateRenderer.resolveOperationValue(operation);
+                renderedValue = rawValue == null ? "" : templateRenderer.renderTemplate(
+                        rawValue,
+                        variables,
+                        context,
+                        ledger.debugLogger(),
+                        "item_operation.name.record." + action
+                );
+            }
             debug(context, "name action | action=" + action
                     + " | recognized=" + recognized
                     + " | value=" + summarize(renderedValue)
                     + " | raw=" + summarizeMap(operation));
-            if (Texts.isBlank(action) || Texts.isBlank(renderedValue)) {
+            if (Texts.isBlank(action) || !recognized) {
                 continue;
             }
-            records.add(new ItemOperationEntry.NameOperationRecord(action, renderedValue, currentName));
+            if (!"regex_replace".equals(action) && Texts.isBlank(renderedValue)) {
+                continue;
+            }
+            if ("regex_replace".equals(action) && Texts.isBlank(regexPattern)) {
+                continue;
+            }
+            records.add(new ItemOperationEntry.NameOperationRecord(
+                    action,
+                    renderedValue,
+                    currentName,
+                    regexPattern
+            ));
         }
         return records;
     }
@@ -185,6 +213,14 @@ final class ItemOperationExecutor {
             if ("replace_line".equals(action) || "delete_line".equals(action)) {
                 originalLines = findMatchingLines(currentLore, anchor);
             }
+            Integer parsedIndex = emaki.jiuwu.craft.corelib.math.Numbers.tryParseInt(operation.get("index"), null);
+            int requestedIndex = parsedIndex == null ? 0 : Math.max(0, parsedIndex);
+            String regexPattern = "regex_replace".equals(action)
+                    ? Texts.toStringSafe(operation.get("regex_pattern"))
+                    : "";
+            String regexReplacement = "regex_replace".equals(action)
+                    ? Texts.formatTemplate(Texts.toStringSafe(operation.get("replacement")), variables)
+                    : "";
 
             records.add(records.isEmpty()
                     ? new ItemOperationEntry.LoreOperationRecord(
@@ -192,13 +228,19 @@ final class ItemOperationExecutor {
                             contentLines,
                             anchor,
                             originalLines,
-                            new ArrayList<>(currentLore)
+                            new ArrayList<>(currentLore),
+                            requestedIndex,
+                            regexPattern,
+                            regexReplacement
                     )
                     : new ItemOperationEntry.LoreOperationRecord(
                             action,
                             contentLines,
                             anchor,
-                            originalLines
+                            originalLines,
+                            requestedIndex,
+                            regexPattern,
+                            regexReplacement
                     ));
             processor.process(currentLore, new LoreOperationProcessor.Context(operation, contentLines, anchor, variables));
         }

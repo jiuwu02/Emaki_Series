@@ -7,10 +7,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 
-public abstract class AbstractEmakiPlugin extends JavaPlugin implements EmakiServiceRegistry {
+public abstract class AbstractEmakiPlugin extends JavaPlugin implements EmakiServiceRegistry, DebugLoggerProvider {
 
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
@@ -39,6 +40,7 @@ public abstract class AbstractEmakiPlugin extends JavaPlugin implements EmakiSer
         registerServices(components == null ? Map.of() : components.services());
     }
 
+    @Override
     public DebugLogger debugLogger() {
         return debugLogger;
     }

@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
@@ -74,7 +75,7 @@ import emaki.jiuwu.craft.level.script.ScriptLevelModuleApi;
 import emaki.jiuwu.craft.level.script.js.JavaScriptLevelExpRuleRegistry;
 import emaki.jiuwu.craft.level.script.js.JavaScriptLevelUpHookRegistry;
 
-public final class EmakiLevelPlugin extends JavaPlugin {
+public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
 
     private static final int BSTATS_PLUGIN_ID = 31794;
     private static final String STARTUP_ASCII = """
@@ -639,6 +640,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         return messages;
     }
 
+    @Override
     public DebugLogger debugLogger() {
         return debugLogger;
     }

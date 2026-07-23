@@ -201,6 +201,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         int loadedAliases = plugin.aliasLoader().load();
         plugin.guiTemplateLoader().load();
         plugin.itemFactory().clearCache();
+        plugin.setService().clearAllCachedState();
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.items_loaded", java.util.Map.of("count", loadedItems));
             plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", loadedSets));
@@ -235,6 +236,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
                 plugin.itemFactory().clearCache();
+                plugin.setService().clearAllCachedState();
                 if (plugin.messageService() != null) {
                     plugin.messageService().info("console.items_loaded", java.util.Map.of("count", plugin.itemLoader().all().size()));
                     plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", plugin.setLoader().all().size()));

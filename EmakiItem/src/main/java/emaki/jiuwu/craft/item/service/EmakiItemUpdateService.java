@@ -120,14 +120,41 @@ public final class EmakiItemUpdateService {
         PlayerInventory inventory = player.getInventory();
         int changed = 0;
         for (int slot = 0; slot < inventory.getSize(); slot++) {
-            ItemStack original = inventory.getItem(slot);
-            ItemStack updated = updateIfNeeded(original, trigger);
-            if (updated != original) {
-                inventory.setItem(slot, updated);
-                changed++;
+            changed += updateInventorySlot(inventory, slot, trigger);
+        }
+        return changed;
+    }
+
+    public int updatePlayerItems(Player player, String trigger, Set<Integer> dirtySlots) {
+        if (player == null || dirtySlots == null || dirtySlots.isEmpty()) {
+            return 0;
+        }
+        PlayerInventory inventory = player.getInventory();
+        int changed = 0;
+        for (int slot : dirtySlots.stream().filter(java.util.Objects::nonNull).sorted().toList()) {
+            if (slot >= 0 && slot < inventory.getSize()) {
+                changed += updateInventorySlot(inventory, slot, trigger);
             }
         }
         return changed;
+    }
+
+    private int updateInventorySlot(PlayerInventory inventory, int slot, String trigger) {
+        ItemStack current = inventory.getItem(slot);
+        ItemStack snapshot = current == null ? null : current.clone();
+        ItemStack updated = updateIfNeeded(snapshot, trigger);
+        if (sameItem(snapshot, updated) || !sameItem(inventory.getItem(slot), snapshot)) {
+            return 0;
+        }
+        inventory.setItem(slot, updated);
+        return 1;
+    }
+
+    private static boolean sameItem(ItemStack first, ItemStack second) {
+        if (first == null || first.getType().isAir()) {
+            return second == null || second.getType().isAir();
+        }
+        return first.equals(second);
     }
 
     private ItemStack migrateAlias(ItemStack original, String currentId, EmakiItemAlias alias) {
