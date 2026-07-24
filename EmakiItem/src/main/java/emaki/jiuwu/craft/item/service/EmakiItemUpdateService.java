@@ -1,10 +1,13 @@
 package emaki.jiuwu.craft.item.service;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -18,6 +21,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -27,14 +31,19 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
+import emaki.jiuwu.craft.item.model.RefreshFullReason;
+import emaki.jiuwu.craft.item.model.RefreshScope;
 
 public final class EmakiItemUpdateService {
 
     private static final String DISPLAY_OPERATION_NAMESPACE = "emakiitem:item_display";
+    private static final NamespacedKey OPERATIONS_KEY = java.util.Objects.requireNonNull(
+            NamespacedKey.fromString("emaki:item.operations"));
 
     private final EmakiItemLoader itemLoader;
     private final EmakiItemIdResolver idResolver;
@@ -69,85 +78,203 @@ public final class EmakiItemUpdateService {
     }
 
     public ItemStack updateIfNeeded(ItemStack original, String trigger) {
+        return updateIfNeeded(original, List.of(Texts.toStringSafe(trigger)));
+    }
+
+    public ItemStack updateIfNeeded(ItemStack original,
+                                    String trigger,
+                                    ItemOperationLedger.ReadResult readResult) {
+        return updateIfNeeded(original, List.of(Texts.toStringSafe(trigger)), readResult);
+    }
+
+    public ItemStack updateIfNeeded(ItemStack original, Iterable<String> triggers) {
+        return updateIfNeeded(original, orderedTriggers(triggers), itemLoader.snapshot(), null).itemStack();
+    }
+
+    public ItemStack updateIfNeeded(ItemStack original,
+                                    Iterable<String> triggers,
+                                    ItemOperationLedger.ReadResult readResult) {
+        return updateIfNeeded(original, orderedTriggers(triggers), itemLoader.snapshot(), readResult).itemStack();
+    }
+
+    private UpdateOutcome updateIfNeeded(ItemStack original,
+            List<String> triggers,
+            EmakiItemLoader.Snapshot definitions,
+            ItemOperationLedger.ReadResult suppliedReadResult) {
+        if (original == null || original.getType().isAir()) {
+            return UpdateOutcome.ignored(original);
+        }
+        String id = identifier.identify(original);
+        if (id.isBlank()) {
+            return UpdateOutcome.ignored(original);
+        }
+        ItemOperationLedger.ReadResult readResult = suppliedReadResult == null
+                ? operationLedger.read(original)
+                : suppliedReadResult;
+        if (readResult.corrupt()) {
+            String effectiveTrigger = triggers.isEmpty() ? "" : triggers.getFirst();
+            return UpdateOutcome.invalid(original, effectiveTrigger);
+        }
+        EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
+        if (alias != null) {
+            String effectiveTrigger = triggers.isEmpty() ? "" : triggers.getFirst();
+            return new UpdateOutcome(migrateAlias(original, id, alias, definitions, readResult), effectiveTrigger, true, true);
+        }
+        EmakiItemDefinition definition = definitions.get(id);
+        if (definition == null && idResolver != null) {
+            definition = idResolver.resolveDefinition(id);
+        }
+        if (definition == null) {
+            return UpdateOutcome.ignored(original);
+        }
+        ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
+        String effectiveTrigger = updateConfig.effectiveTrigger(triggers);
+        if (effectiveTrigger == null) {
+            return UpdateOutcome.ignored(original);
+        }
+        if (identifier.updateVersion(original) >= definition.updatePolicy().version()) {
+            return new UpdateOutcome(original, effectiveTrigger, true, true);
+        }
+        return new UpdateOutcome(
+                rebuild(original, definition, updateConfig, definition.id(), readResult),
+                effectiveTrigger,
+                true,
+                true
+        );
+    }
+
+    public ItemStack forceUpdate(ItemStack original) {
+        return forceUpdate(original, null);
+    }
+
+    public ItemStack forceUpdate(ItemStack original, ItemOperationLedger.ReadResult suppliedReadResult) {
         if (original == null || original.getType().isAir()) {
             return original;
         }
         String id = identifier.identify(original);
-        if (id.isBlank()) {
+        if (Texts.isBlank(id)) {
+            return original;
+        }
+        ItemOperationLedger.ReadResult readResult = suppliedReadResult == null
+                ? operationLedger.read(original)
+                : suppliedReadResult;
+        if (readResult.corrupt()) {
             return original;
         }
         EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
         if (alias != null) {
-            return migrateAlias(original, id, alias);
+            return migrateAlias(original, id, alias, itemLoader.snapshot(), readResult);
         }
         EmakiItemDefinition definition = idResolver == null ? itemLoader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
             return original;
         }
         ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
-        if (!updateConfig.triggerEnabled(trigger)) {
-            return original;
-        }
-        if (identifier.updateVersion(original) >= definition.updatePolicy().version()) {
-            return original;
-        }
-        return rebuild(original, definition, updateConfig, definition.id());
-    }
-
-    public ItemStack forceUpdate(ItemStack original) {
-        if (original == null || original.getType().isAir()) {
-            return original;
-        }
-        String id = identifier.identify(original);
-        EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
-        if (alias != null) {
-            return migrateAlias(original, id, alias);
-        }
-        EmakiItemDefinition definition = id.isBlank()
-                ? null
-                : idResolver == null ? itemLoader.get(id) : idResolver.resolveDefinition(id);
-        if (definition == null) {
-            return original;
-        }
-        ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
-        return updateConfig.enabled() ? rebuild(original, definition, updateConfig, definition.id()) : original;
+        return updateConfig.enabled()
+                ? rebuild(original, definition, updateConfig, definition.id(), readResult)
+                : original;
     }
 
     public int updatePlayerItems(Player player, String trigger) {
-        if (player == null) {
-            return 0;
-        }
-        PlayerInventory inventory = player.getInventory();
-        int changed = 0;
-        for (int slot = 0; slot < inventory.getSize(); slot++) {
-            changed += updateInventorySlot(inventory, slot, trigger);
-        }
-        return changed;
+        return updatePlayerItemsDetailed(player, List.of(Texts.toStringSafe(trigger)), Set.of(), true, Set.of()).changed();
     }
 
     public int updatePlayerItems(Player player, String trigger, Set<Integer> dirtySlots) {
-        if (player == null || dirtySlots == null || dirtySlots.isEmpty()) {
-            return 0;
-        }
-        PlayerInventory inventory = player.getInventory();
-        int changed = 0;
-        for (int slot : dirtySlots.stream().filter(java.util.Objects::nonNull).sorted().toList()) {
-            if (slot >= 0 && slot < inventory.getSize()) {
-                changed += updateInventorySlot(inventory, slot, trigger);
-            }
-        }
-        return changed;
+        return updatePlayerItemsDetailed(player, List.of(Texts.toStringSafe(trigger)), dirtySlots, false, Set.of()).changed();
     }
 
-    private int updateInventorySlot(PlayerInventory inventory, int slot, String trigger) {
+    public ItemRefreshResult updatePlayerItemsDetailed(Player player,
+            Iterable<String> triggers,
+            Set<Integer> dirtySlots,
+            boolean forceFull,
+            Set<RefreshFullReason> requestedFullReasons) {
+        long started = System.nanoTime();
+        RefreshScope requestedScope = forceFull ? RefreshScope.FULL
+                : dirtySlots == null || dirtySlots.isEmpty() ? RefreshScope.SKIP : RefreshScope.LOCAL;
+        if (player == null || requestedScope == RefreshScope.SKIP) {
+            return new ItemRefreshResult(requestedScope, RefreshScope.SKIP, RefreshScope.SKIP,
+                    requestedFullReasons, false, true, 0, 0, 0, 0, 0, 0, "", System.nanoTime() - started);
+        }
+        List<String> orderedTriggers = orderedTriggers(triggers);
+        PlayerInventory inventory = player.getInventory();
+        TreeSet<Integer> slots = new TreeSet<>();
+        if (forceFull) {
+            for (int slot = 0; slot < inventory.getSize(); slot++) {
+                slots.add(slot);
+            }
+        } else {
+            dirtySlots.stream().filter(java.util.Objects::nonNull).forEach(slots::add);
+        }
+        EmakiItemLoader.Snapshot definitions = itemLoader.snapshot();
+        int scanned = 0;
+        int changed = 0;
+        int conflicts = 0;
+        int ledgerDecodes = 0;
+        boolean cacheValid = true;
+        boolean considered = false;
+        String effectiveTrigger = "";
+        for (int slot : slots) {
+            if (slot < 0 || slot >= inventory.getSize()) {
+                continue;
+            }
+            scanned++;
+            SlotUpdateResult slotResult = updateInventorySlot(inventory, slot, orderedTriggers, definitions);
+            changed += slotResult.changed();
+            conflicts += slotResult.conflict() ? 1 : 0;
+            ledgerDecodes += slotResult.ledgerDecodes();
+            cacheValid &= slotResult.cacheValid();
+            considered |= slotResult.considered();
+            if (Texts.isBlank(effectiveTrigger) && Texts.isNotBlank(slotResult.effectiveTrigger())) {
+                effectiveTrigger = slotResult.effectiveTrigger();
+            }
+        }
+        RefreshScope actualScope = considered ? requestedScope : RefreshScope.SKIP;
+        LinkedHashSet<RefreshFullReason> reasons = new LinkedHashSet<>();
+        if (requestedFullReasons != null) {
+            reasons.addAll(requestedFullReasons);
+        }
+        if (conflicts > 0) {
+            reasons.add(RefreshFullReason.COMPARE_CONFLICT);
+        }
+        if (!cacheValid) {
+            reasons.add(RefreshFullReason.CACHE_INVALID);
+        }
+        return new ItemRefreshResult(requestedScope, actualScope, RefreshScope.SKIP, reasons,
+                false, cacheValid && conflicts == 0, scanned, 0, changed, conflicts, ledgerDecodes, 0,
+                effectiveTrigger, System.nanoTime() - started);
+    }
+
+    private SlotUpdateResult updateInventorySlot(PlayerInventory inventory,
+            int slot,
+            List<String> triggers,
+            EmakiItemLoader.Snapshot definitions) {
         ItemStack current = inventory.getItem(slot);
         ItemStack snapshot = current == null ? null : current.clone();
-        ItemStack updated = updateIfNeeded(snapshot, trigger);
-        if (sameItem(snapshot, updated) || !sameItem(inventory.getItem(slot), snapshot)) {
-            return 0;
+        boolean ledgerPresent = snapshot != null
+                && !snapshot.getType().isAir()
+                && operationsFieldPresent(snapshot);
+        ItemOperationLedger.ReadResult readResult = ledgerPresent
+                ? operationLedger.read(snapshot)
+                : ItemOperationLedger.ReadResult.absent();
+        int ledgerDecodes = ledgerPresent ? 1 : 0;
+        UpdateOutcome outcome = updateIfNeeded(snapshot, triggers, definitions, readResult);
+        ItemStack updated = outcome.itemStack();
+        if (sameItem(snapshot, updated)) {
+            return new SlotUpdateResult(0, false, outcome.considered(), outcome.cacheValid(), ledgerDecodes,
+                    outcome.effectiveTrigger());
+        }
+        if (!sameItem(inventory.getItem(slot), snapshot)) {
+            return new SlotUpdateResult(0, true, outcome.considered(), false, ledgerDecodes,
+                    outcome.effectiveTrigger());
         }
         inventory.setItem(slot, updated);
-        return 1;
+        return new SlotUpdateResult(1, false, outcome.considered(), outcome.cacheValid(), ledgerDecodes,
+                outcome.effectiveTrigger());
+    }
+
+    private boolean operationsFieldPresent(ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
+        return itemMeta != null && itemMeta.getPersistentDataContainer().getKeys().contains(OPERATIONS_KEY);
     }
 
     private static boolean sameItem(ItemStack first, ItemStack second) {
@@ -157,11 +284,15 @@ public final class EmakiItemUpdateService {
         return first.equals(second);
     }
 
-    private ItemStack migrateAlias(ItemStack original, String currentId, EmakiItemAlias alias) {
+    private ItemStack migrateAlias(ItemStack original,
+            String currentId,
+            EmakiItemAlias alias,
+            EmakiItemLoader.Snapshot definitions,
+            ItemOperationLedger.ReadResult readResult) {
         if (alias == null) {
             return original;
         }
-        EmakiItemDefinition definition = itemLoader.get(alias.targetId());
+        EmakiItemDefinition definition = definitions == null ? itemLoader.get(alias.targetId()) : definitions.get(alias.targetId());
         if (definition == null) {
             return original;
         }
@@ -173,7 +304,7 @@ public final class EmakiItemUpdateService {
         ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
         String identityId = migratePdc ? definition.id() : currentId;
         if (rewriteDisplay) {
-            return rebuild(original, definition, updateConfig, identityId);
+            return rebuild(original, definition, updateConfig, identityId, readResult);
         }
         ItemStack migrated = original.clone();
         writeIdentity(migrated, definition, identityId);
@@ -183,18 +314,24 @@ public final class EmakiItemUpdateService {
     private ItemStack rebuild(ItemStack original,
             EmakiItemDefinition definition,
             ItemUpdateConfig updateConfig,
-            String identityId) {
+            String identityId,
+            ItemOperationLedger.ReadResult readResult) {
         int amount = updateConfig.preserveAmount() ? original.getAmount() : 1;
         int oldDamage = readDamage(original);
         EmakiItemFactory.PreparedBuild prepared = itemFactory.prepareBuild(definition);
         if (prepared == null) {
             return original;
         }
-        ItemStack rebuilt = mergeAssemblyAndLedger(original, prepared, amount);
-        if (rebuilt == null) {
+        MergeResult merged = mergeAssemblyAndLedger(original, prepared, amount, readResult);
+        if (merged == null || merged.itemStack() == null) {
             return original;
         }
-        rebuilt = itemFactory.finishBuild(rebuilt, definition, prepared.variables());
+        EmakiItemFactory.FinishedBuild finished = itemFactory.finishBuild(
+                merged.itemStack(), definition, prepared.variables(), merged.readResult());
+        if (!finished.success() || finished.itemStack() == null) {
+            return original;
+        }
+        ItemStack rebuilt = finished.itemStack();
         rebuilt.setAmount(Math.max(1, Math.min(amount, rebuilt.getMaxStackSize())));
         if (!definition.id().equals(identityId)) {
             writeIdentity(rebuilt, definition, identityId);
@@ -208,35 +345,84 @@ public final class EmakiItemUpdateService {
         return rebuilt;
     }
 
-    private ItemStack mergeAssemblyAndLedger(ItemStack original,
+    private MergeResult mergeAssemblyAndLedger(ItemStack original,
             EmakiItemFactory.PreparedBuild prepared,
-            int amount) {
+            int amount,
+            ItemOperationLedger.ReadResult readResult) {
+        if (readResult == null || readResult.corrupt()) {
+            return null;
+        }
         ItemStack rebuiltBase = prepared.itemStack().clone();
         boolean hasAssemblyData = hasAssemblyData(original);
         boolean canReplayAssembly = assemblyService != null && assemblyService.isEmakiItem(original);
-        boolean hasLedger = operationLedger.hasOperations(original);
+        boolean hasLedger = readResult.status() == ItemOperationLedger.ReadStatus.VALID;
         if (!canReplayAssembly) {
             if (hasAssemblyData || hasLedger) {
                 copyPersistentData(original, rebuiltBase, false);
             }
-            return rebuiltBase;
+            return new MergeResult(rebuiltBase, readResult);
         }
 
         ItemStack assemblyState = original.clone();
-        operationLedger.revertAll(assemblyState, DISPLAY_OPERATION_NAMESPACE);
+        ItemOperationLedger.UpdateResult assemblyRevert = revertNamespaceOperations(
+                assemblyState, readResult, DISPLAY_OPERATION_NAMESPACE);
+        if (!assemblyRevert.success() || assemblyRevert.entries().stream().anyMatch(entry -> entry != null
+                && DISPLAY_OPERATION_NAMESPACE.equals(entry.sourceNamespace()))) {
+            return null;
+        }
         writeAssemblyBasePresentation(assemblyState, rebuiltBase);
         ItemSource source = ItemSourceUtil.parse(prepared.itemDefinition().source());
-        ItemStack assembled = assemblyService.preview(new EmakiItemAssemblyRequest(source, amount, assemblyState, List.of()));
+        ItemStack assembled = assemblyService.preview(
+                new EmakiItemAssemblyRequest(source, amount, assemblyState, List.of()),
+                assemblyRevert.readResult()
+        );
         if (assembled == null) {
             copyPersistentData(original, rebuiltBase, false);
-            return rebuiltBase;
+            return new MergeResult(rebuiltBase, readResult);
         }
 
         ConfiguredItemDefinition nonPresentation = withoutPresentationPatches(prepared.itemDefinition());
-        ItemBuildResult patched = EmakiCoreLibApi.applyConfiguredItem(assembled, nonPresentation);
-        ItemStack merged = patched.success() && patched.itemStack() != null ? patched.itemStack() : assembled;
-        copyPersistentData(original, merged, false);
-        return merged;
+        if (!EmakiItemPlugin.requireCoreLibCompatibility("applyConfiguredItem:update_merge")) {
+            return null;
+        }
+        try {
+            ItemBuildResult patched = EmakiCoreLibApi.applyConfiguredItem(assembled, nonPresentation);
+            ItemStack merged = patched.success() && patched.itemStack() != null ? patched.itemStack() : assembled;
+            copyPersistentData(original, merged, false);
+            return new MergeResult(merged, readResult);
+        } catch (RuntimeException | LinkageError exception) {
+            EmakiItemPlugin.reportCoreLibApiFailure("applyConfiguredItem:update_merge", exception);
+            return null;
+        }
+    }
+
+    private ItemOperationLedger.UpdateResult revertNamespaceOperations(
+            ItemStack itemStack,
+            ItemOperationLedger.ReadResult initialReadResult,
+            String sourceNamespace) {
+        ItemOperationLedger.ReadResult currentReadResult = initialReadResult == null
+                ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                : initialReadResult;
+        if (currentReadResult.corrupt()) {
+            return ItemOperationLedger.UpdateResult.failure(currentReadResult);
+        }
+        LinkedHashSet<String> operationIds = new LinkedHashSet<>();
+        List<ItemOperationEntry> entries = currentReadResult.entries();
+        for (int index = entries.size() - 1; index >= 0; index--) {
+            ItemOperationEntry entry = entries.get(index);
+            if (entry != null && sourceNamespace.equals(entry.sourceNamespace())) {
+                operationIds.add(entry.operationId());
+            }
+        }
+        for (String operationId : operationIds) {
+            ItemOperationLedger.UpdateResult reverted = operationLedger.revert(
+                    itemStack, currentReadResult, operationId);
+            if (!reverted.success()) {
+                return ItemOperationLedger.UpdateResult.failure(currentReadResult);
+            }
+            currentReadResult = reverted.readResult();
+        }
+        return ItemOperationLedger.UpdateResult.success(currentReadResult);
     }
 
     private ConfiguredItemDefinition withoutPresentationPatches(ConfiguredItemDefinition definition) {
@@ -316,6 +502,58 @@ public final class EmakiItemUpdateService {
         int maxDamage = damageable.hasMaxDamage() ? damageable.getMaxDamage() : Integer.MAX_VALUE;
         damageable.setDamage(Math.max(0, Math.min(damage, maxDamage)));
         itemStack.setItemMeta(itemMeta);
+    }
+
+    private List<String> orderedTriggers(Iterable<String> triggers) {
+        LinkedHashSet<String> ordered = new LinkedHashSet<>();
+        if (triggers != null) {
+            for (String trigger : triggers) {
+                String normalized = Texts.toStringSafe(trigger);
+                if (Texts.isNotBlank(normalized)) {
+                    ordered.add(normalized);
+                }
+            }
+        }
+        return ordered.isEmpty() ? List.of() : List.copyOf(ordered);
+    }
+
+    private record MergeResult(ItemStack itemStack, ItemOperationLedger.ReadResult readResult) {
+
+        private MergeResult {
+            readResult = readResult == null
+                    ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                    : readResult;
+        }
+    }
+
+    private record UpdateOutcome(ItemStack itemStack,
+            String effectiveTrigger,
+            boolean considered,
+            boolean cacheValid) {
+
+        private UpdateOutcome {
+            effectiveTrigger = Texts.toStringSafe(effectiveTrigger);
+        }
+
+        private static UpdateOutcome ignored(ItemStack itemStack) {
+            return new UpdateOutcome(itemStack, "", false, true);
+        }
+
+        private static UpdateOutcome invalid(ItemStack itemStack, String effectiveTrigger) {
+            return new UpdateOutcome(itemStack, effectiveTrigger, true, false);
+        }
+    }
+
+    private record SlotUpdateResult(int changed,
+            boolean conflict,
+            boolean considered,
+            boolean cacheValid,
+            int ledgerDecodes,
+            String effectiveTrigger) {
+
+        private SlotUpdateResult {
+            ledgerDecodes = Math.max(0, ledgerDecodes);
+        }
     }
 
     public interface PdcAttributeGatewayAdapter {

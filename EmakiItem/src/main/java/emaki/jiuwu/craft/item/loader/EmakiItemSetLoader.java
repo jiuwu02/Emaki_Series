@@ -6,7 +6,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -23,13 +23,20 @@ import emaki.jiuwu.craft.item.model.ItemSetThreshold;
 public final class EmakiItemSetLoader {
 
     private final JavaPlugin plugin;
-    private volatile Map<String, ItemSetDefinition> definitions = Map.of();
+    private volatile Snapshot snapshot = new Snapshot(0L, Map.of());
 
     public EmakiItemSetLoader(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
     public int load() {
+        return load(() -> true);
+    }
+
+    public int load(BooleanSupplier allowed) {
+        if (!allowed(allowed)) {
+            return snapshot.definitions().size();
+        }
         File directory = plugin.getDataFolder().toPath().resolve("sets").toFile();
         if (!directory.exists() && !directory.mkdirs()) {
             plugin.getLogger().warning("Could not create sets directory: " + directory.getPath());
@@ -46,16 +53,36 @@ public final class EmakiItemSetLoader {
             }
             loaded.put(definition.id(), definition);
         }
-        definitions = new ConcurrentHashMap<>(loaded);
-        return definitions.size();
+        if (!allowed(allowed)) {
+            return snapshot.definitions().size();
+        }
+        install(loaded);
+        return loaded.size();
     }
 
     public ItemSetDefinition get(String id) {
-        return definitions.get(Texts.normalizeId(id));
+        return snapshot.definitions().get(Texts.normalizeId(id));
     }
 
     public Map<String, ItemSetDefinition> all() {
-        return Map.copyOf(definitions);
+        return snapshot.definitions();
+    }
+
+    public long generation() {
+        return snapshot.generation();
+    }
+
+    public Snapshot snapshot() {
+        return snapshot;
+    }
+
+    private boolean allowed(BooleanSupplier allowed) {
+        return allowed == null || allowed.getAsBoolean();
+    }
+
+    private synchronized void install(Map<String, ItemSetDefinition> loaded) {
+        Snapshot current = snapshot;
+        snapshot = new Snapshot(current.generation() + 1L, loaded);
     }
 
     private ItemSetDefinition parse(YamlSection root, String source) {
@@ -251,5 +278,17 @@ public final class EmakiItemSetLoader {
             }
         }
         return result.toArray(File[]::new);
+    }
+
+    public record Snapshot(long generation, Map<String, ItemSetDefinition> definitions) {
+
+        public Snapshot {
+            generation = Math.max(0L, generation);
+            definitions = definitions == null || definitions.isEmpty() ? Map.of() : Map.copyOf(definitions);
+        }
+
+        public ItemSetDefinition get(String id) {
+            return definitions.get(Texts.normalizeId(id));
+        }
     }
 }

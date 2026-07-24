@@ -12,7 +12,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
@@ -26,6 +25,7 @@ public final class ItemOperationLedger {
     private static final PdcService PDC = new PdcService("emaki");
     private static final PdcPartition PARTITION = PDC.partition("item");
     private static final String FIELD = "operations";
+    private static final NamespacedKey OPERATIONS_KEY = PARTITION.key(FIELD);
     private static final String PRESENTATION_SNAPSHOT_FIELD = "presentation_snapshot";
     private static final NamespacedKey PRESENTATION_SNAPSHOT_KEY = PARTITION.key(PRESENTATION_SNAPSHOT_FIELD);
     private static final String ASSEMBLY_SCHEMA_VERSION_FIELD = "schema_version";
@@ -55,49 +55,164 @@ public final class ItemOperationLedger {
     }
 
     public boolean apply(ItemStack itemStack,
-            String operationId,
-            String sourceNamespace,
-            Object nameActions,
-            Object loreActions,
-            Map<String, ?> variables) {
-        return applyInternal(null, itemStack, operationId, sourceNamespace, nameActions, loreActions, variables);
+                         String operationId,
+                         String sourceNamespace,
+                         Object nameActions,
+                         Object loreActions,
+                         Map<String, ?> variables) {
+        return apply(itemStack, operationId, sourceNamespace, nameActions, loreActions, variables, read(itemStack));
+    }
+
+    public boolean apply(ItemStack itemStack,
+                         String operationId,
+                         String sourceNamespace,
+                         Object nameActions,
+                         Object loreActions,
+                         Map<String, ?> variables,
+                         ReadResult readResult) {
+        return apply(itemStack, readResult, operationId, sourceNamespace, nameActions, loreActions, variables).success();
+    }
+
+    public UpdateResult apply(ItemStack itemStack,
+                              ReadResult readResult,
+                              String operationId,
+                              String sourceNamespace,
+                              Object nameActions,
+                              Object loreActions,
+                              Map<String, ?> variables) {
+        if (readResult == null || readResult.corrupt()) {
+            return UpdateResult.failure(safeReadResult(readResult));
+        }
+        return apply(itemStack, readResult.entries(), operationId, sourceNamespace, nameActions, loreActions, variables);
+    }
+
+    UpdateResult apply(ItemStack itemStack,
+                       List<ItemOperationEntry> entries,
+                       String operationId,
+                              String sourceNamespace,
+                              Object nameActions,
+                              Object loreActions,
+                              Map<String, ?> variables) {
+        return apply(null, itemStack, entries, operationId, sourceNamespace, nameActions, loreActions, variables);
     }
 
     public boolean apply(ActionContext context,
-            ItemStack itemStack,
-            String operationId,
-            String sourceNamespace,
-            Object nameActions,
-            Object loreActions,
-            Map<String, ?> variables) {
-        return applyInternal(context, itemStack, operationId, sourceNamespace, nameActions, loreActions, variables);
+                         ItemStack itemStack,
+                         String operationId,
+                         String sourceNamespace,
+                         Object nameActions,
+                         Object loreActions,
+                         Map<String, ?> variables) {
+        return apply(context, itemStack, operationId, sourceNamespace, nameActions, loreActions, variables, read(itemStack));
+    }
+
+    public boolean apply(ActionContext context,
+                         ItemStack itemStack,
+                         String operationId,
+                         String sourceNamespace,
+                         Object nameActions,
+                         Object loreActions,
+                         Map<String, ?> variables,
+                         ReadResult readResult) {
+        return apply(context, itemStack, readResult, operationId, sourceNamespace,
+                nameActions, loreActions, variables).success();
+    }
+
+    public UpdateResult apply(ActionContext context,
+                              ItemStack itemStack,
+                              ReadResult readResult,
+                              String operationId,
+                              String sourceNamespace,
+                              Object nameActions,
+                              Object loreActions,
+                              Map<String, ?> variables) {
+        if (readResult == null || readResult.corrupt()) {
+            return UpdateResult.failure(safeReadResult(readResult));
+        }
+        return apply(context, itemStack, readResult.entries(), operationId, sourceNamespace,
+                nameActions, loreActions, variables);
+    }
+
+    UpdateResult apply(ActionContext context,
+                       ItemStack itemStack,
+                       List<ItemOperationEntry> entries,
+                       String operationId,
+                              String sourceNamespace,
+                              Object nameActions,
+                              Object loreActions,
+                              Map<String, ?> variables) {
+        return applyInternal(context, itemStack, entries, operationId, sourceNamespace,
+                nameActions, loreActions, variables);
     }
 
     public boolean revert(ItemStack itemStack, String operationId) {
-        return reverter.revert(itemStack, operationId).success();
+        return revert(itemStack, operationId, read(itemStack));
+    }
+
+    public boolean revert(ItemStack itemStack, String operationId, ReadResult readResult) {
+        return revert(itemStack, readResult, operationId).success();
+    }
+
+    public UpdateResult revert(ItemStack itemStack,
+                               ReadResult readResult,
+                               String operationId) {
+        if (readResult == null || readResult.corrupt()) {
+            return UpdateResult.failure(safeReadResult(readResult));
+        }
+        return revert(itemStack, readResult.entries(), operationId);
+    }
+
+    UpdateResult revert(ItemStack itemStack,
+                        List<ItemOperationEntry> entries,
+                        String operationId) {
+        ReadResult readResult = ReadResult.valid(normalizeEntries(entries));
+        ItemOperationReverter.RevertResult result = reverter.revert(itemStack, operationId, readResult.entries());
+        return result.success()
+                ? UpdateResult.success(result.entries())
+                : UpdateResult.failure(readResult);
     }
 
     public int revertAll(ItemStack itemStack, String sourceNamespace) {
-        return reverter.revertAll(itemStack, sourceNamespace).revertedCount();
+        return reverter.revertAll(itemStack, sourceNamespace, read(itemStack)).revertedCount();
+    }
+
+    public UpdateResult revertAll(ItemStack itemStack, String sourceNamespace, ReadResult readResult) {
+        ReadResult safeReadResult = safeReadResult(readResult);
+        if (safeReadResult.corrupt()) {
+            return UpdateResult.failure(safeReadResult);
+        }
+        ItemOperationReverter.RevertResult result = reverter.revertAll(itemStack, sourceNamespace, safeReadResult);
+        return result.success()
+                ? UpdateResult.success(result.entries())
+                : UpdateResult.failure(safeReadResult);
     }
 
     DebugLogger debugLogger() {
         return debugLoggerSupplier.get();
     }
 
-    public List<ItemOperationEntry> readAll(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return List.of();
+    public ReadResult read(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir() || !operationsFieldPresent(itemStack)) {
+            return ReadResult.absent();
         }
         String payload = PDC.get(itemStack, PARTITION, FIELD, PersistentDataType.STRING);
         if (Texts.isBlank(payload)) {
-            return List.of();
+            return ReadResult.corrupt(List.of());
         }
         try {
-            return normalizeEntries(ItemOperationCodec.decode(parsePayload(payload)));
+            ItemOperationCodec.DecodeResult decoded = ItemOperationCodec.decodeStrict(parsePayload(payload));
+            List<ItemOperationEntry> entries = normalizeEntries(decoded.entries());
+            if (!decoded.complete() || entries.isEmpty()) {
+                return ReadResult.corrupt(entries);
+            }
+            return ReadResult.valid(entries);
         } catch (RuntimeException _) {
-            return List.of();
+            return ReadResult.corrupt(List.of());
         }
+    }
+
+    public List<ItemOperationEntry> readAll(ItemStack itemStack) {
+        return read(itemStack).entries();
     }
 
     public ItemOperationEntry find(ItemStack itemStack, String operationId) {
@@ -126,8 +241,9 @@ public final class ItemOperationLedger {
     }
 
     public boolean hasOperations(ItemStack itemStack) {
-        return PDC.has(itemStack, PARTITION, FIELD, PersistentDataType.STRING);
+        return read(itemStack).status() == ReadStatus.VALID;
     }
+
 
     public void clear(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
@@ -146,8 +262,8 @@ public final class ItemOperationLedger {
     }
 
     List<ItemOperationEntry> replayFromBase(ItemStack itemStack,
-            ItemOperationBaseView baseView,
-            List<ItemOperationEntry> entries) {
+                                            ItemOperationBaseView baseView,
+                                            List<ItemOperationEntry> entries) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return entries == null ? List.of() : List.copyOf(entries);
         }
@@ -163,8 +279,8 @@ public final class ItemOperationLedger {
     }
 
     ItemOperationReplayer.ReplayResult renderFromBase(ItemStack template,
-            ItemOperationBaseView baseView,
-            List<ItemOperationEntry> entries) {
+                                                      ItemOperationBaseView baseView,
+                                                      List<ItemOperationEntry> entries) {
         return replayer.renderFromBase(template, baseView, normalizeEntries(entries));
     }
 
@@ -176,7 +292,11 @@ public final class ItemOperationLedger {
         if (itemStack == null || itemStack.getType().isAir() || entry == null || entry.isEmpty()) {
             return;
         }
-        List<ItemOperationEntry> entries = new ArrayList<>(readAll(itemStack));
+        ReadResult readResult = read(itemStack);
+        if (readResult.corrupt()) {
+            return;
+        }
+        List<ItemOperationEntry> entries = new ArrayList<>(readResult.entries());
         int existingIndex = operationIndex(entries, entry.operationId());
         if (existingIndex >= 0) {
             entries.set(existingIndex, entry);
@@ -190,7 +310,11 @@ public final class ItemOperationLedger {
         if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(operationId)) {
             return null;
         }
-        List<ItemOperationEntry> entries = new ArrayList<>(readAll(itemStack));
+        ReadResult readResult = read(itemStack);
+        if (readResult.corrupt()) {
+            return null;
+        }
+        List<ItemOperationEntry> entries = new ArrayList<>(readResult.entries());
         int index = operationIndex(entries, operationId);
         if (index < 0) {
             return null;
@@ -204,7 +328,11 @@ public final class ItemOperationLedger {
         if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(sourceNamespace)) {
             return List.of();
         }
-        List<ItemOperationEntry> entries = new ArrayList<>(readAll(itemStack));
+        ReadResult readResult = read(itemStack);
+        if (readResult.corrupt()) {
+            return List.of();
+        }
+        List<ItemOperationEntry> entries = new ArrayList<>(readResult.entries());
         List<ItemOperationEntry> removed = new ArrayList<>();
         entries.removeIf(entry -> {
             if (entry != null && sourceNamespace.equals(entry.sourceNamespace())) {
@@ -230,10 +358,10 @@ public final class ItemOperationLedger {
     }
 
     CustomNameUpdate prepareCustomNameUpdate(ItemStack original,
-            String oldManagedName,
-            String newManagedName,
-            boolean oldManagedOverlay,
-            boolean newManagedOverlay) {
+                                             String oldManagedName,
+                                             String newManagedName,
+                                             boolean oldManagedOverlay,
+                                             boolean newManagedOverlay) {
         String currentName = currentCustomName(original);
         boolean currentIsExternal = !currentName.equals(Texts.toStringSafe(oldManagedName));
         boolean storedExternal = PDC.has(
@@ -285,8 +413,8 @@ public final class ItemOperationLedger {
     }
 
     SnapshotUpdate preparePresentationSnapshotUpdate(ItemStack original,
-            ItemStack managedProjection,
-            boolean assemblyNameOverlay) {
+                                                     ItemStack managedProjection,
+                                                     boolean assemblyNameOverlay) {
         if (!PDC.has(original, PARTITION, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING)) {
             return SnapshotUpdate.NOT_REQUIRED;
         }
@@ -306,17 +434,18 @@ public final class ItemOperationLedger {
         PDC.set(itemStack, PARTITION, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING, update.payload());
     }
 
-    private boolean applyInternal(ActionContext context,
-            ItemStack itemStack,
-            String operationId,
-            String sourceNamespace,
-            Object nameActions,
-            Object loreActions,
-            Map<String, ?> variables) {
+    private UpdateResult applyInternal(ActionContext context,
+                                       ItemStack itemStack,
+                                       List<ItemOperationEntry> entries,
+                                       String operationId,
+                                       String sourceNamespace,
+                                       Object nameActions,
+                                       Object loreActions,
+                                       Map<String, ?> variables) {
+        List<ItemOperationEntry> entriesBefore = normalizeEntries(entries);
         if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(operationId)) {
-            return false;
+            return UpdateResult.failure(entriesBefore);
         }
-        List<ItemOperationEntry> entriesBefore = readAll(itemStack);
         int replacementIndex = operationIndex(entriesBefore, operationId);
         int insertionIndex = replacementIndex < 0 ? entriesBefore.size() : replacementIndex;
         List<ItemOperationEntry> retainedEntries = new ArrayList<>(entriesBefore);
@@ -326,7 +455,7 @@ public final class ItemOperationLedger {
 
         ItemStack managedTemplate = managedDisplayTemplate(itemStack);
         if (managedTemplate == null) {
-            return false;
+            return UpdateResult.failure(entriesBefore);
         }
         ItemOperationBaseView baseView = replayer.resolveBaseView(managedTemplate, entriesBefore);
         boolean assemblyNameOverlay = hasAssemblyNameOverlay(itemStack, baseView);
@@ -336,7 +465,7 @@ public final class ItemOperationLedger {
                 entriesBefore
         );
         if (oldProjection.itemStack() == null) {
-            return false;
+            return UpdateResult.failure(entriesBefore);
         }
 
         int prefixSize = Math.min(insertionIndex, retainedEntries.size());
@@ -348,9 +477,8 @@ public final class ItemOperationLedger {
                 prefixEntries
         );
         if (prefixProjection.itemStack() == null) {
-            return false;
+            return UpdateResult.failure(entriesBefore);
         }
-        replaceAll(prefixProjection.itemStack(), prefixProjection.entries());
         ItemOperationExecutor.ExecutionResult execution = executor.execute(
                 context,
                 prefixProjection.itemStack(),
@@ -361,7 +489,7 @@ public final class ItemOperationLedger {
                 variables
         );
         if (!execution.success() || execution.entry() == null) {
-            return false;
+            return UpdateResult.failure(entriesBefore);
         }
 
         List<ItemOperationEntry> orderedEntries = new ArrayList<>(prefixProjection.entries());
@@ -373,7 +501,7 @@ public final class ItemOperationLedger {
                 orderedEntries
         );
         if (newProjection.itemStack() == null) {
-            return false;
+            return UpdateResult.failure(entriesBefore);
         }
 
         List<String> oldManagedLore = currentLore(oldProjection.itemStack());
@@ -387,7 +515,7 @@ public final class ItemOperationLedger {
                 newManagedLore,
                 reconciliation.lore(),
                 reconciliation.externalLines())) {
-            return false;
+            return UpdateResult.failure(entriesBefore);
         }
         CustomNameUpdate customNameUpdate = prepareCustomNameUpdate(
                 itemStack,
@@ -403,18 +531,18 @@ public final class ItemOperationLedger {
         );
         if (!snapshotUpdate.valid()
                 || !writeDisplay(itemStack, customNameUpdate.customName(), reconciliation.lore())) {
-            return false;
+            return UpdateResult.failure(entriesBefore);
         }
         replaceAll(itemStack, newProjection.entries());
         writePresentationSnapshotUpdate(itemStack, snapshotUpdate);
         writeCustomNameUpdate(itemStack, customNameUpdate);
-        return true;
+        return UpdateResult.success(newProjection.entries());
     }
 
     private String reconcileCustomName(String oldManagedName,
-            String currentName,
-            String newManagedName,
-            boolean managedOverlayRemains) {
+                                       String currentName,
+                                       String newManagedName,
+                                       boolean managedOverlayRemains) {
         if (currentName.equals(oldManagedName)) {
             return newManagedName;
         }
@@ -466,6 +594,14 @@ public final class ItemOperationLedger {
         return true;
     }
 
+    private boolean operationsFieldPresent(ItemStack itemStack) {
+        if (PDC.has(itemStack, PARTITION, FIELD, PersistentDataType.STRING)) {
+            return true;
+        }
+        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
+        return itemMeta != null && itemMeta.getPersistentDataContainer().getKeys().contains(OPERATIONS_KEY);
+    }
+
     private boolean presentationSnapshotFieldPresent(ItemStack itemStack) {
         if (PDC.has(itemStack, PARTITION, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING)) {
             return true;
@@ -495,6 +631,10 @@ public final class ItemOperationLedger {
             return "";
         }
         return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
+    }
+
+    private ReadResult safeReadResult(ReadResult readResult) {
+        return readResult == null ? ReadResult.corrupt(List.of()) : readResult;
     }
 
     private int operationIndex(List<ItemOperationEntry> entries, String operationId) {
@@ -542,9 +682,83 @@ public final class ItemOperationLedger {
         if (Texts.isBlank(payload)) {
             return null;
         }
-        var section = YamlFiles.load(payload);
-        Object ops = section.get("ops");
-        return ops != null ? ops : ConfigNodes.toPlainData(section.asMap());
+        return YamlFiles.load(payload).get("ops");
+    }
+
+    public record UpdateResult(boolean success, ReadResult readResult) {
+
+        public UpdateResult {
+            readResult = readResult == null ? ReadResult.corrupt(List.of()) : readResult;
+            if (success && readResult.corrupt()) {
+                success = false;
+            }
+        }
+
+        static UpdateResult success(List<ItemOperationEntry> entries) {
+            return new UpdateResult(true, ReadResult.valid(entries));
+        }
+
+        public static UpdateResult success(ReadResult readResult) {
+            return new UpdateResult(true, readResult);
+        }
+
+        static UpdateResult failure(List<ItemOperationEntry> entries) {
+            return new UpdateResult(false, ReadResult.valid(entries));
+        }
+
+        public static UpdateResult failure(ReadResult readResult) {
+            return new UpdateResult(false, readResult);
+        }
+
+        public List<ItemOperationEntry> entries() {
+            return readResult.entries();
+        }
+    }
+
+    public enum ReadStatus {
+        ABSENT,
+        VALID,
+        CORRUPT
+    }
+
+    public record ReadResult(ReadStatus status, List<ItemOperationEntry> entries) {
+
+        public ReadResult {
+            status = status == null ? ReadStatus.CORRUPT : status;
+            entries = entries == null || entries.isEmpty() ? List.of() : List.copyOf(entries);
+            if (status == ReadStatus.ABSENT && !entries.isEmpty()
+                    || status == ReadStatus.VALID && entries.isEmpty()) {
+                status = ReadStatus.CORRUPT;
+            } else if (status == ReadStatus.VALID) {
+                try {
+                    ItemOperationCodec.DecodeResult decoded = ItemOperationCodec.decodeStrict(
+                            ItemOperationCodec.encode(entries)
+                    );
+                    if (!decoded.complete() || decoded.entries().size() != entries.size()) {
+                        status = ReadStatus.CORRUPT;
+                    }
+                } catch (RuntimeException exception) {
+                    status = ReadStatus.CORRUPT;
+                }
+            }
+        }
+
+        public static ReadResult absent() {
+            return new ReadResult(ReadStatus.ABSENT, List.of());
+        }
+
+        public static ReadResult valid(List<ItemOperationEntry> entries) {
+            List<ItemOperationEntry> safeEntries = entries == null ? List.of() : List.copyOf(entries);
+            return safeEntries.isEmpty() ? absent() : new ReadResult(ReadStatus.VALID, safeEntries);
+        }
+
+        public static ReadResult corrupt(List<ItemOperationEntry> entries) {
+            return new ReadResult(ReadStatus.CORRUPT, entries);
+        }
+
+        public boolean corrupt() {
+            return status == ReadStatus.CORRUPT;
+        }
     }
 
     record CustomNameUpdate(String customName, boolean externalStored, String externalCustomName) {

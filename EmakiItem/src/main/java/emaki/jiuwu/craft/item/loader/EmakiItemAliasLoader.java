@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -24,8 +25,18 @@ public final class EmakiItemAliasLoader {
     }
 
     public int load() {
+        return load(() -> true);
+    }
+
+    public int load(BooleanSupplier allowed) {
+        if (!allowed(allowed)) {
+            return aliases.size();
+        }
         File file = plugin.getDataFolder().toPath().resolve("id_aliases.yml").toFile();
         if (!file.exists()) {
+            if (!allowed(allowed)) {
+                return aliases.size();
+            }
             aliases = Map.of();
             return 0;
         }
@@ -48,6 +59,9 @@ public final class EmakiItemAliasLoader {
                 continue;
             }
             loaded.put(alias.oldId(), alias);
+        }
+        if (!allowed(allowed)) {
+            return aliases.size();
         }
         aliases = new ConcurrentHashMap<>(loaded);
         return aliases.size();
@@ -80,6 +94,10 @@ public final class EmakiItemAliasLoader {
         save(next);
         aliases = new ConcurrentHashMap<>(next);
         return true;
+    }
+
+    private boolean allowed(BooleanSupplier allowed) {
+        return allowed == null || allowed.getAsBoolean();
     }
 
     private void save(Map<String, EmakiItemAlias> source) {

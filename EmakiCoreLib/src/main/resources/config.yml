@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.5.17"
+version: "4.5.18"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -17,6 +17,12 @@ language: "zh_CN"
 # 是否释放内置示例资源。
 # false 时不会自动生成 scripts/examples 下的示例脚本。
 release_default_data: true
+
+# 统一 Debug 开关。
+# global_all 为 true 时，所有使用 CoreLib DebugLogger 的 Emaki 模块都会输出 Debug 日志；
+# 可用 /corelib debug all on|off 在运行时临时切换，重载后以此配置为准。
+debug:
+  global_all: false
 
 # 菜单(GUI)渲染后端
 gui:

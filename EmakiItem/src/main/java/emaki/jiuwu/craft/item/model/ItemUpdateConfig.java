@@ -18,6 +18,14 @@ public record ItemUpdateConfig(boolean enabled,
         return enabled && triggers.enabled(trigger);
     }
 
+    public boolean triggerEnabled(Iterable<String> triggerSet) {
+        return enabled && triggers.effectiveTrigger(triggerSet) != null;
+    }
+
+    public String effectiveTrigger(Iterable<String> triggerSet) {
+        return enabled ? triggers.effectiveTrigger(triggerSet) : null;
+    }
+
     public record TriggerConfig(boolean join,
             boolean heldChange,
             boolean inventoryClick,
@@ -41,6 +49,22 @@ public record ItemUpdateConfig(boolean enabled,
                 case "command", "give" -> command;
                 default -> false;
             };
+        }
+
+        public boolean enabled(Iterable<String> triggerSet) {
+            return effectiveTrigger(triggerSet) != null;
+        }
+
+        public String effectiveTrigger(Iterable<String> triggerSet) {
+            if (triggerSet == null) {
+                return null;
+            }
+            for (String trigger : triggerSet) {
+                if (enabled(trigger)) {
+                    return trigger;
+                }
+            }
+            return null;
         }
     }
 }

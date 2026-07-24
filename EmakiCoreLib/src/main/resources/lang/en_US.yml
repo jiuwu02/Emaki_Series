@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.5.17"
+version: "4.5.18"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -139,8 +139,10 @@ debug:
     player_removed: "<yellow>Stopped tracking player: <aqua>%player%</aqua></yellow>"
     module_enabled: "<green>Module tracking enabled: <yellow>%module%</yellow></green>"
     module_disabled: "<yellow>Module tracking disabled: <gray>%module%</gray></yellow>"
-    all_enabled: "<green>Global debug enabled (all players + all modules)</green>"
-    all_disabled: "<yellow>All debug tracking disabled</yellow>"
+    all_enabled: "<green>Current-module debug enabled (all players + all modules)</green>"
+    all_disabled: "<yellow>All current-module debug tracking disabled</yellow>"
+    global_all_enabled: "<green>CoreLib global debug enabled (all Emaki modules)</green>"
+    global_all_disabled: "<yellow>CoreLib global debug disabled</yellow>"
     player_not_found: "<red>Online player not found: %player%</red>"
     available_modules: "<gray>Available modules: <yellow>%modules%</yellow></gray>"
   action:
@@ -181,4 +183,5 @@ command:
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - Run config prechecks or show the latest report</gray>"
   help_script: "<green>%root% script [list|inspect|reload]</green><gray> - View or reload JavaScript extensions</gray>"
   help_action: "<green>%root% action [list|run <actionId> key=value ...]</green><gray> - View and directly execute registered Actions</gray>"
+  help_debug_all: "<green>%root% debug all [on|off|status]</green><gray> - Control global Debug for every Emaki module; config takes effect after reload</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - View or cancel loop Action tasks</gray>"

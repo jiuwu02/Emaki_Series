@@ -1,9 +1,15 @@
 package emaki.jiuwu.craft.corelib.gui;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import emaki.jiuwu.craft.corelib.service.MessageService;
 
@@ -31,6 +37,7 @@ public final class GuiBackendRegistry {
 
     private final Set<String> registrationOrder = java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<>());
     private final Set<String> warnedNames = ConcurrentHashMap.newKeySet();
+    private final AtomicReference<CompletableFuture<Void>> shutdownFuture = new AtomicReference<>();
 
     private volatile String configuredName = BUKKIT;
 
@@ -43,15 +50,19 @@ public final class GuiBackendRegistry {
 
 
 
-    public void register(String name, GuiBackend backend) {
+    public synchronized void register(String name, GuiBackend backend) {
         if (name == null || backend == null) {
+            return;
+        }
+        if (shutdownFuture.get() != null) {
+            safeShutdownAsync(backend);
             return;
         }
         String key = normalize(name);
         GuiBackend previous = backends.put(key, backend);
         registrationOrder.add(key);
         if (previous != null && previous != backend) {
-            safeShutdown(previous);
+            safeShutdownAsync(previous);
         }
 
 
@@ -62,7 +73,7 @@ public final class GuiBackendRegistry {
 
 
 
-    public void unregister(String name) {
+    public synchronized void unregister(String name) {
         if (name == null) {
             return;
         }
@@ -73,7 +84,7 @@ public final class GuiBackendRegistry {
         GuiBackend removed = backends.remove(key);
         registrationOrder.remove(key);
         if (removed != null) {
-            safeShutdown(removed);
+            safeShutdownAsync(removed);
         }
     }
 
@@ -131,12 +142,31 @@ public final class GuiBackendRegistry {
 
 
     public void shutdownAll() {
-        for (GuiBackend backend : backends.values()) {
-            safeShutdown(backend);
+        shutdownAllAsync();
+    }
+
+    public synchronized CompletionStage<Void> shutdownAllAsync() {
+        CompletableFuture<Void> existing = shutdownFuture.get();
+        if (existing != null) {
+            return existing;
         }
+        CompletableFuture<Void> created = new CompletableFuture<>();
+        shutdownFuture.set(created);
+        List<GuiBackend> snapshot = new ArrayList<>(new LinkedHashSet<>(backends.values()));
         backends.clear();
         registrationOrder.clear();
         warnedNames.clear();
+        CompletableFuture<?>[] futures = snapshot.stream()
+                .map(this::safeShutdownAsync)
+                .toArray(CompletableFuture[]::new);
+        CompletableFuture.allOf(futures).whenComplete((ignored, throwable) -> {
+            if (throwable == null) {
+                created.complete(null);
+            } else {
+                created.completeExceptionally(throwable);
+            }
+        });
+        return created;
     }
 
     private GuiBackend firstNonBukkit() {
@@ -164,11 +194,17 @@ public final class GuiBackendRegistry {
         }
     }
 
-    private void safeShutdown(GuiBackend backend) {
+    private CompletableFuture<Void> safeShutdownAsync(GuiBackend backend) {
         try {
-            backend.shutdown();
-        } catch (RuntimeException | LinkageError ignored) {
-
+            CompletionStage<Void> stage = backend.shutdownAsync();
+            if (stage == null) {
+                return CompletableFuture.completedFuture(null);
+            }
+            CompletableFuture<Void> completion = new CompletableFuture<>();
+            stage.whenComplete((ignored, throwable) -> completion.complete(null));
+            return completion;
+        } catch (Throwable ignored) {
+            return CompletableFuture.completedFuture(null);
         }
     }
 

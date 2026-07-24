@@ -27,8 +27,8 @@ final class ForgeCommandRouter implements TabExecutor {
     private final ThreadOwnership threadOwnership;
 
     ForgeCommandRouter(EmakiForgePlugin plugin,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+                       ExecutionDispatcher executionDispatcher,
+                       ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
@@ -45,16 +45,11 @@ final class ForgeCommandRouter implements TabExecutor {
                 sendHelp(sender);
                 yield true;
             }
-            case "forge" ->
-                handleForge(sender);
-            case "book" ->
-                handleBook(sender);
-            case "reload" ->
-                handleReload(sender);
-            case "list" ->
-                handleList(sender, args);
-            case "debug" ->
-                handleDebug(sender, args);
+            case "forge" -> handleForge(sender);
+            case "book" -> handleBook(sender);
+            case "reload" -> handleReload(sender);
+            case "list" -> handleList(sender, args);
+            case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -113,11 +108,18 @@ final class ForgeCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
-        plugin.reloadPluginStateAsync(true).thenRun(() -> runForSender(sender, () -> {
+        plugin.reloadPluginStateAsync(true).whenComplete((result, throwable) -> runForSender(sender, () -> {
+            if (throwable != null || result == null || !result.successful()) {
+                plugin.messageService().send(sender, "general.reload_fail");
+                if (result != null && !result.detail().isBlank()) {
+                    plugin.messageService().sendRaw(sender, "<red>" + result.detail() + "</red>");
+                }
+                return;
+            }
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
-                    "recipes", plugin.recipeLoader().all().size(),
-                    "guis", plugin.guiTemplateLoader().all().size()
+                    "recipes", result.recipes(),
+                    "guis", result.guiTemplates()
             )));
         }));
         return true;
@@ -128,7 +130,8 @@ final class ForgeCommandRouter implements TabExecutor {
             if (threadOwnership.isEntityOwned(player)) {
                 task.run();
             } else {
-                executionDispatcher.runEntity(plugin, player, task, () -> { });
+                executionDispatcher.runEntity(plugin, player, task, () -> {
+                });
             }
             return;
         }
@@ -154,8 +157,7 @@ final class ForgeCommandRouter implements TabExecutor {
                 plugin.recipeLoader().all().forEach((id, recipe)
                         -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipe_line", Map.of("id", id, "name", recipe.displayName()))));
             }
-            default ->
-                plugin.messageService().send(sender, "general.invalid_args");
+            default -> plugin.messageService().send(sender, "general.invalid_args");
         }
         return true;
     }
@@ -163,6 +165,29 @@ final class ForgeCommandRouter implements TabExecutor {
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
             plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length >= 2 && ("stats".equalsIgnoreCase(args[1]) || "status".equalsIgnoreCase(args[1]))) {
+            var runtime = plugin.runtimeMetrics().snapshot();
+            var recipeReport = plugin.recipeLoader().report();
+            var resourceEvents = plugin.bootstrapService().resourceEvents();
+            plugin.messageService().sendRaw(sender, "<gray>EmakiForge runtime:</gray> <white>"
+                    + runtime.debugSummary(plugin.runtimeStatus(), plugin.runtimeSnapshot().guiState()) + "</white>");
+            plugin.messageService().sendRaw(sender, "<gray>Recipe load:</gray> <white>"
+                    + recipeReport.summary() + " source_statuses=" + recipeReport.sourceStatuses() + "</white>");
+            StringBuilder resources = new StringBuilder();
+            for (var status : emaki.jiuwu.craft.corelib.bootstrap.BootstrapService.ResourceStatus.values()) {
+                long count = resourceEvents.stream().filter(event -> event.status() == status).count();
+                if (count <= 0L) {
+                    continue;
+                }
+                if (!resources.isEmpty()) {
+                    resources.append(',');
+                }
+                resources.append(status.name().toLowerCase(java.util.Locale.ROOT)).append('=').append(count);
+            }
+            plugin.messageService().sendRaw(sender, "<gray>Bundled resources:</gray> <white>"
+                    + (resources.isEmpty() ? "none" : resources) + "</white>");
             return true;
         }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());

@@ -14,12 +14,13 @@ public record CoreLibConfig(
         LoopConfig loopConfig,
         ScriptConfig scriptConfig,
         GuiConfig guiConfig,
-        GameplayEventConfig gameplayEventConfig
+        GameplayEventConfig gameplayEventConfig,
+        DebugConfig debugConfig
 ) {
 
     public static CoreLibConfig defaults() {
         return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
-                GuiConfig.defaults(), GameplayEventConfig.defaults());
+                GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -42,7 +43,8 @@ public record CoreLibConfig(
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 ScriptConfig.fromConfig(configuration.getSection("script")),
                 GuiConfig.fromConfig(configuration.getSection("gui")),
-                GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events"))
+                GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events")),
+                DebugConfig.fromConfig(configuration.getSection("debug"))
         );
     }
 
@@ -91,6 +93,20 @@ public record CoreLibConfig(
 
 
 
+
+    public record DebugConfig(boolean globalAll) {
+
+        public static DebugConfig defaults() {
+            return new DebugConfig(false);
+        }
+
+        public static DebugConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new DebugConfig(section.getBoolean("global_all", defaults().globalAll()));
+        }
+    }
 
     public record GameplayEventConfig(
             boolean enabled,

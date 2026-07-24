@@ -13,7 +13,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -72,7 +71,7 @@ public final class PlayerDataStore {
     private final Map<String, CompletableFuture<Boolean>> closingSessions = new ConcurrentHashMap<>();
     private final Map<String, CompletableFuture<Void>> persistenceTails = new HashMap<>();
     private final Object persistenceLock = new Object();
-    private FlushResult flushResult;
+    private CompletableFuture<FlushResult> flushFuture;
 
     public PlayerDataStore(EmakiForgePlugin plugin, Supplier<AsyncYamlFiles> asyncYamlFilesSupplier) {
         this.plugin = plugin;
@@ -154,7 +153,7 @@ public final class PlayerDataStore {
 
     public long ensureCurrentGeneration(UUID uuid) {
         Objects.requireNonNull(uuid, "uuid");
-        ensureSessionSynchronously(uuid);
+        requestSessionLoad(uuid);
         return cache.generation(uuid.toString());
     }
 
@@ -170,8 +169,12 @@ public final class PlayerDataStore {
         if (uuid == null) {
             return null;
         }
-        ensureSessionSynchronously(uuid);
+        requestSessionLoad(uuid);
         return currentSnapshot(uuid.toString());
+    }
+
+    public PlayerData getLoaded(UUID uuid) {
+        return uuid == null ? null : currentSnapshot(uuid.toString());
     }
 
     public CompletableFuture<Boolean> saveAsync(UUID uuid) {
@@ -236,12 +239,11 @@ public final class PlayerDataStore {
         });
     }
 
-    public synchronized FlushResult flushAndSeal(long timeout, TimeUnit unit) {
-        if (flushResult != null) {
-            return flushResult;
+    public synchronized CompletableFuture<FlushResult> flushAndSealAsync(long timeout, TimeUnit unit) {
+        if (flushFuture != null) {
+            return flushFuture;
         }
         Objects.requireNonNull(unit, "unit");
-        long deadline = System.nanoTime() + Math.max(0L, unit.toNanos(timeout));
         cache.seal();
 
         List<PlayerDataCache.SaveTicket> tickets = cache.snapshotDirtyEntries();
@@ -252,29 +254,38 @@ public final class PlayerDataStore {
         CompletableFuture<Void> savesComplete = saveFutures.isEmpty()
                 ? CompletableFuture.completedFuture(null)
                 : CompletableFuture.allOf(saveFutures.toArray(CompletableFuture[]::new));
-        CompletableFuture<Void> persistenceComplete = CompletableFuture.allOf(savesComplete, persistenceIdle());
-        awaitUntil(persistenceComplete, deadline);
-
-        int savedEntries = 0;
-        for (CompletableFuture<Boolean> saveFuture : saveFutures) {
-            if (saveFuture.isDone() && !saveFuture.isCompletedExceptionally()
-                    && Boolean.TRUE.equals(saveFuture.getNow(false))) {
-                savedEntries++;
-            }
-        }
-        int failedEntries = tickets.size() - savedEntries;
-
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
-        DrainResult drainResult;
-        if (asyncYamlFiles == null) {
-            int pending = (int) saveFutures.stream().filter(future -> !future.isDone()).count();
-            drainResult = new DrainResult(pending == 0, pending, List.of());
-        } else {
-            long remainingNanos = Math.max(0L, deadline - System.nanoTime());
-            drainResult = asyncYamlFiles.sealAndDrain(remainingNanos, TimeUnit.NANOSECONDS);
+        CompletableFuture<Void> pending = CompletableFuture.allOf(savesComplete, persistenceIdle())
+                .handle((ignored, throwable) -> null)
+                .thenCompose(ignored -> asyncYamlFiles == null
+                        ? CompletableFuture.completedFuture(null)
+                        : asyncYamlFiles.waitForIdle());
+        if (timeout >= 0L) {
+            pending = pending.orTimeout(Math.max(0L, timeout), unit);
         }
-        flushResult = new FlushResult(savedEntries, failedEntries, cache.dirtyCount(), drainResult);
-        return flushResult;
+        flushFuture = pending.handle((ignored, throwable) -> {
+            int savedEntries = 0;
+            for (CompletableFuture<Boolean> saveFuture : saveFutures) {
+                if (saveFuture.isDone() && !saveFuture.isCompletedExceptionally()
+                        && Boolean.TRUE.equals(saveFuture.getNow(false))) {
+                    savedEntries++;
+                }
+            }
+            int failedEntries = tickets.size() - savedEntries;
+            int pendingOperations = asyncYamlFiles == null
+                    ? (int) saveFutures.stream().filter(future -> !future.isDone()).count()
+                    : asyncYamlFiles.pendingOperationCount();
+            List<Throwable> failures = throwable == null
+                    ? List.of()
+                    : List.of(unwrap(throwable));
+            DrainResult drainResult = new DrainResult(
+                    throwable == null && pendingOperations == 0,
+                    pendingOperations,
+                    failures
+            );
+            return new FlushResult(savedEntries, failedEntries, cache.dirtyCount(), drainResult);
+        });
+        return flushFuture;
     }
 
     public void clear(UUID uuid) {
@@ -323,7 +334,7 @@ public final class PlayerDataStore {
         if (uuid == null) {
             return false;
         }
-        ensureSessionSynchronously(uuid);
+        requestSessionLoad(uuid);
         Boolean crafted = cache.read(uuid.toString(), data -> data.hasCrafted(recipeId));
         return Boolean.TRUE.equals(crafted);
     }
@@ -332,7 +343,7 @@ public final class PlayerDataStore {
         if (uuid == null) {
             return 0;
         }
-        ensureSessionSynchronously(uuid);
+        requestSessionLoad(uuid);
         Integer count = cache.read(uuid.toString(), data -> data.craftCount(recipeId));
         return count == null ? 0 : count;
     }
@@ -341,7 +352,7 @@ public final class PlayerDataStore {
         if (uuid == null) {
             return 0;
         }
-        ensureSessionSynchronously(uuid);
+        requestSessionLoad(uuid);
         Integer counter = cache.read(uuid.toString(), data -> data.guaranteeCounter(key));
         return counter == null ? 0 : counter;
     }
@@ -375,7 +386,7 @@ public final class PlayerDataStore {
             return false;
         }
         if (expectedGeneration <= 0L) {
-            ensureSessionSynchronously(uuid);
+            requestSessionLoad(uuid);
         }
         return cache.update(uuid.toString(), expectedGeneration, mutation);
     }
@@ -572,39 +583,12 @@ public final class PlayerDataStore {
         }
     }
 
-    private boolean awaitUntil(CompletableFuture<?> future, long deadline) {
-        if (future.isDone()) {
-            return true;
-        }
-        long remainingNanos = deadline - System.nanoTime();
-        if (remainingNanos <= 0L) {
-            return false;
-        }
-        CountDownLatch latch = new CountDownLatch(1);
-        future.whenComplete((ignored, throwable) -> latch.countDown());
-        try {
-            return future.isDone() || latch.await(remainingNanos, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return false;
-        }
-    }
-
-    private void ensureSessionSynchronously(UUID uuid) {
+    private void requestSessionLoad(UUID uuid) {
         String key = uuid.toString();
         if (cache.contains(key) || cache.isSealed()) {
             return;
         }
-        File file = playerFile(key);
-        PlayerDataCache.LoadTicket ticket = cache.beginSession(key, file.exists());
-        if (ticket == null) {
-            return;
-        }
-        if (!file.exists()) {
-            cache.installLoaded(ticket, new PlayerData(key), reserveEpoch(key, persistentVersions.get(key)), 0L);
-            return;
-        }
-        loadSynchronously(ticket, file);
+        beginSession(uuid);
     }
 
     private PlayerData loadSynchronously(PlayerDataCache.LoadTicket ticket, File file) {

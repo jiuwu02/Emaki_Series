@@ -44,7 +44,8 @@ public final class ForgeRefreshAction implements Action {
     public String description() {
         return switch (operation) {
             case HELD_ITEM -> "Refresh the action player's held forged item through EmakiForge refresh service.";
-            case PLAYER_INVENTORY -> "Refresh the action player's forged inventory items through EmakiForge refresh service.";
+            case PLAYER_INVENTORY ->
+                    "Refresh the action player's forged inventory items through EmakiForge refresh service.";
             case ONLINE_PLAYERS -> "Refresh forged items for all online players through EmakiForge refresh service.";
         };
     }
@@ -111,8 +112,30 @@ public final class ForgeRefreshAction implements Action {
 
     private CompletionStage<ActionResult> refreshOnlinePlayersAsync() {
         return refreshService.refreshOnlinePlayers()
-                .thenApply(summary -> ActionResult.ok(Map.of(
-                        "players", summary.players(),
-                        "refreshed", summary.refreshed())));
+                .thenApply(summary -> {
+                    Map<String, Object> data = Map.of(
+                            "players", summary.players(),
+                            "refreshed", summary.refreshed(),
+                            "skipped", summary.skipped(),
+                            "failed", summary.failed(),
+                            "stale", summary.stale());
+                    if (summary.stale()) {
+                        return new ActionResult(
+                                false,
+                                false,
+                                ActionErrorType.INVALID_STATE,
+                                "EmakiForge runtime generation changed during online player refresh.",
+                                data);
+                    }
+                    if (summary.failed() > 0) {
+                        return new ActionResult(
+                                false,
+                                false,
+                                ActionErrorType.EXECUTION_EXCEPTION,
+                                "EmakiForge failed to refresh " + summary.failed() + " online player inventories.",
+                                data);
+                    }
+                    return ActionResult.ok(data);
+                });
     }
 }

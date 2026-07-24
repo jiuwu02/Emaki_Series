@@ -65,6 +65,14 @@ final class ForgePlayerDataListener implements Listener {
         session.requestClose(playerId);
     }
 
+    void clearSessionsForShutdown() {
+        sessions.forEach((playerId, session) -> {
+            if (sessions.remove(playerId, session)) {
+                session.requestClose(playerId);
+            }
+        });
+    }
+
     private void logFailure(String operation, UUID playerId, Throwable throwable) {
         if (throwable == null) {
             return;

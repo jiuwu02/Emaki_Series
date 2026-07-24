@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.item;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -20,18 +21,14 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceType;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 import emaki.jiuwu.craft.item.model.SetBonusConfig;
@@ -63,8 +60,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml", "gui/repair_gui.yml", "id_aliases.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets", "gui");
 
+    private ItemSourceService.ResolverRegistration itemSourceResolverRegistration;
+
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
+        if (!EmakiItemPlugin.requireCoreLibCompatibility("initialize")) {
+            throw new IllegalStateException("EmakiCoreLib API compatibility preflight failed.");
+        }
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
@@ -191,18 +193,52 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     }
 
     public void reload(EmakiItemPlugin plugin) {
+        reload(plugin, () -> true);
+    }
+
+    public void reload(EmakiItemPlugin plugin, BooleanSupplier allowed) {
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
         closeRepairInventories(plugin);
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
         plugin.languageLoader().load();
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
         plugin.appConfigLoader().load();
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
         syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
-        int loadedItems = plugin.itemLoader().load();
-        int loadedSets = plugin.setLoader().load();
-        int loadedAliases = plugin.aliasLoader().load();
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
+        int loadedItems = plugin.itemLoader().load(allowed);
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
+        int loadedSets = plugin.setLoader().load(allowed);
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
+        int loadedAliases = plugin.aliasLoader().load(allowed);
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
         plugin.guiTemplateLoader().load();
+        if (!reloadAllowed(allowed)) {
+            return;
+        }
         plugin.itemFactory().clearCache();
         plugin.setService().clearAllCachedState();
-        if (plugin.messageService() != null) {
+        if (plugin.messageService() != null && reloadAllowed(allowed)) {
             plugin.messageService().info("console.items_loaded", java.util.Map.of("count", loadedItems));
             plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", loadedSets));
             plugin.getLogger().info("Loaded " + loadedAliases + " EmakiItem ID aliases.");
@@ -210,10 +246,22 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiItemPlugin plugin, Consumer<String> progressListener) {
+        return reloadAsync(plugin, progressListener, () -> true);
+    }
+
+    public CompletableFuture<Void> reloadAsync(EmakiItemPlugin plugin,
+                                               Consumer<String> progressListener,
+                                               BooleanSupplier allowed) {
+        if (!reloadAllowed(allowed)) {
+            return CompletableFuture.completedFuture(null);
+        }
         closeRepairInventories(plugin);
+        if (!reloadAllowed(allowed)) {
+            return CompletableFuture.completedFuture(null);
+        }
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
-            reload(plugin);
+            reload(plugin, allowed);
             return CompletableFuture.completedFuture(null);
         }
 
@@ -222,29 +270,65 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "item", "config-load", "Loading configs...", progressListener,
                 () -> {
+                    if (!reloadAllowed(allowed)) {
+                        return;
+                    }
                     plugin.languageLoader().load();
+                    if (!reloadAllowed(allowed)) {
+                        return;
+                    }
                     plugin.appConfigLoader().load();
-                    plugin.itemLoader().load();
-                    plugin.setLoader().load();
-                    plugin.aliasLoader().load();
+                    if (!reloadAllowed(allowed)) {
+                        return;
+                    }
+                    plugin.itemLoader().load(allowed);
+                    if (!reloadAllowed(allowed)) {
+                        return;
+                    }
+                    plugin.setLoader().load(allowed);
+                    if (!reloadAllowed(allowed)) {
+                        return;
+                    }
+                    plugin.aliasLoader().load(allowed);
+                    if (!reloadAllowed(allowed)) {
+                        return;
+                    }
                     plugin.guiTemplateLoader().load();
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(ignored -> {
+            if (!reloadAllowed(allowed)) {
+                return CompletableFuture.completedFuture(null);
+            }
             notifyProgress(progressListener, "Applying configuration...");
             return plugin.executionDispatcher().submitGlobal(plugin, () -> {
+                if (!reloadAllowed(allowed)) {
+                    return null;
+                }
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                if (!reloadAllowed(allowed)) {
+                    return null;
+                }
                 syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                if (!reloadAllowed(allowed)) {
+                    return null;
+                }
                 plugin.itemFactory().clearCache();
                 plugin.setService().clearAllCachedState();
-                if (plugin.messageService() != null) {
+                if (plugin.messageService() != null && reloadAllowed(allowed)) {
                     plugin.messageService().info("console.items_loaded", java.util.Map.of("count", plugin.itemLoader().all().size()));
                     plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", plugin.setLoader().all().size()));
                 }
-                notifyProgress(progressListener, "Reload complete.");
+                if (reloadAllowed(allowed)) {
+                    notifyProgress(progressListener, "Reload complete.");
+                }
                 return null;
             });
         });
+    }
+
+    private boolean reloadAllowed(BooleanSupplier allowed) {
+        return allowed == null || allowed.getAsBoolean();
     }
 
     private void closeRepairInventories(EmakiItemPlugin plugin) {
@@ -260,9 +344,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     }
 
     public void registerServices(EmakiItemPlugin plugin) {
-        ItemSourceUtil.registerParser("emakiitem", this::parseEmakiItemSource);
-        ItemSourceUtil.registerShorthandWriter(ItemSourceType.EMAKIITEM, source -> "emakiitem-" + source.getIdentifier());
-        plugin.itemSourceService().registerResolver(new EmakiItemSourceResolver(plugin.itemApi()));
+        closeItemSourceResolver();
+        itemSourceResolverRegistration = plugin.itemSourceService()
+                .registerResolverHandle(new EmakiItemSourceResolver(plugin.itemApi()));
     }
 
     public void shutdown(EmakiItemPlugin plugin) {
@@ -274,13 +358,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (coreLibPlugin.placeholderRegistry() != null && plugin.componentPlaceholderResolver() != null) {
             coreLibPlugin.placeholderRegistry().unregister(plugin.componentPlaceholderResolver());
         }
-        if (plugin.itemSourceService() != null) {
-            plugin.itemSourceService().unregisterResolver("emakiitem");
-        }
+        closeItemSourceResolver();
         coreLibPlugin.scriptModuleRegistry().unregister("item");
         coreLibPlugin.scriptModuleRegistry().unregister("items");
-        ItemSourceUtil.unregisterParser("emakiitem");
-        ItemSourceUtil.unregisterShorthandWriter(ItemSourceType.EMAKIITEM);
         if (plugin.pdcWriter() != null) {
             plugin.pdcWriter().shutdown();
         }
@@ -295,7 +375,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         }
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
-                configuration.getString("version", "2.4.10"),
+                configuration.getString("version", "2.5.15"),
                 configuration.getBoolean("release_default_data", true),
                 parseSetBonus(configuration.getSection("set_bonus"))
         );
@@ -333,22 +413,12 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         coreLibPlugin.scriptModuleRegistry().register("items", context -> new ScriptItemModuleApi(plugin, context));
     }
 
-    private ItemSource parseEmakiItemSource(String shorthand) {
-        if (Texts.isBlank(shorthand)) {
-            return null;
+    private void closeItemSourceResolver() {
+        ItemSourceService.ResolverRegistration registration = itemSourceResolverRegistration;
+        itemSourceResolverRegistration = null;
+        if (registration != null) {
+            registration.close();
         }
-        String text = Texts.trim(shorthand);
-        String lower = Texts.lower(text);
-        String identifier;
-        if (lower.startsWith("emakiitem-")) {
-            identifier = text.substring("emakiitem-".length());
-        } else if (lower.startsWith("ei-")) {
-            identifier = text.substring("ei-".length());
-        } else {
-            return null;
-        }
-        String normalized = ItemSourceUtil.normalizeIdentifier(ItemSourceType.EMAKIITEM, identifier);
-        return Texts.isBlank(normalized) ? null : new ItemSource(ItemSourceType.EMAKIITEM, normalized);
     }
 
     private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiItemPlugin plugin) {

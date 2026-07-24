@@ -24,7 +24,7 @@ Emaki Series 是一组面向 Minecraft Spigot 服务端的 Java 插件，采用�
 | 项目       | 说明                              |
 | ---------- | --------------------------------- |
 | Java       | `25`                              |
-| 服务端 API | `Paper API 1.21.11-R0.1-SNAPSHOT` |
+| 服务端 API | `Paper API 1.21.8-R0.1-SNAPSHOT`  |
 | 文本组件   | `Adventure 4.26.1`                |
 | 构建工具   | Maven 多模块聚合                  |
 | 许可证     | `GPL-3.0-only`                    |

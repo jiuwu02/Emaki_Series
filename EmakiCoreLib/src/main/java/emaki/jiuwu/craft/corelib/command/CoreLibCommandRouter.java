@@ -34,7 +34,8 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final List<String> SCRIPT_MODES = List.of("list", "inspect", "reload");
     private static final List<String> ACTION_MODES = List.of("list", "run");
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
-    private static final List<String> DEBUG_MODES = List.of("loops");
+    private static final List<String> DEBUG_MODES = List.of("loops", "all");
+    private static final List<String> DEBUG_ALL_MODES = List.of("on", "off", "status");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
 
     private final EmakiCoreLibPlugin plugin;
@@ -100,6 +101,8 @@ public final class CoreLibCommandRouter implements TabExecutor {
             }
         } else if (args.length == 2 && "debug".equalsIgnoreCase(args[0])) {
             complete(args[1], DEBUG_MODES, result);
+        } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "all".equalsIgnoreCase(args[1])) {
+            complete(args[2], DEBUG_ALL_MODES, result);
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1])) {
             complete(args[2], LOOP_DEBUG_MODES, result);
         } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1]) && "player".equalsIgnoreCase(args[2])) {
@@ -314,6 +317,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendLang(sender, "command.no_permission_admin");
             return true;
         }
+        if (args.length >= 2 && "all".equalsIgnoreCase(args[1])) {
+            return handleGlobalDebug(sender, args);
+        }
         if (args.length < 2 || !"loops".equalsIgnoreCase(args[1])) {
             sendHelp(sender, "corelib");
             return true;
@@ -349,6 +355,24 @@ public final class CoreLibCommandRouter implements TabExecutor {
                 }
             }
             default -> sendLoopSnapshots(sender, plugin.loopActionService().snapshots());
+        }
+        return true;
+    }
+
+    private boolean handleGlobalDebug(CommandSender sender, String[] args) {
+        String mode = args.length >= 3 ? args[2].toLowerCase(java.util.Locale.ROOT) : "status";
+        switch (mode) {
+            case "on" -> {
+                plugin.setGlobalDebugEnabled(true);
+                sendLang(sender, "debug.command.global_all_enabled");
+            }
+            case "off" -> {
+                plugin.setGlobalDebugEnabled(false);
+                sendLang(sender, "debug.command.global_all_disabled");
+            }
+            default -> sendLang(sender, plugin.globalDebugEnabled()
+                    ? "debug.command.global_all_enabled"
+                    : "debug.command.global_all_disabled");
         }
         return true;
     }
@@ -425,6 +449,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
         sendLang(sender, "command.help_check", Map.of("root", root));
         sendLang(sender, "command.help_script", Map.of("root", root));
         sendLang(sender, "command.help_action", Map.of("root", root));
+        sendLang(sender, "command.help_debug_all", Map.of("root", root));
         sendLang(sender, "command.help_debug_loops", Map.of("root", root));
     }
 

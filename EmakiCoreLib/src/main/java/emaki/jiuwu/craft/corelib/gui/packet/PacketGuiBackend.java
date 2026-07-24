@@ -5,11 +5,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -50,7 +52,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     private final AtomicInteger windowIdCounter = new AtomicInteger(1);
     private final Map<UUID, PacketWindow> windows = new ConcurrentHashMap<>();
     private final ClickListener clickListener = new ClickListener();
-    private boolean registered;
+    private final AtomicBoolean registered = new AtomicBoolean();
+    private final AtomicReference<CompletableFuture<Void>> shutdownFuture = new AtomicReference<>();
 
     public PacketGuiBackend(JavaPlugin plugin, ExecutionDispatcher executionDispatcher) {
         if (executionDispatcher == null) {
@@ -60,7 +63,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         this.executionDispatcher = executionDispatcher;
         PacketEvents.getAPI().getEventManager().registerListener(clickListener);
         Bukkit.getPluginManager().registerEvents(this, plugin);
-        registered = true;
+        registered.set(true);
     }
 
     public static boolean isRuntimeSupported() {
@@ -159,74 +162,121 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
 
     @Override
     public void shutdown() {
-        if (!registered) {
-            return;
-        }
-        Map<UUID, PacketWindow> snapshot = Map.copyOf(windows);
-        CountDownLatch shutdownLatch = new CountDownLatch(snapshot.size());
-        for (Map.Entry<UUID, PacketWindow> entry : snapshot.entrySet()) {
-            closeWindowDuringShutdown(entry.getKey(), entry.getValue(), shutdownLatch);
-        }
-        try {
-            shutdownLatch.await(2L, TimeUnit.SECONDS);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            debug(null, "packet shutdown interrupted | remaining=" + shutdownLatch.getCount());
-        }
-        windows.clear();
-        try {
-            PacketEvents.getAPI().getEventManager().unregisterListener(clickListener);
-        } catch (RuntimeException | LinkageError exception) {
-            debug(null, "packet listener unregister failed | error=" + error(exception));
-        }
-        HandlerList.unregisterAll(this);
-        registered = false;
+        shutdownAsync();
     }
 
-    private void closeWindowDuringShutdown(UUID viewerId, PacketWindow window, CountDownLatch shutdownLatch) {
+    @Override
+    public CompletionStage<Void> shutdownAsync() {
+        CompletableFuture<Void> existing = shutdownFuture.get();
+        if (existing != null) {
+            return existing;
+        }
+        CompletableFuture<Void> created = new CompletableFuture<>();
+        if (!shutdownFuture.compareAndSet(null, created)) {
+            return shutdownFuture.get();
+        }
+
+        Map<UUID, PacketWindow> snapshot = Map.copyOf(windows);
+        List<CompletableFuture<Void>> closeFutures = new ArrayList<>(snapshot.size());
+        for (Map.Entry<UUID, PacketWindow> entry : snapshot.entrySet()) {
+            closeFutures.add(closeWindowDuringShutdown(entry.getKey(), entry.getValue()));
+        }
+        CompletableFuture<Void> closeWindows = CompletableFuture
+                .allOf(closeFutures.toArray(CompletableFuture[]::new))
+                .orTimeout(2L, TimeUnit.SECONDS)
+                .handle((ignored, throwable) -> {
+                    if (throwable != null) {
+                        debug(null, "packet shutdown window close incomplete | error=" + error(throwable));
+                    }
+                    snapshot.forEach(this::retireWindow);
+                    return null;
+                });
+        CompletableFuture<Void> unregisterListeners = unregisterListenersAsync();
+        CompletableFuture.allOf(closeWindows, unregisterListeners).whenComplete((ignored, throwable) -> {
+            windows.clear();
+            if (throwable != null) {
+                debug(null, "packet shutdown incomplete | error=" + error(throwable));
+            }
+            created.complete(null);
+        });
+        return created;
+    }
+
+    private CompletableFuture<Void> unregisterListenersAsync() {
+        if (registered.compareAndSet(true, false)) {
+            try {
+                PacketEvents.getAPI().getEventManager().unregisterListener(clickListener);
+            } catch (RuntimeException | LinkageError exception) {
+                debug(null, "packet listener unregister failed | error=" + error(exception));
+            }
+        }
+        if (!plugin.isEnabled()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        try {
+            return executionDispatcher.submitGlobal(plugin, () -> {
+                HandlerList.unregisterAll(this);
+                return null;
+            }).orTimeout(2L, TimeUnit.SECONDS).handle((ignored, throwable) -> {
+                if (throwable != null) {
+                    debug(null, "packet Bukkit listener unregister incomplete | error=" + error(throwable));
+                }
+                return null;
+            });
+        } catch (RuntimeException | LinkageError exception) {
+            debug(null, "packet Bukkit listener unregister dispatch failed | error=" + error(exception));
+            return CompletableFuture.completedFuture(null);
+        }
+    }
+
+    private CompletableFuture<Void> closeWindowDuringShutdown(UUID viewerId, PacketWindow window) {
+        CompletableFuture<Void> completion = new CompletableFuture<>();
         if (window == null) {
-            shutdownLatch.countDown();
-            return;
+            completion.complete(null);
+            return completion;
         }
         Player viewer = window.session.viewer();
-        if (viewer != null && viewer.isOnline()) {
-            AtomicBoolean completed = new AtomicBoolean();
-            Runnable finish = () -> {
-                if (completed.compareAndSet(false, true)) {
-                    shutdownLatch.countDown();
-                }
-            };
-            Runnable task = () -> {
-                try {
-                    cleanupWindow(viewerId, window, viewer, true, true);
-                } finally {
-                    finish.run();
-                }
-            };
-            Runnable retired = () -> {
-                debug(viewer, "packet shutdown dispatch retired | " + describe(window));
-                try {
-                    cleanupWindow(viewerId, window, viewer, false, false);
-                } finally {
-                    finish.run();
-                }
-            };
+        AtomicBoolean cleanupStarted = new AtomicBoolean();
+        Runnable entityCleanup = () -> completeWindowCleanup(
+                viewerId, window, viewer, true, true, cleanupStarted, completion);
+        Runnable retiredCleanup = () -> {
+            debug(null, "packet shutdown dispatch retired | " + describe(window));
+            completeWindowCleanup(viewerId, window, viewer, false, false, cleanupStarted, completion);
+        };
+        if (viewer != null) {
             try {
-                if (executionDispatcher.runEntity(plugin, viewer, task, retired) != null) {
-                    return;
+                if (executionDispatcher.runEntity(plugin, viewer, entityCleanup, retiredCleanup) != null) {
+                    return completion;
                 }
-                debug(viewer, "packet shutdown dispatch rejected | " + describe(window));
+                debug(null, "packet shutdown dispatch rejected | " + describe(window));
             } catch (RuntimeException | LinkageError exception) {
-                debug(viewer, "packet shutdown dispatch failed | " + describe(window)
+                debug(null, "packet shutdown dispatch failed | " + describe(window)
                         + " error=" + error(exception));
             }
-            retired.run();
+        }
+        retiredCleanup.run();
+        return completion;
+    }
+
+    private void completeWindowCleanup(UUID viewerId,
+            PacketWindow window,
+            Player viewer,
+            boolean touchPlayer,
+            boolean notifyHandler,
+            AtomicBoolean cleanupStarted,
+            CompletableFuture<Void> completion) {
+        if (!cleanupStarted.compareAndSet(false, true)) {
             return;
         }
         try {
-            cleanupWindow(viewerId, window, viewer, false, true);
-        } finally {
-            shutdownLatch.countDown();
+            if (windows.remove(viewerId, window)) {
+                cleanupWindow(viewerId, window, viewer, touchPlayer, notifyHandler);
+            }
+            completion.complete(null);
+        } catch (Throwable throwable) {
+            debug(null, "packet shutdown cleanup failed | " + describe(window)
+                    + " error=" + error(throwable));
+            completion.completeExceptionally(throwable);
         }
     }
 
@@ -252,8 +302,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             }
         } finally {
             GuiSessionRegistry registry = session.registry();
-            if (registry != null && viewer != null) {
-                registry.removeSession(viewer.getUniqueId(), session);
+            if (registry != null && viewerId != null) {
+                registry.removeSession(viewerId, session);
             }
             windows.remove(viewerId, window);
         }

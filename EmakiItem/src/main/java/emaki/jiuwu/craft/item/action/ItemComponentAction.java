@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssue;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssueSeverity;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
+import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector.ComponentValueParseResult;
 
@@ -173,9 +174,9 @@ public final class ItemComponentAction implements CoreAction {
             if (original == null || original.getType().isAir()) {
                 return CoreActionResult.skipped("No item present at target '" + target.id() + "'.");
             }
-            if (!EmakiCoreLibApi.available() || !EmakiCoreLibApi.isReady()) {
+            if (!EmakiItemPlugin.requireCoreLibCompatibility("applyConfiguredItem:component_action")) {
                 return CoreActionResult.failure(CoreActionErrorType.PROVIDER_UNAVAILABLE,
-                        "EmakiCoreLib configured item service is unavailable.");
+                        "EmakiCoreLib configured item service is incompatible.");
             }
 
             boolean existedBefore = inspector.contains(original, componentId);
@@ -188,7 +189,13 @@ public final class ItemComponentAction implements CoreAction {
                     original.getAmount(),
                     Map.of(componentId, patch)
             );
-            ItemBuildResult buildResult = EmakiCoreLibApi.applyConfiguredItem(original, definition);
+            ItemBuildResult buildResult;
+            try {
+                buildResult = EmakiCoreLibApi.applyConfiguredItem(original, definition);
+            } catch (RuntimeException | LinkageError exception) {
+                EmakiItemPlugin.reportCoreLibApiFailure("applyConfiguredItem:component_action", exception);
+                return CoreActionResult.failure(CoreActionErrorType.PROVIDER_UNAVAILABLE, message(exception));
+            }
             if (buildResult.hasErrors()) {
                 return buildFailure(buildResult);
             }

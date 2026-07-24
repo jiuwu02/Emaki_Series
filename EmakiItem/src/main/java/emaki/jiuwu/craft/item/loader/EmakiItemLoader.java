@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BooleanSupplier;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -18,7 +18,7 @@ public final class EmakiItemLoader {
 
     private final JavaPlugin plugin;
     private final EmakiItemDefinitionParser parser;
-    private volatile Map<String, EmakiItemDefinition> definitions = Map.of();
+    private volatile Snapshot snapshot = new Snapshot(0L, Map.of());
 
     public EmakiItemLoader(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -26,6 +26,13 @@ public final class EmakiItemLoader {
     }
 
     public int load() {
+        return load(() -> true);
+    }
+
+    public int load(BooleanSupplier allowed) {
+        if (!allowed(allowed)) {
+            return snapshot.definitions().size();
+        }
         File directory = plugin.getDataFolder().toPath().resolve("items").toFile();
         if (!directory.exists() && !directory.mkdirs()) {
             plugin.getLogger().warning("Could not create items directory: " + directory.getPath());
@@ -49,16 +56,36 @@ public final class EmakiItemLoader {
                         + ": " + Texts.toStringSafe(exception.getMessage()));
             }
         }
-        definitions = new ConcurrentHashMap<>(loaded);
-        return definitions.size();
+        if (!allowed(allowed)) {
+            return snapshot.definitions().size();
+        }
+        install(loaded);
+        return loaded.size();
     }
 
     public EmakiItemDefinition get(String id) {
-        return definitions.get(Texts.normalizeId(id));
+        return snapshot.definitions().get(Texts.normalizeId(id));
     }
 
     public Map<String, EmakiItemDefinition> all() {
-        return Map.copyOf(definitions);
+        return snapshot.definitions();
+    }
+
+    public long generation() {
+        return snapshot.generation();
+    }
+
+    public Snapshot snapshot() {
+        return snapshot;
+    }
+
+    private boolean allowed(BooleanSupplier allowed) {
+        return allowed == null || allowed.getAsBoolean();
+    }
+
+    private synchronized void install(Map<String, EmakiItemDefinition> loaded) {
+        Snapshot current = snapshot;
+        snapshot = new Snapshot(current.generation() + 1L, loaded);
     }
 
     private File[] files(File directory) {
@@ -81,5 +108,17 @@ public final class EmakiItemLoader {
             }
         }
         return result.toArray(File[]::new);
+    }
+
+    public record Snapshot(long generation, Map<String, EmakiItemDefinition> definitions) {
+
+        public Snapshot {
+            generation = Math.max(0L, generation);
+            definitions = definitions == null || definitions.isEmpty() ? Map.of() : Map.copyOf(definitions);
+        }
+
+        public EmakiItemDefinition get(String id) {
+            return definitions.get(Texts.normalizeId(id));
+        }
     }
 }

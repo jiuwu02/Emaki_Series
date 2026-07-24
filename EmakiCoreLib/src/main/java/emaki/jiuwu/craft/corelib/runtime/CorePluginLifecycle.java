@@ -1,15 +1,23 @@
 package emaki.jiuwu.craft.corelib.runtime;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-
-
-
 
 public final class CorePluginLifecycle {
 
@@ -34,10 +42,22 @@ public final class CorePluginLifecycle {
         }
     }
 
+    private final Supplier<? extends CompletionStage<?>> preDrainShutdown;
+    private final Map<String, Future<?>> dependentShutdowns = new LinkedHashMap<>();
+
     private State state = State.NEW;
     private AsyncFileService fileService;
     private AsyncTaskScheduler taskScheduler;
     private ShutdownReport lastReport = new ShutdownReport(true, true, 0, List.of());
+    private CompletableFuture<ShutdownReport> shutdownFuture;
+
+    public CorePluginLifecycle() {
+        this(() -> CompletableFuture.completedFuture(null));
+    }
+
+    public CorePluginLifecycle(Supplier<? extends CompletionStage<?>> preDrainShutdown) {
+        this.preDrainShutdown = Objects.requireNonNull(preDrainShutdown, "preDrainShutdown");
+    }
 
     public synchronized void start(AsyncFileService fileService, AsyncTaskScheduler taskScheduler) {
         if (state != State.NEW) {
@@ -52,43 +72,207 @@ public final class CorePluginLifecycle {
         return state;
     }
 
-    public synchronized ShutdownReport shutdown(long timeout, TimeUnit unit) {
+    public synchronized boolean registerDependentShutdown(String ownerKey, CompletionStage<?> shutdown) {
+        Objects.requireNonNull(shutdown, "shutdown");
+        return registerDependentShutdownFuture(ownerKey, futureForStage(shutdown));
+    }
+
+    public synchronized boolean registerDependentShutdownFuture(String ownerKey, Future<?> shutdown) {
+        Objects.requireNonNull(shutdown, "shutdown");
+        if (state != State.RUNNING || shutdownFuture != null) {
+            return false;
+        }
+        String key = normalizeOwnerKey(ownerKey);
+        if (dependentShutdowns.containsKey(key)) {
+            return false;
+        }
+        dependentShutdowns.put(key, shutdown);
+        return true;
+    }
+
+    public synchronized CompletableFuture<ShutdownReport> shutdownAsync(long timeout, TimeUnit unit) {
         Objects.requireNonNull(unit, "unit");
-        if (state == State.CLOSED) {
-            return lastReport;
+        if (shutdownFuture != null) {
+            return shutdownFuture;
         }
         state = State.QUIESCING;
         long timeoutNanos = Math.max(1L, unit.toNanos(timeout));
-        long deadline = System.nanoTime() + timeoutNanos;
-        long fileBudgetNanos = Math.max(1L, timeoutNanos - Math.max(1L, timeoutNanos / 10L));
-
-        DrainResult fileResult = fileService == null
-                ? new DrainResult(true, 0, List.of())
-                : fileService.closeAndDrain(fileBudgetNanos, TimeUnit.NANOSECONDS);
-
-        if (!fileResult.drained()) {
-            lastReport = new ShutdownReport(
-                    false,
-                    false,
-                    fileResult.pendingOperations(),
-                    fileResult.failures()
-            );
-            return lastReport;
-        }
-
-        long remainingNanos = Math.max(1L, deadline - System.nanoTime());
-        boolean schedulerTerminated = taskScheduler == null
-                || taskScheduler.shutdownGracefully(remainingNanos, TimeUnit.NANOSECONDS);
-
-        lastReport = new ShutdownReport(
-                true,
-                schedulerTerminated,
-                0,
-                fileResult.failures()
+        Map<String, Future<?>> dependents = new LinkedHashMap<>(dependentShutdowns);
+        dependentShutdowns.clear();
+        CompletableFuture<ShutdownReport> created = new CompletableFuture<>();
+        shutdownFuture = created;
+        Thread finalizer = new Thread(
+                () -> finalizeShutdown(timeoutNanos, dependents, created),
+                "emaki-corelib-shutdown-finalizer"
         );
-        if (schedulerTerminated) {
-            state = State.CLOSED;
+        finalizer.setDaemon(true);
+        try {
+            finalizer.start();
+        } catch (Throwable throwable) {
+            ShutdownReport report = new ShutdownReport(false, false,
+                    fileService == null ? 0 : fileService.pendingWriteCount(), List.of(throwable));
+            finishShutdown(created, report);
         }
+        return created;
+    }
+
+    public synchronized ShutdownReport shutdown(long timeout, TimeUnit unit) {
+        shutdownAsync(timeout, unit);
         return lastReport;
+    }
+
+    private void finalizeShutdown(long timeoutNanos,
+            Map<String, Future<?>> dependents,
+            CompletableFuture<ShutdownReport> completion) {
+        long deadline = deadlineAfter(timeoutNanos);
+        List<Throwable> failures = new ArrayList<>();
+        awaitDependents(dependents, deadline, failures);
+        awaitPreDrainShutdown(deadline, failures);
+
+        DrainResult fileResult;
+        try {
+            fileResult = fileService == null
+                    ? new DrainResult(true, 0, List.of())
+                    : fileService.closeAndDrain(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+        } catch (Throwable throwable) {
+            failures.add(unwrap(throwable));
+            fileResult = new DrainResult(false,
+                    fileService == null ? 0 : fileService.pendingWriteCount(), List.of());
+        }
+        failures.addAll(fileResult.failures());
+
+        boolean schedulerTerminated;
+        try {
+            schedulerTerminated = taskScheduler == null
+                    || taskScheduler.shutdownGracefully(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+        } catch (Throwable throwable) {
+            failures.add(unwrap(throwable));
+            schedulerTerminated = false;
+        }
+
+        ShutdownReport report = new ShutdownReport(
+                fileResult.drained(),
+                schedulerTerminated,
+                fileResult.pendingOperations(),
+                failures
+        );
+        finishShutdown(completion, report);
+    }
+
+    private void awaitDependents(Map<String, Future<?>> dependents,
+            long deadline,
+            List<Throwable> failures) {
+        for (Map.Entry<String, Future<?>> entry : dependents.entrySet()) {
+            if (!awaitFuture("Dependent shutdown " + entry.getKey(), entry.getValue(), deadline, failures)) {
+                return;
+            }
+        }
+    }
+
+    private void awaitPreDrainShutdown(long deadline, List<Throwable> failures) {
+        CompletableFuture<? extends CompletionStage<?>> invocation = CompletableFuture.supplyAsync(preDrainShutdown);
+        CompletionStage<?> stage;
+        try {
+            stage = invocation.get(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+        } catch (TimeoutException exception) {
+            failures.add(new TimeoutException("Core runtime finalization dispatch timed out"));
+            return;
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            failures.add(exception);
+            return;
+        } catch (ExecutionException exception) {
+            failures.add(unwrap(exception));
+            return;
+        } catch (Throwable throwable) {
+            failures.add(unwrap(throwable));
+            return;
+        }
+        if (stage != null) {
+            awaitFuture("Core runtime finalization", futureForStage(stage), deadline, failures);
+        }
+    }
+
+    private static CompletableFuture<Void> futureForStage(CompletionStage<?> stage) {
+        CompletableFuture<Void> completion = new CompletableFuture<>();
+        try {
+            stage.whenComplete((ignored, throwable) -> {
+                if (throwable == null) {
+                    completion.complete(null);
+                } else {
+                    completion.completeExceptionally(unwrap(throwable));
+                }
+            });
+        } catch (Throwable throwable) {
+            completion.completeExceptionally(unwrap(throwable));
+        }
+        return completion;
+    }
+
+    private boolean awaitFuture(String label,
+            Future<?> future,
+            long deadline,
+            List<Throwable> failures) {
+        long remainingNanos = remainingNanos(deadline);
+        try {
+            future.get(remainingNanos, TimeUnit.NANOSECONDS);
+            return true;
+        } catch (TimeoutException exception) {
+            failures.add(new TimeoutException(label + " timed out"));
+            return false;
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            failures.add(exception);
+            return false;
+        } catch (ExecutionException exception) {
+            failures.add(unwrap(exception));
+            return true;
+        } catch (CancellationException exception) {
+            failures.add(exception);
+            return true;
+        } catch (Throwable throwable) {
+            failures.add(unwrap(throwable));
+            return true;
+        }
+    }
+
+    private synchronized void finishShutdown(CompletableFuture<ShutdownReport> completion,
+            ShutdownReport report) {
+        lastReport = report;
+        state = State.CLOSED;
+        completion.complete(report);
+    }
+
+    private static String normalizeOwnerKey(String ownerKey) {
+        String normalized = Objects.requireNonNull(ownerKey, "ownerKey").trim().toLowerCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("ownerKey");
+        }
+        return normalized;
+    }
+
+    private static long deadlineAfter(long timeoutNanos) {
+        long now = System.nanoTime();
+        if (timeoutNanos >= Long.MAX_VALUE - now) {
+            return Long.MAX_VALUE;
+        }
+        return now + timeoutNanos;
+    }
+
+    private static long remainingNanos(long deadline) {
+        if (deadline == Long.MAX_VALUE) {
+            return Long.MAX_VALUE;
+        }
+        return Math.max(1L, deadline - System.nanoTime());
+    }
+
+    private static Throwable unwrap(Throwable throwable) {
+        Throwable current = throwable;
+        while ((current instanceof ExecutionException
+                || current instanceof java.util.concurrent.CompletionException)
+                && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 }

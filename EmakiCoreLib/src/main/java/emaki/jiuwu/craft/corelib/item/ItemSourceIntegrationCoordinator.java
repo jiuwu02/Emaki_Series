@@ -20,14 +20,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class ItemSourceIntegrationCoordinator implements Listener {
+public final class ItemSourceIntegrationCoordinator implements Listener, AutoCloseable {
 
     private final JavaPlugin plugin;
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
     private final List<ManagedItemSourceResolver> managedResolvers;
     private final Map<String, ManagedItemSourceResolver.Status> lastStatuses = new HashMap<>();
-    private final Set<String> registeredResolverIds = new HashSet<>();
+    private final Map<String, ItemSourceService.ResolverRegistration> resolverRegistrations = new HashMap<>();
     private final Set<String> loadEventBindings = new HashSet<>();
     private boolean initialized;
 
@@ -119,10 +119,14 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
             return false;
         }
         String resolverId = Texts.normalizeId(resolver.id());
-        if (!registeredResolverIds.add(resolverId)) {
+        if (resolverRegistrations.containsKey(resolverId)) {
             return false;
         }
-        itemSourceService.registerResolver(resolver);
+        ItemSourceService.ResolverRegistration registration = itemSourceService.registerResolverHandle(resolver);
+        if (!registration.registered()) {
+            return false;
+        }
+        resolverRegistrations.put(resolverId, registration);
         if (resolver instanceof ManagedItemSourceResolver managedResolver) {
             managedResolvers.add(managedResolver);
             ensureLoadEventListener(managedResolver);
@@ -205,6 +209,29 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
 
     public int managedResolverCount() {
         return managedResolvers.size();
+    }
+
+    @Override
+    public void close() {
+        closeInternal(true);
+    }
+
+    public void closeAfterBukkitUnregister() {
+        closeInternal(false);
+    }
+
+    private void closeInternal(boolean unregisterBukkitListeners) {
+        if (unregisterBukkitListeners) {
+            org.bukkit.event.HandlerList.unregisterAll(this);
+        }
+        for (ItemSourceService.ResolverRegistration registration : List.copyOf(resolverRegistrations.values())) {
+            registration.close();
+        }
+        resolverRegistrations.clear();
+        managedResolvers.clear();
+        lastStatuses.clear();
+        loadEventBindings.clear();
+        initialized = false;
     }
 
     private String defaultWaitingDetail(String library, String detail) {

@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.execution;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -10,12 +12,17 @@ import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
+import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
 
 
 
 public final class PlatformCapabilities {
+
+    public static final String MINIMUM_MINECRAFT_VERSION = "1.21.8";
+    public static final String VERIFIED_MAXIMUM_EXCLUSIVE = "1.22.0";
+    public static final int MINIMUM_JAVA_FEATURE = 25;
 
     private static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";
     private static final String PAPER_MARKER = "io.papermc.paper.configuration.Configuration";
@@ -87,6 +94,67 @@ public final class PlatformCapabilities {
         };
     }
 
+    public CompatibilityReport compatibilityReport(String coreLibVersion) {
+        String minecraftVersion = minecraftVersion();
+        int javaFeature = Runtime.version().feature();
+        String platform = folia ? "FOLIA" : paper ? "PAPER" : "UNSUPPORTED";
+        List<CompatibilityReport.Issue> issues = new ArrayList<>();
+        if (javaFeature < MINIMUM_JAVA_FEATURE) {
+            issues.add(new CompatibilityReport.Issue(
+                    CompatibilityReport.Severity.ERROR,
+                    "JAVA_TOO_OLD",
+                    "Java " + MINIMUM_JAVA_FEATURE + " or newer is required; detected " + javaFeature + "."));
+        }
+        if (!paper) {
+            issues.add(new CompatibilityReport.Issue(
+                    CompatibilityReport.Severity.ERROR,
+                    "PAPER_REQUIRED",
+                    "Paper or Folia runtime capabilities are required."));
+        }
+        if (folia && !foliaBackendReady()) {
+            issues.add(new CompatibilityReport.Issue(
+                    CompatibilityReport.Severity.ERROR,
+                    "FOLIA_CAPABILITIES_MISSING",
+                    "Folia was detected but required scheduler or ownership capabilities are unavailable."));
+        }
+        boolean minecraftKnown = minecraftVersion != null && !minecraftVersion.isBlank();
+        if (!minecraftKnown) {
+            issues.add(new CompatibilityReport.Issue(
+                    CompatibilityReport.Severity.WARNING,
+                    "MINECRAFT_VERSION_UNKNOWN",
+                    "The Minecraft server version could not be determined; the runtime is not verified."));
+        } else if (compareVersions(minecraftVersion, MINIMUM_MINECRAFT_VERSION) < 0) {
+            issues.add(new CompatibilityReport.Issue(
+                    CompatibilityReport.Severity.WARNING,
+                    "MINECRAFT_TOO_OLD",
+                    "Minecraft " + minecraftVersion + " is below the verified baseline "
+                            + MINIMUM_MINECRAFT_VERSION + "."));
+        } else if (compareVersions(minecraftVersion, VERIFIED_MAXIMUM_EXCLUSIVE) >= 0) {
+            issues.add(new CompatibilityReport.Issue(
+                    CompatibilityReport.Severity.WARNING,
+                    "MINECRAFT_NEWER_UNVERIFIED",
+                    "Minecraft " + minecraftVersion + " is newer than the verified range below "
+                            + VERIFIED_MAXIMUM_EXCLUSIVE + "."));
+        }
+        boolean compatible = issues.stream().noneMatch(issue -> issue.severity() == CompatibilityReport.Severity.ERROR);
+        boolean verified = compatible && minecraftKnown
+                && compareVersions(minecraftVersion, MINIMUM_MINECRAFT_VERSION) >= 0
+                && compareVersions(minecraftVersion, VERIFIED_MAXIMUM_EXCLUSIVE) < 0;
+        return new CompatibilityReport(
+                compatible,
+                verified,
+                platform,
+                minecraftVersion,
+                System.getProperty("java.version", ""),
+                javaFeature,
+                coreLibVersion,
+                MINIMUM_MINECRAFT_VERSION,
+                VERIFIED_MAXIMUM_EXCLUSIVE,
+                MINIMUM_JAVA_FEATURE,
+                issues
+        );
+    }
+
     public boolean isClassAvailable(String className) {
         return classAvailable(className, classLoader);
     }
@@ -114,6 +182,56 @@ public final class PlatformCapabilities {
         } catch (RuntimeException | LinkageError ignored) {
             return false;
         }
+    }
+
+    private String minecraftVersion() {
+        if (server == null) {
+            return "";
+        }
+        try {
+            return Objects.requireNonNullElse(server.getMinecraftVersion(), "").trim();
+        } catch (RuntimeException | LinkageError ignored) {
+            return "";
+        }
+    }
+
+    private static int compareVersions(String left, String right) {
+        int[] leftParts = numericVersionParts(left);
+        int[] rightParts = numericVersionParts(right);
+        int length = Math.max(leftParts.length, rightParts.length);
+        for (int index = 0; index < length; index++) {
+            int leftPart = index < leftParts.length ? leftParts[index] : 0;
+            int rightPart = index < rightParts.length ? rightParts[index] : 0;
+            if (leftPart != rightPart) {
+                return Integer.compare(leftPart, rightPart);
+            }
+        }
+        return 0;
+    }
+
+    private static int[] numericVersionParts(String value) {
+        if (value == null || value.isBlank()) {
+            return new int[0];
+        }
+        String[] tokens = value.trim().split("[^0-9]+");
+        int[] parts = new int[tokens.length];
+        int count = 0;
+        for (String token : tokens) {
+            if (token.isBlank()) {
+                continue;
+            }
+            try {
+                parts[count++] = Integer.parseInt(token);
+            } catch (NumberFormatException ignored) {
+                parts[count++] = 0;
+            }
+        }
+        if (count == parts.length) {
+            return parts;
+        }
+        int[] compact = new int[count];
+        System.arraycopy(parts, 0, compact, 0, count);
+        return compact;
     }
 
     private PluginManager pluginManager() {

@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.ForgeRuntimeSnapshot;
 
 final class ConfiguredGuiSupport {
 
@@ -35,6 +36,11 @@ final class ConfiguredGuiSupport {
 
     Object raw(String guiId, String path) {
         YamlSection configuration = configuration(guiId);
+        return configuration == null || Texts.isBlank(path) ? null : configuration.get(path);
+    }
+
+    Object raw(ForgeRuntimeSnapshot runtime, String guiId, String path) {
+        YamlSection configuration = configuration(runtime, guiId);
         return configuration == null || Texts.isBlank(path) ? null : configuration.get(path);
     }
 
@@ -58,12 +64,34 @@ final class ConfiguredGuiSupport {
         return GuiItemBuilder.build(definition, replacements, plugin.coreLib().configuredItemService());
     }
 
+    ItemStack build(ForgeRuntimeSnapshot runtime,
+            String guiId,
+            String path,
+            Map<String, ?> replacements,
+            String fallbackItem,
+            ItemComponentParser.ItemComponents fallbackComponents) {
+        Object raw = raw(runtime, guiId, path);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, fallbackItem, fallbackComponents);
+        return GuiItemBuilder.build(definition, replacements, plugin.coreLib().configuredItemService());
+    }
+
     ItemStack apply(String guiId,
             String path,
             ItemStack baseItem,
             Map<String, ?> replacements,
             ItemComponentParser.ItemComponents fallbackComponents) {
         Object raw = raw(guiId, path);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, null, fallbackComponents);
+        return GuiItemBuilder.apply(baseItem, definition, replacements, plugin.coreLib().configuredItemService());
+    }
+
+    ItemStack apply(ForgeRuntimeSnapshot runtime,
+            String guiId,
+            String path,
+            ItemStack baseItem,
+            Map<String, ?> replacements,
+            ItemComponentParser.ItemComponents fallbackComponents) {
+        Object raw = raw(runtime, guiId, path);
         ConfiguredItemDefinition definition = configuredDefinition(raw, null, fallbackComponents);
         return GuiItemBuilder.apply(baseItem, definition, replacements, plugin.coreLib().configuredItemService());
     }
@@ -79,8 +107,31 @@ final class ConfiguredGuiSupport {
                 : ExpressionEngine.evaluateStringConfig(value, safeReplacements);
     }
 
+    String text(ForgeRuntimeSnapshot runtime,
+            String guiId,
+            String path,
+            String fallback,
+            Map<String, ?> replacements) {
+        Object value = raw(runtime, guiId, path);
+        if (value == null || Texts.isBlank(value)) {
+            value = fallback;
+        }
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        return value instanceof String text
+                ? Texts.formatTemplate(text, safeReplacements)
+                : ExpressionEngine.evaluateStringConfig(value, safeReplacements);
+    }
+
     private YamlSection configuration(String guiId) {
         var entry = plugin.guiTemplateLoader().entry(guiId);
+        return entry == null ? null : entry.configuration();
+    }
+
+    private YamlSection configuration(ForgeRuntimeSnapshot runtime, String guiId) {
+        if (runtime == null || runtime.guiTemplateLoader() == null) {
+            return null;
+        }
+        var entry = runtime.guiTemplateLoader().entry(guiId);
         return entry == null ? null : entry.configuration();
     }
 

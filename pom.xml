@@ -58,8 +58,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.5.17</emaki.corelib.version>
-        <paper.api.version>1.21.11-R0.1-SNAPSHOT</paper.api.version>
+        <emaki.corelib.version>4.5.18</emaki.corelib.version>
+        <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>
         <jetbrains.annotations.version>26.1.0</jetbrains.annotations.version>

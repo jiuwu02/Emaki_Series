@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
+import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreAction;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionDescriptor;
@@ -49,6 +50,11 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public boolean isReady() {
         return plugin.isEnabled() && plugin.messageService() != null;
+    }
+
+    @Override
+    public CompatibilityReport compatibilityReport() {
+        return platformCapabilities.compatibilityReport(apiVersion());
     }
 
     @Override

@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.item.service;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceProbe;
+import emaki.jiuwu.craft.corelib.item.ItemSourceProbeStatus;
 import emaki.jiuwu.craft.corelib.item.ItemSourceResolver;
 import emaki.jiuwu.craft.corelib.item.ItemSourceType;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -33,22 +35,74 @@ public final class EmakiItemSourceResolver implements ItemSourceResolver {
 
     @Override
     public boolean isAvailable(ItemSource source) {
-        return supports(source) && api.exists(source.getIdentifier());
+        return probe(source).ready();
+    }
+
+    @Override
+    public ItemSourceProbe probe(ItemSource source) {
+        if (!supports(source) || Texts.isBlank(source.getIdentifier())) {
+            return ItemSourceProbe.of(
+                    ItemSourceProbeStatus.INVALID_SOURCE,
+                    source,
+                    id(),
+                    "The EmakiItem source type and identifier are required."
+            );
+        }
+        try {
+            if (!api.isReady()) {
+                return ItemSourceProbe.of(
+                        ItemSourceProbeStatus.PROVIDER_NOT_READY,
+                        source,
+                        id(),
+                        "EmakiItem is installed but its runtime is not ready."
+                );
+            }
+            return api.exists(source.getIdentifier())
+                    ? ItemSourceProbe.ready(source, id())
+                    : ItemSourceProbe.of(
+                    ItemSourceProbeStatus.SOURCE_NOT_FOUND,
+                    source,
+                    id(),
+                    "EmakiItem does not contain the requested item definition."
+            );
+        } catch (LinkageError exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.INCOMPATIBLE, source, id(), detail(exception));
+        } catch (RuntimeException exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.RESOLUTION_ERROR, source, id(), detail(exception));
+        }
     }
 
     @Override
     public ItemSource identify(ItemStack itemStack) {
+        if (!readyForAccess()) {
+            return null;
+        }
         String id = api.identify(itemStack);
         return Texts.isBlank(id) ? null : new ItemSource(ItemSourceType.EMAKIITEM, id);
     }
 
     @Override
     public ItemStack create(ItemSource source, int amount) {
-        return supports(source) ? api.create(source.getIdentifier(), amount) : null;
+        return supports(source) && readyForAccess() ? api.create(source.getIdentifier(), amount) : null;
     }
 
     @Override
     public String displayName(ItemSource source) {
-        return supports(source) ? api.displayName(source.getIdentifier()) : null;
+        return supports(source) && readyForAccess() ? api.displayName(source.getIdentifier()) : null;
+    }
+
+    private boolean readyForAccess() {
+        try {
+            return api.isReady();
+        } catch (LinkageError | RuntimeException ignored) {
+            return false;
+        }
+    }
+
+    private String detail(Throwable throwable) {
+        String message = throwable == null ? null : throwable.getMessage();
+        return message == null || message.isBlank()
+                ? throwable == null ? "Unknown EmakiItem resolution failure" : throwable.getClass().getSimpleName()
+                : message;
     }
 }

@@ -18,6 +18,32 @@ public interface ItemSourceResolver {
         return supports(source);
     }
 
+    default ItemSourceProbe probe(ItemSource source) {
+        if (source == null || source.getType() == null || !supports(source)) {
+            return ItemSourceProbe.of(
+                    ItemSourceProbeStatus.INVALID_SOURCE,
+                    source,
+                    id(),
+                    "The item source is invalid or unsupported by this resolver."
+            );
+        }
+        try {
+            if (!isAvailable(source)) {
+                return ItemSourceProbe.of(
+                        ItemSourceProbeStatus.SOURCE_NOT_FOUND,
+                        source,
+                        id(),
+                        "The provider does not contain the requested item source."
+                );
+            }
+            return ItemSourceProbe.ready(source, id());
+        } catch (LinkageError exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.INCOMPATIBLE, source, id(), detail(exception));
+        } catch (RuntimeException exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.RESOLUTION_ERROR, source, id(), detail(exception));
+        }
+    }
+
     ItemSource identify(ItemStack itemStack);
 
     ItemStack create(ItemSource source, int amount);
@@ -36,5 +62,13 @@ public interface ItemSourceResolver {
         }
         String displayName = MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
         return Texts.isBlank(displayName) ? null : displayName;
+    }
+
+    private static String detail(Throwable throwable) {
+        if (throwable == null) {
+            return "Unknown resolution failure";
+        }
+        String message = throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 }

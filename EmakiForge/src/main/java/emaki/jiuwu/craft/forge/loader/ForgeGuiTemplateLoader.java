@@ -12,14 +12,21 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader.LoadedYamlEntry;
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.loader.RecipeLoader.CandidateDocument;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 
 public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
+    public record CandidateIssue(File file, String code, String summary) {
+    }
+
     private final ItemIdentifierService itemIdentifierService;
     private final boolean deferRuntimeValidation;
+    private final List<CandidateIssue> candidateIssues = new ArrayList<>();
 
     public ForgeGuiTemplateLoader(EmakiForgePlugin plugin, ItemIdentifierService itemIdentifierService) {
         this(plugin, itemIdentifierService, false);
@@ -41,6 +48,78 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
         return parsePrioritized(configuration);
     }
 
+    public void prepareCandidateFiles(File directory, List<File> files) {
+        synchronized (stateLock) {
+            items.clear();
+            loadedEntries.clear();
+            issues.clear();
+            candidateIssues.clear();
+            loaded = false;
+        }
+    }
+
+    public List<CandidateIssue> candidateIssues() {
+        synchronized (stateLock) {
+            return List.copyOf(candidateIssues);
+        }
+    }
+
+    public void loadCandidateDocuments(List<CandidateDocument> documents) {
+        synchronized (stateLock) {
+            items.clear();
+            loadedEntries.clear();
+            loaded = false;
+            if (documents != null) {
+                for (CandidateDocument document : documents) {
+                    if (document == null || document.file() == null) {
+                        continue;
+                    }
+                    if (document.failure() != null) {
+                        onLoadFailure(document.file(), document.failure());
+                        recordCandidateIssue(document.file(), "GUI_LOAD_FAILED",
+                                "GUI template file load failed: " + failureSummary(document.failure()));
+                        continue;
+                    }
+                    try {
+                        YamlSection configuration = document.content() == null
+                                ? new MapYamlSection()
+                                : YamlFiles.load(document.content());
+                        GuiTemplate value = parse(document.file(), configuration);
+                        if (value == null) {
+                            recordCandidateIssue(document.file(), "GUI_INVALID_CONFIG",
+                                    "GUI template configuration could not be parsed.");
+                            continue;
+                        }
+                        String id = idOf(value);
+                        if (Texts.isBlank(id)) {
+                            onBlankId(document.file());
+                            recordCandidateIssue(document.file(), "GUI_BLANK_ID",
+                                    "GUI template id cannot be blank.");
+                            continue;
+                        }
+                        if (items.containsKey(id)) {
+                            onDuplicateId(document.file(), id);
+                            recordCandidateIssue(document.file(), "GUI_DUPLICATE_ID",
+                                    "Duplicate GUI template id '" + id + "'.");
+                            continue;
+                        }
+                        items.put(id, value);
+                        loadedEntries.put(id, new LoadedYamlEntry<>(
+                                id,
+                                document.file(),
+                                configuration.copy(),
+                                value));
+                    } catch (Exception exception) {
+                        onLoadFailure(document.file(), exception);
+                        recordCandidateIssue(document.file(), "GUI_LOAD_FAILED",
+                                "GUI template file load failed: " + failureSummary(exception));
+                    }
+                }
+            }
+            loaded = true;
+        }
+    }
+
     public void completeDeferredRuntimeValidation() {
         if (!deferRuntimeValidation) {
             return;
@@ -50,15 +129,34 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
             items.clear();
             loadedEntries.clear();
             for (LoadedYamlEntry<GuiTemplate> entry : parsedEntries.values()) {
-                GuiTemplate template = parsePrioritized(entry.configuration());
-                if (template == null) {
-                    continue;
+                try {
+                    GuiTemplate template = parsePrioritized(entry.configuration());
+                    if (template == null) {
+                        recordCandidateIssue(entry.file(), "GUI_FINALIZATION_FAILED",
+                                "GUI template could not be finalized after source validation.");
+                        continue;
+                    }
+                    items.put(entry.id(), template);
+                    loadedEntries.put(entry.id(), new LoadedYamlEntry<>(
+                            entry.id(), entry.file(), entry.configuration().copy(), template));
+                } catch (RuntimeException | LinkageError failure) {
+                    recordCandidateIssue(entry.file(), "GUI_FINALIZATION_FAILED",
+                            "GUI template finalization failed: " + failureSummary(failure));
                 }
-                items.put(entry.id(), template);
-                loadedEntries.put(entry.id(), new LoadedYamlEntry<>(
-                        entry.id(), entry.file(), entry.configuration().copy(), template));
             }
         }
+    }
+
+    private void recordCandidateIssue(File file, String code, String summary) {
+        candidateIssues.add(new CandidateIssue(file, Texts.toStringSafe(code), Texts.toStringSafe(summary)));
+    }
+
+    private String failureSummary(Throwable throwable) {
+        if (throwable == null) {
+            return "unknown failure";
+        }
+        String message = Texts.toStringSafe(throwable.getMessage()).trim();
+        return message.isEmpty() ? throwable.getClass().getSimpleName() : message;
     }
 
     private GuiTemplate parsePrioritized(YamlSection configuration) {

@@ -9,7 +9,7 @@
 
 # version is maintained by resource sync
 
-version: "4.5.7"
+version: "4.5.9"
 
 # General messages
 general:
@@ -237,6 +237,15 @@ forge:
     material_count_exceeded: "<red>Optional material count exceeded.</red>"
     item_create: "<red>Unable to create result item.</red>"
     action_failed: "<red>Forge action execution failed: %reason%</red>"
+    runtime_unavailable: "<red>The forge runtime is unavailable (state: %state%).</red>"
+    runtime:
+      reloading: "<yellow>The forge runtime is reloading. Please try again shortly.</yellow>"
+      no_recipes: "<red>No forge recipes are currently available.</red>"
+      load_failed: "<red>Forge configuration failed to load. Please contact an administrator.</red>"
+      capability_missing: "<red>A required item-source capability is unavailable.</red>"
+      index_unavailable: "<red>The forge lookup index is not ready yet.</red>"
+      closed: "<red>The forge runtime is closed.</red>"
+      stale_session: "<yellow>This forge screen belongs to an older configuration and was closed.</yellow>"
     lore_search_not_found: "<red>Lore search insert target not found: %pattern%</red>"
     lore_invalid_action_name: "<red>Invalid lore search action: %action%</red>"
     lore_invalid_regex: "<red>Invalid lore search regex: %pattern%</red>"

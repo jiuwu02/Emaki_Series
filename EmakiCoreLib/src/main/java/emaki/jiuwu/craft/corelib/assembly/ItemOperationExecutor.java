@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.assembly;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -29,21 +30,21 @@ final class ItemOperationExecutor {
     }
 
     public ExecutionResult execute(ItemStack itemStack,
-            String operationId,
-            String sourceNamespace,
-            Object nameActions,
-            Object loreActions,
-            Map<String, ?> variables) {
+                                   String operationId,
+                                   String sourceNamespace,
+                                   Object nameActions,
+                                   Object loreActions,
+                                   Map<String, ?> variables) {
         return execute(null, itemStack, operationId, sourceNamespace, nameActions, loreActions, variables);
     }
 
     public ExecutionResult execute(ActionContext context,
-            ItemStack itemStack,
-            String operationId,
-            String sourceNamespace,
-            Object nameActions,
-            Object loreActions,
-            Map<String, ?> variables) {
+                                   ItemStack itemStack,
+                                   String operationId,
+                                   String sourceNamespace,
+                                   Object nameActions,
+                                   Object loreActions,
+                                   Map<String, ?> variables) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return ExecutionResult.EMPTY;
         }
@@ -72,8 +73,6 @@ final class ItemOperationExecutor {
         }
 
 
-
-
         itemStack.setItemMeta(itemMeta);
         if (!nameRecords.isEmpty()) {
             applyNameState(context, itemStack, nameState);
@@ -86,7 +85,6 @@ final class ItemOperationExecutor {
                 nameRecords,
                 loreRecords
         );
-        ledger.append(itemStack, entry);
         debug(context, "apply success | operationId=" + operationId
                 + " | nameRecords=" + nameRecords.size()
                 + " | loreRecords=" + loreRecords.size());
@@ -94,9 +92,9 @@ final class ItemOperationExecutor {
     }
 
     private List<ItemOperationEntry.NameOperationRecord> collectNameRecords(ActionContext context,
-            ItemMeta itemMeta,
-            List<Map<String, Object>> operations,
-            Map<String, Object> variables) {
+                                                                            ItemMeta itemMeta,
+                                                                            List<Map<String, Object>> operations,
+                                                                            Map<String, Object> variables) {
         if (operations == null || operations.isEmpty()) {
             return List.of();
         }
@@ -152,8 +150,8 @@ final class ItemOperationExecutor {
     }
 
     private LocalNameState resolveNameState(ActionContext context,
-            List<Map<String, Object>> operations,
-            Map<String, Object> variables) {
+                                            List<Map<String, Object>> operations,
+                                            Map<String, Object> variables) {
         LocalNameState nameState = new LocalNameState();
         if (operations != null && !operations.isEmpty()) {
             nameOperations.apply(nameState, operations, variables, context, ledger.debugLogger());
@@ -174,9 +172,9 @@ final class ItemOperationExecutor {
     }
 
     private List<ItemOperationEntry.LoreOperationRecord> executeLoreActions(ActionContext context,
-            ItemMeta itemMeta,
-            List<Map<String, Object>> operations,
-            Map<String, Object> variables) {
+                                                                            ItemMeta itemMeta,
+                                                                            List<Map<String, Object>> operations,
+                                                                            Map<String, Object> variables) {
         if (operations == null || operations.isEmpty()) {
             return List.of();
         }
@@ -224,24 +222,24 @@ final class ItemOperationExecutor {
 
             records.add(records.isEmpty()
                     ? new ItemOperationEntry.LoreOperationRecord(
-                            action,
-                            contentLines,
-                            anchor,
-                            originalLines,
-                            new ArrayList<>(currentLore),
-                            requestedIndex,
-                            regexPattern,
-                            regexReplacement
-                    )
+                    action,
+                    contentLines,
+                    anchor,
+                    originalLines,
+                    new ArrayList<>(currentLore),
+                    requestedIndex,
+                    regexPattern,
+                    regexReplacement
+            )
                     : new ItemOperationEntry.LoreOperationRecord(
-                            action,
-                            contentLines,
-                            anchor,
-                            originalLines,
-                            requestedIndex,
-                            regexPattern,
-                            regexReplacement
-                    ));
+                    action,
+                    contentLines,
+                    anchor,
+                    originalLines,
+                    requestedIndex,
+                    regexPattern,
+                    regexReplacement
+            ));
             processor.process(currentLore, new LoreOperationProcessor.Context(operation, contentLines, anchor, variables));
         }
 

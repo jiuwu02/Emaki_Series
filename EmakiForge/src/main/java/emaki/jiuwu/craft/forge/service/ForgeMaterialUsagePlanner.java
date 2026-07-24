@@ -19,9 +19,16 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 final class ForgeMaterialUsagePlanner {
 
     private final EmakiForgePlugin plugin;
+    private final ItemIdentifierService itemIdentifierService;
 
     ForgeMaterialUsagePlanner(EmakiForgePlugin plugin) {
         this.plugin = plugin;
+        this.itemIdentifierService = null;
+    }
+
+    ForgeMaterialUsagePlanner(ItemIdentifierService itemIdentifierService) {
+        this.plugin = null;
+        this.itemIdentifierService = itemIdentifierService;
     }
 
     List<ForgeMaterialContribution> collectMaterialContributions(Recipe recipe, GuiItems guiItems) {
@@ -280,9 +287,10 @@ final class ForgeMaterialUsagePlanner {
     }
 
     private ItemSource identify(ItemStack itemStack) {
-        return plugin == null || plugin.itemIdentifierService() == null || isEmpty(itemStack)
-                ? null
-                : plugin.itemIdentifierService().identifyItem(itemStack);
+        ItemIdentifierService identifier = itemIdentifierService != null
+                ? itemIdentifierService
+                : plugin == null ? null : plugin.itemIdentifierService();
+        return identifier == null || isEmpty(itemStack) ? null : identifier.identifyItem(itemStack);
     }
 
     private int unitAmount(ForgeMaterial material) {

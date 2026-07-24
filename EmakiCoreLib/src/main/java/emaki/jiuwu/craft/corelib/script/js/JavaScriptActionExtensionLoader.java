@@ -153,9 +153,19 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
 
     @Override
     public void close() {
+        closeInternal(true);
+    }
+
+    public void closeAfterBukkitUnregister() {
+        closeInternal(false);
+    }
+
+    private void closeInternal(boolean unregisterBukkitListeners) {
         if (eventRegistry != null) {
-            HandlerList.unregisterAll(eventRegistry);
-            eventRegistry.close();
+            if (unregisterBukkitListeners) {
+                HandlerList.unregisterAll(eventRegistry);
+            }
+            eventRegistry.clear();
             eventRegistry = null;
         }
         if (expressionFunctionRegistry != null) {

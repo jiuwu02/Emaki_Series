@@ -75,6 +75,12 @@ public final class EmakiCoreLibApi {
         return resolved != null && resolved.isReady();
     }
 
+    /** {@return the current runtime compatibility report} */
+    public static @NotNull CompatibilityReport compatibilityReport() {
+        Bridge resolved = bridge;
+        return resolved == null ? CompatibilityReport.unavailable() : resolved.compatibilityReport();
+    }
+
     /**
      * Resolves a unified display name for an item source shorthand or identifier.
      *
@@ -240,6 +246,11 @@ public final class EmakiCoreLibApi {
 
         /** {@return whether the backing plugin is initialized and usable} */
         boolean isReady();
+
+        /** {@return the current runtime compatibility report} */
+        default @NotNull CompatibilityReport compatibilityReport() {
+            return CompatibilityReport.unavailable();
+        }
 
         /** {@return unified MiniMessage display name for an item source shorthand} */
         @NotNull

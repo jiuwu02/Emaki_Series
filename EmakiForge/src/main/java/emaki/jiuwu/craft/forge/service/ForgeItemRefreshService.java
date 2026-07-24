@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -48,8 +49,8 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     private final Set<String> warningCache = new LinkedHashSet<>();
 
     public ForgeItemRefreshService(EmakiForgePlugin plugin,
-            EmakiItemAssemblyService itemAssemblyService,
-            ExecutionDispatcher executionDispatcher) {
+                                   EmakiItemAssemblyService itemAssemblyService,
+                                   ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
         this.executionDispatcher = executionDispatcher;
@@ -60,16 +61,25 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
 
     public CompletableFuture<RefreshSummary> refreshOnlinePlayers() {
+        return refreshOnlinePlayers(plugin.runtimeGeneration());
+    }
+
+    public CompletableFuture<RefreshSummary> refreshOnlinePlayers(long generation) {
+        long started = System.nanoTime();
         synchronized (warningCache) {
             warningCache.clear();
         }
         List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
         if (players.isEmpty()) {
-            return CompletableFuture.completedFuture(new RefreshSummary(0, 0));
+            return CompletableFuture.completedFuture(new RefreshSummary(generation, 0, 0, 0, 0,
+                    !plugin.isGenerationActive(generation), System.nanoTime() - started));
         }
-        List<CompletableFuture<Boolean>> refreshes = new ArrayList<>(players.size());
+        AtomicInteger refreshed = new AtomicInteger();
+        AtomicInteger skipped = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+        List<CompletableFuture<Void>> refreshes = new ArrayList<>(players.size());
         for (Player player : players) {
-            CompletableFuture<Boolean> refresh = new CompletableFuture<>();
+            CompletableFuture<Void> refresh = new CompletableFuture<>();
             refreshes.add(refresh);
             try {
                 var scheduled = executionDispatcher.runEntity(
@@ -77,29 +87,42 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                         player,
                         () -> {
                             try {
-                                if (!player.isOnline()) {
-                                    refresh.complete(false);
+                                if (!player.isOnline() || !plugin.isGenerationActive(generation)) {
+                                    skipped.incrementAndGet();
+                                    refresh.complete(null);
                                     return;
                                 }
                                 refreshPlayerInventory(player);
-                                refresh.complete(true);
+                                refreshed.incrementAndGet();
+                                refresh.complete(null);
                             } catch (Throwable throwable) {
+                                failed.incrementAndGet();
                                 refresh.completeExceptionally(throwable);
                             }
                         },
-                        () -> refresh.complete(false));
+                        () -> {
+                            skipped.incrementAndGet();
+                            refresh.complete(null);
+                        });
                 if (scheduled == null) {
+                    failed.incrementAndGet();
                     refresh.completeExceptionally(new RejectedExecutionException(
-                            "Forge player refresh scheduling was rejected for " + player.getUniqueId()));
+                            "Forge player refresh scheduling was rejected."));
                 }
             } catch (Throwable throwable) {
+                failed.incrementAndGet();
                 refresh.completeExceptionally(throwable);
             }
         }
         return CompletableFuture.allOf(refreshes.toArray(CompletableFuture[]::new))
-                .thenApply(ignored -> new RefreshSummary(
+                .handle((ignored, throwable) -> new RefreshSummary(
+                        generation,
                         players.size(),
-                        (int) refreshes.stream().filter(future -> Boolean.TRUE.equals(future.join())).count()));
+                        refreshed.get(),
+                        skipped.get(),
+                        failed.get(),
+                        !plugin.isGenerationActive(generation),
+                        System.nanoTime() - started));
     }
 
     @Override
@@ -119,12 +142,12 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             inventory.setArmorContents(armor);
         }
         ItemStack offHand = inventory.getItemInOffHand();
-        ItemStack refreshedOffHand = refreshItem(player, "offhand", offHand);
+        ItemStack refreshedOffHand = refreshItem(player, "offhand", offHand, true);
         if (refreshedOffHand != offHand) {
             inventory.setItemInOffHand(refreshedOffHand);
         }
         ItemStack cursor = player.getItemOnCursor();
-        ItemStack refreshedCursor = refreshItem(player, "cursor", cursor);
+        ItemStack refreshedCursor = refreshItem(player, "cursor", cursor, true);
         if (refreshedCursor != cursor) {
             player.setItemOnCursor(refreshedCursor);
         }
@@ -146,6 +169,10 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     }
 
     private ItemStack refreshItem(Player player, String target, ItemStack itemStack) {
+        return refreshItem(player, target, itemStack, false);
+    }
+
+    private ItemStack refreshItem(Player player, String target, ItemStack itemStack, boolean failOnRefreshError) {
         RefreshPlan plan = buildRefreshPlan(itemStack);
         if (plan == null || !plan.shouldRefresh()) {
             return itemStack;
@@ -177,12 +204,19 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                     "console.forge_refresh_failed",
                     Map.of("recipe", plan.recipe().id())
             );
+            if (failOnRefreshError) {
+                throw new IllegalStateException("Forge item assembly failed for recipe '" + plan.recipe().id() + "'.");
+            }
             return itemStack;
         }
         debugForgeRefresh(player, target, "assembly_output", plan, rebuilt);
         StateLoss stateLoss = detectStateLoss(itemStack, rebuilt);
         if (stateLoss.detected()) {
             debugForgeStateLoss(player, target, plan, stateLoss, itemStack, rebuilt);
+            if (failOnRefreshError) {
+                throw new IllegalStateException("Forge item refresh would discard persistent state for recipe '"
+                        + plan.recipe().id() + "'.");
+            }
             return itemStack;
         }
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
@@ -199,7 +233,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         boolean changed = false;
         for (int index = 0; index < items.length; index++) {
             ItemStack original = items[index];
-            ItemStack refreshed = refreshItem(player, targetPrefix + ":" + index, original);
+            ItemStack refreshed = refreshItem(player, targetPrefix + ":" + index, original, true);
             if (refreshed != original) {
                 items[index] = refreshed;
                 changed = true;
@@ -217,7 +251,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         for (int index = 0; index < armor.length; index++) {
             ItemStack original = armor[index];
             String target = "armor:" + (index < slots.length ? slots[index] : index);
-            ItemStack refreshed = refreshItem(player, target, original);
+            ItemStack refreshed = refreshItem(player, target, original, true);
             if (refreshed != original) {
                 armor[index] = refreshed;
                 changed = true;
@@ -377,11 +411,11 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     }
 
     private void debugForgeStateLoss(Player player,
-            String target,
-            RefreshPlan plan,
-            StateLoss stateLoss,
-            ItemStack original,
-            ItemStack rebuilt) {
+                                     String target,
+                                     RefreshPlan plan,
+                                     StateLoss stateLoss,
+                                     ItemStack original,
+                                     ItemStack rebuilt) {
         DebugLogger debugLogger = plugin.debugLogger();
         if (debugLogger == null || !debugLogger.shouldLog("forge", player)) {
             return;
@@ -419,9 +453,9 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 + " set_signature=" + shortValue(pdcString(itemMeta, "set_signature"))
                 + " set_lore_lines=" + Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), "-")
                 + " operations=" + entries.stream()
-                        .filter(Objects::nonNull)
-                        .map(entry -> entry.sourceNamespace() + ":" + entry.operationId())
-                        .toList();
+                .filter(Objects::nonNull)
+                .map(entry -> entry.sourceNamespace() + ":" + entry.operationId())
+                .toList();
     }
 
     private String pdcString(ItemMeta itemMeta, String field) {
@@ -544,19 +578,29 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         return variables;
     }
 
-    public record RefreshSummary(int players, int refreshed) {
+    public record RefreshSummary(long generation,
+                                 int players,
+                                 int refreshed,
+                                 int skipped,
+                                 int failed,
+                                 boolean stale,
+                                 long durationNanos) {
+
+        public static RefreshSummary empty() {
+            return new RefreshSummary(0L, 0, 0, 0, 0, false, 0L);
+        }
     }
 
     private record StateLoss(boolean detected, List<String> missingPdc, List<String> missingOperations) {
     }
 
     private record RefreshPlan(boolean shouldRefresh,
-            Recipe recipe,
-            List<ForgeMaterialContribution> materials,
-            QualitySettings.QualityTier qualityTier,
-            double multiplier,
-            long forgedAt,
-            String signature) {
+                               Recipe recipe,
+                               List<ForgeMaterialContribution> materials,
+                               QualitySettings.QualityTier qualityTier,
+                               double multiplier,
+                               long forgedAt,
+                               String signature) {
 
     }
 }

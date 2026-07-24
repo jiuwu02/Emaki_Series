@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.5.17"
+version: "4.5.18"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -139,8 +139,10 @@ debug:
     player_removed: "<yellow>已停止追踪玩家: <aqua>%player%</aqua></yellow>"
     module_enabled: "<green>已开启模块追踪: <yellow>%module%</yellow></green>"
     module_disabled: "<yellow>已关闭模块追踪: <gray>%module%</gray></yellow>"
-    all_enabled: "<green>已开启全局 Debug（所有玩家+所有模块）</green>"
-    all_disabled: "<yellow>已关闭所有 Debug 追踪</yellow>"
+    all_enabled: "<green>已开启当前模块的 Debug（所有玩家+所有模块）</green>"
+    all_disabled: "<yellow>已关闭当前模块的所有 Debug 追踪</yellow>"
+    global_all_enabled: "<green>已开启 CoreLib 全局 Debug（所有 Emaki 模块）</green>"
+    global_all_disabled: "<yellow>已关闭 CoreLib 全局 Debug</yellow>"
     player_not_found: "<red>找不到在线玩家: %player%</red>"
     available_modules: "<gray>可用模块: <yellow>%modules%</yellow></gray>"
   action:
@@ -181,4 +183,5 @@ command:
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - 执行配置预检或查看最近报告</gray>"
   help_script: "<green>%root% script [list|inspect|reload]</green><gray> - 查看或重载 JavaScript 扩展</gray>"
   help_action: "<green>%root% action [list|run <actionId> key=value ...]</green><gray> - 查看并直接执行已注册 Action</gray>"
+  help_debug_all: "<green>%root% debug all [on|off|status]</green><gray> - 控制所有 Emaki 模块的全局 Debug（重载后以配置为准）</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消循环 Action 任务</gray>"

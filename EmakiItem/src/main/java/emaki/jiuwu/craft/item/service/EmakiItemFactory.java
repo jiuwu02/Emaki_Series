@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,11 +14,13 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
+import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -128,11 +131,19 @@ public final class EmakiItemFactory {
         }
         Map<String, Object> variables = resolveBuildVariables(definition.variables());
         ConfiguredItemDefinition resolvedDefinition = resolveItemDefinition(definition.itemDefinition(), variables).withAmount(1);
-        ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(resolvedDefinition);
-        if (!result.success() || result.itemStack() == null) {
+        if (!EmakiItemPlugin.requireCoreLibCompatibility("createConfiguredItem")) {
             return null;
         }
-        return new PreparedBuild(result.itemStack(), resolvedDefinition, variables);
+        try {
+            ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(resolvedDefinition);
+            if (!result.success() || result.itemStack() == null) {
+                return null;
+            }
+            return new PreparedBuild(result.itemStack(), resolvedDefinition, variables);
+        } catch (RuntimeException | LinkageError exception) {
+            EmakiItemPlugin.reportCoreLibApiFailure("createConfiguredItem", exception);
+            return null;
+        }
     }
 
     ItemStack finishBuild(ItemStack itemStack,
@@ -144,6 +155,66 @@ public final class EmakiItemFactory {
         pdcWriter.write(itemStack, definition, variables == null ? Map.of() : variables);
         applyDisplayActions(itemStack, definition, variables == null ? Map.of() : variables);
         return itemStack;
+    }
+
+    FinishedBuild finishBuild(ItemStack itemStack,
+            EmakiItemDefinition definition,
+            Map<String, Object> variables,
+            ItemOperationLedger.ReadResult readResult) {
+        ItemOperationLedger.ReadResult currentReadResult = readResult == null
+                ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                : readResult;
+        if (itemStack == null || definition == null || currentReadResult.corrupt()) {
+            return new FinishedBuild(false, itemStack, currentReadResult);
+        }
+        Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
+        pdcWriter.write(itemStack, definition, safeVariables);
+        ItemOperationLedger.UpdateResult reverted = revertDisplayOperations(itemStack, currentReadResult);
+        if (!reverted.success()) {
+            return new FinishedBuild(false, itemStack, reverted.readResult());
+        }
+        currentReadResult = reverted.readResult();
+        if (!hasActions(definition.nameActions()) && !hasActions(definition.loreActions())) {
+            return new FinishedBuild(true, itemStack, currentReadResult);
+        }
+        ItemOperationLedger.UpdateResult applied = itemOperationLedger.apply(
+                itemStack,
+                currentReadResult,
+                "emakiitem:item_display:" + definition.id(),
+                DISPLAY_OPERATION_NAMESPACE,
+                definition.nameActions(),
+                definition.loreActions(),
+                safeVariables
+        );
+        return new FinishedBuild(applied.success(), itemStack, applied.readResult());
+    }
+
+    private ItemOperationLedger.UpdateResult revertDisplayOperations(
+            ItemStack itemStack,
+            ItemOperationLedger.ReadResult initialReadResult) {
+        ItemOperationLedger.ReadResult currentReadResult = initialReadResult == null
+                ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                : initialReadResult;
+        if (currentReadResult.corrupt()) {
+            return ItemOperationLedger.UpdateResult.failure(currentReadResult);
+        }
+        LinkedHashSet<String> operationIds = new LinkedHashSet<>();
+        List<ItemOperationEntry> entries = currentReadResult.entries();
+        for (int index = entries.size() - 1; index >= 0; index--) {
+            ItemOperationEntry entry = entries.get(index);
+            if (entry != null && DISPLAY_OPERATION_NAMESPACE.equals(entry.sourceNamespace())) {
+                operationIds.add(entry.operationId());
+            }
+        }
+        for (String operationId : operationIds) {
+            ItemOperationLedger.UpdateResult reverted = itemOperationLedger.revert(
+                    itemStack, currentReadResult, operationId);
+            if (!reverted.success()) {
+                return ItemOperationLedger.UpdateResult.failure(currentReadResult);
+            }
+            currentReadResult = reverted.readResult();
+        }
+        return ItemOperationLedger.UpdateResult.success(currentReadResult);
     }
 
     private void applyDisplayActions(ItemStack itemStack,
@@ -238,6 +309,21 @@ public final class EmakiItemFactory {
     private boolean isRandomConfig(Map<?, ?> map) {
         String type = Texts.normalizeId(Texts.toStringSafe(map.get("type"))).replace('-', '_');
         return RANDOM_TYPES.contains(type);
+    }
+
+    record FinishedBuild(boolean success,
+            ItemStack itemStack,
+            ItemOperationLedger.ReadResult readResult) {
+
+        FinishedBuild {
+            readResult = readResult == null
+                    ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                    : readResult;
+        }
+
+        List<ItemOperationEntry> entries() {
+            return readResult.entries();
+        }
     }
 
     record PreparedBuild(ItemStack itemStack,

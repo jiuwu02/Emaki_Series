@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item.listener;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,10 +10,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -29,224 +29,214 @@ import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.item.listener.InventoryRefreshClassifier.ClickContext;
+import emaki.jiuwu.craft.item.listener.InventoryRefreshClassifier.ClickedArea;
+import emaki.jiuwu.craft.item.model.RefreshFullReason;
+import emaki.jiuwu.craft.item.model.RefreshScope;
+import emaki.jiuwu.craft.item.service.ItemRefreshResult;
 
 public final class ItemUpdateListener implements Listener {
-
-    private static final int OFF_HAND_SLOT = 40;
 
     private final EmakiItemPlugin plugin;
     private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
+    private final InventoryRefreshClassifier classifier = new InventoryRefreshClassifier();
     private final ConcurrentHashMap<UUID, PendingRefresh> pendingRefresh = new ConcurrentHashMap<>();
-    private final AtomicLong refreshSequence = new AtomicLong();
+    private final AtomicLong batchSequence = new AtomicLong();
 
     public ItemUpdateListener(EmakiItemPlugin plugin,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+                              ExecutionDispatcher executionDispatcher,
+                              ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent event) {
-        delayedFull(event.getPlayer(), "join", true);
+        accept(event.getPlayer(), "join", InventoryRefreshClassifier.Result.full(RefreshFullReason.JOIN), false);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHeld(PlayerItemHeldEvent event) {
-        delayedLocal(event.getPlayer(), "held_change",
-                Set.of(event.getPreviousSlot(), event.getNewSlot()), true);
+        accept(event.getPlayer(), "held_change", InventoryRefreshClassifier.Result.local(
+                Set.of(event.getPreviousSlot(), event.getNewSlot()), true), false);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        if (event.getClick() == ClickType.DOUBLE_CLICK
-                || event.getAction() == InventoryAction.COLLECT_TO_CURSOR) {
-            delayedFull(player, "inventory_click", true);
-            return;
-        }
-        if (event.getClick() == ClickType.UNKNOWN
-                || event.getAction() == InventoryAction.UNKNOWN) {
-            delayedFull(player, "inventory_click", true);
-            return;
-        }
-        boolean hotbarClick = event.getClick() == ClickType.NUMBER_KEY
-                || event.getClick() == ClickType.SWAP_OFFHAND;
-        if ((hotbarClick && event.getAction() != InventoryAction.HOTBAR_SWAP)
-                || (!hotbarClick && event.getAction() == InventoryAction.HOTBAR_SWAP)) {
-            delayedFull(player, "inventory_click", true);
-            return;
-        }
-
-        Inventory clicked = event.getClickedInventory();
-        if (clicked instanceof PlayerInventory) {
-            Set<Integer> dirtySlots = new HashSet<>();
-            if (!addValidSlot(player, dirtySlots, event.getSlot())) {
-                delayedFull(player, "inventory_click", true);
-                return;
+        ClickedArea clickedArea = clickedArea(event);
+        int playerSlot = -1;
+        if (clickedArea == ClickedArea.PLAYER) {
+            try {
+                int converted = event.getView().convertSlot(event.getRawSlot());
+                playerSlot = converted == event.getSlot() ? converted : -1;
+            } catch (RuntimeException ignored) {
+                // Keep the invalid sentinel; the classifier will conservatively request a full refresh.
             }
-            if (event.getClick() == ClickType.NUMBER_KEY) {
-                if (!addValidSlot(player, dirtySlots, event.getHotbarButton())) {
-                    delayedFull(player, "inventory_click", true);
-                    return;
-                }
-            } else if (event.getClick() == ClickType.SWAP_OFFHAND) {
-                dirtySlots.add(OFF_HAND_SLOT);
-            }
-            delayedLocal(player, "inventory_click", dirtySlots, touchesContribution(player, dirtySlots));
-            return;
         }
-
-        if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-            delayedFull(player, "inventory_click", true);
-            return;
-        }
-        if (event.getClick() == ClickType.NUMBER_KEY) {
-            int hotbarSlot = event.getHotbarButton();
-            if (hotbarSlot < 0 || hotbarSlot > 8) {
-                delayedFull(player, "inventory_click", true);
-                return;
-            }
-            delayedLocal(player, "inventory_click", Set.of(hotbarSlot),
-                    hotbarSlot == player.getInventory().getHeldItemSlot());
-            return;
-        }
-        if (event.getClick() == ClickType.SWAP_OFFHAND) {
-            delayedLocal(player, "inventory_click", Set.of(OFF_HAND_SLOT), true);
-            return;
-        }
-        if (knownNonInventoryAction(event.getAction())) {
-            debugSkip(player, "inventory_click");
-            return;
-        }
-        delayedFull(player, "inventory_click", true);
+        accept(player, "inventory_click", classifier.classifyClick(new ClickContext(
+                event.getAction(),
+                event.getClick(),
+                clickedArea,
+                event.getRawSlot(),
+                playerSlot,
+                event.getHotbarButton()
+        )), false);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInventoryDrag(InventoryDragEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        if (!(event.getView().getBottomInventory() instanceof PlayerInventory)) {
-            delayedFull(player, "inventory_drag", true);
-            return;
-        }
-        Set<Integer> dirtySlots = new HashSet<>();
+        LinkedHashSet<Integer> dirtySlots = new LinkedHashSet<>();
+        boolean conversionFailed = false;
         int topSize = event.getView().getTopInventory().getSize();
-        for (int rawSlot : event.getNewItems().keySet()) {
+        for (int rawSlot : event.getRawSlots()) {
             if (rawSlot < topSize) {
                 continue;
             }
-            int converted = event.getView().convertSlot(rawSlot);
-            if (!addValidSlot(player, dirtySlots, converted)) {
-                delayedFull(player, "inventory_drag", true);
-                return;
+            try {
+                int converted = event.getView().convertSlot(rawSlot);
+                if (converted < 0 || converted > InventoryRefreshClassifier.LAST_PLAYER_SLOT) {
+                    conversionFailed = true;
+                    break;
+                }
+                dirtySlots.add(converted);
+            } catch (RuntimeException ignored) {
+                conversionFailed = true;
+                break;
             }
         }
-        if (dirtySlots.isEmpty()) {
-            debugSkip(player, "inventory_drag");
-            return;
-        }
-        delayedLocal(player, "inventory_drag", dirtySlots, touchesContribution(player, dirtySlots));
+        accept(player, "inventory_drag", classifier.classifyDrag(dirtySlots, conversionFailed), false);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPickup(EntityPickupItemEvent event) {
         if (event.getEntity() instanceof Player player) {
-            delayedFull(player, "pickup", false);
+            accept(player, "pickup", InventoryRefreshClassifier.Result.full(RefreshFullReason.PICKUP), false);
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         EquipmentSlot hand = event.getHand();
         if (hand == EquipmentSlot.HAND) {
-            int heldSlot = event.getPlayer().getInventory().getHeldItemSlot();
-            delayedLocal(event.getPlayer(), "interact", Set.of(heldSlot), true);
+            accept(event.getPlayer(), "interact", InventoryRefreshClassifier.Result.local(Set.of(), true), true);
         } else if (hand == EquipmentSlot.OFF_HAND) {
-            delayedLocal(event.getPlayer(), "interact", Set.of(OFF_HAND_SLOT), true);
+            accept(event.getPlayer(), "interact", InventoryRefreshClassifier.Result.local(
+                    Set.of(InventoryRefreshClassifier.OFF_HAND_SLOT), true), false);
         } else {
-            delayedFull(event.getPlayer(), "interact", true);
+            accept(event.getPlayer(), "interact",
+                    InventoryRefreshClassifier.Result.full(RefreshFullReason.UNSUPPORTED_CONTEXT), false);
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
         pendingRefresh.remove(event.getPlayer().getUniqueId());
         plugin.setService().clearCachedState(event.getPlayer().getUniqueId());
     }
 
-    private void delayedFull(Player player, String trigger, boolean contributionDirty) {
-        delayed(player, trigger, true, Set.of(), contributionDirty);
+    private ClickedArea clickedArea(InventoryClickEvent event) {
+        Inventory clicked = event.getClickedInventory();
+        if (clicked == null) {
+            return ClickedArea.OUTSIDE;
+        }
+        if (clicked instanceof PlayerInventory) {
+            return ClickedArea.PLAYER;
+        }
+        if (clicked == event.getView().getTopInventory()) {
+            return ClickedArea.TOP;
+        }
+        return ClickedArea.UNKNOWN;
     }
 
-    private void delayedLocal(Player player, String trigger, Set<Integer> dirtySlots, boolean contributionDirty) {
-        delayed(player, trigger, false, dirtySlots, contributionDirty);
-    }
-
-    private void delayed(Player player,
-            String trigger,
-            boolean forceFull,
-            Set<Integer> dirtySlots,
-            boolean contributionDirty) {
-        if (player == null) {
+    private void accept(Player player,
+                        String trigger,
+                        InventoryRefreshClassifier.Result classification,
+                        boolean includeHeldSlot) {
+        plugin.refreshMetrics().recordEvent(classification);
+        if (player == null || classification == null || classification.scope() == RefreshScope.SKIP) {
             return;
         }
-        long refreshId = refreshSequence.incrementAndGet();
+        enqueue(player, trigger, classification, includeHeldSlot);
+    }
+
+    private void enqueue(Player player,
+                         String trigger,
+                         InventoryRefreshClassifier.Result classification,
+                         boolean includeHeldSlot) {
         UUID playerId = player.getUniqueId();
         AtomicReference<PendingRefresh> scheduled = new AtomicReference<>();
         pendingRefresh.compute(playerId, (ignored, current) -> {
             if (current == null) {
-                PendingRefresh created = new PendingRefresh(trigger, forceFull, dirtySlots, contributionDirty);
+                PendingRefresh created = new PendingRefresh(batchSequence.incrementAndGet());
+                created.merge(trigger, classification, includeHeldSlot);
                 scheduled.set(created);
                 return created;
             }
-            current.merge(forceFull, dirtySlots, contributionDirty);
+            current.merge(trigger, classification, includeHeldSlot);
             return current;
         });
         PendingRefresh pending = scheduled.get();
         if (pending == null) {
-            debugRefresh(player, refreshId, trigger, "coalesced", "coalesced", -1);
+            plugin.refreshMetrics().recordCoalesced();
             return;
         }
-
-        debugRefresh(player, refreshId, trigger, "enqueued", pending.scope(), -1);
-        TaskHandle task = executionDispatcher.runEntity(
-                plugin,
-                player,
-                () -> {
-                    PendingSnapshot snapshot = drainPending(playerId, pending);
-                    if (snapshot == null) {
-                        debugRefresh(player, refreshId, trigger, "skip", "skip", -1);
-                        return;
-                    }
-                    if (!player.isOnline()) {
-                        debugRefresh(player, refreshId, snapshot.trigger(), "offline", snapshot.scope(), -1);
-                        return;
-                    }
-                    debugRefresh(player, refreshId, snapshot.trigger(), "executing", snapshot.scope(), -1);
-                    int changed = refresh(player, snapshot);
-                    debugRefresh(player, refreshId, snapshot.trigger(), "completed", snapshot.scope(), changed);
-                },
-                () -> {
-                    pendingRefresh.remove(playerId, pending);
-                    debugRefresh(player, refreshId, trigger, "retired", pending.scope(), -1);
-                }
-        );
-        if (task == null) {
-            pendingRefresh.remove(playerId, pending);
-            debugRefresh(player, refreshId, trigger, "rejected", pending.scope(), -1);
+        plugin.refreshMetrics().recordBatchCreated();
+        TaskHandle task;
+        try {
+            task = executionDispatcher.runEntityLater(
+                    plugin,
+                    player,
+                    () -> executePending(player, playerId, pending),
+                    () -> rejectPending(player, playerId, pending, "owner_retired"),
+                    1L
+            );
+        } catch (RuntimeException | LinkageError failure) {
+            rejectPending(player, playerId, pending,
+                    failure.getClass().getSimpleName() + ": " + Texts.toStringSafe(failure.getMessage()));
+            return;
         }
+        if (task == null) {
+            rejectPending(player, playerId, pending, "scheduler_rejected");
+        }
+    }
+
+    private void rejectPending(Player player,
+                               UUID playerId,
+                               PendingRefresh pending,
+                               String reason) {
+        if (pending == null || !pendingRefresh.remove(playerId, pending)) {
+            return;
+        }
+        plugin.refreshMetrics().recordBatchRejected();
+        debugRejected(player, pending, reason);
+    }
+
+    private void executePending(Player player, UUID playerId, PendingRefresh expected) {
+        PendingSnapshot snapshot = drainPending(playerId, expected);
+        if (snapshot == null || player == null || !player.isOnline()) {
+            return;
+        }
+        LinkedHashSet<Integer> dirtySlots = new LinkedHashSet<>(snapshot.dirtySlots());
+        if (snapshot.includeHeldSlot()) {
+            dirtySlots.add(player.getInventory().getHeldItemSlot());
+        }
+        ItemRefreshResult result = refresh(player, snapshot, dirtySlots);
+        plugin.refreshMetrics().recordResult(result);
+        debugCompleted(player, snapshot, result);
     }
 
     private PendingSnapshot drainPending(UUID playerId, PendingRefresh expected) {
         AtomicReference<PendingSnapshot> snapshot = new AtomicReference<>();
         pendingRefresh.compute(playerId, (ignored, current) -> {
-            if (current != expected) {
+            if (current == null || current != expected) {
                 return current;
             }
             snapshot.set(current.snapshot());
@@ -255,122 +245,138 @@ public final class ItemUpdateListener implements Listener {
         return snapshot.get();
     }
 
-    private int refresh(Player player, PendingSnapshot pending) {
-        int changed = pending.forceFull()
-                ? plugin.updateService().updatePlayerItems(player, pending.trigger())
-                : plugin.updateService().updatePlayerItems(player, pending.trigger(), pending.dirtySlots());
-        changed += plugin.setService().refreshListenerScope(
+    private ItemRefreshResult refresh(Player player, PendingSnapshot pending, Set<Integer> dirtySlots) {
+        ItemRefreshResult updateResult = plugin.updateService().updatePlayerItemsDetailed(
                 player,
-                pending.trigger(),
-                pending.dirtySlots(),
+                pending.triggers(),
+                dirtySlots,
                 pending.forceFull(),
-                pending.contributionDirty()
+                pending.fullReasons()
         );
-        if (changed > 0) {
+        if (updateResult.conflicts() > 0) {
+            plugin.setService().invalidateCachedState(player.getUniqueId());
+        }
+        ItemRefreshResult setResult = plugin.setService().refreshListenerScopeDetailed(
+                player,
+                pending.triggers(),
+                dirtySlots,
+                pending.forceFull(),
+                pending.contributionDirty(),
+                pending.fullReasons()
+        );
+        ItemRefreshResult result = updateResult.combine(setResult);
+        if (result.changed() > 0) {
             plugin.scheduleAttributeEquipmentSync(player);
         }
-        return changed;
+        return result;
     }
 
-    private boolean addValidSlot(Player player, Set<Integer> dirtySlots, int slot) {
-        if (player == null || dirtySlots == null || slot < 0 || slot >= player.getInventory().getSize()) {
-            return false;
-        }
-        dirtySlots.add(slot);
-        return true;
-    }
-
-    private boolean touchesContribution(Player player, Set<Integer> dirtySlots) {
-        if (player == null || dirtySlots == null || dirtySlots.isEmpty()) {
-            return false;
-        }
-        int heldSlot = player.getInventory().getHeldItemSlot();
-        return dirtySlots.contains(heldSlot)
-                || dirtySlots.contains(OFF_HAND_SLOT)
-                || dirtySlots.contains(36)
-                || dirtySlots.contains(37)
-                || dirtySlots.contains(38)
-                || dirtySlots.contains(39);
-    }
-
-    private boolean knownNonInventoryAction(InventoryAction action) {
-        return switch (action) {
-            case NOTHING,
-                    PICKUP_ALL, PICKUP_SOME, PICKUP_HALF, PICKUP_ONE,
-                    PLACE_ALL, PLACE_SOME, PLACE_ONE,
-                    SWAP_WITH_CURSOR,
-                    DROP_ALL_CURSOR, DROP_ONE_CURSOR,
-                    DROP_ALL_SLOT, DROP_ONE_SLOT,
-                    CLONE_STACK -> true;
-            default -> false;
-        };
-    }
-
-    private void debugSkip(Player player, String trigger) {
-        debugRefresh(player, refreshSequence.incrementAndGet(), trigger, "skip", "skip", 0);
-    }
-
-    private void debugRefresh(Player player,
-            long refreshId,
-            String trigger,
-            String stage,
-            String scope,
-            int changed) {
+    private void debugCompleted(Player player, PendingSnapshot pending, ItemRefreshResult result) {
         DebugLogger debugLogger = plugin.debugLogger();
         if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
             return;
         }
         boolean owner = player != null && threadOwnership.isEntityOwned(player);
-        debugLogger.logRaw("set", player, "[DEBUG:SET_REFRESH] id=" + refreshId
-                + " stage=" + Texts.toStringSafe(stage)
-                + " scope=" + Texts.toStringSafe(scope)
-                + " trigger=" + Texts.toStringSafe(trigger)
-                + " changed=" + changed
+        debugLogger.logRaw("set", player, "[DEBUG:ITEM_REFRESH] batch=" + pending.batchId()
+                + " requested=" + result.requestedScope()
+                + " update=" + result.actualUpdateScope()
+                + " set=" + result.actualSetScope()
+                + " reasons=" + result.fullReasons()
+                + " triggers=" + pending.triggers()
+                + " effective=" + Texts.toStringSafe(result.effectiveTrigger())
+                + " dirty_slots=" + pending.dirtySlots()
+                + " contribution_dirty=" + pending.contributionDirty()
+                + " cache_hit=" + result.cacheHit()
+                + " cache_valid=" + result.cacheValid()
+                + " scanned_update_slots=" + result.updateScannedSlots()
+                + " scanned_set_slots=" + result.setScannedSlots()
+                + " scanned=" + result.scannedSlots()
+                + " changed=" + result.changed()
+                + " conflicts=" + result.conflicts()
+                + " ledger_decodes=" + result.ledgerDecodes()
+                + " set_compiles=" + result.setCompiles()
+                + " elapsed_us=" + result.elapsedNanos() / 1_000L
                 + " global_owner=" + threadOwnership.isGlobalOwned()
                 + " owner=" + owner
                 + " thread=" + Thread.currentThread().getName());
     }
 
+    private void debugRejected(Player player, PendingRefresh pending, String reason) {
+        DebugLogger debugLogger = plugin.debugLogger();
+        if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
+            return;
+        }
+        PendingSnapshot snapshot = pending.snapshot();
+        debugLogger.logRaw("set", player, "[DEBUG:ITEM_REFRESH] batch=" + pending.batchId()
+                + " stage=rejected"
+                + " reason=" + Texts.toStringSafe(reason)
+                + " requested=" + pending.scope()
+                + " triggers=" + snapshot.triggers()
+                + " dirty_slots=" + snapshot.dirtySlots()
+                + " contribution_dirty=" + snapshot.contributionDirty()
+                + " scanned_update_slots=n/a"
+                + " scanned_set_slots=n/a"
+                + " changed=n/a"
+                + " thread=" + Thread.currentThread().getName());
+    }
+
     private static final class PendingRefresh {
 
-        private final String trigger;
+        private final long batchId;
+        private final LinkedHashSet<String> triggers = new LinkedHashSet<>();
+        private final LinkedHashSet<Integer> dirtySlots = new LinkedHashSet<>();
+        private final LinkedHashSet<RefreshFullReason> fullReasons = new LinkedHashSet<>();
         private boolean forceFull;
         private boolean contributionDirty;
-        private final Set<Integer> dirtySlots = new HashSet<>();
+        private boolean includeHeldSlot;
 
-        private PendingRefresh(String trigger,
-                boolean forceFull,
-                Set<Integer> dirtySlots,
-                boolean contributionDirty) {
-            this.trigger = Texts.toStringSafe(trigger);
-            merge(forceFull, dirtySlots, contributionDirty);
+        private PendingRefresh(long batchId) {
+            this.batchId = batchId;
         }
 
-        private void merge(boolean forceFull, Set<Integer> dirtySlots, boolean contributionDirty) {
-            this.forceFull |= forceFull;
-            this.contributionDirty |= contributionDirty;
-            if (dirtySlots != null) {
-                this.dirtySlots.addAll(dirtySlots);
+        private void merge(String trigger,
+                           InventoryRefreshClassifier.Result classification,
+                           boolean includeHeldSlot) {
+            String normalizedTrigger = Texts.toStringSafe(trigger);
+            if (Texts.isNotBlank(normalizedTrigger)) {
+                triggers.add(normalizedTrigger);
             }
+            forceFull |= classification.scope() == RefreshScope.FULL;
+            contributionDirty |= classification.contributionDirty();
+            this.includeHeldSlot |= includeHeldSlot;
+            dirtySlots.addAll(classification.dirtySlots());
+            fullReasons.addAll(classification.fullReasons());
         }
 
         private PendingSnapshot snapshot() {
-            return new PendingSnapshot(trigger, forceFull, Set.copyOf(dirtySlots), contributionDirty);
+            return new PendingSnapshot(
+                    batchId,
+                    List.copyOf(triggers),
+                    Set.copyOf(dirtySlots),
+                    forceFull,
+                    contributionDirty,
+                    includeHeldSlot,
+                    Set.copyOf(fullReasons)
+            );
         }
 
-        private String scope() {
-            return forceFull ? "full" : dirtySlots.isEmpty() ? "skip" : "local";
+        private long batchId() {
+            return batchId;
+        }
+
+        private RefreshScope scope() {
+            return forceFull ? RefreshScope.FULL : dirtySlots.isEmpty() && !includeHeldSlot
+                    ? RefreshScope.SKIP : RefreshScope.LOCAL;
         }
     }
 
     private record PendingSnapshot(
-            String trigger,
-            boolean forceFull,
+            long batchId,
+            List<String> triggers,
             Set<Integer> dirtySlots,
-            boolean contributionDirty) {
-
-        private String scope() {
-            return forceFull ? "full" : dirtySlots.isEmpty() ? "skip" : "local";
-        }
+            boolean forceFull,
+            boolean contributionDirty,
+            boolean includeHeldSlot,
+            Set<RefreshFullReason> fullReasons) {
     }
 }

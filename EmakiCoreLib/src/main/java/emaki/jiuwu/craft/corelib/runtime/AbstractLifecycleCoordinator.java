@@ -29,10 +29,15 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             BiConsumer<String, Exception> failureHandler) {
         try {
             stage.run();
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             if (failureHandler != null) {
-                failureHandler.accept(stageName, exception);
+                try {
+                    failureHandler.accept(stageName, exception);
+                } catch (RuntimeException handlerFailure) {
+                    exception.addSuppressed(handlerFailure);
+                }
             }
+            throw exception;
         }
     }
 
@@ -42,8 +47,12 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         }
         notifyProgress(config.progressListener(), config.progressMessage());
         if (scheduler == null) {
-            runReloadStage(config.stageName(), config.stage(), config.failureHandler());
-            return CompletableFuture.completedFuture(config.passthrough());
+            try {
+                runReloadStage(config.stageName(), config.stage(), config.failureHandler());
+                return CompletableFuture.completedFuture(config.passthrough());
+            } catch (RuntimeException exception) {
+                return failedFuture(exception);
+            }
         }
         String taskPrefix = config.taskPrefix();
         String taskName = (taskPrefix == null || taskPrefix.isBlank() ? "reload" : taskPrefix) + "-" + config.stageName();

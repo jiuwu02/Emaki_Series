@@ -46,7 +46,7 @@ public final class EmakiItemAssemblyService {
     private final ItemRenderService itemRenderService;
     private final ItemOperationLedger operationLedger = new ItemOperationLedger();
     private final ItemLoreReconciler loreReconciler = new ItemLoreReconciler();
-    private final CacheManager<String, ItemStack> previewCache =
+    private final CacheManager<String, ManagedProjection> previewCache =
             new CacheManager<>(PREVIEW_CACHE_SIZE, PREVIEW_CACHE_TTL_MILLIS);
     private volatile AsyncConfig asyncConfig = new AsyncConfig(null, null, null, null);
 
@@ -71,7 +71,22 @@ public final class EmakiItemAssemblyService {
     }
 
     public ItemStack preview(EmakiItemAssemblyRequest request, String debugTarget, DebugLogger debugLogger) {
+        return preview(request, debugTarget, debugLogger, null);
+    }
+
+    public ItemStack preview(EmakiItemAssemblyRequest request, ItemOperationLedger.ReadResult readResult) {
+        return preview(request, "direct", null, readResult);
+    }
+
+    private ItemStack preview(EmakiItemAssemblyRequest request,
+                              String debugTarget,
+                              DebugLogger debugLogger,
+                              ItemOperationLedger.ReadResult suppliedReadResult) {
         return measure("assembly-preview", () -> {
+            ItemStack existingItem = request == null ? null : request.existingItem();
+            ItemOperationLedger.ReadResult readResult = existingItem == null
+                    ? ItemOperationLedger.ReadResult.absent()
+                    : suppliedReadResult == null ? operationLedger.read(existingItem) : suppliedReadResult;
             UUID playerId = request == null ? null : request.feedbackPlayerId();
             boolean debugEnabled = debugLogger != null && debugLogger.shouldLog("forge", playerId);
             if (debugEnabled) {
@@ -79,10 +94,10 @@ public final class EmakiItemAssemblyService {
                         "request_layers=" + (request == null ? List.of() : request.layerSnapshots().stream()
                                 .map(EmakiItemLayerSnapshot::namespaceId).toList())
                                 + " removed=" + (request == null ? List.of() : request.removedNamespaceIds())
-                                + " item=" + itemStateSummary(request == null ? null : request.existingItem()));
+                                + " item=" + itemStateSummary(existingItem, readResult));
             }
 
-            AssemblyContext context = resolveContext(request);
+            AssemblyContext context = resolveContext(request, readResult);
             if (context == null || context.baseSource() == null) {
                 if (debugEnabled) {
                     debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
@@ -102,9 +117,9 @@ public final class EmakiItemAssemblyService {
             }
 
             String source = "cache";
-            ItemStack managed = previewCache.get(context.assemblySignature());
+            ManagedProjection managed = previewCache.get(context.assemblySignature());
             if (managed != null) {
-                managed = managed.clone();
+                managed = managed.copy();
                 if (!managedCacheValid(managed, context)) {
                     previewCache.invalidate(context.assemblySignature());
                     managed = null;
@@ -124,7 +139,7 @@ public final class EmakiItemAssemblyService {
                     }
                     return null;
                 }
-                previewCache.put(context.assemblySignature(), managed.clone());
+                previewCache.put(context.assemblySignature(), managed.copy());
             }
 
             ItemStack result = commitInstance(context, managed);
@@ -137,7 +152,7 @@ public final class EmakiItemAssemblyService {
             }
             if (debugEnabled) {
                 debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
-                        "source=" + source + " item=" + itemStateSummary(result));
+                        "source=" + source + " item=" + itemStateSummary(result, managed.readResult()));
             }
             return result;
         });
@@ -267,13 +282,20 @@ public final class EmakiItemAssemblyService {
         leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
     }
 
-    private AssemblyContext resolveContext(EmakiItemAssemblyRequest request) {
+    private AssemblyContext resolveContext(EmakiItemAssemblyRequest request,
+                                           ItemOperationLedger.ReadResult suppliedReadResult) {
         if (request == null) {
             return null;
         }
         ItemStack existingItem = request.existingItem();
+        ItemOperationLedger.ReadResult readResult = suppliedReadResult == null
+                ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                : suppliedReadResult;
+        if (readResult.corrupt()) {
+            return null;
+        }
         boolean existingIsEmakiItem = existingItem != null && dataManager.isEmakiItem(existingItem);
-        List<ItemOperationEntry> operationEntries = resolveOperationEntries(existingItem);
+        List<ItemOperationEntry> operationEntries = readResult.entries();
         Map<String, EmakiItemLayerSnapshot> mergedLayers = new LinkedHashMap<>();
         Map<String, EmakiItemLayerSnapshot> storedLayers = Map.of();
         List<String> previousActiveLayers = List.of();
@@ -393,7 +415,7 @@ public final class EmakiItemAssemblyService {
         );
     }
 
-    private ItemStack renderManagedProjection(AssemblyContext context) {
+    private ManagedProjection renderManagedProjection(AssemblyContext context) {
         ItemStack itemStack = itemSourceService.createItem(context.baseSource(), context.amount());
         if (itemStack == null) {
             return null;
@@ -405,42 +427,48 @@ public final class EmakiItemAssemblyService {
                 baseNameOverride(context.baseCustomName())
         );
         List<ItemOperationEntry> refreshedEntries = operationLedger.replay(itemStack, context.operationEntries());
+        ItemOperationLedger.ReadResult refreshedReadResult = ItemOperationLedger.ReadResult.valid(refreshedEntries);
         ItemPresentationSnapshot snapshot = capturePresentation(itemStack, context.assemblyNameOverlay());
         if (snapshot == null) {
             return null;
         }
-        if (!context.commitAssembly()) {
-            return itemStack;
+        if (context.commitAssembly()) {
+            dataManager.writeAssemblyData(
+                    itemStack,
+                    CURRENT_SCHEMA_VERSION,
+                    context.baseSource(),
+                    context.amount(),
+                    context.baseCustomName(),
+                    context.baseLore(),
+                    context.activeLayers(),
+                    context.previousActiveLayers(),
+                    context.assemblySignature(),
+                    context.layerSnapshots().values()
+            );
+            operationLedger.replaceAll(itemStack, refreshedEntries);
+            if (!dataManager.writePresentationSnapshot(itemStack, snapshot)) {
+                return null;
+            }
         }
-        dataManager.writeAssemblyData(
-                itemStack,
-                CURRENT_SCHEMA_VERSION,
-                context.baseSource(),
-                context.amount(),
-                context.baseCustomName(),
-                context.baseLore(),
-                context.activeLayers(),
-                context.previousActiveLayers(),
-                context.assemblySignature(),
-                context.layerSnapshots().values()
-        );
-        operationLedger.replaceAll(itemStack, refreshedEntries);
-        return dataManager.writePresentationSnapshot(itemStack, snapshot) ? itemStack : null;
+        return new ManagedProjection(itemStack, refreshedReadResult);
     }
 
-    private ItemStack commitInstance(AssemblyContext context, ItemStack managedProjection) {
-        if (managedProjection == null) {
+    private ItemStack commitInstance(AssemblyContext context, ManagedProjection managedProjection) {
+        if (managedProjection == null || managedProjection.itemStack() == null
+                || managedProjection.readResult().corrupt()) {
             return null;
         }
-        ItemStack result = managedProjection.clone();
+        ItemStack managedItem = managedProjection.itemStack();
+        ItemStack result = managedItem.clone();
         ItemPresentationSnapshot managedSnapshot = capturePresentation(
-                managedProjection,
+                managedItem,
                 context.assemblyNameOverlay()
         );
         if (managedSnapshot == null) {
             return null;
         }
-        List<ItemOperationEntry> managedEntries = operationLedger.readAll(managedProjection);
+        ItemOperationLedger.ReadResult managedReadResult = managedProjection.readResult();
+        List<ItemOperationEntry> managedEntries = managedReadResult.entries();
         Set<String> knownLayerNamespaces = new LinkedHashSet<>(context.previousActiveLayers());
         knownLayerNamespaces.addAll(context.activeLayers());
         Set<NamespacedKey> expectedNonOwnedKeys = dataManager.nonOwnedKeys(
@@ -498,7 +526,7 @@ public final class EmakiItemAssemblyService {
                 context,
                 result,
                 managedSnapshot,
-                managedEntries,
+                managedReadResult,
                 expectedNonOwnedKeys,
                 reconciliation
         ) ? result : null;
@@ -507,7 +535,7 @@ public final class EmakiItemAssemblyService {
     private boolean validateCommit(AssemblyContext context,
             ItemStack result,
             ItemPresentationSnapshot managedSnapshot,
-            List<ItemOperationEntry> managedEntries,
+            ItemOperationLedger.ReadResult managedReadResult,
             Set<NamespacedKey> expectedNonOwnedKeys,
             ItemLoreReconciler.Reconciliation reconciliation) {
         if (!dataManager.containsKeys(result, expectedNonOwnedKeys)) {
@@ -528,20 +556,21 @@ public final class EmakiItemAssemblyService {
         if (!context.activeLayers().equals(dataManager.readActiveLayers(result))) {
             return false;
         }
-        if (!operationIdentities(managedEntries).equals(operationIdentities(operationLedger.readAll(result)))) {
+        if (managedReadResult == null || managedReadResult.corrupt()) {
             return false;
         }
         return managedSnapshot.equals(dataManager.readPresentationSnapshot(result));
     }
 
-    private boolean managedCacheValid(ItemStack itemStack, AssemblyContext context) {
-        if (itemStack == null) {
+    private boolean managedCacheValid(ManagedProjection managedProjection, AssemblyContext context) {
+        if (managedProjection == null || managedProjection.itemStack() == null
+                || managedProjection.readResult().corrupt()
+                || !operationIdentities(context.operationEntries()).equals(
+                        operationIdentities(managedProjection.readResult().entries()))) {
             return false;
         }
-        if (!operationIdentities(context.operationEntries()).equals(operationIdentities(operationLedger.readAll(itemStack)))) {
-            return false;
-        }
-        return !context.commitAssembly() || dataManager.readPresentationSnapshot(itemStack) != null;
+        return !context.commitAssembly()
+                || dataManager.readPresentationSnapshot(managedProjection.itemStack()) != null;
     }
 
     private ItemPresentationSnapshot renderPresentationSnapshot(ItemSource baseSource,
@@ -580,14 +609,6 @@ public final class EmakiItemAssemblyService {
                 currentLore(itemStack),
                 assemblyNameOverlay
         );
-    }
-
-    private List<ItemOperationEntry> resolveOperationEntries(ItemStack existingItem) {
-        if (existingItem == null) {
-            return List.of();
-        }
-        List<ItemOperationEntry> entries = operationLedger.readAll(existingItem);
-        return entries.isEmpty() ? List.of() : List.copyOf(entries);
     }
 
     private boolean hasManagedNameOverlay(Map<String, EmakiItemLayerSnapshot> layers,
@@ -692,16 +713,19 @@ public final class EmakiItemAssemblyService {
                 + " " + Texts.toStringSafe(details));
     }
 
-    private String itemStateSummary(ItemStack itemStack) {
+    private String itemStateSummary(ItemStack itemStack, ItemOperationLedger.ReadResult readResult) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return "empty";
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
+        String operations = readResult == null || readResult.corrupt()
+                ? "corrupt"
+                : operationIds(readResult.entries()).toString();
         return "type=" + itemStack.getType()
                 + " lore=" + currentLore(itemStack).size()
                 + " set_signature=" + shortValue(pdcString(itemMeta, "set_signature"))
                 + " set_lore_lines=" + Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), "-")
-                + " operations=" + operationIds(operationLedger.readAll(itemStack));
+                + " operations=" + operations;
     }
 
     private String pdcString(ItemMeta itemMeta, String field) {
@@ -766,6 +790,19 @@ public final class EmakiItemAssemblyService {
             ExecutionDispatcher executionDispatcher,
             Plugin executionOwner,
             PerformanceMonitor monitor) {
+    }
+
+    private record ManagedProjection(ItemStack itemStack, ItemOperationLedger.ReadResult readResult) {
+
+        private ManagedProjection {
+            readResult = readResult == null
+                    ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                    : readResult;
+        }
+
+        private ManagedProjection copy() {
+            return new ManagedProjection(itemStack == null ? null : itemStack.clone(), readResult);
+        }
     }
 
     private record AssemblyContext(ItemStack existingItem,

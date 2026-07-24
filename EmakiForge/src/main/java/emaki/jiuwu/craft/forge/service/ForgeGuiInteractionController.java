@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge.service;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Predicate;
 
@@ -59,25 +60,10 @@ final class ForgeGuiInteractionController {
             debug(state.player(), "shift transfer ignored: current=empty");
             return;
         }
-        ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
-        if (source == null) {
-            debug(state.player(), "shift transfer rejected: source=unidentified item=" + describe(itemStack));
-            return;
-        }
-        if (stateSupport.findBlueprintRequirementBySource(source) != null) {
-            int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "blueprint_inputs"), state.blueprintItems());
-            if (slot >= 0) {
-                state.blueprintItems().put(slot, itemStack);
-                click.clearClickedSlot();
-                renderer.refreshGui(state);
-                debug(state.player(), "shift transfer accepted: slotType=blueprint_inputs slot=" + slot + " item=" + describe(itemStack));
-            } else {
-                debug(state.player(), "shift transfer rejected: slotType=blueprint_inputs reason=no_free_slot item=" + describe(itemStack));
-            }
-            return;
-        }
         ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
-        String materialId = materialKey(source);
+        ItemSource source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
+        String materialId = materialKey(state, source);
+
         if (rules.requiredIds().contains(materialId)) {
             int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "required_materials"), state.requiredMaterialItems());
             if (slot >= 0) {
@@ -116,7 +102,9 @@ final class ForgeGuiInteractionController {
                 slot,
                 "blueprint_inputs",
                 state.blueprintItems(),
-                itemStack -> stateSupport.findBlueprintRequirementBySource(plugin.itemIdentifierService().identifyItem(itemStack)) != null
+                itemStack -> stateSupport.findBlueprintRequirementBySource(
+                        state,
+                        state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack)) != null
         );
     }
 
@@ -130,8 +118,9 @@ final class ForgeGuiInteractionController {
                 required ? "required_materials" : "optional_materials",
                 required ? state.requiredMaterialItems() : state.optionalMaterialItems(),
                 itemStack -> {
-                    ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
-                    String materialId = materialKey(source);
+        ItemSource source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
+
+                    String materialId = materialKey(state, source);
                     if (Texts.isBlank(materialId)) {
                         return false;
                     }
@@ -182,8 +171,9 @@ final class ForgeGuiInteractionController {
     }
 
     private void handleConfirmClick(ForgeGuiSession state) {
-        if (state.processing()) {
-            debug(state.player(), "confirm rejected: reason=processing");
+        if (state.processing() || state.shutdownRetiring()) {
+            debug(state.player(), "confirm rejected: reason="
+                    + (state.processing() ? "processing" : "shutdown_retiring"));
             return;
         }
         stateSupport.refreshDerivedValues(state);
@@ -193,7 +183,7 @@ final class ForgeGuiInteractionController {
         if (state.maxCapacity() > 0 && state.currentCapacity() > state.maxCapacity()) {
             debug(state.player(), "confirm rejected: reason=capacity_exceeded current=" + state.currentCapacity()
                     + " max=" + state.maxCapacity());
-            plugin.messageService().send(
+            state.runtimeSnapshot().messageService().send(
                     state.player(),
                     "forge.error.capacity_exceeded",
                     Map.of("current", state.currentCapacity(), "max", state.maxCapacity())
@@ -202,10 +192,10 @@ final class ForgeGuiInteractionController {
         }
         Recipe activeRecipe = state.recipe() != null ? state.recipe() : state.previewRecipe();
         if (activeRecipe == null) {
-            RecipeMatch match = plugin.forgeService().findMatchingRecipe(state.player(), state.toGuiItems());
+            RecipeMatch match = state.runtimeSnapshot().forgeService().findMatchingRecipe(state.player(), state.toGuiItems());
             if (match.recipe() == null) {
                 debug(state.player(), "confirm rejected: reason=recipe_mismatch errorKey=" + match.errorKey());
-                plugin.messageService().send(state.player(), match.errorKey(), match.replacements());
+                state.runtimeSnapshot().messageService().send(state.player(), match.errorKey(), match.replacements());
                 return;
             }
             activeRecipe = match.recipe();
@@ -215,7 +205,7 @@ final class ForgeGuiInteractionController {
         GuiItems snapshot = state.toGuiItems();
         ForgeService.PreparedForge preparedForge = state.preparedForge();
         if (preparedForge == null) {
-            preparedForge = plugin.forgeService().prepareForge(
+            preparedForge = state.runtimeSnapshot().forgeService().prepareForge(
                     state.player(),
                     finalRecipe,
                     snapshot,
@@ -226,13 +216,17 @@ final class ForgeGuiInteractionController {
         }
         if (preparedForge == null || preparedForge.request() == null) {
             debug(state.player(), "confirm rejected: reason=prepare_failed recipe=" + finalRecipe.id());
-            plugin.messageService().send(state.player(), "forge.error.item_create");
+            state.runtimeSnapshot().messageService().send(state.player(), "forge.error.item_create");
             return;
         }
-        boolean firstCraft = !plugin.playerDataStore().hasCrafted(state.player().getUniqueId(), activeRecipe.id());
+        boolean firstCraft = !state.runtimeSnapshot().playerDataStore().hasCrafted(state.player().getUniqueId(), activeRecipe.id());
         if (threadOwnership == null || !threadOwnership.isEntityOwned(state.player())) {
             debug(state.player(), "confirm rejected: reason=player_owner_unavailable recipe=" + finalRecipe.id());
-            plugin.messageService().send(state.player(), "forge.error.action_failed", Map.of("reason", "player owner is unavailable"));
+            state.runtimeSnapshot().messageService().send(state.player(), "forge.error.action_failed", Map.of("reason", "player owner is unavailable"));
+            return;
+        }
+        if (!ensureCurrentGeneration(state)) {
+            debug(state.player(), "confirm rejected: reason=runtime_generation_changed recipe=" + finalRecipe.id());
             return;
         }
         ForgeStartEvent startEvent = new ForgeStartEvent(state.player(), finalRecipe.id(), firstCraft, finalRecipe.successRate());
@@ -246,60 +240,138 @@ final class ForgeGuiInteractionController {
         state.setProcessing(true);
         state.setRecipe(finalRecipe);
         state.setPreviewRecipe(finalRecipe);
+        CompletableFuture<Void> ownerCompletion = new CompletableFuture<>();
+        if (!state.runtimeSnapshot().forgeService().trackCompletion(state.runtimeGeneration(), ownerCompletion)) {
+            if (state.claimSettlement()) {
+                runTerminalSettlement(
+                        state,
+                        () -> returnFailedAttempt(state, "forge.error.runtime_unavailable", Map.of(
+                                "reason", "forge completion could not be tracked")),
+                        "forge completion tracking rejection settlement failed");
+            }
+            state.player().closeInventory();
+            return;
+        }
         state.player().closeInventory();
-        plugin.forgeService().executeForgeAsync(
-                state.player(),
-                finalRecipe,
-                snapshot,
-                preparedForge
-        ).whenComplete((result, throwable) -> completeForgeAttemptOnOwner(
-                state,
-                finalRecipe,
-                firstCraft,
-                result,
-                throwable
-        ));
+        try {
+            state.runtimeSnapshot().forgeService().executeForgeAsync(
+                    state.player(),
+                    finalRecipe,
+                    snapshot,
+                    preparedForge,
+                    state.runtimeGeneration(),
+                    state::claimResultDelivery,
+                    state::releaseResultDelivery,
+                    state::markResultCommitted
+            ).whenComplete((result, throwable) -> completeForgeAttemptOnOwner(
+                    state,
+                    finalRecipe,
+                    firstCraft,
+                    result,
+                    throwable,
+                    ownerCompletion
+            ));
+        } catch (Throwable throwable) {
+            completeForgeAttemptOnOwner(state, finalRecipe, firstCraft, null, throwable, ownerCompletion);
+        }
     }
 
     private void completeForgeAttemptOnOwner(ForgeGuiSession state,
             Recipe activeRecipe,
             boolean firstCraft,
             ForgeResult result,
-            Throwable throwable) {
+            Throwable throwable,
+            CompletableFuture<Void> ownerCompletion) {
         if (state == null || state.player() == null || executionDispatcher == null) {
-            if (state != null && state.player() != null) {
-                debug(state.player(), "processing completion abandoned: reason=dispatcher_unavailable recipe="
-                        + (activeRecipe == null ? "unknown" : activeRecipe.id()));
-            }
-            cleanupRetiredAttempt(state);
+            cleanupRetiredAttempt(state, activeRecipe, result, "completion owner is unavailable");
+            ownerCompletion.complete(null);
             return;
         }
-        Runnable completion = () -> completeForgeAttempt(state, activeRecipe, firstCraft, result, throwable);
+        Runnable completion = () -> {
+            try {
+                if (!plugin.isGenerationActive(state.runtimeGeneration()) || !stateManager.isCurrent(state)) {
+                    completeStaleAttempt(state, activeRecipe, result);
+                    return;
+                }
+                completeForgeAttempt(state, activeRecipe, firstCraft, result, throwable);
+            } finally {
+                ownerCompletion.complete(null);
+            }
+        };
         if (threadOwnership != null && threadOwnership.isEntityOwned(state.player())) {
             completion.run();
             return;
         }
         try {
             var scheduled = executionDispatcher.runEntity(
-                    plugin,
+                    plugin.coreLib(),
                     state.player(),
                     completion,
-                    () -> cleanupRetiredAttempt(state));
+                    () -> {
+                        cleanupRetiredAttempt(state, activeRecipe, result,
+                                "completion owner retired before execution");
+                        ownerCompletion.completeExceptionally(new RejectedExecutionException(
+                                "Forge GUI completion owner retired before execution."));
+                    });
             if (scheduled == null) {
-                completeForgeAttempt(state, activeRecipe, firstCraft, result,
-                        new RejectedExecutionException("Forge GUI completion scheduling was rejected."));
+                cleanupRetiredAttempt(state, activeRecipe, result,
+                        "completion scheduling was rejected");
+                ownerCompletion.completeExceptionally(new RejectedExecutionException(
+                        "Forge GUI completion scheduling was rejected."));
             }
         } catch (Throwable schedulingFailure) {
-            completeForgeAttempt(state, activeRecipe, firstCraft, result, schedulingFailure);
+            cleanupRetiredAttempt(state, activeRecipe, result,
+                    "completion scheduling failed: " + Texts.toStringSafe(schedulingFailure.getMessage()));
+            ownerCompletion.completeExceptionally(schedulingFailure);
         }
     }
 
-    private void cleanupRetiredAttempt(ForgeGuiSession state) {
+    private void completeStaleAttempt(ForgeGuiSession state, Recipe activeRecipe, ForgeResult result) {
         if (state == null) {
             return;
         }
-        state.setProcessing(false);
-        stateManager.remove(state);
+        boolean committedDelivery = state.resultCommitted() && state.resultDeliveryClaimed();
+        if (committedDelivery ? !state.claimResultDeliverySettlement() : !state.claimSettlement()) {
+            return;
+        }
+        runTerminalSettlement(
+                state,
+                () -> {
+                    if (committedDelivery) {
+                        settleCommittedDelivery(state, activeRecipe);
+                    } else {
+                        settleInputs(state, activeRecipe, result);
+                    }
+                },
+                "stale forge completion settlement failed");
+    }
+
+    private void cleanupRetiredAttempt(ForgeGuiSession state,
+            Recipe activeRecipe,
+            ForgeResult result,
+            String reason) {
+        if (state == null) {
+            return;
+        }
+        if (state.player() == null || threadOwnership == null || !threadOwnership.isEntityOwned(state.player())) {
+            state.setProcessing(false);
+            recordSettlementFailure(state, reason);
+            return;
+        }
+        boolean committedDelivery = state.resultCommitted() && state.resultDeliveryClaimed();
+        if (committedDelivery ? !state.claimResultDeliverySettlement() : !state.claimSettlement()) {
+            return;
+        }
+        runTerminalSettlement(
+                state,
+                () -> {
+                    if (committedDelivery) {
+                        settleCommittedDelivery(state, activeRecipe);
+                    } else {
+                        settleInputs(state, activeRecipe, result);
+                    }
+                },
+                "retired forge completion settlement failed");
     }
 
     private void completeForgeAttempt(ForgeGuiSession state,
@@ -307,16 +379,35 @@ final class ForgeGuiInteractionController {
             boolean firstCraft,
             ForgeResult result,
             Throwable throwable) {
-        state.setProcessing(false);
-        stateManager.remove(state);
+        boolean committedDelivery = state.resultCommitted() && state.resultDeliveryClaimed();
+        if (committedDelivery ? !state.claimResultDeliverySettlement() : !state.claimSettlement()) {
+            return;
+        }
         if (throwable != null) {
             debug(state.player(), "processing completed: recipe=" + activeRecipe.id() + " outcome=exception reason="
                     + Texts.toStringSafe(throwable.getMessage()));
-            plugin.messageService().warning("console.forge_execution_failed", Map.of(
-                    "recipe", activeRecipe.id(),
-                    "error", String.valueOf(throwable.getMessage())
-            ));
-            returnFailedAttempt(state, "forge.error.action_failed", Map.of("reason", Texts.toStringSafe(throwable.getMessage())));
+            try {
+                state.runtimeSnapshot().messageService().warning("console.forge_execution_failed", Map.of(
+                        "recipe", activeRecipe.id(),
+                        "error", String.valueOf(throwable.getMessage())
+                ));
+            } catch (Throwable messageFailure) {
+                plugin.getLogger().warning("Forge execution failure logging failed: "
+                        + Texts.toStringSafe(messageFailure.getMessage()));
+            }
+            if (committedDelivery) {
+                state.setForgeCompleted(true);
+                runTerminalSettlement(
+                        state,
+                        () -> settleCommittedDelivery(state, activeRecipe),
+                        "committed exceptional forge settlement failed");
+                return;
+            }
+            runTerminalSettlement(
+                    state,
+                    () -> returnFailedAttempt(state, "forge.error.action_failed", Map.of(
+                            "reason", Texts.toStringSafe(throwable.getMessage()))),
+                    "exceptional forge input settlement failed");
             return;
         }
         if (result == null || !result.success()) {
@@ -324,7 +415,10 @@ final class ForgeGuiInteractionController {
             Map<String, Object> replacements = result == null || result.replacements() == null ? Map.of() : result.replacements();
             debug(state.player(), "processing completed: recipe=" + activeRecipe.id() + " outcome=failed errorKey=" + errorKey
                     + " resultItem=" + describe(result == null ? null : result.resultItem()));
-            returnFailedAttempt(state, errorKey, replacements);
+            runTerminalSettlement(
+                    state,
+                    () -> returnFailedAttempt(state, errorKey, replacements),
+                    "failed forge input settlement failed");
             fireForgeCompleted(state.player(), activeRecipe, result, false);
             return;
         }
@@ -332,17 +426,19 @@ final class ForgeGuiInteractionController {
         debug(state.player(), "processing completed: recipe=" + activeRecipe.id() + " outcome=success quality="
                 + Texts.toStringSafe(result.quality()) + " multiplier=" + result.multiplier()
                 + " resultItem=" + describe(result.resultItem()));
-        stateSupport.returnUnusedInputs(state, activeRecipe);
-        state.clearStoredItems();
+        runTerminalSettlement(
+                state,
+                () -> settleCommittedDelivery(state, activeRecipe),
+                "successful forge settlement failed");
         if (Texts.isNotBlank(result.quality())) {
-            plugin.messageService().send(
+            state.runtimeSnapshot().messageService().send(
                     state.player(),
                     "forge.success.quality",
                     Map.of("quality", result.quality(), "multiplier", result.multiplier())
             );
         }
         if (firstCraft) {
-            plugin.messageService().send(state.player(), "forge.success.first_craft");
+            state.runtimeSnapshot().messageService().send(state.player(), "forge.success.first_craft");
         }
         fireForgeCompleted(state.player(), activeRecipe, result, true);
     }
@@ -393,12 +489,14 @@ final class ForgeGuiInteractionController {
         switch (slotType) {
             case "blueprint_inputs" ->
                 handleDragPlacement(drag, state, rawSlot, "blueprint_inputs", placedItem, state.blueprintItems(),
-                        itemStack -> stateSupport.findBlueprintRequirementBySource(plugin.itemIdentifierService().identifyItem(itemStack)) != null);
+                        itemStack -> stateSupport.findBlueprintRequirementBySource(
+                                state,
+                                state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack)) != null);
             case "required_materials" ->
                 handleDragPlacement(drag, state, rawSlot, "required_materials", placedItem, state.requiredMaterialItems(),
                         itemStack -> {
                             ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
-                            String materialId = materialKey(plugin.itemIdentifierService().identifyItem(itemStack));
+                            String materialId = materialKey(state, state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
                             return Texts.isNotBlank(materialId) && rules.requiredIds().contains(materialId);
                         });
             case "optional_materials" ->
@@ -408,7 +506,7 @@ final class ForgeGuiInteractionController {
                             int occupied = state.optionalMaterialItems().containsKey(rawSlot)
                                     ? state.optionalMaterialItems().size() - 1
                                     : state.optionalMaterialItems().size();
-                            String materialId = materialKey(plugin.itemIdentifierService().identifyItem(itemStack));
+                            String materialId = materialKey(state, state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
                             return stateSupport.canPlaceOptionalMaterial(materialId, rules, Math.max(0, occupied));
                         });
             default -> debug(state.player(), "drag ignored: reason=unsupported_slot_type slotType=" + slotType
@@ -454,21 +552,158 @@ final class ForgeGuiInteractionController {
                 + " item=" + describe(placedItem) + " cursorNow=" + describe(cursorAfter));
     }
 
-    private void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) {
-        plugin.messageService().send(state.player(), errorKey, replacements == null ? Map.of() : replacements);
+    void settleShutdownSessionOnOwner(ForgeGuiSession state) {
+        if (state == null || state.player() == null || threadOwnership == null
+                || !threadOwnership.isEntityOwned(state.player())) {
+            recordSettlementFailure(state, "shutdown settlement did not run on the player owner");
+            return;
+        }
+        boolean processing = state.processing();
+        boolean committedDelivery = state.resultCommitted() && state.resultDeliveryClaimed();
+        if (processing && !committedDelivery) {
+            return;
+        }
+        if (committedDelivery ? !state.claimResultDeliverySettlement() : !state.claimSettlement()) {
+            return;
+        }
+        if (processing) {
+            runTerminalSettlement(
+                    state,
+                    () -> settleCommittedDelivery(state, state.recipe()),
+                    "shutdown committed delivery settlement failed");
+            return;
+        }
+        runTerminalSettlement(
+                state,
+                () -> {
+                    ItemStack cursorItem = ForgeGuiStateSupport.cloneNonAir(state.player().getItemOnCursor());
+                    if (cursorItem != null) {
+                        state.player().setItemOnCursor(null);
+                    }
+                    stateSupport.returnItems(state, cursorItem);
+                },
+                "shutdown input settlement failed");
+    }
+
+    void handleShutdownClosureFailure(ForgeGuiSession state, String reason) {
+        if (state == null) {
+            return;
+        }
+        if (state.processing()) {
+            recordSettlementFailure(state, reason + "; tracked processing completion retains settlement ownership");
+            return;
+        }
+        abandonRetiredSession(state, reason);
+    }
+
+    void abandonRetiredSession(ForgeGuiSession state, String reason) {
+        if (state == null || state.settlementCommitted()) {
+            return;
+        }
+        recordSettlementFailure(state, state.processing()
+                ? reason + "; processing completion still owns unresolved settlement"
+                : reason + "; unresolved items remain reserved for an owner-thread retry");
+    }
+
+    private void runTerminalSettlement(ForgeGuiSession state, Runnable settlement, String failureReason) {
+        boolean committed = false;
+        try {
+            if (settlement != null) {
+                settlement.run();
+            }
+            if (state == null || !state.commitSettlement()) {
+                throw new IllegalStateException("Forge settlement reservation could not be committed.");
+            }
+            committed = true;
+        } catch (Throwable throwable) {
+            if (state != null) {
+                state.releaseSettlement();
+            }
+            try {
+                recordSettlementFailure(state, failureReason + ": " + Texts.toStringSafe(throwable.getMessage()));
+            } catch (Throwable ignored) {
+                // Terminal cleanup must not be prevented by diagnostic failures.
+            }
+        } finally {
+            if (state != null) {
+                state.setProcessing(false);
+                if (committed) {
+                    stateManager.remove(state);
+                }
+            }
+        }
+    }
+
+    private void settleCommittedDelivery(ForgeGuiSession state, Recipe activeRecipe) {
+        if (state == null) {
+            return;
+        }
+        if (activeRecipe != null) {
+            stateSupport.returnUnusedInputs(state, activeRecipe);
+        }
+        state.clearStoredItems();
+    }
+
+    private void settleInputs(ForgeGuiSession state, Recipe activeRecipe, ForgeResult result) {
+        if (result != null && result.success() && activeRecipe != null) {
+            stateSupport.returnUnusedInputs(state, activeRecipe);
+            state.clearStoredItems();
+            return;
+        }
         stateSupport.returnItems(state);
     }
 
-    private String materialKey(ItemSource source) {
-        if (source == null || plugin.forgeService() == null) {
+    private void recordSettlementFailure(ForgeGuiSession state, String reason) {
+        plugin.runtimeMetrics().recordGuiSettlementFailure();
+        String playerId = state == null || state.playerId() == null
+                ? "unknown"
+                : state.playerId().toString();
+        plugin.getLogger().warning("Forge GUI settlement could not run on the player owner: player="
+                + playerId + " reason=" + Texts.toStringSafe(reason));
+    }
+
+    private void returnFailedAttempt(ForgeGuiSession state, String errorKey, Map<String, ?> replacements) {
+        try {
+            state.runtimeSnapshot().messageService().send(
+                    state.player(),
+                    errorKey,
+                    replacements == null ? Map.of() : replacements);
+        } catch (Throwable throwable) {
+            plugin.getLogger().warning("Forge failure message dispatch failed: "
+                    + Texts.toStringSafe(throwable.getMessage()));
+        }
+        stateSupport.returnItems(state);
+    }
+
+    private String materialKey(ForgeGuiSession state, ItemSource source) {
+        if (state == null || source == null || state.runtimeSnapshot().forgeService() == null) {
             return "";
         }
-        var material = plugin.forgeService().findMaterialBySource(source);
+        var material = state.runtimeSnapshot().forgeService().findMaterialBySource(source);
         return material == null ? "" : material.key();
     }
 
+    private boolean ensureCurrentGeneration(ForgeGuiSession state) {
+        if (state != null && state.shutdownRetiring()) {
+            return false;
+        }
+        if (state != null && plugin.isGenerationActive(state.runtimeGeneration())) {
+            return true;
+        }
+        plugin.runtimeMetrics().recordGuiStale();
+        if (state != null && state.player() != null) {
+            state.runtimeSnapshot().messageService().send(state.player(), "forge.error.runtime.stale_session");
+            state.player().closeInventory();
+        }
+        return false;
+    }
+
     private void debug(Player player, String message) {
-        GuiDebugSupport.log(plugin, player, "forge: " + message);
+        try {
+            GuiDebugSupport.log(plugin, player, "forge: " + message);
+        } catch (Throwable ignored) {
+            // Debug diagnostics must not interrupt GUI ownership or settlement.
+        }
     }
 
     private String describe(ItemStack itemStack) {
@@ -485,6 +720,10 @@ final class ForgeGuiInteractionController {
 
         @Override
         public void onSlotClick(GuiSession session, GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
+            if (!ensureCurrentGeneration(state)) {
+                click.setCancelled(true);
+                return;
+            }
             if (state.processing()) {
                 debug(state.player(), "slot click blocked: reason=processing click=" + click.clickType()
                         + " current=" + describe(click.currentItem()) + " cursor=" + describe(click.cursorItem()));
@@ -515,6 +754,10 @@ final class ForgeGuiInteractionController {
 
         @Override
         public void onPlayerInventoryClick(GuiSession session, GuiClickContext click) {
+            if (!ensureCurrentGeneration(state)) {
+                click.setCancelled(true);
+                return;
+            }
             if (state.processing()) {
                 debug(state.player(), "player inventory click blocked: reason=processing click=" + click.clickType()
                         + " current=" + describe(click.currentItem()) + " cursor=" + describe(click.cursorItem()));
@@ -538,6 +781,9 @@ final class ForgeGuiInteractionController {
 
         @Override
         public void onDrag(GuiSession session, GuiDragContext drag) {
+            if (!ensureCurrentGeneration(state)) {
+                return;
+            }
             if (state.processing()) {
                 debug(state.player(), "drag blocked: reason=processing rawSlots=" + (drag == null ? "[]" : drag.rawSlots()));
                 return;
@@ -551,22 +797,30 @@ final class ForgeGuiInteractionController {
                 debug(state.player(), "close ignored: reason=processing");
                 return;
             }
-            ItemStack cursorItem = close != null && close.player() != null
-                    ? ForgeGuiStateSupport.cloneNonAir(close.player().getItemOnCursor())
-                    : null;
-            if (cursorItem != null) {
-                close.player().setItemOnCursor(null);
+            if (!state.claimSettlement()) {
+                debug(state.player(), "close ignored: reason=settlement_already_claimed");
+                return;
             }
-            debug(state.player(), "close handled: completed=" + state.forgeCompleted() + " cursor=" + describe(cursorItem)
-                    + " blueprints=" + state.blueprintItems().size() + " required=" + state.requiredMaterialItems().size()
-                    + " optional=" + state.optionalMaterialItems().size());
-            stateManager.remove(state);
-            if (!state.forgeCompleted()) {
-                stateSupport.returnItems(state);
-            }
-            if (cursorItem != null) {
-                stateSupport.giveBackToPlayer(state.player(), cursorItem);
-            }
+            runTerminalSettlement(
+                    state,
+                    () -> {
+                        ItemStack cursorItem = close != null && close.player() != null
+                                ? ForgeGuiStateSupport.cloneNonAir(close.player().getItemOnCursor())
+                                : null;
+                        if (cursorItem != null) {
+                            close.player().setItemOnCursor(null);
+                        }
+                        debug(state.player(), "close handled: completed=" + state.forgeCompleted() + " cursor="
+                                + describe(cursorItem) + " blueprints=" + state.blueprintItems().size()
+                                + " required=" + state.requiredMaterialItems().size()
+                                + " optional=" + state.optionalMaterialItems().size());
+                        if (!state.forgeCompleted()) {
+                            stateSupport.returnItems(state, cursorItem);
+                        } else if (cursorItem != null) {
+                            stateSupport.giveBackToPlayer(state.player(), cursorItem);
+                        }
+                    },
+                    "GUI close input settlement failed");
         }
     }
 }

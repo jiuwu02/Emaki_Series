@@ -47,6 +47,12 @@ public final class EmakiItemApi {
         return bridge != null;
     }
 
+    /** {@return whether EmakiItem has finished initializing and can resolve item definitions} */
+    public static boolean isReady() {
+        Bridge resolved = bridge;
+        return resolved != null && resolved.isReady();
+    }
+
     /**
      * Checks whether an item definition is loaded.
      *
@@ -111,6 +117,11 @@ public final class EmakiItemApi {
 
     /** Internal bridge installed by EmakiItem. */
     public interface Bridge {
+        /** {@return whether the owning EmakiItem runtime is ready for item resolution} */
+        default boolean isReady() {
+            return true;
+        }
+
         /**
          * Checks whether an item definition is loaded.
          *

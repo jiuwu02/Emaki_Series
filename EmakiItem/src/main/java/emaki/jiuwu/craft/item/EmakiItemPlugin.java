@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -61,6 +62,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
+import emaki.jiuwu.craft.item.service.ItemRefreshMetrics;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
 import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
@@ -71,17 +73,29 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private static final String ROOT_COMMAND = "emakiitem";
     private static final Set<String> DEBUG_MODULES = Set.of("create", "update", "identify", "set", "item_operation");
     private static final String STARTUP_ASCII = """
- ______  __    __  ______  __  __   __  __  ______  ______  __    __  ______
-/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ \\/\\__  _\\/\\  ___\\/\\ "-./  \\/\\  ___\\
-\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\/_/\\ \\/\\ \\  __\\\\ \\ \\-./\\ \\ \\___  \\
- \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\ \\_\\ \\ \\_____\\ \\_\\ \\ \\_\\/\\_____\\
-  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/  \\/_/  \\/_____/\\/_/  \\/_/\\/_____/
-""";
+             ______  __    __  ______  __  __   __  __  ______  ______  __    __  ______
+            /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ \\/\\__  _\\/\\  ___\\/\\ "-./  \\/\\  ___\\
+            \\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\/_/\\ \\/\\ \\  __\\\\ \\ \\-./\\ \\ \\___  \\
+             \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\ \\_\\ \\ \\_____\\ \\_\\ \\ \\_\\/\\_____\\
+              \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/  \\/_/  \\/_____/\\/_/  \\/_/\\/_____/
+            """;
     private static final int STARTUP_ASCII_START_COLOR = 0x60A5FA;
     private static final int STARTUP_ASCII_END_COLOR = 0x34D399;
     private static final int BSTATS_PLUGIN_ID = 31770;
+    private static final String REQUIRED_CORELIB_API_VERSION = "4.5.18";
 
     private BStatsRegistration metrics;
+    private final ItemRefreshMetrics refreshMetrics = new ItemRefreshMetrics();
+    private final Object readinessMonitor = new Object();
+    private long lifecycleEpoch;
+    private long reloadGeneration;
+    private long latestCompletedReloadGeneration = -1L;
+    private int activeReloads;
+    private boolean lifecycleActive;
+    private boolean reloadQueueSucceeded;
+    private boolean runtimeReady;
+    private boolean coreLibDisableRequested;
+    private CompletableFuture<Void> reloadTail = CompletableFuture.completedFuture(null);
 
     private final ItemLifecycleCoordinator lifecycleCoordinator = new ItemLifecycleCoordinator();
     private ItemCommandRouter commandRouter;
@@ -118,6 +132,11 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry;
     private JavaScriptItemFactoryRegistry javaScriptFactoryRegistry;
     private final EmakiItemApi.Bridge itemApiBridge = new EmakiItemApi.Bridge() {
+        @Override
+        public boolean isReady() {
+            return runtimeReady();
+        }
+
         @Override
         public boolean exists(String id) {
             return idResolver != null && idResolver.resolveDefinition(id) != null;
@@ -168,13 +187,22 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     @Override
     public void onEnable() {
+        beginLifecycleEpoch();
+        if (!requireCoreLibCompatibility("startup")) {
+            return;
+        }
         ConsoleOutputs.sendGradientAscii(
                 this,
                 STARTUP_ASCII,
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
-        applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        try {
+            applyRuntimeComponents(lifecycleCoordinator.initialize(this));
+        } catch (RuntimeException | LinkageError exception) {
+            disableForCoreLibFailure("initialize", exception);
+            return;
+        }
         registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
@@ -191,6 +219,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     @Override
     public void onDisable() {
+        invalidateLifecycleEpoch();
         ConfigPrecheckLifecycleSupport.unregister("item");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -218,13 +247,252 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     public void reloadPluginState() {
-        lifecycleCoordinator.reload(this);
-        logConfigPrecheckReport();
+        ReloadAttempt attempt = beginReloadAttempt();
+        if (attempt == null) {
+            return;
+        }
+        observeReload(enqueueReloadAttempt(attempt, () -> lifecycleCoordinator
+                .reloadAsync(this, null, () -> isReloadAttemptCurrent(attempt))
+                .thenRun(() -> {
+                    if (isReloadAttemptCurrent(attempt)) {
+                        logConfigPrecheckReport();
+                    }
+                })));
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
-        return lifecycleCoordinator.reloadAsync(this, null)
-                .thenRun(this::logConfigPrecheckReport);
+        ReloadAttempt attempt = beginReloadAttempt();
+        if (attempt == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        CompletableFuture<Void> reload = enqueueReloadAttempt(attempt, () -> lifecycleCoordinator
+                .reloadAsync(this, null, () -> isReloadAttemptCurrent(attempt))
+                .thenRun(() -> {
+                    if (isReloadAttemptCurrent(attempt)) {
+                        logConfigPrecheckReport();
+                    }
+                }));
+        observeReload(reload);
+        return reload;
+    }
+
+    private void beginLifecycleEpoch() {
+        synchronized (readinessMonitor) {
+            lifecycleEpoch++;
+            reloadGeneration = 0L;
+            latestCompletedReloadGeneration = -1L;
+            activeReloads = 0;
+            lifecycleActive = true;
+            reloadQueueSucceeded = true;
+            runtimeReady = false;
+            coreLibDisableRequested = false;
+            reloadTail = CompletableFuture.completedFuture(null);
+        }
+    }
+
+    private void invalidateLifecycleEpoch() {
+        synchronized (readinessMonitor) {
+            lifecycleEpoch++;
+            reloadGeneration = 0L;
+            latestCompletedReloadGeneration = -1L;
+            activeReloads = 0;
+            lifecycleActive = false;
+            reloadQueueSucceeded = false;
+            runtimeReady = false;
+            reloadTail = CompletableFuture.completedFuture(null);
+        }
+    }
+
+    private ReloadAttempt beginReloadAttempt() {
+        synchronized (readinessMonitor) {
+            if (!lifecycleActive) {
+                return null;
+            }
+            long generation = ++reloadGeneration;
+            activeReloads++;
+            runtimeReady = false;
+            return new ReloadAttempt(lifecycleEpoch, generation);
+        }
+    }
+
+    private CompletableFuture<Void> enqueueReloadAttempt(
+            ReloadAttempt attempt,
+            java.util.function.Supplier<CompletableFuture<Void>> reloadAction) {
+        CompletableFuture<Void> gate = new CompletableFuture<>();
+        CompletableFuture<Void> queued;
+        synchronized (readinessMonitor) {
+            CompletableFuture<Void> predecessor = reloadTail;
+            queued = predecessor.handle((ignored, failure) -> null)
+                    .thenCompose(ignored -> gate.thenCompose(unused -> startReloadAttempt(attempt, reloadAction)));
+            queued = queued.whenComplete((ignored, failure) -> completeReloadAttempt(attempt, failure == null));
+            reloadTail = queued.handle((ignored, failure) -> null);
+        }
+        gate.complete(null);
+        return queued;
+    }
+
+    private CompletableFuture<Void> startReloadAttempt(
+            ReloadAttempt attempt,
+            java.util.function.Supplier<CompletableFuture<Void>> reloadAction) {
+        if (!isReloadAttemptCurrent(attempt)) {
+            return CompletableFuture.completedFuture(null);
+        }
+        try {
+            CompletableFuture<Void> reload = reloadAction == null ? null : reloadAction.get();
+            return reload == null ? CompletableFuture.failedFuture(
+                    new IllegalStateException("EmakiItem reload action returned no completion stage.")) : reload;
+        } catch (RuntimeException | LinkageError exception) {
+            return CompletableFuture.failedFuture(exception);
+        }
+    }
+
+    private void completeReloadAttempt(ReloadAttempt attempt, boolean succeeded) {
+        if (attempt == null) {
+            return;
+        }
+        synchronized (readinessMonitor) {
+            if (attempt.lifecycleEpoch() != lifecycleEpoch) {
+                return;
+            }
+            activeReloads = Math.max(0, activeReloads - 1);
+            latestCompletedReloadGeneration = Math.max(
+                    latestCompletedReloadGeneration,
+                    attempt.reloadGeneration()
+            );
+            if (activeReloads == 0 && latestCompletedReloadGeneration == reloadGeneration) {
+                reloadQueueSucceeded = succeeded;
+            }
+            runtimeReady = lifecycleActive
+                    && activeReloads == 0
+                    && latestCompletedReloadGeneration == reloadGeneration
+                    && reloadQueueSucceeded;
+        }
+    }
+
+    private boolean isReloadAttemptCurrent(ReloadAttempt attempt) {
+        synchronized (readinessMonitor) {
+            return lifecycleActive
+                    && attempt != null
+                    && attempt.lifecycleEpoch() == lifecycleEpoch
+                    && attempt.reloadGeneration() == reloadGeneration;
+        }
+    }
+
+    private void observeReload(CompletableFuture<Void> reload) {
+        if (reload == null) {
+            return;
+        }
+        reload.whenComplete((ignored, failure) -> {
+            if (failure == null) {
+                return;
+            }
+            Throwable cause = failure instanceof java.util.concurrent.CompletionException completionException
+                    && completionException.getCause() != null
+                    ? completionException.getCause()
+                    : failure;
+            getLogger().warning("EmakiItem reload failed: " + cause.getClass().getSimpleName()
+                    + (Texts.isBlank(cause.getMessage()) ? "" : ": " + cause.getMessage()));
+        });
+    }
+
+    private boolean runtimeReady() {
+        synchronized (readinessMonitor) {
+            return runtimeReady;
+        }
+    }
+
+    public static boolean requireCoreLibCompatibility(String usage) {
+        EmakiItemPlugin plugin = null;
+        try {
+            plugin = JavaPlugin.getPlugin(EmakiItemPlugin.class);
+        } catch (RuntimeException | LinkageError ignored) {
+        }
+        String actualVersion = "<unavailable>";
+        boolean available = false;
+        boolean ready = false;
+        try {
+            available = EmakiCoreLibApi.available();
+            ready = EmakiCoreLibApi.isReady();
+            String reportedVersion = EmakiCoreLibApi.apiVersion();
+            actualVersion = reportedVersion == null || reportedVersion.isBlank()
+                    ? "<unavailable>"
+                    : reportedVersion;
+            if (available && ready && REQUIRED_CORELIB_API_VERSION.equals(actualVersion)) {
+                return true;
+            }
+            String details = "required=" + REQUIRED_CORELIB_API_VERSION
+                    + ", actual=" + actualVersion
+                    + ", available=" + available
+                    + ", ready=" + ready;
+            if (plugin != null) {
+                plugin.disableForCoreLibFailure(usage, details, null);
+            } else {
+                Bukkit.getLogger().severe("EmakiItem CoreLib compatibility failure during "
+                        + Texts.toStringSafe(usage) + ": " + details + ".");
+            }
+            return false;
+        } catch (RuntimeException | LinkageError exception) {
+            String details = "required=" + REQUIRED_CORELIB_API_VERSION
+                    + ", actual=" + actualVersion
+                    + ", available=" + available
+                    + ", ready=" + ready
+                    + ", failure=" + exception.getClass().getSimpleName();
+            if (plugin != null) {
+                plugin.disableForCoreLibFailure(usage, details, exception);
+            } else {
+                Bukkit.getLogger().severe("EmakiItem CoreLib compatibility preflight failed during "
+                        + Texts.toStringSafe(usage) + ": " + details + ".");
+            }
+            return false;
+        }
+    }
+
+    public static void reportCoreLibApiFailure(String usage, Throwable exception) {
+        EmakiItemPlugin plugin = null;
+        try {
+            plugin = JavaPlugin.getPlugin(EmakiItemPlugin.class);
+        } catch (RuntimeException | LinkageError ignored) {
+        }
+        if (plugin != null) {
+            plugin.disableForCoreLibFailure(usage, exception);
+        } else {
+            Bukkit.getLogger().severe("EmakiItem CoreLib API call failed during "
+                    + Texts.toStringSafe(usage) + ": "
+                    + (exception == null ? "unknown" : exception.getClass().getSimpleName()) + ".");
+        }
+    }
+
+    private void disableForCoreLibFailure(String usage, Throwable exception) {
+        disableForCoreLibFailure(
+                usage,
+                "failure=" + (exception == null ? "unknown" : exception.getClass().getSimpleName()),
+                exception
+        );
+    }
+
+    private void disableForCoreLibFailure(String usage, String details, Throwable exception) {
+        synchronized (readinessMonitor) {
+            runtimeReady = false;
+            reloadQueueSucceeded = false;
+            if (coreLibDisableRequested) {
+                return;
+            }
+            coreLibDisableRequested = true;
+        }
+        String message = "EmakiItem requires ready EmakiCoreLib API " + REQUIRED_CORELIB_API_VERSION
+                + " during " + Texts.toStringSafe(usage)
+                + " but compatibility validation failed: " + Texts.toStringSafe(details)
+                + ". Disabling EmakiItem.";
+        getLogger().severe(message);
+        if (exception != null && Texts.isNotBlank(exception.getMessage())) {
+            getLogger().severe("CoreLib compatibility failure detail: " + exception.getMessage());
+        }
+        Runnable disable = () -> getServer().getPluginManager().disablePlugin(this);
+        if (Bukkit.isPrimaryThread()) {
+            disable.run();
+        } else {
+            Bukkit.getScheduler().runTask(this, disable);
+        }
     }
 
     private void logConfigPrecheckReport() {
@@ -444,6 +712,13 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return debugCommand;
     }
 
+    public ItemRefreshMetrics refreshMetrics() {
+        return refreshMetrics;
+    }
+
+    private record ReloadAttempt(long lifecycleEpoch, long reloadGeneration) {
+    }
+
     private static final class PaperCommandAdapter implements BasicCommand {
 
         private final String rootLabel;
@@ -452,9 +727,9 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         private final org.bukkit.command.TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
-                String permission,
-                org.bukkit.command.CommandExecutor executor,
-                org.bukkit.command.TabCompleter tabCompleter) {
+                                    String permission,
+                                    org.bukkit.command.CommandExecutor executor,
+                                    org.bukkit.command.TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -468,7 +743,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
         @Override
         public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
-            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
+            String[] completionArgs = args.length == 0 ? new String[]{""} : args;
             java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
             return suggestions == null ? java.util.List.of() : suggestions;
         }

@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.gui;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.bukkit.inventory.ItemStack;
 
@@ -60,6 +62,15 @@ public interface GuiBackend {
 
 
 
+
+    default CompletionStage<Void> shutdownAsync() {
+        try {
+            shutdown();
+            return CompletableFuture.completedFuture(null);
+        } catch (Throwable throwable) {
+            return CompletableFuture.failedFuture(throwable);
+        }
+    }
 
     default void shutdown() {
     }

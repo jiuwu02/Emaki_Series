@@ -20,25 +20,43 @@ final class ItemOperationReverter {
         this.ledger = ledger;
     }
 
-    RevertResult revert(ItemStack itemStack, String operationId) {
-        if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(operationId)) {
-            return RevertResult.NOT_FOUND;
+    RevertResult revert(ItemStack itemStack,
+                        String operationId,
+                        ItemOperationLedger.ReadResult readResult) {
+        if (readResult == null || readResult.corrupt()) {
+            return RevertResult.notFound(readResult == null ? List.of() : readResult.entries());
         }
-        List<ItemOperationEntry> entriesBefore = ledger.readAll(itemStack);
+        return revert(itemStack, operationId, readResult.entries());
+    }
+
+    RevertResult revert(ItemStack itemStack,
+                        String operationId,
+                        List<ItemOperationEntry> entries) {
+        List<ItemOperationEntry> entriesBefore = entries == null || entries.isEmpty()
+                ? List.of()
+                : List.copyOf(entries);
+        if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(operationId)) {
+            return RevertResult.notFound(entriesBefore);
+        }
         int removedIndex = lastOperationIndex(entriesBefore, operationId);
         if (removedIndex < 0) {
-            return RevertResult.NOT_FOUND;
+            return RevertResult.notFound(entriesBefore);
         }
         List<ItemOperationEntry> retained = new ArrayList<>(entriesBefore);
         retained.remove(removedIndex);
         return rebuild(itemStack, entriesBefore, retained, 1);
     }
 
-    RevertResult revertAll(ItemStack itemStack, String sourceNamespace) {
-        if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(sourceNamespace)) {
-            return RevertResult.NOT_FOUND;
+    RevertResult revertAll(ItemStack itemStack,
+                           String sourceNamespace,
+                           ItemOperationLedger.ReadResult readResult) {
+        if (readResult == null || readResult.corrupt()) {
+            return RevertResult.notFound(readResult == null ? List.of() : readResult.entries());
         }
-        List<ItemOperationEntry> entriesBefore = ledger.readAll(itemStack);
+        List<ItemOperationEntry> entriesBefore = readResult.entries();
+        if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(sourceNamespace)) {
+            return RevertResult.notFound(entriesBefore);
+        }
         List<ItemOperationEntry> retained = new ArrayList<>();
         int removedCount = 0;
         for (ItemOperationEntry entry : entriesBefore) {
@@ -49,18 +67,18 @@ final class ItemOperationReverter {
             }
         }
         if (removedCount == 0) {
-            return RevertResult.NOT_FOUND;
+            return RevertResult.notFound(entriesBefore);
         }
         return rebuild(itemStack, entriesBefore, retained, removedCount);
     }
 
     private RevertResult rebuild(ItemStack itemStack,
-            List<ItemOperationEntry> entriesBefore,
-            List<ItemOperationEntry> retainedEntries,
-            int removedCount) {
+                                 List<ItemOperationEntry> entriesBefore,
+                                 List<ItemOperationEntry> retainedEntries,
+                                 int removedCount) {
         ItemStack managedTemplate = ledger.managedDisplayTemplate(itemStack);
         if (managedTemplate == null) {
-            return RevertResult.NOT_FOUND;
+            return RevertResult.notFound(entriesBefore);
         }
         ItemOperationBaseView baseView = replayer.resolveBaseView(managedTemplate, entriesBefore);
         boolean assemblyNameOverlay = ledger.hasAssemblyNameOverlay(itemStack, baseView);
@@ -75,7 +93,7 @@ final class ItemOperationReverter {
                 retainedEntries
         );
         if (oldProjection.itemStack() == null || newProjection.itemStack() == null) {
-            return RevertResult.NOT_FOUND;
+            return RevertResult.notFound(entriesBefore);
         }
 
         List<String> oldManagedLore = currentLore(oldProjection.itemStack());
@@ -90,7 +108,7 @@ final class ItemOperationReverter {
                 newManagedLore,
                 reconciliation.lore(),
                 reconciliation.externalLines())) {
-            return RevertResult.NOT_FOUND;
+            return RevertResult.notFound(entriesBefore);
         }
 
         ItemOperationLedger.CustomNameUpdate customNameUpdate = ledger.prepareCustomNameUpdate(
@@ -107,12 +125,12 @@ final class ItemOperationReverter {
         );
         if (!snapshotUpdate.valid()
                 || !writeDisplay(itemStack, customNameUpdate.customName(), reconciliation.lore())) {
-            return RevertResult.NOT_FOUND;
+            return RevertResult.notFound(entriesBefore);
         }
         ledger.replaceAll(itemStack, newProjection.entries());
         ledger.writePresentationSnapshotUpdate(itemStack, snapshotUpdate);
         ledger.writeCustomNameUpdate(itemStack, customNameUpdate);
-        return new RevertResult(true, removedCount);
+        return new RevertResult(true, removedCount, newProjection.entries());
     }
 
     private int lastOperationIndex(List<ItemOperationEntry> entries, String operationId) {
@@ -161,8 +179,16 @@ final class ItemOperationReverter {
         return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
     }
 
-    record RevertResult(boolean success, int revertedCount) {
+    record RevertResult(boolean success, int revertedCount, List<ItemOperationEntry> entries) {
 
-        static final RevertResult NOT_FOUND = new RevertResult(false, 0);
+        static final RevertResult NOT_FOUND = new RevertResult(false, 0, List.of());
+
+        static RevertResult notFound(List<ItemOperationEntry> entries) {
+            return new RevertResult(false, 0, entries);
+        }
+
+        RevertResult {
+            entries = entries == null || entries.isEmpty() ? List.of() : List.copyOf(entries);
+        }
     }
 }

@@ -10,7 +10,7 @@
 # Emaki Forge 中文语言文件
 
 # version 由资源同步维护
-version: "4.5.7"
+version: "4.5.9"
 
 # 通用消息
 general:
@@ -248,6 +248,15 @@ forge:
     material_count_exceeded: "<red>可选材料数量超限。</red>"
     item_create: "<red>无法创建结果物品。</red>"
     action_failed: "<red>锻造操作执行失败: %reason%</red>"
+    runtime_unavailable: "<red>锻造系统当前不可用（状态：%state%）。</red>"
+    runtime:
+      reloading: "<yellow>锻造系统正在重载，请稍后再试。</yellow>"
+      no_recipes: "<red>当前没有可用的锻造配方。</red>"
+      load_failed: "<red>锻造配置加载失败，请联系管理员。</red>"
+      capability_missing: "<red>锻造依赖的物品来源能力当前不可用。</red>"
+      index_unavailable: "<red>锻造索引尚未就绪，请稍后再试。</red>"
+      closed: "<red>锻造系统已关闭。</red>"
+      stale_session: "<yellow>此锻造界面属于旧配置，已自动关闭。</yellow>"
     lore_search_not_found: "<red>未找到 Lore 搜索插入目标: %pattern%</red>"
     lore_invalid_action_name: "<red>Lore 搜索操作无效: %action%</red>"
     lore_invalid_regex: "<red>Lore 搜索正则无效: %pattern%</red>"

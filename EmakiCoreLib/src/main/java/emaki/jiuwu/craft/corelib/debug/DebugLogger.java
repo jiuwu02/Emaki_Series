@@ -22,6 +22,8 @@ public final class DebugLogger {
     private final JavaPlugin plugin;
     private final LanguageLoader languageLoader;
     private final Set<UUID> trackedPlayers = ConcurrentHashMap.newKeySet();
+    private static volatile boolean globalAllEnabled;
+
     private final Set<String> enabledModules = ConcurrentHashMap.newKeySet();
     private volatile boolean globalEnabled;
 
@@ -40,7 +42,18 @@ public final class DebugLogger {
     }
 
 
+    public static void setGlobalAllEnabled(boolean enabled) {
+        globalAllEnabled = enabled;
+    }
+
+    public static boolean isGlobalAllEnabled() {
+        return globalAllEnabled;
+    }
+
     public boolean shouldLog(String module, UUID player) {
+        if (globalAllEnabled) {
+            return true;
+        }
         if (!globalEnabled) {
             return false;
         }

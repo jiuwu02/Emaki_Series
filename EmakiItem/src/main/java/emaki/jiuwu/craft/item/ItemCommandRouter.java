@@ -91,7 +91,13 @@ final class ItemCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
-            return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
+            List<String> debugSuggestions = new ArrayList<>(
+                    plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length))
+            );
+            if (args.length == 2 && "stats".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                debugSuggestions.add("stats");
+            }
+            return debugSuggestions.stream().distinct().toList();
         }
         if (args.length == 2 && "alias".equalsIgnoreCase(args[0])) {
             for (String sub : List.of("list", "add", "remove")) {
@@ -647,6 +653,34 @@ final class ItemCommandRouter implements TabExecutor {
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
             plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length >= 2 && "stats".equalsIgnoreCase(args[1])) {
+            var snapshot = plugin.refreshMetrics().snapshot();
+            plugin.messageService().sendRaw(sender, "<gray>EmakiItem refresh stats:</gray>"
+                    + " <white>events=" + snapshot.events()
+                    + " skipped=" + snapshot.skippedEvents()
+                    + " batches=" + snapshot.batches()
+                    + " rejected=" + snapshot.rejectedBatches()
+                    + " coalesced=" + snapshot.coalesced()
+                    + " requested_local=" + snapshot.requestedLocal()
+                    + " requested_full=" + snapshot.requestedFull()
+                    + " update_local=" + snapshot.actualUpdateLocal()
+                    + " update_full=" + snapshot.actualUpdateFull()
+                    + " set_local=" + snapshot.actualSetLocal()
+                    + " set_full=" + snapshot.actualSetFull() + "</white>");
+            plugin.messageService().sendRaw(sender, "<gray>Refresh work:</gray>"
+                    + " <white>cache_hits=" + snapshot.cacheHits()
+                    + " cache_invalid=" + snapshot.cacheInvalid()
+                    + " update_scanned=" + snapshot.updateScannedSlots()
+                    + " set_scanned=" + snapshot.setScannedSlots()
+                    + " scanned=" + snapshot.scannedSlots()
+                    + " changed=" + snapshot.changed()
+                    + " conflicts=" + snapshot.conflicts()
+                    + " ledger_decodes=" + snapshot.ledgerDecodes()
+                    + " set_compiles=" + snapshot.setCompiles()
+                    + " elapsed_ms=" + snapshot.elapsedMillis()
+                    + " full_reasons=" + snapshot.fullReasons() + "</white>");
             return true;
         }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());

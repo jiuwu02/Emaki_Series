@@ -5,6 +5,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -17,7 +19,8 @@ import net.kyori.adventure.text.Component;
 
 public final class ItemSourceService {
 
-    private final Map<String, ItemSourceResolver> resolvers = new LinkedHashMap<>();
+    private final Map<String, RegisteredResolver> resolvers = new LinkedHashMap<>();
+    private final AtomicLong registrationSequence = new AtomicLong();
     private volatile List<ItemSourceResolver> orderedResolvers = List.of();
 
     public ItemSourceService() {
@@ -25,19 +28,54 @@ public final class ItemSourceService {
     }
 
     public void registerResolver(@Nullable ItemSourceResolver resolver) {
-        if (resolver == null || Texts.isBlank(resolver.id())) {
-            return;
-        }
-        resolvers.put(Texts.normalizeId(resolver.id()), resolver);
-        refreshCache();
+        registerResolverInternal(resolver);
     }
 
-    public void unregisterResolver(@Nullable String resolverId) {
+    public synchronized ResolverRegistration registerResolverHandle(@Nullable ItemSourceResolver resolver) {
+        RegisteredResolver registered = registerResolverInternal(resolver);
+        if (registered == null) {
+            return new ResolverRegistration("", null, -1L, false);
+        }
+        return new ResolverRegistration(
+                Texts.normalizeId(registered.resolver().id()),
+                registered.resolver(),
+                registered.generation(),
+                true
+        );
+    }
+
+    private synchronized RegisteredResolver registerResolverInternal(@Nullable ItemSourceResolver resolver) {
+        if (resolver == null || Texts.isBlank(resolver.id())) {
+            return null;
+        }
+        String resolverId = Texts.normalizeId(resolver.id());
+        long generation = registrationSequence.incrementAndGet();
+        RegisteredResolver registered = new RegisteredResolver(resolver, generation);
+        resolvers.put(resolverId, registered);
+        refreshCache();
+        return registered;
+    }
+
+    public synchronized void unregisterResolver(@Nullable String resolverId) {
         if (Texts.isBlank(resolverId)) {
             return;
         }
         resolvers.remove(Texts.normalizeId(resolverId));
         refreshCache();
+    }
+
+    public synchronized boolean unregisterResolver(@Nullable ItemSourceResolver resolver) {
+        if (resolver == null || Texts.isBlank(resolver.id())) {
+            return false;
+        }
+        String resolverId = Texts.normalizeId(resolver.id());
+        RegisteredResolver registered = resolvers.get(resolverId);
+        if (registered == null || registered.resolver() != resolver) {
+            return false;
+        }
+        resolvers.remove(resolverId);
+        refreshCache();
+        return true;
     }
 
     @Nullable
@@ -72,18 +110,79 @@ public final class ItemSourceService {
     }
 
     public boolean isAvailable(@Nullable ItemSource source) {
-        if (source == null || source.getType() == null) {
-            return false;
+        return probe(source).ready();
+    }
+
+    public ItemSourceProbe probeShorthand(@Nullable String shorthand) {
+        if (Texts.isBlank(shorthand)) {
+            return invalidSource(null, "The item source shorthand is blank.");
         }
+        try {
+            ItemSource source = ItemSourceUtil.parseShorthand(shorthand);
+            return source == null
+                    ? invalidSource(null, "The item source shorthand is invalid: " + Texts.trim(shorthand))
+                    : probe(source);
+        } catch (LinkageError exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.INCOMPATIBLE, null, "", detail(exception));
+        } catch (RuntimeException exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.RESOLUTION_ERROR, null, "", detail(exception));
+        }
+    }
+
+    public ItemSourceProbe probe(@Nullable ItemSource source) {
+        if (source == null || source.getType() == null || Texts.isBlank(source.getIdentifier())) {
+            return invalidSource(source, "The item source type and identifier are required.");
+        }
+        ItemSourceProbe firstFailure = null;
         for (ItemSourceResolver resolver : orderedResolvers) {
-            if (!resolver.supports(source)) {
+            boolean supported;
+            try {
+                supported = resolver.supports(source);
+            } catch (LinkageError exception) {
+                firstFailure = firstFailure == null
+                        ? ItemSourceProbe.of(ItemSourceProbeStatus.INCOMPATIBLE, source, resolver.id(), detail(exception))
+                        : firstFailure;
+                continue;
+            } catch (RuntimeException exception) {
+                firstFailure = firstFailure == null
+                        ? ItemSourceProbe.of(ItemSourceProbeStatus.RESOLUTION_ERROR, source, resolver.id(), detail(exception))
+                        : firstFailure;
                 continue;
             }
-            if (resolver.isAvailable(source)) {
-                return true;
+            if (!supported) {
+                continue;
+            }
+            ItemSourceProbe result;
+            try {
+                result = resolver.probe(source);
+            } catch (LinkageError exception) {
+                result = ItemSourceProbe.of(ItemSourceProbeStatus.INCOMPATIBLE, source, resolver.id(), detail(exception));
+            } catch (RuntimeException exception) {
+                result = ItemSourceProbe.of(ItemSourceProbeStatus.RESOLUTION_ERROR, source, resolver.id(), detail(exception));
+            }
+            if (result == null) {
+                result = ItemSourceProbe.of(
+                        ItemSourceProbeStatus.RESOLUTION_ERROR,
+                        source,
+                        resolver.id(),
+                        "The resolver returned no probe result."
+                );
+            }
+            if (result.ready()) {
+                return result;
+            }
+            if (firstFailure == null) {
+                firstFailure = result;
             }
         }
-        return false;
+        return firstFailure == null
+                ? ItemSourceProbe.of(
+                ItemSourceProbeStatus.RESOLVER_MISSING,
+                source,
+                "",
+                "No registered resolver supports item source type " + source.getType() + "."
+        )
+                : firstFailure;
     }
 
     public String displayName(@Nullable ItemSource source) {
@@ -117,10 +216,35 @@ public final class ItemSourceService {
     }
 
     private void refreshCache() {
-        List<ItemSourceResolver> values = new ArrayList<>(resolvers.values());
+        List<ItemSourceResolver> values = new ArrayList<>(resolvers.size());
+        for (RegisteredResolver registered : resolvers.values()) {
+            values.add(registered.resolver());
+        }
         values.sort(Comparator.comparingInt(ItemSourceResolver::priority).reversed()
                 .thenComparing(resolver -> Texts.normalizeId(resolver.id())));
         orderedResolvers = values.isEmpty() ? List.of() : List.copyOf(values);
+    }
+
+    private synchronized boolean unregisterResolverIfMatches(String resolverId, long generation) {
+        RegisteredResolver registered = resolvers.get(resolverId);
+        if (registered == null || registered.generation() != generation) {
+            return false;
+        }
+        resolvers.remove(resolverId);
+        refreshCache();
+        return true;
+    }
+
+    private ItemSourceProbe invalidSource(ItemSource source, String detail) {
+        return ItemSourceProbe.of(ItemSourceProbeStatus.INVALID_SOURCE, source, "", detail);
+    }
+
+    private String detail(Throwable throwable) {
+        if (throwable == null) {
+            return "Unknown resolution failure";
+        }
+        String message = throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 
     private String vanillaDisplayName(ItemSource source) {
@@ -194,6 +318,11 @@ public final class ItemSourceService {
         }
 
         @Override
+        public boolean isAvailable(ItemSource source) {
+            return supports(source) && resolveMaterial(source.getIdentifier()) != null;
+        }
+
+        @Override
         public ItemSource identify(ItemStack itemStack) {
             if (itemStack == null || itemStack.isEmpty()) {
                 return null;
@@ -213,5 +342,50 @@ public final class ItemSourceService {
         private Material resolveMaterial(String identifier) {
             return ItemSourceUtil.resolveVanillaMaterial(identifier);
         }
+    }
+
+    public final class ResolverRegistration implements AutoCloseable {
+
+        private final String resolverId;
+        private final ItemSourceResolver resolver;
+        private final long generation;
+        private final boolean registered;
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        private ResolverRegistration(
+                String resolverId,
+                ItemSourceResolver resolver,
+                long generation,
+                boolean registered) {
+            this.resolverId = resolverId;
+            this.resolver = resolver;
+            this.generation = generation;
+            this.registered = registered;
+        }
+
+        public String resolverId() {
+            return resolverId;
+        }
+
+        public ItemSourceResolver resolver() {
+            return resolver;
+        }
+
+        public boolean registered() {
+            return registered;
+        }
+
+        public boolean unregister() {
+            return registered && closed.compareAndSet(false, true)
+                    && unregisterResolverIfMatches(resolverId, generation);
+        }
+
+        @Override
+        public void close() {
+            unregister();
+        }
+    }
+
+    private record RegisteredResolver(ItemSourceResolver resolver, long generation) {
     }
 }
