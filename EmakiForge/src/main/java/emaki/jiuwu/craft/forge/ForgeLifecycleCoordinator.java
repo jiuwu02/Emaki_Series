@@ -41,6 +41,7 @@ import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.loader.ForgeGuiTemplateLoader;
+import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.script.ScriptForgeModuleApi;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
@@ -83,6 +84,13 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private record CandidateDocuments(
             List<RecipeLoader.CandidateDocument> recipeDocuments,
             List<RecipeLoader.CandidateDocument> guiDocuments) {
+    }
+
+    private record RuntimeValidatedCandidate(
+            CandidatePreparation preparation,
+            RecipeLoader.RecipeLoadReport report,
+            Map<String, Recipe> recipes,
+            ForgeService forgeService) {
     }
 
     @Override
@@ -246,18 +254,39 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private CompletableFuture<ForgeReloadCandidate> buildCandidateAsync(EmakiForgePlugin plugin, long generation) {
         EmakiCoreLibPlugin coreLib = plugin.coreLib();
         AsyncTaskScheduler scheduler = coreLib.asyncTaskScheduler();
-        return submitGlobal(plugin, () -> prepareCandidate(plugin, coreLib, generation))
-                .thenCompose(preparation -> scheduler.supplyAsync(
-                        "forge-reload-yaml-" + generation,
-                        () -> new CandidateDocuments(
-                                readCandidateDocuments(preparation.recipeFiles()),
-                                readCandidateDocuments(preparation.guiFiles())))
-                        .thenCompose(documents -> {
-                            if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
-                                return CompletableFuture.failedFuture(new StaleReloadException());
-                            }
-                            return submitGlobal(plugin, () -> runFinalValidation(plugin, preparation, documents));
-                        }));
+        return scheduler.supplyAsync(
+                        "forge-reload-parse-" + generation,
+                        () -> prepareCandidateDocuments(plugin, coreLib, generation))
+                .thenCompose(preparation -> {
+                    if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
+                        return CompletableFuture.failedFuture(new StaleReloadException());
+                    }
+                    return submitGlobal(plugin, () -> runRuntimeValidation(plugin, preparation));
+                })
+                .thenCompose(validation -> scheduler.supplyAsync(
+                        "forge-reload-index-" + generation,
+                        () -> buildCandidate(plugin, validation)));
+    }
+
+    private CandidatePreparation prepareCandidateDocuments(EmakiForgePlugin plugin,
+                                                            EmakiCoreLibPlugin coreLib,
+                                                            long generation) {
+        CandidatePreparation preparation = prepareCandidate(plugin, coreLib, generation);
+        if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
+            throw new StaleReloadException();
+        }
+        CandidateDocuments documents = new CandidateDocuments(
+                readCandidateDocuments(preparation.recipeFiles()),
+                readCandidateDocuments(preparation.guiFiles()));
+        if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
+            throw new StaleReloadException();
+        }
+        preparation.recipeLoader().loadCandidateDocuments(documents.recipeDocuments());
+        preparation.guiTemplateLoader().loadCandidateDocuments(documents.guiDocuments());
+        if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
+            throw new StaleReloadException();
+        }
+        return preparation;
     }
 
     private CandidatePreparation prepareCandidate(EmakiForgePlugin plugin,
@@ -333,21 +362,42 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
     }
 
-    private ForgeReloadCandidate runFinalValidation(EmakiForgePlugin plugin,
-                                                     CandidatePreparation preparation,
-                                                     CandidateDocuments documents) {
+    private RuntimeValidatedCandidate runRuntimeValidation(EmakiForgePlugin plugin,
+                                                            CandidatePreparation preparation) {
         long generation = preparation.generation();
         if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
             throw new StaleReloadException();
         }
-        preparation.recipeLoader().loadCandidateDocuments(documents.recipeDocuments());
-        preparation.guiTemplateLoader().loadCandidateDocuments(documents.guiDocuments());
         preparation.recipeLoader().completeDeferredRuntimeValidation();
         preparation.guiTemplateLoader().completeDeferredRuntimeValidation();
         RecipeLoader.RecipeLoadReport report = preparation.recipeLoader().completeReport(
                 preparation.guiTemplateLoader());
-        ForgeLookupIndex.Snapshot lookupSnapshot = plugin.forgeService().buildLookupSnapshot(
-                generation, preparation.recipeLoader().all(), report);
+        if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
+            throw new StaleReloadException();
+        }
+        ForgeService forgeService = plugin.forgeService();
+        if (forgeService == null) {
+            throw new IllegalStateException("Forge service is unavailable during candidate validation.");
+        }
+        return new RuntimeValidatedCandidate(
+                preparation,
+                report,
+                preparation.recipeLoader().all(),
+                forgeService);
+    }
+
+    private ForgeReloadCandidate buildCandidate(EmakiForgePlugin plugin,
+                                                RuntimeValidatedCandidate validation) {
+        CandidatePreparation preparation = validation.preparation();
+        long generation = preparation.generation();
+        if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
+            throw new StaleReloadException();
+        }
+        ForgeLookupIndex.Snapshot lookupSnapshot = validation.forgeService().buildLookupSnapshot(
+                generation, validation.recipes(), validation.report());
+        if (plugin.isShutdownStarted() || !plugin.isGenerationRequested(generation)) {
+            throw new StaleReloadException();
+        }
         return new ForgeReloadCandidate(
                 generation,
                 preparation.appConfigLoader(),
@@ -356,7 +406,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 preparation.bootstrapService(),
                 preparation.recipeLoader(),
                 preparation.guiTemplateLoader(),
-                report,
+                validation.report(),
                 lookupSnapshot,
                 System.nanoTime() - preparation.startedNanos());
     }

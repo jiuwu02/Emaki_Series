@@ -12,12 +12,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
@@ -43,8 +41,6 @@ import emaki.jiuwu.craft.item.model.RefreshScope;
 public final class EmakiItemSetService {
 
     private static final String SET_DISPLAY_NAMESPACE = "emakiitem:set_display";
-    private static final NamespacedKey OPERATIONS_KEY = java.util.Objects.requireNonNull(
-            NamespacedKey.fromString("emaki:item.operations"));
 
     private final EmakiItemLoader itemLoader;
     private final EmakiItemSetLoader setLoader;
@@ -148,6 +144,10 @@ public final class EmakiItemSetService {
         this.itemOperationLedger = itemOperationLedger == null ? new ItemOperationLedger(this.debugLoggerSupplier) : itemOperationLedger;
     }
 
+    public ItemRefreshBatch createRefreshBatch(Player player) {
+        return new ItemRefreshBatch(player == null ? null : player.getInventory(), itemOperationLedger);
+    }
+
     public int refreshEquippedSets(Player player, String trigger) {
         return refreshListenerScopeDetailed(
                 player,
@@ -175,11 +175,28 @@ public final class EmakiItemSetService {
     }
 
     public ItemRefreshResult refreshListenerScopeDetailed(Player player,
-                                                          Iterable<String> triggers,
-                                                          Set<Integer> dirtySlots,
-                                                          boolean forceFull,
-                                                          boolean contributionDirty,
-                                                          Set<RefreshFullReason> requestedFullReasons) {
+                                                           Iterable<String> triggers,
+                                                           Set<Integer> dirtySlots,
+                                                           boolean forceFull,
+                                                           boolean contributionDirty,
+                                                           Set<RefreshFullReason> requestedFullReasons) {
+        return refreshListenerScopeDetailed(
+                player,
+                triggers,
+                dirtySlots,
+                forceFull,
+                contributionDirty,
+                requestedFullReasons,
+                null);
+    }
+
+    public ItemRefreshResult refreshListenerScopeDetailed(Player player,
+                                                           Iterable<String> triggers,
+                                                           Set<Integer> dirtySlots,
+                                                           boolean forceFull,
+                                                           boolean contributionDirty,
+                                                           Set<RefreshFullReason> requestedFullReasons,
+                                                           ItemRefreshBatch sharedBatch) {
         long started = System.nanoTime();
         RefreshScope requestedScope = forceFull ? RefreshScope.FULL
                 : dirtySlots == null || dirtySlots.isEmpty() ? RefreshScope.SKIP : RefreshScope.LOCAL;
@@ -192,6 +209,9 @@ public final class EmakiItemSetService {
         }
 
         PlayerInventory inventory = player.getInventory();
+        ItemRefreshBatch refreshBatch = sharedBatch != null && sharedBatch.matches(inventory)
+                ? sharedBatch
+                : new ItemRefreshBatch(inventory, itemOperationLedger);
         int inventorySize = inventory.getSize();
         int heldSlot = inventory.getHeldItemSlot();
         Set<Integer> contributionSlots = contributionSlots(heldSlot, inventorySize);
@@ -219,10 +239,10 @@ public final class EmakiItemSetService {
         Set<Integer> initialSlots = decision.scope() == RefreshScope.FULL
                 ? allSlots(inventorySize)
                 : unionSlots(dirtySlots, contributionSlots);
-        captureSlots(inventory, heldSlot, initialSlots, itemDefinitions, capture, false);
+        captureSlots(inventory, heldSlot, initialSlots, itemDefinitions, capture, refreshBatch, false);
         if (capture.hasCorruptLedger()) {
             decision = forceFullForCorruptLedger(decision);
-            captureSlots(inventory, heldSlot, allSlots(inventorySize), itemDefinitions, capture, false);
+            captureSlots(inventory, heldSlot, allSlots(inventorySize), itemDefinitions, capture, refreshBatch, false);
         }
         String contributionSignature = contributionSignature(capture.facts(), contributionSlots);
         if (decision.scope() == RefreshScope.LOCAL) {
@@ -233,7 +253,7 @@ public final class EmakiItemSetService {
                     contributionSignature
             );
             if (decision.scope() == RefreshScope.FULL) {
-                captureSlots(inventory, heldSlot, allSlots(inventorySize), itemDefinitions, capture, false);
+                captureSlots(inventory, heldSlot, allSlots(inventorySize), itemDefinitions, capture, refreshBatch, false);
                 if (capture.hasCorruptLedger()) {
                     decision = forceFullForCorruptLedger(decision);
                 }
@@ -288,7 +308,7 @@ public final class EmakiItemSetService {
         LinkedHashMap<String, CompiledSetState> finalCompiledStates = new LinkedHashMap<>(compiledStates);
         int totalSetCompiles = compileResult.compiles();
         if (applyResult.contributionChanged() || applyResult.conflicts() > 0) {
-            captureSlots(inventory, heldSlot, contributionSlots, itemDefinitions, capture, true);
+            captureSlots(inventory, heldSlot, contributionSlots, itemDefinitions, capture, refreshBatch, true);
             if (!capture.hasCorruptLedger()) {
                 finalContributionSignature = contributionSignature(capture.facts(), contributionSlots);
                 finalEquippedPiecesBySet = collectEquippedPieces(
@@ -456,12 +476,13 @@ public final class EmakiItemSetService {
     }
 
     private void captureSlots(PlayerInventory inventory,
-                              int heldSlot,
-                              Set<Integer> slots,
-                              EmakiItemLoader.Snapshot itemDefinitions,
-                              CaptureAccumulator accumulator,
-                              boolean replace) {
-        if (inventory == null || slots == null || accumulator == null) {
+                               int heldSlot,
+                               Set<Integer> slots,
+                               EmakiItemLoader.Snapshot itemDefinitions,
+                               CaptureAccumulator accumulator,
+                               ItemRefreshBatch refreshBatch,
+                               boolean replace) {
+        if (inventory == null || slots == null || accumulator == null || refreshBatch == null) {
             return;
         }
         for (Integer boxedSlot : new TreeSet<>(slots)) {
@@ -472,19 +493,19 @@ public final class EmakiItemSetService {
             if (slot < 0 || slot >= inventory.getSize() || !replace && accumulator.facts().containsKey(slot)) {
                 continue;
             }
-            ItemStack current = inventory.getItem(slot);
-            ItemStack expected = cloneItem(current);
+            int ledgerDecodesBefore = refreshBatch.ledgerDecodes();
+            ItemRefreshBatch.SlotSnapshot sharedSnapshot = replace
+                    ? refreshBatch.recapture(slot)
+                    : refreshBatch.capture(slot);
+            ItemStack expected = sharedSnapshot == null ? null : sharedSnapshot.expected();
             ItemMeta itemMeta = expected == null ? null : expected.getItemMeta();
             EmakiItemIdentifier.Snapshot identity = identifier.snapshot(itemMeta);
             EmakiItemDefinition definition = Texts.isBlank(identity.id()) ? null : itemDefinitions.get(identity.id());
             ItemSetMembership membership = definition == null ? ItemSetMembership.empty() : definition.setMembership();
-            ItemOperationLedger.ReadResult ledgerRead;
-            if (expected == null || expected.getType().isAir() || !operationsFieldPresent(expected)) {
-                ledgerRead = ItemOperationLedger.ReadResult.absent();
-            } else {
-                ledgerRead = itemOperationLedger.read(expected);
-                accumulator.incrementLedgerDecodes();
-            }
+            ItemOperationLedger.ReadResult ledgerRead = sharedSnapshot == null
+                    ? ItemOperationLedger.ReadResult.absent()
+                    : sharedSnapshot.ledgerRead();
+            accumulator.addLedgerDecodes(refreshBatch.ledgerDecodes() - ledgerDecodesBefore);
             LedgerFacts ledgerFacts = LedgerFacts.from(ledgerRead);
             accumulator.put(new SlotFacts(
                     slot,
@@ -1470,11 +1491,6 @@ public final class EmakiItemSetService {
         return Texts.isNotBlank(raw);
     }
 
-    private boolean operationsFieldPresent(ItemStack itemStack) {
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        return itemMeta != null && itemMeta.getPersistentDataContainer().getKeys().contains(OPERATIONS_KEY);
-    }
-
     private int loreSize(ItemStack itemStack) {
         return loreLines(itemStack).size();
     }
@@ -1693,8 +1709,8 @@ public final class EmakiItemSetService {
             scannedSlots++;
         }
 
-        private void incrementLedgerDecodes() {
-            ledgerDecodes++;
+        private void addLedgerDecodes(int count) {
+            ledgerDecodes += Math.max(0, count);
         }
     }
 

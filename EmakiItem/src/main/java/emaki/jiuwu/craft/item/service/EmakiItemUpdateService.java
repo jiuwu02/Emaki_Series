@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -42,9 +41,6 @@ import emaki.jiuwu.craft.item.model.RefreshScope;
 public final class EmakiItemUpdateService {
 
     private static final String DISPLAY_OPERATION_NAMESPACE = "emakiitem:item_display";
-    private static final NamespacedKey OPERATIONS_KEY = java.util.Objects.requireNonNull(
-            NamespacedKey.fromString("emaki:item.operations"));
-
     private final EmakiItemLoader itemLoader;
     private final EmakiItemIdResolver idResolver;
     private final EmakiItemFactory itemFactory;
@@ -188,6 +184,21 @@ public final class EmakiItemUpdateService {
             Set<Integer> dirtySlots,
             boolean forceFull,
             Set<RefreshFullReason> requestedFullReasons) {
+        return updatePlayerItemsDetailed(
+                player,
+                triggers,
+                dirtySlots,
+                forceFull,
+                requestedFullReasons,
+                null);
+    }
+
+    public ItemRefreshResult updatePlayerItemsDetailed(Player player,
+            Iterable<String> triggers,
+            Set<Integer> dirtySlots,
+            boolean forceFull,
+            Set<RefreshFullReason> requestedFullReasons,
+            ItemRefreshBatch sharedBatch) {
         long started = System.nanoTime();
         RefreshScope requestedScope = forceFull ? RefreshScope.FULL
                 : dirtySlots == null || dirtySlots.isEmpty() ? RefreshScope.SKIP : RefreshScope.LOCAL;
@@ -197,6 +208,10 @@ public final class EmakiItemUpdateService {
         }
         List<String> orderedTriggers = orderedTriggers(triggers);
         PlayerInventory inventory = player.getInventory();
+        ItemRefreshBatch refreshBatch = sharedBatch != null && sharedBatch.matches(inventory)
+                ? sharedBatch
+                : new ItemRefreshBatch(inventory, operationLedger);
+        int ledgerDecodesBefore = refreshBatch.ledgerDecodes();
         TreeSet<Integer> slots = new TreeSet<>();
         if (forceFull) {
             for (int slot = 0; slot < inventory.getSize(); slot++) {
@@ -209,7 +224,6 @@ public final class EmakiItemUpdateService {
         int scanned = 0;
         int changed = 0;
         int conflicts = 0;
-        int ledgerDecodes = 0;
         boolean cacheValid = true;
         boolean considered = false;
         String effectiveTrigger = "";
@@ -218,10 +232,10 @@ public final class EmakiItemUpdateService {
                 continue;
             }
             scanned++;
-            SlotUpdateResult slotResult = updateInventorySlot(inventory, slot, orderedTriggers, definitions);
+            SlotUpdateResult slotResult = updateInventorySlot(
+                    inventory, slot, orderedTriggers, definitions, refreshBatch);
             changed += slotResult.changed();
             conflicts += slotResult.conflict() ? 1 : 0;
-            ledgerDecodes += slotResult.ledgerDecodes();
             cacheValid &= slotResult.cacheValid();
             considered |= slotResult.considered();
             if (Texts.isBlank(effectiveTrigger) && Texts.isNotBlank(slotResult.effectiveTrigger())) {
@@ -239,6 +253,7 @@ public final class EmakiItemUpdateService {
         if (!cacheValid) {
             reasons.add(RefreshFullReason.CACHE_INVALID);
         }
+        int ledgerDecodes = refreshBatch.ledgerDecodes() - ledgerDecodesBefore;
         return new ItemRefreshResult(requestedScope, actualScope, RefreshScope.SKIP, reasons,
                 false, cacheValid && conflicts == 0, scanned, 0, changed, conflicts, ledgerDecodes, 0,
                 effectiveTrigger, System.nanoTime() - started);
@@ -247,34 +262,28 @@ public final class EmakiItemUpdateService {
     private SlotUpdateResult updateInventorySlot(PlayerInventory inventory,
             int slot,
             List<String> triggers,
-            EmakiItemLoader.Snapshot definitions) {
-        ItemStack current = inventory.getItem(slot);
-        ItemStack snapshot = current == null ? null : current.clone();
-        boolean ledgerPresent = snapshot != null
-                && !snapshot.getType().isAir()
-                && operationsFieldPresent(snapshot);
-        ItemOperationLedger.ReadResult readResult = ledgerPresent
-                ? operationLedger.read(snapshot)
-                : ItemOperationLedger.ReadResult.absent();
-        int ledgerDecodes = ledgerPresent ? 1 : 0;
+            EmakiItemLoader.Snapshot definitions,
+            ItemRefreshBatch refreshBatch) {
+        ItemRefreshBatch.SlotSnapshot slotSnapshot = refreshBatch.capture(slot);
+        ItemStack snapshot = slotSnapshot == null ? null : slotSnapshot.expected();
+        ItemOperationLedger.ReadResult readResult = slotSnapshot == null
+                ? ItemOperationLedger.ReadResult.absent()
+                : slotSnapshot.ledgerRead();
         UpdateOutcome outcome = updateIfNeeded(snapshot, triggers, definitions, readResult);
         ItemStack updated = outcome.itemStack();
         if (sameItem(snapshot, updated)) {
-            return new SlotUpdateResult(0, false, outcome.considered(), outcome.cacheValid(), ledgerDecodes,
+            return new SlotUpdateResult(0, false, outcome.considered(), outcome.cacheValid(),
                     outcome.effectiveTrigger());
         }
         if (!sameItem(inventory.getItem(slot), snapshot)) {
-            return new SlotUpdateResult(0, true, outcome.considered(), false, ledgerDecodes,
+            refreshBatch.recapture(slot);
+            return new SlotUpdateResult(0, true, outcome.considered(), false,
                     outcome.effectiveTrigger());
         }
         inventory.setItem(slot, updated);
-        return new SlotUpdateResult(1, false, outcome.considered(), outcome.cacheValid(), ledgerDecodes,
+        refreshBatch.recapture(slot);
+        return new SlotUpdateResult(1, false, outcome.considered(), outcome.cacheValid(),
                 outcome.effectiveTrigger());
-    }
-
-    private boolean operationsFieldPresent(ItemStack itemStack) {
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        return itemMeta != null && itemMeta.getPersistentDataContainer().getKeys().contains(OPERATIONS_KEY);
     }
 
     private static boolean sameItem(ItemStack first, ItemStack second) {
@@ -548,12 +557,7 @@ public final class EmakiItemUpdateService {
             boolean conflict,
             boolean considered,
             boolean cacheValid,
-            int ledgerDecodes,
             String effectiveTrigger) {
-
-        private SlotUpdateResult {
-            ledgerDecodes = Math.max(0, ledgerDecodes);
-        }
     }
 
     public interface PdcAttributeGatewayAdapter {

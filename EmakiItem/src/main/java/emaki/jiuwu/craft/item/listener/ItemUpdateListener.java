@@ -34,6 +34,7 @@ import emaki.jiuwu.craft.item.listener.InventoryRefreshClassifier.ClickContext;
 import emaki.jiuwu.craft.item.listener.InventoryRefreshClassifier.ClickedArea;
 import emaki.jiuwu.craft.item.model.RefreshFullReason;
 import emaki.jiuwu.craft.item.model.RefreshScope;
+import emaki.jiuwu.craft.item.service.ItemRefreshBatch;
 import emaki.jiuwu.craft.item.service.ItemRefreshResult;
 
 public final class ItemUpdateListener implements Listener {
@@ -247,12 +248,14 @@ public final class ItemUpdateListener implements Listener {
     }
 
     private ItemRefreshResult refresh(Player player, PendingSnapshot pending, Set<Integer> dirtySlots) {
+        ItemRefreshBatch refreshBatch = plugin.setService().createRefreshBatch(player);
         ItemRefreshResult updateResult = plugin.updateService().updatePlayerItemsDetailed(
                 player,
                 pending.triggers(),
                 dirtySlots,
                 pending.forceFull(),
-                pending.fullReasons()
+                pending.fullReasons(),
+                refreshBatch
         );
         if (updateResult.conflicts() > 0) {
             plugin.setService().invalidateCachedState(player.getUniqueId());
@@ -263,7 +266,8 @@ public final class ItemUpdateListener implements Listener {
                 dirtySlots,
                 pending.forceFull(),
                 pending.contributionDirty(),
-                pending.fullReasons()
+                pending.fullReasons(),
+                refreshBatch
         );
         ItemRefreshResult result = updateResult.combine(setResult);
         if (result.changed() > 0) {

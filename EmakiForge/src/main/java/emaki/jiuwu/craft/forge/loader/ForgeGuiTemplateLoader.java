@@ -107,7 +107,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                         loadedEntries.put(id, new LoadedYamlEntry<>(
                                 id,
                                 document.file(),
-                                configuration.copy(),
+                                configuration,
                                 value));
                     } catch (Exception exception) {
                         onLoadFailure(document.file(), exception);
@@ -138,7 +138,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                     }
                     items.put(entry.id(), template);
                     loadedEntries.put(entry.id(), new LoadedYamlEntry<>(
-                            entry.id(), entry.file(), entry.configuration().copy(), template));
+                            entry.id(), entry.file(), entry.configuration(), template));
                 } catch (RuntimeException | LinkageError failure) {
                     recordCandidateIssue(entry.file(), "GUI_FINALIZATION_FAILED",
                             "GUI template finalization failed: " + failureSummary(failure));

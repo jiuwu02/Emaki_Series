@@ -274,7 +274,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                         loadedEntries.put(id, new LoadedYamlEntry<>(
                                 id,
                                 document.file(),
-                                configuration.copy(),
+                                configuration,
                                 value));
                     } catch (Exception exception) {
                         onLoadFailure(document.file(), exception);
@@ -310,7 +310,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                         loadedEntries.put(deferred.recipeId(), new LoadedYamlEntry<>(
                                 deferred.recipeId(),
                                 deferred.file(),
-                                deferred.configuration().copy(),
+                                deferred.configuration(),
                                 prioritized));
                     } catch (RuntimeException | LinkageError failure) {
                         recordFinalizationFailure(deferred,
@@ -438,7 +438,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             return null;
         }
         if (deferRuntimeValidation) {
-            deferredRecipes.add(new DeferredRecipe(file, configuration.copy(), recipe.id()));
+            deferredRecipes.add(new DeferredRecipe(file, configuration, recipe.id()));
         }
         validateRecipeSources(file, configuration, recipe);
         parsed++;
