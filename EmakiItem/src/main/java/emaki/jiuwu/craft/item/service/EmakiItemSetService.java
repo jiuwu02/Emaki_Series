@@ -854,8 +854,10 @@ public final class EmakiItemSetService {
         }
         DebugLogger debugLogger = debugLoggerSupplier.get();
         if (debugLogger != null && debugLogger.shouldLog("set", player)) {
-            debugLogger.logRaw("set", player, "[DEBUG:SET_MISSING] trigger=" + Texts.toStringSafe(trigger)
-                    + " action=preserve definitions=" + newlyMissing);
+            debugLogger.log("set", player, "set.missing_definitions", Map.of(
+                    "trigger", Texts.toStringSafe(trigger),
+                    "definitions", newlyMissing
+            ));
         }
     }
 
@@ -890,18 +892,20 @@ public final class EmakiItemSetService {
                 () -> new java.util.EnumMap<>(ItemSetRefreshPlanner.SlotAction.class),
                 java.util.stream.Collectors.counting()
         ));
-        debugLogger.logRaw("set", player, "[DEBUG:SET_PLAN] trigger=" + Texts.toStringSafe(trigger)
-                + " scope=" + decision.scope()
-                + " reasons=" + decision.fullReasons()
-                + " contribution_dirty=" + contributionDirty
-                + " dirty=" + (dirtySlots == null ? Set.of() : dirtySlots)
-                + " plans=" + planCounts
-                + " scanned=" + capture.scannedSlots()
-                + " ledger_decodes=" + capture.ledgerDecodes()
-                + " post_scans=" + postCaptureScans
-                + " post_ledgers=" + postCaptureLedgers
-                + " changed=" + applyResult.changed()
-                + " conflicts=" + applyResult.conflicts());
+        debugLogger.log("set", player, "set.refresh_plan", Map.ofEntries(
+                Map.entry("trigger", Texts.toStringSafe(trigger)),
+                Map.entry("scope", decision.scope()),
+                Map.entry("reasons", decision.fullReasons()),
+                Map.entry("contribution_dirty", contributionDirty),
+                Map.entry("dirty", dirtySlots == null ? Set.of() : dirtySlots),
+                Map.entry("plans", planCounts),
+                Map.entry("scanned", capture.scannedSlots()),
+                Map.entry("ledger_decodes", capture.ledgerDecodes()),
+                Map.entry("post_scans", postCaptureScans),
+                Map.entry("post_ledgers", postCaptureLedgers),
+                Map.entry("changed", applyResult.changed()),
+                Map.entry("conflicts", applyResult.conflicts())
+        ));
     }
 
 
@@ -1497,16 +1501,18 @@ public final class EmakiItemSetService {
         if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
             return;
         }
-        debugLogger.logRaw("set", player, "[DEBUG:SET_SLOT] trigger=" + Texts.toStringSafe(trigger)
-                + " item=" + definition.id()
-                + " actual=" + Texts.toStringSafe(actualSlot)
-                + " item_slot=" + Texts.toStringSafe(definition.equipSlot())
-                + " set=" + membership.setId()
-                + " piece=" + (pieceDefinition == null ? "<unresolved>" : pieceDefinition.pieceId())
-                + " set_slot=" + (pieceDefinition == null ? "<unresolved>" : pieceDefinition.slot())
-                + " item_match=" + definitionSlotMatch
-                + " set_match=" + setSlotMatch
-                + " accepted=" + accepted);
+        debugLogger.log("set", player, "set.slot_gate", Map.of(
+                "trigger", Texts.toStringSafe(trigger),
+                "item", definition.id(),
+                "actual", Texts.toStringSafe(actualSlot),
+                "item_slot", Texts.toStringSafe(definition.equipSlot()),
+                "set", membership.setId(),
+                "piece", pieceDefinition == null ? "<unresolved>" : pieceDefinition.pieceId(),
+                "set_slot", pieceDefinition == null ? "<unresolved>" : pieceDefinition.slot(),
+                "item_match", definitionSlotMatch,
+                "set_match", setSlotMatch,
+                "accepted", accepted
+        ));
     }
 
     private void debugSetLore(Player player,
@@ -1527,20 +1533,21 @@ public final class EmakiItemSetService {
         }
         boolean expectsOperation = !target.setLore().isEmpty() || target.expectsThresholdOperation();
         SetPresentationInspection after = new SetPresentationInspection(false, expectsOperation, true);
-        debugLogger.logRaw("set", player, "[DEBUG:SET_LORE] trigger=" + Texts.toStringSafe(trigger)
-                + " slot=" + Texts.toStringSafe(slot)
-                + " item=" + Texts.toStringSafe(itemId)
-                + " signature=" + Texts.toStringSafe(previousSignature) + "->" + Texts.toStringSafe(identifier.setSignature(rendered))
-                + " marker=" + previousLoreLines + "->" + identifier.setLoreLines(rendered)
-                + " lore_size=" + previousLoreSize + "->" + loreSize(rendered)
-                + " static_ledger=" + before.staticOperationPresent() + "->" + after.staticOperationPresent()
-                + " threshold_ledger=" + before.thresholdOperationPresent() + "->" + after.thresholdOperationPresent()
-                + " current=" + before.current() + "->" + after.current()
-                + " changed=true"
-                + " committed=" + committed
-                + " global_owner=" + (threadOwnership != null && threadOwnership.isGlobalOwned())
-                + " owner=" + (threadOwnership != null && threadOwnership.isEntityOwned(player))
-                + " thread=" + Thread.currentThread().getName());
+        debugLogger.log("set", player, "set.lore", Map.ofEntries(
+                Map.entry("trigger", Texts.toStringSafe(trigger)),
+                Map.entry("slot", Texts.toStringSafe(slot)),
+                Map.entry("item", Texts.toStringSafe(itemId)),
+                Map.entry("signature", Texts.toStringSafe(previousSignature) + "->" + Texts.toStringSafe(identifier.setSignature(rendered))),
+                Map.entry("marker", Texts.toStringSafe(previousLoreLines) + "->" + Texts.toStringSafe(identifier.setLoreLines(rendered))),
+                Map.entry("lore_size", previousLoreSize + "->" + loreSize(rendered)),
+                Map.entry("static_ledger", before.staticOperationPresent() + "->" + after.staticOperationPresent()),
+                Map.entry("threshold_ledger", before.thresholdOperationPresent() + "->" + after.thresholdOperationPresent()),
+                Map.entry("current", before.current() + "->" + after.current()),
+                Map.entry("committed", committed),
+                Map.entry("global_owner", threadOwnership != null && threadOwnership.isGlobalOwned()),
+                Map.entry("owner", threadOwnership != null && threadOwnership.isEntityOwned(player)),
+                Map.entry("thread", Thread.currentThread().getName())
+        ));
     }
 
     private void debugSetWrite(Player player,
@@ -1553,13 +1560,15 @@ public final class EmakiItemSetService {
         if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
             return;
         }
-        debugLogger.logRaw("set", player, "[DEBUG:SET_WRITE] trigger=" + Texts.toStringSafe(trigger)
-                + " slot=" + Texts.toStringSafe(slot)
-                + " item=" + Texts.toStringSafe(itemId)
-                + " operation=" + Texts.toStringSafe(operation)
-                + " committed=" + committed
-                + " owner=" + (threadOwnership != null && threadOwnership.isEntityOwned(player))
-                + " thread=" + Thread.currentThread().getName());
+        debugLogger.log("set", player, "set.write", Map.of(
+                "trigger", Texts.toStringSafe(trigger),
+                "slot", Texts.toStringSafe(slot),
+                "item", Texts.toStringSafe(itemId),
+                "operation", Texts.toStringSafe(operation),
+                "committed", committed,
+                "owner", threadOwnership != null && threadOwnership.isEntityOwned(player),
+                "thread", Thread.currentThread().getName()
+        ));
     }
 
     static ItemSetPieceDefinition resolveSetPiece(ItemSetDefinition setDefinition,

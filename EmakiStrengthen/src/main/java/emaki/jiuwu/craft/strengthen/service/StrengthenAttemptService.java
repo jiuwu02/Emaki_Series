@@ -465,8 +465,11 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     private void logOperation(Player player, String operationId, String phase, AttemptOutcome outcome) {
         java.util.UUID playerId = player == null ? null : player.getUniqueId();
         if (plugin.debugLogger() != null && plugin.debugLogger().shouldLog("attempt", playerId)) {
-            plugin.debugLogger().logRaw("attempt", playerId, "strengthen operation | operationId=" + operationId
-                    + " | phase=" + phase + " | outcome=" + outcome.name());
+            plugin.debugLogger().log("attempt", playerId, "attempt.operation", Map.of(
+                    "operation_id", Texts.toStringSafe(operationId),
+                    "phase", Texts.toStringSafe(phase),
+                    "outcome", outcome == null ? "" : outcome.name()
+            ));
         }
     }
 

@@ -57,38 +57,44 @@ public final class GuiService implements Listener, GuiSessionRegistry {
 
     public GuiSession open(GuiOpenRequest request) {
         if (request == null || request.viewer() == null || request.template() == null) {
-            debug(request == null ? null : request.viewer(), "sync open rejected | reason=invalid-request");
+            debug(request == null ? null : request.viewer(), "common.gui.sync_open_rejected_invalid_request");
             return null;
         }
         Player viewer = request.viewer();
         UUID viewerId = viewer.getUniqueId();
-        debug(viewer, "sync open requested | backend=" + resolveBackend().name());
+        debug(viewer, "common.gui.sync_open_requested", GuiDebugSupport.replacements(
+                "backend", resolveBackend().name()
+        ));
         close(viewerId);
         GuiSession session = newSession(request);
         sessions.put(viewerId, session);
         try {
             session.open();
-            debug(viewer, "sync open complete | " + GuiDebugSupport.describeSession(session));
+            debug(viewer, "common.gui.sync_open_complete", GuiDebugSupport.sessionFields(session));
             return session;
         } catch (RuntimeException | Error throwable) {
             sessions.remove(viewerId, session);
-            debug(viewer, "sync open failed | " + GuiDebugSupport.describeSession(session)
-                    + " error=" + error(throwable));
+            debug(viewer, "common.gui.sync_open_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    GuiDebugSupport.sessionFields(session)
+            ));
             throw throwable;
         }
     }
 
     public CompletableFuture<GuiSession> openAsync(GuiOpenRequest request) {
         if (request == null || request.viewer() == null || request.template() == null) {
-            debug(request == null ? null : request.viewer(), "async open rejected | reason=invalid-request");
+            debug(request == null ? null : request.viewer(), "common.gui.async_open_rejected_invalid_request");
             return CompletableFuture.completedFuture(null);
         }
         CompletableFuture<GuiSession> future = new CompletableFuture<>();
         org.bukkit.plugin.Plugin owner = request.owner() == null ? plugin : request.owner();
-        debug(request.viewer(), "async open requested | owner=" + owner.getName()
-                + " backend=" + resolveBackend().name());
+        debug(request.viewer(), "common.gui.async_open_requested", GuiDebugSupport.replacements(
+                "owner", owner.getName(),
+                "backend", resolveBackend().name()
+        ));
         Runnable outerRetired = () -> {
-            debug(request.viewer(), "async open retired | stage=initial-dispatch");
+            debug(request.viewer(), "common.gui.async_open_retired_initial_dispatch");
             future.completeExceptionally(new RejectedExecutionException(
                     "GUI viewer retired before open scheduling completed."));
         };
@@ -101,8 +107,8 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                 asyncGuiRenderer.prepare(session).whenComplete((renderedSlots, throwable) -> {
                     Runnable innerRetired = () -> {
                         sessions.remove(viewerId, session);
-                        debug(request.viewer(), "async open retired | stage=apply-render "
-                                + GuiDebugSupport.describeSession(session));
+                        debug(request.viewer(), "common.gui.async_open_retired_apply_render",
+                                GuiDebugSupport.sessionFields(session));
                         future.completeExceptionally(new RejectedExecutionException(
                                 "GUI viewer retired before rendered slots could be applied."));
                     };
@@ -110,36 +116,43 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                         if (executionDispatcher.runEntity(owner, request.viewer(), () -> {
                             if (throwable != null) {
                                 sessions.remove(viewerId, session);
-                                debug(request.viewer(), "async open render failed | "
-                                        + GuiDebugSupport.describeSession(session) + " error=" + error(throwable));
+                                debug(request.viewer(), "common.gui.async_open_render_failed", GuiDebugSupport.errorFields(
+                                        throwable,
+                                        GuiDebugSupport.sessionFields(session)
+                                ));
                                 future.completeExceptionally(throwable);
                                 return;
                             }
                             if (sessions.get(viewerId) != session) {
-                                debug(request.viewer(), "async open dropped | reason=session-replaced "
-                                        + GuiDebugSupport.describeSession(session));
+                                debug(request.viewer(), "common.gui.async_open_dropped_session_replaced",
+                                        GuiDebugSupport.sessionFields(session));
                                 future.complete(null);
                                 return;
                             }
                             session.backend().open(session, renderedSlots);
-                            debug(request.viewer(), "async open complete | " + GuiDebugSupport.describeSession(session));
+                            debug(request.viewer(), "common.gui.async_open_complete",
+                                    GuiDebugSupport.sessionFields(session));
                             future.complete(session);
                         }, innerRetired) == null) {
                             innerRetired.run();
                         }
                     } catch (Throwable dispatchFailure) {
                         sessions.remove(viewerId, session);
-                        debug(request.viewer(), "async open dispatch failed | stage=apply-render "
-                                + GuiDebugSupport.describeSession(session) + " error=" + error(dispatchFailure));
+                        debug(request.viewer(), "common.gui.async_open_dispatch_failed_apply_render",
+                                GuiDebugSupport.errorFields(
+                                        dispatchFailure,
+                                        GuiDebugSupport.sessionFields(session)
+                                ));
                         future.completeExceptionally(dispatchFailure);
                     }
                 });
             }, outerRetired) == null) {
-                debug(request.viewer(), "async open rejected | stage=initial-dispatch");
+                debug(request.viewer(), "common.gui.async_open_rejected_initial_dispatch");
                 outerRetired.run();
             }
         } catch (Throwable throwable) {
-            debug(request.viewer(), "async open dispatch failed | stage=initial-dispatch error=" + error(throwable));
+            debug(request.viewer(), "common.gui.async_open_dispatch_failed_initial_dispatch",
+                    GuiDebugSupport.errorFields(throwable));
             future.completeExceptionally(throwable);
         }
         return future;
@@ -210,7 +223,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             Runnable retired = () -> {
-                debug(session.viewer(), "async close retired | " + GuiDebugSupport.describeSession(session));
+                debug(session.viewer(), "common.gui.async_close_retired", GuiDebugSupport.sessionFields(session));
                 future.completeExceptionally(new RejectedExecutionException(
                         "GUI viewer retired before close could complete: " + viewerId));
             };
@@ -225,12 +238,14 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                             future.completeExceptionally(throwable);
                         }
                     }, retired) == null) {
-                debug(session.viewer(), "async close rejected | " + GuiDebugSupport.describeSession(session));
+                debug(session.viewer(), "common.gui.async_close_rejected", GuiDebugSupport.sessionFields(session));
                 retired.run();
             }
         } catch (Throwable throwable) {
-            debug(session.viewer(), "async close dispatch failed | " + GuiDebugSupport.describeSession(session)
-                    + " error=" + error(throwable));
+            debug(session.viewer(), "common.gui.async_close_dispatch_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    GuiDebugSupport.sessionFields(session)
+            ));
             future.completeExceptionally(throwable);
         }
         return future;
@@ -240,16 +255,16 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         if (viewerId == null || session == null || sessions.get(viewerId) != session) {
             return;
         }
-        debug(session.viewer(), "close requested | " + GuiDebugSupport.describeSession(session));
+        debug(session.viewer(), "common.gui.close_requested", GuiDebugSupport.sessionFields(session));
         session.backend().close(session);
         if (sessions.get(viewerId) != session) {
-            debug(session.viewer(), "close backend completed | session-already-removed "
-                    + GuiDebugSupport.describeSession(session));
+            debug(session.viewer(), "common.gui.close_backend_completed_session_already_removed",
+                    GuiDebugSupport.sessionFields(session));
             return;
         }
         session.handler().onClose(session, new SessionGuiCloseContext(session));
         sessions.remove(viewerId, session);
-        debug(session.viewer(), "close complete | " + GuiDebugSupport.describeSession(session));
+        debug(session.viewer(), "common.gui.close_complete", GuiDebugSupport.sessionFields(session));
     }
 
     @Override
@@ -274,13 +289,19 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             return;
         }
         GuiClickContext click = new BukkitGuiClickContext(event);
-        debug(session.viewer(), "bukkit click | rawSlot=" + event.getRawSlot()
-                + " click=" + event.getClick()
-                + " action=" + event.getAction()
-                + " current=" + GuiDebugSupport.describeItem(event.getCurrentItem())
-                + " cursor=" + GuiDebugSupport.describeItem(event.getCursor())
-                + " top=" + (event.getClickedInventory() == session.getInventory())
-                + " " + GuiDebugSupport.describeSession(session));
+        debug(session.viewer(), "common.gui.bukkit_click", GuiDebugSupport.sessionFields(
+                session,
+                GuiDebugSupport.replacements(
+                        "raw_slot", event.getRawSlot(),
+                        "click_type", event.getClick(),
+                        "action", event.getAction(),
+                        "current_item_type", GuiDebugSupport.itemType(event.getCurrentItem()),
+                        "current_item_amount", GuiDebugSupport.itemAmount(event.getCurrentItem()),
+                        "cursor_item_type", GuiDebugSupport.itemType(event.getCursor()),
+                        "cursor_item_amount", GuiDebugSupport.itemAmount(event.getCursor()),
+                        "top_inventory", event.getClickedInventory() == session.getInventory()
+                )
+        ));
         if (event.getClickedInventory() == session.getInventory()) {
             event.setCancelled(true);
             GuiTemplate.ResolvedSlot slot = session.template().resolvedSlotAt(event.getRawSlot());
@@ -298,9 +319,14 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             return;
         }
         event.setCancelled(true);
-        debug(session.viewer(), "bukkit drag | rawSlots=" + event.getRawSlots().size()
-                + " oldCursor=" + GuiDebugSupport.describeItem(event.getOldCursor())
-                + " " + GuiDebugSupport.describeSession(session));
+        debug(session.viewer(), "common.gui.bukkit_drag", GuiDebugSupport.sessionFields(
+                session,
+                GuiDebugSupport.replacements(
+                        "raw_slot_count", event.getRawSlots().size(),
+                        "old_cursor_item_type", GuiDebugSupport.itemType(event.getOldCursor()),
+                        "old_cursor_item_amount", GuiDebugSupport.itemAmount(event.getOldCursor())
+                )
+        ));
         session.handler().onDrag(session, new BukkitGuiDragContext(event));
     }
 
@@ -310,7 +336,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         if (session == null || !isBukkitBacked(session)) {
             return;
         }
-        debug(session.viewer(), "bukkit close event | " + GuiDebugSupport.describeSession(session));
+        debug(session.viewer(), "common.gui.bukkit_close_event", GuiDebugSupport.sessionFields(session));
         session.handler().onClose(session, new BukkitGuiCloseContext(event));
         sessions.remove(event.getPlayer().getUniqueId(), session);
     }
@@ -318,7 +344,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         if (event.getPlayer() != null) {
-            debug(event.getPlayer(), "player quit | close-active-session");
+            debug(event.getPlayer(), "common.gui.player_quit_close_active_session");
             close(event.getPlayer().getUniqueId());
         }
     }
@@ -326,7 +352,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
     @EventHandler
     public void onPlayerKick(PlayerKickEvent event) {
         if (event.getPlayer() != null) {
-            debug(event.getPlayer(), "player kick | close-active-session");
+            debug(event.getPlayer(), "common.gui.player_kick_close_active_session");
             close(event.getPlayer().getUniqueId());
         }
     }
@@ -372,17 +398,12 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         }
     }
 
-    private void debug(Player player, String message) {
-        GuiDebugSupport.log(plugin, player, message);
+    private void debug(Player player, String langKey) {
+        GuiDebugSupport.log(plugin, player, langKey);
     }
 
-    private static String error(Throwable throwable) {
-        if (throwable == null) {
-            return "unknown";
-        }
-        String message = throwable.getMessage();
-        return throwable.getClass().getSimpleName()
-                + (message == null || message.isBlank() ? "" : ":" + message);
+    private void debug(Player player, String langKey, Map<String, ?> replacements) {
+        GuiDebugSupport.log(plugin, player, langKey, replacements);
     }
 
     private static final class SessionGuiCloseContext implements GuiCloseContext {

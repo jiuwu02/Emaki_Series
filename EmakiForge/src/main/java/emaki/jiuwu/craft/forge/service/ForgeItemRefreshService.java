@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.forge.service;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -377,12 +378,14 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (debugLogger == null || !debugLogger.shouldLog("forge", player)) {
             return;
         }
-        debugLogger.logRaw("forge", player, "[DEBUG:FORGE_REFRESH]"
-                + " phase=" + Texts.toStringSafe(phase)
-                + " target=" + Texts.toStringSafe(target)
-                + " recipe=" + (plan == null || plan.recipe() == null ? "-" : plan.recipe().id())
-                + " materials_signature=" + shortValue(plan == null ? "" : plan.signature())
-                + " item=" + itemStateSummary(itemStack));
+        Map<String, Object> replacements = debugReplacements(
+                "phase", Texts.toStringSafe(phase),
+                "target", Texts.toStringSafe(target),
+                "recipe", plan == null || plan.recipe() == null ? "" : plan.recipe().id(),
+                "materials_signature", plan == null ? "" : plan.signature()
+        );
+        putItemState(replacements, "item", itemStack);
+        debugLogger.log("forge", player, "forge.refresh", replacements);
     }
 
     private StateLoss detectStateLoss(ItemStack original, ItemStack rebuilt) {
@@ -420,16 +423,16 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (debugLogger == null || !debugLogger.shouldLog("forge", player)) {
             return;
         }
-        debugLogger.logRaw("forge", player, "[DEBUG:FORGE_REFRESH]"
-                + " phase=state_loss"
-                + " target=" + Texts.toStringSafe(target)
-                + " recipe=" + (plan == null || plan.recipe() == null ? "-" : plan.recipe().id())
-                + " materials_signature=" + shortValue(plan == null ? "" : plan.signature())
-                + " missing_pdc=" + stateLoss.missingPdc()
-                + " missing_operations=" + stateLoss.missingOperations()
-                + " original=" + itemStateSummary(original)
-                + " rebuilt=" + itemStateSummary(rebuilt)
-                + " action=preserve_original");
+        Map<String, Object> replacements = debugReplacements(
+                "target", Texts.toStringSafe(target),
+                "recipe", plan == null || plan.recipe() == null ? "" : plan.recipe().id(),
+                "materials_signature", plan == null ? "" : plan.signature(),
+                "missing_pdc", stateLoss.missingPdc(),
+                "missing_operations", stateLoss.missingOperations()
+        );
+        putItemState(replacements, "original", original);
+        putItemState(replacements, "rebuilt", rebuilt);
+        debugLogger.log("forge", player, "forge.state_loss", replacements);
     }
 
     private List<String> operationIds(ItemStack itemStack) {
@@ -441,21 +444,31 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 .toList();
     }
 
-    private String itemStateSummary(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return "empty";
+    private Map<String, Object> debugReplacements(Object... entries) {
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        for (int index = 0; index + 1 < entries.length; index += 2) {
+            replacements.put(Texts.toStringSafe(entries[index]), entries[index + 1]);
+        }
+        return replacements;
+    }
+
+    private void putItemState(Map<String, Object> replacements, String prefix, ItemStack itemStack) {
+        boolean empty = itemStack == null || itemStack.getType().isAir();
+        replacements.put(prefix + "_empty", empty);
+        if (empty) {
+            replacements.put(prefix + "_type", "");
+            replacements.put(prefix + "_lore_lines", 0);
+            replacements.put(prefix + "_set_signature", "");
+            replacements.put(prefix + "_set_lore_lines", "");
+            replacements.put(prefix + "_operations", List.of());
+            return;
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
-        List<ItemOperationEntry> entries = operationLedger.readAll(itemStack);
-        int loreSize = itemMeta == null ? 0 : ItemTextBridge.loreLines(itemMeta).size();
-        return "type=" + itemStack.getType()
-                + " lore=" + loreSize
-                + " set_signature=" + shortValue(pdcString(itemMeta, "set_signature"))
-                + " set_lore_lines=" + Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), "-")
-                + " operations=" + entries.stream()
-                .filter(Objects::nonNull)
-                .map(entry -> entry.sourceNamespace() + ":" + entry.operationId())
-                .toList();
+        replacements.put(prefix + "_type", itemStack.getType());
+        replacements.put(prefix + "_lore_lines", itemMeta == null ? 0 : ItemTextBridge.loreLines(itemMeta).size());
+        replacements.put(prefix + "_set_signature", pdcString(itemMeta, "set_signature"));
+        replacements.put(prefix + "_set_lore_lines", Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), ""));
+        replacements.put(prefix + "_operations", operationIds(itemStack));
     }
 
     private String pdcString(ItemMeta itemMeta, String field) {
@@ -482,14 +495,6 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             }
         }
         return null;
-    }
-
-    private String shortValue(String value) {
-        String safe = Texts.toStringSafe(value);
-        if (safe.isBlank()) {
-            return "-";
-        }
-        return safe.length() <= 16 ? safe : safe.substring(0, 16);
     }
 
     private void warnOnce(String cacheKey, String messageKey, Map<String, ?> replacements) {

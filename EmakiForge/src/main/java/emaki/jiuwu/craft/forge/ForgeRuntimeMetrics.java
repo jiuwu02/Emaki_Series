@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.forge;
 
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -95,20 +96,23 @@ public final class ForgeRuntimeMetrics {
             return new Snapshot(0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0, 0, 0, 0L);
         }
 
-        public String debugSummary(ForgeRuntimeStatus status, ForgeGuiState guiState) {
-            return "status=" + status
-                    + " generation=" + runtimeGeneration
-                    + " gui=" + guiState
-                    + " recipes=" + recipes
-                    + " issues=" + issues
-                    + " source_states=" + sourceStates
-                    + " reload[candidate=" + reloadCandidates
-                    + ",installed=" + reloadInstalled
-                    + ",failed=" + reloadFailed
-                    + ",stale=" + reloadStale + "]"
-                    + " stale[gui=" + guiStale + ",execution=" + executionStale + "]"
-                    + " settlement_failures=" + guiSettlementFailures
-                    + " last_ms=" + String.format(java.util.Locale.ROOT, "%.3f", lastReloadNanos / 1_000_000D);
+        public Map<String, Object> debugValues(ForgeRuntimeStatus status, ForgeGuiState guiState) {
+            return Map.ofEntries(
+                    Map.entry("status", status),
+                    Map.entry("generation", runtimeGeneration),
+                    Map.entry("gui", guiState),
+                    Map.entry("recipes", recipes),
+                    Map.entry("issues", issues),
+                    Map.entry("source_states", sourceStates),
+                    Map.entry("reload_candidates", reloadCandidates),
+                    Map.entry("reload_installed", reloadInstalled),
+                    Map.entry("reload_failed", reloadFailed),
+                    Map.entry("reload_stale", reloadStale),
+                    Map.entry("gui_stale", guiStale),
+                    Map.entry("execution_stale", executionStale),
+                    Map.entry("settlement_failures", guiSettlementFailures),
+                    Map.entry("last_ms", String.format(java.util.Locale.ROOT, "%.3f", lastReloadNanos / 1_000_000D))
+            );
         }
     }
 }

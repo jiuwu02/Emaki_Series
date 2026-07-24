@@ -303,8 +303,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                     }
                     logConfigPrecheckReport();
                     if (debugLogger() != null) {
-                        debugLogger().logRaw("forge", (java.util.UUID) null,
-                                runtimeMetrics.snapshot().debugSummary(runtimeStatus(), runtimeSnapshot().guiState()));
+                        debugLogger().log("forge", (java.util.UUID) null, "forge.runtime_metrics",
+                                runtimeMetrics.snapshot().debugValues(runtimeStatus(), runtimeSnapshot().guiState()));
                     }
                     return result;
                 });

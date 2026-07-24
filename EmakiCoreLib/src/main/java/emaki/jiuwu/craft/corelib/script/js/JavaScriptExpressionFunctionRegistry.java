@@ -138,11 +138,13 @@ public final class JavaScriptExpressionFunctionRegistry {
         if (logger == null) {
             return;
         }
-        logger.logRaw("script", (java.util.UUID) null, "expression id=" + function.id()
-                + " args=" + argumentList(args)
-                + " result=" + value
-                + " duration=" + elapsedMillis + "ms"
-                + (Texts.isBlank(error) ? "" : " error=" + error));
+        logger.log("script", (java.util.UUID) null, "common.script.expression", Map.of(
+                "expression", function.id(),
+                "args", argumentList(args),
+                "result", value,
+                "duration_ms", elapsedMillis,
+                "error", Texts.toStringSafe(error)
+        ));
     }
 
     private static List<Double> argumentList(double... args) {

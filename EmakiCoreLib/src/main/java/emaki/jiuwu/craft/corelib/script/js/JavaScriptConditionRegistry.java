@@ -168,12 +168,14 @@ public final class JavaScriptConditionRegistry {
         if (logger == null) {
             return;
         }
-        logger.logRaw("script", (java.util.UUID) null, "condition id=" + condition.id()
-                + " args=" + (args == null ? Map.of() : args)
-                + " passed=" + result.passed()
-                + " duration=" + elapsedMillis + "ms"
-                + (Texts.isBlank(result.message()) ? "" : " message=" + result.message())
-                + (Texts.isBlank(error) ? "" : " error=" + error));
+        logger.log("script", (java.util.UUID) null, "common.script.condition", Map.of(
+                "condition", condition.id(),
+                "args", args == null ? Map.of() : args,
+                "passed", result.passed(),
+                "duration_ms", elapsedMillis,
+                "message", Texts.toStringSafe(result.message()),
+                "error", Texts.toStringSafe(error)
+        ));
     }
 
     private static long elapsedMillis(long startedNanos) {

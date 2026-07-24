@@ -171,23 +171,40 @@ final class ForgeCommandRouter implements TabExecutor {
             var runtime = plugin.runtimeMetrics().snapshot();
             var recipeReport = plugin.recipeLoader().report();
             var resourceEvents = plugin.bootstrapService().resourceEvents();
-            plugin.messageService().sendRaw(sender, "<gray>EmakiForge runtime:</gray> <white>"
-                    + runtime.debugSummary(plugin.runtimeStatus(), plugin.runtimeSnapshot().guiState()) + "</white>");
-            plugin.messageService().sendRaw(sender, "<gray>Recipe load:</gray> <white>"
-                    + recipeReport.summary() + " source_statuses=" + recipeReport.sourceStatuses() + "</white>");
-            StringBuilder resources = new StringBuilder();
+            plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                    "command.debug.runtime",
+                    runtime.debugValues(plugin.runtimeStatus(), plugin.runtimeSnapshot().guiState())
+            ));
+            plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                    "command.debug.recipe_load",
+                    Map.ofEntries(
+                            Map.entry("generation", recipeReport.generation()),
+                            Map.entry("files", recipeReport.discovered()),
+                            Map.entry("parsed", recipeReport.parsed()),
+                            Map.entry("skipped", recipeReport.skipped()),
+                            Map.entry("registered", recipeReport.registered()),
+                            Map.entry("duplicates", recipeReport.duplicates()),
+                            Map.entry("executable", recipeReport.executable()),
+                            Map.entry("gui_visible", recipeReport.guiVisible()),
+                            Map.entry("issues", recipeReport.issueCount()),
+                            Map.entry("warnings", recipeReport.warningCount()),
+                            Map.entry("hash", recipeReport.fileSummaryHash()),
+                            Map.entry("duration_ms", String.format(java.util.Locale.ROOT, "%.3f", recipeReport.durationNanos() / 1_000_000D)),
+                            Map.entry("source_statuses", recipeReport.sourceStatuses())
+                    )
+            ));
+            Map<String, Long> resources = new LinkedHashMap<>();
             for (var status : emaki.jiuwu.craft.corelib.bootstrap.BootstrapService.ResourceStatus.values()) {
                 long count = resourceEvents.stream().filter(event -> event.status() == status).count();
                 if (count <= 0L) {
                     continue;
                 }
-                if (!resources.isEmpty()) {
-                    resources.append(',');
-                }
-                resources.append(status.name().toLowerCase(java.util.Locale.ROOT)).append('=').append(count);
+                resources.put(status.name().toLowerCase(java.util.Locale.ROOT), count);
             }
-            plugin.messageService().sendRaw(sender, "<gray>Bundled resources:</gray> <white>"
-                    + (resources.isEmpty() ? "none" : resources) + "</white>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                    "command.debug.bundled_resources",
+                    Map.of("statuses", resources)
+            ));
             return true;
         }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());

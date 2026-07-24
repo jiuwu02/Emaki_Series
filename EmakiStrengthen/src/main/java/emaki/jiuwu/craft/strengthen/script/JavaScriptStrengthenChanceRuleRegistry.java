@@ -128,11 +128,13 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
             return;
         }
         for (Map<String, Object> trace : traces) {
-            plugin.debugLogger().logRaw("script", playerId, "script trace | operationId="
-                    + Texts.toStringSafe(trace.get("operationId")) + " | rule=" + Texts.toStringSafe(trace.get("id"))
-                    + " | before=" + Texts.toStringSafe(trace.get("before"))
-                    + " | after=" + Texts.toStringSafe(trace.get("after"))
-                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+            plugin.debugLogger().log("script", playerId, "script.attempt_trace", Map.of(
+                    "operation_id", Texts.toStringSafe(trace.get("operationId")),
+                    "rule", Texts.toStringSafe(trace.get("id")),
+                    "before", Texts.toStringSafe(trace.get("before")),
+                    "after", Texts.toStringSafe(trace.get("after")),
+                    "message", Texts.toStringSafe(trace.get("message"))
+            ));
         }
     }
 
@@ -219,8 +221,10 @@ public final class JavaScriptStrengthenChanceRuleRegistry {
                 + (Texts.isBlank(operationId) ? "-" : operationId) + " | rule=" + ruleId);
         java.util.UUID playerId = player == null ? null : player.getUniqueId();
         if (plugin.debugLogger() != null && plugin.debugLogger().shouldLog("script", playerId)) {
-            plugin.debugLogger().logRaw("script", playerId, "chance rule failed closed | operationId="
-                    + operationId + " | rule=" + ruleId);
+            plugin.debugLogger().log("script", playerId, "script.chance_rule_failed_closed", Map.of(
+                    "operation_id", Texts.toStringSafe(operationId),
+                    "rule", Texts.toStringSafe(ruleId)
+            ));
         }
     }
 

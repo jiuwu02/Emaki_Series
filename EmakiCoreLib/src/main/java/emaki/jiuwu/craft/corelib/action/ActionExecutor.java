@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.action;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -73,8 +74,10 @@ public final class ActionExecutor {
     public CompletableFuture<ActionResult> execute(@NotNull ActionContext context,
             @NotNull String actionId,
             @Nullable Map<String, String> arguments) {
-        debug(context, "execute direct | phase=" + context.phase() + " | action=" + actionId
-                + " | rawArgs=" + summarizeMap(arguments));
+        debug(context, "common.action.execute_direct", replacements(
+                "phase", context.phase(),
+                "action", actionId,
+                "raw_args", arguments));
         PlaceholderRenderer.debugVariables(
                 PlaceholderRenderer.contextVariables(context),
                 resolveDebugLogger(context),
@@ -83,14 +86,16 @@ public final class ActionExecutor {
         RegisteredAction registration = registry.getRegistered(actionId);
         if (registration == null) {
             ActionResult result = missingActionResult(actionId);
-            debug(context, "execute direct missing | action=" + actionId + " | error=" + result.errorMessage());
+            debug(context, "common.action.execute_direct_missing", replacements(
+                    "action", actionId,
+                    "error", result.errorMessage()));
             return CompletableFuture.completedFuture(result);
         }
         return executeRegistered(context, registration, arguments, 0L, true)
-                .whenComplete((result, throwable) -> debug(context,
-                        "execute direct result | action=" + actionId
-                                + " | success=" + (throwable == null && result != null && result.success())
-                                + " | error=" + (throwable == null
+                .whenComplete((result, throwable) -> debug(context, "common.action.execute_direct_result", replacements(
+                        "action", actionId,
+                        "success", throwable == null && result != null && result.success(),
+                        "error", throwable == null
                                 ? (result == null ? "" : result.errorMessage())
                                 : throwable.getMessage())));
     }
@@ -100,9 +105,10 @@ public final class ActionExecutor {
             @Nullable List<String> lines,
             boolean stopOnFailure) {
         List<String> safeLines = lines == null ? List.of() : lines;
-        debug(context, "execute batch start | phase=" + context.phase()
-                + " | lines=" + safeLines.size()
-                + " | stopOnFailure=" + stopOnFailure);
+        debug(context, "common.action.execute_batch_start", replacements(
+                "phase", context.phase(),
+                "lines", safeLines.size(),
+                "stop_on_failure", stopOnFailure));
         PlaceholderRenderer.debugVariables(
                 PlaceholderRenderer.contextVariables(context),
                 resolveDebugLogger(context),
@@ -110,11 +116,11 @@ public final class ActionExecutor {
                 "action." + context.phase());
         CompletableFuture<ActionBatchResult> future = new CompletableFuture<>();
         executeIndex(context, safeLines, stopOnFailure, 0, new ArrayList<>(), future);
-        return future.whenComplete((batch, throwable) -> debug(context,
-                "execute batch result | phase=" + context.phase()
-                        + " | success=" + (throwable == null && batch != null && batch.success())
-                        + " | steps=" + (batch == null ? 0 : batch.steps().size())
-                        + " | error=" + (throwable == null ? "" : throwable.getMessage())));
+        return future.whenComplete((batch, throwable) -> debug(context, "common.action.execute_batch_result", replacements(
+                "phase", context.phase(),
+                "success", throwable == null && batch != null && batch.success(),
+                "steps", batch == null ? 0 : batch.steps().size(),
+                "error", throwable == null ? "" : throwable.getMessage())));
     }
 
     private void executeIndex(ActionContext context,
@@ -129,15 +135,17 @@ public final class ActionExecutor {
         }
         ParsedActionLine parsed;
         String rawLine = lines.get(index);
-        debug(context, "parse line | phase=" + context.phase()
-                + " | line=" + (index + 1)
-                + " | raw=" + summarize(rawLine));
+        debug(context, "common.action.parse_line", replacements(
+                "phase", context.phase(),
+                "line", index + 1,
+                "raw", rawLine));
         try {
             parsed = lineParser.parse(index + 1, rawLine);
         } catch (ActionSyntaxException exception) {
-            debug(context, "parse failed | phase=" + context.phase()
-                    + " | line=" + exception.lineNumber()
-                    + " | error=" + exception.getMessage());
+            debug(context, "common.action.parse_failed", replacements(
+                    "phase", context.phase(),
+                    "line", exception.lineNumber(),
+                    "error", exception.getMessage()));
             steps.add(new ActionStepResult(
                     exception.lineNumber(),
                     exception.rawLine(),
@@ -147,29 +155,34 @@ public final class ActionExecutor {
             return;
         }
         if (parsed == null) {
-            debug(context, "parse skipped | phase=" + context.phase() + " | line=" + (index + 1));
+            debug(context, "common.action.parse_skipped", replacements(
+                    "phase", context.phase(),
+                    "line", index + 1));
             executeIndex(context, lines, stopOnFailure, index + 1, steps, future);
             return;
         }
-        debug(context, "parse ok | phase=" + context.phase()
-                + " | line=" + parsed.lineNumber()
-                + " | action=" + parsed.actionId()
-                + " | control=" + summarize(parsed.control())
-                + " | args=" + summarizeMap(parsed.arguments()));
+        debug(context, "common.action.parse_ok", replacements(
+                "phase", context.phase(),
+                "line", parsed.lineNumber(),
+                "action", parsed.actionId(),
+                "control", parsed.control(),
+                "args", parsed.arguments()));
         executeParsed(context, parsed).whenComplete((result, throwable) -> {
             ActionResult finalResult = throwable == null
                     ? (result == null ? ActionResult.ok() : result)
                     : failureResult(parsed.actionId(), throwable);
             steps.add(new ActionStepResult(parsed.lineNumber(), parsed.rawLine(), parsed.actionId(), finalResult));
-            debug(context, "step result | phase=" + context.phase()
-                    + " | line=" + parsed.lineNumber()
-                    + " | action=" + parsed.actionId()
-                    + " | success=" + finalResult.success()
-                    + " | error=" + Texts.toStringSafe(finalResult.errorMessage()));
+            debug(context, "common.action.step_result", replacements(
+                    "phase", context.phase(),
+                    "line", parsed.lineNumber(),
+                    "action", parsed.actionId(),
+                    "success", finalResult.success(),
+                    "error", finalResult.errorMessage()));
             if (!finalResult.success() && !parsed.control().ignoreFailure() && stopOnFailure) {
-                debug(context, "batch stop | phase=" + context.phase()
-                        + " | line=" + parsed.lineNumber()
-                        + " | action=" + parsed.actionId());
+                debug(context, "common.action.batch_stop", replacements(
+                        "phase", context.phase(),
+                        "line", parsed.lineNumber(),
+                        "action", parsed.actionId()));
                 future.complete(new ActionBatchResult(false, List.copyOf(steps)));
                 return;
             }
@@ -181,9 +194,10 @@ public final class ActionExecutor {
         RegisteredAction registration = registry.getRegistered(parsed.actionId());
         if (registration == null) {
             ActionResult result = missingActionResult(parsed.actionId());
-            debug(context, "action missing | line=" + parsed.lineNumber()
-                    + " | action=" + parsed.actionId()
-                    + " | error=" + result.errorMessage());
+            debug(context, "common.action.action_missing", replacements(
+                    "line", parsed.lineNumber(),
+                    "action", parsed.actionId(),
+                    "error", result.errorMessage()));
             return CompletableFuture.completedFuture(result);
         }
         return prepareControls(context, registration, parsed)
@@ -220,10 +234,11 @@ public final class ActionExecutor {
         String condition = resolveValue(context, parsed.control().condition());
         if (Texts.isNotBlank(condition)) {
             Boolean passes = ConditionEvaluator.evaluateSingle(condition, value -> resolveValue(context, value));
-            debug(context, "control condition | line=" + parsed.lineNumber()
-                    + " | action=" + parsed.actionId()
-                    + " | condition=" + summarize(condition)
-                    + " | passes=" + passes);
+            debug(context, "common.action.control_condition", replacements(
+                    "line", parsed.lineNumber(),
+                    "action", parsed.actionId(),
+                    "condition", condition,
+                    "passes", passes));
             if (passes == null) {
                 return ControlPreparation.failure(ActionResult.failure(
                         ActionErrorType.INVALID_ARGUMENT, "Invalid @if expression: " + condition));
@@ -236,20 +251,22 @@ public final class ActionExecutor {
         if (Texts.isNotBlank(chanceRaw)) {
             long chanceThreshold = ActionParsers.parseChanceThreshold(chanceRaw);
             if (chanceThreshold < 0L || chanceThreshold > ActionParsers.chanceDenominator()) {
-                debug(context, "control chance invalid | line=" + parsed.lineNumber()
-                        + " | action=" + parsed.actionId()
-                        + " | chance=" + chanceRaw);
+                debug(context, "common.action.control_chance_invalid", replacements(
+                        "line", parsed.lineNumber(),
+                        "action", parsed.actionId(),
+                        "chance", chanceRaw));
                 return ControlPreparation.failure(ActionResult.failure(
                         ActionErrorType.INVALID_ARGUMENT, "Invalid @chance value: " + chanceRaw));
             }
             long roll = ThreadLocalRandom.current().nextLong(ActionParsers.chanceDenominator());
             boolean passes = chanceThreshold > 0L && roll < chanceThreshold;
-            debug(context, "control chance | line=" + parsed.lineNumber()
-                    + " | action=" + parsed.actionId()
-                    + " | chance=" + chanceRaw
-                    + " | threshold=" + chanceThreshold
-                    + " | roll=" + roll
-                    + " | passes=" + passes);
+            debug(context, "common.action.control_chance", replacements(
+                    "line", parsed.lineNumber(),
+                    "action", parsed.actionId(),
+                    "chance", chanceRaw,
+                    "threshold", chanceThreshold,
+                    "roll", roll,
+                    "passes", passes));
             if (!passes) {
                 return ControlPreparation.failure(ActionResult.skipped("Chance did not pass."));
             }
@@ -258,10 +275,11 @@ public final class ActionExecutor {
         String delayRaw = resolveValue(context, parsed.control().delay());
         if (Texts.isNotBlank(delayRaw)) {
             delay = ActionParsers.parseTicks(delayRaw);
-            debug(context, "control delay | line=" + parsed.lineNumber()
-                    + " | action=" + parsed.actionId()
-                    + " | raw=" + delayRaw
-                    + " | ticks=" + delay);
+            debug(context, "common.action.control_delay", replacements(
+                    "line", parsed.lineNumber(),
+                    "action", parsed.actionId(),
+                    "raw", delayRaw,
+                    "ticks", delay));
             if (delay < 0L) {
                 return ControlPreparation.failure(ActionResult.failure(
                         ActionErrorType.INVALID_ARGUMENT, "Invalid @delay value: " + delayRaw));
@@ -279,9 +297,10 @@ public final class ActionExecutor {
                     if (!plan.valid()) {
                         return CompletableFuture.completedFuture(planFailure(plan));
                     }
-                    debug(context, "dispatch template | action=" + registration.action().id()
-                            + " | delay=" + delayTicks
-                            + " | args=" + summarizeMap(plan.arguments()));
+                    debug(context, "common.action.dispatch_template", replacements(
+                            "action", registration.action().id(),
+                            "delay", delayTicks,
+                            "args", plan.arguments()));
                     return dispatchScheduler.dispatch(
                             registration.owner(),
                             plan.target(),
@@ -309,12 +328,13 @@ public final class ActionExecutor {
                     if (!plan.valid()) {
                         return CompletableFuture.completedFuture(planFailure(plan));
                     }
-                    debug(context, "dispatch action | action=" + action.id()
-                            + " | domain=" + plan.target().domain()
-                            + " | owner=" + registration.ownerKey()
-                            + " | delay=" + delayTicks
-                            + " | timeout=" + action.timeoutMillis()
-                            + " | args=" + summarizeMap(plan.arguments()));
+                    debug(context, "common.action.dispatch_action", replacements(
+                            "action", action.id(),
+                            "domain", plan.target().domain(),
+                            "owner", registration.ownerKey(),
+                            "delay", delayTicks,
+                            "timeout", action.timeoutMillis(),
+                            "args", plan.arguments()));
                     return dispatchScheduler.dispatch(
                             registration.owner(),
                             plan.target(),
@@ -341,9 +361,10 @@ public final class ActionExecutor {
     private CompletionStage<ActionResult> safeExecuteAsync(ActionContext context,
             Action action,
             Map<String, String> resolved) {
-        debug(context, "safe execute start | phase=" + context.phase()
-                + " | action=" + action.id()
-                + " | args=" + summarizeMap(resolved));
+        debug(context, "common.action.safe_execute_start", replacements(
+                "phase", context.phase(),
+                "action", action.id(),
+                "args", resolved));
         try {
             CompletionStage<ActionResult> stage = action.executeAsync(context, resolved);
             if (stage == null) {
@@ -355,10 +376,11 @@ public final class ActionExecutor {
                 ActionResult finalResult = throwable == null
                         ? (result == null ? ActionResult.ok() : result)
                         : failureResult(action.id(), throwable);
-                debug(context, "safe execute result | phase=" + context.phase()
-                        + " | action=" + action.id()
-                        + " | success=" + finalResult.success()
-                        + " | error=" + Texts.toStringSafe(finalResult.errorMessage()));
+                debug(context, "common.action.safe_execute_result", replacements(
+                        "phase", context.phase(),
+                        "action", action.id(),
+                        "success", finalResult.success(),
+                        "error", finalResult.errorMessage()));
                 if (!finalResult.success()) {
                     warnExecutionFailure(action.id(), finalResult.errorMessage());
                 }
@@ -420,11 +442,19 @@ public final class ActionExecutor {
         }
     }
 
-    private void debug(ActionContext context, String message) {
+    private void debug(ActionContext context, String langKey, Map<String, ?> replacements) {
         DebugLogger debugLogger = resolveDebugLogger(context);
         if (debugLogger != null) {
-            debugLogger.logRaw(DEBUG_MODULE, context == null ? null : context.player(), message);
+            debugLogger.log(DEBUG_MODULE, context == null ? null : context.player(), langKey, replacements);
         }
+    }
+
+    private Map<String, Object> replacements(Object... entries) {
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        for (int index = 0; index + 1 < entries.length; index += 2) {
+            replacements.put(Texts.toStringSafe(entries[index]), entries[index + 1]);
+        }
+        return replacements;
     }
 
     private DebugLogger resolveDebugLogger(ActionContext context) {
@@ -440,29 +470,6 @@ public final class ActionExecutor {
             return coreLibPlugin.debugLogger();
         }
         return null;
-    }
-
-    private String summarizeMap(Map<String, ?> values) {
-        if (values == null || values.isEmpty()) {
-            return "{}";
-        }
-        List<String> parts = new ArrayList<>();
-        for (Map.Entry<String, ?> entry : values.entrySet()) {
-            parts.add(entry.getKey() + "=" + summarize(entry.getValue()));
-            if (parts.size() >= 8) {
-                parts.add("...");
-                break;
-            }
-        }
-        return "{" + String.join(", ", parts) + "}";
-    }
-
-    private String summarize(Object value) {
-        if (value == null) {
-            return "";
-        }
-        String text = Texts.toStringSafe(value);
-        return text.length() <= 160 ? text : text.substring(0, 157) + "...";
     }
 
     private LogMessages messages() {

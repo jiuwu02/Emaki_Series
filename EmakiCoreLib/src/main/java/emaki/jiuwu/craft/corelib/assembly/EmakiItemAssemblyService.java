@@ -90,30 +90,35 @@ public final class EmakiItemAssemblyService {
             UUID playerId = request == null ? null : request.feedbackPlayerId();
             boolean debugEnabled = debugLogger != null && debugLogger.shouldLog("forge", playerId);
             if (debugEnabled) {
-                debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_INPUT]", debugTarget,
-                        "request_layers=" + (request == null ? List.of() : request.layerSnapshots().stream()
-                                .map(EmakiItemLayerSnapshot::namespaceId).toList())
-                                + " removed=" + (request == null ? List.of() : request.removedNamespaceIds())
-                                + " item=" + itemStateSummary(existingItem, readResult));
+                Map<String, Object> replacements = debugReplacements(
+                        "target", debugTarget,
+                        "request_layers", request == null ? List.of() : request.layerSnapshots().stream()
+                                .map(EmakiItemLayerSnapshot::namespaceId).toList(),
+                        "removed", request == null ? List.of() : request.removedNamespaceIds()
+                );
+                putItemState(replacements, existingItem, readResult);
+                debugAssembly(debugLogger, playerId, "common.assembly.input", replacements);
             }
 
             AssemblyContext context = resolveContext(request, readResult);
             if (context == null || context.baseSource() == null) {
                 if (debugEnabled) {
-                    debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
-                            "result=null reason=no_context");
+                    debugAssembly(debugLogger, playerId, "common.assembly.output_no_context",
+                            debugReplacements("target", debugTarget));
                 }
                 return null;
             }
             if (debugEnabled) {
-                debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_CONTEXT]", debugTarget,
-                        "base=" + ItemSourceUtil.toShorthand(context.baseSource())
-                                + " amount=" + context.amount()
-                                + " base_lore=" + context.baseLore().size()
-                                + " active_layers=" + context.activeLayers()
-                                + " previous_layers=" + context.previousActiveLayers()
-                                + " operations=" + operationIds(context.operationEntries())
-                                + " assembly_signature=" + shortValue(context.assemblySignature()));
+                debugAssembly(debugLogger, playerId, "common.assembly.context", debugReplacements(
+                        "target", debugTarget,
+                        "base", ItemSourceUtil.toShorthand(context.baseSource()),
+                        "amount", context.amount(),
+                        "base_lore", context.baseLore().size(),
+                        "active_layers", context.activeLayers(),
+                        "previous_layers", context.previousActiveLayers(),
+                        "operations", operationIds(context.operationEntries()),
+                        "assembly_signature", context.assemblySignature()
+                ));
             }
 
             String source = "cache";
@@ -133,9 +138,11 @@ public final class EmakiItemAssemblyService {
                 managed = renderManagedProjection(context);
                 if (managed == null || !managedCacheValid(managed, context)) {
                     if (debugEnabled) {
-                        debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
-                                "result=null reason=managed_render_invalid expected="
-                                        + operationIds(context.operationEntries()));
+                        debugAssembly(debugLogger, playerId, "common.assembly.output_render_invalid",
+                                debugReplacements(
+                                        "target", debugTarget,
+                                        "expected", operationIds(context.operationEntries())
+                                ));
                     }
                     return null;
                 }
@@ -145,14 +152,18 @@ public final class EmakiItemAssemblyService {
             ItemStack result = commitInstance(context, managed);
             if (result == null) {
                 if (debugEnabled) {
-                    debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
-                            "result=null reason=commit_validation_failed");
+                    debugAssembly(debugLogger, playerId, "common.assembly.output_commit_failed",
+                            debugReplacements("target", debugTarget));
                 }
                 return null;
             }
             if (debugEnabled) {
-                debugAssembly(debugLogger, playerId, "[DEBUG:ASSEMBLY_OUTPUT]", debugTarget,
-                        "source=" + source + " item=" + itemStateSummary(result, managed.readResult()));
+                Map<String, Object> replacements = debugReplacements(
+                        "target", debugTarget,
+                        "source", source
+                );
+                putItemState(replacements, result, managed.readResult());
+                debugAssembly(debugLogger, playerId, "common.assembly.output", replacements);
             }
             return result;
         });
@@ -707,25 +718,42 @@ public final class EmakiItemAssemblyService {
         return lore == null || lore.isEmpty() ? List.of() : List.copyOf(lore);
     }
 
-    private void debugAssembly(DebugLogger debugLogger, UUID playerId, String anchor, String target, String details) {
-        debugLogger.logRaw("forge", playerId, anchor
-                + " target=" + Texts.toStringSafe(target)
-                + " " + Texts.toStringSafe(details));
+    private void debugAssembly(DebugLogger debugLogger,
+                               UUID playerId,
+                               String langKey,
+                               Map<String, ?> replacements) {
+        debugLogger.log("forge", playerId, langKey, replacements);
     }
 
-    private String itemStateSummary(ItemStack itemStack, ItemOperationLedger.ReadResult readResult) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return "empty";
+    private Map<String, Object> debugReplacements(Object... entries) {
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        for (int index = 0; index + 1 < entries.length; index += 2) {
+            replacements.put(Texts.toStringSafe(entries[index]), entries[index + 1]);
+        }
+        return replacements;
+    }
+
+    private void putItemState(Map<String, Object> replacements,
+                              ItemStack itemStack,
+                              ItemOperationLedger.ReadResult readResult) {
+        boolean empty = itemStack == null || itemStack.getType().isAir();
+        replacements.put("item_empty", empty);
+        if (empty) {
+            replacements.put("item_type", "");
+            replacements.put("item_lore_lines", 0);
+            replacements.put("item_set_signature", "");
+            replacements.put("item_set_lore_lines", "");
+            replacements.put("item_operations", List.of());
+            return;
         }
         ItemMeta itemMeta = itemStack.getItemMeta();
-        String operations = readResult == null || readResult.corrupt()
+        replacements.put("item_type", itemStack.getType());
+        replacements.put("item_lore_lines", currentLore(itemStack).size());
+        replacements.put("item_set_signature", pdcString(itemMeta, "set_signature"));
+        replacements.put("item_set_lore_lines", Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), ""));
+        replacements.put("item_operations", readResult == null || readResult.corrupt()
                 ? "corrupt"
-                : operationIds(readResult.entries()).toString();
-        return "type=" + itemStack.getType()
-                + " lore=" + currentLore(itemStack).size()
-                + " set_signature=" + shortValue(pdcString(itemMeta, "set_signature"))
-                + " set_lore_lines=" + Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), "-")
-                + " operations=" + operations;
+                : operationIds(readResult.entries()));
     }
 
     private String pdcString(ItemMeta itemMeta, String field) {
@@ -752,14 +780,6 @@ public final class EmakiItemAssemblyService {
             }
         }
         return null;
-    }
-
-    private String shortValue(String value) {
-        String safe = Texts.toStringSafe(value);
-        if (safe.isBlank()) {
-            return "-";
-        }
-        return safe.length() <= 16 ? safe : safe.substring(0, 16);
     }
 
     private <T> T measure(String metricKey, SupplierWithException<T> supplier) {

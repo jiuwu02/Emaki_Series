@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.item.listener;
 
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -277,28 +278,30 @@ public final class ItemUpdateListener implements Listener {
             return;
         }
         boolean owner = player != null && threadOwnership.isEntityOwned(player);
-        debugLogger.logRaw("set", player, "[DEBUG:ITEM_REFRESH] batch=" + pending.batchId()
-                + " requested=" + result.requestedScope()
-                + " update=" + result.actualUpdateScope()
-                + " set=" + result.actualSetScope()
-                + " reasons=" + result.fullReasons()
-                + " triggers=" + pending.triggers()
-                + " effective=" + Texts.toStringSafe(result.effectiveTrigger())
-                + " dirty_slots=" + pending.dirtySlots()
-                + " contribution_dirty=" + pending.contributionDirty()
-                + " cache_hit=" + result.cacheHit()
-                + " cache_valid=" + result.cacheValid()
-                + " scanned_update_slots=" + result.updateScannedSlots()
-                + " scanned_set_slots=" + result.setScannedSlots()
-                + " scanned=" + result.scannedSlots()
-                + " changed=" + result.changed()
-                + " conflicts=" + result.conflicts()
-                + " ledger_decodes=" + result.ledgerDecodes()
-                + " set_compiles=" + result.setCompiles()
-                + " elapsed_us=" + result.elapsedNanos() / 1_000L
-                + " global_owner=" + threadOwnership.isGlobalOwned()
-                + " owner=" + owner
-                + " thread=" + Thread.currentThread().getName());
+        debugLogger.log("set", player, "set.refresh_completed", Map.ofEntries(
+                Map.entry("batch", pending.batchId()),
+                Map.entry("requested", result.requestedScope()),
+                Map.entry("update", result.actualUpdateScope()),
+                Map.entry("set", result.actualSetScope()),
+                Map.entry("reasons", result.fullReasons()),
+                Map.entry("triggers", pending.triggers()),
+                Map.entry("effective", Texts.toStringSafe(result.effectiveTrigger())),
+                Map.entry("dirty_slots", pending.dirtySlots()),
+                Map.entry("contribution_dirty", pending.contributionDirty()),
+                Map.entry("cache_hit", result.cacheHit()),
+                Map.entry("cache_valid", result.cacheValid()),
+                Map.entry("scanned_update_slots", result.updateScannedSlots()),
+                Map.entry("scanned_set_slots", result.setScannedSlots()),
+                Map.entry("scanned", result.scannedSlots()),
+                Map.entry("changed", result.changed()),
+                Map.entry("conflicts", result.conflicts()),
+                Map.entry("ledger_decodes", result.ledgerDecodes()),
+                Map.entry("set_compiles", result.setCompiles()),
+                Map.entry("elapsed_us", result.elapsedNanos() / 1_000L),
+                Map.entry("global_owner", threadOwnership.isGlobalOwned()),
+                Map.entry("owner", owner),
+                Map.entry("thread", Thread.currentThread().getName())
+        ));
     }
 
     private void debugRejected(Player player, PendingRefresh pending, String reason) {
@@ -307,17 +310,15 @@ public final class ItemUpdateListener implements Listener {
             return;
         }
         PendingSnapshot snapshot = pending.snapshot();
-        debugLogger.logRaw("set", player, "[DEBUG:ITEM_REFRESH] batch=" + pending.batchId()
-                + " stage=rejected"
-                + " reason=" + Texts.toStringSafe(reason)
-                + " requested=" + pending.scope()
-                + " triggers=" + snapshot.triggers()
-                + " dirty_slots=" + snapshot.dirtySlots()
-                + " contribution_dirty=" + snapshot.contributionDirty()
-                + " scanned_update_slots=n/a"
-                + " scanned_set_slots=n/a"
-                + " changed=n/a"
-                + " thread=" + Thread.currentThread().getName());
+        debugLogger.log("set", player, "set.refresh_rejected", Map.of(
+                "batch", pending.batchId(),
+                "reason", Texts.toStringSafe(reason),
+                "requested", pending.scope(),
+                "triggers", snapshot.triggers(),
+                "dirty_slots", snapshot.dirtySlots(),
+                "contribution_dirty", snapshot.contributionDirty(),
+                "thread", Thread.currentThread().getName()
+        ));
     }
 
     private static final class PendingRefresh {

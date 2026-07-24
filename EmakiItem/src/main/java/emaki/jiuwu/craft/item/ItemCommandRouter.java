@@ -608,11 +608,13 @@ final class ItemCommandRouter implements TabExecutor {
         if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
             return;
         }
-        debugLogger.logRaw("set", player, "[DEBUG:SET_COMMAND] operation=" + Texts.toStringSafe(operation)
-                + " stage=" + Texts.toStringSafe(stage)
-                + " global_owner=" + threadOwnership.isGlobalOwned()
-                + " owner=" + owner
-                + " thread=" + Thread.currentThread().getName());
+        debugLogger.log("set", player, "set.command", Map.of(
+                "operation", Texts.toStringSafe(operation),
+                "stage", Texts.toStringSafe(stage),
+                "global_owner", threadOwnership.isGlobalOwned(),
+                "owner", owner,
+                "thread", Thread.currentThread().getName()
+        ));
     }
 
     private void completePlayers(List<String> result, String prefix) {

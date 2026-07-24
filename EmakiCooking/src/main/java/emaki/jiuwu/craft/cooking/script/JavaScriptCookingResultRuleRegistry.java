@@ -110,8 +110,10 @@ public final class JavaScriptCookingResultRuleRegistry {
             return;
         }
         for (Map<String, Object> trace : traces) {
-            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
-                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+            plugin.debugLogger().log("script", playerId, "script.trace", Map.of(
+                    "rule", Texts.toStringSafe(trace.get("id")),
+                    "message", Texts.toStringSafe(trace.get("message"))
+            ));
         }
     }
 

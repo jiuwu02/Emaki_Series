@@ -57,7 +57,7 @@ final class ForgeGuiInteractionController {
     private void handleShiftFromPlayerInventory(GuiClickContext click, ForgeGuiSession state) {
         ItemStack itemStack = ForgeGuiStateSupport.cloneNonAir(click.currentItem());
         if (itemStack == null) {
-            debug(state.player(), "shift transfer ignored: current=empty");
+            debug(state.player(), "forge.gui.shift_transfer.ignored_empty", null);
             return;
         }
         ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
@@ -70,11 +70,16 @@ final class ForgeGuiInteractionController {
                 state.requiredMaterialItems().put(slot, itemStack);
                 click.clearClickedSlot();
                 renderer.refreshGui(state);
-                debug(state.player(), "shift transfer accepted: slotType=required_materials slot=" + slot
-                        + " material=" + materialId + " item=" + describe(itemStack));
+                debug(state.player(), "forge.gui.shift_transfer.accepted", replacements(
+                        "slot_type", "required_materials",
+                        "slot", slot,
+                        "material", materialId,
+                        "item", describe(itemStack)));
             } else {
-                debug(state.player(), "shift transfer rejected: slotType=required_materials reason=no_free_slot material="
-                        + materialId + " item=" + describe(itemStack));
+                debug(state.player(), "forge.gui.shift_transfer.rejected_no_free_slot", replacements(
+                        "slot_type", "required_materials",
+                        "material", materialId,
+                        "item", describe(itemStack)));
             }
             return;
         }
@@ -84,15 +89,22 @@ final class ForgeGuiInteractionController {
                 state.optionalMaterialItems().put(slot, itemStack);
                 click.clearClickedSlot();
                 renderer.refreshGui(state);
-                debug(state.player(), "shift transfer accepted: slotType=optional_materials slot=" + slot
-                        + " material=" + materialId + " item=" + describe(itemStack));
+                debug(state.player(), "forge.gui.shift_transfer.accepted", replacements(
+                        "slot_type", "optional_materials",
+                        "slot", slot,
+                        "material", materialId,
+                        "item", describe(itemStack)));
             } else {
-                debug(state.player(), "shift transfer rejected: slotType=optional_materials reason=no_free_slot material="
-                        + materialId + " item=" + describe(itemStack));
+                debug(state.player(), "forge.gui.shift_transfer.rejected_no_free_slot", replacements(
+                        "slot_type", "optional_materials",
+                        "material", materialId,
+                        "item", describe(itemStack)));
             }
             return;
         }
-        debug(state.player(), "shift transfer rejected: reason=validation material=" + materialId + " item=" + describe(itemStack));
+        debug(state.player(), "forge.gui.shift_transfer.rejected_validation", replacements(
+                "material", materialId,
+                "item", describe(itemStack)));
     }
 
     private void handleBlueprintClick(GuiClickContext click, ForgeGuiSession state, int slot) {
@@ -138,51 +150,69 @@ final class ForgeGuiInteractionController {
             Map<Integer, ItemStack> items,
             Predicate<ItemStack> validator) {
         if (click.isUnsupportedKeyboardClick()) {
-            debug(state.player(), "slot click rejected: slotType=" + slotType + " slot=" + slot
-                    + " reason=unsupported_keyboard click=" + click.clickType());
+            debug(state.player(), "forge.gui.slot_click.rejected_unsupported_keyboard", replacements(
+                    "slot_type", slotType,
+                    "slot", slot,
+                    "click", click.clickType()));
             return;
         }
         ItemStack heldItem = ForgeGuiStateSupport.cloneNonAir(click.heldItem());
         if (heldItem != null) {
             if (validator != null && !validator.test(heldItem)) {
-                debug(state.player(), "slot placement rejected: slotType=" + slotType + " slot=" + slot
-                        + " reason=validation item=" + describe(heldItem));
+                debug(state.player(), "forge.gui.slot_placement.rejected_validation", replacements(
+                        "slot_type", slotType,
+                        "slot", slot,
+                        "item", describe(heldItem)));
                 return;
             }
             ItemStack previous = ForgeGuiStateSupport.cloneNonAir(items.put(slot, heldItem));
             click.setHeldItem(previous);
             renderer.refreshGui(state);
-            debug(state.player(), "slot placement accepted: slotType=" + slotType + " slot=" + slot
-                    + " item=" + describe(heldItem) + " replaced=" + describe(previous));
+            debug(state.player(), "forge.gui.slot_placement.accepted", replacements(
+                    "slot_type", slotType,
+                    "slot", slot,
+                    "item", describe(heldItem),
+                    "replaced", describe(previous)));
             return;
         }
         if (click.isShiftClick()) {
-            debug(state.player(), "slot removal ignored: slotType=" + slotType + " slot=" + slot + " reason=shift_click");
+            debug(state.player(), "forge.gui.slot_removal.ignored_shift_click", replacements(
+                    "slot_type", slotType,
+                    "slot", slot));
             return;
         }
         ItemStack removed = ForgeGuiStateSupport.cloneNonAir(items.remove(slot));
         if (removed == null) {
-            debug(state.player(), "slot removal ignored: slotType=" + slotType + " slot=" + slot + " reason=empty");
+            debug(state.player(), "forge.gui.slot_removal.ignored_empty", replacements(
+                    "slot_type", slotType,
+                    "slot", slot));
             return;
         }
         click.setHeldItem(removed);
         renderer.refreshGui(state);
-        debug(state.player(), "slot removal completed: slotType=" + slotType + " slot=" + slot + " item=" + describe(removed));
+        debug(state.player(), "forge.gui.slot_removal.completed", replacements(
+                "slot_type", slotType,
+                "slot", slot,
+                "item", describe(removed)));
     }
 
     private void handleConfirmClick(ForgeGuiSession state) {
         if (state.processing() || state.shutdownRetiring()) {
-            debug(state.player(), "confirm rejected: reason="
-                    + (state.processing() ? "processing" : "shutdown_retiring"));
+            debug(state.player(), "forge.gui.confirm.rejected_state", replacements(
+                    "reason", state.processing() ? "processing" : "shutdown_retiring"));
             return;
         }
         stateSupport.refreshDerivedValues(state);
-        debug(state.player(), "confirm requested: capacity=" + state.currentCapacity() + "/" + state.maxCapacity()
-                + " blueprints=" + state.blueprintItems().size() + " required=" + state.requiredMaterialItems().size()
-                + " optional=" + state.optionalMaterialItems().size());
+        debug(state.player(), "forge.gui.confirm.requested", replacements(
+                "current_capacity", state.currentCapacity(),
+                "max_capacity", state.maxCapacity(),
+                "blueprints", state.blueprintItems().size(),
+                "required", state.requiredMaterialItems().size(),
+                "optional", state.optionalMaterialItems().size()));
         if (state.maxCapacity() > 0 && state.currentCapacity() > state.maxCapacity()) {
-            debug(state.player(), "confirm rejected: reason=capacity_exceeded current=" + state.currentCapacity()
-                    + " max=" + state.maxCapacity());
+            debug(state.player(), "forge.gui.confirm.rejected_capacity_exceeded", replacements(
+                    "current", state.currentCapacity(),
+                    "max", state.maxCapacity()));
             state.runtimeSnapshot().messageService().send(
                     state.player(),
                     "forge.error.capacity_exceeded",
@@ -194,12 +224,14 @@ final class ForgeGuiInteractionController {
         if (activeRecipe == null) {
             RecipeMatch match = state.runtimeSnapshot().forgeService().findMatchingRecipe(state.player(), state.toGuiItems());
             if (match.recipe() == null) {
-                debug(state.player(), "confirm rejected: reason=recipe_mismatch errorKey=" + match.errorKey());
+                debug(state.player(), "forge.gui.confirm.rejected_recipe_mismatch", replacements(
+                        "error_key", match.errorKey()));
                 state.runtimeSnapshot().messageService().send(state.player(), match.errorKey(), match.replacements());
                 return;
             }
             activeRecipe = match.recipe();
-            debug(state.player(), "confirm recipe resolved: recipe=" + activeRecipe.id());
+            debug(state.player(), "forge.gui.confirm.recipe_resolved", replacements(
+                    "recipe", activeRecipe.id()));
         }
         Recipe finalRecipe = activeRecipe;
         GuiItems snapshot = state.toGuiItems();
@@ -215,28 +247,34 @@ final class ForgeGuiInteractionController {
             state.setPreparedForge(preparedForge);
         }
         if (preparedForge == null || preparedForge.request() == null) {
-            debug(state.player(), "confirm rejected: reason=prepare_failed recipe=" + finalRecipe.id());
+            debug(state.player(), "forge.gui.confirm.rejected_prepare_failed", replacements(
+                    "recipe", finalRecipe.id()));
             state.runtimeSnapshot().messageService().send(state.player(), "forge.error.item_create");
             return;
         }
         boolean firstCraft = !state.runtimeSnapshot().playerDataStore().hasCrafted(state.player().getUniqueId(), activeRecipe.id());
         if (threadOwnership == null || !threadOwnership.isEntityOwned(state.player())) {
-            debug(state.player(), "confirm rejected: reason=player_owner_unavailable recipe=" + finalRecipe.id());
+            debug(state.player(), "forge.gui.confirm.rejected_player_owner_unavailable", replacements(
+                    "recipe", finalRecipe.id()));
             state.runtimeSnapshot().messageService().send(state.player(), "forge.error.action_failed", Map.of("reason", "player owner is unavailable"));
             return;
         }
         if (!ensureCurrentGeneration(state)) {
-            debug(state.player(), "confirm rejected: reason=runtime_generation_changed recipe=" + finalRecipe.id());
+            debug(state.player(), "forge.gui.confirm.rejected_runtime_generation_changed", replacements(
+                    "recipe", finalRecipe.id()));
             return;
         }
         ForgeStartEvent startEvent = new ForgeStartEvent(state.player(), finalRecipe.id(), firstCraft, finalRecipe.successRate());
         org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
         if (startEvent.isCancelled()) {
-            debug(state.player(), "confirm rejected: reason=start_event_cancelled recipe=" + finalRecipe.id());
+            debug(state.player(), "forge.gui.confirm.rejected_start_event_cancelled", replacements(
+                    "recipe", finalRecipe.id()));
             return;
         }
-        debug(state.player(), "processing started: recipe=" + finalRecipe.id() + " firstCraft=" + firstCraft
-                + " successRate=" + finalRecipe.successRate());
+        debug(state.player(), "forge.gui.processing.started", replacements(
+                "recipe", finalRecipe.id(),
+                "first_craft", firstCraft,
+                "success_rate", finalRecipe.successRate()));
         state.setProcessing(true);
         state.setRecipe(finalRecipe);
         state.setPreviewRecipe(finalRecipe);
@@ -384,8 +422,9 @@ final class ForgeGuiInteractionController {
             return;
         }
         if (throwable != null) {
-            debug(state.player(), "processing completed: recipe=" + activeRecipe.id() + " outcome=exception reason="
-                    + Texts.toStringSafe(throwable.getMessage()));
+            debug(state.player(), "forge.gui.processing.completed_exception", replacements(
+                    "recipe", activeRecipe.id(),
+                    "reason", Texts.toStringSafe(throwable.getMessage())));
             try {
                 state.runtimeSnapshot().messageService().warning("console.forge_execution_failed", Map.of(
                         "recipe", activeRecipe.id(),
@@ -413,8 +452,10 @@ final class ForgeGuiInteractionController {
         if (result == null || !result.success()) {
             String errorKey = result == null || Texts.isBlank(result.errorKey()) ? "forge.error.action_failed" : result.errorKey();
             Map<String, Object> replacements = result == null || result.replacements() == null ? Map.of() : result.replacements();
-            debug(state.player(), "processing completed: recipe=" + activeRecipe.id() + " outcome=failed errorKey=" + errorKey
-                    + " resultItem=" + describe(result == null ? null : result.resultItem()));
+            debug(state.player(), "forge.gui.processing.completed_failed", replacements(
+                    "recipe", activeRecipe.id(),
+                    "error_key", errorKey,
+                    "result_item", describe(result == null ? null : result.resultItem())));
             runTerminalSettlement(
                     state,
                     () -> returnFailedAttempt(state, errorKey, replacements),
@@ -423,9 +464,11 @@ final class ForgeGuiInteractionController {
             return;
         }
         state.setForgeCompleted(true);
-        debug(state.player(), "processing completed: recipe=" + activeRecipe.id() + " outcome=success quality="
-                + Texts.toStringSafe(result.quality()) + " multiplier=" + result.multiplier()
-                + " resultItem=" + describe(result.resultItem()));
+        debug(state.player(), "forge.gui.processing.completed_success", replacements(
+                "recipe", activeRecipe.id(),
+                "quality", Texts.toStringSafe(result.quality()),
+                "multiplier", result.multiplier(),
+                "result_item", describe(result.resultItem())));
         runTerminalSettlement(
                 state,
                 () -> settleCommittedDelivery(state, activeRecipe),
@@ -461,7 +504,8 @@ final class ForgeGuiInteractionController {
             return;
         }
         if (drag.newItems().isEmpty() || drag.rawSlots().isEmpty()) {
-            debug(state.player(), "drag ignored: reason=no_items rawSlots=" + drag.rawSlots());
+            debug(state.player(), "forge.gui.drag.ignored_no_items", replacements(
+                    "raw_slots", drag.rawSlots()));
             return;
         }
         int topSize = state.guiSession().getInventory().getSize();
@@ -470,22 +514,28 @@ final class ForgeGuiInteractionController {
                 .findFirst()
                 .orElse(null);
         if (rawSlot == null || drag.rawSlots().size() != 1 || drag.newItems().size() != 1) {
-            debug(state.player(), "drag ignored: reason=not_single_top_slot rawSlots=" + drag.rawSlots());
+            debug(state.player(), "forge.gui.drag.ignored_not_single_top_slot", replacements(
+                    "raw_slots", drag.rawSlots()));
             return;
         }
         GuiTemplate.ResolvedSlot slot = state.guiSession().template().resolvedSlotAt(rawSlot);
         if (slot == null || slot.definition() == null) {
-            debug(state.player(), "drag ignored: reason=unresolved_slot rawSlot=" + rawSlot);
+            debug(state.player(), "forge.gui.drag.ignored_unresolved_slot", replacements(
+                    "raw_slot", rawSlot));
             return;
         }
         ItemStack placedItem = ForgeGuiStateSupport.cloneNonAir(drag.newItems().get(rawSlot));
         if (placedItem == null) {
-            debug(state.player(), "drag ignored: reason=empty_item rawSlot=" + rawSlot);
+            debug(state.player(), "forge.gui.drag.ignored_empty_item", replacements(
+                    "raw_slot", rawSlot));
             return;
         }
         String slotType = stateSupport.normalizedType(slot.definition());
-        debug(state.player(), "drag evaluated: slotType=" + slotType + " rawSlot=" + rawSlot
-                + " item=" + describe(placedItem) + " oldCursor=" + describe(drag.oldCursor()));
+        debug(state.player(), "forge.gui.drag.evaluated", replacements(
+                "slot_type", slotType,
+                "raw_slot", rawSlot,
+                "item", describe(placedItem),
+                "old_cursor", describe(drag.oldCursor())));
         switch (slotType) {
             case "blueprint_inputs" ->
                 handleDragPlacement(drag, state, rawSlot, "blueprint_inputs", placedItem, state.blueprintItems(),
@@ -509,8 +559,9 @@ final class ForgeGuiInteractionController {
                             String materialId = materialKey(state, state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
                             return stateSupport.canPlaceOptionalMaterial(materialId, rules, Math.max(0, occupied));
                         });
-            default -> debug(state.player(), "drag ignored: reason=unsupported_slot_type slotType=" + slotType
-                    + " rawSlot=" + rawSlot);
+            default -> debug(state.player(), "forge.gui.drag.ignored_unsupported_slot_type", replacements(
+                    "slot_type", slotType,
+                    "raw_slot", rawSlot));
         }
     }
 
@@ -525,13 +576,17 @@ final class ForgeGuiInteractionController {
             return;
         }
         if (items.containsKey(slot)) {
-            debug(state.player(), "drag placement rejected: slotType=" + slotType + " slot=" + slot
-                    + " reason=occupied item=" + describe(placedItem));
+            debug(state.player(), "forge.gui.drag_placement.rejected_occupied", replacements(
+                    "slot_type", slotType,
+                    "slot", slot,
+                    "item", describe(placedItem)));
             return;
         }
         if (validator != null && !validator.test(placedItem)) {
-            debug(state.player(), "drag placement rejected: slotType=" + slotType + " slot=" + slot
-                    + " reason=validation item=" + describe(placedItem));
+            debug(state.player(), "forge.gui.drag_placement.rejected_validation", replacements(
+                    "slot_type", slotType,
+                    "slot", slot,
+                    "item", describe(placedItem)));
             return;
         }
         items.put(slot, placedItem);
@@ -548,8 +603,11 @@ final class ForgeGuiInteractionController {
             }
         }
         renderer.refreshGui(state);
-        debug(state.player(), "drag placement accepted: slotType=" + slotType + " slot=" + slot
-                + " item=" + describe(placedItem) + " cursorNow=" + describe(cursorAfter));
+        debug(state.player(), "forge.gui.drag_placement.accepted", replacements(
+                "slot_type", slotType,
+                "slot", slot,
+                "item", describe(placedItem),
+                "cursor_now", describe(cursorAfter)));
     }
 
     void settleShutdownSessionOnOwner(ForgeGuiSession state) {
@@ -698,16 +756,23 @@ final class ForgeGuiInteractionController {
         return false;
     }
 
-    private void debug(Player player, String message) {
+    private void debug(Player player, String langKey, Map<String, ?> replacements) {
         try {
-            GuiDebugSupport.log(plugin, player, "forge: " + message);
+            GuiDebugSupport.log(plugin, player, langKey, replacements == null ? Map.of() : replacements);
         } catch (Throwable ignored) {
             // Debug diagnostics must not interrupt GUI ownership or settlement.
         }
     }
 
+    private Map<String, Object> replacements(Object... entries) {
+        return GuiDebugSupport.replacements(entries);
+    }
+
     private String describe(ItemStack itemStack) {
-        return GuiDebugSupport.describeItem(itemStack);
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return "air";
+        }
+        return itemStack.getType().getKey() + "x" + itemStack.getAmount();
     }
 
     private final class ForgeSessionHandler implements GuiSessionHandler {
@@ -725,19 +790,26 @@ final class ForgeGuiInteractionController {
                 return;
             }
             if (state.processing()) {
-                debug(state.player(), "slot click blocked: reason=processing click=" + click.clickType()
-                        + " current=" + describe(click.currentItem()) + " cursor=" + describe(click.cursorItem()));
+                debug(state.player(), "forge.gui.slot_click.blocked_processing", replacements(
+                        "click", click.clickType(),
+                        "current", describe(click.currentItem()),
+                        "cursor", describe(click.cursorItem())));
                 click.setCancelled(true);
                 return;
             }
             if (slot == null || slot.definition() == null) {
-                debug(state.player(), "slot click ignored: reason=unresolved_slot click=" + click.clickType());
+                debug(state.player(), "forge.gui.slot_click.ignored_unresolved_slot", replacements(
+                        "click", click.clickType()));
                 return;
             }
             String slotType = stateSupport.normalizedType(slot.definition());
-            debug(state.player(), "slot click evaluated: slotType=" + slotType + " slot=" + slot.inventorySlot()
-                    + " click=" + click.clickType() + " shift=" + click.isShiftClick()
-                    + " current=" + describe(click.currentItem()) + " cursor=" + describe(click.cursorItem()));
+            debug(state.player(), "forge.gui.slot_click.evaluated", replacements(
+                    "slot_type", slotType,
+                    "slot", slot.inventorySlot(),
+                    "click", click.clickType(),
+                    "shift", click.isShiftClick(),
+                    "current", describe(click.currentItem()),
+                    "cursor", describe(click.cursorItem())));
             switch (slotType) {
                 case "blueprint_inputs" ->
                     handleBlueprintClick(click, state, slot.inventorySlot());
@@ -747,8 +819,9 @@ final class ForgeGuiInteractionController {
                     handleMaterialClick(click, state, slot.inventorySlot(), false);
                 case "confirm" ->
                     handleConfirmClick(state);
-                default -> debug(state.player(), "slot click ignored: reason=unsupported_slot_type slotType=" + slotType
-                        + " slot=" + slot.inventorySlot());
+                default -> debug(state.player(), "forge.gui.slot_click.ignored_unsupported_slot_type", replacements(
+                        "slot_type", slotType,
+                        "slot", slot.inventorySlot()));
             }
         }
 
@@ -759,15 +832,20 @@ final class ForgeGuiInteractionController {
                 return;
             }
             if (state.processing()) {
-                debug(state.player(), "player inventory click blocked: reason=processing click=" + click.clickType()
-                        + " current=" + describe(click.currentItem()) + " cursor=" + describe(click.cursorItem()));
+                debug(state.player(), "forge.gui.player_inventory_click.blocked_processing", replacements(
+                        "click", click.clickType(),
+                        "current", describe(click.currentItem()),
+                        "cursor", describe(click.cursorItem())));
                 click.setCancelled(true);
                 return;
             }
-            debug(state.player(), "player inventory click evaluated: click=" + click.clickType()
-                    + " shift=" + click.isShiftClick() + " blockedTransfer=" + click.isBlockedTransfer()
-                    + " moveToOther=" + click.isMoveToOtherInventory() + " current=" + describe(click.currentItem())
-                    + " cursor=" + describe(click.cursorItem()));
+            debug(state.player(), "forge.gui.player_inventory_click.evaluated", replacements(
+                    "click", click.clickType(),
+                    "shift", click.isShiftClick(),
+                    "blocked_transfer", click.isBlockedTransfer(),
+                    "move_to_other", click.isMoveToOtherInventory(),
+                    "current", describe(click.currentItem()),
+                    "cursor", describe(click.cursorItem())));
             if (!click.isBlockedTransfer()) {
                 return;
             }
@@ -775,7 +853,8 @@ final class ForgeGuiInteractionController {
             if (click.isMoveToOtherInventory()) {
                 handleShiftFromPlayerInventory(click, state);
             } else {
-                debug(state.player(), "player inventory transfer blocked: reason=unsupported_transfer click=" + click.clickType());
+                debug(state.player(), "forge.gui.player_inventory_transfer.blocked_unsupported", replacements(
+                        "click", click.clickType()));
             }
         }
 
@@ -785,7 +864,8 @@ final class ForgeGuiInteractionController {
                 return;
             }
             if (state.processing()) {
-                debug(state.player(), "drag blocked: reason=processing rawSlots=" + (drag == null ? "[]" : drag.rawSlots()));
+                debug(state.player(), "forge.gui.drag.blocked_processing", replacements(
+                        "raw_slots", drag == null ? "[]" : drag.rawSlots()));
                 return;
             }
             handleSingleSlotDrag(drag, state);
@@ -794,11 +874,11 @@ final class ForgeGuiInteractionController {
         @Override
         public void onClose(GuiSession session, GuiCloseContext close) {
             if (state.processing()) {
-                debug(state.player(), "close ignored: reason=processing");
+                debug(state.player(), "forge.gui.close.ignored_processing", null);
                 return;
             }
             if (!state.claimSettlement()) {
-                debug(state.player(), "close ignored: reason=settlement_already_claimed");
+                debug(state.player(), "forge.gui.close.ignored_settlement_already_claimed", null);
                 return;
             }
             runTerminalSettlement(
@@ -810,10 +890,12 @@ final class ForgeGuiInteractionController {
                         if (cursorItem != null) {
                             close.player().setItemOnCursor(null);
                         }
-                        debug(state.player(), "close handled: completed=" + state.forgeCompleted() + " cursor="
-                                + describe(cursorItem) + " blueprints=" + state.blueprintItems().size()
-                                + " required=" + state.requiredMaterialItems().size()
-                                + " optional=" + state.optionalMaterialItems().size());
+                        debug(state.player(), "forge.gui.close.handled", replacements(
+                                "completed", state.forgeCompleted(),
+                                "cursor", describe(cursorItem),
+                                "blueprints", state.blueprintItems().size(),
+                                "required", state.requiredMaterialItems().size(),
+                                "optional", state.optionalMaterialItems().size()));
                         if (!state.forgeCompleted()) {
                             stateSupport.returnItems(state, cursorItem);
                         } else if (cursorItem != null) {

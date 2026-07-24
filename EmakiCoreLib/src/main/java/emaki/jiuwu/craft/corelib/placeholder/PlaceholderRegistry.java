@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.corelib.placeholder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class PlaceholderRegistry {
 
@@ -76,16 +78,14 @@ public final class PlaceholderRegistry {
         if (debugLogger == null || resolver == null || Objects.equals(before, after)) {
             return;
         }
-        debugLogger.logRaw(PlaceholderRenderer.DEBUG_PLACEHOLDER,
+        debugLogger.log(PlaceholderRenderer.DEBUG_PLACEHOLDER,
                 context == null ? null : context.player(),
-                "resolver changed | resolver=" + resolver.getClass().getSimpleName()
-                + " | before=" + summarize(before)
-                + " | after=" + summarize(after));
-    }
-
-    private static String summarize(String value) {
-        String text = value == null ? "" : value.replace('\n', ' ').replace('\r', ' ').trim();
-        return text.length() <= 160 ? text : text.substring(0, 157) + "...";
+                "common.placeholder.resolver_changed",
+                Map.of(
+                        "resolver", resolver.getClass().getSimpleName(),
+                        "before", Texts.toStringSafe(before),
+                        "after", Texts.toStringSafe(after)
+                ));
     }
 
     private static boolean containsPlaceholderMarker(String text) {

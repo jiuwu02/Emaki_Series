@@ -126,16 +126,20 @@ public final class PlaceholderRenderer {
         try {
             String resolved = PlaceholderAPI.setPlaceholders(player, text);
             if (debugLogger != null && debugLogger.shouldLog(DEBUG_PLACEHOLDER, player) && !Texts.toStringSafe(text).equals(resolved)) {
-                debugLogger.logRaw(DEBUG_PLACEHOLDER, player, "papi resolved | source=" + Texts.toStringSafe(source)
-                        + " | before=" + summarize(text)
-                        + " | after=" + summarize(resolved));
+                debugLogger.log(DEBUG_PLACEHOLDER, player, "common.placeholder.papi_resolved", Map.of(
+                        "source", Texts.toStringSafe(source),
+                        "before", Texts.toStringSafe(text),
+                        "after", Texts.toStringSafe(resolved)
+                ));
             }
             return resolved;
         } catch (Exception exception) {
             if (debugLogger != null) {
-                debugLogger.logRaw(DEBUG_PLACEHOLDER, player, "papi failed | source=" + Texts.toStringSafe(source)
-                        + " | error=" + Texts.toStringSafe(exception.getMessage())
-                        + " | text=" + summarize(text));
+                debugLogger.log(DEBUG_PLACEHOLDER, player, "common.placeholder.papi_failed", Map.of(
+                        "source", Texts.toStringSafe(source),
+                        "error", Texts.toStringSafe(exception.getMessage()),
+                        "text", Texts.toStringSafe(text)
+                ));
             }
             return text;
         }
@@ -148,8 +152,10 @@ public final class PlaceholderRenderer {
         if (debugLogger == null || !debugLogger.shouldLog(DEBUG_VARIABLES, player)) {
             return;
         }
-        debugLogger.logRaw(DEBUG_VARIABLES, player, "variables | source=" + Texts.toStringSafe(source)
-                + " | values=" + summarizeMap(variables));
+        debugLogger.log(DEBUG_VARIABLES, player, "common.placeholder.variables", Map.of(
+                "source", Texts.toStringSafe(source),
+                "values", variables == null ? Map.of() : variables
+        ));
     }
 
     private static void putPlayerDefaults(Map<String, Object> values, Player player) {
@@ -201,44 +207,11 @@ public final class PlaceholderRenderer {
         if ((hits == null || hits.isEmpty()) && (missing == null || missing.isEmpty())) {
             return;
         }
-        debugLogger.logRaw(DEBUG_PLACEHOLDER, player, "internal resolved | source=" + Texts.toStringSafe(source)
-                + " | hits=" + summarizeList(hits)
-                + " | missing=" + summarizeList(missing)
-                + " | text=" + summarize(original));
-    }
-
-    private static String summarizeMap(Map<String, ?> values) {
-        if (values == null || values.isEmpty()) {
-            return "{}";
-        }
-        List<String> parts = new ArrayList<>();
-        for (Map.Entry<String, ?> entry : values.entrySet()) {
-            parts.add(entry.getKey() + "=" + summarize(entry.getValue()));
-            if (parts.size() >= 10) {
-                parts.add("...");
-                break;
-            }
-        }
-        return "{" + String.join(", ", parts) + "}";
-    }
-
-    private static String summarizeList(List<String> values) {
-        if (values == null || values.isEmpty()) {
-            return "[]";
-        }
-        List<String> parts = new ArrayList<>();
-        for (String value : values) {
-            parts.add(Texts.toStringSafe(value));
-            if (parts.size() >= 8) {
-                parts.add("...");
-                break;
-            }
-        }
-        return "[" + String.join(", ", parts) + "]";
-    }
-
-    private static String summarize(Object value) {
-        String text = Texts.toStringSafe(value).replace('\n', ' ').replace('\r', ' ').trim();
-        return text.length() <= 160 ? text : text.substring(0, 157) + "...";
+        debugLogger.log(DEBUG_PLACEHOLDER, player, "common.placeholder.internal_resolved", Map.of(
+                "source", Texts.toStringSafe(source),
+                "hits", hits == null ? List.of() : hits,
+                "missing", missing == null ? List.of() : missing,
+                "text", Texts.toStringSafe(original)
+        ));
     }
 }

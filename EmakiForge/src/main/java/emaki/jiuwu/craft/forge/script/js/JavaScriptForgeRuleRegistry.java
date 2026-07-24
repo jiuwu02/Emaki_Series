@@ -112,10 +112,12 @@ public final class JavaScriptForgeRuleRegistry {
             return;
         }
         for (Map<String, Object> trace : traces) {
-            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
-                    + " | before=" + Texts.toStringSafe(trace.get("before"))
-                    + " | after=" + Texts.toStringSafe(trace.get("after"))
-                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+            plugin.debugLogger().log("script", playerId, "script.trace", Map.of(
+                    "rule", Texts.toStringSafe(trace.get("id")),
+                    "before", Texts.toStringSafe(trace.get("before")),
+                    "after", Texts.toStringSafe(trace.get("after")),
+                    "message", Texts.toStringSafe(trace.get("message"))
+            ));
         }
     }
 

@@ -86,15 +86,24 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         Player viewer = session.viewer();
         PacketWindow window = new PacketWindow(nextWindowId(), topSize(session), session);
         PacketWindow previous = windows.put(viewer.getUniqueId(), window);
-        debug(viewer, "packet open | " + describe(window)
-                + " replaced=" + (previous == null ? "none" : previous.windowId));
+        if (previous == null) {
+            debug(viewer, "common.gui.packet_open", windowFields(window));
+        } else {
+            debug(viewer, "common.gui.packet_open_replaced", windowFields(
+                    window,
+                    GuiDebugSupport.replacements("replaced_window_id", previous.windowId)
+            ));
+        }
         try {
             sendOpenWindow(viewer, window);
             applyTopItems(window, renderedSlots);
             sendWindowItems(viewer, window);
         } catch (RuntimeException | Error throwable) {
             windows.remove(viewer.getUniqueId(), window);
-            debug(viewer, "packet open failed | " + describe(window) + " error=" + error(throwable));
+            debug(viewer, "common.gui.packet_open_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    windowFields(window)
+            ));
             throw throwable;
         }
     }
@@ -107,8 +116,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         Player viewer = session.viewer();
         PacketWindow window = windows.get(viewer.getUniqueId());
         if (window == null || window.session != session) {
-            debug(viewer, "packet apply ignored | reason=window-or-session-mismatch "
-                    + GuiDebugSupport.describeSession(session));
+            debug(viewer, "common.gui.packet_apply_ignored_window_or_session_mismatch",
+                    GuiDebugSupport.sessionFields(session));
             return;
         }
         try {
@@ -125,13 +134,16 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             applyTopItems(window, renderedSlots);
             if (window.handlingClick) {
                 window.pendingSync = true;
-                debug(viewer, "packet apply deferred | " + describe(window));
+                debug(viewer, "common.gui.packet_apply_deferred", windowFields(window));
                 return;
             }
-            debug(viewer, "packet apply | " + describe(window));
+            debug(viewer, "common.gui.packet_apply", windowFields(window));
             sendWindowItems(viewer, window);
         } catch (RuntimeException | Error throwable) {
-            debug(viewer, "packet apply failed | " + describe(window) + " error=" + error(throwable));
+            debug(viewer, "common.gui.packet_apply_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    windowFields(window)
+            ));
             throw throwable;
         }
     }
@@ -144,17 +156,20 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         Player viewer = session.viewer();
         PacketWindow window = windows.get(viewer.getUniqueId());
         if (window == null || window.session != session) {
-            debug(viewer, "packet close ignored | reason=window-or-session-mismatch "
-                    + GuiDebugSupport.describeSession(session));
+            debug(viewer, "common.gui.packet_close_ignored_window_or_session_mismatch",
+                    GuiDebugSupport.sessionFields(session));
             return;
         }
-        debug(viewer, "packet close | " + describe(window));
+        debug(viewer, "common.gui.packet_close", windowFields(window));
         try {
             returnCursor(viewer, window);
             PacketEvents.getAPI().getPlayerManager().sendPacket(viewer,
                     new WrapperPlayServerCloseWindow(window.windowId));
         } catch (Throwable throwable) {
-            debug(viewer, "packet close failed | " + describe(window) + " error=" + error(throwable));
+            debug(viewer, "common.gui.packet_close_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    windowFields(window)
+            ));
         } finally {
             windows.remove(viewer.getUniqueId(), window);
         }
@@ -186,7 +201,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 .orTimeout(2L, TimeUnit.SECONDS)
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        debug(null, "packet shutdown window close incomplete | error=" + error(throwable));
+                        debug(null, "common.gui.packet_shutdown_window_close_incomplete",
+                                GuiDebugSupport.errorFields(throwable));
                     }
                     snapshot.forEach(this::retireWindow);
                     return null;
@@ -195,7 +211,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         CompletableFuture.allOf(closeWindows, unregisterListeners).whenComplete((ignored, throwable) -> {
             windows.clear();
             if (throwable != null) {
-                debug(null, "packet shutdown incomplete | error=" + error(throwable));
+                debug(null, "common.gui.packet_shutdown_incomplete", GuiDebugSupport.errorFields(throwable));
             }
             created.complete(null);
         });
@@ -207,7 +223,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             try {
                 PacketEvents.getAPI().getEventManager().unregisterListener(clickListener);
             } catch (RuntimeException | LinkageError exception) {
-                debug(null, "packet listener unregister failed | error=" + error(exception));
+                debug(null, "common.gui.packet_listener_unregister_failed",
+                        GuiDebugSupport.errorFields(exception));
             }
         }
         if (!plugin.isEnabled()) {
@@ -219,12 +236,14 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 return null;
             }).orTimeout(2L, TimeUnit.SECONDS).handle((ignored, throwable) -> {
                 if (throwable != null) {
-                    debug(null, "packet Bukkit listener unregister incomplete | error=" + error(throwable));
+                    debug(null, "common.gui.packet_bukkit_listener_unregister_incomplete",
+                            GuiDebugSupport.errorFields(throwable));
                 }
                 return null;
             });
         } catch (RuntimeException | LinkageError exception) {
-            debug(null, "packet Bukkit listener unregister dispatch failed | error=" + error(exception));
+            debug(null, "common.gui.packet_bukkit_listener_unregister_dispatch_failed",
+                    GuiDebugSupport.errorFields(exception));
             return CompletableFuture.completedFuture(null);
         }
     }
@@ -240,7 +259,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         Runnable entityCleanup = () -> completeWindowCleanup(
                 viewerId, window, viewer, true, true, cleanupStarted, completion);
         Runnable retiredCleanup = () -> {
-            debug(null, "packet shutdown dispatch retired | " + describe(window));
+            debug(null, "common.gui.packet_shutdown_dispatch_retired", windowFields(window));
             completeWindowCleanup(viewerId, window, viewer, false, false, cleanupStarted, completion);
         };
         if (viewer != null) {
@@ -248,10 +267,12 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 if (executionDispatcher.runEntity(plugin, viewer, entityCleanup, retiredCleanup) != null) {
                     return completion;
                 }
-                debug(null, "packet shutdown dispatch rejected | " + describe(window));
+                debug(null, "common.gui.packet_shutdown_dispatch_rejected", windowFields(window));
             } catch (RuntimeException | LinkageError exception) {
-                debug(null, "packet shutdown dispatch failed | " + describe(window)
-                        + " error=" + error(exception));
+                debug(null, "common.gui.packet_shutdown_dispatch_failed", GuiDebugSupport.errorFields(
+                        exception,
+                        windowFields(window)
+                ));
             }
         }
         retiredCleanup.run();
@@ -274,8 +295,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             }
             completion.complete(null);
         } catch (Throwable throwable) {
-            debug(null, "packet shutdown cleanup failed | " + describe(window)
-                    + " error=" + error(throwable));
+            debug(null, "common.gui.packet_shutdown_cleanup_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    windowFields(window)
+            ));
             completion.completeExceptionally(throwable);
         }
     }
@@ -296,8 +319,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 try {
                     session.handler().onClose(session, new PacketGuiCloseContext(viewer, window));
                 } catch (Throwable throwable) {
-                    debug(viewer, "packet shutdown close handler failed | " + describe(window)
-                            + " error=" + error(throwable));
+                    debug(viewer, "common.gui.packet_shutdown_close_handler_failed", GuiDebugSupport.errorFields(
+                            throwable,
+                            windowFields(window)
+                    ));
                 }
             }
         } finally {
@@ -325,7 +350,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 window.session.titleComponent()
         );
         PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, open);
-        debug(viewer, "packet send open | " + describe(window));
+        debug(viewer, "common.gui.packet_send_open", windowFields(window));
     }
 
     private void applyTopItems(PacketWindow window, Map<Integer, org.bukkit.inventory.ItemStack> renderedSlots) {
@@ -362,14 +387,19 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 PacketItems.toPacket(window.cursor)
         );
         PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, packet);
-        debug(viewer, "packet send items | " + describe(window) + " stateId=" + stateId);
+        debug(viewer, "common.gui.packet_send_items", windowFields(
+                window,
+                GuiDebugSupport.replacements("sent_state_id", stateId)
+        ));
     }
 
     private void authoritativeResync(Player viewer, PacketWindow window, String reason) {
         if (!isCurrentSession(viewer.getUniqueId(), window)) {
             windows.remove(viewer.getUniqueId(), window);
-            debug(viewer, "packet resync skipped | reason=stale-window-or-session cause=" + reason
-                    + " " + describe(window));
+            debug(viewer, "common.gui.packet_resync_skipped_stale_window_or_session", windowFields(
+                    window,
+                    GuiDebugSupport.replacements("cause", reason)
+            ));
             return;
         }
         try {
@@ -377,10 +407,15 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 sendOpenWindow(viewer, window);
             }
             sendWindowItems(viewer, window);
-            debug(viewer, "packet resync | cause=" + reason + " " + describe(window));
+            debug(viewer, "common.gui.packet_resync", windowFields(
+                    window,
+                    GuiDebugSupport.replacements("cause", reason)
+            ));
         } catch (Throwable throwable) {
-            debug(viewer, "packet resync failed | cause=" + reason + " " + describe(window)
-                    + " error=" + error(throwable));
+            debug(viewer, "common.gui.packet_resync_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    windowFields(window, GuiDebugSupport.replacements("cause", reason))
+            ));
         } finally {
             window.pendingSync = false;
             window.pendingReopen = false;
@@ -410,18 +445,29 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             if (!retiredOnce.compareAndSet(false, true)) {
                 return;
             }
-            debug(viewer, "packet dispatch retired | phase=" + phase + " " + describe(expectedWindow));
+            debug(viewer, "common.gui.packet_dispatch_retired", windowFields(
+                    expectedWindow,
+                    GuiDebugSupport.replacements("phase", phase)
+            ));
             retireWindow(viewer.getUniqueId(), expectedWindow);
         };
         try {
-            debug(viewer, "packet dispatch scheduled | phase=" + phase + " " + describe(expectedWindow));
+            debug(viewer, "common.gui.packet_dispatch_scheduled", windowFields(
+                    expectedWindow,
+                    GuiDebugSupport.replacements("phase", phase)
+            ));
             if (executionDispatcher.runEntity(plugin, viewer, () -> {
                 try {
-                    debug(viewer, "packet dispatch execute | phase=" + phase + " " + describe(expectedWindow));
+                    debug(viewer, "common.gui.packet_dispatch_execute", windowFields(
+                            expectedWindow,
+                            GuiDebugSupport.replacements("phase", phase)
+                    ));
                     task.run();
                 } catch (Throwable throwable) {
-                    debug(viewer, "packet dispatch task failed | phase=" + phase + " "
-                            + describe(expectedWindow) + " error=" + error(throwable));
+                    debug(viewer, "common.gui.packet_dispatch_task_failed", GuiDebugSupport.errorFields(
+                            throwable,
+                            windowFields(expectedWindow, GuiDebugSupport.replacements("phase", phase))
+                    ));
                     if (isCurrentSession(viewer.getUniqueId(), expectedWindow)) {
                         authoritativeResync(viewer, expectedWindow, phase + "-exception");
                     }
@@ -430,13 +476,18 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 return;
             }
             if (retiredOnce.compareAndSet(false, true)) {
-                debug(viewer, "packet dispatch rejected | phase=" + phase + " " + describe(expectedWindow));
+                debug(viewer, "common.gui.packet_dispatch_rejected", windowFields(
+                        expectedWindow,
+                        GuiDebugSupport.replacements("phase", phase)
+                ));
                 retireWindow(viewer.getUniqueId(), expectedWindow);
             }
         } catch (RuntimeException | LinkageError exception) {
             if (retiredOnce.compareAndSet(false, true)) {
-                debug(viewer, "packet dispatch failed | phase=" + phase + " " + describe(expectedWindow)
-                        + " error=" + error(exception));
+                debug(viewer, "common.gui.packet_dispatch_failed", GuiDebugSupport.errorFields(
+                        exception,
+                        windowFields(expectedWindow, GuiDebugSupport.replacements("phase", phase))
+                ));
                 retireWindow(viewer.getUniqueId(), expectedWindow);
             }
         }
@@ -453,36 +504,53 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     private void handleClick(Player viewer, PacketWindow expectedWindow, ClickSnapshot click) {
         UUID viewerId = viewer.getUniqueId();
         if (!isCurrentSession(viewerId, expectedWindow)) {
-            debug(viewer, "packet click dropped | reason=stale-window-or-session "
-                    + describe(expectedWindow) + " incomingWindow=" + click.windowId());
+            debug(viewer, "common.gui.packet_click_dropped_stale_window_or_session", windowFields(
+                    expectedWindow,
+                    GuiDebugSupport.replacements("incoming_window_id", click.windowId())
+            ));
             windows.remove(viewerId, expectedWindow);
             return;
         }
         Optional<Integer> incomingState = click.stateId();
         int lastSentState = expectedWindow.lastSentStateId();
         if (incomingState.isPresent() && incomingState.get() != lastSentState) {
-            debug(viewer, "packet state mismatch | " + describe(expectedWindow)
-                    + " incoming=" + incomingState.get() + " expected=" + lastSentState);
+            debug(viewer, "common.gui.packet_state_mismatch", windowFields(
+                    expectedWindow,
+                    GuiDebugSupport.replacements(
+                            "incoming_state_id", incomingState.get(),
+                            "expected_state_id", lastSentState
+                    )
+            ));
             authoritativeResync(viewer, expectedWindow, "state-mismatch");
             return;
         }
         if (incomingState.isEmpty()) {
-            debug(viewer, "packet state absent | compatibility=true " + describe(expectedWindow));
+            debug(viewer, "common.gui.packet_state_absent_compatibility", windowFields(expectedWindow));
         }
         if (click.clickType() == WindowClickType.QUICK_CRAFT
                 || click.clickType() == WindowClickType.UNKNOWN) {
-            debug(viewer, "packet click rejected | reason=unsupported-type type=" + click.clickType()
-                    + " slot=" + click.rawSlot() + " button=" + click.button()
-                    + " " + describe(expectedWindow));
+            debug(viewer, "common.gui.packet_click_rejected_unsupported_type", windowFields(
+                    expectedWindow,
+                    GuiDebugSupport.replacements(
+                            "click_type", click.clickType(),
+                            "raw_slot", click.rawSlot(),
+                            "button", click.button()
+                    )
+            ));
             authoritativeResync(viewer, expectedWindow, "unsupported-" + click.clickType().name().toLowerCase());
             return;
         }
 
         int containerTopSize = expectedWindow.topSize;
         if (!isKnownClickRange(click, containerTopSize)) {
-            debug(viewer, "packet click rejected | reason=invalid-range type=" + click.clickType()
-                    + " slot=" + click.rawSlot() + " button=" + click.button()
-                    + " topSize=" + containerTopSize + " " + describe(expectedWindow));
+            debug(viewer, "common.gui.packet_click_rejected_invalid_range", windowFields(
+                    expectedWindow,
+                    GuiDebugSupport.replacements(
+                            "click_type", click.clickType(),
+                            "raw_slot", click.rawSlot(),
+                            "button", click.button()
+                    )
+            ));
             authoritativeResync(viewer, expectedWindow, "invalid-click-range");
             return;
         }
@@ -502,9 +570,17 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             }
         } catch (Throwable throwable) {
             outcome = "handler-exception";
-            debug(viewer, "packet click handler failed | type=" + click.clickType()
-                    + " slot=" + click.rawSlot() + " button=" + click.button()
-                    + " " + describe(expectedWindow) + " error=" + error(throwable));
+            debug(viewer, "common.gui.packet_click_handler_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    windowFields(
+                            expectedWindow,
+                            GuiDebugSupport.replacements(
+                                    "click_type", click.clickType(),
+                                    "raw_slot", click.rawSlot(),
+                                    "button", click.button()
+                            )
+                    )
+            ));
         } finally {
             boolean refreshRequested = expectedWindow.pendingSync;
             expectedWindow.finishClick();
@@ -513,8 +589,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                         outcome + (refreshRequested ? "-refresh-requested" : "-authoritative"));
             } else {
                 windows.remove(viewerId, expectedWindow);
-                debug(viewer, "packet click final sync skipped | reason=window-or-session-replaced-or-closed "
-                        + describe(expectedWindow));
+                debug(viewer, "common.gui.packet_click_final_sync_skipped_window_or_session_replaced_or_closed",
+                        windowFields(expectedWindow));
             }
         }
     }
@@ -537,18 +613,22 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     private void handleClose(Player viewer, PacketWindow expectedWindow, int windowId) {
         UUID viewerId = viewer.getUniqueId();
         if (expectedWindow.windowId != windowId || !isCurrentSession(viewerId, expectedWindow)) {
-            debug(viewer, "packet close receive dropped | reason=stale-window-or-session expected="
-                    + expectedWindow.windowId + " incoming=" + windowId);
+            debug(viewer, "common.gui.packet_close_receive_dropped_stale_window_or_session", windowFields(
+                    expectedWindow,
+                    GuiDebugSupport.replacements("incoming_window_id", windowId)
+            ));
             return;
         }
         GuiSession session = expectedWindow.session;
-        debug(viewer, "packet close receive | " + describe(expectedWindow));
+        debug(viewer, "common.gui.packet_close_receive", windowFields(expectedWindow));
         try {
             returnCursor(viewer, expectedWindow);
             session.handler().onClose(session, new PacketGuiCloseContext(viewer, expectedWindow));
         } catch (Throwable throwable) {
-            debug(viewer, "packet close handler failed | " + describe(expectedWindow)
-                    + " error=" + error(throwable));
+            debug(viewer, "common.gui.packet_close_handler_failed", GuiDebugSupport.errorFields(
+                    throwable,
+                    windowFields(expectedWindow)
+            ));
         } finally {
             GuiSessionRegistry registry = session.registry();
             if (registry != null) {
@@ -591,28 +671,26 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         Player viewer = event.getPlayer();
         PacketWindow window = windows.remove(viewer.getUniqueId());
         if (window != null) {
-            debug(viewer, "packet quit cleanup | " + describe(window));
+            debug(viewer, "common.gui.packet_quit_cleanup", windowFields(window));
         }
     }
 
-    private void debug(Player viewer, String message) {
-        GuiDebugSupport.log(plugin, viewer, message);
+    private void debug(Player viewer, String langKey, Map<String, ?> replacements) {
+        GuiDebugSupport.log(plugin, viewer, langKey, replacements);
     }
 
-    private String describe(PacketWindow window) {
-        return "window=" + window.windowId
-                + " state=" + window.lastSentStateId()
-                + " topSize=" + window.topSize
-                + " " + GuiDebugSupport.describeSession(window.session);
+    private Map<String, Object> windowFields(PacketWindow window) {
+        return windowFields(window, Map.of());
     }
 
-    private static String error(Throwable throwable) {
-        if (throwable == null) {
-            return "unknown";
-        }
-        String message = throwable.getMessage();
-        return throwable.getClass().getSimpleName()
-                + (message == null || message.isBlank() ? "" : ":" + message);
+    private Map<String, Object> windowFields(PacketWindow window, Map<String, ?> fields) {
+        return GuiDebugSupport.windowFields(
+                window.windowId,
+                window.lastSentStateId(),
+                window.topSize,
+                window.session,
+                fields
+        );
     }
 
     static record ClickSnapshot(
@@ -719,10 +797,19 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                     return;
                 }
                 event.setCancelled(true);
-                debug(viewer, "packet receive click | type=" + click.clickType()
-                        + " slot=" + click.rawSlot() + " button=" + click.button()
-                        + " incomingState=" + click.stateId().map(String::valueOf).orElse("absent")
-                        + " " + describe(expectedWindow));
+                Map<String, Object> clickFields = GuiDebugSupport.replacements(
+                        "click_type", click.clickType(),
+                        "raw_slot", click.rawSlot(),
+                        "button", click.button()
+                );
+                if (click.stateId().isPresent()) {
+                    clickFields.put("incoming_state_id", click.stateId().get());
+                    debug(viewer, "common.gui.packet_receive_click",
+                            windowFields(expectedWindow, clickFields));
+                } else {
+                    debug(viewer, "common.gui.packet_receive_click_state_absent",
+                            windowFields(expectedWindow, clickFields));
+                }
                 dispatchViewerEvent(viewer, expectedWindow, "click",
                         () -> handleClick(viewer, expectedWindow, click));
                 return;
@@ -742,7 +829,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 if (windowId != expectedWindow.windowId || windows.get(viewerId) != expectedWindow) {
                     return;
                 }
-                debug(viewer, "packet receive close | " + describe(expectedWindow));
+                debug(viewer, "common.gui.packet_receive_close", windowFields(expectedWindow));
                 dispatchViewerEvent(viewer, expectedWindow, "close",
                         () -> handleClose(viewer, expectedWindow, windowId));
             }

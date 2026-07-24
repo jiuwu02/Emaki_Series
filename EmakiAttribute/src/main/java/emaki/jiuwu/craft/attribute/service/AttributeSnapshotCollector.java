@@ -626,13 +626,10 @@ final class AttributeSnapshotCollector {
         if (player == null || service.plugin() == null || service.plugin().debugLogger() == null) {
             return;
         }
-        service.plugin().debugLogger().logRaw(
-                "resync",
-                player,
-                "[DEBUG:attribute-slot-gate] actual_slot=" + Texts.toStringSafe(actualSlot)
-                        + " declared_slots=" + String.join(",", declaredSlots == null ? List.of() : declaredSlots)
-                        + " matched=false result=reject_item_sources"
-        );
+        service.plugin().debugLogger().log("resync", player, "resync.slot_gate", Map.of(
+                "actual_slot", Texts.toStringSafe(actualSlot),
+                "declared_slots", String.join(",", declaredSlots == null ? List.of() : declaredSlots)
+        ));
     }
 
     private List<FusionRule> fusionRules() {
