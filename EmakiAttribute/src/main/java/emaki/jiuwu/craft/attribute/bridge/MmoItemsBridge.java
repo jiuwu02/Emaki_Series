@@ -71,7 +71,7 @@ public final class MmoItemsBridge implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
         if (!(event.getEntity() instanceof Projectile projectile)) {
             return;
@@ -146,10 +146,6 @@ public final class MmoItemsBridge implements Listener {
     private void handleProjectileDamage(EntityDamageByEntityEvent event, Projectile projectile, LivingEntity target) {
         trackedProjectiles.remove(projectile.getUniqueId());
         LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
-        if (shooter instanceof Player player && attributeService.isAttackCoolingDown(player)) {
-            event.setCancelled(true);
-            return;
-        }
         ProjectileDamageSnapshot snapshot = attributeService.readProjectileSnapshot(projectile);
         if (snapshot == null) {
             return;
