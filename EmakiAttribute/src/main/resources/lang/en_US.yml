@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.5.14"
+version: "4.5.15"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -319,6 +319,7 @@ combat_debug:
   projectile_hit_intercept: "Intercepted vanilla projectile damage:
     shooter=%shooter%, projectile=%projectile%, target=%target%, cause=%cause%,
     vanillaDamage=%vanilla_damage%, vanillaFinal=%vanilla_final%"
+  invulnerability_bypassed: "Target invulnerability bypassed for the same attack batch | target=%target% | reason=%reason% | batch_signature=%batch_signature% | window_ms=%window_ms%"
   projectile_hit_blocked: "Projectile hit blocked by attack cooldown: shooter=%shooter%"
   projectile_resolve_empty: "Projectile hit produced no valid EA damage result, ending hit flow."
   projectile_resolved: "Projectile hit resolved EA damage: %resolved%"

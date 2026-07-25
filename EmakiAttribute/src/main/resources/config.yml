@@ -8,7 +8,7 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.5.14"
+version: "4.5.15"
 
 # 语言文件 ID
 language: zh_CN
@@ -54,6 +54,15 @@ projectile_damage_type: projectile
 vanilla_event_damage:
   enabled: true
   damage_type: physical
+
+# 同批次攻击无视目标受伤间隔
+# enabled: true 时，同一攻击者在同一属性快照签名与同一伤害类型下产生的多段攻击
+#          （多重射击三箭、同一批多投射物、同签名连续命中等）互相不受原版受伤间隔限制，
+#          每一段都按 EA 结算值完整掉血；不同攻击者、换手后属性变化、不同伤害类型不共享批次。
+# window_ms: 批次有效时间窗，单位毫秒；超过该时间的同签名攻击视为新一轮攻击，重新受受伤间隔限制。
+same_signature_ignores_invulnerability:
+  enabled: true
+  window_ms: 500
 
 # 资源自然回复间隔，单位 tick
 regen_interval_ticks: 20

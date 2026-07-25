@@ -185,7 +185,13 @@ public final class MmoItemsBridge implements Listener {
             event.setCancelled(true);
             return;
         }
-        attributeService.perfectTakeoverCoordinator().claimAndApply(event, resolvedDamage, visualSource);
+        boolean bypassInvulnerability = attributeService.attackBatchInvulnerabilityGate()
+                .shouldBypass(target, damageContext);
+        attributeService.perfectTakeoverCoordinator().claimAndApply(
+                event,
+                resolvedDamage,
+                visualSource,
+                bypassInvulnerability);
     }
 
     private ItemStack sourceItem(LivingEntity entity) {

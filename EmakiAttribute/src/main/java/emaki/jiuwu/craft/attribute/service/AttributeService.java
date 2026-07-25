@@ -52,6 +52,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final CombatDebugService combatDebugService;
     private final AttributeTraceService attributeTraceService;
     private final DamageTraceService damageTraceService;
+    private final AttackBatchInvulnerabilityGate attackBatchInvulnerabilityGate;
     private final PerfectTakeoverCoordinator perfectTakeoverCoordinator;
     private final PdcAttributeService pdcAttributeService;
     private final TemporaryAttributeService temporaryAttributeService;
@@ -123,6 +124,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.snapshotService = new AttributeSnapshotService(snapshotCollector);
         this.resourceManagementService = new ResourceManagementService(this);
         this.damageCalculationService = new DamageCalculationService(this);
+        this.attackBatchInvulnerabilityGate = new AttackBatchInvulnerabilityGate(this);
         this.perfectTakeoverCoordinator = new PerfectTakeoverCoordinator(this);
         refreshCaches();
     }
@@ -270,6 +272,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     public void cleanupEntityState(java.util.UUID entityId) {
         stateRepository.cleanupEntity(entityId);
+        attackBatchInvulnerabilityGate.reset(entityId);
     }
 
     long projectileTtlMs() {
@@ -294,6 +297,10 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     public PerfectTakeoverCoordinator perfectTakeoverCoordinator() {
         return perfectTakeoverCoordinator;
+    }
+
+    public AttackBatchInvulnerabilityGate attackBatchInvulnerabilityGate() {
+        return attackBatchInvulnerabilityGate;
     }
 
     public boolean toggleCombatDebug(Player player) {

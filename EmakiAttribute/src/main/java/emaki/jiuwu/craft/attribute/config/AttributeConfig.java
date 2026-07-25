@@ -5,6 +5,7 @@ import java.util.List;
 
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record AttributeConfig(String language,
@@ -17,6 +18,8 @@ public record AttributeConfig(String language,
         String projectileDamageType,
         boolean vanillaEventDamageEnabled,
         String vanillaEventDamageType,
+        boolean sameSignatureIgnoresInvulnerabilityEnabled,
+        long sameSignatureInvulnerabilityWindowMs,
         int regenIntervalTicks,
         int syncDelayTicks,
         boolean healthDisplayScalingEnabled,
@@ -39,6 +42,8 @@ public record AttributeConfig(String language,
                 "projectile",
                 true,
                 "physical",
+                true,
+                500L,
                 20,
                 1,
                 false,
@@ -66,6 +71,10 @@ public record AttributeConfig(String language,
         String projectileDamageType = ConfigNodes.string(configuration, "projectile_damage_type", "projectile");
         boolean vanillaEventDamageEnabled = Boolean.TRUE.equals(configuration.getBoolean("vanilla_event_damage.enabled", true));
         String vanillaEventDamageType = ConfigNodes.string(configuration, "vanilla_event_damage.damage_type", defaultDamageType);
+        boolean sameSignatureIgnoresInvulnerabilityEnabled = Boolean.TRUE.equals(
+                configuration.getBoolean("same_signature_ignores_invulnerability.enabled", true));
+        long sameSignatureInvulnerabilityWindowMs = Math.max(0L, Numbers.tryParseLong(
+                configuration.get("same_signature_ignores_invulnerability.window_ms"), 500L));
         int regenIntervalTicks = Math.max(1, configuration.getInt("regen_interval_ticks", 20));
         int syncDelayTicks = Math.max(0, configuration.getInt("sync_delay_ticks", 1));
         boolean healthDisplayScalingEnabled = Boolean.TRUE.equals(configuration.getBoolean("health_display_scaling.enabled", false));
@@ -99,6 +108,8 @@ public record AttributeConfig(String language,
                 projectileDamageType,
                 vanillaEventDamageEnabled,
                 vanillaEventDamageType,
+                sameSignatureIgnoresInvulnerabilityEnabled,
+                sameSignatureInvulnerabilityWindowMs,
                 regenIntervalTicks,
                 syncDelayTicks,
                 healthDisplayScalingEnabled,

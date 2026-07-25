@@ -12,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -69,6 +70,22 @@ public final class CombatDamageListener implements Listener {
                 );
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onProjectileHitEntity(ProjectileHitEvent event) {
+        if (!attributeService.config().sameSignatureIgnoresInvulnerabilityEnabled()
+                || !(event.getHitEntity() instanceof LivingEntity target)) {
+            return;
+        }
+        Projectile projectile = event.getEntity();
+        var snapshot = attributeService.readProjectileSnapshot(projectile);
+        if (snapshot == null
+                || !attributeService.attackBatchInvulnerabilityGate().matchesCurrentBatch(target, snapshot)) {
+            return;
+        }
+        target.setNoDamageTicks(0);
+        target.setLastDamage(0D);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -309,7 +326,21 @@ public final class CombatDamageListener implements Listener {
             }
             return;
         }
-        attributeService.perfectTakeoverCoordinator().claimAndApply(event, resolvedDamage, visualSource);
+        var invulnerabilityGate = attributeService.attackBatchInvulnerabilityGate();
+        boolean bypassInvulnerability = invulnerabilityGate.shouldBypass(target, damageContext);
+        attributeService.perfectTakeoverCoordinator().claimAndApply(
+                event,
+                resolvedDamage,
+                visualSource,
+                bypassInvulnerability);
+        if (bypassInvulnerability && debugHandler.shouldDebugCombat(attacker, target, projectile)) {
+            debugHandler.debugCombat(attacker, target, projectile, "INVULNERABILITY_BYPASSED", "combat_debug.invulnerability_bypassed", Map.of(
+                    "target", debugHandler.describeEntity(target),
+                    "reason", "same_attacker_snapshot_and_damage_type",
+                    "batch_signature", invulnerabilityGate.batchKey(damageContext),
+                    "window_ms", invulnerabilityGate.windowMs()
+            ));
+        }
         if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
             debugHandler.debugCombat(attacker, target, projectile, "PERFECT_TAKEOVER_APPLIED", "combat_debug.perfect_takeover_applied", Map.of(
                     "cause", event.getCause().name(),
