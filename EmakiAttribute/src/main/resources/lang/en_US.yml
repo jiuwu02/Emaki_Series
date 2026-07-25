@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.5.13"
+version: "4.5.14"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -156,6 +156,13 @@ damage:
     custom: "Custom"
 
 combat_debug:
+  field:
+    context: "attacker=%attacker% | target=%target% | projectile=%projectile% | cause=%cause% | damage_type=%damage_type% | source_damage=%source_damage% | base_damage=%base_damage%"
+    snapshot: "signature=%signature% | values={%values%}"
+    stage_values: "{%values%}"
+    entity: "%name%(%type%,%uuid%)"
+    none: "<none>"
+    null_value: "<null>"
   common:
     placeholder:
       papi_resolved: "PlaceholderAPI resolution complete | source=%source% | before=%before% | after=%after%"
@@ -400,6 +407,10 @@ command:
     enabled: "<green>Combat debug logging enabled for %player%, output goes to
       console.</green>"
     disabled: "<yellow>Combat debug logging disabled for %player%.</yellow>"
+    player_usage: "<red>Usage: /ea debug <player> [on|off|toggle]</red>"
+    combat_trace_toggled: "<gray>[EA]</gray> <aqua>%player%</aqua> combat trace %state%"
+    combat_trace_on: "<green>enabled</green>"
+    combat_trace_off: "<red>disabled</red>"
 
   points:
     no_permission: "<red>You do not have permission to use attribute points.</red>"
@@ -450,6 +461,25 @@ command:
       points, open the allocation GUI, or allocate parent attributes."
     lint: "<gray>/emakiattribute lint</gray> Check config and resource loading
       issues."
+
+  source:
+    usage: "<red>Usage: /ea source <player> <attribute></red>"
+    header: "<gray>[EA]</gray> <aqua>%player%</aqua> attribute sources"
+    header_filtered: "<gray>[EA]</gray> <aqua>%player%</aqua> attribute sources <yellow>%attribute%</yellow>"
+    empty: "<gray>No matching attribute sources.</gray>"
+    line: "<gray>-</gray> <yellow>%value%</yellow> <aqua>%attribute%</aqua> <dark_gray>[</dark_gray>%source_type%<dark_gray>]</dark_gray> <white>%source_label%</white>%condition%"
+    condition_failed: " <red>inactive</red>"
+
+  trace:
+    usage: "<red>Usage: /ea trace <last|list|export|clear> <player></red>"
+    unknown_action: "<red>Unknown trace subcommand: %action%</red>"
+    list_header: "<gray>[EA]</gray> <aqua>%player%</aqua> recent damage traces: <yellow>%count%</yellow>"
+    empty: "<gray>No damage trace. Run /ea debug <player> on to start recording.</gray>"
+    none: "<gray>No trace</gray>"
+    cleared: "<green>Damage traces cleared.</green>"
+    clear_empty: "<gray>No damage trace to clear.</gray>"
+    summary: "<gray>#%trace_id%</gray> <white>%attacker%</white> -> <white>%target%</white> <dark_gray>type=</dark_gray><aqua>%damage_type%</aqua> <dark_gray>cause=</dark_gray><aqua>%cause%</aqua> <dark_gray>final=</dark_gray><yellow>%final_damage%</yellow> <dark_gray>mode=</dark_gray><green>%apply_mode%</green>"
+    stage: "  <gray>Stage</gray> <aqua>%stage%</aqua> <yellow>%input%</yellow> -> <green>%output%</green>"
 
 # Debug mode messages
 debug:

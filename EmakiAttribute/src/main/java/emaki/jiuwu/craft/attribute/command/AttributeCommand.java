@@ -316,10 +316,15 @@ public final class AttributeCommand implements TabExecutor {
                         case "off" -> attributeService.setCombatDebug(target, false);
                         default -> attributeService.toggleCombatDebug(target);
                     };
-                    messages().sendRaw(sender, "<gray>[EA]</gray> <aqua>" + target.getName() + "</aqua> 战斗 Trace 已" + (enabled ? "<green>开启</green>" : "<red>关闭</red>"));
+                    messages().send(sender, "command.debug.combat_trace_toggled", Map.of(
+                            "player", MiniMessages.escape(target.getName()),
+                            "state", messages().message(enabled
+                                    ? "command.debug.combat_trace_on"
+                                    : "command.debug.combat_trace_off")
+                    ));
                     return true;
                 }
-                messages().sendRaw(sender, "<red>用法: /ea debug <player> [on|off|toggle]</red>");
+                messages().send(sender, "command.debug.player_usage");
                 return true;
             }
             if (List.of("status", "on", "off", "player", "module").contains(args[1].toLowerCase(Locale.ROOT))) {
@@ -337,7 +342,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         if (args.length < 3) {
-            messages().sendRaw(sender, "<red>用法: /ea source <player> <attribute></red>");
+            messages().send(sender, "command.source.usage");
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[1]);
@@ -355,7 +360,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         if (args.length < 3) {
-            messages().sendRaw(sender, "<red>用法: /ea trace <last|list|export|clear> <player></red>");
+            messages().send(sender, "command.trace.usage");
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[2]);
@@ -372,7 +377,10 @@ public final class AttributeCommand implements TabExecutor {
             }
             case "list" -> {
                 List<DamageTraceRecord> records = attributeService.damageTraceService().list(target.getUniqueId());
-                messages().sendRaw(sender, "<gray>[EA]</gray> <aqua>" + target.getName() + "</aqua> 最近伤害 Trace: <yellow>" + records.size() + "</yellow>");
+                messages().send(sender, "command.trace.list_header", Map.of(
+                        "player", MiniMessages.escape(target.getName()),
+                        "count", records.size()
+                ));
                 for (DamageTraceRecord record : records) {
                     messages().sendRaw(sender, formatTraceSummary(record));
                 }
@@ -385,11 +393,13 @@ public final class AttributeCommand implements TabExecutor {
             }
             case "clear" -> {
                 boolean cleared = attributeService.damageTraceService().clear(target.getUniqueId());
-                messages().sendRaw(sender, cleared ? "<green>已清空伤害 Trace。</green>" : "<gray>没有可清空的伤害 Trace。</gray>");
+                messages().send(sender, cleared ? "command.trace.cleared" : "command.trace.clear_empty");
                 yield true;
             }
             default -> {
-                messages().sendRaw(sender, "<red>未知 trace 子命令: " + MiniMessages.escape(action) + "</red>");
+                messages().send(sender, "command.trace.unknown_action", Map.of(
+                        "action", MiniMessages.escape(action)
+                ));
                 yield true;
             }
         };
@@ -725,7 +735,16 @@ public final class AttributeCommand implements TabExecutor {
     private void sendSourceTrace(CommandSender sender, Player target, String attributeFilter) {
         AttributeSourceTraceReport report = attributeService.attributeTraceService().trace(target, attributeFilter);
         String filter = Texts.normalizeId(attributeFilter);
-        messages().sendRaw(sender, "<gray>[EA]</gray> <aqua>" + MiniMessages.escape(target.getName()) + "</aqua> 属性来源" + (Texts.isBlank(filter) ? "" : " <yellow>" + MiniMessages.escape(filter) + "</yellow>"));
+        if (Texts.isBlank(filter)) {
+            messages().send(sender, "command.source.header", Map.of(
+                    "player", MiniMessages.escape(target.getName())
+            ));
+        } else {
+            messages().send(sender, "command.source.header_filtered", Map.of(
+                    "player", MiniMessages.escape(target.getName()),
+                    "attribute", MiniMessages.escape(filter)
+            ));
+        }
         int count = 0;
         for (AttributeContributionTrace trace : report.contributions()) {
             if (Texts.isNotBlank(filter) && !filter.equals(Texts.normalizeId(trace.attributeId()))) {
@@ -735,23 +754,26 @@ public final class AttributeCommand implements TabExecutor {
             count++;
         }
         if (count == 0) {
-            messages().sendRaw(sender, "<gray>没有匹配的属性来源。</gray>");
+            messages().send(sender, "command.source.empty");
         }
     }
 
     private String formatContributionTrace(AttributeContributionTrace trace) {
         String value = Numbers.formatNumber(trace.value(), "0.##");
         String sign = trace.value() >= 0D ? "+" : "";
-        String passed = trace.conditionPassed() ? "" : " <red>未生效</red>";
-        return "<gray>-</gray> <yellow>" + MiniMessages.escape(sign + value) + "</yellow> "
-                + "<aqua>" + MiniMessages.escape(trace.attributeId()) + "</aqua> "
-                + "<dark_gray>[</dark_gray>" + MiniMessages.escape(trace.sourceType()) + "<dark_gray>]</dark_gray> "
-                + "<white>" + MiniMessages.escape(trace.sourceLabel()) + "</white>" + passed;
+        String passed = trace.conditionPassed() ? "" : messages().message("command.source.condition_failed");
+        return messages().message("command.source.line", Map.of(
+                "value", MiniMessages.escape(sign + value),
+                "attribute", MiniMessages.escape(trace.attributeId()),
+                "source_type", MiniMessages.escape(trace.sourceType()),
+                "source_label", MiniMessages.escape(trace.sourceLabel()),
+                "condition", passed
+        ));
     }
 
     private void sendDamageTrace(CommandSender sender, DamageTraceRecord record, boolean exportJson) {
         if (record == null) {
-            messages().sendRaw(sender, "<gray>没有伤害 Trace。先使用 /ea debug <player> on 开启记录。</gray>");
+            messages().send(sender, "command.trace.empty");
             return;
         }
         if (exportJson) {
@@ -760,21 +782,27 @@ public final class AttributeCommand implements TabExecutor {
         }
         messages().sendRaw(sender, formatTraceSummary(record));
         for (var stage : record.stages()) {
-            messages().sendRaw(sender, "  <gray>Stage</gray> <aqua>" + MiniMessages.escape(stage.stageId()) + "</aqua> <yellow>" + Numbers.formatNumber(stage.input(), "0.##") + "</yellow> -> <green>" + Numbers.formatNumber(stage.output(), "0.##") + "</green>");
+            messages().sendRaw(sender, messages().message("command.trace.stage", Map.of(
+                    "stage", MiniMessages.escape(stage.stageId()),
+                    "input", Numbers.formatNumber(stage.input(), "0.##"),
+                    "output", Numbers.formatNumber(stage.output(), "0.##")
+            )));
         }
     }
 
     private String formatTraceSummary(DamageTraceRecord record) {
         if (record == null) {
-            return "<gray>无 Trace</gray>";
+            return messages().message("command.trace.none");
         }
-        return "<gray>#" + record.traceId() + "</gray> "
-                + "<white>" + MiniMessages.escape(record.attackerLabel()) + "</white> -> "
-                + "<white>" + MiniMessages.escape(record.targetLabel()) + "</white> "
-                + "<dark_gray>type=</dark_gray><aqua>" + MiniMessages.escape(record.damageTypeId()) + "</aqua> "
-                + "<dark_gray>cause=</dark_gray><aqua>" + MiniMessages.escape(record.cause()) + "</aqua> "
-                + "<dark_gray>final=</dark_gray><yellow>" + Numbers.formatNumber(record.finalDamage(), "0.##") + "</yellow> "
-                + "<dark_gray>mode=</dark_gray><green>" + MiniMessages.escape(record.applyMode()) + "</green>";
+        return messages().message("command.trace.summary", Map.of(
+                "trace_id", record.traceId(),
+                "attacker", MiniMessages.escape(record.attackerLabel()),
+                "target", MiniMessages.escape(record.targetLabel()),
+                "damage_type", MiniMessages.escape(record.damageTypeId()),
+                "cause", MiniMessages.escape(record.cause()),
+                "final_damage", Numbers.formatNumber(record.finalDamage(), "0.##"),
+                "apply_mode", MiniMessages.escape(record.applyMode())
+        ));
     }
 
     private MessageService messages() {

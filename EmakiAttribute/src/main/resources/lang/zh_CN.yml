@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.5.13"
+version: "4.5.14"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -153,6 +153,13 @@ damage:
     custom: "自定义"
 
 combat_debug:
+  field:
+    context: "攻击者=%attacker% | 目标=%target% | 投射物=%projectile% | 原因=%cause% | 伤害类型=%damage_type% | 原始伤害=%source_damage% | 基础伤害=%base_damage%"
+    snapshot: "签名=%signature% | 属性={%values%}"
+    stage_values: "{%values%}"
+    entity: "%name%(%type%,%uuid%)"
+    none: "<无>"
+    null_value: "<空>"
   common:
     placeholder:
       papi_resolved: "PlaceholderAPI 解析完成 | 来源=%source% | 原文=%before% | 结果=%after%"
@@ -271,71 +278,46 @@ combat_debug:
       packet_receive_click: "收到数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 传入状态=%incoming_state_id% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
       packet_receive_click_state_absent: "收到缺少状态 ID 的数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
       packet_receive_close: "接收数据包 GUI 关闭包 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-  projectile_snapshot_write: "投射物快照已写入: projectile=%projectile%,
-    shooter=%shooter%, damageType=%damage_type%, signature=%signature%,
-    snapshot=%snapshot%"
-  projectile_snapshot_missing_apply: "applyProjectileDamage 读取不到投射物快照，已中止结算: projectile=%projectile%"
+  projectile_snapshot_write: "投射物快照已写入 | 投射物=%projectile% | 射手=%shooter% | 伤害类型=%damage_type% | 签名=%signature% | 快照=%snapshot%"
+  projectile_snapshot_missing_apply: "applyProjectileDamage 读取不到投射物快照，已中止结算 | 投射物=%projectile%"
   resolve_skipped: "目标无效或已死亡，EA 伤害解析已跳过。"
-  resolve_begin_sync: "开始解析 EA 伤害: %context% |
-    attackerSnapshot=%attacker_snapshot% | targetSnapshot=%target_snapshot%"
-  resolve_begin_async: "开始异步解析 EA 伤害: %context% |
-    attackerSnapshot=%attacker_snapshot% | targetSnapshot=%target_snapshot%"
+  resolve_begin_sync: "开始解析 EA 伤害 | %context% | 攻击者快照=%attacker_snapshot% | 目标快照=%target_snapshot%"
+  resolve_begin_async: "开始异步解析 EA 伤害 | %context% | 攻击者快照=%attacker_snapshot% | 目标快照=%target_snapshot%"
   apply_skipped: "目标无效或已死亡，EA 伤害落地已跳过。"
-  apply_begin: "准备落地 EA 伤害: finalDamage=%final_damage%,
-    alreadyApplied=%already_applied%, remaining=%remaining%,
-    targetHealthBefore=%target_health_before%,
-    targetAbsorptionBefore=%target_absorption_before%,
-    visualSource=%visual_source%"
-  apply_done: "EA 伤害已落地: targetHealthAfter=%target_health_after%,
-    targetAbsorptionAfter=%target_absorption_after%,
-    attackerCooldownTicks=%attacker_cooldown_ticks%"
-  dodge_triggered: "目标闪避了本次 EA 伤害: dodgeChance=%dodge_chance%, dodgeRoll=%dodge_roll%"
+  apply_begin: "准备落地 EA 伤害 | 最终伤害=%final_damage% | 已施加=%already_applied% | 剩余=%remaining% | 目标生命(前)=%target_health_before% | 目标吸收(前)=%target_absorption_before% | 视觉来源=%visual_source%"
+  apply_done: "EA 伤害已落地 | 目标生命(后)=%target_health_after% | 目标吸收(后)=%target_absorption_after% | 攻击者冷却tick=%attacker_cooldown_ticks%"
+  dodge_triggered: "目标闪避了本次 EA 伤害 | 闪避率=%dodge_chance% | 闪避判定=%dodge_roll%"
   event_result_empty: "EA 伤害结果为空，已跳过后续事件与落地。"
-  calc_result:
-    "伤害计算完成: damageType=%damage_type%, finalDamage=%final_damage%,
-    critical=%critical%, roll=%roll%, stages=%stages%"
-  event_blocked: "EmakiAttributeDamageEvent 未通过: cancelled=%cancelled%,
-    finalDamage=%final_damage%"
-  event_passed: "EmakiAttributeDamageEvent 已通过: finalDamage=%final_damage%,
-    resolvedDamageType=%resolved_damage_type%"
-  mythic_on_damaged_blocked: "synthetic onDamaged 事件阻止了本次 EA 伤害:
-    cancelled=%cancelled%, finalDamage=%final_damage%"
-  mythic_on_damaged_adjusted: "synthetic onDamaged 调整了最终伤害: before=%before%, after=%after%"
-  projectile_launch_blocked: "投射物发射被攻击冷却拦截: shooter=%shooter%"
-  projectile_launch_snapshot_written:
-    "投射物已写入快照: projectile=%projectile%,
-    damageType=%damage_type%, signature=%signature%"
+  calc_result: "伤害计算完成 | 伤害类型=%damage_type% | 最终伤害=%final_damage% | 暴击=%critical% | 判定值=%roll% | 阶段=%stages%"
+  event_blocked: "EmakiAttributeDamageEvent 未通过 | 已取消=%cancelled% | 最终伤害=%final_damage%"
+  event_passed: "EmakiAttributeDamageEvent 已通过 | 最终伤害=%final_damage% | 解析伤害类型=%resolved_damage_type%"
+  mythic_on_damaged_blocked: "synthetic onDamaged 事件阻止了本次 EA 伤害 | 已取消=%cancelled% | 最终伤害=%final_damage%"
+  mythic_on_damaged_adjusted: "synthetic onDamaged 调整了最终伤害 | 修改前=%before% | 修改后=%after%"
+  projectile_launch_blocked: "投射物发射被攻击冷却拦截 | 射手=%shooter%"
+  projectile_launch_snapshot_written: "投射物已写入快照 | 投射物=%projectile% | 伤害类型=%damage_type% | 签名=%signature%"
   synthetic_damage_bypass_entity: "已放行 synthetic 伤害事件，避免 EA 二次接管。"
-  projectile_hit_intercept: "拦截原版投射物伤害: shooter=%shooter%,
-    projectile=%projectile%, target=%target%, cause=%cause%,
-    vanillaDamage=%vanilla_damage%, vanillaFinal=%vanilla_final%"
-  projectile_hit_blocked: "投射物命中被攻击冷却拦截: shooter=%shooter%"
+  projectile_hit_intercept: "拦截原版投射物伤害 | 射手=%shooter% | 投射物=%projectile% | 目标=%target% | 原因=%cause% | 原版伤害=%vanilla_damage% | 原版最终伤害=%vanilla_final%"
+  projectile_hit_blocked: "投射物命中被攻击冷却拦截 | 射手=%shooter%"
   projectile_resolve_empty: "投射物命中没有得到有效的 EA 伤害结果，命中流程到此结束。"
-  projectile_resolved: "投射物命中已解析 EA 伤害: %resolved%"
+  projectile_resolved: "投射物命中已解析 EA 伤害 | %resolved%"
   projectile_apply: "开始执行下一 tick 的投射物 EA 伤害落地。"
-  melee_hit_intercept: "拦截原版近战伤害: attacker=%attacker%, target=%target%,
-    cause=%cause%, vanillaDamage=%vanilla_damage%, vanillaFinal=%vanilla_final%"
-  melee_hit_blocked: "近战命中被攻击冷却拦截: attacker=%attacker%"
+  melee_hit_intercept: "拦截原版近战伤害 | 攻击者=%attacker% | 目标=%target% | 原因=%cause% | 原版伤害=%vanilla_damage% | 原版最终伤害=%vanilla_final%"
+  melee_hit_blocked: "近战命中被攻击冷却拦截 | 攻击者=%attacker%"
   melee_resolve_empty: "近战命中没有得到有效的 EA 伤害结果，命中流程到此结束。"
-  melee_resolved: "近战命中已解析 EA 伤害: %resolved%"
+  melee_resolved: "近战命中已解析 EA 伤害 | %resolved%"
   melee_apply: "开始执行下一 tick 的近战 EA 伤害落地。"
   synthetic_damage_bypass_non_entity: "已放行 synthetic 非实体伤害事件，避免 EA 二次接管。"
-  environment_fallback: "环境伤害未命中白名单，但启用了硬锁，改为使用默认伤害类型接管: cause=%cause%"
+  environment_fallback: "环境伤害未命中白名单，但启用了硬锁，改为使用默认伤害类型接管 | 原因=%cause%"
   environment_resolve_empty: "环境伤害没有得到有效的 EA 伤害结果，命中流程到此结束。"
-  environment_resolved_async: "环境伤害已解析 EA 伤害: %resolved%"
+  environment_resolved_async: "环境伤害已解析 EA 伤害 | %resolved%"
   environment_apply: "开始执行下一 tick 的环境 EA 伤害落地。"
-  environment_ignored: "环境伤害未命中白名单，保持原版处理: cause=%cause%"
-  environment_mapped: "环境伤害已映射为 EA 伤害: target=%target%, cause=%cause%,
-    damageType=%damage_type%, sourceDamage=%source_damage%,
-    baseDamage=%base_damage%"
-  projectile_snapshot_missing_strict: "投射物命中时未找到快照，已按严格快照模式终止结算: projectile=%projectile%"
-  async_damage_failed: "异步伤害解析失败: %error%"
-  perfect_takeover_applied:
-    "完美接管已原地改写原版伤害: cause=%cause%, finalDamage=%final_damage%,
-    保留吸收/格挡、屏蔽护甲减伤，原版副作用照常触发。"
-  perfect_takeover_cancelled: "完美接管结算结果无伤害，已取消原版事件: cause=%cause%"
-  perfect_side_effects: "完美接管补发 EA 副作用: finalDamage=%final_damage%,
-    attackerCooldownTicks=%attacker_cooldown_ticks%"
+  environment_ignored: "环境伤害未命中白名单，保持原版处理 | 原因=%cause%"
+  environment_mapped: "环境伤害已映射为 EA 伤害 | 目标=%target% | 原因=%cause% | 伤害类型=%damage_type% | 原始伤害=%source_damage% | 基础伤害=%base_damage%"
+  projectile_snapshot_missing_strict: "投射物命中时未找到快照，已按严格快照模式终止结算 | 投射物=%projectile%"
+  async_damage_failed: "异步伤害解析失败 | 错误=%error%"
+  perfect_takeover_applied: "完美接管已原地改写原版伤害 | 原因=%cause% | 最终伤害=%final_damage% | 保留吸收/格挡、屏蔽护甲减伤，原版副作用照常触发。"
+  perfect_takeover_cancelled: "完美接管结算结果无伤害，已取消原版事件 | 原因=%cause%"
+  perfect_side_effects: "完美接管补发 EA 副作用 | 最终伤害=%final_damage% | 攻击者冷却tick=%attacker_cooldown_ticks%"
 
 command:
   unknown: "<red>未知子命令，请使用 /%label% help 查看帮助。</red>"
@@ -385,6 +367,10 @@ command:
     console_usage: "<yellow>控制台用法: /emakiattribute debug <player> [on|off|toggle]</yellow>"
     enabled: "<green>已为 %player% 开启战斗调试日志，相关输出将写入控制台。</green>"
     disabled: "<yellow>已为 %player% 关闭战斗调试日志。</yellow>"
+    player_usage: "<red>用法: /ea debug <player> [on|off|toggle]</red>"
+    combat_trace_toggled: "<gray>[EA]</gray> <aqua>%player%</aqua> 战斗 Trace 已%state%"
+    combat_trace_on: "<green>开启</green>"
+    combat_trace_off: "<red>关闭</red>"
 
   points:
     no_permission: "<red>你没有权限执行属性点命令。</red>"
@@ -425,6 +411,25 @@ command:
     trace: "<gray>/emakiattribute trace <last|list|export|clear> <玩家></gray> 查看伤害 Trace。"
     points: "<gray>/emakiattribute points [view|open|add|reset]</gray> 查看属性点、打开加点界面或投入父级属性。"
     lint: "<gray>/emakiattribute lint</gray> 检查配置与资源加载问题。"
+
+  source:
+    usage: "<red>用法: /ea source <玩家> <属性></red>"
+    header: "<gray>[EA]</gray> <aqua>%player%</aqua> 属性来源"
+    header_filtered: "<gray>[EA]</gray> <aqua>%player%</aqua> 属性来源 <yellow>%attribute%</yellow>"
+    empty: "<gray>没有匹配的属性来源。</gray>"
+    line: "<gray>-</gray> <yellow>%value%</yellow> <aqua>%attribute%</aqua> <dark_gray>[</dark_gray>%source_type%<dark_gray>]</dark_gray> <white>%source_label%</white>%condition%"
+    condition_failed: " <red>未生效</red>"
+
+  trace:
+    usage: "<red>用法: /ea trace <last|list|export|clear> <玩家></red>"
+    unknown_action: "<red>未知 trace 子命令: %action%</red>"
+    list_header: "<gray>[EA]</gray> <aqua>%player%</aqua> 最近伤害 Trace: <yellow>%count%</yellow>"
+    empty: "<gray>没有伤害 Trace。先使用 /ea debug <player> on 开启记录。</gray>"
+    none: "<gray>无 Trace</gray>"
+    cleared: "<green>已清空伤害 Trace。</green>"
+    clear_empty: "<gray>没有可清空的伤害 Trace。</gray>"
+    summary: "<gray>#%trace_id%</gray> <white>%attacker%</white> -> <white>%target%</white> <dark_gray>type=</dark_gray><aqua>%damage_type%</aqua> <dark_gray>cause=</dark_gray><aqua>%cause%</aqua> <dark_gray>final=</dark_gray><yellow>%final_damage%</yellow> <dark_gray>mode=</dark_gray><green>%apply_mode%</green>"
+    stage: "  <gray>阶段</gray> <aqua>%stage%</aqua> <yellow>%input%</yellow> -> <green>%output%</green>"
 
 # Debug 模式消息
 debug:

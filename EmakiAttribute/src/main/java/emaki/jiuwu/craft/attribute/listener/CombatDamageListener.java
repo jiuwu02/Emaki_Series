@@ -383,14 +383,16 @@ public final class CombatDamageListener implements Listener {
         var attackerSnapshot = snapshot.attackSnapshot();
         var targetSnapshot = attributeService.collectCombatSnapshot(target);
         String damageTypeId = snapshot.damageTypeId();
+        double sourceDamage = event.getDamage();
+        double baseDamage = attributeService.config().vanillaEventDamageEnabled() ? sourceDamage : 0D;
         return attributeService.createDamageContext(
                 shooter,
                 target,
                 projectile,
                 event.getCause(),
                 damageTypeId,
-                event.getDamage(),
-                0D,
+                sourceDamage,
+                baseDamage,
                 attackerSnapshot,
                 targetSnapshot,
                 context
