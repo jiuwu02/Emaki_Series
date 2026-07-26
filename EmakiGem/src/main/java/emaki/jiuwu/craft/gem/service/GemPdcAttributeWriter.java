@@ -15,11 +15,12 @@ public final class GemPdcAttributeWriter {
 
     private final EmakiGemPlugin plugin;
     private final PdcAttributeGateway gateway;
-    private final SkillPdcGateway skillPdcGateway = new SkillPdcGateway();
+    private final SkillPdcGateway skillPdcGateway;
 
     public GemPdcAttributeWriter(EmakiGemPlugin plugin, PdcAttributeGateway gateway) {
         this.plugin = plugin;
         this.gateway = gateway;
+        this.skillPdcGateway = new SkillPdcGateway(plugin == null ? null : plugin.debugLogger());
     }
 
     public void apply(ItemStack itemStack, Map<String, Double> attributes, Map<String, String> meta) {

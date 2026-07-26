@@ -114,17 +114,19 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader, javaScriptDefinitionRegistry);
         EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
         EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin);
-        PdcService pdcService = new PdcService("emaki");
+        PdcService pdcService = new PdcService("emaki", "pdc", plugin.debugLogger());
         EmakiItemIdentifier identifier = new EmakiItemIdentifier(pdcService);
         PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
         syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
-        EmakiItemPdcWriter pdcWriter = new EmakiItemPdcWriter(identifier, pdcAttributeGateway, new SkillPdcGateway());
+        EmakiItemPdcWriter pdcWriter = new EmakiItemPdcWriter(identifier, pdcAttributeGateway,
+                new SkillPdcGateway(plugin.debugLogger()));
         EmakiItemFactory itemFactory = new EmakiItemFactory(
                 itemLoader,
                 idResolver,
                 pdcWriter,
                 javaScriptFactoryRegistry,
-                threadOwnership
+                threadOwnership,
+                plugin.debugLogger()
         );
         EmakiItemUpdateService updateService = new EmakiItemUpdateService(
                 itemLoader,
@@ -132,7 +134,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 itemFactory,
                 identifier,
                 pdcAttributeGateway::copyPayloads,
-                coreLibPlugin.itemAssemblyService()
+                coreLibPlugin.itemAssemblyService(),
+                plugin.debugLogger()
         );
         EmakiItemSetService setService = new EmakiItemSetService(
                 itemLoader,

@@ -51,14 +51,17 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
 
     private final EmakiAttributePlugin plugin;
     private final PdcReadRuleLoader ruleLoader;
-    private final PdcService pdcService = new PdcService("emaki_attribute");
-    private final PdcPartition itemPartition = pdcService.partition("item.attributes");
-    private final PdcPartition sourcePartition = itemPartition.child("source");
+    private final PdcService pdcService;
+    private final PdcPartition itemPartition;
+    private final PdcPartition sourcePartition;
     private final Set<String> registeredSources = ConcurrentHashMap.newKeySet();
 
     public PdcAttributeService(EmakiAttributePlugin plugin, PdcReadRuleLoader ruleLoader) {
         this.plugin = plugin;
         this.ruleLoader = ruleLoader;
+        this.pdcService = new PdcService("emaki_attribute", "pdc", plugin == null ? null : plugin.debugLogger());
+        this.itemPartition = pdcService.partition("item.attributes");
+        this.sourcePartition = itemPartition.child("source");
     }
 
     @Override

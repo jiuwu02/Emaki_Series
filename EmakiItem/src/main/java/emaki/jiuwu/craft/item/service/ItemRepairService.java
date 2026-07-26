@@ -127,8 +127,11 @@ public final class ItemRepairService {
         if (meta == null) {
             return;
         }
+        Byte previous = meta.getPersistentDataContainer().get(DISABLED_KEY, PersistentDataType.BYTE);
         meta.getPersistentDataContainer().set(DISABLED_KEY, PersistentDataType.BYTE, (byte) 1);
-        itemStack.setItemMeta(meta);
+        boolean committed = itemStack.setItemMeta(meta);
+        logPdcMutation(itemStack, "set", previous == null ? "{}" : "{emakiitem:disabled=" + previous + "}",
+                "1", "{emakiitem:disabled=1}", committed);
     }
 
     public void clearDisabled(ItemStack itemStack) {
@@ -139,8 +142,11 @@ public final class ItemRepairService {
         if (meta == null) {
             return;
         }
+        Byte previous = meta.getPersistentDataContainer().get(DISABLED_KEY, PersistentDataType.BYTE);
         meta.getPersistentDataContainer().remove(DISABLED_KEY);
-        itemStack.setItemMeta(meta);
+        boolean committed = itemStack.setItemMeta(meta);
+        logPdcMutation(itemStack, "remove", previous == null ? "{}" : "{emakiitem:disabled=" + previous + "}",
+                "", "{}", committed);
     }
 
     @Nullable
@@ -662,6 +668,31 @@ public final class ItemRepairService {
 
     private record ResolvedCurrency(RepairCurrencyCost cost, double amount) {
 
+    }
+
+    private void logPdcMutation(ItemStack itemStack,
+            String operation,
+            String before,
+            String value,
+            String after,
+            boolean committed) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        replacements.put("operation", operation);
+        replacements.put("item", itemStack == null ? "null" : itemStack.getType());
+        replacements.put("amount", itemStack == null ? 0 : itemStack.getAmount());
+        replacements.put("key", DISABLED_KEY);
+        replacements.put("value", value);
+        replacements.put("before", before);
+        replacements.put("after", after);
+        replacements.put("added", operation.equals("set") ? after : Map.of());
+        replacements.put("removed", operation.equals("remove") ? before : Map.of());
+        replacements.put("changed", Map.of());
+        replacements.put("committed", committed);
+        replacements.put("reason", "");
+        plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.mutation", replacements);
     }
 
     private EconomyManager economyManager() {

@@ -13,6 +13,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
@@ -45,16 +46,25 @@ final class AssemblyDataManager {
             ItemOperationLedger.EXTERNAL_CUSTOM_NAME_FIELD
     );
 
-    private final PdcService pdcService = new PdcService("emaki");
-    private final PdcPartition itemPartition = pdcService.partition("item");
-    private final PdcPartition rootPartition = pdcService.partition("");
+    private final PdcService pdcService;
+    private final PdcPartition itemPartition;
+    private final PdcPartition rootPartition;
     private final EmakiNamespaceRegistry namespaceRegistry;
     private final EmakiItemLayerCodecRegistry codecRegistry;
 
     AssemblyDataManager(EmakiNamespaceRegistry namespaceRegistry,
             EmakiItemLayerCodecRegistry codecRegistry) {
+        this(namespaceRegistry, codecRegistry, null);
+    }
+
+    AssemblyDataManager(EmakiNamespaceRegistry namespaceRegistry,
+            EmakiItemLayerCodecRegistry codecRegistry,
+            DebugLogger debugLogger) {
         this.namespaceRegistry = Objects.requireNonNull(namespaceRegistry, "namespaceRegistry");
         this.codecRegistry = Objects.requireNonNull(codecRegistry, "codecRegistry");
+        this.pdcService = new PdcService("emaki", "pdc", debugLogger);
+        this.itemPartition = pdcService.partition("item");
+        this.rootPartition = pdcService.partition("");
     }
 
     boolean isEmakiItem(ItemStack itemStack) {

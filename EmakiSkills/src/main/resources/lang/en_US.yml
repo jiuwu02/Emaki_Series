@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.5.9"
+version: "2.5.10"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -42,6 +42,8 @@ console:
       required_directory_missing: "Required directory is missing."
       path_not_directory: "Path is not a directory."
       directory_not_readable: "Directory is not readable."
+      skill_sources_disabled: "Both Lore and PDC skill sources are disabled, so equipment cannot unlock skills."
+      skill_sources_match_requires_both: "Strict Lore/PDC matching requires both skill sources to be enabled."
   reload_loading_files: "<gray>Loading configuration files...</gray>"
   reload_loading_configs: "<gray>Loading configs...</gray>"
   reload_applying: "<gray>Applying configuration...</gray>"
@@ -205,8 +207,11 @@ command:
     header: "<gray>===== Player <aqua>%player%</aqua> Skill Status =====</gray>"
     line: "<gray>%key%: <white>%value%</white></gray>"
     empty_slot: "[Empty]"
-  debug:
+debug:
+  unlock:
+    equipment_sources: "Equipment skill source resolution | slot=%slot% | declared_slot=%active_slot% | read_lore=%read_lore% | read_pdc=%read_pdc% | require_match=%require_match% | lore_ids=%lore_ids% | pdc_ids=%pdc_ids% | effective_ids=%effective_ids% | triggers=%triggers% | rejection=%reason%"
   common:
+
     placeholder:
       papi_resolved: "PlaceholderAPI resolution complete | source=%source% | before=%before% | after=%after%"
       papi_failed: "PlaceholderAPI resolution failed | source=%source% | error=%error% | text=%text%"

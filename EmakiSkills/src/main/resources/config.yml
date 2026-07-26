@@ -8,7 +8,7 @@
 
 # 主配置
 # version 由资源同步维护
-version: "2.5.9"
+version: "2.5.10"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -19,6 +19,12 @@ release_default_data: true
 slots:
   # 默认技能槽数量
   default_count: 3
+
+# 装备技能来源。默认合并 Lore 与物品 PDC；严格模式只保留同一物品、同一槽位中两侧共同的技能 ID。
+skill_sources:
+  read_lore_skills: true
+  read_pdc_skills: true
+  require_lore_pdc_match: false
 
 # 技能标签装备数量限制。
 # 技能定义里的 tags 命中这里的标签时，玩家最多只能同时把该标签的技能装备到对应数量。

@@ -22,18 +22,18 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
 public final class ItemOperationLedger {
 
-    private static final PdcService PDC = new PdcService("emaki");
-    private static final PdcPartition PARTITION = PDC.partition("item");
     private static final String FIELD = "operations";
-    private static final NamespacedKey OPERATIONS_KEY = PARTITION.key(FIELD);
     private static final String PRESENTATION_SNAPSHOT_FIELD = "presentation_snapshot";
-    private static final NamespacedKey PRESENTATION_SNAPSHOT_KEY = PARTITION.key(PRESENTATION_SNAPSHOT_FIELD);
     private static final String ASSEMBLY_SCHEMA_VERSION_FIELD = "schema_version";
     private static final String ASSEMBLY_BASE_SOURCE_FIELD = "base_source";
     private static final String ASSEMBLY_BASE_CUSTOM_NAME_FIELD = "base_custom_name";
     static final String EXTERNAL_CUSTOM_NAME_FIELD = "external_custom_name";
 
     private final Supplier<DebugLogger> debugLoggerSupplier;
+    private final PdcService pdc;
+    private final PdcPartition partition;
+    private final NamespacedKey operationsKey;
+    private final NamespacedKey presentationSnapshotKey;
     private final ItemOperationExecutor executor;
     private final ItemOperationReverter reverter;
     private final ItemOperationReplayer replayer;
@@ -49,6 +49,10 @@ public final class ItemOperationLedger {
 
     public ItemOperationLedger(Supplier<DebugLogger> debugLoggerSupplier) {
         this.debugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
+        this.pdc = new PdcService("emaki", "pdc", this.debugLoggerSupplier.get());
+        this.partition = pdc.partition("item");
+        this.operationsKey = partition.key(FIELD);
+        this.presentationSnapshotKey = partition.key(PRESENTATION_SNAPSHOT_FIELD);
         this.executor = new ItemOperationExecutor(this);
         this.reverter = new ItemOperationReverter(this);
         this.replayer = new ItemOperationReplayer();
@@ -195,7 +199,7 @@ public final class ItemOperationLedger {
         if (itemStack == null || itemStack.getType().isAir() || !operationsFieldPresent(itemStack)) {
             return ReadResult.absent();
         }
-        String payload = PDC.get(itemStack, PARTITION, FIELD, PersistentDataType.STRING);
+        String payload = pdc.get(itemStack, partition, FIELD, PersistentDataType.STRING);
         if (Texts.isBlank(payload)) {
             return ReadResult.corrupt(List.of());
         }
@@ -249,7 +253,7 @@ public final class ItemOperationLedger {
         if (itemStack == null || itemStack.getType().isAir()) {
             return;
         }
-        PDC.remove(itemStack, PARTITION, FIELD);
+        pdc.remove(itemStack, partition, FIELD);
     }
 
     List<ItemOperationEntry> replay(ItemStack itemStack, List<ItemOperationEntry> entries) {
@@ -364,18 +368,18 @@ public final class ItemOperationLedger {
                                              boolean newManagedOverlay) {
         String currentName = currentCustomName(original);
         boolean currentIsExternal = !currentName.equals(Texts.toStringSafe(oldManagedName));
-        boolean storedExternal = PDC.has(
+        boolean storedExternal = pdc.has(
                 original,
-                PARTITION,
+                partition,
                 EXTERNAL_CUSTOM_NAME_FIELD,
                 PersistentDataType.STRING
         );
         String externalName = currentIsExternal
                 ? currentName
                 : storedExternal
-                        ? Texts.toStringSafe(PDC.get(
+                        ? Texts.toStringSafe(pdc.get(
                                 original,
-                                PARTITION,
+                                partition,
                                 EXTERNAL_CUSTOM_NAME_FIELD,
                                 PersistentDataType.STRING
                         ))
@@ -400,22 +404,22 @@ public final class ItemOperationLedger {
             return;
         }
         if (update.externalStored()) {
-            PDC.set(
+            pdc.set(
                     itemStack,
-                    PARTITION,
+                    partition,
                     EXTERNAL_CUSTOM_NAME_FIELD,
                     PersistentDataType.STRING,
                     update.externalCustomName()
             );
         } else {
-            PDC.remove(itemStack, PARTITION, EXTERNAL_CUSTOM_NAME_FIELD);
+            pdc.remove(itemStack, partition, EXTERNAL_CUSTOM_NAME_FIELD);
         }
     }
 
     SnapshotUpdate preparePresentationSnapshotUpdate(ItemStack original,
                                                      ItemStack managedProjection,
                                                      boolean assemblyNameOverlay) {
-        if (!PDC.has(original, PARTITION, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING)) {
+        if (!pdc.has(original, partition, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING)) {
             return SnapshotUpdate.NOT_REQUIRED;
         }
         ItemPresentationSnapshot snapshot = new ItemPresentationSnapshot(
@@ -431,7 +435,7 @@ public final class ItemOperationLedger {
         if (itemStack == null || update == null || !update.required() || !update.valid()) {
             return;
         }
-        PDC.set(itemStack, PARTITION, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING, update.payload());
+        pdc.set(itemStack, partition, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING, update.payload());
     }
 
     private UpdateResult applyInternal(ActionContext context,
@@ -558,13 +562,13 @@ public final class ItemOperationLedger {
             return snapshot.assemblyNameOverlay();
         }
         if (baseView == null
-                || !PDC.has(itemStack, PARTITION, ASSEMBLY_SCHEMA_VERSION_FIELD, PersistentDataType.INTEGER)
-                || !PDC.has(itemStack, PARTITION, ASSEMBLY_BASE_SOURCE_FIELD, PersistentDataType.STRING)) {
+                || !pdc.has(itemStack, partition, ASSEMBLY_SCHEMA_VERSION_FIELD, PersistentDataType.INTEGER)
+                || !pdc.has(itemStack, partition, ASSEMBLY_BASE_SOURCE_FIELD, PersistentDataType.STRING)) {
             return false;
         }
-        String baseCustomName = PDC.get(
+        String baseCustomName = pdc.get(
                 itemStack,
-                PARTITION,
+                partition,
                 ASSEMBLY_BASE_CUSTOM_NAME_FIELD,
                 PersistentDataType.STRING
         );
@@ -595,24 +599,24 @@ public final class ItemOperationLedger {
     }
 
     private boolean operationsFieldPresent(ItemStack itemStack) {
-        if (PDC.has(itemStack, PARTITION, FIELD, PersistentDataType.STRING)) {
+        if (pdc.has(itemStack, partition, FIELD, PersistentDataType.STRING)) {
             return true;
         }
         ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        return itemMeta != null && itemMeta.getPersistentDataContainer().getKeys().contains(OPERATIONS_KEY);
+        return itemMeta != null && itemMeta.getPersistentDataContainer().getKeys().contains(operationsKey);
     }
 
     private boolean presentationSnapshotFieldPresent(ItemStack itemStack) {
-        if (PDC.has(itemStack, PARTITION, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING)) {
+        if (pdc.has(itemStack, partition, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING)) {
             return true;
         }
         ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
         return itemMeta != null
-                && itemMeta.getPersistentDataContainer().getKeys().contains(PRESENTATION_SNAPSHOT_KEY);
+                && itemMeta.getPersistentDataContainer().getKeys().contains(presentationSnapshotKey);
     }
 
     private ItemPresentationSnapshot readPresentationSnapshot(ItemStack itemStack) {
-        String payload = PDC.get(itemStack, PARTITION, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING);
+        String payload = pdc.get(itemStack, partition, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING);
         if (Texts.isBlank(payload)) {
             return null;
         }
@@ -670,12 +674,12 @@ public final class ItemOperationLedger {
         }
         List<ItemOperationEntry> normalized = normalizeEntries(entries);
         if (normalized.isEmpty()) {
-            PDC.remove(itemStack, PARTITION, FIELD);
+            pdc.remove(itemStack, partition, FIELD);
             return;
         }
         List<Map<String, Object>> encoded = ItemOperationCodec.encode(normalized);
         String payload = YamlFiles.dump(Map.of("ops", encoded));
-        PDC.set(itemStack, PARTITION, FIELD, PersistentDataType.STRING, payload);
+        pdc.set(itemStack, partition, FIELD, PersistentDataType.STRING, payload);
     }
 
     private Object parsePayload(String payload) {

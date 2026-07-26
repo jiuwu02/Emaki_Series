@@ -16,11 +16,12 @@ final class StrengthenPdcAttributeWriter {
 
     private final EmakiStrengthenPlugin plugin;
     private final String sourceId;
-    private final SkillPdcGateway skillPdcGateway = new SkillPdcGateway();
+    private final SkillPdcGateway skillPdcGateway;
 
     StrengthenPdcAttributeWriter(EmakiStrengthenPlugin plugin, String sourceId) {
         this.plugin = plugin;
         this.sourceId = sourceId;
+        this.skillPdcGateway = new SkillPdcGateway(plugin == null ? null : plugin.debugLogger());
     }
 
     void applyPdcAttributes(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {

@@ -38,7 +38,7 @@ public final class EmakiItemFactory {
     private final EmakiItemPdcWriter pdcWriter;
     private final JavaScriptItemFactoryRegistry javaScriptFactories;
     private final ThreadOwnership threadOwnership;
-    private final ItemOperationLedger itemOperationLedger = new ItemOperationLedger();
+    private final ItemOperationLedger itemOperationLedger;
     private final ConcurrentHashMap<String, ItemStack> prototypeCache = new ConcurrentHashMap<>();
 
     public EmakiItemFactory(EmakiItemLoader loader, EmakiItemIdResolver idResolver, EmakiItemPdcWriter pdcWriter) {
@@ -57,11 +57,21 @@ public final class EmakiItemFactory {
             EmakiItemPdcWriter pdcWriter,
             JavaScriptItemFactoryRegistry javaScriptFactories,
             ThreadOwnership threadOwnership) {
+        this(loader, idResolver, pdcWriter, javaScriptFactories, threadOwnership, null);
+    }
+
+    public EmakiItemFactory(EmakiItemLoader loader,
+            EmakiItemIdResolver idResolver,
+            EmakiItemPdcWriter pdcWriter,
+            JavaScriptItemFactoryRegistry javaScriptFactories,
+            ThreadOwnership threadOwnership,
+            emaki.jiuwu.craft.corelib.debug.DebugLogger debugLogger) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
         this.javaScriptFactories = javaScriptFactories;
         this.threadOwnership = threadOwnership;
+        this.itemOperationLedger = new ItemOperationLedger(debugLogger);
     }
 
     public ItemStack create(String id, int amount) {

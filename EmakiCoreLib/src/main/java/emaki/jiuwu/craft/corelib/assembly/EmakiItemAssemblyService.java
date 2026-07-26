@@ -44,7 +44,7 @@ public final class EmakiItemAssemblyService {
     private final AssemblyDataManager dataManager;
     private final EmakiNamespaceRegistry namespaceRegistry;
     private final ItemRenderService itemRenderService;
-    private final ItemOperationLedger operationLedger = new ItemOperationLedger();
+    private final ItemOperationLedger operationLedger;
     private final ItemLoreReconciler loreReconciler = new ItemLoreReconciler();
     private final CacheManager<String, ManagedProjection> previewCache =
             new CacheManager<>(PREVIEW_CACHE_SIZE, PREVIEW_CACHE_TTL_MILLIS);
@@ -53,10 +53,18 @@ public final class EmakiItemAssemblyService {
     public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
             EmakiItemLayerCodecRegistry codecRegistry,
             ItemSourceService itemSourceService) {
+        this(namespaceRegistry, codecRegistry, itemSourceService, null);
+    }
+
+    public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
+            EmakiItemLayerCodecRegistry codecRegistry,
+            ItemSourceService itemSourceService,
+            DebugLogger debugLogger) {
         this.namespaceRegistry = Objects.requireNonNull(namespaceRegistry, "namespaceRegistry");
         this.itemSourceService = Objects.requireNonNull(itemSourceService, "itemSourceService");
-        this.dataManager = new AssemblyDataManager(namespaceRegistry, codecRegistry);
+        this.dataManager = new AssemblyDataManager(namespaceRegistry, codecRegistry, debugLogger);
         this.itemRenderService = new ItemRenderService(namespaceRegistry);
+        this.operationLedger = new ItemOperationLedger(debugLogger);
     }
 
     public void configureAsync(AsyncTaskScheduler asyncTaskScheduler,

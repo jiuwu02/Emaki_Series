@@ -2,25 +2,29 @@ package emaki.jiuwu.craft.skills.provider;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
+import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.BoundSkillTrigger;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSourceType;
@@ -48,19 +52,25 @@ public final class EquipmentSkillCollector {
             EquipmentSlot.FEET
     };
 
-    private final NamespacedKey pdcKey;
-    private final NamespacedKey activeSlotKey;
-    private final NamespacedKey triggerBindingsKey;
+    private final SkillPdcGateway skillPdcGateway;
     private final Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier;
+    private final Supplier<AppConfig> appConfigSupplier;
+    private final DebugLogger debugLogger;
     private final Logger logger;
     private final Map<LoreFailureKey, Boolean> loggedLoreFailures = new LinkedHashMap<>();
 
     public EquipmentSkillCollector(JavaPlugin plugin,
             Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier) {
-        this.pdcKey = new NamespacedKey("emaki_skills", "item.skills.ids");
-        this.activeSlotKey = new NamespacedKey("emaki_skills", "item.skills.active_slot");
-        this.triggerBindingsKey = new NamespacedKey("emaki_skills", "item.skills.triggers");
-        this.skillDefinitionsSupplier = skillDefinitionsSupplier;
+        this(plugin, skillDefinitionsSupplier, AppConfig::defaults);
+    }
+
+    public EquipmentSkillCollector(JavaPlugin plugin,
+            Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier,
+            Supplier<AppConfig> appConfigSupplier) {
+        this.skillDefinitionsSupplier = skillDefinitionsSupplier == null ? Map::of : skillDefinitionsSupplier;
+        this.appConfigSupplier = appConfigSupplier == null ? AppConfig::defaults : appConfigSupplier;
+        this.debugLogger = plugin instanceof DebugLoggerProvider provider ? provider.debugLogger() : null;
+        this.skillPdcGateway = new SkillPdcGateway(debugLogger);
         this.logger = plugin == null ? null : plugin.getLogger();
     }
 
@@ -70,24 +80,19 @@ public final class EquipmentSkillCollector {
         }
         List<UnlockedSkillEntry> result = new ArrayList<>();
         PlayerInventory inventory = player.getInventory();
-        Map<String, SkillDefinition> definitions = skillDefinitionsSupplier.get();
-
+        Map<String, SkillDefinition> definitions = skillDefinitions();
+        AppConfig.SkillSourceSettings sources = skillSources();
         UUID playerId = player.getUniqueId();
         for (EquipmentSlot slot : SCANNED_SLOTS) {
             ItemStack item = inventory.getItem(slot);
-            if (item == null) {
+            if (item == null || item.getType() == Material.AIR) {
                 continue;
             }
-            Material material = item.getType();
-            if (material == Material.AIR) {
-                continue;
-            }
-            String slotName = SLOT_NAMES.getOrDefault(slot, slot.name().toLowerCase(java.util.Locale.ROOT));
-            collectFromPdc(item, slotName, result);
-            try {
-                collectFromLore(item, slotName, definitions, result);
-            } catch (RuntimeException | LinkageError failure) {
-                logLoreFailure(playerId, slotName, material, failure);
+            String slotName = slotName(slot);
+            ItemSkills parsed = resolveItemSkills(item, slotName, definitions, sources, playerId);
+            for (String skillId : parsed.effectiveSkillIds()) {
+                result.add(new UnlockedSkillEntry(skillId, "equipment", SkillSourceType.EQUIPMENT,
+                        slotName, parsed.loreAliases().get(skillId)));
             }
         }
         return result;
@@ -99,15 +104,20 @@ public final class EquipmentSkillCollector {
         }
         List<BoundSkillTrigger> result = new ArrayList<>();
         PlayerInventory inventory = player.getInventory();
+        Map<String, SkillDefinition> definitions = skillDefinitions();
+        AppConfig.SkillSourceSettings sources = skillSources();
         String normalizedTrigger = Texts.normalizeId(triggerId).replace('-', '_');
+        UUID playerId = player.getUniqueId();
         for (EquipmentSlot slot : SCANNED_SLOTS) {
             ItemStack item = inventory.getItem(slot);
             if (item == null || item.getType() == Material.AIR) {
                 continue;
             }
-            String slotName = SLOT_NAMES.getOrDefault(slot, slot.name().toLowerCase(java.util.Locale.ROOT));
-            for (Map.Entry<String, String> entry : readTriggerBindings(item, slotName).entrySet()) {
-                if (normalizedTrigger.equals(entry.getValue())) {
+            String slotName = slotName(slot);
+            ItemSkills parsed = resolveItemSkills(item, slotName, definitions, sources, playerId);
+            for (Map.Entry<String, String> entry : parsed.boundTriggers().entrySet()) {
+                if (parsed.effectiveSkillIds().contains(entry.getKey())
+                        && normalizedTrigger.equals(entry.getValue())) {
                     result.add(new BoundSkillTrigger(entry.getKey(), entry.getValue(), slotName));
                 }
             }
@@ -115,88 +125,176 @@ public final class EquipmentSkillCollector {
         return result;
     }
 
-    private void collectFromPdc(ItemStack item, String slotName, List<UnlockedSkillEntry> sink) {
-        var pdc = item.getPersistentDataContainer();
-        String raw = pdc.get(pdcKey, PersistentDataType.STRING);
-        if (raw == null || raw.isBlank()) {
-            return;
+    private ItemSkills resolveItemSkills(ItemStack item,
+            String slotName,
+            Map<String, SkillDefinition> definitions,
+            AppConfig.SkillSourceSettings sources,
+            UUID playerId) {
+        String activeSlot = sources.readPdcSkills()
+                ? skillPdcGateway.readActiveSlot(item)
+                : EquipmentSlotMatcher.SLOT_ALL;
+        boolean pdcSlotMatches = !sources.readPdcSkills()
+                || EquipmentSlotMatcher.matches(slotName, activeSlot);
+        Map<String, String> loreAliases = sources.readLoreSkills()
+                ? collectLoreSkillAliases(item, slotName, definitions, playerId)
+                : Map.of();
+        Set<String> pdcSkillIds = sources.readPdcSkills() && pdcSlotMatches
+                ? normalizedSkillIds(skillPdcGateway.readSkillIds(item))
+                : Set.of();
+        Map<String, String> triggers = sources.readPdcSkills() && pdcSlotMatches
+                ? skillPdcGateway.readBoundTriggers(item)
+                : Map.of();
+        Set<String> effective = resolveEffectiveSkillIds(loreAliases.keySet(), pdcSkillIds, sources);
+        String rejection = resolveRejection(sources, pdcSlotMatches, effective);
+        ItemSkills resolved = new ItemSkills(loreAliases, pdcSkillIds, effective, triggers, activeSlot, rejection);
+        logSourceResolution(playerId, slotName, sources, resolved);
+        return resolved;
+    }
+
+    private String resolveRejection(AppConfig.SkillSourceSettings sources,
+            boolean pdcSlotMatches,
+            Set<String> effectiveSkillIds) {
+        if (!pdcSlotMatches) {
+            return "active_slot_mismatch";
         }
-        String requiredSlot = pdc.get(activeSlotKey, PersistentDataType.STRING);
-        if (!EquipmentSlotMatcher.matches(slotName, requiredSlot)) {
-            return;
+        if (!sources.requireLorePdcMatch() || !effectiveSkillIds.isEmpty()) {
+            return "";
         }
-        for (String skillId : raw.split(";")) {
-            String trimmed = skillId.trim();
-            if (!trimmed.isEmpty()) {
-                sink.add(new UnlockedSkillEntry(trimmed, "equipment", SkillSourceType.EQUIPMENT, slotName, null));
+        return !sources.readLoreSkills() || !sources.readPdcSkills()
+                ? "strict_reader_disabled"
+                : "strict_no_common_ids";
+    }
+
+    private Set<String> resolveEffectiveSkillIds(Set<String> loreSkillIds,
+            Set<String> pdcSkillIds,
+            AppConfig.SkillSourceSettings sources) {
+        if (sources.requireLorePdcMatch()) {
+            if (!sources.readLoreSkills() || !sources.readPdcSkills()) {
+                return Set.of();
             }
+            Set<String> intersection = new LinkedHashSet<>();
+            for (String skillId : pdcSkillIds) {
+                if (loreSkillIds.contains(skillId)) {
+                    intersection.add(skillId);
+                }
+            }
+            return immutableSet(intersection);
+        }
+        Set<String> union = new LinkedHashSet<>();
+        union.addAll(pdcSkillIds);
+        union.addAll(loreSkillIds);
+        return immutableSet(union);
+    }
+
+    private Map<String, String> collectLoreSkillAliases(ItemStack item,
+            String slotName,
+            Map<String, SkillDefinition> definitions,
+            UUID playerId) {
+        try {
+            return collectLoreSkillAliases(item, definitions);
+        } catch (RuntimeException | LinkageError failure) {
+            logLoreFailure(playerId, slotName, item.getType(), failure);
+            return Map.of();
         }
     }
 
-    private Map<String, String> readTriggerBindings(ItemStack item, String slotName) {
-        if (item == null) {
-            return Map.of();
-        }
-        var pdc = item.getPersistentDataContainer();
-        String requiredSlot = pdc.get(activeSlotKey, PersistentDataType.STRING);
-        if (!EquipmentSlotMatcher.matches(slotName, requiredSlot)) {
-            return Map.of();
-        }
-        String raw = pdc.get(triggerBindingsKey, PersistentDataType.STRING);
-        if (Texts.isBlank(raw)) {
-            return Map.of();
-        }
-        Map<String, String> result = new LinkedHashMap<>();
-        for (String entry : raw.split(";")) {
-            int separator = entry.indexOf('=');
-            if (separator <= 0 || separator >= entry.length() - 1) {
-                continue;
-            }
-            String skillId = Texts.normalizeId(entry.substring(0, separator));
-            String triggerId = Texts.normalizeId(entry.substring(separator + 1)).replace('-', '_');
-            if (Texts.isNotBlank(skillId) && Texts.isNotBlank(triggerId)) {
-                result.put(skillId, triggerId);
-            }
-        }
-        return result.isEmpty() ? Map.of() : Map.copyOf(result);
-    }
-
-    private void collectFromLore(ItemStack item, String slotName,
-            Map<String, SkillDefinition> definitions, List<UnlockedSkillEntry> sink) {
+    private Map<String, String> collectLoreSkillAliases(ItemStack item, Map<String, SkillDefinition> definitions) {
         ItemMeta meta = item.getItemMeta();
         if (meta == null || !meta.hasLore()) {
-            return;
+            return Map.of();
         }
         List<String> lore = ItemTextBridge.loreLines(meta);
         if (lore == null || lore.isEmpty() || definitions == null || definitions.isEmpty()) {
-            return;
+            return Map.of();
         }
         List<String> normalizedLines = new ArrayList<>(lore.size());
         for (String line : lore) {
             normalizedLines.add(Texts.normalizeWhitespace(Texts.stripMiniTags(line)));
         }
 
+        Map<String, String> aliases = new LinkedHashMap<>();
         for (SkillDefinition definition : definitions.values()) {
-            if (definition.loreAliases().isEmpty()) {
+            if (definition == null || definition.loreAliases().isEmpty()) {
+                continue;
+            }
+            String skillId = Texts.normalizeId(definition.id());
+            if (Texts.isBlank(skillId)) {
                 continue;
             }
             for (String alias : definition.loreAliases()) {
                 if (Texts.isBlank(alias)) {
                     continue;
                 }
-                boolean matched = false;
-                for (String normalizedLine : normalizedLines) {
-                    if (normalizedLine.contains(alias)) {
-                        matched = true;
-                        break;
-                    }
-                }
-                if (matched) {
-                    sink.add(new UnlockedSkillEntry(definition.id(), "equipment", SkillSourceType.EQUIPMENT, slotName, alias));
+                if (matchesLoreAlias(normalizedLines, alias)) {
+                    aliases.putIfAbsent(skillId, alias);
                     break;
                 }
             }
         }
+        return aliases.isEmpty() ? Map.of() : Map.copyOf(aliases);
+    }
+
+    private boolean matchesLoreAlias(List<String> normalizedLines, String alias) {
+        for (String normalizedLine : normalizedLines) {
+            if (normalizedLine.contains(alias)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Set<String> normalizedSkillIds(List<String> skillIds) {
+        Set<String> result = new LinkedHashSet<>();
+        if (skillIds != null) {
+            for (String skillId : skillIds) {
+                String normalized = Texts.normalizeId(skillId);
+                if (Texts.isNotBlank(normalized)) {
+                    result.add(normalized);
+                }
+            }
+        }
+        return immutableSet(result);
+    }
+
+    private Set<String> immutableSet(Set<String> values) {
+        return values == null || values.isEmpty() ? Set.of() : Set.copyOf(values);
+    }
+
+    private Map<String, SkillDefinition> skillDefinitions() {
+        Map<String, SkillDefinition> definitions = skillDefinitionsSupplier.get();
+        return definitions == null ? Map.of() : definitions;
+    }
+
+    private AppConfig.SkillSourceSettings skillSources() {
+        AppConfig config = appConfigSupplier.get();
+        return config == null || config.skillSources() == null
+                ? AppConfig.SkillSourceSettings.defaults()
+                : config.skillSources();
+    }
+
+    private String slotName(EquipmentSlot slot) {
+        return SLOT_NAMES.getOrDefault(slot, slot.name().toLowerCase(java.util.Locale.ROOT));
+    }
+
+    private void logSourceResolution(UUID playerId,
+            String slotName,
+            AppConfig.SkillSourceSettings sources,
+            ItemSkills resolved) {
+        if (debugLogger == null) {
+            return;
+        }
+        debugLogger.log("unlock", playerId, "unlock.equipment_sources", Map.of(
+                "slot", slotName,
+                "active_slot", resolved.activeSlot(),
+                "read_lore", sources.readLoreSkills(),
+                "read_pdc", sources.readPdcSkills(),
+                "require_match", sources.requireLorePdcMatch(),
+                "lore_ids", resolved.loreAliases().keySet(),
+                "pdc_ids", resolved.pdcSkillIds(),
+                "effective_ids", resolved.effectiveSkillIds(),
+                "triggers", resolved.boundTriggers(),
+                "reason", resolved.rejection()
+        ));
     }
 
     private void logLoreFailure(UUID playerId, String slotName, Material material, Throwable failure) {
@@ -214,6 +312,23 @@ public final class EquipmentSkillCollector {
                 + ", slot=" + slotName
                 + ", material=" + material
                 + ", exception=" + failure.getClass().getName());
+    }
+
+    private record ItemSkills(Map<String, String> loreAliases,
+            Set<String> pdcSkillIds,
+            Set<String> effectiveSkillIds,
+            Map<String, String> boundTriggers,
+            String activeSlot,
+            String rejection) {
+
+        private ItemSkills {
+            loreAliases = loreAliases == null || loreAliases.isEmpty() ? Map.of() : Map.copyOf(loreAliases);
+            pdcSkillIds = pdcSkillIds == null || pdcSkillIds.isEmpty() ? Set.of() : Set.copyOf(pdcSkillIds);
+            effectiveSkillIds = effectiveSkillIds == null || effectiveSkillIds.isEmpty() ? Set.of() : Set.copyOf(effectiveSkillIds);
+            boundTriggers = boundTriggers == null || boundTriggers.isEmpty() ? Map.of() : Map.copyOf(boundTriggers);
+            activeSlot = activeSlot == null ? EquipmentSlotMatcher.SLOT_ALL : activeSlot;
+            rejection = rejection == null ? "" : rejection;
+        }
     }
 
     private record LoreFailureKey(UUID playerId, String slotName, Material material, Class<?> failureType) {

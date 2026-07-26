@@ -11,8 +11,10 @@ import java.util.Set;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -21,6 +23,16 @@ public final class SkillPdcGateway {
     private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey("emaki_skills", "item.skills.ids");
     private static final NamespacedKey SKILL_ACTIVE_SLOT_KEY = new NamespacedKey("emaki_skills", "item.skills.active_slot");
     private static final NamespacedKey SKILL_TRIGGERS_KEY = new NamespacedKey("emaki_skills", "item.skills.triggers");
+
+    private final DebugLogger debugLogger;
+
+    public SkillPdcGateway() {
+        this(null);
+    }
+
+    public SkillPdcGateway(DebugLogger debugLogger) {
+        this.debugLogger = debugLogger;
+    }
 
     public void write(ItemStack itemStack, Collection<String> skillIds) {
         write(itemStack, skillIds, EquipmentSlotMatcher.SLOT_ALL);
@@ -39,22 +51,27 @@ public final class SkillPdcGateway {
 
     public void write(ItemStack itemStack, Collection<String> skillIds, String activeSlot, Map<String, String> boundTriggers) {
         if (itemStack == null) {
+            logMutation(null, "skill_write", Map.of(), Map.of(), false, "item_missing");
             return;
         }
+        Map<String, String> before = snapshot(itemStack);
         Map<String, String> normalizedTriggers = normalizeTriggers(boundTriggers);
         List<String> normalized = normalize(skillIds, normalizedTriggers.keySet());
         ItemMeta itemMeta = itemStack.getItemMeta();
         if (itemMeta == null) {
+            logMutation(itemStack, "skill_write", before, Map.of(), false, "item_meta_missing");
             return;
         }
         if (normalized.isEmpty()) {
             if (!hasSkillPayload(itemMeta)) {
+                logMutation(itemStack, "skill_clear", before, before, false, "payload_absent");
                 return;
             }
             itemMeta.getPersistentDataContainer().remove(SKILL_IDS_KEY);
             itemMeta.getPersistentDataContainer().remove(SKILL_ACTIVE_SLOT_KEY);
             itemMeta.getPersistentDataContainer().remove(SKILL_TRIGGERS_KEY);
-            itemStack.setItemMeta(itemMeta);
+            boolean committed = itemStack.setItemMeta(itemMeta);
+            logMutation(itemStack, "skill_clear", before, snapshot(itemStack), committed, "");
             return;
         }
         itemMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, String.join(";", normalized));
@@ -68,7 +85,8 @@ public final class SkillPdcGateway {
         } else {
             itemMeta.getPersistentDataContainer().set(SKILL_TRIGGERS_KEY, PersistentDataType.STRING, encodeTriggers(normalizedTriggers));
         }
-        itemStack.setItemMeta(itemMeta);
+        boolean committed = itemStack.setItemMeta(itemMeta);
+        logMutation(itemStack, "skill_write", before, snapshot(itemStack), committed, "");
     }
 
     public void clear(ItemStack itemStack) {
@@ -107,11 +125,14 @@ public final class SkillPdcGateway {
 
     public void copy(ItemStack original, ItemStack rebuilt) {
         if (original == null || rebuilt == null) {
+            logMutation(rebuilt, "skill_copy", Map.of(), Map.of(), false, "item_missing");
             return;
         }
+        Map<String, String> before = snapshot(rebuilt);
         ItemMeta originalMeta = original.getItemMeta();
         ItemMeta rebuiltMeta = rebuilt.getItemMeta();
         if (originalMeta == null || rebuiltMeta == null) {
+            logMutation(rebuilt, "skill_copy", before, Map.of(), false, "item_meta_missing");
             return;
         }
         String raw = originalMeta.getPersistentDataContainer().get(SKILL_IDS_KEY, PersistentDataType.STRING);
@@ -119,12 +140,14 @@ public final class SkillPdcGateway {
         String triggers = originalMeta.getPersistentDataContainer().get(SKILL_TRIGGERS_KEY, PersistentDataType.STRING);
         if (Texts.isBlank(raw)) {
             if (!hasSkillPayload(rebuiltMeta)) {
+                logMutation(rebuilt, "skill_copy", before, before, false, "payload_absent");
                 return;
             }
             rebuiltMeta.getPersistentDataContainer().remove(SKILL_IDS_KEY);
             rebuiltMeta.getPersistentDataContainer().remove(SKILL_ACTIVE_SLOT_KEY);
             rebuiltMeta.getPersistentDataContainer().remove(SKILL_TRIGGERS_KEY);
-            rebuilt.setItemMeta(rebuiltMeta);
+            boolean committed = rebuilt.setItemMeta(rebuiltMeta);
+            logMutation(rebuilt, "skill_copy", before, snapshot(rebuilt), committed, "");
             return;
         }
         rebuiltMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, raw);
@@ -138,7 +161,55 @@ public final class SkillPdcGateway {
         } else {
             rebuiltMeta.getPersistentDataContainer().set(SKILL_TRIGGERS_KEY, PersistentDataType.STRING, triggers);
         }
-        rebuilt.setItemMeta(rebuiltMeta);
+        boolean committed = rebuilt.setItemMeta(rebuiltMeta);
+        logMutation(rebuilt, "skill_copy", before, snapshot(rebuilt), committed, "");
+    }
+
+    private Map<String, String> snapshot(ItemStack itemStack) {
+        if (!isDebugEnabled() || itemStack == null) {
+            return Map.of();
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        if (itemMeta == null) {
+            return Map.of();
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
+        addSnapshotValue(result, container, SKILL_IDS_KEY);
+        addSnapshotValue(result, container, SKILL_ACTIVE_SLOT_KEY);
+        addSnapshotValue(result, container, SKILL_TRIGGERS_KEY);
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private void addSnapshotValue(Map<String, String> sink, PersistentDataContainer container, NamespacedKey key) {
+        String value = container.get(key, PersistentDataType.STRING);
+        if (value != null) {
+            sink.put(key.toString(), value);
+        }
+    }
+
+    private boolean isDebugEnabled() {
+        return debugLogger != null && debugLogger.shouldLog("pdc", (java.util.UUID) null);
+    }
+
+    private void logMutation(ItemStack itemStack,
+            String operation,
+            Map<String, String> before,
+            Map<String, String> after,
+            boolean committed,
+            String reason) {
+        if (!isDebugEnabled()) {
+            return;
+        }
+        debugLogger.log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+                "operation", operation,
+                "item", itemStack == null ? "null" : itemStack.getType(),
+                "amount", itemStack == null ? 0 : itemStack.getAmount(),
+                "before", before,
+                "after", after,
+                "committed", committed,
+                "reason", reason == null ? "" : reason
+        ));
     }
 
     private boolean hasSkillPayload(ItemMeta itemMeta) {

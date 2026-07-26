@@ -8,10 +8,11 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
 public final class AppConfig extends BaseAppConfig {
 
-    public static final String CURRENT_VERSION = "2.4.10";
+    public static final String CURRENT_VERSION = "2.5.10";
 
     private final boolean releaseDefaultData;
     private final int defaultSlotCount;
+    private final SkillSourceSettings skillSources;
     private final CastModeSettings castMode;
     private final CastTimingSettings castTiming;
     private final ActionBarSettings actionBar;
@@ -25,6 +26,7 @@ public final class AppConfig extends BaseAppConfig {
             String configVersion,
             boolean releaseDefaultData,
             int defaultSlotCount,
+            SkillSourceSettings skillSources,
             CastModeSettings castMode,
             CastTimingSettings castTiming,
             ActionBarSettings actionBar,
@@ -36,6 +38,7 @@ public final class AppConfig extends BaseAppConfig {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.defaultSlotCount = Math.max(1, defaultSlotCount);
+        this.skillSources = skillSources == null ? SkillSourceSettings.defaults() : skillSources;
         this.castMode = castMode == null ? CastModeSettings.defaults() : castMode;
         this.castTiming = castTiming == null ? CastTimingSettings.defaults() : castTiming;
         this.actionBar = actionBar == null ? ActionBarSettings.defaults() : actionBar;
@@ -54,6 +57,7 @@ public final class AppConfig extends BaseAppConfig {
                 CURRENT_VERSION,
                 true,
                 3,
+                SkillSourceSettings.defaults(),
                 CastModeSettings.defaults(),
                 CastTimingSettings.defaults(),
                 ActionBarSettings.defaults(),
@@ -71,6 +75,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public int defaultSlotCount() {
         return defaultSlotCount;
+    }
+
+    public SkillSourceSettings skillSources() {
+        return skillSources;
     }
 
     public CastModeSettings castMode() {
@@ -103,6 +111,15 @@ public final class AppConfig extends BaseAppConfig {
 
     public ScriptEngineSettings scriptEngine() {
         return scriptEngine;
+    }
+
+    public record SkillSourceSettings(boolean readLoreSkills,
+            boolean readPdcSkills,
+            boolean requireLorePdcMatch) {
+
+        public static SkillSourceSettings defaults() {
+            return new SkillSourceSettings(true, true, false);
+        }
     }
 
     public record CastModeSettings(String entryKey, boolean restoreLastStateOnJoin) {

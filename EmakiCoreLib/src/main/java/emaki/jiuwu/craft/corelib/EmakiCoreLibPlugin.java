@@ -584,7 +584,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         guiBackendRegistry = new emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry(messageService);
         guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
         guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
-        itemAssemblyService = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
+        itemAssemblyService = new EmakiItemAssemblyService(
+                namespaceRegistry,
+                itemLayerCodecRegistry,
+                itemSourceService,
+                debugLogger
+        );
         itemAssemblyService.configureAsync(asyncTaskScheduler, executionDispatcher, this, performanceMonitor);
         gameplayEventPublisher = new emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher(
                 this, executionDispatcher, eventBus, () -> configModel == null ? null : configModel.gameplayEventConfig());

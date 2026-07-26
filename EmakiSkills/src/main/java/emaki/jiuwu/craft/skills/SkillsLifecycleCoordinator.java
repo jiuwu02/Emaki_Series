@@ -98,7 +98,11 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 }
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
-        EquipmentSkillCollector equipmentSkillCollector = new EquipmentSkillCollector(plugin, () -> skillDefinitionLoader.all());
+        EquipmentSkillCollector equipmentSkillCollector = new EquipmentSkillCollector(
+                plugin,
+                () -> skillDefinitionLoader.all(),
+                plugin::appConfig
+        );
         SkillSourceRegistry skillSourceRegistry = new SkillSourceRegistry();
         TriggerRegistry triggerRegistry = new TriggerRegistry();
         TriggerConflictResolver triggerConflictResolver = new TriggerConflictResolver();
@@ -342,6 +346,15 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 ? intValue(slotsSection.getInt("default_count", defaults.defaultSlotCount()), defaults.defaultSlotCount())
                 : defaults.defaultSlotCount();
 
+        YamlSection skillSourcesSection = configuration.getSection("skill_sources");
+        AppConfig.SkillSourceSettings skillSources = skillSourcesSection == null
+                ? defaults.skillSources()
+                : new AppConfig.SkillSourceSettings(
+                        boolValue(skillSourcesSection.getBoolean("read_lore_skills"), defaults.skillSources().readLoreSkills()),
+                        boolValue(skillSourcesSection.getBoolean("read_pdc_skills"), defaults.skillSources().readPdcSkills()),
+                        boolValue(skillSourcesSection.getBoolean("require_lore_pdc_match"), defaults.skillSources().requireLorePdcMatch())
+                );
+
         YamlSection castModeSection = configuration.getSection("cast_mode");
         AppConfig.CastModeSettings castMode;
         if (castModeSection == null) {
@@ -397,6 +410,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 configuration.getString("version", defaults.configVersion()),
                 boolValue(configuration.getBoolean("release_default_data"), defaults.releaseDefaultData()),
                 defaultSlotCount,
+                skillSources,
                 castMode,
                 castTiming,
                 actionBar,

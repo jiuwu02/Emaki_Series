@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.5.9"
+version: "2.5.10"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -42,6 +42,8 @@ console:
       required_directory_missing: "缺少必需目录。"
       path_not_directory: "路径不是目录。"
       directory_not_readable: "目录不可读。"
+      skill_sources_disabled: "Lore 与 PDC 技能来源均已关闭，装备不会解锁技能。"
+      skill_sources_match_requires_both: "严格 Lore/PDC 匹配要求同时启用两个技能来源。"
   reload_loading_files: "<gray>正在加载配置文件...</gray>"
   reload_loading_configs: "<gray>正在读取配置...</gray>"
   reload_applying: "<gray>正在应用配置...</gray>"
@@ -199,8 +201,11 @@ command:
     header: "<gray>===== 玩家 <aqua>%player%</aqua> 技能状态 =====</gray>"
     line: "<gray>%key%: <white>%value%</white></gray>"
     empty_slot: "[空]"
-  debug:
+debug:
+  unlock:
+    equipment_sources: "装备技能来源解析 | 槽位=%slot% | 声明槽位=%active_slot% | 读取 Lore=%read_lore% | 读取 PDC=%read_pdc% | 严格匹配=%require_match% | Lore IDs=%lore_ids% | PDC IDs=%pdc_ids% | 最终 IDs=%effective_ids% | 触发器=%triggers% | 拒绝原因=%reason%"
   common:
+
     placeholder:
       papi_resolved: "PlaceholderAPI 解析完成 | 来源=%source% | 原文=%before% | 结果=%after%"
       papi_failed: "PlaceholderAPI 解析失败 | 来源=%source% | 错误=%error% | 文本=%text%"

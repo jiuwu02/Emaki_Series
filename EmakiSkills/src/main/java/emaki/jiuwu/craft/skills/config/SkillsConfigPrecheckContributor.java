@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.skills.config;
 
 import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.WARN;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -31,6 +32,13 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         addLoaderIssues("skills", plugin.skillDefinitionLoader() == null ? null : plugin.skillDefinitionLoader().issues(), issues);
         addLoaderIssues("resources", plugin.localResourceDefinitionLoader() == null ? null : plugin.localResourceDefinitionLoader().issues(), issues);
+        AppConfig.SkillSourceSettings skillSources = plugin.appConfig().skillSources();
+        if (!skillSources.readLoreSkills() && !skillSources.readPdcSkills()) {
+            addMessageIssue("config.yml:skill_sources", WARN, "skill_sources_disabled", issues);
+        } else if (skillSources.requireLorePdcMatch()
+                && (!skillSources.readLoreSkills() || !skillSources.readPdcSkills())) {
+            addMessageIssue("config.yml:skill_sources.require_lore_pdc_match", WARN, "skill_sources_match_requires_both", issues);
+        }
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

@@ -17,10 +17,11 @@ final class ForgePdcAttributeWriter {
     private static final String SOURCE_ID = "forge";
 
     private final EmakiForgePlugin plugin;
-    private final SkillPdcGateway skillPdcGateway = new SkillPdcGateway();
+    private final SkillPdcGateway skillPdcGateway;
 
     ForgePdcAttributeWriter(EmakiForgePlugin plugin) {
         this.plugin = plugin;
+        this.skillPdcGateway = new SkillPdcGateway(plugin == null ? null : plugin.debugLogger());
     }
 
     void apply(Recipe recipe,

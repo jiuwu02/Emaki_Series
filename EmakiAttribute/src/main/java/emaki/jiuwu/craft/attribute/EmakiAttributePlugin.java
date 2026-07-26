@@ -75,7 +75,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     private final AttributeLifecycleCoordinator lifecycleCoordinator = new AttributeLifecycleCoordinator();
 
-    private static final Set<String> DEBUG_MODULES = Set.of("combat", "resync", "snapshot", "resource");
+    private static final Set<String> DEBUG_MODULES = Set.of("combat", "resync", "snapshot", "resource", "pdc");
 
     private DebugCommand debugCommand;
 

@@ -119,7 +119,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
     };
 
-    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "script");
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "script", "pdc");
 
     public EmakiForgePlugin() {
         super(AppConfig::defaults);

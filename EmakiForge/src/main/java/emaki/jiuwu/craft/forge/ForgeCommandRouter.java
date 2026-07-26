@@ -170,7 +170,6 @@ final class ForgeCommandRouter implements TabExecutor {
         if (args.length >= 2 && ("stats".equalsIgnoreCase(args[1]) || "status".equalsIgnoreCase(args[1]))) {
             var runtime = plugin.runtimeMetrics().snapshot();
             var recipeReport = plugin.recipeLoader().report();
-            var resourceEvents = plugin.bootstrapService().resourceEvents();
             plugin.messageService().sendRaw(sender, plugin.messageService().message(
                     "command.debug.runtime",
                     runtime.debugValues(plugin.runtimeStatus(), plugin.runtimeSnapshot().guiState())
@@ -192,18 +191,6 @@ final class ForgeCommandRouter implements TabExecutor {
                             Map.entry("duration_ms", String.format(java.util.Locale.ROOT, "%.3f", recipeReport.durationNanos() / 1_000_000D)),
                             Map.entry("source_statuses", recipeReport.sourceStatuses())
                     )
-            ));
-            Map<String, Long> resources = new LinkedHashMap<>();
-            for (var status : emaki.jiuwu.craft.corelib.bootstrap.BootstrapService.ResourceStatus.values()) {
-                long count = resourceEvents.stream().filter(event -> event.status() == status).count();
-                if (count <= 0L) {
-                    continue;
-                }
-                resources.put(status.name().toLowerCase(java.util.Locale.ROOT), count);
-            }
-            plugin.messageService().sendRaw(sender, plugin.messageService().message(
-                    "command.debug.bundled_resources",
-                    Map.of("statuses", resources)
             ));
             return true;
         }

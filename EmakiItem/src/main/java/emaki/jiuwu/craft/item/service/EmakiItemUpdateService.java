@@ -47,9 +47,9 @@ public final class EmakiItemUpdateService {
     private final EmakiItemIdentifier identifier;
     private final PdcAttributeGatewayAdapter attributeGateway;
     private final EmakiItemAssemblyService assemblyService;
-    private final ItemOperationLedger operationLedger = new ItemOperationLedger();
-    private final PdcService pdcService = new PdcService("emaki");
-    private final PdcPartition itemPartition = pdcService.partition("item");
+    private final ItemOperationLedger operationLedger;
+    private final PdcService pdcService;
+    private final PdcPartition itemPartition;
 
     public EmakiItemUpdateService(EmakiItemLoader itemLoader,
             EmakiItemIdResolver idResolver,
@@ -65,12 +65,25 @@ public final class EmakiItemUpdateService {
             EmakiItemIdentifier identifier,
             PdcAttributeGatewayAdapter attributeGateway,
             EmakiItemAssemblyService assemblyService) {
+        this(itemLoader, idResolver, itemFactory, identifier, attributeGateway, assemblyService, null);
+    }
+
+    public EmakiItemUpdateService(EmakiItemLoader itemLoader,
+            EmakiItemIdResolver idResolver,
+            EmakiItemFactory itemFactory,
+            EmakiItemIdentifier identifier,
+            PdcAttributeGatewayAdapter attributeGateway,
+            EmakiItemAssemblyService assemblyService,
+            emaki.jiuwu.craft.corelib.debug.DebugLogger debugLogger) {
         this.itemLoader = itemLoader;
         this.idResolver = idResolver;
         this.itemFactory = itemFactory;
         this.identifier = identifier;
         this.attributeGateway = attributeGateway;
         this.assemblyService = assemblyService;
+        this.operationLedger = new ItemOperationLedger(debugLogger);
+        this.pdcService = new PdcService("emaki", "pdc", debugLogger);
+        this.itemPartition = pdcService.partition("item");
     }
 
     public ItemStack updateIfNeeded(ItemStack original, String trigger) {

@@ -89,7 +89,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private BStatsRegistration metrics;
 
-    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "stir", "display", "station", "script");
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "stir", "display", "station", "script", "pdc");
 
     private final CookingLifecycleCoordinator lifecycleCoordinator = new CookingLifecycleCoordinator();
     private final CookingCommandRouter commandRouter = new CookingCommandRouter(this);
