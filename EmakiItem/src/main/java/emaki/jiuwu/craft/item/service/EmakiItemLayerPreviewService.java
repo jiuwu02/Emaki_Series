@@ -11,12 +11,11 @@ import org.bukkit.inventory.meta.ItemMeta;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewProvider;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRegistry;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRequest;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewResult;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRequest;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewResult;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 import emaki.jiuwu.craft.item.model.EquippedSetState;
@@ -28,10 +27,12 @@ public final class EmakiItemLayerPreviewService {
     private static final List<String> BUILTIN_LAYER_IDS = List.of("strengthen", "gem");
 
     private final EmakiItemPlugin plugin;
+    private final EmakiItemLayerPreviewRegistry registry;
     private final EmakiItemDefinitionParser parser;
 
-    public EmakiItemLayerPreviewService(EmakiItemPlugin plugin) {
+    public EmakiItemLayerPreviewService(EmakiItemPlugin plugin, EmakiItemLayerPreviewRegistry registry) {
         this.plugin = plugin;
+        this.registry = registry;
         this.parser = new EmakiItemDefinitionParser(plugin.getLogger());
     }
 
@@ -53,7 +54,7 @@ public final class EmakiItemLayerPreviewService {
             }
             Map<String, Object> options = layerOptionsFor(layerOptions, id);
             boolean enabled = layerEnabled(options);
-            ItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, options);
+            ItemLayerPreviewResult result = previewProvider(id, provider, itemId, base, current, options);
             boolean applied = enabled && result.available() && result.itemStack() != null;
             if (applied) {
                 current = result.itemStack();
@@ -63,15 +64,17 @@ public final class EmakiItemLayerPreviewService {
             layerMap.put("applied", applied);
             layers.add(layerMap);
         }
-        for (ItemLayerPreviewProvider provider : providers.values()) {
-            Map<String, Object> options = layerOptionsFor(layerOptions, provider.id());
+        for (Map.Entry<String, ItemLayerPreviewProvider> entry : providers.entrySet()) {
+            String id = entry.getKey();
+            ItemLayerPreviewProvider provider = entry.getValue();
+            Map<String, Object> options = layerOptionsFor(layerOptions, id);
             boolean enabled = layerEnabled(options);
-            ItemLayerPreviewResult result = previewProvider(provider, itemId, base, current, options);
+            ItemLayerPreviewResult result = previewProvider(id, provider, itemId, base, current, options);
             boolean applied = enabled && result.available() && result.itemStack() != null;
             if (applied) {
                 current = result.itemStack();
             }
-            Map<String, Object> layerMap = result.toLayerMap(itemPreview(provider.id(), result.available(), result.reason(), result.itemStack(), result.details()));
+            Map<String, Object> layerMap = result.toLayerMap(itemPreview(id, result.available(), result.reason(), result.itemStack(), result.details()));
             layerMap.put("enabled", enabled);
             layerMap.put("applied", applied);
             layers.add(layerMap);
@@ -137,20 +140,36 @@ public final class EmakiItemLayerPreviewService {
         itemStack.setItemMeta(itemMeta);
     }
 
-    private ItemLayerPreviewResult previewProvider(ItemLayerPreviewProvider provider, String itemId, ItemStack base, ItemStack current, Map<String, Object> options) {
+    private ItemLayerPreviewResult previewProvider(
+            String providerId,
+            ItemLayerPreviewProvider provider,
+            String itemId,
+            ItemStack base,
+            ItemStack current,
+            Map<String, Object> options) {
         try {
-            return provider.preview(new ItemLayerPreviewRequest(itemId, base, current == null ? base : current, options));
-        } catch (RuntimeException exception) {
-            return ItemLayerPreviewResult.unavailable(provider.id(), provider.id() + " 预览失败：" + exception.getMessage(), Map.of(), Map.of());
+            ItemLayerPreviewResult result = provider.preview(
+                    new ItemLayerPreviewRequest(itemId, base, current == null ? base : current, options));
+            return result == null
+                    ? unavailableProvider(providerId, "预览提供器未返回结果。")
+                    : result;
+        } catch (VirtualMachineError error) {
+            throw error;
+        } catch (ThreadDeath error) {
+            throw error;
+        } catch (Throwable throwable) {
+            return unavailableProvider(providerId, throwable.getMessage());
         }
     }
 
+    private ItemLayerPreviewResult unavailableProvider(String providerId, String detail) {
+        String id = Texts.lower(providerId).trim();
+        String message = Texts.isBlank(detail) ? "未知错误" : detail;
+        return ItemLayerPreviewResult.unavailable(id, id + " 预览失败：" + message, Map.of(), Map.of());
+    }
+
     private Map<String, ItemLayerPreviewProvider> providersById() {
-        Map<String, ItemLayerPreviewProvider> providers = new LinkedHashMap<>();
-        for (ItemLayerPreviewProvider provider : ItemLayerPreviewRegistry.providers()) {
-            providers.put(Texts.lower(provider.id()), provider);
-        }
-        return providers;
+        return new LinkedHashMap<>(registry.providersById());
     }
 
     private boolean layerEnabled(Map<String, Object> options) {

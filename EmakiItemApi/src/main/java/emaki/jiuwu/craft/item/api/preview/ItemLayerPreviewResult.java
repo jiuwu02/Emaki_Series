@@ -1,10 +1,13 @@
-package emaki.jiuwu.craft.corelib.item.preview;
+package emaki.jiuwu.craft.item.api.preview;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+/**
+ * Immutable result returned by an item layer preview provider.
+ */
 public record ItemLayerPreviewResult(
         String id,
         boolean available,
@@ -16,16 +19,32 @@ public record ItemLayerPreviewResult(
 ) {
 
     public ItemLayerPreviewResult {
+        itemStack = cloneItem(itemStack);
         details = details == null ? Map.of() : Map.copyOf(details);
         options = options == null ? Map.of() : Map.copyOf(options);
         selected = selected == null ? Map.of() : Map.copyOf(selected);
     }
 
-    public static ItemLayerPreviewResult unavailable(String id, String reason, Map<String, ?> details, Map<String, ?> options) {
+    @Override
+    public ItemStack itemStack() {
+        return cloneItem(itemStack);
+    }
+
+    public static ItemLayerPreviewResult unavailable(
+            String id,
+            String reason,
+            Map<String, ?> details,
+            Map<String, ?> options) {
         return new ItemLayerPreviewResult(id, false, reason, null, details, options, Map.of());
     }
 
-    public static ItemLayerPreviewResult available(String id, String reason, ItemStack itemStack, Map<String, ?> details, Map<String, ?> options, Map<String, ?> selected) {
+    public static ItemLayerPreviewResult available(
+            String id,
+            String reason,
+            ItemStack itemStack,
+            Map<String, ?> details,
+            Map<String, ?> options,
+            Map<String, ?> selected) {
         return new ItemLayerPreviewResult(id, true, reason, itemStack, details, options, selected);
     }
 
@@ -40,5 +59,9 @@ public record ItemLayerPreviewResult(
         map.put("preview", preview == null ? Map.of() : preview);
         map.put("status", available ? "available" : "unavailable");
         return map;
+    }
+
+    private static ItemStack cloneItem(ItemStack itemStack) {
+        return itemStack == null ? null : itemStack.clone();
     }
 }

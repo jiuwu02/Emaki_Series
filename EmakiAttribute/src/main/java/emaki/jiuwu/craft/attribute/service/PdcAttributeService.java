@@ -31,12 +31,11 @@ import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
-import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import me.clip.placeholderapi.PlaceholderAPI;
 
-public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi {
+public final class PdcAttributeService implements PdcAttributeApi.Bridge {
 
     private static final Pattern SOURCE_META_PATTERN = Pattern.compile("%source_meta_([a-zA-Z0-9_\\-.]+)%");
     private static final Pattern SOURCE_ATTRIBUTE_PATTERN = Pattern.compile("%source_(?:attr|attribute)_([a-zA-Z0-9_\\-.]+)%");
@@ -99,17 +98,13 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
             plugin.getLogger().warning("Ignoring PDC attribute write for unregistered source: " + payload.sourceId());
             return false;
         }
-        pdcService.writeBlob(itemStack, sourcePartition.child(payload.sourceId()), "payload", PAYLOAD_CODEC, payload);
-        writeIndex(itemStack, addSource(readIndex(itemStack), payload.sourceId()));
+        persist(itemStack, payload);
         return true;
     }
 
-    @Override
-    public boolean write(ItemStack itemStack,
-            String sourceId,
-            Map<String, Double> attributes,
-            Map<String, String> meta) {
-        return write(itemStack, PdcAttributePayload.of(sourceId, attributes, meta));
+    private void persist(ItemStack itemStack, PdcAttributePayload payload) {
+        pdcService.writeBlob(itemStack, sourcePartition.child(payload.sourceId()), "payload", PAYLOAD_CODEC, payload);
+        writeIndex(itemStack, addSource(readIndex(itemStack), payload.sourceId()));
     }
 
     @Override
@@ -136,19 +131,34 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge, emaki.
     }
 
     @Override
-    public Map<String, PdcAttributePayloadSnapshot> readAllSnapshots(ItemStack itemStack) {
-        Map<String, PdcAttributePayloadSnapshot> result = new LinkedHashMap<>();
-        for (PdcAttributePayload payload : readAll(itemStack).values()) {
-            if (payload == null || Texts.isBlank(payload.sourceId())) {
+    public void copy(ItemStack fromItem, ItemStack toItem, Set<String> excludedSourceIds) {
+        if (fromItem == null || toItem == null) {
+            return;
+        }
+        Set<String> excluded = normalizeIds(excludedSourceIds);
+        for (PdcAttributePayload payload : readAll(fromItem).values()) {
+            if (payload == null || Texts.isBlank(payload.sourceId()) || excluded.contains(payload.sourceId())) {
                 continue;
             }
-            result.put(payload.sourceId(), new PdcAttributePayloadSnapshot(
-                    payload.sourceId(),
-                    payload.attributes(),
-                    payload.meta()
-            ));
+            // Copy preserves data already persisted on the source item, including
+            // payloads whose owning plugin is currently absent, so an unregistered
+            // source must not silently drop the block during a rebuild.
+            persist(toItem, payload);
         }
-        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private Set<String> normalizeIds(Set<String> sourceIds) {
+        if (sourceIds == null || sourceIds.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> normalized = new LinkedHashSet<>();
+        for (String sourceId : sourceIds) {
+            String value = Texts.normalizeId(sourceId);
+            if (Texts.isNotBlank(value)) {
+                normalized.add(value);
+            }
+        }
+        return normalized.isEmpty() ? Set.of() : Set.copyOf(normalized);
     }
 
     @Override

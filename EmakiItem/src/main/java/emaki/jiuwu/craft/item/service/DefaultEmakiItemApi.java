@@ -3,12 +3,15 @@ package emaki.jiuwu.craft.item.service;
 import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 
 public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
@@ -16,11 +19,21 @@ public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
     private final EmakiItemLoader loader;
     private final EmakiItemFactory factory;
     private final EmakiItemIdentifier identifier;
+    private final EmakiItemLayerPreviewRegistry layerPreviewRegistry;
 
     public DefaultEmakiItemApi(EmakiItemLoader loader, EmakiItemFactory factory, EmakiItemIdentifier identifier) {
+        this(loader, factory, identifier, null);
+    }
+
+    public DefaultEmakiItemApi(
+            EmakiItemLoader loader,
+            EmakiItemFactory factory,
+            EmakiItemIdentifier identifier,
+            EmakiItemLayerPreviewRegistry layerPreviewRegistry) {
         this.loader = loader;
         this.factory = factory;
         this.identifier = identifier;
+        this.layerPreviewRegistry = layerPreviewRegistry;
     }
 
     @Override
@@ -57,5 +70,12 @@ public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
         }
         String text = ItemTextBridge.effectiveNameText(itemStack);
         return Texts.isBlank(text) ? MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack)) : text;
+    }
+
+    @Override
+    public ItemLayerPreviewRegistration registerLayerPreview(Plugin plugin, ItemLayerPreviewProvider provider) {
+        return layerPreviewRegistry == null
+                ? ItemLayerPreviewRegistration.noop()
+                : layerPreviewRegistry.register(plugin, provider);
     }
 }

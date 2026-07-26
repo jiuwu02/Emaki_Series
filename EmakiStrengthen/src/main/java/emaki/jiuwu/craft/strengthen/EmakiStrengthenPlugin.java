@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -33,12 +33,12 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.action.StrengthenActionRegistrar;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenItemLayerPreviewLifecycle;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
@@ -51,7 +51,6 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
-import emaki.jiuwu.craft.strengthen.service.StrengthenItemLayerPreviewProvider;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenChanceRuleRegistry;
@@ -76,6 +75,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private BStatsRegistration metrics;
 
     private final StrengthenLifecycleCoordinator lifecycleCoordinator = new StrengthenLifecycleCoordinator();
+    private final StrengthenItemLayerPreviewLifecycle itemLayerPreviewLifecycle = new StrengthenItemLayerPreviewLifecycle(this);
     private final StrengthenCommandRouter commandRouter = new StrengthenCommandRouter(this);
     private StrengthenItemRefreshListener itemRefreshListener;
     private ItemSourceService coreItemSourceService;
@@ -93,7 +93,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private MessageService messageService;
     private BootstrapService bootstrapService;
     private GuiService guiService;
-    private PdcAttributeGateway pdcAttributeGateway;
+    private StrengthenAttributeBridge pdcAttributeGateway;
     private StrengthenRecipeResolver recipeResolver;
     private ChanceCalculator chanceCalculator;
     private StrengthenEconomyService economyService;
@@ -153,7 +153,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         registerActions();
         registerCommandHandler();
         registerEventHandlers();
-        ItemLayerPreviewRegistry.register(this, new StrengthenItemLayerPreviewProvider(this));
+        itemLayerPreviewLifecycle.initialize();
         ensurePlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -162,6 +162,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     @Override
     public void onDisable() {
         ConfigPrecheckLifecycleSupport.unregister("strengthen");
+        itemLayerPreviewLifecycle.close();
         lifecycleCoordinator.shutdown(this);
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -171,7 +172,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
         }
-        ItemLayerPreviewRegistry.unregister(this);
         EmakiStrengthenApi.uninstall(strengthenApiBridge);
         getServer().getServicesManager().unregisterAll(this);
         if (metrics != null) {
@@ -302,7 +302,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return guiService;
     }
 
-    public PdcAttributeGateway pdcAttributeGateway() {
+    public StrengthenAttributeBridge pdcAttributeGateway() {
         return pdcAttributeGateway;
     }
 

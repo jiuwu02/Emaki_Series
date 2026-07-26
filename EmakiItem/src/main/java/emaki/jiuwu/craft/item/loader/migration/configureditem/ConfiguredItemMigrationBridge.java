@@ -16,9 +16,10 @@ public final class ConfiguredItemMigrationBridge {
     }
 
     public static void migrate(JavaPlugin plugin, File[] files) {
-        MigrationReport report = ConfiguredItemMigration.migrateLegacyItemFiles(
+        MigrationReport report = ConfiguredItemMigration.migrateFiles(
                 plugin.getDataFolder().toPath(),
-                files == null ? java.util.List.of() : Arrays.asList(files)
+                files == null ? java.util.List.of() : Arrays.asList(files),
+                EmakiItemLegacyDefinitionConverter::convert
         );
         for (FileIssue issue : report.skipped()) {
             plugin.getLogger().warning("Skipped legacy EmakiItem definition migration for "

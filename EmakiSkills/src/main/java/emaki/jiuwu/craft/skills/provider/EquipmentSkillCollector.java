@@ -20,11 +20,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
-import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
-import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.config.AppConfig;
+import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPayload;
+import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
 import emaki.jiuwu.craft.skills.model.BoundSkillTrigger;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSourceType;
@@ -52,7 +52,6 @@ public final class EquipmentSkillCollector {
             EquipmentSlot.FEET
     };
 
-    private final SkillPdcGateway skillPdcGateway;
     private final Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier;
     private final Supplier<AppConfig> appConfigSupplier;
     private final DebugLogger debugLogger;
@@ -70,7 +69,6 @@ public final class EquipmentSkillCollector {
         this.skillDefinitionsSupplier = skillDefinitionsSupplier == null ? Map::of : skillDefinitionsSupplier;
         this.appConfigSupplier = appConfigSupplier == null ? AppConfig::defaults : appConfigSupplier;
         this.debugLogger = plugin instanceof DebugLoggerProvider provider ? provider.debugLogger() : null;
-        this.skillPdcGateway = new SkillPdcGateway(debugLogger);
         this.logger = plugin == null ? null : plugin.getLogger();
     }
 
@@ -99,14 +97,14 @@ public final class EquipmentSkillCollector {
     }
 
     public List<BoundSkillTrigger> collectBoundTriggers(Player player, String triggerId) {
-        if (player == null || Texts.isBlank(triggerId)) {
+        String normalizedTrigger = EquipmentSkillPdcCodec.normalizeTriggerId(triggerId);
+        if (player == null || normalizedTrigger.isEmpty()) {
             return List.of();
         }
         List<BoundSkillTrigger> result = new ArrayList<>();
         PlayerInventory inventory = player.getInventory();
         Map<String, SkillDefinition> definitions = skillDefinitions();
         AppConfig.SkillSourceSettings sources = skillSources();
-        String normalizedTrigger = Texts.normalizeId(triggerId).replace('-', '_');
         UUID playerId = player.getUniqueId();
         for (EquipmentSlot slot : SCANNED_SLOTS) {
             ItemStack item = inventory.getItem(slot);
@@ -130,19 +128,20 @@ public final class EquipmentSkillCollector {
             Map<String, SkillDefinition> definitions,
             AppConfig.SkillSourceSettings sources,
             UUID playerId) {
-        String activeSlot = sources.readPdcSkills()
-                ? skillPdcGateway.readActiveSlot(item)
-                : EquipmentSlotMatcher.SLOT_ALL;
+        EquipmentSkillPayload pdcPayload = sources.readPdcSkills()
+                ? EquipmentSkillPdcCodec.read(item)
+                : new EquipmentSkillPayload(List.of(), EquipmentSkillPdcCodec.SLOT_ALL, Map.of());
+        String activeSlot = pdcPayload.activeSlot();
         boolean pdcSlotMatches = !sources.readPdcSkills()
-                || EquipmentSlotMatcher.matches(slotName, activeSlot);
+                || EquipmentSkillPdcCodec.matchesSlot(slotName, activeSlot);
         Map<String, String> loreAliases = sources.readLoreSkills()
                 ? collectLoreSkillAliases(item, slotName, definitions, playerId)
                 : Map.of();
         Set<String> pdcSkillIds = sources.readPdcSkills() && pdcSlotMatches
-                ? normalizedSkillIds(skillPdcGateway.readSkillIds(item))
+                ? immutableSet(new LinkedHashSet<>(pdcPayload.skillIds()))
                 : Set.of();
         Map<String, String> triggers = sources.readPdcSkills() && pdcSlotMatches
-                ? skillPdcGateway.readBoundTriggers(item)
+                ? pdcPayload.boundTriggers()
                 : Map.of();
         Set<String> effective = resolveEffectiveSkillIds(loreAliases.keySet(), pdcSkillIds, sources);
         String rejection = resolveRejection(sources, pdcSlotMatches, effective);
@@ -217,8 +216,8 @@ public final class EquipmentSkillCollector {
             if (definition == null || definition.loreAliases().isEmpty()) {
                 continue;
             }
-            String skillId = Texts.normalizeId(definition.id());
-            if (Texts.isBlank(skillId)) {
+            String skillId = EquipmentSkillPdcCodec.normalizeSkillId(definition.id());
+            if (skillId.isEmpty()) {
                 continue;
             }
             for (String alias : definition.loreAliases()) {
@@ -241,19 +240,6 @@ public final class EquipmentSkillCollector {
             }
         }
         return false;
-    }
-
-    private Set<String> normalizedSkillIds(List<String> skillIds) {
-        Set<String> result = new LinkedHashSet<>();
-        if (skillIds != null) {
-            for (String skillId : skillIds) {
-                String normalized = Texts.normalizeId(skillId);
-                if (Texts.isNotBlank(normalized)) {
-                    result.add(normalized);
-                }
-            }
-        }
-        return immutableSet(result);
     }
 
     private Set<String> immutableSet(Set<String> values) {
@@ -326,7 +312,7 @@ public final class EquipmentSkillCollector {
             pdcSkillIds = pdcSkillIds == null || pdcSkillIds.isEmpty() ? Set.of() : Set.copyOf(pdcSkillIds);
             effectiveSkillIds = effectiveSkillIds == null || effectiveSkillIds.isEmpty() ? Set.of() : Set.copyOf(effectiveSkillIds);
             boundTriggers = boundTriggers == null || boundTriggers.isEmpty() ? Map.of() : Map.copyOf(boundTriggers);
-            activeSlot = activeSlot == null ? EquipmentSlotMatcher.SLOT_ALL : activeSlot;
+            activeSlot = activeSlot == null ? EquipmentSkillPdcCodec.SLOT_ALL : activeSlot;
             rejection = rejection == null ? "" : rejection;
         }
     }

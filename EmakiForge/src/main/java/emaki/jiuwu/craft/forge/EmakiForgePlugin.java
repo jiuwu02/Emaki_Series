@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
@@ -92,7 +92,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private BootstrapService bootstrapService;
     private GuiService guiService;
     private ItemIdentifierService itemIdentifierService;
-    private PdcAttributeGateway pdcAttributeGateway;
+    private ForgeAttributeBridge pdcAttributeGateway;
     private ForgeItemRefreshService itemRefreshService;
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
@@ -465,7 +465,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return components == null ? itemIdentifierService : components.itemIdentifierService();
     }
 
-    public PdcAttributeGateway pdcAttributeGateway() {
+    public ForgeAttributeBridge pdcAttributeGateway() {
         ForgeRuntimeComponents components = runtimeSnapshot.get().components();
         return components == null ? pdcAttributeGateway : components.pdcAttributeGateway();
     }

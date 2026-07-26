@@ -14,10 +14,24 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
+/**
+ * Legacy CoreLib gateway to EmakiAttribute's PDC attribute data.
+ *
+ * <p>This gateway holds no attribute business rules: every operation resolves
+ * the deprecated CoreLib {@link PdcAttributeApi} mirror service, which is
+ * implemented solely by EmakiAttribute's compatibility adapter and delegates to
+ * the canonical {@code emaki.jiuwu.craft.attribute.api.PdcAttributeApi}. It
+ * remains lossy because {@link PdcAttributePayloadSnapshot} cannot represent
+ * conditions, schema version or update timestamp.
+ *
+ * @deprecated Use {@code emaki.jiuwu.craft.attribute.api.PdcAttributeApi} with
+ *             the full {@code PdcAttributePayload}. Retained for one
+ *             synchronized release window.
+ */
+@Deprecated(forRemoval = true)
 public final class PdcAttributeGateway {
 
     private final Plugin owner;
-    private volatile PdcAttributeApi apiInstance;
     private volatile String registeredSourceId;
 
     public PdcAttributeGateway(Plugin owner) {
@@ -126,33 +140,26 @@ public final class PdcAttributeGateway {
         if (fromItem == null || toItem == null) {
             return;
         }
-        Set<String> excluded = normalizeIds(excludedSourceIds);
-        for (PdcAttributePayloadSnapshot snapshot : readAll(fromItem).values()) {
-            if (snapshot == null || excluded.contains(snapshot.sourceId())) {
-                continue;
-            }
-            write(toItem, snapshot.sourceId(), snapshot.attributes(), snapshot.meta());
+        PdcAttributeApi api = resolveApiInstance();
+        if (api == null) {
+            return;
         }
+        api.copy(fromItem, toItem, normalizeIds(excludedSourceIds));
     }
 
     private PdcAttributeApi resolveApiInstance() {
-        PdcAttributeApi instance = apiInstance;
-        if (instance != null) {
-            return instance;
-        }
+        // Resolved per call: a reloaded or disabled EmakiAttribute must never be
+        // reached through a stale provider instance.
         RegisteredServiceProvider<PdcAttributeApi> provider = Bukkit.getServicesManager()
                 .getRegistration(PdcAttributeApi.class);
         if (provider == null) {
-            apiInstance = null;
             return null;
         }
         Plugin providerPlugin = provider.getPlugin();
         if (providerPlugin == null || !providerPlugin.isEnabled()) {
-            apiInstance = null;
             return null;
         }
-        apiInstance = provider.getProvider();
-        return apiInstance;
+        return provider.getProvider();
     }
 
     private boolean ensureRegisteredSource(String sourceId) {

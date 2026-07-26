@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 import emaki.jiuwu.craft.forge.config.AppConfig;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 
 record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         ExecutionDispatcher executionDispatcher,
@@ -32,7 +32,7 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         BootstrapService bootstrapService,
         GuiService guiService,
         ItemIdentifierService itemIdentifierService,
-        PdcAttributeGateway pdcAttributeGateway,
+        ForgeAttributeBridge pdcAttributeGateway,
         ForgeItemRefreshService itemRefreshService,
         ForgeService forgeService,
         ForgeGuiService forgeGuiService,
@@ -52,7 +52,7 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(GuiService.class, guiService),
                 RuntimeComponents.component(ItemIdentifierService.class, itemIdentifierService),
-                RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
+                RuntimeComponents.component(ForgeAttributeBridge.class, pdcAttributeGateway),
                 RuntimeComponents.component(ForgeItemRefreshService.class, itemRefreshService),
                 RuntimeComponents.component(ForgeService.class, forgeService),
                 RuntimeComponents.component(ForgeGuiService.class, forgeGuiService),

@@ -9,7 +9,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.RegisteredServiceProvider;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -21,13 +21,11 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -40,8 +38,11 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.action.ItemActionRegistrar;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.config.ItemConfigPrecheckContributor;
+import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.item.listener.ItemDurabilityListener;
 import emaki.jiuwu.craft.item.listener.ItemRepairListener;
 import emaki.jiuwu.craft.item.listener.ItemTriggerListener;
@@ -55,6 +56,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
+import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
 import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
@@ -115,6 +117,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private EmakiItemAliasLoader aliasLoader;
     private EmakiItemIdResolver idResolver;
     private EmakiItemMigrationService migrationService;
+    private EmakiItemLayerPreviewRegistry layerPreviewRegistry;
     private EmakiItemLayerPreviewService layerPreviewService;
     private EmakiItemIdentifier identifier;
     private EmakiItemPdcWriter pdcWriter;
@@ -126,7 +129,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemComponentInspector componentInspector;
     private ItemComponentPlaceholderResolver componentPlaceholderResolver;
     private ItemSourceService itemSourceService;
-    private PdcAttributeGateway pdcAttributeGateway;
+    private ItemAttributeBridge pdcAttributeGateway;
     private ItemRepairService repairService;
     private ItemRepairGuiService repairGuiService;
     private JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry;
@@ -178,6 +181,15 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             }
             String text = ItemTextBridge.effectiveNameText(itemStack);
             return Texts.isBlank(text) ? MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack)) : text;
+        }
+
+        @Override
+        public @NotNull ItemLayerPreviewRegistration registerLayerPreview(
+                @NotNull Plugin plugin,
+                @NotNull ItemLayerPreviewProvider provider) {
+            return layerPreviewRegistry == null
+                    ? ItemLayerPreviewRegistration.noop()
+                    : layerPreviewRegistry.register(plugin, provider);
         }
     };
 
@@ -517,6 +529,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         aliasLoader = components.aliasLoader();
         idResolver = components.idResolver();
         migrationService = components.migrationService();
+        layerPreviewRegistry = components.layerPreviewRegistry();
         layerPreviewService = components.layerPreviewService();
         identifier = components.identifier();
         pdcWriter = components.pdcWriter();
@@ -554,6 +567,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
+        getServer().getPluginManager().registerEvents(layerPreviewRegistry, this);
         getServer().getPluginManager().registerEvents(new ItemTriggerListener(this), this);
         getServer().getPluginManager().registerEvents(
                 new ItemUpdateListener(this, executionDispatcher, threadOwnership),
@@ -625,6 +639,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return migrationService;
     }
 
+    public EmakiItemLayerPreviewRegistry layerPreviewRegistry() {
+        return layerPreviewRegistry;
+    }
+
     public EmakiItemLayerPreviewService layerPreviewService() {
         return layerPreviewService;
     }
@@ -673,7 +691,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return itemSourceService;
     }
 
-    public PdcAttributeGateway pdcAttributeGateway() {
+    public ItemAttributeBridge pdcAttributeGateway() {
         return pdcAttributeGateway;
     }
 
@@ -698,14 +716,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     public void scheduleAttributeEquipmentSync(Player player) {
-        if (player == null) {
+        if (player == null || pdcAttributeGateway == null) {
             return;
         }
-        RegisteredServiceProvider<EmakiAttributeBridge> registration = Bukkit.getServicesManager().getRegistration(EmakiAttributeBridge.class);
-        EmakiAttributeBridge bridge = registration == null ? null : registration.getProvider();
-        if (bridge != null && bridge.available()) {
-            bridge.scheduleEquipmentSync(player);
-        }
+        pdcAttributeGateway.scheduleEquipmentSync(player);
     }
 
     public DebugCommand debugCommand() {

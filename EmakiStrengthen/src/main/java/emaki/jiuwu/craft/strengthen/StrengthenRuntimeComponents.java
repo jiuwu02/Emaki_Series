@@ -6,7 +6,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
@@ -34,7 +34,7 @@ record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
         BootstrapService bootstrapService,
         GuiService guiService,
         ItemSourceService coreItemSourceService,
-        PdcAttributeGateway pdcAttributeGateway,
+        StrengthenAttributeBridge pdcAttributeGateway,
         StrengthenRecipeResolver recipeResolver,
         ChanceCalculator chanceCalculator,
         StrengthenEconomyService economyService,
@@ -57,7 +57,7 @@ record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(GuiService.class, guiService),
                 RuntimeComponents.component(ItemSourceService.class, coreItemSourceService),
-                RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
+                RuntimeComponents.component(StrengthenAttributeBridge.class, pdcAttributeGateway),
                 RuntimeComponents.component(StrengthenRecipeResolver.class, recipeResolver),
                 RuntimeComponents.component(ChanceCalculator.class, chanceCalculator),
                 RuntimeComponents.component(StrengthenEconomyService.class, economyService),

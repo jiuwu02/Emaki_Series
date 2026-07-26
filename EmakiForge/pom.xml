@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-forge</artifactId>
-    <version>4.5.10</version>
+    <version>4.5.12</version>
     <name>EmakiForge</name>
     <packaging>jar</packaging>
 
@@ -31,6 +31,17 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-forge-api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-skills-protocol</artifactId>
+            <version>2.5.12</version>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-attribute-api</artifactId>
+            <version>4.5.17</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>me.clip</groupId>
@@ -71,8 +82,15 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-forge-api</include>
+                                    <include>emaki.jiuwu.craft:emaki-skills-protocol</include>
                                 </includes>
                             </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>emaki.jiuwu.craft.skills.protocol</pattern>
+                                    <shadedPattern>emaki.jiuwu.craft.forge.runtime.skillsprotocol</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>

@@ -19,7 +19,8 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -79,8 +80,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 }
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
-        PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
-        syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
+        StrengthenAttributeBridge pdcAttributeGateway = new StrengthenAttributeBridgeHolder(plugin.getLogger());
+        pdcAttributeGateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
         StrengthenRecipeResolver recipeResolver = new StrengthenRecipeResolver(
                 plugin,
                 coreLibPlugin.itemAssemblyService(),
@@ -141,7 +142,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             plugin.recipeLoader().load();
             StrengthenRecipeResolver.clearPatternCache();
             plugin.guiTemplateLoader().load();
-            syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
             plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
             plugin.refreshService().refreshOnlinePlayers();
             plugin.messageService().info("console.recipes_loaded", Map.of(
@@ -182,7 +183,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return submitGlobalStage(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
-                syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+            plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                 plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
                 plugin.refreshService().refreshOnlinePlayers();
                 plugin.messageService().info("console.recipes_loaded", Map.of(

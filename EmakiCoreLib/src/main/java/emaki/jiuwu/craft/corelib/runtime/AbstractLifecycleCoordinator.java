@@ -154,6 +154,17 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         return future;
     }
 
+    /**
+     * Synchronizes a legacy {@link PdcAttributeGateway} source registration.
+     *
+     * @param gateway the legacy gateway; {@code null} is a no-op
+     * @param sourceId the source id to register
+     * @deprecated Register through
+     *             {@code emaki.jiuwu.craft.attribute.api.PdcAttributeApi} from the
+     *             owning module's optional Attribute integration instead. Retained
+     *             for one synchronized release window.
+     */
+    @Deprecated(forRemoval = true)
     protected final void syncPdcAttributeRegistration(PdcAttributeGateway gateway, String sourceId) {
         if (gateway == null || sourceId == null || sourceId.isBlank()) {
             return;

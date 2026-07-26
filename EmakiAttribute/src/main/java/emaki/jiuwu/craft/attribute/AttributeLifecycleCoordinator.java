@@ -50,7 +50,7 @@ import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -96,7 +96,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 executionDispatcher,
                 threadOwnership
         );
-        EmakiAttributeBridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(attributeService, threadOwnership);
+        EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(attributeService, threadOwnership);
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),

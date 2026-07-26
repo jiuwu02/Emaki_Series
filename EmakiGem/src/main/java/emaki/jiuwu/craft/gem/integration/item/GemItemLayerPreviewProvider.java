@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.gem.service;
+package emaki.jiuwu.craft.gem.integration.item;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -9,10 +9,12 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewProvider;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRequest;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewResult;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.service.GemResonanceService;
+import emaki.jiuwu.craft.item.api.EmakiItemApi;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRequest;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewResult;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
@@ -25,6 +27,10 @@ public final class GemItemLayerPreviewProvider implements ItemLayerPreviewProvid
     private static final String LAYER_ID = "gem";
 
     private final EmakiGemPlugin plugin;
+
+    public static AutoCloseable register(EmakiGemPlugin plugin) {
+        return EmakiItemApi.registerLayerPreview(plugin, new GemItemLayerPreviewProvider(plugin));
+    }
 
     public GemItemLayerPreviewProvider(EmakiGemPlugin plugin) {
         this.plugin = plugin;

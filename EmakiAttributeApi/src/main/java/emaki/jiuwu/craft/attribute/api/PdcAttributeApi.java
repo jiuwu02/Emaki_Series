@@ -164,6 +164,26 @@ public final class PdcAttributeApi {
         }
     }
 
+    /**
+     * Copies every stored payload from one item to another, preserving each
+     * payload in full and overwriting the destination per source id.
+     *
+     * <p>Sources listed in {@code excludedSourceIds} keep whatever the
+     * destination item already holds.
+     *
+     * @param fromItem the item to read payloads from; {@code null} is a no-op
+     * @param toItem the item to write payloads to; {@code null} is a no-op
+     * @param excludedSourceIds source ids to skip; may be {@code null}
+     */
+    public static void copy(@Nullable ItemStack fromItem,
+            @Nullable ItemStack toItem,
+            @Nullable Set<String> excludedSourceIds) {
+        Bridge resolved = bridge;
+        if (resolved != null) {
+            resolved.copy(fromItem, toItem, excludedSourceIds);
+        }
+    }
+
     /** Internal bridge installed by EmakiAttribute. */
     public interface Bridge {
         /**
@@ -236,5 +256,17 @@ public final class PdcAttributeApi {
          * @param itemStack the target item; may be {@code null}
          */
         void clearAll(@Nullable ItemStack itemStack);
+
+        /**
+         * Copies every stored payload from one item to another, preserving each
+         * payload in full and overwriting the destination per source id.
+         *
+         * @param fromItem the item to read payloads from; may be {@code null}
+         * @param toItem the item to write payloads to; may be {@code null}
+         * @param excludedSourceIds source ids to skip; may be {@code null}
+         */
+        void copy(@Nullable ItemStack fromItem,
+                @Nullable ItemStack toItem,
+                @Nullable Set<String> excludedSourceIds);
     }
 }

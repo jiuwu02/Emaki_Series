@@ -7,7 +7,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
+import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
 import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
@@ -48,6 +49,7 @@ record ItemRuntimeComponents(ExecutionDispatcher executionDispatcher,
         EmakiItemAliasLoader aliasLoader,
         EmakiItemIdResolver idResolver,
         EmakiItemMigrationService migrationService,
+        EmakiItemLayerPreviewRegistry layerPreviewRegistry,
         EmakiItemLayerPreviewService layerPreviewService,
         EmakiItemIdentifier identifier,
         EmakiItemPdcWriter pdcWriter,
@@ -59,7 +61,7 @@ record ItemRuntimeComponents(ExecutionDispatcher executionDispatcher,
         ItemComponentInspector componentInspector,
         ItemComponentPlaceholderResolver componentPlaceholderResolver,
         ItemSourceService itemSourceService,
-        PdcAttributeGateway pdcAttributeGateway,
+        ItemAttributeBridge pdcAttributeGateway,
         PdcService pdcService,
         ItemRepairService repairService,
         ItemRepairGuiService repairGuiService,
@@ -82,6 +84,7 @@ record ItemRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(EmakiItemAliasLoader.class, aliasLoader),
                 RuntimeComponents.component(EmakiItemIdResolver.class, idResolver),
                 RuntimeComponents.component(EmakiItemMigrationService.class, migrationService),
+                RuntimeComponents.component(EmakiItemLayerPreviewRegistry.class, layerPreviewRegistry),
                 RuntimeComponents.component(EmakiItemLayerPreviewService.class, layerPreviewService),
                 RuntimeComponents.component(EmakiItemIdentifier.class, identifier),
                 RuntimeComponents.component(EmakiItemPdcWriter.class, pdcWriter),
@@ -93,7 +96,7 @@ record ItemRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(ItemComponentInspector.class, componentInspector),
                 RuntimeComponents.component(ItemComponentPlaceholderResolver.class, componentPlaceholderResolver),
                 RuntimeComponents.component(ItemSourceService.class, itemSourceService),
-                RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
+                RuntimeComponents.component(ItemAttributeBridge.class, pdcAttributeGateway),
                 RuntimeComponents.component(PdcService.class, pdcService),
                 RuntimeComponents.component(ItemRepairService.class, repairService),
                 RuntimeComponents.component(ItemRepairGuiService.class, repairGuiService)

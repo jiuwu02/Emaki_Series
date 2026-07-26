@@ -5,7 +5,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -155,7 +155,7 @@ public record ForgeRuntimeSnapshot(long generation,
         return components == null ? null : components.itemIdentifierService();
     }
 
-    public PdcAttributeGateway pdcAttributeGateway() {
+    public ForgeAttributeBridge pdcAttributeGateway() {
         return components == null ? null : components.pdcAttributeGateway();
     }
 

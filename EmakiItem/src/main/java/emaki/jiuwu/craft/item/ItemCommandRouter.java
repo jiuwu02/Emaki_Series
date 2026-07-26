@@ -8,16 +8,12 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
-import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -26,6 +22,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
+import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
 
 final class ItemCommandRouter implements TabExecutor {
 
@@ -36,8 +33,6 @@ final class ItemCommandRouter implements TabExecutor {
     private static final String PERMISSION_UPDATE = "emakiitem.update";
     private static final String PERMISSION_DEBUG = "emakiitem.debug";
     private static final String PERMISSION_ADMIN = "emakiitem.admin";
-    private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey("emaki_skills", "item.skills.ids");
-    private static final NamespacedKey SKILL_TRIGGERS_KEY = new NamespacedKey("emaki_skills", "item.skills.triggers");
 
     private final EmakiItemPlugin plugin;
     private final ExecutionDispatcher executionDispatcher;
@@ -403,13 +398,13 @@ final class ItemCommandRouter implements TabExecutor {
     }
 
     private String inspectAttributes(ItemStack itemStack) {
-        PdcAttributePayloadSnapshot snapshot = plugin.pdcAttributeGateway().readAll(itemStack).get("emakiitem");
-        return snapshot == null || snapshot.attributes().isEmpty() ? "-" : snapshot.attributes().toString();
+        Map<String, Double> attributes = plugin.pdcAttributeGateway().readAttributes(itemStack, "emakiitem");
+        return attributes.isEmpty() ? "-" : attributes.toString();
     }
 
     private String inspectAttributeMeta(ItemStack itemStack) {
-        PdcAttributePayloadSnapshot snapshot = plugin.pdcAttributeGateway().readAll(itemStack).get("emakiitem");
-        return snapshot == null || snapshot.meta().isEmpty() ? "-" : snapshot.meta().toString();
+        Map<String, String> meta = plugin.pdcAttributeGateway().readMeta(itemStack, "emakiitem");
+        return meta.isEmpty() ? "-" : meta.toString();
     }
 
     private String valueOrDash(Object value) {
@@ -424,24 +419,14 @@ final class ItemCommandRouter implements TabExecutor {
         if (itemStack == null || itemStack.getType().isAir()) {
             return "-";
         }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return "-";
-        }
-        String raw = itemMeta.getPersistentDataContainer().get(SKILL_IDS_KEY, PersistentDataType.STRING);
-        return Texts.isBlank(raw) ? "-" : raw;
+        return valueOrDash(EquipmentSkillPdcCodec.readRaw(itemStack).skillIds());
     }
 
     private String inspectSkillTriggers(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return "-";
         }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return "-";
-        }
-        String raw = itemMeta.getPersistentDataContainer().get(SKILL_TRIGGERS_KEY, PersistentDataType.STRING);
-        return Texts.isBlank(raw) ? "-" : raw;
+        return valueOrDash(EquipmentSkillPdcCodec.readRaw(itemStack).boundTriggers());
     }
 
     private boolean handleAlias(CommandSender sender, String[] args) {

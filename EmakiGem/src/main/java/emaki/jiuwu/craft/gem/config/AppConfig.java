@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.gem.model.SocketOpenerConfig;
 
 public final class AppConfig extends BaseAppConfig {
 
-    public static final String CURRENT_VERSION = "2.2.6";
+    public static final String CURRENT_VERSION = "2.5.8";
 
     private final boolean releaseDefaultData;
     private final Map<String, SocketOpenerConfig> socketOpeners;

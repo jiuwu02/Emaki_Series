@@ -9,6 +9,10 @@ dependencies:
       load: BEFORE
       required: true
       join-classpath: true
+    EmakiItem:
+      load: BEFORE
+      required: false
+      join-classpath: true
     EmakiAttribute:
       load: BEFORE
       required: false

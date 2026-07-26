@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -28,12 +28,12 @@ import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.action.GemActionRegistrar;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.config.GemConfigPrecheckContributor;
+import emaki.jiuwu.craft.gem.integration.GemItemLayerPreviewLifecycle;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
@@ -46,7 +46,6 @@ import emaki.jiuwu.craft.gem.service.GemEconomyService;
 import emaki.jiuwu.craft.gem.service.GemExtractService;
 import emaki.jiuwu.craft.gem.service.GemGuiService;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
-import emaki.jiuwu.craft.gem.service.GemItemLayerPreviewProvider;
 import emaki.jiuwu.craft.gem.service.GemItemFactory;
 import emaki.jiuwu.craft.gem.service.GemItemMatcher;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
@@ -76,6 +75,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private BStatsRegistration metrics;
 
     private final GemLifecycleCoordinator lifecycleCoordinator = new GemLifecycleCoordinator();
+    private final GemItemLayerPreviewLifecycle itemLayerPreviewLifecycle = new GemItemLayerPreviewLifecycle(this);
     private final GemCommandRouter commandRouter = new GemCommandRouter(this);
 
     private ExecutionDispatcher executionDispatcher;
@@ -89,7 +89,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private BootstrapService bootstrapService;
     private GuiService guiService;
     private ItemSourceService coreItemSourceService;
-    private PdcAttributeGateway pdcAttributeGateway;
+    private GemAttributeBridge pdcAttributeGateway;
     private GemItemMatcher itemMatcher;
     private GemItemFactory itemFactory;
     private GemSnapshotBuilder snapshotBuilder;
@@ -150,7 +150,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         registerActions();
         registerEventHandlers();
         registerPublicApiService();
-        ItemLayerPreviewRegistry.register(this, new GemItemLayerPreviewProvider(this));
+        itemLayerPreviewLifecycle.initialize();
         ensurePlaceholderExpansion();
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -163,7 +163,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        ItemLayerPreviewRegistry.unregister(this);
+        itemLayerPreviewLifecycle.close();
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
@@ -312,7 +312,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         return coreItemSourceService;
     }
 
-    public PdcAttributeGateway pdcAttributeGateway() {
+    public GemAttributeBridge pdcAttributeGateway() {
         return pdcAttributeGateway;
     }
 

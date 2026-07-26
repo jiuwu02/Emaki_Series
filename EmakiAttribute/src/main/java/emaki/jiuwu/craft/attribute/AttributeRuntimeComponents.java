@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.bukkit.event.Listener;
 
+import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
@@ -21,7 +22,6 @@ import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
-import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -39,7 +39,7 @@ record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
         PdcReadRuleLoader pdcReadRuleLoader,
         LanguageLoader languageLoader,
         MessageService messageService,
-        EmakiAttributeBridge emakiAttributeBridge,
+        EmakiAttributeApi.Bridge emakiAttributeBridge,
         PdcAttributeApi.Bridge pdcAttributeApi,
         ParentAttributeDataStore parentAttributeDataStore,
         ParentAttributeService parentAttributeService,
@@ -65,9 +65,8 @@ record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(PdcReadRuleLoader.class, pdcReadRuleLoader),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(MessageService.class, messageService),
-                RuntimeComponents.component(EmakiAttributeBridge.class, emakiAttributeBridge),
+                RuntimeComponents.component(EmakiAttributeApi.Bridge.class, emakiAttributeBridge),
                 RuntimeComponents.component(PdcAttributeApi.Bridge.class, pdcAttributeApi),
-                RuntimeComponents.component(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, pdcAttributeApi),
                 RuntimeComponents.component(ParentAttributeDataStore.class, parentAttributeDataStore),
                 RuntimeComponents.component(ParentAttributeService.class, parentAttributeService),
                 RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),

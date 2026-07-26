@@ -28,7 +28,8 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
+import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -121,8 +122,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(),
                 coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin, coreLibPlugin.itemSourceService());
-        PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
-        syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
+        ForgeAttributeBridge pdcAttributeGateway = new ForgeAttributeBridgeHolder(plugin.getLogger());
+        pdcAttributeGateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
         ForgeService forgeService = new ForgeService(
                 plugin,
                 coreLibPlugin.asyncTaskScheduler(),
@@ -521,7 +522,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                             throw new StaleReloadException();
                         }
                         finalizeCandidateConfiguration(plugin, candidate);
-                        syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                        plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                         plugin.installCandidate(candidate);
                     }
                     plugin.messageService().info("console.pdc_source_registered", Map.of(

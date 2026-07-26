@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.strengthen.service;
+package emaki.jiuwu.craft.strengthen.integration.item;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -8,9 +8,10 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewProvider;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewRequest;
-import emaki.jiuwu.craft.corelib.item.preview.ItemLayerPreviewResult;
+import emaki.jiuwu.craft.item.api.EmakiItemApi;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRequest;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewResult;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
@@ -20,6 +21,10 @@ public final class StrengthenItemLayerPreviewProvider implements ItemLayerPrevie
     private static final String LAYER_ID = "strengthen";
 
     private final EmakiStrengthenPlugin plugin;
+
+    public static AutoCloseable register(EmakiStrengthenPlugin plugin) {
+        return EmakiItemApi.registerLayerPreview(plugin, new StrengthenItemLayerPreviewProvider(plugin));
+    }
 
     public StrengthenItemLayerPreviewProvider(EmakiStrengthenPlugin plugin) {
         this.plugin = plugin;

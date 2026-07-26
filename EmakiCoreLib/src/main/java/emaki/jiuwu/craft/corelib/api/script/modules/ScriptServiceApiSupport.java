@@ -210,88 +210,6 @@ public final class ScriptServiceApiSupport {
         return null;
     }
 
-    public static Map<String, Object> payloadToMap(Object payload) {
-        if (payload == null) {
-            return null;
-        }
-        if (ScriptWorkerBoundary.active()) {
-            return Map.of();
-        }
-        if (payload instanceof Map<?, ?> map) {
-            return ScriptSnapshots.immutableMap(map);
-        }
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("sourceId", invoke(payload, "sourceId", new Class<?>[0]));
-        map.put("attributes", copyMap(invoke(payload, "attributes", new Class<?>[0])));
-        map.put("meta", copyMap(invoke(payload, "meta", new Class<?>[0])));
-        map.put("conditions", copyMap(invoke(payload, "conditions", new Class<?>[0])));
-        map.put("schemaVersion", invoke(payload, "schemaVersion", new Class<?>[0]));
-        map.put("updatedAt", invoke(payload, "updatedAt", new Class<?>[0]));
-        return ScriptSnapshots.immutableMap(map);
-    }
-
-    public static Map<String, Object> payloadsToMap(Object payloads) {
-        if (ScriptWorkerBoundary.active() || !(payloads instanceof Map<?, ?> source)) {
-            return Map.of();
-        }
-        Map<String, Object> result = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : source.entrySet()) {
-            if (entry.getKey() == null) {
-                continue;
-            }
-            result.put(Texts.toStringSafe(entry.getKey()), payloadToMap(entry.getValue()));
-        }
-        return ScriptSnapshots.immutableMap(result);
-    }
-
-    public static Map<String, Object> damageResultToMap(Object result) {
-        if (result == null) {
-            return Map.of();
-        }
-        if (ScriptWorkerBoundary.active()) {
-            return Map.of();
-        }
-        if (result instanceof Map<?, ?> map) {
-            return ScriptSnapshots.immutableMap(map);
-        }
-        Map<String, Object> map = new LinkedHashMap<>();
-        put(map, "damageTypeId", invoke(result, "damageTypeId", new Class<?>[0]));
-        put(map, "finalDamage", invoke(result, "finalDamage", new Class<?>[0]));
-        put(map, "critical", invoke(result, "critical", new Class<?>[0]));
-        put(map, "roll", invoke(result, "roll", new Class<?>[0]));
-        put(map, "stageValues", copyMap(invoke(result, "stageValues", new Class<?>[0])));
-        put(map, "context", copyMap(invoke(result, "context", new Class<?>[0])));
-        return ScriptSnapshots.immutableMap(map);
-    }
-
-    public static Map<String, Object> strengthenStateToMap(Object state) {
-        if (state == null) {
-            return Map.of();
-        }
-        if (ScriptWorkerBoundary.active()) {
-            return Map.of();
-        }
-        if (state instanceof Map<?, ?> map) {
-            return ScriptSnapshots.immutableMap(map);
-        }
-        Map<String, Object> map = new LinkedHashMap<>();
-        put(map, "eligible", invoke(state, "eligible", new Class<?>[0]));
-        put(map, "eligibleReason", invoke(state, "eligibleReason", new Class<?>[0]));
-        put(map, "hasLayer", invoke(state, "hasLayer", new Class<?>[0]));
-        put(map, "baseSource", Texts.toStringSafe(invoke(state, "baseSource", new Class<?>[0])));
-        put(map, "baseSourceSignature", invoke(state, "baseSourceSignature", new Class<?>[0]));
-        put(map, "recipeId", invoke(state, "recipeId", new Class<?>[0]));
-        put(map, "currentStar", invoke(state, "currentStar", new Class<?>[0]));
-        put(map, "crackLevel", invoke(state, "crackLevel", new Class<?>[0]));
-        put(map, "milestoneFlags", new ArrayList<>(asCollection(invoke(state, "milestoneFlags", new Class<?>[0]))));
-        put(map, "successCount", invoke(state, "successCount", new Class<?>[0]));
-        put(map, "failureCount", invoke(state, "failureCount", new Class<?>[0]));
-        put(map, "lastAttemptAt", invoke(state, "lastAttemptAt", new Class<?>[0]));
-        put(map, "branchPath", invoke(state, "branchPath", new Class<?>[0]));
-        put(map, "fractureLevel", invoke(state, "fractureLevel", new Class<?>[0]));
-        return ScriptSnapshots.immutableMap(map);
-    }
-
     public static Map<String, Double> doubleMap(Map<String, ?> source) {
         Map<String, Double> result = new LinkedHashMap<>();
         if (source == null) {
@@ -321,27 +239,6 @@ public final class ScriptServiceApiSupport {
             }
         }
         return result;
-    }
-
-    private static Map<String, Object> copyMap(Object value) {
-        if (!(value instanceof Map<?, ?> source)) {
-            return Map.of();
-        }
-        Map<String, Object> result = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : source.entrySet()) {
-            if (entry.getKey() != null) {
-                result.put(Texts.toStringSafe(entry.getKey()), entry.getValue());
-            }
-        }
-        return ScriptSnapshots.immutableMap(result);
-    }
-
-    private static Collection<?> asCollection(Object value) {
-        return value instanceof Collection<?> collection ? collection : List.of();
-    }
-
-    private static void put(Map<String, Object> map, String key, Object value) {
-        map.put(key, value == null ? "" : value);
     }
 
     private static Double parseDouble(Object value) {

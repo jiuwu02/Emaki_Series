@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.item.service;
 
-import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -8,14 +7,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.api.integration.PdcAttributePayloadSnapshot;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
-import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
+import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPayload;
+import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
 
 public final class EmakiItemPdcWriter {
 
@@ -23,15 +24,15 @@ public final class EmakiItemPdcWriter {
     public static final String SET_ATTRIBUTE_SOURCE_ID = "emakiitem_set";
 
     private final EmakiItemIdentifier identifier;
-    private final PdcAttributeGateway attributeGateway;
-    private final SkillPdcGateway skillPdcGateway;
+    private final ItemAttributeBridge attributeGateway;
+    private final DebugLogger debugLogger;
 
     public EmakiItemPdcWriter(EmakiItemIdentifier identifier,
-            PdcAttributeGateway attributeGateway,
-            SkillPdcGateway skillPdcGateway) {
+            ItemAttributeBridge attributeGateway,
+            DebugLogger debugLogger) {
         this.identifier = identifier;
         this.attributeGateway = attributeGateway;
-        this.skillPdcGateway = skillPdcGateway;
+        this.debugLogger = debugLogger;
     }
 
     public void write(ItemStack itemStack, EmakiItemDefinition definition) {
@@ -48,18 +49,19 @@ public final class EmakiItemPdcWriter {
             identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature(), updateVersion);
             itemStack.setItemMeta(itemMeta);
         }
-        String equipSlot = EquipmentSlotMatcher.normalizeRequired(definition.equipSlot());
+        String equipSlot = EquipmentSkillPdcCodec.normalizeRequiredSlot(definition.equipSlot());
         Map<String, Double> attributes = resolveAttributes(definition.attributes());
-        if (!attributes.isEmpty()
-                && Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {
+        if (!attributes.isEmpty()) {
             attributeGateway.write(itemStack, ATTRIBUTE_SOURCE_ID, attributes, Map.of(
                     EquipmentSlotMatcher.ACTIVE_SLOT_META_KEY, equipSlot
             ));
         }
-        if ((!definition.skills().isEmpty() || !definition.skillTriggers().isEmpty())
-                && Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
-            skillPdcGateway.write(itemStack, definition.skills(), equipSlot, definition.skillTriggers());
-        }
+        observeSkillMutation(itemStack, EquipmentSkillPdcCodec.write(
+                itemStack,
+                definition.skills(),
+                equipSlot,
+                definition.skillTriggers()
+        ));
     }
 
     public void writeDynamicSet(ItemStack itemStack,
@@ -81,24 +83,25 @@ public final class EmakiItemPdcWriter {
             identifier.writeSetState(itemMeta, setId, setPiece, activeCount, totalCount, thresholds(activeThresholds), setLoreLines, setSignature);
             itemStack.setItemMeta(itemMeta);
         }
-        if (Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {
-            if (setAttributes == null || setAttributes.isEmpty()) {
-                attributeGateway.clear(itemStack, SET_ATTRIBUTE_SOURCE_ID);
-            } else {
-                attributeGateway.write(itemStack, SET_ATTRIBUTE_SOURCE_ID, setAttributes, Map.of(
-                        "set_id", Texts.normalizeId(setId),
-                        "active_count", Integer.toString(Math.max(0, activeCount)),
-                        "active_thresholds", thresholds(activeThresholds)
-                ));
-            }
+        if (setAttributes == null || setAttributes.isEmpty()) {
+            attributeGateway.clear(itemStack, SET_ATTRIBUTE_SOURCE_ID);
+        } else {
+            attributeGateway.write(itemStack, SET_ATTRIBUTE_SOURCE_ID, setAttributes, Map.of(
+                    "set_id", Texts.normalizeId(setId),
+                    "active_count", Integer.toString(Math.max(0, activeCount)),
+                    "active_thresholds", thresholds(activeThresholds)
+            ));
         }
-        if (Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
-            java.util.LinkedHashSet<String> skills = new java.util.LinkedHashSet<>(definition.skills());
-            if (setSkills != null) {
-                skills.addAll(setSkills);
-            }
-            skillPdcGateway.write(itemStack, skills, EquipmentSlotMatcher.normalizeRequired(definition.equipSlot()), definition.skillTriggers());
+        java.util.LinkedHashSet<String> skills = new java.util.LinkedHashSet<>(definition.skills());
+        if (setSkills != null) {
+            skills.addAll(setSkills);
         }
+        observeSkillMutation(itemStack, EquipmentSkillPdcCodec.write(
+                itemStack,
+                skills,
+                EquipmentSkillPdcCodec.normalizeRequiredSlot(definition.equipSlot()),
+                definition.skillTriggers()
+        ));
     }
 
     boolean isDynamicSetCurrent(ItemStack itemStack,
@@ -126,12 +129,11 @@ public final class EmakiItemPdcWriter {
                 || !Texts.toStringSafe(setSignature).equals(identity.setSignature())) {
             return false;
         }
-        if (Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")
+        if (attributeGateway.available()
                 && !isSetAttributePayloadCurrent(itemStack, setId, activeCount, expectedThresholds, setAttributes)) {
             return false;
         }
-        return !Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")
-                || isSetSkillPayloadCurrent(itemStack, definition, setSkills);
+        return isSetSkillPayloadCurrent(itemStack, definition, setSkills);
     }
 
     public void clearDynamicSet(ItemStack itemStack, EmakiItemDefinition definition) {
@@ -144,9 +146,15 @@ public final class EmakiItemPdcWriter {
             itemStack.setItemMeta(itemMeta);
         }
         attributeGateway.clear(itemStack, SET_ATTRIBUTE_SOURCE_ID);
-        if (definition != null && Bukkit.getPluginManager().isPluginEnabled("EmakiSkills")) {
-            skillPdcGateway.write(itemStack, definition.skills(), EquipmentSlotMatcher.normalizeRequired(definition.equipSlot()), definition.skillTriggers());
-        }
+        SkillPdcMutation mutation = definition == null
+                ? EquipmentSkillPdcCodec.clear(itemStack)
+                : EquipmentSkillPdcCodec.write(
+                        itemStack,
+                        definition.skills(),
+                        EquipmentSkillPdcCodec.normalizeRequiredSlot(definition.equipSlot()),
+                        definition.skillTriggers()
+                );
+        observeSkillMutation(itemStack, mutation);
     }
 
     public void shutdown() {
@@ -158,66 +166,54 @@ public final class EmakiItemPdcWriter {
             int activeCount,
             String activeThresholds,
             Map<String, Double> setAttributes) {
-        PdcAttributePayloadSnapshot snapshot = attributeGateway.readAll(itemStack).get(SET_ATTRIBUTE_SOURCE_ID);
         Map<String, Double> expectedAttributes = setAttributes == null || setAttributes.isEmpty()
                 ? Map.of()
                 : Map.copyOf(setAttributes);
         if (expectedAttributes.isEmpty()) {
-            return snapshot == null;
+            return !attributeGateway.hasPayload(itemStack, SET_ATTRIBUTE_SOURCE_ID);
+        }
+        if (!attributeGateway.hasPayload(itemStack, SET_ATTRIBUTE_SOURCE_ID)) {
+            return false;
         }
         Map<String, String> expectedMeta = Map.of(
                 "set_id", Texts.normalizeId(setId),
                 "active_count", Integer.toString(Math.max(0, activeCount)),
                 "active_thresholds", Texts.toStringSafe(activeThresholds)
         );
-        return snapshot != null
-                && expectedAttributes.equals(snapshot.attributes())
-                && expectedMeta.equals(snapshot.meta());
+        return expectedAttributes.equals(attributeGateway.readAttributes(itemStack, SET_ATTRIBUTE_SOURCE_ID))
+                && expectedMeta.equals(attributeGateway.readMeta(itemStack, SET_ATTRIBUTE_SOURCE_ID));
     }
 
     private boolean isSetSkillPayloadCurrent(ItemStack itemStack,
             EmakiItemDefinition definition,
             List<String> setSkills) {
-        Map<String, String> expectedTriggers = normalizeSkillTriggers(definition.skillTriggers());
-        java.util.TreeSet<String> expectedSkills = new java.util.TreeSet<>();
-        addNormalizedSkills(expectedSkills, definition.skills());
-        addNormalizedSkills(expectedSkills, setSkills);
-        addNormalizedSkills(expectedSkills, expectedTriggers.keySet());
-        List<String> actualSkills = skillPdcGateway.readSkillIds(itemStack);
-        if (!List.copyOf(expectedSkills).equals(actualSkills)
-                || !expectedTriggers.equals(skillPdcGateway.readBoundTriggers(itemStack))) {
-            return false;
+        java.util.LinkedHashSet<String> expectedSkills = new java.util.LinkedHashSet<>(definition.skills());
+        if (setSkills != null) {
+            expectedSkills.addAll(setSkills);
         }
-        return expectedSkills.isEmpty()
-                || EquipmentSlotMatcher.normalizeRequired(definition.equipSlot())
-                        .equals(skillPdcGateway.readActiveSlot(itemStack));
+        EquipmentSkillPayload expected = EquipmentSkillPdcCodec.normalize(
+                expectedSkills,
+                definition.equipSlot(),
+                definition.skillTriggers()
+        );
+        return expected.equals(EquipmentSkillPdcCodec.read(itemStack));
     }
 
-    private void addNormalizedSkills(java.util.Set<String> sink, Iterable<String> skillIds) {
-        if (sink == null || skillIds == null) {
+    private void observeSkillMutation(ItemStack itemStack, SkillPdcMutation mutation) {
+        if (debugLogger == null
+                || mutation == null
+                || !debugLogger.shouldLog("pdc", (java.util.UUID) null)) {
             return;
         }
-        for (String skillId : skillIds) {
-            String normalized = Texts.normalizeId(skillId);
-            if (Texts.isNotBlank(normalized)) {
-                sink.add(normalized);
-            }
-        }
-    }
-
-    private Map<String, String> normalizeSkillTriggers(Map<String, String> skillTriggers) {
-        if (skillTriggers == null || skillTriggers.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, String> normalized = new LinkedHashMap<>();
-        skillTriggers.forEach((skillId, triggerId) -> {
-            String normalizedSkill = Texts.normalizeId(skillId);
-            String normalizedTrigger = Texts.normalizeId(triggerId).replace('-', '_');
-            if (Texts.isNotBlank(normalizedSkill) && Texts.isNotBlank(normalizedTrigger)) {
-                normalized.put(normalizedSkill, normalizedTrigger);
-            }
-        });
-        return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
+        debugLogger.log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+                "operation", mutation.operation(),
+                "item", itemStack == null ? "null" : itemStack.getType(),
+                "amount", itemStack == null ? 0 : itemStack.getAmount(),
+                "before", mutation.before().values(),
+                "after", mutation.after().values(),
+                "committed", mutation.committed(),
+                "reason", mutation.reason()
+        ));
     }
 
     private String thresholds(List<Integer> thresholds) {

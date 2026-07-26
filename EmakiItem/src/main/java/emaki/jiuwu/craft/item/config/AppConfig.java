@@ -12,13 +12,13 @@ public final class AppConfig extends BaseAppConfig {
             String configVersion,
             boolean releaseDefaultData,
             SetBonusConfig setBonus) {
-        super(language, configVersion, "2.5.16");
+        super(language, configVersion, "2.5.19");
         this.releaseDefaultData = releaseDefaultData;
         this.setBonus = setBonus == null ? SetBonusConfig.defaults() : setBonus;
     }
 
     public static AppConfig defaults() {
-        return new AppConfig("zh_CN", "2.5.16", true, SetBonusConfig.defaults());
+        return new AppConfig("zh_CN", "2.5.19", true, SetBonusConfig.defaults());
     }
 
     public boolean releaseDefaultData() {

@@ -1,26 +1,37 @@
 package emaki.jiuwu.craft.skills.bridge;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.skills.integration.SkillsAttributeBridge;
 
+/**
+ * EmakiSkills' access point to EmakiAttribute capabilities.
+ *
+ * <p>Backed by the canonical {@code EmakiAttributeApi} facade through a
+ * conditionally loaded adapter: the EmakiAttributeApi-referencing class is only
+ * loaded when EmakiAttribute is enabled, so EmakiSkills starts normally without
+ * it. The delegate is re-resolved whenever EmakiAttribute's enabled state
+ * changes, so a disabled or reloaded EmakiAttribute is never called through a
+ * stale bridge.
+ */
 public final class EaBridge {
 
     private static final String ATTRIBUTE_PLUGIN_NAME = "EmakiAttribute";
+    private static final String BRIDGE_CLASS =
+            "emaki.jiuwu.craft.skills.integration.attribute.EmakiAttributeSkillsBridge";
 
     private final JavaPlugin plugin;
     private final LogMessages messages;
-    private boolean available;
-    private EmakiAttributeBridge bridge;
-    private String providerMode;
+    private volatile SkillsAttributeBridge bridge = SkillsAttributeBridge.UNAVAILABLE;
+    private volatile String providerMode = "";
 
     public EaBridge(JavaPlugin plugin, LogMessages messages) {
         this.plugin = plugin;
@@ -28,32 +39,25 @@ public final class EaBridge {
     }
 
     public void init() {
-        available = false;
-        bridge = null;
+        bridge = SkillsAttributeBridge.UNAVAILABLE;
         providerMode = "";
 
-        RegisteredServiceProvider<EmakiAttributeBridge> registration = Bukkit.getServicesManager().getRegistration(EmakiAttributeBridge.class);
-        if (registration == null || registration.getProvider() == null) {
-            if (plugin.getServer().getPluginManager().isPluginEnabled(ATTRIBUTE_PLUGIN_NAME)) {
-                info("console.ea_bridge_service_unregistered");
-            } else {
-                info("console.ea_bridge_unavailable");
-            }
+        if (!plugin.getServer().getPluginManager().isPluginEnabled(ATTRIBUTE_PLUGIN_NAME)) {
+            info("console.ea_bridge_unavailable");
             return;
         }
-
-        bridge = registration.getProvider();
-        available = bridge.available();
-        providerMode = "Bukkit ServicesManager";
-        if (!available) {
+        SkillsAttributeBridge resolved = load();
+        if (!resolved.available()) {
             info("console.ea_bridge_service_unregistered");
             return;
         }
+        bridge = resolved;
+        providerMode = "EmakiAttributeApi";
         info("console.ea_bridge_ready", Map.of("mode", providerMode));
     }
 
     public boolean isAvailable() {
-        return available && bridge != null;
+        return resolve().available();
     }
 
     public String providerMode() {
@@ -61,11 +65,12 @@ public final class EaBridge {
     }
 
     public double readResourceCurrent(org.bukkit.entity.Player player, String resourceId) {
-        if (!isAvailable()) {
+        SkillsAttributeBridge resolved = resolve();
+        if (!resolved.available()) {
             return -1D;
         }
         try {
-            return bridge.readResourceCurrent(player, resourceId);
+            return resolved.readResourceCurrent(player, resourceId);
         } catch (Exception exception) {
             warning("console.ea_bridge_read_resource_current_failed", Map.of(
                     "resource", String.valueOf(resourceId),
@@ -76,11 +81,12 @@ public final class EaBridge {
     }
 
     public double readResourceMax(org.bukkit.entity.Player player, String resourceId) {
-        if (!isAvailable()) {
+        SkillsAttributeBridge resolved = resolve();
+        if (!resolved.available()) {
             return -1D;
         }
         try {
-            return bridge.readResourceMax(player, resourceId);
+            return resolved.readResourceMax(player, resourceId);
         } catch (Exception exception) {
             warning("console.ea_bridge_read_resource_max_failed", Map.of(
                     "resource", String.valueOf(resourceId),
@@ -91,11 +97,12 @@ public final class EaBridge {
     }
 
     public boolean consumeResource(org.bukkit.entity.Player player, String resourceId, double amount) {
-        if (!isAvailable()) {
+        SkillsAttributeBridge resolved = resolve();
+        if (!resolved.available()) {
             return false;
         }
         try {
-            return bridge.consumeResource(player, resourceId, amount);
+            return resolved.consumeResource(player, resourceId, amount);
         } catch (Exception exception) {
             warning("console.ea_bridge_consume_failed", Map.of(
                     "resource", String.valueOf(resourceId),
@@ -106,11 +113,12 @@ public final class EaBridge {
     }
 
     public double readAttributeValue(org.bukkit.entity.Player player, String attributeId) {
-        if (!isAvailable()) {
+        SkillsAttributeBridge resolved = resolve();
+        if (!resolved.available()) {
             return 0D;
         }
         try {
-            return bridge.readAttributeValue(player, attributeId);
+            return resolved.readAttributeValue(player, attributeId);
         } catch (Exception exception) {
             warning("console.ea_bridge_attribute_read_failed", Map.of(
                     "attribute", String.valueOf(attributeId),
@@ -121,11 +129,12 @@ public final class EaBridge {
     }
 
     public boolean applyDamage(LivingEntity attacker, LivingEntity target, String damageTypeId, double baseDamage, Map<String, Object> context) {
-        if (!isAvailable()) {
+        SkillsAttributeBridge resolved = resolve();
+        if (!resolved.available()) {
             return false;
         }
         try {
-            return bridge.applyDamage(attacker, target, damageTypeId, baseDamage, context);
+            return resolved.applyDamage(attacker, target, damageTypeId, baseDamage, context);
         } catch (Exception exception) {
             warning("console.ea_bridge_apply_damage_failed", Map.of(
                     "damage_type", String.valueOf(damageTypeId),
@@ -136,9 +145,44 @@ public final class EaBridge {
     }
 
     public void shutdown() {
-        available = false;
-        bridge = null;
+        bridge = SkillsAttributeBridge.UNAVAILABLE;
         providerMode = "";
+    }
+
+    private SkillsAttributeBridge resolve() {
+        boolean enabled = Bukkit.getPluginManager().isPluginEnabled(ATTRIBUTE_PLUGIN_NAME);
+        SkillsAttributeBridge current = bridge;
+        if (!enabled) {
+            if (current != SkillsAttributeBridge.UNAVAILABLE) {
+                bridge = SkillsAttributeBridge.UNAVAILABLE;
+                providerMode = "";
+            }
+            return SkillsAttributeBridge.UNAVAILABLE;
+        }
+        if (current != SkillsAttributeBridge.UNAVAILABLE) {
+            return current;
+        }
+        SkillsAttributeBridge resolved = load();
+        if (resolved.available()) {
+            bridge = resolved;
+            providerMode = "EmakiAttributeApi";
+        }
+        return resolved;
+    }
+
+    private SkillsAttributeBridge load() {
+        try {
+            Class<?> bridgeClass = Class.forName(BRIDGE_CLASS, true, getClass().getClassLoader());
+            Object created = bridgeClass.getMethod("create").invoke(null);
+            return created instanceof SkillsAttributeBridge resolved
+                    ? resolved
+                    : SkillsAttributeBridge.UNAVAILABLE;
+        } catch (ReflectiveOperationException | LinkageError exception) {
+            warning("console.ea_bridge_init_failed", Map.of(
+                    "error", errorMessage(exception)
+            ), exception);
+            return SkillsAttributeBridge.UNAVAILABLE;
+        }
     }
 
     private void info(String key) {
@@ -167,7 +211,11 @@ public final class EaBridge {
         if (throwable == null) {
             return "unknown";
         }
-        String message = throwable.getMessage();
-        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
+        Throwable resolved = throwable instanceof InvocationTargetException invocation
+                && invocation.getCause() != null
+                ? invocation.getCause()
+                : throwable;
+        String message = resolved.getMessage();
+        return message == null || message.isBlank() ? resolved.getClass().getSimpleName() : message;
     }
 }

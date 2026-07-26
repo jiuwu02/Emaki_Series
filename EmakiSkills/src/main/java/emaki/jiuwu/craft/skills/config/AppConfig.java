@@ -8,7 +8,7 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
 public final class AppConfig extends BaseAppConfig {
 
-    public static final String CURRENT_VERSION = "2.5.10";
+    public static final String CURRENT_VERSION = "2.5.11";
 
     private final boolean releaseDefaultData;
     private final int defaultSlotCount;

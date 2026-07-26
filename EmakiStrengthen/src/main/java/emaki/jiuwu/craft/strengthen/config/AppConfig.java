@@ -23,7 +23,7 @@ public final class AppConfig extends BaseAppConfig {
             List<Integer> localBroadcastStars,
             List<Integer> globalBroadcastStars,
             Map<Integer, Double> successRates) {
-        super(language, configVersion, "4.2.9");
+        super(language, configVersion, "4.5.9");
         this.releaseDefaultData = releaseDefaultData;
         this.localBroadcastRadius = Math.max(1, localBroadcastRadius);
         this.localBroadcastStars = toStarSet(localBroadcastStars);

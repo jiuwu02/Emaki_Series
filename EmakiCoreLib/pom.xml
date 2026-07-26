@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.5.18</version>
+    <version>4.5.22</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -26,6 +26,11 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib-api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-skills-protocol</artifactId>
+            <version>2.5.12</version>
         </dependency>
         <dependency>
             <groupId>org.bstats</groupId>
@@ -239,11 +244,16 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-corelib-api</include>
+                                    <include>emaki.jiuwu.craft:emaki-skills-protocol</include>
                                     <include>org.bstats:bstats-bukkit</include>
                                     <include>org.bstats:bstats-base</include>
                                 </includes>
                             </artifactSet>
                             <relocations>
+                                <relocation>
+                                    <pattern>emaki.jiuwu.craft.skills.protocol</pattern>
+                                    <shadedPattern>emaki.jiuwu.craft.corelib.runtime.skillsprotocol</shadedPattern>
+                                </relocation>
                                 <relocation>
                                     <pattern>org.bstats</pattern>
                                     <shadedPattern>emaki.jiuwu.craft.runtime.bstats</shadedPattern>

@@ -19,8 +19,8 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
-import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
+import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
+import emaki.jiuwu.craft.item.integration.ItemAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
@@ -40,6 +40,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
+import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
 import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
@@ -113,13 +114,17 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         EmakiItemIdResolver idResolver = new EmakiItemIdResolver(itemLoader, aliasLoader, javaScriptDefinitionRegistry);
         EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
-        EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin);
+        EmakiItemLayerPreviewRegistry layerPreviewRegistry = new EmakiItemLayerPreviewRegistry();
+        EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin, layerPreviewRegistry);
         PdcService pdcService = new PdcService("emaki", "pdc", plugin.debugLogger());
         EmakiItemIdentifier identifier = new EmakiItemIdentifier(pdcService);
-        PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
-        syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
-        EmakiItemPdcWriter pdcWriter = new EmakiItemPdcWriter(identifier, pdcAttributeGateway,
-                new SkillPdcGateway(plugin.debugLogger()));
+        ItemAttributeBridge pdcAttributeGateway = new ItemAttributeBridgeHolder(plugin.getLogger());
+        pdcAttributeGateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
+        EmakiItemPdcWriter pdcWriter = new EmakiItemPdcWriter(
+                identifier,
+                pdcAttributeGateway,
+                plugin.debugLogger()
+        );
         EmakiItemFactory itemFactory = new EmakiItemFactory(
                 itemLoader,
                 idResolver,
@@ -175,6 +180,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 aliasLoader,
                 idResolver,
                 migrationService,
+                layerPreviewRegistry,
                 layerPreviewService,
                 identifier,
                 pdcWriter,
@@ -219,7 +225,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (!reloadAllowed(allowed)) {
             return;
         }
-        syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+        plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
         if (!reloadAllowed(allowed)) {
             return;
         }
@@ -312,7 +318,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 if (!reloadAllowed(allowed)) {
                     return null;
                 }
-                syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                 if (!reloadAllowed(allowed)) {
                     return null;
                 }
@@ -362,6 +368,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             coreLibPlugin.placeholderRegistry().unregister(plugin.componentPlaceholderResolver());
         }
         closeItemSourceResolver();
+        if (plugin.layerPreviewRegistry() != null) {
+            plugin.layerPreviewRegistry().close();
+        }
         coreLibPlugin.scriptModuleRegistry().unregister("item");
         coreLibPlugin.scriptModuleRegistry().unregister("items");
         if (plugin.pdcWriter() != null) {
@@ -378,7 +387,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         }
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
-                configuration.getString("version", "2.5.16"),
+                configuration.getString("version", "2.5.19"),
                 configuration.getBoolean("release_default_data", true),
                 parseSetBonus(configuration.getSection("set_bonus"))
         );

@@ -6,22 +6,21 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
-import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
+import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
 
 final class ForgePdcAttributeWriter {
 
     private static final String SOURCE_ID = "forge";
 
     private final EmakiForgePlugin plugin;
-    private final SkillPdcGateway skillPdcGateway;
 
     ForgePdcAttributeWriter(EmakiForgePlugin plugin) {
         this.plugin = plugin;
-        this.skillPdcGateway = new SkillPdcGateway(plugin == null ? null : plugin.debugLogger());
     }
 
     void apply(Recipe recipe,
@@ -32,7 +31,7 @@ final class ForgePdcAttributeWriter {
         if (itemStack == null) {
             return;
         }
-        PdcAttributeGateway gateway = plugin.pdcAttributeGateway();
+        ForgeAttributeBridge gateway = plugin.pdcAttributeGateway();
         Map<String, Double> attributes = new LinkedHashMap<>();
         Map<String, String> meta = new LinkedHashMap<>();
         java.util.List<String> skillIds = new java.util.ArrayList<>();
@@ -54,7 +53,7 @@ final class ForgePdcAttributeWriter {
                 }
             }
         }
-        skillPdcGateway.write(itemStack, skillIds);
+        observeSkillMutation(itemStack, EquipmentSkillPdcCodec.write(itemStack, skillIds));
         if (gateway == null || !gateway.available()) {
             return;
         }
@@ -69,5 +68,23 @@ final class ForgePdcAttributeWriter {
             meta.put("quality", qualityTier.name());
         }
         gateway.write(itemStack, SOURCE_ID, attributes, meta);
+    }
+
+    private void observeSkillMutation(ItemStack itemStack, SkillPdcMutation mutation) {
+        if (plugin == null
+                || plugin.debugLogger() == null
+                || mutation == null
+                || !plugin.debugLogger().shouldLog("pdc", (java.util.UUID) null)) {
+            return;
+        }
+        plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+                "operation", mutation.operation(),
+                "item", itemStack == null ? "null" : itemStack.getType(),
+                "amount", itemStack == null ? 0 : itemStack.getAmount(),
+                "before", mutation.before().values(),
+                "after", mutation.after().values(),
+                "committed", mutation.committed(),
+                "reason", mutation.reason()
+        ));
     }
 }

@@ -5,17 +5,25 @@ import java.util.Map;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.api.PlayerResourceConsumeEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
-import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBridge {
+/**
+ * Canonical {@link EmakiAttributeApi.Bridge} implementation backed by the
+ * EmakiAttribute runtime services.
+ *
+ * <p>This is the single authoritative implementation of the resource, attribute,
+ * damage and equipment-sync rules; the deprecated CoreLib mirror only delegates
+ * here.
+ */
+public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeApi.Bridge {
 
     private final AttributeServiceFacade attributeService;
     private final ThreadOwnership threadOwnership;

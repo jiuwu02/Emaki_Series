@@ -7,7 +7,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
@@ -40,7 +40,7 @@ record GemRuntimeComponents(ExecutionDispatcher executionDispatcher,
         BootstrapService bootstrapService,
         GuiService guiService,
         ItemSourceService coreItemSourceService,
-        PdcAttributeGateway pdcAttributeGateway,
+        GemAttributeBridge pdcAttributeGateway,
         GemItemMatcher itemMatcher,
         GemItemFactory itemFactory,
         GemSnapshotBuilder snapshotBuilder,
@@ -68,7 +68,7 @@ record GemRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(GuiService.class, guiService),
                 RuntimeComponents.component(ItemSourceService.class, coreItemSourceService),
-                RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
+                RuntimeComponents.component(GemAttributeBridge.class, pdcAttributeGateway),
                 RuntimeComponents.component(GemItemMatcher.class, itemMatcher),
                 RuntimeComponents.component(GemItemFactory.class, itemFactory),
                 RuntimeComponents.component(GemSnapshotBuilder.class, snapshotBuilder),

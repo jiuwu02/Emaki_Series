@@ -3,10 +3,13 @@ package emaki.jiuwu.craft.item.api;
 import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
+import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
 
 /**
  * Static public API facade for creating and identifying EmakiItem custom items.
@@ -115,6 +118,25 @@ public final class EmakiItemApi {
         return resolved == null ? "" : resolved.displayName(id);
     }
 
+    /**
+     * Registers an item layer preview provider with the active EmakiItem runtime.
+     *
+     * <p>When EmakiItem is unavailable, this method returns a no-op handle so
+     * callers can always close the result safely.
+     *
+     * @param plugin the plugin that owns the provider
+     * @param provider the provider to register
+     * @return a closeable registration handle
+     */
+    public static @NotNull ItemLayerPreviewRegistration registerLayerPreview(
+            @NotNull Plugin plugin,
+            @NotNull ItemLayerPreviewProvider provider) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? ItemLayerPreviewRegistration.noop()
+                : resolved.registerLayerPreview(plugin, provider);
+    }
+
     /** Internal bridge installed by EmakiItem. */
     public interface Bridge {
         /** {@return whether the owning EmakiItem runtime is ready for item resolution} */
@@ -166,5 +188,17 @@ public final class EmakiItemApi {
          */
         @NotNull
         String displayName(@NotNull String id);
+
+        /**
+         * Registers a layer preview provider in the owning EmakiItem runtime.
+         *
+         * @param plugin the provider owner
+         * @param provider the provider implementation
+         * @return a closeable registration handle
+         */
+        @NotNull
+        ItemLayerPreviewRegistration registerLayerPreview(
+                @NotNull Plugin plugin,
+                @NotNull ItemLayerPreviewProvider provider);
     }
 }

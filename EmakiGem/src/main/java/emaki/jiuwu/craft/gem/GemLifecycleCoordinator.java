@@ -22,7 +22,8 @@ import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
+import emaki.jiuwu.craft.gem.integration.GemAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -95,8 +96,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 }
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
-        PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
-        syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
+        GemAttributeBridge pdcAttributeGateway = new GemAttributeBridgeHolder(plugin.getLogger());
+        pdcAttributeGateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
         GemItemMatcher itemMatcher = new GemItemMatcher(plugin, coreLibPlugin.itemSourceService());
         GemItemFactory itemFactory = new GemItemFactory(plugin, coreLibPlugin.itemSourceService());
         GemSnapshotBuilder snapshotBuilder = new GemSnapshotBuilder(plugin);
@@ -195,7 +196,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         plugin.itemMatcher().refresh();
         GemOperationJournal.forPlugin(plugin, plugin.executionDispatcher(), plugin.threadOwnership()).recover(plugin.economyService());
         loadResonances(plugin);
-        syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+        plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
         refreshOnlinePlayerItems(plugin);
         plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
         plugin.messageService().info("console.gems_loaded", Map.of(
@@ -235,7 +236,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                     plugin.itemMatcher().refresh();
                     GemOperationJournal.forPlugin(plugin, plugin.executionDispatcher(), plugin.threadOwnership()).recover(plugin.economyService());
                     loadResonances(plugin);
-                    syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+                    plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                     refreshOnlinePlayerItems(plugin);
                     plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
                     plugin.messageService().info("console.gems_loaded", Map.of(

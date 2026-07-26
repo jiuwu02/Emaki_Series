@@ -44,6 +44,8 @@ import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
+import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
+import emaki.jiuwu.craft.attribute.bridge.LegacyCoreAttributeCompatibility;
 import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
@@ -91,8 +93,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private PdcReadRuleLoader pdcReadRuleLoader;
     private LanguageLoader languageLoader;
     private MessageService messageService;
-    private EmakiAttributeBridge emakiAttributeBridge;
+    private EmakiAttributeApi.Bridge emakiAttributeBridge;
     private PdcAttributeApi.Bridge pdcAttributeApi;
+    @SuppressWarnings("deprecation")
+    private LegacyCoreAttributeCompatibility legacyCoreCompatibility;
     private ParentAttributeDataStore parentAttributeDataStore;
     private ParentAttributeService parentAttributeService;
     private GuiTemplateLoader guiTemplateLoader;
@@ -116,6 +120,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         registerConfigPrecheckContributor();
         registerAttributeBridgeService();
         registerPdcAttributeApi();
+        registerLegacyCoreCompatibility();
         registerAttributeServiceFacade();
         registerScriptModule();
         ConsoleOutputs.sendGradientAscii(
@@ -144,6 +149,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             javaScriptAttributeExtensionLoader = null;
         }
         PdcAttributeApi.uninstall(pdcAttributeApi);
+        EmakiAttributeApi.uninstall(emakiAttributeBridge);
+        legacyCoreCompatibility = null;
         Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
         if (metrics != null) {
@@ -265,18 +272,29 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
             return;
         }
         PdcAttributeApi.install(pdcAttributeApi);
-        emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi coreApi =
-                (emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi) pdcAttributeApi;
-        Bukkit.getServicesManager().unregister(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, coreApi);
-        Bukkit.getServicesManager().register(emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, coreApi, this, ServicePriority.Normal);
     }
 
     private void registerAttributeBridgeService() {
         if (emakiAttributeBridge == null) {
             return;
         }
-        Bukkit.getServicesManager().unregister(EmakiAttributeBridge.class, emakiAttributeBridge);
-        Bukkit.getServicesManager().register(EmakiAttributeBridge.class, emakiAttributeBridge, this, ServicePriority.Normal);
+        EmakiAttributeApi.install(emakiAttributeBridge);
+    }
+
+    /**
+     * Publishes the deprecated CoreLib Attribute mirrors through the single
+     * compatibility adapter, which only delegates to the canonical facades.
+     */
+    @SuppressWarnings("deprecation")
+    private void registerLegacyCoreCompatibility() {
+        legacyCoreCompatibility = new LegacyCoreAttributeCompatibility();
+        Bukkit.getServicesManager().unregister(EmakiAttributeBridge.class, legacyCoreCompatibility);
+        Bukkit.getServicesManager().register(EmakiAttributeBridge.class, legacyCoreCompatibility, this, ServicePriority.Normal);
+        Bukkit.getServicesManager().unregister(
+                emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, legacyCoreCompatibility);
+        Bukkit.getServicesManager().register(
+                emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class,
+                legacyCoreCompatibility, this, ServicePriority.Normal);
     }
 
     private void registerAttributeServiceFacade() {
