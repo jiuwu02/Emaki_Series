@@ -336,7 +336,10 @@ final class ResourceManagementService {
         if (player == null) {
             return 0;
         }
-        int cooldownTicks = service.vanillaSynchronizer().resolveAttackCooldownTicks(snapshot, service.registryService().genericAttackSpeedDefinitions());
+        int cooldownTicks = service.vanillaSynchronizer().resolveAttackCooldownTicks(
+                player,
+                snapshot,
+                service.registryService().genericAttackSpeedDefinitions());
         if (cooldownTicks <= 0) {
             service.stateRepository().clearAttackCooldown(player);
             return 0;

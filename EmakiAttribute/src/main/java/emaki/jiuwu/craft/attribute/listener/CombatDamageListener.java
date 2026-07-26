@@ -167,7 +167,17 @@ public final class CombatDamageListener implements Listener {
             return;
         }
         if (attributeService.config().vanillaEventDamageEnabled()) {
-            handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
+            LivingEntity takeoverAttacker = damager instanceof LivingEntity livingEntity ? livingEntity : null;
+            if ((cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                    || cause == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)
+                    && isMeleeAttackCoolingDown(
+                            takeoverAttacker instanceof Player player ? player : null,
+                            takeoverAttacker,
+                            target)) {
+                event.setCancelled(true);
+                return;
+            }
+            handleEnvironmentalDamage(event, target, takeoverAttacker);
             return;
         }
         if (cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK || cause == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
