@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPayload;
 import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
@@ -54,20 +55,29 @@ public final class EquipmentSkillCollector {
 
     private final Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier;
     private final Supplier<AppConfig> appConfigSupplier;
+    private final Supplier<EaBridge> eaBridgeSupplier;
     private final DebugLogger debugLogger;
     private final Logger logger;
     private final Map<LoreFailureKey, Boolean> loggedLoreFailures = new LinkedHashMap<>();
 
     public EquipmentSkillCollector(JavaPlugin plugin,
             Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier) {
-        this(plugin, skillDefinitionsSupplier, AppConfig::defaults);
+        this(plugin, skillDefinitionsSupplier, AppConfig::defaults, () -> null);
     }
 
     public EquipmentSkillCollector(JavaPlugin plugin,
             Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier,
             Supplier<AppConfig> appConfigSupplier) {
+        this(plugin, skillDefinitionsSupplier, appConfigSupplier, () -> null);
+    }
+
+    public EquipmentSkillCollector(JavaPlugin plugin,
+            Supplier<Map<String, SkillDefinition>> skillDefinitionsSupplier,
+            Supplier<AppConfig> appConfigSupplier,
+            Supplier<EaBridge> eaBridgeSupplier) {
         this.skillDefinitionsSupplier = skillDefinitionsSupplier == null ? Map::of : skillDefinitionsSupplier;
         this.appConfigSupplier = appConfigSupplier == null ? AppConfig::defaults : appConfigSupplier;
+        this.eaBridgeSupplier = eaBridgeSupplier == null ? () -> null : eaBridgeSupplier;
         this.debugLogger = plugin instanceof DebugLoggerProvider provider ? provider.debugLogger() : null;
         this.logger = plugin == null ? null : plugin.getLogger();
     }
@@ -87,7 +97,7 @@ public final class EquipmentSkillCollector {
                 continue;
             }
             String slotName = slotName(slot);
-            ItemSkills parsed = resolveItemSkills(item, slotName, definitions, sources, playerId);
+            ItemSkills parsed = resolveItemSkills(player, item, slotName, definitions, sources, playerId);
             for (String skillId : parsed.effectiveSkillIds()) {
                 result.add(new UnlockedSkillEntry(skillId, "equipment", SkillSourceType.EQUIPMENT,
                         slotName, parsed.loreAliases().get(skillId)));
@@ -112,7 +122,7 @@ public final class EquipmentSkillCollector {
                 continue;
             }
             String slotName = slotName(slot);
-            ItemSkills parsed = resolveItemSkills(item, slotName, definitions, sources, playerId);
+            ItemSkills parsed = resolveItemSkills(player, item, slotName, definitions, sources, playerId);
             for (Map.Entry<String, String> entry : parsed.boundTriggers().entrySet()) {
                 if (parsed.effectiveSkillIds().contains(entry.getKey())
                         && normalizedTrigger.equals(entry.getValue())) {
@@ -123,11 +133,24 @@ public final class EquipmentSkillCollector {
         return result;
     }
 
-    private ItemSkills resolveItemSkills(ItemStack item,
+    private ItemSkills resolveItemSkills(Player player,
+            ItemStack item,
             String slotName,
             Map<String, SkillDefinition> definitions,
             AppConfig.SkillSourceSettings sources,
             UUID playerId) {
+        if (!isItemContributionActive(player, item, slotName)) {
+            ItemSkills gated = new ItemSkills(
+                    Map.of(),
+                    Set.of(),
+                    Set.of(),
+                    Map.of(),
+                    EquipmentSkillPdcCodec.SLOT_ALL,
+                    "item_condition_gate"
+            );
+            logSourceResolution(playerId, slotName, sources, gated);
+            return gated;
+        }
         EquipmentSkillPayload pdcPayload = sources.readPdcSkills()
                 ? EquipmentSkillPdcCodec.read(item)
                 : new EquipmentSkillPayload(List.of(), EquipmentSkillPdcCodec.SLOT_ALL, Map.of());
@@ -148,6 +171,22 @@ public final class EquipmentSkillCollector {
         ItemSkills resolved = new ItemSkills(loreAliases, pdcSkillIds, effective, triggers, activeSlot, rejection);
         logSourceResolution(playerId, slotName, sources, resolved);
         return resolved;
+    }
+
+    /**
+     * Returns whether EmakiAttribute's item contribution gates accept the item.
+     *
+     * <p>Keeps equipment skills consistent with attributes: an item whose
+     * EmakiItem condition fails contributes neither.
+     *
+     * @param player the owning player
+     * @param item the equipped item
+     * @param slotName the equipment slot name
+     * @return {@code false} only when a gate actively rejects the item
+     */
+    private boolean isItemContributionActive(Player player, ItemStack item, String slotName) {
+        EaBridge eaBridge = eaBridgeSupplier.get();
+        return eaBridge == null || eaBridge.isItemContributionActive(player, item, slotName);
     }
 
     private String resolveRejection(AppConfig.SkillSourceSettings sources,

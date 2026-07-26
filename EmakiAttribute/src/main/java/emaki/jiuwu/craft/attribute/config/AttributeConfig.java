@@ -20,6 +20,7 @@ public record AttributeConfig(String language,
         String vanillaEventDamageType,
         boolean sameSignatureIgnoresInvulnerabilityEnabled,
         long sameSignatureInvulnerabilityWindowMs,
+        boolean attackSpeedAttributeOnly,
         int regenIntervalTicks,
         int syncDelayTicks,
         boolean healthDisplayScalingEnabled,
@@ -29,6 +30,12 @@ public record AttributeConfig(String language,
         double syntheticHitKnockbackStrength,
         boolean syntheticHitHurtSound,
         List<DamageCauseRule> allowedDamageCauses) {
+
+    /** Attack speed cooldown is managed by EmakiAttribute for every attack. */
+    private static final String ATTACK_SPEED_SCOPE_GLOBAL = "global";
+
+    /** Attack speed cooldown is managed only for items carrying an EmakiAttribute attack speed value. */
+    private static final String ATTACK_SPEED_SCOPE_ATTRIBUTE_ONLY = "attribute_only";
 
     public static AttributeConfig defaults() {
         return new AttributeConfig(
@@ -44,6 +51,7 @@ public record AttributeConfig(String language,
                 "physical",
                 true,
                 500L,
+                false,
                 20,
                 1,
                 false,
@@ -75,6 +83,10 @@ public record AttributeConfig(String language,
                 configuration.getBoolean("same_signature_ignores_invulnerability.enabled", true));
         long sameSignatureInvulnerabilityWindowMs = Math.max(0L, Numbers.tryParseLong(
                 configuration.get("same_signature_ignores_invulnerability.window_ms"), 500L));
+        boolean attackSpeedAttributeOnly = ATTACK_SPEED_SCOPE_ATTRIBUTE_ONLY.equals(
+                ConfigNodes.string(configuration, "attack_speed.scope", ATTACK_SPEED_SCOPE_GLOBAL)
+                        .trim()
+                        .toLowerCase(java.util.Locale.ROOT));
         int regenIntervalTicks = Math.max(1, configuration.getInt("regen_interval_ticks", 20));
         int syncDelayTicks = Math.max(0, configuration.getInt("sync_delay_ticks", 1));
         boolean healthDisplayScalingEnabled = Boolean.TRUE.equals(configuration.getBoolean("health_display_scaling.enabled", false));
@@ -110,6 +122,7 @@ public record AttributeConfig(String language,
                 vanillaEventDamageType,
                 sameSignatureIgnoresInvulnerabilityEnabled,
                 sameSignatureInvulnerabilityWindowMs,
+                attackSpeedAttributeOnly,
                 regenIntervalTicks,
                 syncDelayTicks,
                 healthDisplayScalingEnabled,

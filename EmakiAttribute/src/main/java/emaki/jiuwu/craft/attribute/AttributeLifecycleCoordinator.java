@@ -42,6 +42,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
@@ -74,7 +75,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         LoreFormatRegistry loreFormatRegistry = new LoreFormatRegistry(plugin);
         AttributePresetRegistry presetRegistry = new AttributePresetRegistry(plugin);
         PdcReadRuleLoader pdcReadRuleLoader = new PdcReadRuleLoader(plugin);
-        PdcAttributeService pdcAttributeService = new PdcAttributeService(plugin, pdcReadRuleLoader);
+        ItemContributionGateRegistry itemContributionGateRegistry = new ItemContributionGateRegistry(plugin.getLogger());
+        PdcAttributeService pdcAttributeService = new PdcAttributeService(plugin, pdcReadRuleLoader, itemContributionGateRegistry);
         ParentAttributeDataStore parentAttributeDataStore = new ParentAttributeDataStore(plugin);
         ParentAttributeService parentAttributeService = new ParentAttributeService(plugin, parentAttributeDataStore);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
@@ -96,7 +98,10 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 executionDispatcher,
                 threadOwnership
         );
-        EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(attributeService, threadOwnership);
+        EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(
+                attributeService,
+                threadOwnership,
+                itemContributionGateRegistry);
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),
@@ -105,6 +110,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 new CombatDamageListener(plugin, attributeService, combatDebugHandler, executionDispatcher),
                 attributeService.perfectTakeoverCoordinator(),
                 new CombatDebugListener(attributeService),
+                itemContributionGateRegistry,
                 guiService
         );
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
@@ -121,6 +127,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 loreFormatRegistry,
                 presetRegistry,
                 pdcReadRuleLoader,
+                itemContributionGateRegistry,
                 languageLoader,
                 messageService,
                 emakiAttributeBridge,
@@ -327,6 +334,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
     public void shutdown(EmakiAttributePlugin plugin, TaskHandle currentTask) {
         cancelRegenTask(currentTask);
+        if (plugin.itemContributionGateRegistry() != null) {
+            plugin.itemContributionGateRegistry().close();
+        }
         if (plugin.attributeService() != null) {
             plugin.attributeService().shutdown();
         }

@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
+import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
@@ -91,6 +92,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private LoreFormatRegistry loreFormatRegistry;
     private AttributePresetRegistry presetRegistry;
     private PdcReadRuleLoader pdcReadRuleLoader;
+    private ItemContributionGateRegistry itemContributionGateRegistry;
     private LanguageLoader languageLoader;
     private MessageService messageService;
     private EmakiAttributeApi.Bridge emakiAttributeBridge;
@@ -242,6 +244,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         loreFormatRegistry = components.loreFormatRegistry();
         presetRegistry = components.presetRegistry();
         pdcReadRuleLoader = components.pdcReadRuleLoader();
+        itemContributionGateRegistry = components.itemContributionGateRegistry();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
         emakiAttributeBridge = components.emakiAttributeBridge();
@@ -355,6 +358,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public PdcReadRuleLoader pdcReadRuleLoader() {
         return pdcReadRuleLoader;
+    }
+
+    public ItemContributionGateRegistry itemContributionGateRegistry() {
+        return itemContributionGateRegistry;
     }
 
     public LanguageLoader languageLoader() {

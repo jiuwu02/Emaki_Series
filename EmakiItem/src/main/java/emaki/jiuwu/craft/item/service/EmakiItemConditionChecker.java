@@ -41,12 +41,7 @@ public final class EmakiItemConditionChecker {
         if (conditions == null || !conditions.configured()) {
             return true;
         }
-        ActionContext context = actionService.context(player, definition, trigger, Map.of(), itemStack);
-        boolean passes = ConditionEvaluator.evaluate(
-                conditions.block(),
-                text -> placeholderRegistry.resolve(context, text),
-                ConditionContext.of(player, itemStack, Map.of("trigger", Texts.toStringSafe(trigger)))
-        );
+        boolean passes = evaluateSilently(player, definition, trigger, itemStack);
         if (passes) {
             if (!conditions.passActions().isEmpty()) {
                 actionService.executeLines(player, definition, "condition_pass", conditions.passActions(), Map.of(), itemStack);
@@ -58,5 +53,37 @@ public final class EmakiItemConditionChecker {
             actionService.executeLines(player, definition, "condition_fail", conditions.failActions(), Map.of(), itemStack);
         }
         return passes;
+    }
+
+    /**
+     * Evaluates the item conditions without sending the deny message or running
+     * the pass/fail actions.
+     *
+     * <p>Required by hot paths such as attribute and skill collection, which run
+     * per equipment slot on every resync and must stay side-effect free.
+     *
+     * @param player the owning player
+     * @param definition the item definition
+     * @param trigger the trigger name exposed to the condition context
+     * @param itemStack the evaluated item; may be {@code null}
+     * @return whether the conditions are satisfied
+     */
+    public boolean evaluateSilently(Player player,
+            EmakiItemDefinition definition,
+            String trigger,
+            ItemStack itemStack) {
+        if (player == null || definition == null) {
+            return false;
+        }
+        ItemConditions conditions = definition.conditions();
+        if (conditions == null || !conditions.configured()) {
+            return true;
+        }
+        ActionContext context = actionService.context(player, definition, trigger, Map.of(), itemStack);
+        return ConditionEvaluator.evaluate(
+                conditions.block(),
+                text -> placeholderRegistry.resolve(context, text),
+                ConditionContext.of(player, itemStack, Map.of("trigger", Texts.toStringSafe(trigger)))
+        );
     }
 }

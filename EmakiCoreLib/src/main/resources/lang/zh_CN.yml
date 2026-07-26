@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.5.22"
+version: "4.5.23"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -245,6 +245,23 @@ debug:
       packet_receive_click: "收到数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 传入状态=%incoming_state_id% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
       packet_receive_click_state_absent: "收到缺少状态 ID 的数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
       packet_receive_close: "接收数据包 GUI 关闭包 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
+    chat_input:
+      await_registered: "注册聊天输入等待 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      await_replaced_previous: "新的聊天输入等待顶替旧等待 | 旧所有者=%request_owner% | 旧超时=%request_timeout_seconds%s | 旧取消词数=%request_cancel_keywords%"
+      chat_submitted: "聊天输入已提交 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords% | 输入=%input%"
+      chat_skipped_no_pending: "跳过聊天消息：该玩家没有等待中的输入"
+      cancel_keyword_matched: "聊天输入命中取消词 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords% | 输入=%input%"
+      cancelled_by_caller: "调用方撤销聊天输入等待 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      cancelled_by_handle: "句柄撤销聊天输入等待 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      timed_out: "聊天输入等待超时 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      timeout_schedule_failed: "聊天输入超时任务调度失败，已按取消结束 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords% | 错误类型=%error_type% | 错误=%error_message%"
+      timeout_schedule_rejected: "聊天输入超时任务调度被拒绝，已按取消结束 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      player_quit_cancelled: "玩家退出，结束聊天输入等待 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      player_kick_cancelled: "玩家被踢出，结束聊天输入等待 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      closed_pending_cancelled: "服务关闭，撤销等待中的聊天输入 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      callback_dispatch_failed: "聊天输入回调分派失败 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords% | 错误类型=%error_type% | 错误=%error_message%"
+      callback_dispatch_unavailable: "聊天输入回调无法分派到所有者线程，改为就地执行 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
+      callback_failed: "聊天输入回调执行失败 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords% | 状态=%status% | 错误类型=%error_type% | 错误=%error_message%"
   console:
     line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
   command:

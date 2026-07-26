@@ -112,12 +112,36 @@ final class VanillaAttributeSynchronizer {
         }
     }
 
+    /**
+     * Returns whether the snapshot carries any EmakiAttribute attack speed value,
+     * so callers can tell an explicitly configured attack speed apart from a plain
+     * vanilla item.
+     *
+     * @param snapshot the attribute snapshot, may be {@code null}
+     * @param attackSpeedDefinitions the generic attack speed definitions
+     * @return whether an EmakiAttribute attack speed value is present
+     */
+    boolean hasAttackSpeedValue(AttributeSnapshot snapshot, List<AttributeDefinition> attackSpeedDefinitions) {
+        if (snapshot == null || attackSpeedDefinitions == null) {
+            return false;
+        }
+        for (AttributeDefinition definition : attackSpeedDefinitions) {
+            Double value = snapshot.values().get(definition.id());
+            if (value == null) {
+                continue;
+            }
+            if (definition.valueKind() == AttributeValueKind.PERCENT || isNumericFlat(definition.valueKind())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     int resolveAttackCooldownTicks(LivingEntity entity,
             AttributeSnapshot snapshot,
             List<AttributeDefinition> attackSpeedDefinitions) {
         double flatAttackRate = 0D;
         double percentModifier = 0D;
-        boolean hasAttackSpeedValue = false;
         for (AttributeDefinition definition : attackSpeedDefinitions) {
             Double value = snapshot == null ? null : snapshot.values().get(definition.id());
             if (value == null) {
@@ -125,13 +149,11 @@ final class VanillaAttributeSynchronizer {
             }
             if (definition.valueKind() == AttributeValueKind.PERCENT) {
                 percentModifier += value;
-                hasAttackSpeedValue = true;
             } else if (isNumericFlat(definition.valueKind())) {
                 flatAttackRate += value;
-                hasAttackSpeedValue = true;
             }
         }
-        if (!hasAttackSpeedValue) {
+        if (!hasAttackSpeedValue(snapshot, attackSpeedDefinitions)) {
             return vanillaAttackCooldownTicks(entity);
         }
         double effectiveAttackRate = AttributeFusionMath.usesFusedCombatValues(snapshot)

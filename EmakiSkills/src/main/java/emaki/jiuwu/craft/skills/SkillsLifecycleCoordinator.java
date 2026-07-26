@@ -101,7 +101,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         EquipmentSkillCollector equipmentSkillCollector = new EquipmentSkillCollector(
                 plugin,
                 () -> skillDefinitionLoader.all(),
-                plugin::appConfig
+                plugin::appConfig,
+                plugin::eaBridge
         );
         SkillSourceRegistry skillSourceRegistry = new SkillSourceRegistry();
         TriggerRegistry triggerRegistry = new TriggerRegistry();

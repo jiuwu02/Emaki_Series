@@ -251,15 +251,37 @@ final class AttributeSnapshotCollector {
                 continue;
             }
             if (views == null) {
-                if (collectValues) {
+                String rejectingGateId = service.pdcAttributeService()
+                        .resolveRejectingGateId(playerOrNull, itemStack, slotName);
+                boolean gateActive = rejectingGateId.isEmpty();
+                if (collectValues && gateActive) {
                     mergeValues(values, itemSnapshot.values());
+                } else if (collectValues) {
+                    debugItemConditionGate(playerOrNull, slotName, rejectingGateId);
                 }
-                addEquipmentSignature(signatureParts, index, itemSnapshot.sourceSignature(), null, collectSignatures);
+                addEquipmentSignature(
+                        signatureParts,
+                        index,
+                        itemSnapshot.sourceSignature(),
+                        null,
+                        collectSignatures,
+                        rejectingGateId
+                );
                 continue;
             }
             if (collectValues) {
                 Map<String, Double> effectiveValues = itemSnapshot.values();
-                if (views.hasExplicitSlotConstraint() && !views.itemSlotMatched()) {
+                if (!views.itemContributionActive()) {
+                    debugItemConditionGate(playerOrNull, slotName, views.rejectingGateId());
+                    effectiveValues = resolveEquipmentItemValues(
+                            Map.of(),
+                            Map.of(),
+                            service.config().readLoreAttributes(),
+                            service.config().readPdcAttributes(),
+                            service.config().requireLorePdcMatch(),
+                            false
+                    );
+                } else if (views.hasExplicitSlotConstraint() && !views.itemSlotMatched()) {
                     debugAttributeSlotGate(playerOrNull, slotName, views.declaredSlots());
                     effectiveValues = resolveEquipmentItemValues(
                             Map.of(),
@@ -285,7 +307,14 @@ final class AttributeSnapshotCollector {
                 }
                 mergeValues(values, effectiveValues);
             }
-            addEquipmentSignature(signatureParts, index, itemSnapshot.sourceSignature(), views, collectSignatures);
+            addEquipmentSignature(
+                    signatureParts,
+                    index,
+                    itemSnapshot.sourceSignature(),
+                    views,
+                    collectSignatures,
+                    views.rejectingGateId()
+            );
         }
     }
 
@@ -293,19 +322,25 @@ final class AttributeSnapshotCollector {
             int slotIndex,
             String itemSignature,
             PdcAttributeService.PdcAttributeViews views,
-            boolean collectSignatures) {
+            boolean collectSignatures,
+            String rejectingGateId) {
         if (!collectSignatures) {
             return;
         }
+        String gatePart = "condition_gate=" + Texts.toStringSafe(rejectingGateId);
         if (views == null) {
-            signatureParts.add(EQUIPMENT_SLOT_NAMES[slotIndex] + ":" + itemSignature);
+            signatureParts.add(EQUIPMENT_SLOT_NAMES[slotIndex] + ":" + SignatureUtil.combine(
+                    itemSignature,
+                    gatePart
+            ));
             return;
         }
         signatureParts.add(EQUIPMENT_SLOT_NAMES[slotIndex] + ":" + SignatureUtil.combine(
                 itemSignature,
                 views.filtered().sourceSignature(),
                 "declared_slots=" + String.join(",", views.declaredSlots()),
-                "item_slot_matched=" + views.itemSlotMatched()
+                "item_slot_matched=" + views.itemSlotMatched(),
+                gatePart
         ));
     }
 
@@ -629,6 +664,16 @@ final class AttributeSnapshotCollector {
         service.plugin().debugLogger().log("resync", player, "resync.slot_gate", Map.of(
                 "actual_slot", Texts.toStringSafe(actualSlot),
                 "declared_slots", String.join(",", declaredSlots == null ? List.of() : declaredSlots)
+        ));
+    }
+
+    private void debugItemConditionGate(Player player, String actualSlot, String rejectingGateId) {
+        if (player == null || service.plugin() == null || service.plugin().debugLogger() == null) {
+            return;
+        }
+        service.plugin().debugLogger().log("resync", player, "resync.condition_gate", Map.of(
+                "actual_slot", Texts.toStringSafe(actualSlot),
+                "gate", Texts.toStringSafe(rejectingGateId)
         ));
     }
 

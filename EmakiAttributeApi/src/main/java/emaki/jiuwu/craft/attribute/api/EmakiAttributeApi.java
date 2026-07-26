@@ -4,8 +4,13 @@ import java.util.Map;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGate;
+import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGateRegistration;
 
 /**
  * Static public API facade for EmakiAttribute's gameplay capabilities: player
@@ -136,11 +141,72 @@ public final class EmakiAttributeApi {
         return resolved != null && resolved.applyDamage(attacker, target, damageTypeId, baseDamage, context);
     }
 
+    /**
+     * Registers an item contribution gate.
+     *
+     * <p>A gate can veto every contribution of one item, dropping its Lore and PDC
+     * values together. Callers must close the returned handle on disable or reload.
+     *
+     * @param plugin the owning plugin
+     * @param gate the gate implementation
+     * @return a closeable registration handle, or a no-op handle when unavailable
+     */
+    public static @NotNull ItemContributionGateRegistration registerItemContributionGate(
+            @NotNull Plugin plugin,
+            @NotNull ItemContributionGate gate) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? ItemContributionGateRegistration.noop()
+                : resolved.registerItemContributionGate(plugin, gate);
+    }
+
+    /**
+     * Returns whether every registered gate accepts the item for the player.
+     *
+     * <p>Degrades to {@code true} when EmakiAttribute is absent, so callers never
+     * lose functionality by consulting this method.
+     *
+     * @param player the owning player
+     * @param itemStack the equipped item
+     * @param slotName the equipment slot name; may be {@code null}
+     * @return {@code false} only when a gate actively rejects the item
+     */
+    public static boolean isItemContributionActive(@Nullable Player player,
+            @Nullable ItemStack itemStack,
+            @Nullable String slotName) {
+        Bridge resolved = bridge;
+        return resolved == null || resolved.isItemContributionActive(player, itemStack, slotName);
+    }
+
     /** Internal bridge installed by EmakiAttribute. */
     public interface Bridge {
 
         /** {@return whether the backing attribute services are usable} */
         boolean available();
+
+        /**
+         * Registers an item contribution gate.
+         *
+         * @param plugin the owning plugin
+         * @param gate the gate implementation
+         * @return a closeable registration handle
+         */
+        @NotNull
+        ItemContributionGateRegistration registerItemContributionGate(
+                @NotNull Plugin plugin,
+                @NotNull ItemContributionGate gate);
+
+        /**
+         * Returns whether every registered gate accepts the item for the player.
+         *
+         * @param player the owning player
+         * @param itemStack the equipped item
+         * @param slotName the equipment slot name; may be {@code null}
+         * @return {@code false} only when a gate actively rejects the item
+         */
+        boolean isItemContributionActive(@Nullable Player player,
+                @Nullable ItemStack itemStack,
+                @Nullable String slotName);
 
         /**
          * Reads a player's current value for a resource.

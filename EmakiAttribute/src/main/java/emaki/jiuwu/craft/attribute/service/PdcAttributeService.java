@@ -50,14 +50,18 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
 
     private final EmakiAttributePlugin plugin;
     private final PdcReadRuleLoader ruleLoader;
+    private final ItemContributionGateRegistry gateRegistry;
     private final PdcService pdcService;
     private final PdcPartition itemPartition;
     private final PdcPartition sourcePartition;
     private final Set<String> registeredSources = ConcurrentHashMap.newKeySet();
 
-    public PdcAttributeService(EmakiAttributePlugin plugin, PdcReadRuleLoader ruleLoader) {
+    public PdcAttributeService(EmakiAttributePlugin plugin,
+            PdcReadRuleLoader ruleLoader,
+            ItemContributionGateRegistry gateRegistry) {
         this.plugin = plugin;
         this.ruleLoader = ruleLoader;
+        this.gateRegistry = gateRegistry;
         this.pdcService = new PdcService("emaki_attribute", "pdc", plugin == null ? null : plugin.debugLogger());
         this.itemPartition = pdcService.partition("item.attributes");
         this.sourcePartition = itemPartition.child("source");
@@ -199,22 +203,46 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
         Map<String, PdcAttributePayload> payloads = readAll(itemStack);
         PdcAttributeCollection raw = collectRawContribution(payloads.values());
         ItemSlotGate itemSlotGate = resolveItemSlotGate(payloads.values(), actualSlot);
+        String rejectingGate = resolveRejectingGateId(player, itemStack, actualSlot);
         if (player == null || payloads.isEmpty()) {
-            return new PdcAttributeViews(raw, raw, itemSlotGate.declaredSlots(), itemSlotGate.matched());
+            return new PdcAttributeViews(
+                    raw,
+                    raw,
+                    itemSlotGate.declaredSlots(),
+                    itemSlotGate.matched(),
+                    rejectingGate
+            );
         }
         return new PdcAttributeViews(
                 raw,
-                collectFilteredContribution(player, itemStack, payloads, actualSlot, itemSlotGate),
+                collectFilteredContribution(player, itemStack, payloads, actualSlot, itemSlotGate, rejectingGate),
                 itemSlotGate.declaredSlots(),
-                itemSlotGate.matched()
+                itemSlotGate.matched(),
+                rejectingGate
         );
+    }
+
+    /**
+     * Resolves the id of the first registered gate rejecting the item.
+     *
+     * @param player the owning player
+     * @param itemStack the equipped item
+     * @param actualSlot the equipment slot being collected
+     * @return the rejecting gate id, or {@code ""} when accepted
+     */
+    String resolveRejectingGateId(Player player, ItemStack itemStack, String actualSlot) {
+        if (gateRegistry == null || itemStack == null || itemStack.getType().isAir()) {
+            return "";
+        }
+        return gateRegistry.rejectingGateId(player, itemStack, actualSlot);
     }
 
     private PdcAttributeCollection collectFilteredContribution(Player player,
             ItemStack itemStack,
             Map<String, PdcAttributePayload> payloads,
             String actualSlot,
-            ItemSlotGate itemSlotGate) {
+            ItemSlotGate itemSlotGate,
+            String rejectingGateId) {
         List<String> loreLines = readLoreLines(itemStack);
         Map<String, Double> values = new LinkedHashMap<>();
         List<Object> signatureParts = new ArrayList<>();
@@ -224,6 +252,15 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
                 "declared_slots", itemSlotGate.declaredSlots(),
                 "matched", itemSlotGate.matched()
         ));
+        boolean gateActive = Texts.isBlank(rejectingGateId);
+        signatureParts.add(Map.of(
+                "scope", "item_condition_gate",
+                "provider_id", Texts.toStringSafe(rejectingGateId),
+                "active", gateActive
+        ));
+        if (!gateActive) {
+            return new PdcAttributeCollection(Map.of(), SignatureUtil.stableSignature(signatureParts));
+        }
         for (Map.Entry<String, PdcAttributePayload> entry : payloads.entrySet()) {
             String sourceId = entry.getKey();
             PdcAttributePayload payload = entry.getValue();
@@ -665,16 +702,23 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
     record PdcAttributeViews(PdcAttributeCollection raw,
             PdcAttributeCollection filtered,
             List<String> declaredSlots,
-            boolean itemSlotMatched) {
+            boolean itemSlotMatched,
+            String rejectingGateId) {
 
         PdcAttributeViews {
             raw = raw == null ? new PdcAttributeCollection(Map.of(), "") : raw;
             filtered = filtered == null ? raw : filtered;
             declaredSlots = declaredSlots == null ? List.of() : List.copyOf(declaredSlots);
+            rejectingGateId = rejectingGateId == null ? "" : rejectingGateId;
         }
 
         boolean hasExplicitSlotConstraint() {
             return !declaredSlots.isEmpty();
+        }
+
+        /** {@return whether every registered item contribution gate accepted the item} */
+        boolean itemContributionActive() {
+            return rejectingGateId.isEmpty();
         }
     }
 

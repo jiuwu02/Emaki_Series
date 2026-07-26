@@ -6,6 +6,8 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
@@ -141,6 +143,29 @@ public final class EaBridge {
                     "error", errorMessage(exception)
             ), exception);
             return false;
+        }
+    }
+
+    /**
+     * Returns whether every EmakiAttribute item contribution gate accepts the item.
+     *
+     * <p>Degrades to {@code true} when EmakiAttribute is absent or the lookup
+     * fails, so equipment skills are never lost to an integration problem.
+     *
+     * @param player the owning player
+     * @param itemStack the equipped item
+     * @param slotName the equipment slot name
+     * @return {@code false} only when a gate actively rejects the item
+     */
+    public boolean isItemContributionActive(Player player, ItemStack itemStack, String slotName) {
+        SkillsAttributeBridge resolved = resolve();
+        if (!resolved.available()) {
+            return true;
+        }
+        try {
+            return resolved.isItemContributionActive(player, itemStack, slotName);
+        } catch (Exception exception) {
+            return true;
         }
     }
 

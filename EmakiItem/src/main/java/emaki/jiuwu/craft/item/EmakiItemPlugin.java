@@ -43,6 +43,7 @@ import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.config.ItemConfigPrecheckContributor;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
+import emaki.jiuwu.craft.item.integration.ItemContributionGateLifecycle;
 import emaki.jiuwu.craft.item.listener.ItemDurabilityListener;
 import emaki.jiuwu.craft.item.listener.ItemRepairListener;
 import emaki.jiuwu.craft.item.listener.ItemTriggerListener;
@@ -100,6 +101,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private CompletableFuture<Void> reloadTail = CompletableFuture.completedFuture(null);
 
     private final ItemLifecycleCoordinator lifecycleCoordinator = new ItemLifecycleCoordinator();
+    private final ItemContributionGateLifecycle itemContributionGateLifecycle = new ItemContributionGateLifecycle(this);
     private ItemCommandRouter commandRouter;
     private ItemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
@@ -224,6 +226,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerActions();
         registerCommandHandler();
         registerEventHandlers();
+        itemContributionGateLifecycle.initialize();
         ensurePlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -233,6 +236,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     public void onDisable() {
         invalidateLifecycleEpoch();
         ConfigPrecheckLifecycleSupport.unregister("item");
+        itemContributionGateLifecycle.close();
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;

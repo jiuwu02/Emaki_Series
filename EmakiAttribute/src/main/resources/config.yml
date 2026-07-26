@@ -8,7 +8,7 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.5.18"
+version: "4.5.19"
 
 # 语言文件 ID
 language: zh_CN
@@ -63,6 +63,16 @@ vanilla_event_damage:
 same_signature_ignores_invulnerability:
   enabled: true
   window_ms: 500
+
+# 攻速冷却应用范围
+# global：所有攻击都由 EA 接管攻速冷却。物品未写 EA 攻速属性时，
+#         按原版当前 ATTACK_SPEED 换算冷却（原版钻石剑 1.6 → 约 13 tick），
+#         由 EA 负责拦截过快的攻击。
+# attribute_only：只有 Lore/PDC 明确写了 EA 攻速属性（attack_speed 等 GENERIC 攻速属性）
+#         的物品才由 EA 拦截；其余物品完全交还原版攻速机制，EA 既不写冷却也不拦截。
+#         注意：从 EA 攻速武器换到原版武器时，上一次写入的冷却仍会拦下换手后的第一次攻击。
+attack_speed:
+  scope: global
 
 # 资源自然回复间隔，单位 tick
 regen_interval_ticks: 20

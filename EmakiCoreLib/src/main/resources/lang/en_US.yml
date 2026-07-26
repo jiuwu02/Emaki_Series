@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.5.22"
+version: "4.5.23"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -245,6 +245,23 @@ debug:
       packet_receive_click: "Packet GUI click received | click=%click_type% | raw_slot=%raw_slot% | button=%button% | incoming_state=%incoming_state_id% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
       packet_receive_click_state_absent: "Packet GUI click received without a state ID | click=%click_type% | raw_slot=%raw_slot% | button=%button% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
       packet_receive_close: "Packet GUI close packet received | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+    chat_input:
+      await_registered: "Chat input await registered | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      await_replaced_previous: "New chat input await replaced the previous one | previous_owner=%request_owner% | previous_timeout=%request_timeout_seconds%s | previous_cancel_keywords=%request_cancel_keywords%"
+      chat_submitted: "Chat input submitted | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords% | input=%input%"
+      chat_skipped_no_pending: "Chat message skipped: no pending input for this player"
+      cancel_keyword_matched: "Chat input matched a cancel keyword | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords% | input=%input%"
+      cancelled_by_caller: "Caller cancelled the chat input await | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      cancelled_by_handle: "Handle cancelled the chat input await | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      timed_out: "Chat input await timed out | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      timeout_schedule_failed: "Chat input timeout task scheduling failed, finished as cancelled | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords% | error_type=%error_type% | error=%error_message%"
+      timeout_schedule_rejected: "Chat input timeout task scheduling was rejected, finished as cancelled | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      player_quit_cancelled: "Player quit, chat input await finished | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      player_kick_cancelled: "Player kicked, chat input await finished | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      closed_pending_cancelled: "Service closed, pending chat input cancelled | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      callback_dispatch_failed: "Chat input callback dispatch failed | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords% | error_type=%error_type% | error=%error_message%"
+      callback_dispatch_unavailable: "Chat input callback could not be dispatched to the owner thread, running inline | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
+      callback_failed: "Chat input callback threw | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords% | status=%status% | error_type=%error_type% | error=%error_message%"
   console:
     line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
   command:

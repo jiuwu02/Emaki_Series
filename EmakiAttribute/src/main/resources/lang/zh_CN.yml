@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.5.18"
+version: "4.5.19"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -588,6 +588,7 @@ debug:
     equipment_rejected: "装备属性同步任务被拒绝 | 触发源=%trigger%"
     equipment_failed: "装备属性同步失败 | 触发源=%trigger% | 错误=%error%"
     slot_gate: "装备槽位门控 | 实际槽位=%actual_slot% | 声明槽位=%declared_slots%"
+    condition_gate: "物品条件门控拒绝 | 实际槽位=%actual_slot% | 门控=%gate%"
   snapshot:
     collect_start: "开始收集快照 | 来源=%source%"
     layer_read: "读取属性层 | 层=%layer% | 属性=%attributes%"

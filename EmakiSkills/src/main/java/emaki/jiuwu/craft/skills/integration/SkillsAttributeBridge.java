@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 /**
  * EmakiAttribute-neutral view of the attribute capabilities EmakiSkills needs.
@@ -87,5 +88,20 @@ public interface SkillsAttributeBridge {
             double baseDamage,
             Map<String, Object> context) {
         return false;
+    }
+
+    /**
+     * Returns whether every registered item contribution gate accepts the item.
+     *
+     * <p>Degrades to {@code true} when EmakiAttribute is absent, so equipment
+     * skills keep working without it.
+     *
+     * @param player the owning player
+     * @param itemStack the equipped item
+     * @param slotName the equipment slot name
+     * @return {@code false} only when a gate actively rejects the item
+     */
+    default boolean isItemContributionActive(Player player, ItemStack itemStack, String slotName) {
+        return true;
     }
 }

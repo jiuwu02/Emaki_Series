@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 
 public final class DebugCommand {
 
-    private static final Set<String> SHARED_MODULES = Set.of("action", "item_operation", "variables", "placeholder", "gui");
+    private static final Set<String> SHARED_MODULES = Set.of("action", "item_operation", "variables", "placeholder", "gui", "chat_input");
 
     private final DebugLogger debugLogger;
     private final Set<String> availableModules;

@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
@@ -37,6 +38,7 @@ record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
         LoreFormatRegistry loreFormatRegistry,
         AttributePresetRegistry presetRegistry,
         PdcReadRuleLoader pdcReadRuleLoader,
+        ItemContributionGateRegistry itemContributionGateRegistry,
         LanguageLoader languageLoader,
         MessageService messageService,
         EmakiAttributeApi.Bridge emakiAttributeBridge,
@@ -63,6 +65,7 @@ record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(LoreFormatRegistry.class, loreFormatRegistry),
                 RuntimeComponents.component(AttributePresetRegistry.class, presetRegistry),
                 RuntimeComponents.component(PdcReadRuleLoader.class, pdcReadRuleLoader),
+                RuntimeComponents.component(ItemContributionGateRegistry.class, itemContributionGateRegistry),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(EmakiAttributeApi.Bridge.class, emakiAttributeBridge),

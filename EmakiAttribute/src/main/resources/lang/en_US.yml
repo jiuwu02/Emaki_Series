@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.5.18"
+version: "4.5.19"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -638,6 +638,7 @@ debug:
     equipment_rejected: "Equipment attribute sync task rejected | trigger=%trigger%"
     equipment_failed: "Equipment attribute sync failed | trigger=%trigger% | error=%error%"
     slot_gate: "Equipment slot gate | actual_slot=%actual_slot% | declared_slots=%declared_slots%"
+    condition_gate: "Item condition gate rejected | actual_slot=%actual_slot% | gate=%gate%"
   snapshot:
     collect_start: "Start collecting snapshot | source=%source%"
     layer_read: "Read attribute layer | layer=%layer% | attributes=%attributes%"

@@ -171,7 +171,15 @@ set:
 # ============================================================
 # 装备条件
 # ============================================================
-# 不满足条件时，物品的 ea_attributes 不生效。
+# 条件不满足时，以下内容全部不生效：
+#   - EA 属性：本物品 Lore 词条与 PDC 属性两条来源同时失效
+#   - 装备技能：Lore 与 PDC 两条来源同时失效
+#   - 套装属性：emakiitem / emakiitem_set 两个 PDC 来源
+#   - 本物品的触发器动作（attack、interact 等）
+# 仍然生效、不受此条件门控的部分：
+#   - EmakiGem 宝石、EmakiForge 锻造、EmakiStrengthen 强化各自写入的 PDC 属性
+#     （它们由对应模块拥有，不随宿主物品条件失效）
+# 条件按玩家实时求值，等级/职业变化后立即生效，无需重新装备。
 # entries: 条件表达式列表（支持 CoreLib 占位符，例如 EmakiLevel 的 %emakilevel_level_main%）
 # type: 条件组合方式（all_of = 全部满足 / any_of = 任一满足）
 # required_count: 需要满足的最少条件数

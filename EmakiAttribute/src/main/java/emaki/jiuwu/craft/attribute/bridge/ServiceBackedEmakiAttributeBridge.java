@@ -4,9 +4,14 @@ import java.util.Map;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.api.PlayerResourceConsumeEvent;
+import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGate;
+import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
@@ -27,14 +32,22 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
 
     private final AttributeServiceFacade attributeService;
     private final ThreadOwnership threadOwnership;
+    private final ItemContributionGateRegistry gateRegistry;
 
     public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService) {
-        this(attributeService, null);
+        this(attributeService, null, null);
     }
 
     public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService, ThreadOwnership threadOwnership) {
+        this(attributeService, threadOwnership, null);
+    }
+
+    public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService,
+            ThreadOwnership threadOwnership,
+            ItemContributionGateRegistry gateRegistry) {
         this.attributeService = attributeService;
         this.threadOwnership = threadOwnership;
+        this.gateRegistry = gateRegistry;
     }
 
     @Override
@@ -117,6 +130,21 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         }
         String resolvedType = Texts.isBlank(damageTypeId) ? attributeService.defaultDamageTypeId() : damageTypeId;
         return attributeService.applyDamage(attacker, target, resolvedType, baseDamage, context);
+    }
+
+    @Override
+    public ItemContributionGateRegistration registerItemContributionGate(Plugin plugin, ItemContributionGate gate) {
+        return gateRegistry == null
+                ? ItemContributionGateRegistration.noop()
+                : gateRegistry.register(plugin, gate);
+    }
+
+    @Override
+    public boolean isItemContributionActive(Player player, ItemStack itemStack, String slotName) {
+        if (gateRegistry == null || itemStack == null || itemStack.getType().isAir()) {
+            return true;
+        }
+        return gateRegistry.rejectingGateId(player, itemStack, slotName).isEmpty();
     }
 
     private boolean isEntityOwned(Player player) {

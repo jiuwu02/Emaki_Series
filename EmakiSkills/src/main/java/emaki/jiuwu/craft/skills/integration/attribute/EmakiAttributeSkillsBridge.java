@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.skills.integration.SkillsAttributeBridge;
@@ -64,5 +65,10 @@ public final class EmakiAttributeSkillsBridge implements SkillsAttributeBridge {
             double baseDamage,
             Map<String, Object> context) {
         return EmakiAttributeApi.applyDamage(attacker, target, damageTypeId, baseDamage, context);
+    }
+
+    @Override
+    public boolean isItemContributionActive(Player player, ItemStack itemStack, String slotName) {
+        return EmakiAttributeApi.isItemContributionActive(player, itemStack, slotName);
     }
 }
