@@ -30,7 +30,7 @@
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-skills-protocol</artifactId>
-            <version>2.5.12</version>
+            <version>${emaki.skills.protocol.version}</version>
         </dependency>
         <dependency>
             <groupId>org.bstats</groupId>

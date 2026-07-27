@@ -26,7 +26,6 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
 public final class EmakiItemDefinitionParser {
 
@@ -195,18 +194,7 @@ public final class EmakiItemDefinitionParser {
     private boolean validateConfiguredItem(ConfiguredItemDefinition definition,
             String source,
             Map<String, Object> variables) {
-        if (!EmakiItemPlugin.requireCoreLibCompatibility("validateConfiguredItem")) {
-            warning("Skipping item definition " + source + ": EmakiCoreLib configured-item API is incompatible.");
-            return false;
-        }
-        ItemBuildResult result;
-        try {
-            result = EmakiCoreLibApi.createConfiguredItem(resolveValidationDefinition(definition, variables));
-        } catch (RuntimeException | LinkageError exception) {
-            EmakiItemPlugin.reportCoreLibApiFailure("validateConfiguredItem", exception);
-            warning("Skipping item definition " + source + ": configured-item validation API failed: " + exception.getMessage());
-            return false;
-        }
+        ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(resolveValidationDefinition(definition, variables));
         for (ItemBuildIssue issue : result.issues()) {
             warning("Item definition " + source + " [" + Texts.toStringSafe(issue.componentId()) + "]: " + issue.message());
         }

@@ -11,13 +11,10 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
-import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -65,8 +62,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private static final int STARTUP_ASCII_START_COLOR = 0xF59E0B;
     private static final int STARTUP_ASCII_END_COLOR = 0xEF4444;
     private static final int BSTATS_PLUGIN_ID = 31766;
-    private static final String REQUIRED_CORELIB_VERSION = "4.5.18";
-    private static final String MAXIMUM_CORELIB_VERSION_EXCLUSIVE = "5.0.0";
 
     private BStatsRegistration metrics;
     private volatile boolean runtimeInitialized;
@@ -134,10 +129,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
-        if (!ensureCompatibleCoreLib()) {
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         runtimeInitialized = true;
         registerConfigPrecheckContributor();
@@ -773,96 +764,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void transitionRuntime(ForgeRuntimeStatus status, String detail) {
         runtimeSnapshot.updateAndGet(current -> current.withStatus(status));
-    }
-
-    private boolean ensureCompatibleCoreLib() {
-        Plugin plugin = Bukkit.getPluginManager().getPlugin("EmakiCoreLib");
-        String apiVersion = "";
-        boolean available = false;
-        boolean ready = false;
-        CompatibilityReport report = CompatibilityReport.unavailable();
-        Throwable compatibilityFailure = null;
-        try {
-            available = EmakiCoreLibApi.available();
-            ready = EmakiCoreLibApi.isReady();
-            apiVersion = EmakiCoreLibApi.apiVersion();
-            report = EmakiCoreLibApi.compatibilityReport();
-        } catch (RuntimeException | LinkageError failure) {
-            compatibilityFailure = failure;
-        }
-        boolean coreLibInRange = compareVersions(apiVersion, REQUIRED_CORELIB_VERSION) >= 0
-                && compareVersions(apiVersion, MAXIMUM_CORELIB_VERSION_EXCLUSIVE) < 0;
-        boolean compatible = compatibilityFailure == null
-                && available
-                && ready
-                && coreLibInRange
-                && report.compatible();
-        if (compatible) {
-            return true;
-        }
-        logCompatibilityFailures(report);
-        String pluginVersion = plugin == null ? "missing" : plugin.getPluginMeta().getVersion();
-        String dataFolder = plugin == null ? "missing" : plugin.getDataFolder().getAbsolutePath();
-        String cause = compatibilityFailure == null
-                ? "none"
-                : compatibilityFailure.getClass().getSimpleName() + ": "
-                        + String.valueOf(compatibilityFailure.getMessage());
-        getLogger().severe("[Compatibility] EmakiCoreLib or platform requirement not met; disabling EmakiForge.");
-        getLogger().severe("[Compatibility] expectedApi=>=" + REQUIRED_CORELIB_VERSION
-                + " and <" + MAXIMUM_CORELIB_VERSION_EXCLUSIVE
-                + ", actualApi=" + (apiVersion == null || apiVersion.isBlank() ? "unavailable" : apiVersion)
-                + ", apiAvailable=" + available
-                + ", apiReady=" + ready
-                + ", reportCompatible=" + report.compatible()
-                + ", pluginJar=" + getPluginMeta().getVersion()
-                + ", coreLibJar=" + pluginVersion
-                + ", coreLibData=" + dataFolder
-                + ", cause=" + cause);
-        return false;
-    }
-
-    private void logCompatibilityFailures(CompatibilityReport report) {
-        for (CompatibilityReport.Issue issue : report.issues()) {
-            if (issue.severity() == CompatibilityReport.Severity.ERROR) {
-                getLogger().severe("[Compatibility][" + issue.code() + "] " + issue.message());
-            }
-        }
-    }
-
-    private static int compareVersions(String actual, String required) {
-        String[] actualParts = actual == null ? new String[0] : actual.trim().split("\\.", -1);
-        String[] requiredParts = required == null ? new String[0] : required.trim().split("\\.", -1);
-        int length = Math.max(3, Math.max(actualParts.length, requiredParts.length));
-        for (int index = 0; index < length; index++) {
-            int actualPart = versionPart(actualParts, index);
-            int requiredPart = versionPart(requiredParts, index);
-            if (actualPart < 0 || requiredPart < 0) {
-                return -1;
-            }
-            if (actualPart != requiredPart) {
-                return Integer.compare(actualPart, requiredPart);
-            }
-        }
-        return 0;
-    }
-
-    private static int versionPart(String[] parts, int index) {
-        if (index >= parts.length) {
-            return 0;
-        }
-        String part = parts[index];
-        int digits = 0;
-        while (digits < part.length() && Character.isDigit(part.charAt(digits))) {
-            digits++;
-        }
-        if (digits == 0) {
-            return -1;
-        }
-        try {
-            return Integer.parseInt(part.substring(0, digits));
-        } catch (NumberFormatException exception) {
-            return -1;
-        }
     }
 
     private static final class PaperCommandAdapter implements BasicCommand {

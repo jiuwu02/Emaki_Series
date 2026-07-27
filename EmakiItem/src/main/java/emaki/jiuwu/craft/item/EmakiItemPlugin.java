@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -85,7 +84,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private static final int STARTUP_ASCII_START_COLOR = 0x60A5FA;
     private static final int STARTUP_ASCII_END_COLOR = 0x34D399;
     private static final int BSTATS_PLUGIN_ID = 31770;
-    private static final String REQUIRED_CORELIB_API_VERSION = "4.5.18";
 
     private BStatsRegistration metrics;
     private final ItemRefreshMetrics refreshMetrics = new ItemRefreshMetrics();
@@ -97,7 +95,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private boolean lifecycleActive;
     private boolean reloadQueueSucceeded;
     private boolean runtimeReady;
-    private boolean coreLibDisableRequested;
     private CompletableFuture<Void> reloadTail = CompletableFuture.completedFuture(null);
 
     private final ItemLifecycleCoordinator lifecycleCoordinator = new ItemLifecycleCoordinator();
@@ -202,21 +199,13 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     @Override
     public void onEnable() {
         beginLifecycleEpoch();
-        if (!requireCoreLibCompatibility("startup")) {
-            return;
-        }
         ConsoleOutputs.sendGradientAscii(
                 this,
                 STARTUP_ASCII,
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
-        try {
-            applyRuntimeComponents(lifecycleCoordinator.initialize(this));
-        } catch (RuntimeException | LinkageError exception) {
-            disableForCoreLibFailure("initialize", exception);
-            return;
-        }
+        applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
@@ -301,7 +290,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             lifecycleActive = true;
             reloadQueueSucceeded = true;
             runtimeReady = false;
-            coreLibDisableRequested = false;
             reloadTail = CompletableFuture.completedFuture(null);
         }
     }
@@ -414,100 +402,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private boolean runtimeReady() {
         synchronized (readinessMonitor) {
             return runtimeReady;
-        }
-    }
-
-    public static boolean requireCoreLibCompatibility(String usage) {
-        EmakiItemPlugin plugin = null;
-        try {
-            plugin = JavaPlugin.getPlugin(EmakiItemPlugin.class);
-        } catch (RuntimeException | LinkageError ignored) {
-        }
-        String actualVersion = "<unavailable>";
-        boolean available = false;
-        boolean ready = false;
-        try {
-            available = EmakiCoreLibApi.available();
-            ready = EmakiCoreLibApi.isReady();
-            String reportedVersion = EmakiCoreLibApi.apiVersion();
-            actualVersion = reportedVersion == null || reportedVersion.isBlank()
-                    ? "<unavailable>"
-                    : reportedVersion;
-            if (available && ready && REQUIRED_CORELIB_API_VERSION.equals(actualVersion)) {
-                return true;
-            }
-            String details = "required=" + REQUIRED_CORELIB_API_VERSION
-                    + ", actual=" + actualVersion
-                    + ", available=" + available
-                    + ", ready=" + ready;
-            if (plugin != null) {
-                plugin.disableForCoreLibFailure(usage, details, null);
-            } else {
-                Bukkit.getLogger().severe("EmakiItem CoreLib compatibility failure during "
-                        + Texts.toStringSafe(usage) + ": " + details + ".");
-            }
-            return false;
-        } catch (RuntimeException | LinkageError exception) {
-            String details = "required=" + REQUIRED_CORELIB_API_VERSION
-                    + ", actual=" + actualVersion
-                    + ", available=" + available
-                    + ", ready=" + ready
-                    + ", failure=" + exception.getClass().getSimpleName();
-            if (plugin != null) {
-                plugin.disableForCoreLibFailure(usage, details, exception);
-            } else {
-                Bukkit.getLogger().severe("EmakiItem CoreLib compatibility preflight failed during "
-                        + Texts.toStringSafe(usage) + ": " + details + ".");
-            }
-            return false;
-        }
-    }
-
-    public static void reportCoreLibApiFailure(String usage, Throwable exception) {
-        EmakiItemPlugin plugin = null;
-        try {
-            plugin = JavaPlugin.getPlugin(EmakiItemPlugin.class);
-        } catch (RuntimeException | LinkageError ignored) {
-        }
-        if (plugin != null) {
-            plugin.disableForCoreLibFailure(usage, exception);
-        } else {
-            Bukkit.getLogger().severe("EmakiItem CoreLib API call failed during "
-                    + Texts.toStringSafe(usage) + ": "
-                    + (exception == null ? "unknown" : exception.getClass().getSimpleName()) + ".");
-        }
-    }
-
-    private void disableForCoreLibFailure(String usage, Throwable exception) {
-        disableForCoreLibFailure(
-                usage,
-                "failure=" + (exception == null ? "unknown" : exception.getClass().getSimpleName()),
-                exception
-        );
-    }
-
-    private void disableForCoreLibFailure(String usage, String details, Throwable exception) {
-        synchronized (readinessMonitor) {
-            runtimeReady = false;
-            reloadQueueSucceeded = false;
-            if (coreLibDisableRequested) {
-                return;
-            }
-            coreLibDisableRequested = true;
-        }
-        String message = "EmakiItem requires ready EmakiCoreLib API " + REQUIRED_CORELIB_API_VERSION
-                + " during " + Texts.toStringSafe(usage)
-                + " but compatibility validation failed: " + Texts.toStringSafe(details)
-                + ". Disabling EmakiItem.";
-        getLogger().severe(message);
-        if (exception != null && Texts.isNotBlank(exception.getMessage())) {
-            getLogger().severe("CoreLib compatibility failure detail: " + exception.getMessage());
-        }
-        Runnable disable = () -> getServer().getPluginManager().disablePlugin(this);
-        if (Bukkit.isPrimaryThread()) {
-            disable.run();
-        } else {
-            Bukkit.getScheduler().runTask(this, disable);
         }
     }
 

@@ -30,7 +30,6 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -404,18 +403,10 @@ public final class EmakiItemUpdateService {
         }
 
         ConfiguredItemDefinition nonPresentation = withoutPresentationPatches(prepared.itemDefinition());
-        if (!EmakiItemPlugin.requireCoreLibCompatibility("applyConfiguredItem:update_merge")) {
-            return null;
-        }
-        try {
-            ItemBuildResult patched = EmakiCoreLibApi.applyConfiguredItem(assembled, nonPresentation);
-            ItemStack merged = patched.success() && patched.itemStack() != null ? patched.itemStack() : assembled;
-            copyPersistentData(original, merged, false);
-            return new MergeResult(merged, readResult);
-        } catch (RuntimeException | LinkageError exception) {
-            EmakiItemPlugin.reportCoreLibApiFailure("applyConfiguredItem:update_merge", exception);
-            return null;
-        }
+        ItemBuildResult patched = EmakiCoreLibApi.applyConfiguredItem(assembled, nonPresentation);
+        ItemStack merged = patched.success() && patched.itemStack() != null ? patched.itemStack() : assembled;
+        copyPersistentData(original, merged, false);
+        return new MergeResult(merged, readResult);
     }
 
     private ItemOperationLedger.UpdateResult revertNamespaceOperations(

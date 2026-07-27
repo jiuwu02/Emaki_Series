@@ -35,17 +35,10 @@ public final class ItemActionRegistrar {
     }
 
     private void registerCoreAction(CoreAction action) {
-        if (!EmakiItemPlugin.requireCoreLibCompatibility("registerAction:" + action.id())) {
-            return;
-        }
-        try {
-            CoreActionRegistration registration = EmakiCoreLibApi.registerAction(plugin, "emakiitem", action);
-            if (!registration.registered()) {
-                plugin.getLogger().warning("Failed to register CoreLib action '" + action.id() + "': "
-                        + registration.result().errorMessage());
-            }
-        } catch (RuntimeException | LinkageError exception) {
-            EmakiItemPlugin.reportCoreLibApiFailure("registerAction:" + action.id(), exception);
+        CoreActionRegistration registration = EmakiCoreLibApi.registerAction(plugin, "emakiitem", action);
+        if (!registration.registered()) {
+            plugin.getLogger().warning("Failed to register CoreLib action '" + action.id() + "': "
+                    + registration.result().errorMessage());
         }
     }
 }

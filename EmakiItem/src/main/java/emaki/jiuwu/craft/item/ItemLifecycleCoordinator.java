@@ -65,9 +65,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
-        if (!EmakiItemPlugin.requireCoreLibCompatibility("initialize")) {
-            throw new IllegalStateException("EmakiCoreLib API compatibility preflight failed.");
-        }
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();

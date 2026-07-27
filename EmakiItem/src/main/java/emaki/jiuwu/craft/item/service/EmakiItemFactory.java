@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -141,19 +140,11 @@ public final class EmakiItemFactory {
         }
         Map<String, Object> variables = resolveBuildVariables(definition.variables());
         ConfiguredItemDefinition resolvedDefinition = resolveItemDefinition(definition.itemDefinition(), variables).withAmount(1);
-        if (!EmakiItemPlugin.requireCoreLibCompatibility("createConfiguredItem")) {
+        ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(resolvedDefinition);
+        if (!result.success() || result.itemStack() == null) {
             return null;
         }
-        try {
-            ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(resolvedDefinition);
-            if (!result.success() || result.itemStack() == null) {
-                return null;
-            }
-            return new PreparedBuild(result.itemStack(), resolvedDefinition, variables);
-        } catch (RuntimeException | LinkageError exception) {
-            EmakiItemPlugin.reportCoreLibApiFailure("createConfiguredItem", exception);
-            return null;
-        }
+        return new PreparedBuild(result.itemStack(), resolvedDefinition, variables);
     }
 
     ItemStack finishBuild(ItemStack itemStack,
