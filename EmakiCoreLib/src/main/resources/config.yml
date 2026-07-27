@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.6.0"
+version: "4.6.2"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -37,6 +37,22 @@ gui:
   # 0 表示不限制。被拦截的点击会被安全丢弃：菜单不会错乱，玩家也不会收到提示。
   # 默认 100，正常手动点击不会触发；需要更严格时可上调，建议不超过 500。
   click_interval_ms: 100
+
+# 展示实体(Display Entity)渲染后端
+# 供伤害飘字、烹饪工位文本与物品展示等功能共用。
+display:
+  # 展示实体后端类型：
+  #   bukkit  - 真实体。生成服务端实体，无需前置插件；对附近所有玩家可见。
+  #   packet  - 发包虚拟实体。不进入区块存档、不占用服务端实体，支持只对指定玩家可见；
+  #             需要额外安装 PacketEvents，且服务端不低于 1.19.4。
+  #   auto    - 安装了 PacketEvents 且版本满足则使用 packet，否则 bukkit(默认)。
+  #   inherit - 跟随上方 gui.backend 的取值。
+  # 发包后端不可用时一律回退 bukkit，功能不会整体失效。
+  backend: "auto"
+  # 虚拟实体的可见距离(格)。仅 packet 后端生效。
+  view_distance_blocks: 48
+  # 虚拟实体可见性的重算间隔(tick)。仅 packet 后端生效，调小更灵敏但更耗性能。
+  refresh_interval_ticks: 20
 
 # MiniMessage 文本渲染
 minimessage:

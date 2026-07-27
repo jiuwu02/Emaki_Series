@@ -2,17 +2,21 @@ package emaki.jiuwu.craft.cooking.service.display;
 
 import java.util.Objects;
 
+import org.bukkit.Location;
+
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
+import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import net.kyori.adventure.text.Component;
-import org.bukkit.Location;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
-import org.bukkit.util.Transformation;
 
+/**
+ * 工位文本展示的入参。
+ *
+ * <p>保留工位语义供调用方使用，通过 {@link #toCoreSpec()} 转成 CoreLib 的通用 spec。
+ * 工位文本是常驻显示，因此存活时长恒为 0，可见性也不做定向。
+ */
 public record CookingTextDisplaySpec(StationType stationType,
         StationCoordinates stationCoordinates,
         String displayKey,
@@ -30,42 +34,38 @@ public record CookingTextDisplaySpec(StationType stationType,
         baseLocation = baseLocation.clone();
     }
 
-    public String stationRuntimeKey() {
-        return stationType.folderName() + ":" + stationCoordinates.runtimeKey();
+    /** {@return 转换为 CoreLib 通用 spec} */
+    public TextDisplaySpec toCoreSpec() {
+        return new TextDisplaySpec(
+                CookingDisplayKeys.of(stationType, stationCoordinates, displayKey),
+                text,
+                baseLocation,
+                toCoreProfile(profile)
+        );
     }
 
-    public String runtimeKey() {
-        return stationRuntimeKey() + ":" + displayKey;
+    static DisplayGeometry.TextProfile toCoreProfile(CookingSettingsService.TextDisplayProfile profile) {
+        if (profile == null) {
+            return DisplayGeometry.TextProfile.defaults();
+        }
+        return new DisplayGeometry.TextProfile(
+                toCoreVector(profile.offset()),
+                toCoreVector(profile.scale()),
+                profile.billboard(),
+                profile.lineWidth(),
+                profile.backgroundArgb(),
+                profile.shadow(),
+                profile.seeThrough()
+        );
+    }
+
+    static DisplayGeometry.Vector3 toCoreVector(CookingSettingsService.Vector3 vector) {
+        return vector == null
+                ? DisplayGeometry.Vector3.ZERO
+                : new DisplayGeometry.Vector3(vector.x(), vector.y(), vector.z());
     }
 
     public boolean hasText() {
         return Texts.isNotBlank(text);
-    }
-
-    public Location displayLocation() {
-        return new Location(
-                baseLocation.getWorld(),
-                baseLocation.getX() + profile.offset().x(),
-                baseLocation.getY() + profile.offset().y(),
-                baseLocation.getZ() + profile.offset().z()
-        );
-    }
-
-    public Component component() {
-        return MiniMessages.parse(text);
-    }
-
-    public Object componentObject() {
-        return component();
-    }
-
-    public Transformation transformation() {
-        CookingSettingsService.Vector3 scale = profile.scale();
-        return new Transformation(
-                new Vector3f(),
-                new Quaternionf(),
-                new Vector3f((float) scale.x(), (float) scale.y(), (float) scale.z()),
-                new Quaternionf()
-        );
     }
 }

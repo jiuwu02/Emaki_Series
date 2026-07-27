@@ -2,13 +2,21 @@ package emaki.jiuwu.craft.cooking.service.display;
 
 import java.util.Objects;
 
-import emaki.jiuwu.craft.cooking.model.StationCoordinates;
-import emaki.jiuwu.craft.cooking.model.StationType;
-import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Transformation;
 
+import emaki.jiuwu.craft.cooking.model.StationCoordinates;
+import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
+import emaki.jiuwu.craft.corelib.display.ItemDisplaySpec;
+
+/**
+ * 工位物品展示的入参。
+ *
+ * <p>与文本线同理，通过 {@link #toCoreSpec()} 转成 CoreLib 的通用 spec。
+ */
 public record CookingDisplaySpec(StationType stationType,
         StationCoordinates stationCoordinates,
         String displayKey,
@@ -18,7 +26,8 @@ public record CookingDisplaySpec(StationType stationType,
         CookingSettingsService.Vector3 layoutOffset,
         Transformation transformation) {
 
-    private static final CookingSettingsService.Vector3 ZERO_OFFSET = new CookingSettingsService.Vector3(0D, 0D, 0D);
+    private static final CookingSettingsService.Vector3 ZERO_OFFSET =
+            new CookingSettingsService.Vector3(0D, 0D, 0D);
 
     public CookingDisplaySpec(StationType stationType,
             StationCoordinates stationCoordinates,
@@ -44,20 +53,46 @@ public record CookingDisplaySpec(StationType stationType,
         transformation = transformation == null ? adjustment.transformation() : transformation;
     }
 
-    public String stationRuntimeKey() {
-        return stationType.folderName() + ":" + stationCoordinates.runtimeKey();
+    /** {@return 转换为 CoreLib 通用 spec} */
+    public ItemDisplaySpec toCoreSpec() {
+        return new ItemDisplaySpec(
+                CookingDisplayKeys.of(stationType, stationCoordinates, displayKey),
+                itemStack,
+                baseLocation,
+                toCoreProfile(adjustment),
+                CookingTextDisplaySpec.toCoreVector(layoutOffset),
+                transformation,
+                0
+        );
     }
 
-    public String runtimeKey() {
-        return stationRuntimeKey() + ":" + displayKey;
-    }
-
-    public Location displayLocation() {
-        Location location = adjustment.applyOffset(baseLocation);
-        if (location == null) {
-            return null;
+    private static DisplayGeometry.ItemProfile toCoreProfile(
+            CookingSettingsService.DisplayAdjustmentProfile profile) {
+        if (profile == null) {
+            return DisplayGeometry.ItemProfile.defaults();
         }
-        return location.add(layoutOffset.x(), layoutOffset.y(), layoutOffset.z());
+        return new DisplayGeometry.ItemProfile(
+                CookingTextDisplaySpec.toCoreVector(profile.offset()),
+                toCoreRotation(profile.rotation()),
+                CookingTextDisplaySpec.toCoreVector(profile.scale())
+        );
     }
 
+    private static DisplayGeometry.RotationProfile toCoreRotation(
+            CookingSettingsService.RotationProfile rotation) {
+        if (rotation == null) {
+            return DisplayGeometry.RotationProfile.none();
+        }
+        return new DisplayGeometry.RotationProfile(
+                toCoreAxis(rotation.x()),
+                toCoreAxis(rotation.y()),
+                toCoreAxis(rotation.z())
+        );
+    }
+
+    private static DisplayGeometry.AxisRotation toCoreAxis(CookingSettingsService.AxisRotation axis) {
+        return axis == null
+                ? DisplayGeometry.AxisRotation.fixed(0D)
+                : new DisplayGeometry.AxisRotation(axis.min(), axis.max());
+    }
 }

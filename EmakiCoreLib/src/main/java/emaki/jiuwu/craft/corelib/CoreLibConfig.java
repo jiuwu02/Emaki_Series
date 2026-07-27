@@ -17,13 +17,14 @@ public record CoreLibConfig(
         GameplayEventConfig gameplayEventConfig,
         DebugConfig debugConfig,
         MiniMessageConfig miniMessageConfig,
-        DialogConfig dialogConfig
+        DialogConfig dialogConfig,
+        DisplayConfig displayConfig
 ) {
 
     public static CoreLibConfig defaults() {
         return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
                 GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults(),
-                MiniMessageConfig.defaults(), DialogConfig.defaults());
+                MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -49,7 +50,8 @@ public record CoreLibConfig(
                 GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events")),
                 DebugConfig.fromConfig(configuration.getSection("debug")),
                 MiniMessageConfig.fromConfig(configuration.getSection("minimessage")),
-                DialogConfig.fromConfig(configuration.getSection("dialog"))
+                DialogConfig.fromConfig(configuration.getSection("dialog")),
+                DisplayConfig.fromConfig(configuration.getSection("display"))
         );
     }
 
@@ -100,6 +102,53 @@ public record CoreLibConfig(
             return new MiniMessageConfig(
                     section.getBoolean("default_no_italic", defaults().defaultNoItalic())
             );
+        }
+    }
+
+    /**
+     * 展示实体后端设置。
+     *
+     * <p>{@code backend} 取 {@code inherit} 时跟随 {@link GuiConfig#backend()}，
+     * 由装配处调用 {@link #resolveBackend(String)} 解析。
+     */
+    public record DisplayConfig(String backend, int viewDistanceBlocks, int refreshIntervalTicks) {
+
+        public static final String INHERIT = "inherit";
+
+        public DisplayConfig {
+            backend = backend == null || backend.isBlank()
+                    ? "auto"
+                    : backend.trim().toLowerCase(java.util.Locale.ROOT);
+            viewDistanceBlocks = Math.max(1, viewDistanceBlocks);
+            refreshIntervalTicks = Math.max(1, refreshIntervalTicks);
+        }
+
+        public static DisplayConfig defaults() {
+            return new DisplayConfig("auto", 48, 20);
+        }
+
+        public static DisplayConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new DisplayConfig(
+                    section.getString("backend", defaults().backend()),
+                    section.getInt("view_distance_blocks", defaults().viewDistanceBlocks()),
+                    section.getInt("refresh_interval_ticks", defaults().refreshIntervalTicks())
+            );
+        }
+
+        /**
+         * 解析实际生效的后端名。
+         *
+         * @param guiBackend 菜单后端名，供 {@code inherit} 回落
+         * @return 生效的后端名
+         */
+        public String resolveBackend(String guiBackend) {
+            if (!INHERIT.equals(backend)) {
+                return backend;
+            }
+            return guiBackend == null || guiBackend.isBlank() ? "auto" : guiBackend;
         }
     }
 

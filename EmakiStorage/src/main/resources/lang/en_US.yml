@@ -5,7 +5,7 @@
 # ============================================================
 
 # version is maintained by resource synchronisation
-version: "1.0.0"
+version: "1.0.1"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"

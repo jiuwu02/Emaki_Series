@@ -138,6 +138,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private EmakiCoreLibApi.Bridge coreLibApiBridge;
     private emaki.jiuwu.craft.corelib.dialog.DialogService dialogService;
     private emaki.jiuwu.craft.corelib.api.dialog.DialogApi.Bridge dialogApiBridge;
+    private emaki.jiuwu.craft.corelib.display.TextDisplayService textDisplayService;
+    private emaki.jiuwu.craft.corelib.display.ItemDisplayService itemDisplayService;
     private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
     private MythicJavaScriptBridge mythicJavaScriptBridge;
     private emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher gameplayEventPublisher;
@@ -548,6 +550,14 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     dialogApiBridge = null;
                 }
                 dialogService = null;
+                if (textDisplayService != null) {
+                    textDisplayService.shutdown();
+                    textDisplayService = null;
+                }
+                if (itemDisplayService != null) {
+                    itemDisplayService.shutdown();
+                    itemDisplayService = null;
+                }
             });
             mythicJavaScriptBridge = null;
             gameplayEventPublisher = null;
@@ -615,6 +625,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 debugLogger
         );
         itemAssemblyService.configureAsync(asyncTaskScheduler, executionDispatcher, this, performanceMonitor);
+        String displayBackend = config.displayConfig().resolveBackend(config.guiConfig().backend());
+        emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings displaySettings =
+                emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings.of(
+                        config.displayConfig().viewDistanceBlocks(),
+                        config.displayConfig().refreshIntervalTicks());
+        textDisplayService = emaki.jiuwu.craft.corelib.display.DisplayServiceFactory.createTextService(
+                this, displayBackend, displaySettings, executionDispatcher);
+        itemDisplayService = emaki.jiuwu.craft.corelib.display.DisplayServiceFactory.createItemService(
+                this, displayBackend, displaySettings, executionDispatcher);
         dialogService = new emaki.jiuwu.craft.corelib.dialog.DialogService(
                 this,
                 new emaki.jiuwu.craft.corelib.dialog.DialogLoader(this, config.dialogConfig().directory()),
@@ -697,6 +716,21 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public emaki.jiuwu.craft.corelib.dialog.DialogService dialogService() {
         return dialogService;
+    }
+
+    /**
+     * {@return CoreLib 的默认文本展示服务}
+     *
+     * <p>按 CoreLib 的 {@code display.*} 配置创建，供无特殊需求的模块直接取用。
+     * 需要独立配置的模块应改用 {@code DisplayServiceFactory} 自建实例，并自行负责关闭。
+     */
+    public emaki.jiuwu.craft.corelib.display.TextDisplayService textDisplayService() {
+        return textDisplayService;
+    }
+
+    /** {@return CoreLib 的默认物品展示服务，语义同 {@link #textDisplayService()}} */
+    public emaki.jiuwu.craft.corelib.display.ItemDisplayService itemDisplayService() {
+        return itemDisplayService;
     }
 
     public CoreLibConfig configModel() {

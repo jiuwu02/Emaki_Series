@@ -142,9 +142,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 plugin, rewardService, cookingFileScope, executionDispatcher);
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService(), stationStateStore, blockMatcher, settingsService);
         CookingDisplayService displayService = CookingDisplayServiceFactory.create(
-                plugin, settingsService, executionDispatcher, threadOwnership);
+                plugin, settingsService, executionDispatcher);
         CookingTextDisplayService textDisplayService = CookingTextDisplayServiceFactory.create(
-                plugin, settingsService, executionDispatcher, threadOwnership);
+                plugin, settingsService, executionDispatcher);
         ChoppingBoardRuntimeService choppingBoardRuntimeService = new ChoppingBoardRuntimeService(
                 plugin,
                 messageService,
