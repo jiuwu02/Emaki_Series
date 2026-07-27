@@ -1,0 +1,44 @@
+name: EmakiLevel
+main: emaki.jiuwu.craft.level.EmakiLevelPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    MythicMobs:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiAttribute:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiCooking:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiForge:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakilevel.use:
+    default: true
+  emakilevel.levelup:
+    default: true
+  emakilevel.top:
+    default: true
+  emakilevel.reload:
+    default: op
+  emakilevel.debug:
+    default: op
+  emakilevel.admin:
+    default: op

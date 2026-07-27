@@ -3,8 +3,11 @@ package emaki.jiuwu.craft.cooking;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-import org.bukkit.command.PluginCommand;
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -15,6 +18,8 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -22,10 +27,8 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 import emaki.jiuwu.craft.cooking.action.NutritionActionRegistrar;
@@ -45,11 +48,14 @@ import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
 import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
+import emaki.jiuwu.craft.cooking.service.CookingCompletionCoordinator;
 import emaki.jiuwu.craft.cooking.service.CookingEffectService;
 import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.cooking.service.CookingStationLocator;
+import emaki.jiuwu.craft.cooking.service.CookingStationTracker;
 import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
@@ -61,8 +67,8 @@ import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
-import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingCompleteHookRegistry;
-import emaki.jiuwu.craft.cooking.script.js.JavaScriptCookingResultRuleRegistry;
+import emaki.jiuwu.craft.cooking.script.JavaScriptCookingCompleteHookRegistry;
+import emaki.jiuwu.craft.cooking.script.JavaScriptCookingResultRuleRegistry;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
@@ -71,23 +77,27 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private static final String ROOT_COMMAND = "ecooking";
 
     private static final String STARTUP_ASCII = """
- ______  __    __  ______  __  __   __  ______  ______  ______  __  __   __  __   __  ______    
-/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\  __ \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ "-.\\ \\/\\  ___\\   
-\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\___\\ \\ \\/\\ \\ \\ \\/\\ \\ \\  _"-.\\ \\ \\ \\ \\-.  \\ \\ \\__ \\  
- \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_____\\ \\_\\ \\_\\\\ \\_\\ \\_\\\\"\\_\\ \\_____\\ 
-  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/\\/_/\\/_/ \\/_/\\/_/ \\/_/\\/_____/ 
+ ______  __    __  ______  __  __   __  ______  ______  ______  __  __   __  __   __  ______
+/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\  __ \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ "-.\\ \\/\\  ___\\
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\___\\ \\ \\/\\ \\ \\ \\/\\ \\ \\  _"-.\\ \\ \\ \\ \\-.  \\ \\ \\__ \\
+ \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_____\\ \\_\\ \\_\\\\ \\_\\ \\_\\\\"\\_\\ \\_____\\
+  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/\\/_/\\/_/ \\/_/\\/_/ \\/_/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0x22C55E;
+    private static final int STARTUP_ASCII_END_COLOR = 0xFACC15;
     private static final int BSTATS_PLUGIN_ID = 31765;
 
     private BStatsRegistration metrics;
 
-    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "stir", "display", "station", "script");
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "stir", "display", "station", "script", "pdc");
 
     private final CookingLifecycleCoordinator lifecycleCoordinator = new CookingLifecycleCoordinator();
     private final CookingCommandRouter commandRouter = new CookingCommandRouter(this);
     private CookingStationListener stationListener;
     private DebugCommand debugCommand;
 
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private ChoppingBoardRecipeLoader choppingBoardRecipeLoader;
@@ -110,6 +120,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private StationStateStore stationStateStore;
     private CookingRecipeService recipeService;
     private CookingRewardService rewardService;
+    private CookingCompletionCoordinator completionCoordinator;
     private CookingInspectService inspectService;
     private CookingDisplayService displayService;
     private CookingTextDisplayService textDisplayService;
@@ -121,6 +132,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private OvenRuntimeService ovenRuntimeService;
     private JuicerRuntimeService juicerRuntimeService;
     private FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
+    private CookingStationLocator stationLocator;
+    private CookingStationTracker stationTracker;
     private NutritionTypeLoader nutritionTypeLoader;
     private NutritionTypeRegistry nutritionTypeRegistry;
     private PlayerNutritionDataStore nutritionDataStore;
@@ -150,17 +163,22 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         registerConfigPrecheckContributor();
         reloadPluginState();
+        recoverCookingCompletions();
         registerCommandHandler();
         registerEventHandlers();
         registerActions();
         registerPublicApiService();
-        registerWebConsole();
         registerPlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -171,18 +189,26 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         ConfigPrecheckLifecycleSupport.unregister("cooking");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("cooking");
-        coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(this);
+        var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
+        if (javaScriptRegistrationTracker != null) {
+            javaScriptRegistrationTracker.unregisterOwner(this);
+        }
         coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         if (coreLibPlugin.actionRegistry() != null) {
             coreLibPlugin.actionRegistry().unregisterAll(this);
         }
-        WebConsoleRegistry.unregisterModule(this);
         EmakiCookingApi.uninstall(cookingApiBridge);
         if (nutritionService != null) {
             nutritionService.shutdown();
         }
         if (nutritionDataStore != null) {
-            nutritionDataStore.saveAll();
+            var flushResult = nutritionDataStore.flushAndSeal(5L, TimeUnit.SECONDS);
+            if (!flushResult.success()) {
+                getLogger().warning("Nutrition data drain incomplete: pending="
+                        + flushResult.pendingFileOperations()
+                        + ", dirty=" + flushResult.remainingDirtyEntries()
+                        + ", failures=" + flushResult.failures().size());
+            }
         }
         if (grinderRuntimeService != null) {
             grinderRuntimeService.shutdown();
@@ -199,6 +225,22 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (fermentationBarrelRuntimeService != null) {
             fermentationBarrelRuntimeService.shutdown();
         }
+        if (completionCoordinator != null) {
+            var drainResult = completionCoordinator.sealAndDrain(5L, TimeUnit.SECONDS);
+            if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
+                getLogger().warning("Cooking completion journal drain incomplete: pending="
+                        + drainResult.pendingOperations()
+                        + ", failures=" + drainResult.failures().size());
+            }
+        }
+        if (stationStateStore != null) {
+            var drainResult = stationStateStore.sealAndDrain(5L, TimeUnit.SECONDS);
+            if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
+                getLogger().warning("Station state drain incomplete: pending="
+                        + drainResult.pendingOperations()
+                        + ", failures=" + drainResult.failures().size());
+            }
+        }
         if (displayService != null) {
             displayService.shutdown();
         }
@@ -212,7 +254,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
         }
-        AdventureSupport.close(this);
     }
 
     public void reloadPluginState() {
@@ -225,11 +266,24 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
                 .thenRun(this::logConfigPrecheckReport);
     }
 
+    private void recoverCookingCompletions() {
+        if (completionCoordinator == null) {
+            return;
+        }
+        completionCoordinator.recover().whenComplete((_, error) -> {
+            if (error != null) {
+                getLogger().warning("Cooking completion recovery failed: " + error.getMessage());
+            }
+        });
+    }
+
     private void logConfigPrecheckReport() {
         ConfigPrecheckLifecycleSupport.logReport(messageService(), "cooking");
     }
 
     private void applyRuntimeComponents(CookingRuntimeComponents components) {
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
         choppingBoardRecipeLoader = components.choppingBoardRecipeLoader();
@@ -252,6 +306,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         stationStateStore = components.stationStateStore();
         recipeService = components.recipeService();
         rewardService = components.rewardService();
+        completionCoordinator = components.completionCoordinator();
         inspectService = components.inspectService();
         displayService = components.displayService();
         textDisplayService = components.textDisplayService();
@@ -269,19 +324,21 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         nutritionService = components.nutritionService();
         javaScriptResultRuleRegistry = new JavaScriptCookingResultRuleRegistry(this);
         javaScriptCompleteHookRegistry = new JavaScriptCookingCompleteHookRegistry(this);
-        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService);
+        stationTracker = new CookingStationTracker();
+        stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService, blockMatcher, settingsService);
+        stationLocator = new CookingStationLocator(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
     }
 
     private void registerCommandHandler() {
-        PluginCommand pluginCommand = getCommand(ROOT_COMMAND);
-        if (pluginCommand == null) {
-            return;
-        }
-        pluginCommand.setExecutor(commandRouter);
-        pluginCommand.setTabCompleter(commandRouter);
+        registerCommand(
+                ROOT_COMMAND,
+                "ecooking command",
+                java.util.List.of("ec"),
+                new PaperCommandAdapter(ROOT_COMMAND, "emakicooking.use", commandRouter, commandRouter)
+        );
     }
 
     private void registerEventHandlers() {
@@ -289,6 +346,12 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             return;
         }
         getServer().getPluginManager().registerEvents(stationListener, this);
+        if (stationStateStore != null) {
+            getServer().getPluginManager().registerEvents(new CookingStationStorageListener(this), this);
+        }
+        if (stationTracker != null) {
+            getServer().getPluginManager().registerEvents(stationTracker, this);
+        }
         if (steamerRuntimeService != null) {
             getServer().getPluginManager().registerEvents(steamerRuntimeService, this);
         }
@@ -313,12 +376,13 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             return;
         }
         getServer().getPluginManager().registerEvents(new NutritionConsumeListener(this), this);
-        getServer().getPluginManager().registerEvents(new NutritionPlayerDataListener(this), this);
+        NutritionPlayerDataListener playerDataListener = new NutritionPlayerDataListener(this);
+        getServer().getPluginManager().registerEvents(playerDataListener, this);
         registerMmoItemsNutritionHandler();
         registerNeigeItemsNutritionHandler();
-        // 为已在线玩家加载营养数据（reload 或热插拔场景）
+
         for (org.bukkit.entity.Player online : getServer().getOnlinePlayers()) {
-            nutritionDataStore.load(online, nutritionTypeRegistry.asMap());
+            playerDataListener.ensureSession(online);
         }
     }
 
@@ -348,35 +412,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void registerActions() {
         new NutritionActionRegistrar(this).register(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).actionRegistry());
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("apiVersion", "apiVersion()", "apiVersion()");
-        scriptMethod("pluginName", "pluginName()", "pluginName()");
-        scriptMethod("ready", "ready()", "ready()");
-        scriptMethod("registerResultRule", "registerResultRule(definition)", "registerResultRule({ id: \"holiday_extra_food\", function: \"modifyResult\" })");
-        scriptMethod("unregisterResultRule", "unregisterResultRule(id)", "unregisterResultRule(\"holiday_extra_food\")");
-        scriptMethod("registeredResultRules", "registeredResultRules()", "registeredResultRules()");
-        scriptMethod("onComplete", "onComplete(definition)", "onComplete({ id: \"complete_reward\", function: \"reward\" })");
-        scriptMethod("unregisterCompleteHook", "unregisterCompleteHook(id)", "unregisterCompleteHook(\"complete_reward\")");
-        scriptMethod("registeredCompleteHooks", "registeredCompleteHooks()", "registeredCompleteHooks()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:cooking", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
     }
 
     private void registerConfigPrecheckContributor() {
@@ -495,6 +530,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return coreActionExecutor;
     }
 
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
+    }
+
     public ItemSourceService coreItemSourceService() {
         return coreItemSourceService;
     }
@@ -579,6 +622,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return fermentationBarrelRuntimeService;
     }
 
+    public CookingStationLocator stationLocator() {
+        return stationLocator;
+    }
+
+    public CookingStationTracker stationTracker() {
+        return stationTracker;
+    }
+
     public NutritionTypeLoader nutritionTypeLoader() {
         return nutritionTypeLoader;
     }
@@ -606,4 +657,40 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     public DebugCommand debugCommand() {
         return debugCommand;
     }
+
+    private static final class PaperCommandAdapter implements BasicCommand {
+
+        private final String rootLabel;
+        private final String permission;
+        private final org.bukkit.command.CommandExecutor executor;
+        private final org.bukkit.command.TabCompleter tabCompleter;
+
+        private PaperCommandAdapter(String rootLabel,
+                String permission,
+                org.bukkit.command.CommandExecutor executor,
+                org.bukkit.command.TabCompleter tabCompleter) {
+            this.rootLabel = rootLabel;
+            this.permission = permission;
+            this.executor = executor;
+            this.tabCompleter = tabCompleter;
+        }
+
+        @Override
+        public void execute(CommandSourceStack source, String[] args) {
+            executor.onCommand(source.getSender(), null, rootLabel, args);
+        }
+
+        @Override
+        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
+            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? java.util.List.of() : suggestions;
+        }
+
+        @Override
+        public String permission() {
+            return permission;
+        }
+    }
+
 }

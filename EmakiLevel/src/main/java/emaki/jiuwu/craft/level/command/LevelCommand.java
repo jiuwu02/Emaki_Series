@@ -66,7 +66,11 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             plugin.messages().send(sender, "command.player_only");
             return true;
         }
-        PlayerLevelData data = plugin.dataStore().getOrLoad(player.getUniqueId(), plugin.typeRegistry().asMap());
+        PlayerLevelData data = plugin.dataStore().cached(player.getUniqueId());
+        if (data == null) {
+            plugin.messages().send(sender, "failure.player_data_unavailable");
+            return true;
+        }
         if (args.length > 0) {
             LevelTypeConfig type = plugin.typeRegistry().type(args[0]).orElse(null);
             if (type == null) {

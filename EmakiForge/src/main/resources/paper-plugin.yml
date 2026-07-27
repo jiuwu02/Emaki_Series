@@ -1,0 +1,34 @@
+name: EmakiForge
+main: emaki.jiuwu.craft.forge.EmakiForgePlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    EmakiAttribute:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiItem:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakiforge.use:
+    default: true
+  emakiforge.book:
+    default: true
+  emakiforge.reload:
+    default: op
+  emakiforge.debug:
+    default: op
+  emakiforge.admin:
+    default: op

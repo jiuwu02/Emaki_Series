@@ -27,9 +27,35 @@ public record ScriptModuleContext(ActionContext actionContext,
     }
 
     public ScriptModuleContext {
-        arguments = arguments == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(arguments));
-        moduleOverrides = moduleOverrides == null ? Map.of() : Collections.unmodifiableMap(new LinkedHashMap<>(moduleOverrides));
+        actionContext = detachedContext(actionContext);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> safeArguments = (Map<String, Object>) ScriptHostObjectProxy.snapshotValue(
+                arguments == null ? Map.of() : arguments
+        );
+        arguments = Collections.unmodifiableMap(new LinkedHashMap<>(safeArguments));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> safeOverrides = (Map<String, Object>) ScriptHostObjectProxy.wrapIfExported(
+                moduleOverrides == null ? Map.of() : moduleOverrides
+        );
+        moduleOverrides = Collections.unmodifiableMap(new LinkedHashMap<>(safeOverrides));
+        actionExecutor = null;
         config = config == null ? ScriptConfig.defaults() : config;
-        sourcePlugin = sourcePlugin == null && actionContext != null ? actionContext.sourcePlugin() : sourcePlugin;
+        sourcePlugin = null;
+    }
+
+    private static ActionContext detachedContext(ActionContext context) {
+        if (context == null) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> attributes = (Map<String, Object>) ScriptHostObjectProxy.snapshotValue(context.attributes());
+        return new ActionContext(
+                null,
+                null,
+                context.phase(),
+                context.silent(),
+                context.placeholders(),
+                attributes
+        );
     }
 }

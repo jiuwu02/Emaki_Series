@@ -204,6 +204,10 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
         if (attributeRegistry != null) {
             var definition = attributeRegistry.resolve(normalized);
             if (definition != null) {
+                if (definition.parentAttribute()) {
+                    issue("loader.damage_type_parent_attribute_forbidden", Map.of("attribute", definition.id()));
+                    return "";
+                }
                 return definition.id();
             }
         }

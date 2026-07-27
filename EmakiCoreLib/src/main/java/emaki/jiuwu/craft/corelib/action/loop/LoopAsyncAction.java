@@ -8,7 +8,9 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutionMode;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 
 public final class LoopAsyncAction implements Action {
@@ -37,6 +39,11 @@ public final class LoopAsyncAction implements Action {
     @Override
     public @NotNull ActionExecutionMode executionMode() {
         return ActionExecutionMode.ASYNC_IO;
+    }
+
+    @Override
+    public @NotNull ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        return Action.contextualTarget(context == null ? null : context.actionContext());
     }
 
     @Override

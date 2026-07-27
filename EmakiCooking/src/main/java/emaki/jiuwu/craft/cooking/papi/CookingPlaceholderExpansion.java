@@ -1,12 +1,15 @@
 package emaki.jiuwu.craft.cooking.papi;
 
 import java.util.Locale;
+import java.util.Optional;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.StationSnapshot;
+import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
@@ -58,6 +61,10 @@ public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
             return nutritionPlaceholder(player, normalized.substring("nutrition_".length()));
         }
 
+        if (normalized.startsWith("station_")) {
+            return stationPlaceholder(player, normalized.substring("station_".length()));
+        }
+
         return "";
     }
 
@@ -65,7 +72,7 @@ public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
         if (player == null || Texts.isBlank(key) || plugin.nutritionService() == null) {
             return "";
         }
-        // 组合阈值当前达标类型数量：nutrition_combo_count_<ruleId>
+
         if (key.startsWith("combo_count_")) {
             String ruleId = Texts.normalizeId(key.substring("combo_count_".length()));
             return plugin.nutritionService().comboThresholds().stream()
@@ -74,21 +81,21 @@ public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
                     .map(rule -> String.valueOf(plugin.nutritionService().comboCount(player.getUniqueId(), rule)))
                     .orElse("");
         }
-        // 营养上限：nutrition_<type>_max
+
         if (key.endsWith("_max")) {
             String typeId = Texts.normalizeId(key.substring(0, key.length() - "_max".length()));
             return plugin.nutritionTypeRegistry().type(typeId)
                     .map(type -> formatValue(type.max()))
                     .orElse("");
         }
-        // 营养下限：nutrition_<type>_min
+
         if (key.endsWith("_min")) {
             String typeId = Texts.normalizeId(key.substring(0, key.length() - "_min".length()));
             return plugin.nutritionTypeRegistry().type(typeId)
                     .map(type -> formatValue(type.min()))
                     .orElse("");
         }
-        // 当前营养值：nutrition_<type>
+
         String typeId = Texts.normalizeId(key);
         if (!plugin.nutritionTypeRegistry().contains(typeId)) {
             return "";
@@ -101,6 +108,78 @@ public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
             return String.valueOf((long) value);
         }
         return String.valueOf(value);
+    }
+
+    private String stationPlaceholder(Player player, String key) {
+        if (player == null || Texts.isBlank(key) || plugin.stationLocator() == null) {
+            return "";
+        }
+        Optional<StationSnapshot> snapshot = plugin.stationLocator().snapshotForViewer(player);
+        if (snapshot.isEmpty()) {
+            return "";
+        }
+        StationSnapshot station = snapshot.get();
+
+        String folderName = station.stationType().folderName();
+        String fieldKey = key;
+        if (key.startsWith(folderName + "_")) {
+            fieldKey = key.substring(folderName.length() + 1);
+        } else if (matchesOtherStationPrefix(key)) {
+
+            return "";
+        }
+        return resolveStationField(station, fieldKey);
+    }
+
+    private boolean matchesOtherStationPrefix(String key) {
+        for (StationType type : StationType.values()) {
+            if (key.startsWith(type.folderName() + "_")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String resolveStationField(StationSnapshot station, String fieldKey) {
+        return switch (fieldKey) {
+            case "type" -> station.stationType().folderName();
+            case "type_name" -> stationTypeName(station.stationType());
+            case "world" -> station.worldName();
+            case "x" -> String.valueOf(station.x());
+            case "y" -> String.valueOf(station.y());
+            case "z" -> String.valueOf(station.z());
+            case "location" -> station.worldName() + "," + station.x() + "," + station.y() + "," + station.z();
+            case "block" -> station.stationBlockId();
+            case "heat_block" -> station.heatBlockId();
+            case "burning" -> String.valueOf(station.burning());
+            case "burning_seconds" -> String.valueOf(station.burningRemainingSeconds());
+            case "heat" -> String.valueOf(station.heat());
+            case "moisture" -> String.valueOf(station.moisture());
+            case "steam" -> String.valueOf(station.steam());
+            case "input" -> station.inputItemName();
+            case "input_source" -> station.inputItemSource();
+            case "input_amount" -> String.valueOf(station.inputAmount());
+            case "ingredient_count" -> String.valueOf(station.ingredientCount());
+            case "recipe" -> station.recipeName();
+            case "recipe_id" -> station.recipeId();
+            case "progress" -> String.valueOf(station.progressCurrent());
+            case "progress_target" -> String.valueOf(station.progressTarget());
+            case "progress_percent" -> formatPercent(station.progressPercent());
+            case "completed" -> String.valueOf(station.completed());
+            case "fluid" -> station.fluidName();
+            case "fluid_amount" -> String.valueOf(station.fluidAmountMl());
+            case "player" -> station.playerName();
+            default -> "";
+        };
+    }
+
+    private String stationTypeName(StationType stationType) {
+        String name = plugin.messageService().message("console.station_name." + stationType.folderName());
+        return Texts.isBlank(name) ? stationType.displayName() : name;
+    }
+
+    private String formatPercent(double percent) {
+        return String.format(Locale.ROOT, "%.1f", percent);
     }
 
     private int totalRecipeCount() {

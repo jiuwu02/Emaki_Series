@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.action.Action;
@@ -13,13 +14,13 @@ import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
 import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
+import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributor {
+final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
 
-    @Override
-    public String module() {
-        return "corelib";
+    CoreLibConfigPrecheckContributor(Supplier<? extends LogMessages> messagesSupplier) {
+        super("corelib", messagesSupplier);
     }
 
     @Override
@@ -29,9 +30,8 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
         checkLoopConfig(safeConfig.loopConfig(), issues);
         checkTemplates(safeConfig.loopConfig(), safeConfig.actionTemplates(), context, issues);
         checkScriptSecurity(safeConfig, issues);
-        checkWebConsole(safeConfig, issues);
         if (issues.isEmpty()) {
-            issues.add(ConfigPrecheckIssue.of(module(), "config.yml", ConfigPrecheckSeverity.INFO, "CoreLib config precheck passed."));
+            addMessageIssue("config.yml", ConfigPrecheckSeverity.INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
     }
@@ -39,16 +39,18 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
     private void checkLoopConfig(CoreLibConfig.LoopConfig loop, List<ConfigPrecheckIssue> issues) {
         CoreLibConfig.LoopConfig safe = loop == null ? CoreLibConfig.LoopConfig.defaults() : loop;
         if (safe.maxTimes() <= 0) {
-            issues.add(ConfigPrecheckIssue.of(module(), "action.loop.max_times", ConfigPrecheckSeverity.ERROR, "max_times must be greater than 0."));
+            addMessageIssue("action.loop.max_times", ConfigPrecheckSeverity.ERROR, "loop_max_times_invalid", issues);
         }
         if (safe.minSyncIntervalTicks() < 1L) {
-            issues.add(ConfigPrecheckIssue.of(module(), "action.loop.min_sync_interval", ConfigPrecheckSeverity.ERROR, "min_sync_interval cannot be lower than 1 tick."));
+            addMessageIssue("action.loop.min_sync_interval", ConfigPrecheckSeverity.ERROR, "loop_min_sync_interval_invalid", issues);
         }
         if (safe.minAsyncIntervalTicks() < 1L) {
-            issues.add(ConfigPrecheckIssue.of(module(), "action.loop.min_async_interval", ConfigPrecheckSeverity.ERROR, "min_async_interval cannot be lower than 1 tick."));
+            addMessageIssue("action.loop.min_async_interval", ConfigPrecheckSeverity.ERROR, "loop_min_async_interval_invalid", issues);
         }
-        if (safe.maxActiveLoopsTotal() <= 0 || safe.maxActiveLoopsPerPlayer() <= 0 || safe.maxActiveLoopsPerPlugin() <= 0) {
-            issues.add(ConfigPrecheckIssue.of(module(), "action.loop", ConfigPrecheckSeverity.ERROR, "Loop active limits must be greater than 0."));
+        if (safe.maxActiveLoopsTotal() <= 0
+                || safe.maxActiveLoopsPerPlayer() <= 0
+                || safe.maxActiveLoopsPerPlugin() <= 0) {
+            addMessageIssue("action.loop", ConfigPrecheckSeverity.ERROR, "loop_active_limits_invalid", issues);
         }
     }
 
@@ -64,7 +66,7 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
         Set<String> templateIds = new HashSet<>();
         for (String id : templates.keySet()) {
             if (Texts.isBlank(id)) {
-                issues.add(ConfigPrecheckIssue.of(module(), "action.templates", ConfigPrecheckSeverity.ERROR, "Template id cannot be blank."));
+                addMessageIssue("action.templates", ConfigPrecheckSeverity.ERROR, "template_blank_id", issues);
                 continue;
             }
             templateIds.add(Texts.lower(id));
@@ -80,8 +82,13 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
                     }
                     Action action = context.actionRegistry() == null ? null : context.actionRegistry().get(parsed.actionId());
                     if (action == null && context.actionRegistry() != null && !"usetemplate".equals(parsed.actionId())) {
-                        issues.add(ConfigPrecheckIssue.of(module(), "action.templates." + id, ConfigPrecheckSeverity.WARN,
-                                "Action is not registered during precheck: " + parsed.actionId()));
+                        addMessageIssue(
+                                "action.templates." + id,
+                                ConfigPrecheckSeverity.WARN,
+                                "template_action_unregistered",
+                                Map.of("action", parsed.actionId()),
+                                issues
+                        );
                     }
                     if ("usetemplate".equals(parsed.actionId())) {
                         checkUseTemplate(id, parsed, templateIds, issues);
@@ -91,18 +98,34 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
                         checkCancelLoopTemplate(id, parsed, issues);
                     }
                 } catch (ActionSyntaxException exception) {
-                    issues.add(ConfigPrecheckIssue.of(module(), "action.templates." + id, ConfigPrecheckSeverity.ERROR,
-                            "Invalid action syntax at line " + (index + 1) + ": " + exception.getMessage()));
+                    addMessageIssue(
+                            "action.templates." + id,
+                            ConfigPrecheckSeverity.ERROR,
+                            "template_invalid_syntax",
+                            Map.of(
+                                    "line", index + 1,
+                                    "error", Texts.toStringSafe(exception.getMessage())
+                            ),
+                            issues
+                    );
                 }
             }
         }
     }
 
-    private void checkUseTemplate(String templateId, ParsedActionLine parsed, Set<String> templateIds, List<ConfigPrecheckIssue> issues) {
+    private void checkUseTemplate(String templateId,
+            ParsedActionLine parsed,
+            Set<String> templateIds,
+            List<ConfigPrecheckIssue> issues) {
         String referenced = parsed.arguments().get("name");
         if (Texts.isNotBlank(referenced) && !templateIds.contains(Texts.lower(referenced))) {
-            issues.add(ConfigPrecheckIssue.of(module(), "action.templates." + templateId, ConfigPrecheckSeverity.ERROR,
-                    "Template references missing template: " + referenced));
+            addMessageIssue(
+                    "action.templates." + templateId,
+                    ConfigPrecheckSeverity.ERROR,
+                    "template_missing_reference",
+                    Map.of("template", referenced),
+                    issues
+            );
         }
     }
 
@@ -119,40 +142,40 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
         String path = "action.templates." + templateId;
         String referencedTemplate = arguments.get("template");
         if (Texts.isBlank(referencedTemplate)) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                    actionId + " requires template."));
+            addActionIssue(path, "loop_template_required", actionId, issues);
         } else if (!templateIds.contains(Texts.lower(referencedTemplate))) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                    actionId + " references missing template: " + referencedTemplate));
+            addMessageIssue(
+                    path,
+                    ConfigPrecheckSeverity.ERROR,
+                    "loop_template_missing",
+                    Map.of("action", actionId, "template", referencedTemplate),
+                    issues
+            );
         }
 
         Integer times = parseInt(arguments.get("times"));
         if (times == null) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                    actionId + " requires numeric times."));
+            addActionIssue(path, "loop_times_numeric", actionId, issues);
         } else if (times <= 0) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                    actionId + " times must be greater than 0."));
+            addActionIssue(path, "loop_times_positive", actionId, issues);
         } else if (times > loopConfig.maxTimes()) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                    actionId + " times exceeds max_times."));
+            addActionIssue(path, "loop_times_exceeds_max", actionId, issues);
         }
 
         Long interval = parseTicks(arguments.get("interval"));
         if (interval == null) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                    actionId + " requires valid interval."));
+            addActionIssue(path, "loop_interval_invalid", actionId, issues);
         } else {
-            long minInterval = "loopasync".equals(actionId) ? loopConfig.minAsyncIntervalTicks() : loopConfig.minSyncIntervalTicks();
+            long minInterval = "loopasync".equals(actionId)
+                    ? loopConfig.minAsyncIntervalTicks()
+                    : loopConfig.minSyncIntervalTicks();
             if (interval < minInterval) {
-                issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                        actionId + " interval is lower than the configured minimum."));
+                addActionIssue(path, "loop_interval_below_min", actionId, issues);
             }
         }
 
         if (arguments.containsKey("initial_delay") && parseTicks(arguments.get("initial_delay")) == null) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                    actionId + " initial_delay is invalid."));
+            addActionIssue(path, "loop_initial_delay_invalid", actionId, issues);
         }
         checkLoopFlags(templateId, actionId, arguments, issues);
         if ("loopasync".equals(actionId) && Texts.isNotBlank(referencedTemplate)) {
@@ -178,18 +201,36 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
                     continue;
                 }
                 if ("usetemplate".equals(nested.actionId())) {
-                    issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                            "loopasync template cannot include nested usetemplate: " + referencedTemplate));
+                    addMessageIssue(
+                            path,
+                            ConfigPrecheckSeverity.ERROR,
+                            "loop_async_nested_template",
+                            Map.of("template", referencedTemplate),
+                            issues
+                    );
                     continue;
                 }
                 Action nestedAction = context.actionRegistry() == null ? null : context.actionRegistry().get(nested.actionId());
                 if (nestedAction == null || nestedAction.executionMode() != ActionExecutionMode.ASYNC_IO) {
-                    issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                            "loopasync template contains non-async-safe action: " + nested.actionId()));
+                    addMessageIssue(
+                            path,
+                            ConfigPrecheckSeverity.ERROR,
+                            "loop_async_unsafe_action",
+                            Map.of("action", nested.actionId()),
+                            issues
+                    );
                 }
             } catch (ActionSyntaxException exception) {
-                issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                        "Invalid loopasync template syntax at line " + (index + 1) + ": " + exception.getMessage()));
+                addMessageIssue(
+                        path,
+                        ConfigPrecheckSeverity.ERROR,
+                        "loop_async_invalid_syntax",
+                        Map.of(
+                                "line", index + 1,
+                                "error", Texts.toStringSafe(exception.getMessage())
+                        ),
+                        issues
+                );
             }
         }
     }
@@ -206,39 +247,56 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
         return null;
     }
 
-    private void checkCancelLoopTemplate(String templateId, ParsedActionLine parsed, List<ConfigPrecheckIssue> issues) {
+    private void checkCancelLoopTemplate(String templateId,
+            ParsedActionLine parsed,
+            List<ConfigPrecheckIssue> issues) {
         Map<String, String> arguments = parsed.arguments();
         String path = "action.templates." + templateId;
         if (Texts.isBlank(arguments.get("key"))) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR, "cancelloop requires key."));
+            addMessageIssue(path, ConfigPrecheckSeverity.ERROR, "cancel_loop_key_required", issues);
         }
         String match = Texts.lower(arguments.getOrDefault("match", "exact"));
         if (!"exact".equals(match) && !"prefix".equals(match)) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR, "cancelloop match must be exact or prefix."));
+            addMessageIssue(path, ConfigPrecheckSeverity.ERROR, "cancel_loop_match_invalid", issues);
         }
         if (arguments.containsKey("silent") && ActionParsers.parseBoolean(arguments.get("silent")) == null) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR, "cancelloop silent must be boolean."));
+            addMessageIssue(path, ConfigPrecheckSeverity.ERROR, "cancel_loop_silent_invalid", issues);
         }
     }
 
-    private void checkLoopFlags(String templateId, String actionId, Map<String, String> arguments, List<ConfigPrecheckIssue> issues) {
+    private void checkLoopFlags(String templateId,
+            String actionId,
+            Map<String, String> arguments,
+            List<ConfigPrecheckIssue> issues) {
         String path = "action.templates." + templateId;
         if (arguments.containsKey("mode")) {
             String mode = Texts.lower(arguments.get("mode"));
-            if (!"replace".equals(mode) && !"refresh".equals(mode) && !"ignore".equals(mode) && !"allow_duplicate".equals(mode)) {
-                issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR,
-                        actionId + " mode must be replace, refresh, ignore, or allow_duplicate."));
+            if (!"replace".equals(mode)
+                    && !"refresh".equals(mode)
+                    && !"ignore".equals(mode)
+                    && !"allow_duplicate".equals(mode)) {
+                addActionIssue(path, "loop_mode_invalid", actionId, issues);
             }
         }
-        if (arguments.containsKey("stop_if_offline") && ActionParsers.parseBoolean(arguments.get("stop_if_offline")) == null) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR, actionId + " stop_if_offline must be boolean."));
+        if (arguments.containsKey("stop_if_offline")
+                && ActionParsers.parseBoolean(arguments.get("stop_if_offline")) == null) {
+            addActionIssue(path, "loop_stop_if_offline_invalid", actionId, issues);
         }
-        if (arguments.containsKey("stop_if_dead") && ActionParsers.parseBoolean(arguments.get("stop_if_dead")) == null) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR, actionId + " stop_if_dead must be boolean."));
+        if (arguments.containsKey("stop_if_dead")
+                && ActionParsers.parseBoolean(arguments.get("stop_if_dead")) == null) {
+            addActionIssue(path, "loop_stop_if_dead_invalid", actionId, issues);
         }
-        if (arguments.containsKey("stop_on_failure") && ActionParsers.parseBoolean(arguments.get("stop_on_failure")) == null) {
-            issues.add(ConfigPrecheckIssue.of(module(), path, ConfigPrecheckSeverity.ERROR, actionId + " stop_on_failure must be boolean."));
+        if (arguments.containsKey("stop_on_failure")
+                && ActionParsers.parseBoolean(arguments.get("stop_on_failure")) == null) {
+            addActionIssue(path, "loop_stop_on_failure_invalid", actionId, issues);
         }
+    }
+
+    private void addActionIssue(String path,
+            String key,
+            String actionId,
+            List<ConfigPrecheckIssue> issues) {
+        addMessageIssue(path, ConfigPrecheckSeverity.ERROR, key, Map.of("action", actionId), issues);
     }
 
     private Integer parseInt(String raw) {
@@ -261,29 +319,11 @@ final class CoreLibConfigPrecheckContributor implements ConfigPrecheckContributo
         if (config.scriptConfig() == null || config.scriptConfig().security() == null) {
             return;
         }
-        var security = config.scriptConfig().security();
+        var script = config.scriptConfig();
+        var security = script.security();
         if (security.allowActionDispatch() && security.maxActionDepth() > 5) {
-            issues.add(ConfigPrecheckIssue.of(module(), "script.security.max_action_depth", ConfigPrecheckSeverity.WARN,
-                    "Large script action depth may cause difficult-to-trace action chains."));
+            addMessageIssue("script.security.max_action_depth", ConfigPrecheckSeverity.WARN, "script_action_depth_large", issues);
         }
     }
 
-    private void checkWebConsole(CoreLibConfig config, List<ConfigPrecheckIssue> issues) {
-        if (config.webConsoleConfig() == null || config.webConsoleConfig().security() == null) {
-            return;
-        }
-        var web = config.webConsoleConfig();
-        if (web.enabled() && web.hasUnsafeDefaultPassword()) {
-            issues.add(ConfigPrecheckIssue.of(module(), "web_console.auth.password", ConfigPrecheckSeverity.ERROR,
-                    "Web Console is enabled but password is blank or still using the default value."));
-        }
-        if (web.security().maxRequestBodyKb() <= 0) {
-            issues.add(ConfigPrecheckIssue.of(module(), "web_console.security.max_request_body_kb", ConfigPrecheckSeverity.ERROR,
-                    "max_request_body_kb must be greater than 0."));
-        }
-        if (web.enabled() && web.security().mode().configWriteAllowed() && web.security().allowedModules().isEmpty()) {
-            issues.add(ConfigPrecheckIssue.of(module(), "web_console.security.allowed_modules", ConfigPrecheckSeverity.WARN,
-                    "Config write is enabled without an allowed_modules allowlist."));
-        }
-    }
 }

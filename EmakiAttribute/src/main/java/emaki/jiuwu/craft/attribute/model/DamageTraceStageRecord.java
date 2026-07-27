@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.attribute.model;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Runtime-only diagnostic record for one damage stage. */
+
 public record DamageTraceStageRecord(
         String stageId,
         String kind,

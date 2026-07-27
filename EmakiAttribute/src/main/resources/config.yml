@@ -8,10 +8,25 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.3.12"
+version: "4.6.0"
 
 # 语言文件 ID
 language: zh_CN
+
+# 是否释放内置示例资源。
+# false 时不会自动生成属性、伤害类型、读取规则、词条格式、平衡系数与脚本示例等默认数据。
+release_default_data: true
+
+# 物品属性来源策略。
+# read_lore_attributes: 是否解析物品 Lore 中的属性词条。
+# read_pdc_attributes: 是否读取 EmakiAttribute PDC 属性。
+# require_lore_pdc_match: 开启后按属性 ID 逐项要求 Lore 与 PDC 同时存在且数值一致；
+#                         一致时仅计入一次，不一致或仅单侧存在时该属性失效。
+#                         默认 false，保持 Lore 与 PDC 同 key 相加的既有行为。
+attribute_sources:
+  read_lore_attributes: true
+  read_pdc_attributes: true
+  require_lore_pdc_match: false
 
 # 是否接管未命中白名单的原版伤害
 # true 时，所有原版伤害都会进入 EA 结算；未命中的环境伤害会回退到默认伤害类型
@@ -20,6 +35,12 @@ hard_lock_damage: true
 
 # 默认伤害类型 ID
 default_damage_type: physical
+
+# 投射物默认伤害类型 ID。
+# 弓箭、弩箭、三叉戟等投射物发射时会缓存攻击者当前属性快照，命中时按这里配置的伤害类型结算。
+# projectile：使用 projectile_attack / projectile_damage_bonus / projectile_crit_* 等投射物属性。
+# physical：使用 physical_attack / physical_damage_bonus / physical_crit_* 等物理属性。
+projectile_damage_type: projectile
 
 # 原版事件伤害接管
 # enabled: true 时启用「完美接管」——不取消原版伤害事件，只把最终伤害数值替换为 EA 结算值，
@@ -34,11 +55,37 @@ vanilla_event_damage:
   enabled: true
   damage_type: physical
 
+# 同批次攻击无视目标受伤间隔
+# enabled: true 时，同一攻击者在同一属性快照签名与同一伤害类型下产生的多段攻击
+#          （多重射击三箭、同一批多投射物、同签名连续命中等）互相不受原版受伤间隔限制，
+#          每一段都按 EA 结算值完整掉血；不同攻击者、换手后属性变化、不同伤害类型不共享批次。
+# window_ms: 批次有效时间窗，单位毫秒；超过该时间的同签名攻击视为新一轮攻击，重新受受伤间隔限制。
+same_signature_ignores_invulnerability:
+  enabled: true
+  window_ms: 500
+
+# 攻速冷却应用范围
+# global：所有攻击都由 EA 接管攻速冷却。物品未写 EA 攻速属性时，
+#         按原版当前 ATTACK_SPEED 换算冷却（原版钻石剑 1.6 → 约 13 tick），
+#         由 EA 负责拦截过快的攻击。
+# attribute_only：只有 Lore/PDC 明确写了 EA 攻速属性（attack_speed 等 GENERIC 攻速属性）
+#         的物品才由 EA 拦截；其余物品完全交还原版攻速机制，EA 既不写冷却也不拦截。
+#         注意：从 EA 攻速武器换到原版武器时，上一次写入的冷却仍会拦下换手后的第一次攻击。
+attack_speed:
+  scope: global
+
 # 资源自然回复间隔，单位 tick
 regen_interval_ticks: 20
 
 # 属性同步到 Bukkit 的延迟，单位 tick
 sync_delay_ticks: 1
+
+# 客户端血量显示压缩。
+# enabled: true 时仅缩放玩家客户端血量条显示，不改变真实最大生命值、不改变实际生命值与伤害结算。
+# target: 客户端显示目标血量；20 表示最多显示为 20 血（即一排红心）。
+health_display_scaling:
+  enabled: false
+  target: 20.0
 
 # 默认属性与资源基础值
 default_profile:

@@ -1,28 +1,42 @@
 package emaki.jiuwu.craft.corelib.api.script;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
+import emaki.jiuwu.craft.corelib.script.ScriptDeferredOperationQueue;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ScriptActionApi {
 
     private static final String DEPTH_KEY = "emaki.script.actionDepth";
 
-    private final ActionExecutor actionExecutor;
-    private final ActionContext context;
+    private final ScriptDeferredOperationQueue deferredOperations;
     private final ScriptConfig.Security security;
 
     public ScriptActionApi(ActionExecutor actionExecutor, ActionContext context, ScriptConfig.Security security) {
-        this.actionExecutor = actionExecutor;
-        this.context = context;
+        this(null, security);
+    }
+
+    public ScriptActionApi(ActionExecutor actionExecutor,
+            ActionContext context,
+            ExecutionDispatcher executionDispatcher,
+            ScriptConfig.Security security) {
+        this(executionDispatcher == null ? null : new ScriptDeferredOperationQueue(
+                context == null ? null : context.sourcePlugin(),
+                executionDispatcher,
+                actionExecutor,
+                context
+        ), security);
+    }
+
+    public ScriptActionApi(ScriptDeferredOperationQueue deferredOperations, ScriptConfig.Security security) {
+        this.deferredOperations = deferredOperations;
         this.security = security == null ? ScriptConfig.Security.defaults() : security;
     }
 
@@ -37,53 +51,35 @@ public final class ScriptActionApi {
                 resolved.put(entry.getKey(), Texts.toStringSafe(entry.getValue()));
             }
         }
-        return withDepth(() -> {
-            ActionResult result = actionExecutor.execute(context, actionId, resolved).join();
-            return result != null && result.success() && !result.skipped();
-        });
+        return deferredOperations.enqueueAction(
+                actionId,
+                resolved,
+                DEPTH_KEY,
+                security.maxActionDepth()
+        );
     }
 
     @HostAccess.Export
     public boolean runLine(String line) {
-        if (Texts.isBlank(line) || actionExecutor == null || context == null || !security.allowActionDispatch()) {
+        if (Texts.isBlank(line) || !security.allowActionDispatch()) {
             return false;
         }
         String actionId = firstToken(line);
         if (!canRun(actionId)) {
             return false;
         }
-        return withDepth(() -> actionExecutor.executeAll(context, List.of(line), true).join().success());
+        return deferredOperations.enqueueActionLine(
+                line,
+                DEPTH_KEY,
+                security.maxActionDepth()
+        );
     }
 
     private boolean canRun(String actionId) {
-        if (Texts.isBlank(actionId) || actionExecutor == null || context == null || !security.allowActionDispatch()) {
+        if (Texts.isBlank(actionId) || deferredOperations == null || !security.allowActionDispatch()) {
             return false;
         }
         return !security.deniedActionsFromScript().contains(Texts.lower(actionId));
-    }
-
-    private boolean withDepth(java.util.concurrent.Callable<Boolean> callable) {
-        int depth = currentDepth();
-        if (security.maxActionDepth() > 0 && depth >= security.maxActionDepth()) {
-            return false;
-        }
-        context.sharedState().put(DEPTH_KEY, depth + 1);
-        try {
-            return Boolean.TRUE.equals(callable.call());
-        } catch (Exception _) {
-            return false;
-        } finally {
-            if (depth <= 0) {
-                context.sharedState().remove(DEPTH_KEY);
-            } else {
-                context.sharedState().put(DEPTH_KEY, depth);
-            }
-        }
-    }
-
-    private int currentDepth() {
-        Object raw = context == null ? null : context.sharedValue(DEPTH_KEY);
-        return raw instanceof Number number ? Math.max(0, number.intValue()) : 0;
     }
 
     private String firstToken(String line) {

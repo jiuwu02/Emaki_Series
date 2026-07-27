@@ -15,6 +15,8 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
+import emaki.jiuwu.craft.corelib.script.ScriptWorkerBoundary;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ScriptServiceApiSupport {
@@ -22,7 +24,33 @@ public final class ScriptServiceApiSupport {
     private ScriptServiceApiSupport() {
     }
 
+    public record ServiceSnapshot(boolean available, String apiVersion, String pluginName, boolean ready) {
+
+        public ServiceSnapshot {
+            apiVersion = Texts.toStringSafe(apiVersion);
+            pluginName = Texts.toStringSafe(pluginName);
+        }
+
+        public static ServiceSnapshot unavailable() {
+            return new ServiceSnapshot(false, "", "", false);
+        }
+    }
+
+    public static ServiceSnapshot serviceSnapshot(String serviceClassName) {
+        return service(serviceClassName)
+                .map(service -> new ServiceSnapshot(
+                        true,
+                        invokeString(service, "apiVersion", new Class<?>[0]),
+                        invokeString(service, "pluginName", new Class<?>[0]),
+                        invokeBoolean(service, "isReady", new Class<?>[0])
+                ))
+                .orElseGet(ServiceSnapshot::unavailable);
+    }
+
     public static Optional<Object> service(String serviceClassName) {
+        if (ScriptWorkerBoundary.active() || Texts.isBlank(serviceClassName)) {
+            return Optional.empty();
+        }
         Optional<Class<?>> serviceClass = serviceClass(serviceClassName);
         if (serviceClass.isPresent()) {
             RegisteredServiceProvider<?> provider = Bukkit.getServicesManager().getRegistration(serviceClass.get());
@@ -75,7 +103,7 @@ public final class ScriptServiceApiSupport {
     }
 
     public static Object invoke(Object service, String methodName, Class<?>[] parameterTypes, Object... arguments) {
-        if (service == null) {
+        if (ScriptWorkerBoundary.active() || service == null) {
             return null;
         }
         try {
@@ -110,15 +138,26 @@ public final class ScriptServiceApiSupport {
     }
 
     public static ItemStack item(ActionContext context, String itemKey) {
-        if (context == null || Texts.isBlank(itemKey)) {
+        if (ScriptWorkerBoundary.active() || context == null || Texts.isBlank(itemKey)) {
             return null;
         }
         Object value = context.attribute(itemKey);
         return value instanceof ItemStack itemStack ? itemStack : null;
     }
 
+    public static Map<String, Object> itemSnapshot(ActionContext context, String itemKey) {
+        if (ScriptWorkerBoundary.active() || context == null || Texts.isBlank(itemKey)) {
+            return Map.of();
+        }
+        Object value = context.attribute(itemKey);
+        if (value instanceof Map<?, ?> map) {
+            return ScriptSnapshots.immutableMap(map);
+        }
+        return itemSummary(value instanceof ItemStack itemStack ? itemStack : null);
+    }
+
     public static Map<String, Object> itemSummary(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
+        if (ScriptWorkerBoundary.active() || itemStack == null || itemStack.getType().isAir()) {
             return Map.of();
         }
         Map<String, Object> summary = new LinkedHashMap<>();
@@ -133,7 +172,7 @@ public final class ScriptServiceApiSupport {
         if (customModelData != null) {
             summary.put("customModelData", customModelData);
         }
-        return summary;
+        return ScriptSnapshots.immutableMap(summary);
     }
 
     private static List<String> loreLinesPlain(ItemStack itemStack) {
@@ -166,73 +205,9 @@ public final class ScriptServiceApiSupport {
                 return Math.round(floats.get(0));
             }
         } catch (RuntimeException | LinkageError ignored) {
-            // 自定义模型数据读取失败时安全跳过该可选字段。
+
         }
         return null;
-    }
-
-    public static Map<String, Object> payloadToMap(Object payload) {
-        if (payload == null) {
-            return null;
-        }
-        Map<String, Object> map = new LinkedHashMap<>();
-        map.put("sourceId", invoke(payload, "sourceId", new Class<?>[0]));
-        map.put("attributes", copyMap(invoke(payload, "attributes", new Class<?>[0])));
-        map.put("meta", copyMap(invoke(payload, "meta", new Class<?>[0])));
-        map.put("conditions", copyMap(invoke(payload, "conditions", new Class<?>[0])));
-        map.put("schemaVersion", invoke(payload, "schemaVersion", new Class<?>[0]));
-        map.put("updatedAt", invoke(payload, "updatedAt", new Class<?>[0]));
-        return map;
-    }
-
-    public static Map<String, Object> payloadsToMap(Object payloads) {
-        if (!(payloads instanceof Map<?, ?> source)) {
-            return Map.of();
-        }
-        Map<String, Object> result = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : source.entrySet()) {
-            if (entry.getKey() == null) {
-                continue;
-            }
-            result.put(Texts.toStringSafe(entry.getKey()), payloadToMap(entry.getValue()));
-        }
-        return result;
-    }
-
-    public static Map<String, Object> damageResultToMap(Object result) {
-        if (result == null) {
-            return Map.of();
-        }
-        Map<String, Object> map = new LinkedHashMap<>();
-        put(map, "damageTypeId", invoke(result, "damageTypeId", new Class<?>[0]));
-        put(map, "finalDamage", invoke(result, "finalDamage", new Class<?>[0]));
-        put(map, "critical", invoke(result, "critical", new Class<?>[0]));
-        put(map, "roll", invoke(result, "roll", new Class<?>[0]));
-        put(map, "stageValues", copyMap(invoke(result, "stageValues", new Class<?>[0])));
-        put(map, "context", copyMap(invoke(result, "context", new Class<?>[0])));
-        return map;
-    }
-
-    public static Map<String, Object> strengthenStateToMap(Object state) {
-        if (state == null) {
-            return Map.of();
-        }
-        Map<String, Object> map = new LinkedHashMap<>();
-        put(map, "eligible", invoke(state, "eligible", new Class<?>[0]));
-        put(map, "eligibleReason", invoke(state, "eligibleReason", new Class<?>[0]));
-        put(map, "hasLayer", invoke(state, "hasLayer", new Class<?>[0]));
-        put(map, "baseSource", Texts.toStringSafe(invoke(state, "baseSource", new Class<?>[0])));
-        put(map, "baseSourceSignature", invoke(state, "baseSourceSignature", new Class<?>[0]));
-        put(map, "recipeId", invoke(state, "recipeId", new Class<?>[0]));
-        put(map, "currentStar", invoke(state, "currentStar", new Class<?>[0]));
-        put(map, "crackLevel", invoke(state, "crackLevel", new Class<?>[0]));
-        put(map, "milestoneFlags", new ArrayList<>(asCollection(invoke(state, "milestoneFlags", new Class<?>[0]))));
-        put(map, "successCount", invoke(state, "successCount", new Class<?>[0]));
-        put(map, "failureCount", invoke(state, "failureCount", new Class<?>[0]));
-        put(map, "lastAttemptAt", invoke(state, "lastAttemptAt", new Class<?>[0]));
-        put(map, "branchPath", invoke(state, "branchPath", new Class<?>[0]));
-        put(map, "fractureLevel", invoke(state, "fractureLevel", new Class<?>[0]));
-        return map;
     }
 
     public static Map<String, Double> doubleMap(Map<String, ?> source) {
@@ -264,27 +239,6 @@ public final class ScriptServiceApiSupport {
             }
         }
         return result;
-    }
-
-    private static Map<String, Object> copyMap(Object value) {
-        if (!(value instanceof Map<?, ?> source)) {
-            return Map.of();
-        }
-        Map<String, Object> result = new LinkedHashMap<>();
-        for (Map.Entry<?, ?> entry : source.entrySet()) {
-            if (entry.getKey() != null) {
-                result.put(Texts.toStringSafe(entry.getKey()), entry.getValue());
-            }
-        }
-        return result;
-    }
-
-    private static Collection<?> asCollection(Object value) {
-        return value instanceof Collection<?> collection ? collection : List.of();
-    }
-
-    private static void put(Map<String, Object> map, String key, Object value) {
-        map.put(key, value == null ? "" : value);
     }
 
     private static Double parseDouble(Object value) {

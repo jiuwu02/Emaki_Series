@@ -6,9 +6,10 @@ import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
-import emaki.jiuwu.craft.corelib.integration.SkillPdcGateway;
+import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 
@@ -16,7 +17,6 @@ final class StrengthenPdcAttributeWriter {
 
     private final EmakiStrengthenPlugin plugin;
     private final String sourceId;
-    private final SkillPdcGateway skillPdcGateway = new SkillPdcGateway();
 
     StrengthenPdcAttributeWriter(EmakiStrengthenPlugin plugin, String sourceId) {
         this.plugin = plugin;
@@ -27,8 +27,11 @@ final class StrengthenPdcAttributeWriter {
         if (itemStack == null || recipe == null || state == null) {
             return;
         }
-        skillPdcGateway.write(itemStack, recipe.cumulativeSkillIds(state.currentStar(), state.branchPath()));
-        PdcAttributeGateway gateway = plugin.pdcAttributeGateway();
+        observeSkillMutation(itemStack, EquipmentSkillPdcCodec.write(
+                itemStack,
+                recipe.cumulativeSkillIds(state.currentStar(), state.branchPath())
+        ));
+        StrengthenAttributeBridge gateway = plugin.pdcAttributeGateway();
         if (gateway == null || !gateway.available()) {
             return;
         }
@@ -45,9 +48,9 @@ final class StrengthenPdcAttributeWriter {
 
     void clearPdcAttributes(ItemStack itemStack) {
         if (itemStack != null) {
-            skillPdcGateway.clear(itemStack);
+            observeSkillMutation(itemStack, EquipmentSkillPdcCodec.clear(itemStack));
         }
-        PdcAttributeGateway gateway = plugin.pdcAttributeGateway();
+        StrengthenAttributeBridge gateway = plugin.pdcAttributeGateway();
         if (gateway == null || !gateway.available() || itemStack == null) {
             return;
         }
@@ -55,11 +58,29 @@ final class StrengthenPdcAttributeWriter {
     }
 
     void preserveOtherAttributePayloads(ItemStack original, ItemStack rebuilt) {
-        skillPdcGateway.copy(original, rebuilt);
-        PdcAttributeGateway gateway = plugin.pdcAttributeGateway();
+        observeSkillMutation(rebuilt, EquipmentSkillPdcCodec.copy(original, rebuilt));
+        StrengthenAttributeBridge gateway = plugin.pdcAttributeGateway();
         if (gateway == null || original == null || rebuilt == null) {
             return;
         }
         gateway.copyPayloads(original, rebuilt, Set.of(sourceId));
+    }
+
+    private void observeSkillMutation(ItemStack itemStack, SkillPdcMutation mutation) {
+        if (plugin == null
+                || plugin.debugLogger() == null
+                || mutation == null
+                || !plugin.debugLogger().shouldLog("pdc", (java.util.UUID) null)) {
+            return;
+        }
+        plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+                "operation", mutation.operation(),
+                "item", itemStack == null ? "null" : itemStack.getType(),
+                "amount", itemStack == null ? 0 : itemStack.getAmount(),
+                "before", mutation.before().values(),
+                "after", mutation.after().values(),
+                "committed", mutation.committed(),
+                "reason", mutation.reason()
+        ));
     }
 }

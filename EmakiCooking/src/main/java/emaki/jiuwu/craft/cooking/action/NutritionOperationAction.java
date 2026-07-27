@@ -11,7 +11,9 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -19,13 +21,13 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 
-/**
- * 营养增/减/设置动作。实现 CoreLib 的 {@link Action} 接口，由 EmakiCooking 注册到 CoreLib 的
- * ActionRegistry（CoreLib 不感知"营养"玩法概念）。
- *
- * <p>实现参考 EmakiLevel 的 {@code LevelOperationAction}：同一个类 + enum 区分 ADD/REMOVE/SET，
- * {@code amount} 用 STRING 类型以支持表达式。</p>
- */
+
+
+
+
+
+
+
 public final class NutritionOperationAction implements Action {
 
     private final EmakiCookingPlugin plugin;
@@ -51,6 +53,11 @@ public final class NutritionOperationAction implements Action {
     @Override
     public String category() {
         return "emakicooking";
+    }
+
+    @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        return CookingActionExecutionTargets.onlinePlayer(context, id);
     }
 
     @Override

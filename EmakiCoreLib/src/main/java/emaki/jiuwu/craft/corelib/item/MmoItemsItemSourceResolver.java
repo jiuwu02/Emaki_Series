@@ -31,7 +31,60 @@ final class MmoItemsItemSourceResolver implements ItemSourceResolver {
 
     @Override
     public boolean isAvailable(ItemSource source) {
-        return supports(source) && mmoItemsReady();
+        return probe(source).ready();
+    }
+
+    @Override
+    public ItemSourceProbe probe(ItemSource source) {
+        if (source == null || source.getType() == null || !supports(source)) {
+            return ItemSourceProbe.of(
+                    ItemSourceProbeStatus.INVALID_SOURCE,
+                    source,
+                    id(),
+                    "The item source is invalid or unsupported by the MMOItems resolver."
+            );
+        }
+        MmoItemsKey key = MmoItemsKey.parse(source.getIdentifier());
+        if (key == null) {
+            return ItemSourceProbe.of(
+                    ItemSourceProbeStatus.INVALID_SOURCE,
+                    source,
+                    id(),
+                    "MMOItems sources require a '<type>:<item>' identifier."
+            );
+        }
+        try {
+            if (!mmoItemsReady()) {
+                return ItemSourceProbe.of(
+                        ItemSourceProbeStatus.PROVIDER_NOT_READY,
+                        source,
+                        id(),
+                        "MMOItems is not enabled or its API instance is not ready."
+                );
+            }
+            Type type = resolveType(key.typeId());
+            if (type == null) {
+                return ItemSourceProbe.of(
+                        ItemSourceProbeStatus.SOURCE_NOT_FOUND,
+                        source,
+                        id(),
+                        "MMOItems does not contain the requested item type."
+                );
+            }
+            ItemStack itemStack = createItem(type, key.itemId(), 1);
+            return itemStack == null || itemStack.getType().isAir()
+                    ? ItemSourceProbe.of(
+                    ItemSourceProbeStatus.SOURCE_NOT_FOUND,
+                    source,
+                    id(),
+                    "MMOItems does not contain the requested item."
+            )
+                    : ItemSourceProbe.ready(source, id());
+        } catch (LinkageError exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.INCOMPATIBLE, source, id(), detail(exception));
+        } catch (RuntimeException exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.RESOLUTION_ERROR, source, id(), detail(exception));
+        }
     }
 
     @Override
@@ -156,6 +209,14 @@ final class MmoItemsItemSourceResolver implements ItemSourceResolver {
             }
         }
         return "";
+    }
+
+    private String detail(Throwable throwable) {
+        if (throwable == null) {
+            return "Unknown MMOItems resolution failure";
+        }
+        String message = throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 
     private record MmoItemsKey(String typeId, String itemId) {

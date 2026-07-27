@@ -20,6 +20,8 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 
 public final class AttributeService extends AbstractAttributeServiceFacade {
@@ -29,6 +31,8 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     private final EmakiAttributePlugin plugin;
     private final AsyncTaskScheduler asyncTaskScheduler;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
     private volatile AttributeConfig config;
     private final AttributeRegistry attributeRegistry;
     private final AttributeBalanceRegistry attributeBalanceRegistry;
@@ -48,9 +52,11 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final CombatDebugService combatDebugService;
     private final AttributeTraceService attributeTraceService;
     private final DamageTraceService damageTraceService;
+    private final AttackBatchInvulnerabilityGate attackBatchInvulnerabilityGate;
     private final PerfectTakeoverCoordinator perfectTakeoverCoordinator;
     private final PdcAttributeService pdcAttributeService;
     private final TemporaryAttributeService temporaryAttributeService;
+    private final ParentAttributeService parentAttributeService;
 
     public AttributeService(EmakiAttributePlugin plugin,
             PdcService pdcService,
@@ -62,9 +68,31 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
             DefaultProfileRegistry defaultProfileRegistry,
             LoreFormatRegistry loreFormatRegistry,
             AttributePresetRegistry presetRegistry,
-            PdcAttributeService pdcAttributeService) {
+            PdcAttributeService pdcAttributeService,
+            ParentAttributeService parentAttributeService) {
+        this(plugin, pdcService, asyncTaskScheduler, config, attributeRegistry, attributeBalanceRegistry,
+                damageTypeRegistry, defaultProfileRegistry, loreFormatRegistry, presetRegistry,
+                pdcAttributeService, parentAttributeService, null, null);
+    }
+
+    public AttributeService(EmakiAttributePlugin plugin,
+            PdcService pdcService,
+            AsyncTaskScheduler asyncTaskScheduler,
+            AttributeConfig config,
+            AttributeRegistry attributeRegistry,
+            AttributeBalanceRegistry attributeBalanceRegistry,
+            DamageTypeRegistry damageTypeRegistry,
+            DefaultProfileRegistry defaultProfileRegistry,
+            LoreFormatRegistry loreFormatRegistry,
+            AttributePresetRegistry presetRegistry,
+            PdcAttributeService pdcAttributeService,
+            ParentAttributeService parentAttributeService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.asyncTaskScheduler = asyncTaskScheduler;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         this.config = config == null ? AttributeConfig.defaults() : config;
         this.attributeRegistry = attributeRegistry;
         this.attributeBalanceRegistry = attributeBalanceRegistry;
@@ -73,6 +101,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.loreFormatRegistry = loreFormatRegistry;
         this.presetRegistry = presetRegistry;
         this.pdcAttributeService = pdcAttributeService;
+        this.parentAttributeService = parentAttributeService;
         this.loreParser = new LoreParser(attributeRegistry, loreFormatRegistry);
         this.damageEngine = new DamageEngine();
         this.asyncDamageEngine = new AsyncDamageEngine(asyncTaskScheduler, damageEngine);
@@ -95,6 +124,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.snapshotService = new AttributeSnapshotService(snapshotCollector);
         this.resourceManagementService = new ResourceManagementService(this);
         this.damageCalculationService = new DamageCalculationService(this);
+        this.attackBatchInvulnerabilityGate = new AttackBatchInvulnerabilityGate(this);
         this.perfectTakeoverCoordinator = new PerfectTakeoverCoordinator(this);
         refreshCaches();
     }
@@ -106,7 +136,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     @Override
     protected void updateConfig(AttributeConfig config) {
-        this.config = config;
+        AttributeConfig nextConfig = config == null ? AttributeConfig.defaults() : config;
+        boolean resetHealthScaling = this.config != null
+                && this.config.healthDisplayScalingEnabled()
+                && !nextConfig.healthDisplayScalingEnabled();
+        this.config = nextConfig;
+        if (resetHealthScaling && resourceManagementService != null) {
+            resourceManagementService.resetHealthDisplayScaling();
+        }
     }
 
     @Override
@@ -194,6 +231,14 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return asyncTaskScheduler;
     }
 
+    ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    ThreadOwnership threadOwnership() {
+        return threadOwnership;
+    }
+
     AsyncDamageEngine asyncDamageEngine() {
         return asyncDamageEngine;
     }
@@ -207,12 +252,27 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         return temporaryAttributeService;
     }
 
+    public ParentAttributeService parentAttributeService() {
+        return parentAttributeService;
+    }
+
+    public void invalidateCombatSnapshot(LivingEntity entity) {
+        stateRepository.clearCombatSnapshot(entity);
+    }
+
     public void shutdown() {
+        if (config.healthDisplayScalingEnabled()) {
+            resourceManagementService.resetHealthDisplayScaling();
+        }
+        if (parentAttributeService != null) {
+            parentAttributeService.saveAll();
+        }
         temporaryAttributeService.close();
     }
 
     public void cleanupEntityState(java.util.UUID entityId) {
         stateRepository.cleanupEntity(entityId);
+        attackBatchInvulnerabilityGate.reset(entityId);
     }
 
     long projectileTtlMs() {
@@ -237,6 +297,10 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     public PerfectTakeoverCoordinator perfectTakeoverCoordinator() {
         return perfectTakeoverCoordinator;
+    }
+
+    public AttackBatchInvulnerabilityGate attackBatchInvulnerabilityGate() {
+        return attackBatchInvulnerabilityGate;
     }
 
     public boolean toggleCombatDebug(Player player) {

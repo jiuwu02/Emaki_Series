@@ -5,36 +5,51 @@ import java.util.Map;
 import org.graalvm.polyglot.HostAccess;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.corelib.script.ScriptHostObjectProxy;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class ScriptContextApi {
 
-    private final ActionContext context;
+    private final String phase;
+    private final String plugin;
+    private final Map<String, String> placeholders;
+    private final Map<String, Object> attributes;
     private final Map<String, Object> arguments;
 
     public ScriptContextApi(ActionContext context, Map<String, Object> arguments) {
-        this.context = context;
-        this.arguments = arguments == null ? Map.of() : arguments;
+        this.phase = context == null ? "" : context.phase();
+        this.plugin = context == null || context.sourcePlugin() == null ? "" : context.sourcePlugin().getName();
+        this.placeholders = context == null ? Map.of() : Map.copyOf(context.placeholders());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> safeAttributes = (Map<String, Object>) ScriptHostObjectProxy.snapshotValue(
+                context == null ? Map.of() : context.attributes()
+        );
+        this.attributes = safeAttributes;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> safeArguments = (Map<String, Object>) ScriptHostObjectProxy.snapshotValue(
+                arguments == null ? Map.of() : arguments
+        );
+        this.arguments = safeArguments;
     }
 
     @HostAccess.Export
     public String phase() {
-        return context == null ? "" : context.phase();
+        return phase;
     }
 
     @HostAccess.Export
     public String plugin() {
-        return context == null || context.sourcePlugin() == null ? "" : context.sourcePlugin().getName();
+        return plugin;
     }
 
     @HostAccess.Export
     public String placeholder(String key) {
-        return context == null ? "" : Texts.toStringSafe(context.placeholder(key));
+        return Texts.toStringSafe(placeholders.get(Texts.lower(key)));
     }
 
     @HostAccess.Export
     public Object attribute(String key) {
-        return context == null ? null : context.attribute(key);
+        return attributes.get(key);
     }
 
     @HostAccess.Export
@@ -44,12 +59,12 @@ public final class ScriptContextApi {
 
     @HostAccess.Export
     public Map<String, String> placeholders() {
-        return context == null ? Map.of() : context.placeholders();
+        return placeholders;
     }
 
     @HostAccess.Export
     public Map<String, Object> attributes() {
-        return context == null ? Map.of() : context.attributes();
+        return attributes;
     }
 
     @HostAccess.Export

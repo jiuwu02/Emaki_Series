@@ -1,0 +1,32 @@
+name: EmakiCodex
+main: emaki.jiuwu.craft.codex.EmakiCodexPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    packetevents:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    MythicMobs:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakicodex.use:
+    default: true
+  emakicodex.reload:
+    default: op
+  emakicodex.debug:
+    default: op
+  emakicodex.admin:
+    default: op

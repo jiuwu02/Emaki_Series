@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Runtime-only structured damage trace record. */
+
 public record DamageTraceRecord(
         long traceId,
         long createdAtMillis,

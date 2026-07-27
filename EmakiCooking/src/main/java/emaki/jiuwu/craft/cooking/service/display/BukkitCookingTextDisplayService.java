@@ -8,6 +8,8 @@ import java.util.Set;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.entity.Display;
@@ -17,11 +19,19 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class BukkitCookingTextDisplayService implements CookingTextDisplayService {
 
     private final JavaPlugin plugin;
+    @SuppressWarnings("unused")
+    private final ExecutionDispatcher executionDispatcher;
+    @SuppressWarnings("unused")
+    private final ThreadOwnership threadOwnership;
     private final Map<String, TextDisplay> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
 
-    public BukkitCookingTextDisplayService(JavaPlugin plugin) {
+    public BukkitCookingTextDisplayService(JavaPlugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     @Override
@@ -40,15 +50,22 @@ public final class BukkitCookingTextDisplayService implements CookingTextDisplay
         }
         String key = spec.runtimeKey();
         TextDisplay display = displays.get(key);
-        if (display == null || display.isDead() || !sameWorld(display.getLocation(), location)) {
-            remove(spec.stationType(), spec.stationCoordinates(), spec.displayKey());
-            display = location.getWorld().spawn(location, TextDisplay.class);
-            displays.put(key, display);
-            displaysByStation.computeIfAbsent(spec.stationRuntimeKey(), ignored -> new LinkedHashSet<>()).add(key);
-        } else {
-            display.teleport(location);
+        if (display == null) {
+            spawnAtLocation(spec);
+            return;
         }
-        apply(display, spec);
+        executionDispatcher.runEntity(plugin, display, () -> {
+            if (display.isDead() || !sameWorld(display.getLocation(), location)) {
+                removeKeyOwned(spec.stationRuntimeKey(), key, display);
+                spawnAtLocation(spec);
+                return;
+            }
+            display.teleport(location);
+            apply(display, spec);
+        }, () -> {
+            removeMapOnly(spec.stationRuntimeKey(), key);
+            spawnAtLocation(spec);
+        });
     }
 
     @Override
@@ -84,9 +101,15 @@ public final class BukkitCookingTextDisplayService implements CookingTextDisplay
 
     @Override
     public void shutdown() {
-        for (TextDisplay display : Set.copyOf(displays.values())) {
-            if (display != null && !display.isDead()) {
-                display.remove();
+        for (Map.Entry<String, TextDisplay> entry : Map.copyOf(displays).entrySet()) {
+            TextDisplay display = entry.getValue();
+            if (display != null) {
+                executionDispatcher.runEntity(plugin, display, () -> {
+                    if (!display.isDead()) {
+                        display.remove();
+                    }
+                }, () -> {
+                });
             }
         }
         displays.clear();
@@ -100,7 +123,7 @@ public final class BukkitCookingTextDisplayService implements CookingTextDisplay
 
     private void apply(TextDisplay display, CookingTextDisplaySpec spec) {
         CookingSettingsService.TextDisplayProfile profile = spec.profile();
-        display.setText(spec.legacyText());
+        display.text(spec.component());
         display.setBillboard(billboard(profile.billboard()));
         display.setTransformation(spec.transformation());
         display.setInterpolationDuration(0);
@@ -130,24 +153,52 @@ public final class BukkitCookingTextDisplayService implements CookingTextDisplay
         return Color.fromARGB(alpha, red, green, blue);
     }
 
+    private void spawnAtLocation(CookingTextDisplaySpec spec) {
+        Location location = spec.displayLocation();
+        if (location == null || location.getWorld() == null) {
+            return;
+        }
+        executionDispatcher.runAtLocation(plugin, location, () -> {
+            String key = spec.runtimeKey();
+            if (displays.containsKey(key)) {
+                return;
+            }
+            TextDisplay display = location.getWorld().spawn(location, TextDisplay.class);
+            displays.put(key, display);
+            displaysByStation.computeIfAbsent(spec.stationRuntimeKey(), ignored -> new LinkedHashSet<>()).add(key);
+            apply(display, spec);
+        });
+    }
+
     private void removeStationKey(String stationKey) {
         Set<String> keys = displaysByStation.remove(stationKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
         for (String key : Set.copyOf(keys)) {
-            TextDisplay display = displays.remove(key);
-            if (display != null && !display.isDead()) {
-                display.remove();
-            }
+            removeKey(stationKey, key);
         }
     }
 
     private void removeKey(String stationKey, String key) {
-        TextDisplay display = displays.remove(key);
+        TextDisplay display = displays.get(key);
+        if (display == null) {
+            removeMapOnly(stationKey, key);
+            return;
+        }
+        executionDispatcher.runEntity(plugin, display, () -> removeKeyOwned(stationKey, key, display), () ->
+                removeMapOnly(stationKey, key));
+    }
+
+    private void removeKeyOwned(String stationKey, String key, TextDisplay display) {
+        removeMapOnly(stationKey, key);
         if (display != null && !display.isDead()) {
             display.remove();
         }
+    }
+
+    private void removeMapOnly(String stationKey, String key) {
+        displays.remove(key);
         Set<String> stationKeys = displaysByStation.get(stationKey);
         if (stationKeys == null) {
             return;

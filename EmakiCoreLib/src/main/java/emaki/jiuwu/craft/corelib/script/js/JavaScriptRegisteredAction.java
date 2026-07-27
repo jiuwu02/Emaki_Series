@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.corelib.script.js;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.bukkit.plugin.Plugin;
 
@@ -9,7 +11,9 @@ import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionExecutionMode;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
@@ -92,45 +96,68 @@ public final class JavaScriptRegisteredAction implements Action {
     }
 
     @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        return Action.contextualTarget(context == null ? null : context.actionContext());
+    }
+
+    @Override
     public long timeoutMillis() {
         return timeoutMillis;
     }
 
     @Override
     public ActionResult validate(Map<String, String> arguments) {
+        return Action.super.validate(arguments);
+    }
+
+    @Override
+    public CompletionStage<ActionResult> validateAsync(Map<String, String> arguments) {
         ActionResult base = Action.super.validate(arguments);
         if (!base.success() || Texts.isBlank(validateFunction)) {
-            return base;
+            return CompletableFuture.completedFuture(base);
         }
-        ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
+        if (javaScriptService == null || !javaScriptService.enabled()) {
+            return CompletableFuture.completedFuture(
+                    ActionResult.failure(ActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable."));
+        }
+        Map<String, String> safeArguments = arguments == null ? Map.of() : Map.copyOf(arguments);
+        ScriptInvocationRequest request = new ScriptInvocationRequest(
                 plugin,
                 null,
                 scriptPath,
                 validateFunction,
-                List.of(arguments == null ? Map.of() : arguments),
+                List.of(safeArguments),
                 Map.of("action_id", id),
                 scriptConfig.clampTimeoutMillis(timeoutMillis),
                 false
-        ));
-        return toActionResult(result);
+        );
+        return javaScriptService.invokeAsync(request).thenApply(this::toActionResult);
     }
 
     @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
+        return ActionResult.failure(ActionErrorType.UNSUPPORTED,
+                "JavaScript actions must be executed asynchronously.");
+    }
+
+    @Override
+    public CompletionStage<ActionResult> executeAsync(ActionContext context, Map<String, String> arguments) {
         if (javaScriptService == null || !javaScriptService.enabled()) {
-            return ActionResult.failure(ActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable.");
+            return CompletableFuture.completedFuture(
+                    ActionResult.failure(ActionErrorType.INVALID_STATE, "JavaScript scripting is unavailable."));
         }
-        ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
+        Map<String, String> safeArguments = arguments == null ? Map.of() : Map.copyOf(arguments);
+        ScriptInvocationRequest request = new ScriptInvocationRequest(
                 context == null ? plugin : context.sourcePlugin(),
                 context,
                 scriptPath,
                 executeFunction,
-                List.of(context == null ? Map.of() : context, arguments == null ? Map.of() : arguments),
+                List.of(context == null ? Map.of() : context, safeArguments),
                 Map.of("action_id", id),
                 scriptConfig.clampTimeoutMillis(timeoutMillis),
                 false
-        ));
-        return toActionResult(result);
+        );
+        return javaScriptService.invokeAsync(request).thenApply(this::toActionResult);
     }
 
     private ActionResult toActionResult(ScriptExecutionResult result) {

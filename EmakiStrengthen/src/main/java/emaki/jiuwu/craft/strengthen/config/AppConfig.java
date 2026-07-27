@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
 public final class AppConfig extends BaseAppConfig {
 
+    private final boolean releaseDefaultData;
     private final int localBroadcastRadius;
     private final Set<Integer> localBroadcastStars;
     private final Set<Integer> globalBroadcastStars;
@@ -17,11 +18,13 @@ public final class AppConfig extends BaseAppConfig {
 
     public AppConfig(String language,
             String configVersion,
+            boolean releaseDefaultData,
             int localBroadcastRadius,
             List<Integer> localBroadcastStars,
             List<Integer> globalBroadcastStars,
             Map<Integer, Double> successRates) {
-        super(language, configVersion, "4.2.9");
+        super(language, configVersion, "4.5.9");
+        this.releaseDefaultData = releaseDefaultData;
         this.localBroadcastRadius = Math.max(1, localBroadcastRadius);
         this.localBroadcastStars = toStarSet(localBroadcastStars);
         this.globalBroadcastStars = toStarSet(globalBroadcastStars);
@@ -42,7 +45,11 @@ public final class AppConfig extends BaseAppConfig {
         defaults.put(10, 14D);
         defaults.put(11, 8D);
         defaults.put(12, 4D);
-        return new AppConfig("zh_CN", "4.2.9", 48, List.of(8), List.of(10, 12), defaults);
+        return new AppConfig("zh_CN", "4.2.9", true, 48, List.of(8), List.of(10, 12), defaults);
+    }
+
+    public boolean releaseDefaultData() {
+        return releaseDefaultData;
     }
 
     public int localBroadcastRadius() {

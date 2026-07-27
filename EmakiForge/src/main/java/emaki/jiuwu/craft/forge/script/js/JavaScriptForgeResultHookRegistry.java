@@ -5,6 +5,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -17,6 +20,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -25,7 +29,7 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class JavaScriptForgeResultHookRegistry {
 
-    /** JavaScript registration type id for forge result hooks (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "forge_result_hook";
 
     private final EmakiForgePlugin plugin;
@@ -78,46 +82,123 @@ public final class JavaScriptForgeResultHookRegistry {
         return hooks.keySet().stream().sorted().toList();
     }
 
-    public void fire(Player player, Recipe recipe, ForgeResult forgeResult) {
+    public CompletionStage<Void> fire(Player player, Recipe recipe, ForgeResult forgeResult) {
+        return fire(player, recipe, forgeResult, plugin == null ? 0L : plugin.runtimeGeneration());
+    }
+
+    public CompletionStage<Void> fire(Player player,
+            Recipe recipe,
+            ForgeResult forgeResult,
+            long runtimeGeneration) {
         if (forgeResult == null || plugin == null) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib == null || coreLib.javaScriptService() == null || !coreLib.javaScriptService().enabled()) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
+        CompletionStage<Void> completion = CompletableFuture.completedFuture(null);
         for (HookEntry hook : matchingHooks(recipe == null ? "" : recipe.id())) {
-            Map<String, Object> context = toContext(hook.id(), player, recipe, forgeResult);
-            ScriptConfig config = coreLib.configModel() == null ? ScriptConfig.defaults() : coreLib.configModel().scriptConfig();
-            ScriptExecutionResult result = coreLib.javaScriptService().invoke(new ScriptInvocationRequest(
-                    plugin,
-                    null,
-                    hook.scriptPath(),
-                    hook.functionName(),
-                    List.of(context),
-                    context,
-                    config.clampTimeoutMillis(hook.timeoutMillis()),
-                    true
-            ));
-            if (result == null || !result.success()) {
-                plugin.getLogger().warning("[JavaScript] Forge result hook '" + hook.id() + "' failed: " + (result == null ? "no result" : result.message()));
-                continue;
-            }
-            executeReturnedActions(coreLib, player, result.returnValue(), recipe, forgeResult);
+            completion = completion.thenCompose(ignored -> invokeHookOnOwner(
+                    coreLib, hook, player, recipe, forgeResult, runtimeGeneration));
         }
+        return completion;
     }
 
-    private void executeReturnedActions(EmakiCoreLibPlugin coreLib, Player player, Object returnValue, Recipe recipe, ForgeResult forgeResult) {
+    private CompletionStage<Void> invokeHookOnOwner(EmakiCoreLibPlugin coreLib,
+            HookEntry hook,
+            Player player,
+            Recipe recipe,
+            ForgeResult forgeResult,
+            long runtimeGeneration) {
+        if (!runtimeCurrent(runtimeGeneration)) {
+            return CompletableFuture.completedFuture(null);
+        }
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        Runnable invocation = () -> {
+            if (!runtimeCurrent(runtimeGeneration)) {
+                future.complete(null);
+                return;
+            }
+            try {
+                Map<String, Object> context = toContext(hook.id(), player, recipe, forgeResult);
+                ScriptConfig config = coreLib.configModel() == null
+                        ? ScriptConfig.defaults()
+                        : coreLib.configModel().scriptConfig();
+                ScriptExecutionResult result = coreLib.javaScriptService().invoke(new ScriptInvocationRequest(
+                        plugin,
+                        null,
+                        hook.scriptPath(),
+                        hook.functionName(),
+                        List.of(context),
+                        context,
+                        config.clampTimeoutMillis(hook.timeoutMillis()),
+                        true
+                ));
+                if (result == null || !result.success()) {
+                    plugin.getLogger().warning("[JavaScript] Forge result hook '" + hook.id() + "' failed: "
+                            + (result == null ? "no result" : result.message()));
+                    future.complete(null);
+                    return;
+                }
+                CompletionStage<Void> actions = executeReturnedActions(
+                        coreLib, player, result.returnValue(), recipe, forgeResult, runtimeGeneration);
+                if (actions == null) {
+                    future.complete(null);
+                    return;
+                }
+                actions.whenComplete((ignored, throwable) -> {
+                    if (throwable != null) {
+                        future.completeExceptionally(throwable);
+                    } else {
+                        future.complete(null);
+                    }
+                });
+            } catch (Throwable throwable) {
+                future.completeExceptionally(throwable);
+            }
+        };
+        try {
+            if (player != null && plugin.threadOwnership() != null
+                    && plugin.threadOwnership().isEntityOwned(player)) {
+                invocation.run();
+            } else if (player == null && plugin.threadOwnership() != null
+                    && plugin.threadOwnership().isGlobalOwned()) {
+                invocation.run();
+            } else if (plugin.executionDispatcher() == null) {
+                future.completeExceptionally(new RejectedExecutionException(
+                        "Forge result hook owner dispatcher is unavailable."));
+            } else {
+                var scheduled = player == null
+                        ? plugin.executionDispatcher().runGlobal(plugin, invocation)
+                        : plugin.executionDispatcher().runEntity(plugin, player, invocation, () -> future.complete(null));
+                if (scheduled == null) {
+                    future.completeExceptionally(new RejectedExecutionException(
+                            "Forge result hook owner scheduling was rejected."));
+                }
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    private CompletionStage<Void> executeReturnedActions(EmakiCoreLibPlugin coreLib,
+            Player player,
+            Object returnValue,
+            Recipe recipe,
+            ForgeResult forgeResult,
+            long runtimeGeneration) {
         if (player == null || !(returnValue instanceof Map<?, ?> map)) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
         List<String> actions = Texts.asStringList(map.get("actions"));
-        if (actions.isEmpty()) {
-            return;
+        if (actions.isEmpty() || !runtimeCurrent(runtimeGeneration)) {
+            return CompletableFuture.completedFuture(null);
         }
         ActionExecutor actionExecutor = coreLib.actionExecutor();
         if (actionExecutor == null) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
         Map<String, String> placeholders = new LinkedHashMap<>();
         placeholders.put("success", Boolean.toString(forgeResult.success()));
@@ -126,11 +207,16 @@ public final class JavaScriptForgeResultHookRegistry {
         placeholders.put("forge_multiplier", Double.toString(forgeResult.multiplier()));
         ActionContext context = ActionContext.create(plugin, player, "forge.result", false)
                 .withPlaceholders(placeholders);
-        actionExecutor.executeAll(context, actions, true).whenComplete((batch, throwable) -> {
+        return actionExecutor.executeAll(context, actions, true).handle((batch, throwable) -> {
             if (throwable != null) {
                 plugin.getLogger().warning("[JavaScript] Forge result hook actions failed: " + throwable.getMessage());
             }
+            return null;
         });
+    }
+
+    private boolean runtimeCurrent(long generation) {
+        return plugin != null && plugin.isGenerationActive(generation);
     }
 
     private synchronized List<HookEntry> matchingHooks(String recipeId) {
@@ -155,7 +241,7 @@ public final class JavaScriptForgeResultHookRegistry {
         map.put("resultItem", ScriptServiceApiSupport.itemSummary(result.resultItem()));
         map.put("actionFailureReason", Texts.toStringSafe(result.actionFailureReason()));
         map.put("replacements", result.replacements());
-        return map;
+        return ScriptSnapshots.immutableMap(map);
     }
 
     private void recordError(ScriptModuleContext context, JavaScriptRegistrationTracker tracker, String id, String phase, String message) {
@@ -215,6 +301,7 @@ public final class JavaScriptForgeResultHookRegistry {
         return Math.max(0L, (System.nanoTime() - started) / 1_000_000L);
     }
 
-    private record HookEntry(String id, Set<String> recipeIds, String functionName, String scriptPath, long timeoutMillis) {
+    private record HookEntry(String id, Set<String> recipeIds, String functionName, String scriptPath,
+                             long timeoutMillis) {
     }
 }

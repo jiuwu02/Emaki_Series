@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.placeholder.PlaceholderResolver;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
+import emaki.jiuwu.craft.corelib.script.ScriptHostObjectProxy;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -62,12 +63,13 @@ public final class JavaScriptPlaceholderResolver implements PlaceholderResolver 
     }
 
     private String resolveValue(ActionContext context) {
+        Object contextSnapshot = context == null ? Map.of() : ScriptHostObjectProxy.snapshotValue(context);
         ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
                 context == null ? plugin : context.sourcePlugin(),
-                context,
+                null,
                 scriptPath,
                 functionName,
-                List.of(context == null ? Map.of() : context, Map.of("id", id)),
+                List.of(contextSnapshot, Map.of("id", id)),
                 Map.of("placeholder", id, "script", scriptPath),
                 scriptConfig.clampTimeoutMillis(timeoutMillis),
                 true

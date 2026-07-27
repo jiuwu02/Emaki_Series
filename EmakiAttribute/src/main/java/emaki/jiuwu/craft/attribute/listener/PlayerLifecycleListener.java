@@ -20,16 +20,19 @@ public final class PlayerLifecycleListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        attributeService.parentAttributeService().load(event.getPlayer());
         attributeService.scheduleJoinHealthSync(event.getPlayer());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        attributeService.parentAttributeService().unload(event.getPlayer().getUniqueId(), true);
         attributeService.cleanupEntityState(event.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onKick(PlayerKickEvent event) {
+        attributeService.parentAttributeService().unload(event.getPlayer().getUniqueId(), true);
         attributeService.cleanupEntityState(event.getPlayer().getUniqueId());
     }
 

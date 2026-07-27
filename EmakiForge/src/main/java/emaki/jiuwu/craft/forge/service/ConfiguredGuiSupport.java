@@ -5,21 +5,25 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.gui.SlotParser;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.ForgeRuntimeSnapshot;
 
 final class ConfiguredGuiSupport {
 
     private final EmakiForgePlugin plugin;
+    private final ConfiguredItemParser configuredItemParser = new ConfiguredItemParser();
 
     ConfiguredGuiSupport(EmakiForgePlugin plugin) {
         this.plugin = plugin;
@@ -32,6 +36,11 @@ final class ConfiguredGuiSupport {
 
     Object raw(String guiId, String path) {
         YamlSection configuration = configuration(guiId);
+        return configuration == null || Texts.isBlank(path) ? null : configuration.get(path);
+    }
+
+    Object raw(ForgeRuntimeSnapshot runtime, String guiId, String path) {
+        YamlSection configuration = configuration(runtime, guiId);
         return configuration == null || Texts.isBlank(path) ? null : configuration.get(path);
     }
 
@@ -51,11 +60,19 @@ final class ConfiguredGuiSupport {
             String fallbackItem,
             ItemComponentParser.ItemComponents fallbackComponents) {
         Object raw = raw(guiId, path);
-        String item = resolveItem(raw, fallbackItem);
-        ItemComponentParser.ItemComponents components = raw == null
-                ? (fallbackComponents == null ? ItemComponentParser.empty() : fallbackComponents)
-                : ItemComponentParser.parse(raw);
-        return GuiItemBuilder.build(item, components, 1, replacements, plugin.itemIdentifierService()::createItem);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, fallbackItem, fallbackComponents);
+        return GuiItemBuilder.build(definition, replacements, plugin.coreLib().configuredItemService());
+    }
+
+    ItemStack build(ForgeRuntimeSnapshot runtime,
+            String guiId,
+            String path,
+            Map<String, ?> replacements,
+            String fallbackItem,
+            ItemComponentParser.ItemComponents fallbackComponents) {
+        Object raw = raw(runtime, guiId, path);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, fallbackItem, fallbackComponents);
+        return GuiItemBuilder.build(definition, replacements, plugin.coreLib().configuredItemService());
     }
 
     ItemStack apply(String guiId,
@@ -64,10 +81,19 @@ final class ConfiguredGuiSupport {
             Map<String, ?> replacements,
             ItemComponentParser.ItemComponents fallbackComponents) {
         Object raw = raw(guiId, path);
-        ItemComponentParser.ItemComponents components = raw == null
-                ? (fallbackComponents == null ? ItemComponentParser.empty() : fallbackComponents)
-                : ItemComponentParser.parse(raw);
-        return GuiItemBuilder.apply(baseItem, components, replacements);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, null, fallbackComponents);
+        return GuiItemBuilder.apply(baseItem, definition, replacements, plugin.coreLib().configuredItemService());
+    }
+
+    ItemStack apply(ForgeRuntimeSnapshot runtime,
+            String guiId,
+            String path,
+            ItemStack baseItem,
+            Map<String, ?> replacements,
+            ItemComponentParser.ItemComponents fallbackComponents) {
+        Object raw = raw(runtime, guiId, path);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, null, fallbackComponents);
+        return GuiItemBuilder.apply(baseItem, definition, replacements, plugin.coreLib().configuredItemService());
     }
 
     String text(String guiId, String path, String fallback, Map<String, ?> replacements) {
@@ -81,9 +107,46 @@ final class ConfiguredGuiSupport {
                 : ExpressionEngine.evaluateStringConfig(value, safeReplacements);
     }
 
+    String text(ForgeRuntimeSnapshot runtime,
+            String guiId,
+            String path,
+            String fallback,
+            Map<String, ?> replacements) {
+        Object value = raw(runtime, guiId, path);
+        if (value == null || Texts.isBlank(value)) {
+            value = fallback;
+        }
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        return value instanceof String text
+                ? Texts.formatTemplate(text, safeReplacements)
+                : ExpressionEngine.evaluateStringConfig(value, safeReplacements);
+    }
+
     private YamlSection configuration(String guiId) {
         var entry = plugin.guiTemplateLoader().entry(guiId);
         return entry == null ? null : entry.configuration();
+    }
+
+    private YamlSection configuration(ForgeRuntimeSnapshot runtime, String guiId) {
+        if (runtime == null || runtime.guiTemplateLoader() == null) {
+            return null;
+        }
+        var entry = runtime.guiTemplateLoader().entry(guiId);
+        return entry == null ? null : entry.configuration();
+    }
+
+    private ConfiguredItemDefinition configuredDefinition(Object raw,
+            String fallbackItem,
+            ItemComponentParser.ItemComponents fallbackComponents) {
+        Object canonical = ConfigNodes.get(raw, "item");
+        if (canonical instanceof Map<?, ?> || canonical instanceof YamlSection) {
+            return configuredItemParser.parse(canonical);
+        }
+        String item = resolveItem(raw, fallbackItem);
+        ItemComponentParser.ItemComponents components = raw == null
+                ? (fallbackComponents == null ? ItemComponentParser.empty() : fallbackComponents)
+                : ItemComponentParser.parse(raw);
+        return ItemComponentParser.toDefinition(item, components, 1, Map.of());
     }
 
     private String resolveItem(Object raw, String fallbackItem) {

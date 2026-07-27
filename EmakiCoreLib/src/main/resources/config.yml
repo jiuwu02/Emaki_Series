@@ -8,40 +8,21 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.3.23"
+version: "4.6.0"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
 language: "zh_CN"
 
-web_console:
-  # 内置 Web 管理台，默认关闭。启用前请修改 auth.password。
-  enabled: false
-  host: "127.0.0.1"
-  port: 38765
-  public_access_warning: true
-  auth:
-    username: "EmakiAdmin"
-    password: "EmakiAdminPassword"
-    session_timeout_minutes: 60
-  security:
-    # 安全模式：readonly / config-write / script-write / admin。
-    mode: "readonly"
-    max_request_body_kb: 256
-    allowed_modules: []
-  config_browser:
-    max_file_size_kb: 512
-    allowed_extensions:
-      - ".yml"
-      - ".yaml"
-      - ".json"
-      - ".txt"
-  history:
-    enabled: true
-    max_snapshots_per_file: 50
-    max_age_days: 30
-    record_web_writes: true
-    record_delete_backup: true
+# 是否释放内置示例资源。
+# false 时不会自动生成 scripts/examples 下的示例脚本。
+release_default_data: true
+
+# 统一 Debug 开关。
+# global_all 为 true 时，所有使用 CoreLib DebugLogger 的 Emaki 模块都会输出 Debug 日志；
+# 可用 /corelib debug all on|off 在运行时临时切换，重载后以此配置为准。
+debug:
+  global_all: false
 
 # 菜单(GUI)渲染后端
 gui:
@@ -52,6 +33,21 @@ gui:
   #   auto    - 安装了 PacketEvents 则使用 packet 后端，否则使用 bukkit。
   # 默认 bukkit：升级 CoreLib 不会改变现有菜单行为，需要时再安装 PacketEvents 并切换。
   backend: "bukkit"
+
+# 统一游戏事件层
+# CoreLib 注册一个共享监听器，捕获常见玩法事件(击杀/挖掘/合成/钓鱼/驯服/酿造等)，
+# 经内部事件总线转发给各 Emaki 插件(EmakiLevel、EmakiCodex ...)，避免各插件重复监听。
+gameplay_events:
+  # 总开关。关闭后 CoreLib 不再发布游戏事件，依赖它的插件将收不到事件。
+  enabled: true
+  # entity_kill 的“最后攻击者”归因窗口(tick)。当 Bukkit 未直接记录击杀者时(如弓箭、延迟死亡)，
+  # 在此窗口内仍把击杀归因给最后一次攻击的玩家。仅为粗粒度上限，订阅方可再收紧。
+  last_damager_expire_ticks: 200
+  # brew_complete 的酿造归因保留窗口(tick)。酿造完成后，在此窗口内仍可把结果归因给最后操作酿造台的玩家。
+  # 这是一个“宽松上限”，只用于防止归因记录无限保留；真正的业务窗口由各订阅方自行收紧
+  # (例如 EmakiLevel 各来源的 attribution.expire_ticks，默认 1200)。默认 6000(约 5 分钟)，
+  # 需大于所有订阅方可能配置的业务窗口，避免在订阅方判断前被提前截断。
+  brew_attribution_expire_ticks: 6000
 
 action:
   loop:
@@ -71,10 +67,15 @@ action:
     #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
 
 script:
-  enabled: true
+  # JavaScript 默认关闭；enabled 是唯一启动开关。
+  # 超时支持数字毫秒、ms、s、t；单次请求 <=0 时使用 default，并被夹在 1..max。
+  enabled: false
   engine:
     type: "graaljs"
+    # 默认脚本超时；单次 runjs/invoke 未指定或 <=0 时使用。
     default_timeout_millis: 1000
+    # 单次请求超时上限；若配置小于 default，加载时会提升到 default。
+    # Watchdog 到期会 close(true) 中断 Graal context；同步调用最多额外等待约 500ms 收敛结果。
     max_timeout_millis: 5000
     cache_enabled: true
     recompile_on_reload: true
@@ -116,7 +117,7 @@ script:
     allow_action_dispatch: true
     max_action_depth: 3
   server_api:
-    enabled: true
+    enabled: false
     allow_type_access: false
     allowed_type_prefixes:
       - "org.bukkit."

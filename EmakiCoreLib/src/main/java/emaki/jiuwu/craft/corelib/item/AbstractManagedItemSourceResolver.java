@@ -37,7 +37,58 @@ abstract class AbstractManagedItemSourceResolver<A extends AbstractManagedItemSo
 
     @Override
     public boolean isAvailable(ItemSource source) {
-        return supports(source) && isOperational();
+        return probe(source).ready();
+    }
+
+    @Override
+    public ItemSourceProbe probe(ItemSource source) {
+        if (source == null || source.getType() == null || !supports(source)) {
+            return ItemSourceProbe.of(
+                    ItemSourceProbeStatus.INVALID_SOURCE,
+                    source,
+                    id(),
+                    "The item source is invalid or unsupported by this resolver."
+            );
+        }
+        if (!pluginAvailability.isPluginEnabled(pluginName())) {
+            return ItemSourceProbe.of(
+                    ItemSourceProbeStatus.PROVIDER_NOT_READY,
+                    source,
+                    id(),
+                    waitingDetail()
+            );
+        }
+        try {
+            if (!accessor.ensureAvailable()) {
+                return ItemSourceProbe.of(
+                        ItemSourceProbeStatus.INCOMPATIBLE,
+                        source,
+                        id(),
+                        accessor.failureReason()
+                );
+            }
+            if (!loaded.get()) {
+                return ItemSourceProbe.of(
+                        ItemSourceProbeStatus.PROVIDER_NOT_READY,
+                        source,
+                        id(),
+                        waitingDetail()
+                );
+            }
+            ItemStack itemStack = accessor.createItem(source.getIdentifier(), 1);
+            return itemStack == null || itemStack.getType().isAir()
+                    ? ItemSourceProbe.of(
+                    ItemSourceProbeStatus.SOURCE_NOT_FOUND,
+                    source,
+                    id(),
+                    "The provider does not contain the requested item source."
+            )
+                    : ItemSourceProbe.ready(source, id());
+        } catch (LinkageError exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.INCOMPATIBLE, source, id(), detail(exception));
+        } catch (RuntimeException exception) {
+            return ItemSourceProbe.of(ItemSourceProbeStatus.RESOLUTION_ERROR, source, id(), detail(exception));
+        }
     }
 
     @Override
@@ -116,6 +167,14 @@ abstract class AbstractManagedItemSourceResolver<A extends AbstractManagedItemSo
         return loaded.get()
                 ? new Status(State.READY, "")
                 : new Status(State.WAITING, waitingDetail());
+    }
+
+    private String detail(Throwable throwable) {
+        if (throwable == null) {
+            return "Unknown resolution failure";
+        }
+        String message = throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 
     interface Accessor {

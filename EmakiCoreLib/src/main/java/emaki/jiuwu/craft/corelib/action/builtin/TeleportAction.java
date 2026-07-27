@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.action.builtin;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -30,16 +32,42 @@ public final class TeleportAction extends BaseAction {
 
     @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
-        ActionResult playerCheck = requirePlayerResult(context);
-        if (!playerCheck.success()) {
-            return playerCheck;
+        Location target = resolveTarget(context, arguments);
+        if (target == null) {
+            return context == null || context.player() == null
+                    ? requirePlayerResult(context)
+                    : ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND, "Unknown world for teleport action.");
+        }
+        return context.player().teleport(target)
+                ? ActionResult.ok()
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Teleport was rejected.");
+    }
+
+    @Override
+    public CompletionStage<ActionResult> executeAsync(ActionContext context, Map<String, String> arguments) {
+        Location target = resolveTarget(context, arguments);
+        if (target == null) {
+            return CompletableFuture.completedFuture(
+                    context == null || context.player() == null
+                            ? requirePlayerResult(context)
+                            : ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND,
+                                    "Unknown world for teleport action."));
+        }
+        return context.player().teleportAsync(target).thenApply(success -> Boolean.TRUE.equals(success)
+                ? ActionResult.ok()
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Teleport was rejected."));
+    }
+
+    private Location resolveTarget(ActionContext context, Map<String, String> arguments) {
+        if (context == null || context.player() == null) {
+            return null;
         }
         Location base = context.player().getLocation();
         World world = WorldArgumentResolver.resolve(arguments.get("world"), base.getWorld());
         if (world == null) {
-            return ActionResult.failure(ActionErrorType.WORLD_NOT_FOUND, "Unknown world for teleport action.");
+            return null;
         }
-        Location target = new Location(
+        return new Location(
                 world,
                 ActionParsers.parseCoordinate(arguments.get("x"), base.getX()),
                 ActionParsers.parseCoordinate(arguments.get("y"), base.getY()),
@@ -47,7 +75,5 @@ public final class TeleportAction extends BaseAction {
                 (float) ActionParsers.parseDouble(arguments.get("yaw"), base.getYaw()),
                 (float) ActionParsers.parseDouble(arguments.get("pitch"), base.getPitch())
         );
-        context.player().teleport(target);
-        return ActionResult.ok();
     }
 }

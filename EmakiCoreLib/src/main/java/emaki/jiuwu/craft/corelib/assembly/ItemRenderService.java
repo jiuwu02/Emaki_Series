@@ -55,13 +55,7 @@ final class ItemRenderService {
         ItemTextBridge.lore(itemMeta, renderResult.lore().isEmpty() ? null : renderResult.lore());
         itemStack.setItemMeta(itemMeta);
         if (renderResult.customizedName() || baseNameOverride != null) {
-            if (!SpigotItemComponentNameWriter.writeCustomName(itemStack, renderResult.name())) {
-                itemMeta = itemStack.getItemMeta();
-                if (itemMeta != null) {
-                    ItemTextBridge.customName(itemMeta, renderResult.name());
-                    itemStack.setItemMeta(itemMeta);
-                }
-            }
+            LedgerNameComposer.writeName(itemStack, itemMeta, renderResult.name());
         }
     }
 

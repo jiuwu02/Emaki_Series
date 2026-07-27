@@ -193,14 +193,17 @@ quality:
 # ============================================================
 # 锻造结果
 # ============================================================
-# 定义锻造成功后产出的物品及其外观修改。
-# item_sources: 结果物品的来源
-# meta_actions: 对结果物品的名称和 Lore 修改
-# actions: 锻造成功时执行的动作
+# 定义锻造成功后的结果分支，结构与 Cooking 配方的 result.<branch> 保持一致。
+# success.outputs: 成功分支产物列表；Forge 当前使用第一项作为主产物
+# success.name_actions: 对结果物品名称执行的动作链
+# success.lore_actions: 对结果物品 Lore 执行的动作链
+# success.actions: 锻造成功并生成结果后执行的动作
 result:
-  item_sources:
-    - "minecraft-diamond_sword"
-  meta_actions:
+  success:
+    outputs:
+      - item_sources:
+          - "minecraft-diamond_sword"
+        amount: 1
     name_actions:
       - action: "replace"
         value: "<gold>烈焰锻剑</gold>"
@@ -211,15 +214,15 @@ result:
           - ""
           - "<dark_gray>由 %player% 锻造"
           - "<dark_gray>EmakiForge 示例配方"
-  actions:
-    - 'sendmessage text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
-    - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
+    actions:
+      - 'sendmessage text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
+      - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
 # ============================================================
 # 锻造流程动作
 # ============================================================
 # pre: 锻造开始前执行的动作
-# success: 锻造成功后执行的动作（在 result.actions 之后）
+# success: 锻造成功后执行的动作（在 result.success.actions 之后）
 # failure: 锻造失败时执行的动作
 actions:
   pre:

@@ -57,6 +57,16 @@ public final class ConcurrentDataStore<T> {
         }
     }
 
+    public <R> VersionedValue<R> readVersioned(Function<T, R> reader) {
+        Objects.requireNonNull(reader, "reader");
+        lock.readLock().lock();
+        try {
+            return new VersionedValue<>(version.get(), reader.apply(value));
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     public T update(UnaryOperator<T> updater) {
         Objects.requireNonNull(updater, "updater");
         long updatedVersion;

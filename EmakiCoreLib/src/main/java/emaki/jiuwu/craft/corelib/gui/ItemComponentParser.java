@@ -14,13 +14,18 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
+@Deprecated(forRemoval = false)
 public final class ItemComponentParser {
 
     private static final ConcurrentHashMap<String, Enchantment> ENCHANTMENT_CACHE = new ConcurrentHashMap<>();
@@ -62,7 +67,119 @@ public final class ItemComponentParser {
         return new ItemComponents(null, false, List.of(), null, null, Map.of(), List.of());
     }
 
+    public static ConfiguredItemDefinition toDefinition(String item,
+            ItemComponents components,
+            int amount,
+            Map<String, ?> replacements) {
+        ItemComponents value = components == null ? empty() : components;
+        Map<String, Object> legacy = new LinkedHashMap<>();
+        if (value.displayNameConfig() != null) {
+            legacy.put("display_name", value.displayNameConfig());
+        } else if (value.displayName() != null) {
+            legacy.put("display_name", value.displayName());
+        }
+        if (value.loreConfigured()) {
+            legacy.put("lore", value.loreConfig() == null ? value.lore() : value.loreConfig());
+        }
+        if (value.itemModel() != null) {
+            legacy.put("item_model", value.itemModel());
+        }
+        if (value.customModelData() != null) {
+            legacy.put("custom_model_data", value.customModelData());
+        }
+        if (!value.enchantments().isEmpty()) {
+            legacy.put("enchantments", value.enchantments());
+        }
+        if (!value.hiddenComponents().isEmpty()) {
+            legacy.put("hidden_components", value.hiddenComponents());
+        }
+        return new LegacyConfiguredItemConverter(new ConfiguredItemParser())
+                .convert(item, amount, legacy, replacements);
+    }
+
+    public static ItemComponents fromDefinition(ConfiguredItemDefinition definition) {
+        if (definition == null || definition.components().isEmpty()) {
+            return empty();
+        }
+        Object customName = setValue(definition, "minecraft:custom_name");
+        Object loreValue = setValue(definition, "minecraft:lore");
+        Object itemModelValue = setValue(definition, "minecraft:item_model");
+        Object customModelDataValue = setValue(definition, "minecraft:custom_model_data");
+        Object enchantmentsValue = setValue(definition, "minecraft:enchantments");
+        Object tooltipValue = setValue(definition, "minecraft:tooltip_display");
+
+        List<String> lore = loreValue instanceof List<?> list
+                ? list.stream().filter(String.class::isInstance).map(String.class::cast).toList()
+                : loreValue instanceof String text ? List.of(text) : List.of();
+        Map<String, Integer> enchantments = legacyEnchantments(enchantmentsValue);
+        List<String> hiddenComponents = legacyHiddenComponents(tooltipValue);
+        return new ItemComponents(
+                customName instanceof String text ? text : null,
+                loreValue != null,
+                lore,
+                itemModelValue instanceof String text ? text : null,
+                legacyCustomModelData(customModelDataValue),
+                enchantments,
+                hiddenComponents,
+                customName instanceof Map<?, ?> ? customName : null,
+                null
+        );
+    }
+
+    private static Object setValue(ConfiguredItemDefinition definition, String componentId) {
+        ItemComponentPatch patch = definition.components().get(componentId);
+        return patch != null && patch.operation() == ItemComponentPatch.Operation.SET ? patch.value() : null;
+    }
+
+    private static Integer legacyCustomModelData(Object value) {
+        if (!(value instanceof Map<?, ?> map)) {
+            return Numbers.tryParseInt(value, null);
+        }
+        Object floats = map.get("floats");
+        if (floats instanceof List<?> list && !list.isEmpty() && list.getFirst() instanceof Number number) {
+            return number.intValue();
+        }
+        return null;
+    }
+
+    private static Map<String, Integer> legacyEnchantments(Object value) {
+        if (!(value instanceof Map<?, ?> map)) {
+            return Map.of();
+        }
+        Object levels = map.containsKey("levels") ? map.get("levels") : map;
+        if (!(levels instanceof Map<?, ?> levelMap)) {
+            return Map.of();
+        }
+        Map<String, Integer> result = new LinkedHashMap<>();
+        levelMap.forEach((key, level) -> {
+            Integer parsed = Numbers.tryParseInt(level, null);
+            if (key != null && parsed != null) {
+                result.put(String.valueOf(key), parsed);
+            }
+        });
+        return result;
+    }
+
+    private static List<String> legacyHiddenComponents(Object value) {
+        if (!(value instanceof Map<?, ?> map)) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        Object hidden = map.get("hidden_components");
+        for (String entry : Texts.asStringList(hidden)) {
+            result.add(entry.startsWith("minecraft:") ? entry.substring("minecraft:".length()) : entry);
+        }
+        if (Boolean.TRUE.equals(map.get("hide_tooltip"))) {
+            result.add("tooltip");
+        }
+        return result;
+    }
+
     public static boolean hasConfiguredFields(Object raw) {
+        return hasDirectConfiguredFields(raw) || hasDirectConfiguredFields(ConfigNodes.get(raw, "components"));
+    }
+
+    private static boolean hasDirectConfiguredFields(Object raw) {
         return ConfigNodes.contains(raw, "display_name")
                 || ConfigNodes.contains(raw, "lore")
                 || ConfigNodes.contains(raw, "item_model")
@@ -80,24 +197,24 @@ public final class ItemComponentParser {
         if (raw == null) {
             return empty();
         }
-        boolean loreConfigured = ConfigNodes.contains(raw, "lore");
-        Object loreRaw = ConfigNodes.get(raw, "lore");
-        Object displayNameRaw = ConfigNodes.get(raw, "display_name");
+        boolean loreConfigured = legacyContains(raw, "lore");
+        Object loreRaw = legacyValue(raw, "lore");
+        Object displayNameRaw = legacyValue(raw, "display_name");
         boolean displayNameIsTextConfig = displayNameRaw instanceof Map<?, ?>
                 || displayNameRaw instanceof emaki.jiuwu.craft.corelib.yaml.YamlSection;
         return new ItemComponents(
                 displayNameIsTextConfig
                         ? null
-                        : ConfigNodes.string(raw, "display_name", null),
+                        : displayNameRaw == null ? null : String.valueOf(displayNameRaw),
                 loreConfigured,
                 parseLore(loreRaw, loreConfigured),
-                ConfigNodes.string(raw, "item_model", ConfigNodes.string(raw, "item-model", null)),
+                legacyString(raw, "item_model", legacyString(raw, "item-model", null)),
                 parseCustomModelData(
-                        ConfigNodes.contains(raw, "custom_model_data")
-                        ? ConfigNodes.get(raw, "custom_model_data")
-                        : ConfigNodes.get(raw, "custommodeldata")
+                        legacyContains(raw, "custom_model_data")
+                        ? legacyValue(raw, "custom_model_data")
+                        : legacyValue(raw, "custommodeldata")
                 ),
-                parseEnchantments(ConfigNodes.get(raw, "enchantments")),
+                parseEnchantments(legacyValue(raw, "enchantments")),
                 parseHiddenComponents(raw),
                 displayNameIsTextConfig ? displayNameRaw : null,
                 loreRaw instanceof Map<?, ?> || loreRaw instanceof emaki.jiuwu.craft.corelib.yaml.YamlSection
@@ -132,6 +249,31 @@ public final class ItemComponentParser {
         }
         applyEnchantments(itemMeta, components.enchantments());
         applyHiddenComponents(itemMeta, components.hiddenComponents());
+    }
+
+    private static Object legacyValue(Object raw, String key) {
+        if (ConfigNodes.contains(raw, key)) {
+            return ConfigNodes.get(raw, key);
+        }
+        return ConfigNodes.get(ConfigNodes.get(raw, "components"), key);
+    }
+
+    private static boolean legacyContains(Object raw, String key) {
+        return ConfigNodes.contains(raw, key)
+                || ConfigNodes.contains(ConfigNodes.get(raw, "components"), key);
+    }
+
+    private static String legacyString(Object raw, String key, String fallback) {
+        Object value = legacyValue(raw, key);
+        return value == null ? fallback : String.valueOf(value);
+    }
+
+    private static boolean legacyBoolean(Object raw, String key, boolean fallback) {
+        Object value = legacyValue(raw, key);
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value));
     }
 
     private static List<String> parseLore(Object loreRaw, boolean loreConfigured) {
@@ -177,9 +319,16 @@ public final class ItemComponentParser {
             if (Texts.isBlank(entry)) {
                 continue;
             }
-            String[] split = entry.split(":", 2);
-            String key = split[0];
-            int level = split.length > 1 ? Numbers.tryParseInt(split[1], 1) : 1;
+            String key = entry.trim();
+            int level = 1;
+            int separator = key.lastIndexOf(':');
+            if (separator > 0) {
+                Integer parsedLevel = Numbers.tryParseInt(key.substring(separator + 1), null);
+                if (parsedLevel != null) {
+                    level = parsedLevel;
+                    key = key.substring(0, separator);
+                }
+            }
             if (Texts.isBlank(key) || level <= 0) {
                 continue;
             }
@@ -199,11 +348,11 @@ public final class ItemComponentParser {
     }
 
     private static List<String> parseHiddenComponents(Object raw) {
-        List<String> result = new ArrayList<>(normalizeTextList(ConfigNodes.get(raw, "hidden_components")));
-        if (ConfigNodes.bool(raw, "hide_tooltip", false) || ConfigNodes.bool(raw, "hide-tooltip", false)) {
+        List<String> result = new ArrayList<>(normalizeTextList(legacyValue(raw, "hidden_components")));
+        if (legacyBoolean(raw, "hide_tooltip", false) || legacyBoolean(raw, "hide-tooltip", false)) {
             result.add("tooltip");
         }
-        Object tooltipDisplay = ConfigNodes.get(raw, "tooltip_display");
+        Object tooltipDisplay = legacyValue(raw, "tooltip_display");
         if (tooltipDisplay instanceof Boolean enabled && enabled) {
             result.add("tooltip");
         } else if (ConfigNodes.bool(tooltipDisplay, "hide_tooltip", false)

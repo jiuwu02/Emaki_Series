@@ -1,13 +1,14 @@
 package emaki.jiuwu.craft.strengthen;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.ServicePriority;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,28 +17,28 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
-import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
-import emaki.jiuwu.craft.corelib.web.preview.WebItemLayerPreviewRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.strengthen.action.StrengthenActionRegistrar;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenItemLayerPreviewLifecycle;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
@@ -50,17 +51,15 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
-import emaki.jiuwu.craft.strengthen.service.StrengthenItemLayerPreviewProvider;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
-import emaki.jiuwu.craft.strengthen.service.StrengthenRoutePreviewService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
-import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenChanceRuleRegistry;
-import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegistry;
+import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenChanceRuleRegistry;
+import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenResultHookRegistry;
 
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
-    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "script");
+    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "script", "pdc");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __    
@@ -69,19 +68,24 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\ \\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/ /_/\\/_____/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/\\/_/\\/_____/\\/_/ \\/_/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0xFACC15;
+    private static final int STARTUP_ASCII_END_COLOR = 0xF97316;
     private static final int BSTATS_PLUGIN_ID = 31769;
 
     private BStatsRegistration metrics;
 
     private final StrengthenLifecycleCoordinator lifecycleCoordinator = new StrengthenLifecycleCoordinator();
+    private final StrengthenItemLayerPreviewLifecycle itemLayerPreviewLifecycle = new StrengthenItemLayerPreviewLifecycle(this);
     private final StrengthenCommandRouter commandRouter = new StrengthenCommandRouter(this);
-    private final StrengthenItemRefreshListener itemRefreshListener = new StrengthenItemRefreshListener(this);
+    private StrengthenItemRefreshListener itemRefreshListener;
     private ItemSourceService coreItemSourceService;
     private DebugCommand debugCommand;
     private final GuiItemBuilder.ItemFactory coreItemFactory = (source, amount) -> {
         return coreItemSourceService == null ? null : coreItemSourceService.createItem(source, amount);
     };
 
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private StrengthenRecipeLoader recipeLoader;
@@ -89,7 +93,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private MessageService messageService;
     private BootstrapService bootstrapService;
     private GuiService guiService;
-    private PdcAttributeGateway pdcAttributeGateway;
+    private StrengthenAttributeBridge pdcAttributeGateway;
     private StrengthenRecipeResolver recipeResolver;
     private ChanceCalculator chanceCalculator;
     private StrengthenEconomyService economyService;
@@ -98,7 +102,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenAttemptService attemptService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
-    private StrengthenRoutePreviewService routePreviewService;
     private JavaScriptStrengthenChanceRuleRegistry javaScriptChanceRuleRegistry;
     private JavaScriptStrengthenResultHookRegistry javaScriptResultHookRegistry;
     private StrengthenPlaceholderExpansion placeholderExpansion;
@@ -135,16 +138,22 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
         registerApi();
+        registerActions();
         registerCommandHandler();
         registerEventHandlers();
-        registerWebConsole();
+        itemLayerPreviewLifecycle.initialize();
         ensurePlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -153,21 +162,22 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     @Override
     public void onDisable() {
         ConfigPrecheckLifecycleSupport.unregister("strengthen");
+        itemLayerPreviewLifecycle.close();
+        lifecycleCoordinator.shutdown(this);
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
-        WebPluginApiRegistry.unregister(this);
-        WebItemLayerPreviewRegistry.unregister(this);
+        EmakiCoreLibPlugin coreLib = coreLib();
+        if (coreLib != null && coreLib.actionRegistry() != null) {
+            coreLib.actionRegistry().unregisterAll(this);
+        }
         EmakiStrengthenApi.uninstall(strengthenApiBridge);
         getServer().getServicesManager().unregisterAll(this);
         if (metrics != null) {
             metrics.close();
             metrics = null;
         }
-        lifecycleCoordinator.shutdown(this);
-        AdventureSupport.close(this);
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {
@@ -189,6 +199,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void applyRuntimeComponents(StrengthenRuntimeComponents components) {
+        executionDispatcher = components.executionDispatcher();
+        threadOwnership = components.threadOwnership();
+        itemRefreshListener = new StrengthenItemRefreshListener(this, executionDispatcher);
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
         recipeLoader = components.recipeLoader();
@@ -206,7 +219,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         attemptService = components.attemptService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
-        routePreviewService = new StrengthenRoutePreviewService(this);
         javaScriptChanceRuleRegistry = new JavaScriptStrengthenChanceRuleRegistry(this);
         javaScriptResultHookRegistry = new JavaScriptStrengthenResultHookRegistry(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
@@ -218,52 +230,23 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         EmakiStrengthenApi.install(strengthenApiBridge);
     }
 
+    private void registerActions() {
+        new StrengthenActionRegistrar(this).register(coreLib().actionRegistry());
+    }
+
     private void registerCommandHandler() {
-        PluginCommand pluginCommand = getCommand(ROOT_COMMAND);
-        if (pluginCommand == null) {
-            return;
-        }
-        pluginCommand.setExecutor(commandRouter);
-        pluginCommand.setTabCompleter(commandRouter);
+        registerCommand(
+                ROOT_COMMAND,
+                "emakistrengthen command",
+                java.util.List.of("estrengthen"),
+                new PaperCommandAdapter(ROOT_COMMAND, "emakistrengthen.use", commandRouter, commandRouter)
+        );
     }
 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
+        getServer().getPluginManager().registerEvents(strengthenGuiService, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
-    }
-
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("canStrengthen", "canStrengthen(itemKey)", "canStrengthen(\"item\")");
-        scriptMethod("readState", "readState(itemKey)", "readState(\"item\")");
-        scriptMethod("rebuild", "rebuild(itemKey)", "rebuild(\"item\")");
-        scriptMethod("registerChanceRule", "registerChanceRule(definition)", "registerChanceRule({ id: \"vip_bonus\", function: \"modifyChance\" })");
-        scriptMethod("unregisterChanceRule", "unregisterChanceRule(id)", "unregisterChanceRule(\"vip_bonus\")");
-        scriptMethod("registeredChanceRules", "registeredChanceRules()", "registeredChanceRules()");
-        scriptMethod("onResult", "onResult(definition)", "onResult({ id: \"result_reward\", function: \"handleResult\" })");
-        scriptMethod("unregisterResultHook", "unregisterResultHook(id)", "unregisterResultHook(\"result_reward\")");
-        scriptMethod("registeredResultHooks", "registeredResultHooks()", "registeredResultHooks()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:strengthen", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
-        }
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-        WebItemLayerPreviewRegistry.register(this, new StrengthenItemLayerPreviewProvider(this));
-        WebPluginApiRegistry.register(this, "strengthen", "route-preview", request -> {
-            request.requirePost();
-            return routePreviewService.preview(request.string("recipeId"));
-        });
     }
 
     private void ensurePlaceholderExpansion() {
@@ -307,11 +290,19 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
+    }
+
     public GuiService guiService() {
         return guiService;
     }
 
-    public PdcAttributeGateway pdcAttributeGateway() {
+    public StrengthenAttributeBridge pdcAttributeGateway() {
         return pdcAttributeGateway;
     }
 
@@ -343,10 +334,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return refreshService;
     }
 
-    public StrengthenRoutePreviewService routePreviewService() {
-        return routePreviewService;
-    }
-
     public StrengthenGuiService strengthenGuiService() {
         return strengthenGuiService;
     }
@@ -370,4 +357,40 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     public DebugCommand debugCommand() {
         return debugCommand;
     }
+
+    private static final class PaperCommandAdapter implements BasicCommand {
+
+        private final String rootLabel;
+        private final String permission;
+        private final org.bukkit.command.CommandExecutor executor;
+        private final org.bukkit.command.TabCompleter tabCompleter;
+
+        private PaperCommandAdapter(String rootLabel,
+                String permission,
+                org.bukkit.command.CommandExecutor executor,
+                org.bukkit.command.TabCompleter tabCompleter) {
+            this.rootLabel = rootLabel;
+            this.permission = permission;
+            this.executor = executor;
+            this.tabCompleter = tabCompleter;
+        }
+
+        @Override
+        public void execute(CommandSourceStack source, String[] args) {
+            executor.onCommand(source.getSender(), null, rootLabel, args);
+        }
+
+        @Override
+        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
+            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? java.util.List.of() : suggestions;
+        }
+
+        @Override
+        public String permission() {
+            return permission;
+        }
+    }
+
 }

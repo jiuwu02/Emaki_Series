@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -59,10 +60,17 @@ final class JuicerGuiController {
 
     boolean openGui(Player player, StationCoordinates coordinates) {
         if (player == null || coordinates == null) {
+            if (player != null) {
+                debug(player, coordinates, "gui.juicer.open_rejected_missing_coordinates");
+            }
             return false;
         }
+        debug(player, coordinates, "gui.juicer.open_requested");
         JuicerGuiHolder existingHolder = findOpenSession(coordinates);
         if (existingHolder != null && !player.getUniqueId().equals(existingHolder.viewerId())) {
+            debug(player, coordinates, "gui.juicer.open_rejected_in_use", GuiDebugSupport.replacements(
+                    "viewer", existingHolder.viewerId()
+            ));
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.in_use", Map.of());
             return true;
         }
@@ -73,6 +81,10 @@ final class JuicerGuiController {
         loadInventory(coordinates, inventory);
         openSessions.put(player.getUniqueId(), holder);
         player.openInventory(inventory);
+        debug(player, coordinates, "gui.juicer.open_completed", GuiDebugSupport.replacements(
+                "inventory_size", inventory.getSize(),
+                "ingredient_slots", ingredientSlots(inventory)
+        ));
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.opened", Map.of());
         return true;
     }
@@ -193,6 +205,14 @@ final class JuicerGuiController {
         return null;
     }
 
+    StationCoordinates viewingCoordinates(UUID viewerId) {
+        if (viewerId == null) {
+            return null;
+        }
+        JuicerGuiHolder holder = openSessions.get(viewerId);
+        return holder == null ? null : holder.coordinates();
+    }
+
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
@@ -203,13 +223,25 @@ final class JuicerGuiController {
             return;
         }
         openSessions.remove(holder.viewerId(), holder);
+        debug(player, holder.coordinates(), "gui.juicer.close_received", GuiDebugSupport.replacements(
+                "suppress_save", holder.suppressSave()
+        ));
         if (holder.suppressSave()) {
+            debug(player, holder.coordinates(), "gui.juicer.close_completed_save_skipped");
             return;
         }
+        debug(player, holder.coordinates(), "gui.juicer.save_started", GuiDebugSupport.replacements(
+                "inventory_size", event.getInventory().getSize()
+        ));
         JuicerState state = runtimeService.saveInventory(holder.coordinates(), event.getInventory(), player.getUniqueId(), player.getName());
         if (state.isCompletelyEmpty()) {
             runtimeService.removeState(holder.coordinates(), true);
         }
+        debug(player, holder.coordinates(), "gui.juicer.save_completed", GuiDebugSupport.replacements(
+                "empty", state.isCompletelyEmpty(),
+                "stored_slots", state.slotSources().size(),
+                "fluid", Texts.toStringSafe(state.fluidId())
+        ));
     }
 
     @EventHandler
@@ -222,20 +254,36 @@ final class JuicerGuiController {
         if (holder == null || topInventory != holder.getInventory()) {
             return;
         }
+        debug(player, holder.coordinates(), "gui.juicer.click_evaluated", clickFields(event));
         if (event.isShiftClick()) {
             event.setCancelled(true);
+            debug(player, holder.coordinates(), "gui.juicer.click_rejected_shift_transfer", GuiDebugSupport.replacements(
+                    "raw_slot", event.getRawSlot()
+            ));
             return;
         }
         int topSize = topInventory.getSize();
         int rawSlot = event.getRawSlot();
         if (rawSlot >= 0 && rawSlot < topSize && !ingredientSlotSet(topInventory).contains(rawSlot)) {
             event.setCancelled(true);
+            debug(player, holder.coordinates(), "gui.juicer.click_rejected_non_ingredient_slot", GuiDebugSupport.replacements(
+                    "raw_slot", rawSlot
+            ));
             return;
         }
         if (rawSlot >= 0 && rawSlot < topSize && rejectsRecipeInput(holder.coordinates(), event.getCursor(), player)) {
             event.setCancelled(true);
+            debug(player, holder.coordinates(), "gui.juicer.click_rejected_recipe_or_fluid_validation", GuiDebugSupport.replacements(
+                    "raw_slot", rawSlot,
+                    "item_type", GuiDebugSupport.itemType(event.getCursor()),
+                    "item_amount", GuiDebugSupport.itemAmount(event.getCursor())
+            ));
             sendInputRejected(player);
+            return;
         }
+        debug(player, holder.coordinates(), "gui.juicer.click_allowed", GuiDebugSupport.replacements(
+                "raw_slot", rawSlot
+        ));
     }
 
     @EventHandler
@@ -248,19 +296,38 @@ final class JuicerGuiController {
         if (holder == null || topInventory != holder.getInventory()) {
             return;
         }
+        debug(player, holder.coordinates(), "gui.juicer.drag_evaluated", GuiDebugSupport.replacements(
+                "drag_type", event.getType(),
+                "raw_slots", event.getRawSlots(),
+                "old_cursor_type", GuiDebugSupport.itemType(event.getOldCursor()),
+                "old_cursor_amount", GuiDebugSupport.itemAmount(event.getOldCursor())
+        ));
         int topSize = topInventory.getSize();
         Set<Integer> ingredientSlots = ingredientSlotSet(topInventory);
         for (Integer rawSlot : event.getRawSlots()) {
             if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize && !ingredientSlots.contains(rawSlot)) {
                 event.setCancelled(true);
+                debug(player, holder.coordinates(), "gui.juicer.drag_rejected_non_ingredient_slot", GuiDebugSupport.replacements(
+                        "raw_slot", rawSlot
+                ));
                 return;
             }
-            if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize && rejectsRecipeInput(holder.coordinates(), event.getNewItems().get(rawSlot), player)) {
+            if (rawSlot != null && rawSlot >= 0 && rawSlot < topSize
+                    && rejectsRecipeInput(holder.coordinates(), event.getNewItems().get(rawSlot), player)) {
+                ItemStack newItem = event.getNewItems().get(rawSlot);
                 event.setCancelled(true);
+                debug(player, holder.coordinates(), "gui.juicer.drag_rejected_recipe_or_fluid_validation", GuiDebugSupport.replacements(
+                        "raw_slot", rawSlot,
+                        "item_type", GuiDebugSupport.itemType(newItem),
+                        "item_amount", GuiDebugSupport.itemAmount(newItem)
+                ));
                 sendInputRejected(player);
                 return;
             }
         }
+        debug(player, holder.coordinates(), "gui.juicer.drag_allowed", GuiDebugSupport.replacements(
+                "raw_slots", event.getRawSlots()
+        ));
     }
 
     List<Integer> ingredientSlots(Inventory inventory) {
@@ -304,5 +371,30 @@ final class JuicerGuiController {
 
     private void sendInputRejected(Player player) {
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
+    }
+
+    private void debug(Player player, StationCoordinates coordinates, String langKey) {
+        debug(player, coordinates, langKey, Map.of());
+    }
+
+    private void debug(Player player, StationCoordinates coordinates, String langKey, Map<String, ?> fields) {
+        Map<String, Object> replacements = GuiDebugSupport.replacements(
+                "station", StationType.JUICER,
+                "coordinates", coordinates == null ? "" : coordinates.runtimeKey()
+        );
+        replacements.putAll(fields);
+        GuiDebugSupport.log(plugin, player, langKey, replacements);
+    }
+
+    private Map<String, Object> clickFields(InventoryClickEvent event) {
+        return GuiDebugSupport.replacements(
+                "raw_slot", event.getRawSlot(),
+                "action", event.getAction(),
+                "click", event.getClick(),
+                "current_item_type", GuiDebugSupport.itemType(event.getCurrentItem()),
+                "current_item_amount", GuiDebugSupport.itemAmount(event.getCurrentItem()),
+                "cursor_item_type", GuiDebugSupport.itemType(event.getCursor()),
+                "cursor_item_amount", GuiDebugSupport.itemAmount(event.getCursor())
+        );
     }
 }

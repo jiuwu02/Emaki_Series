@@ -92,22 +92,26 @@ final class CombatDebugService {
 
     String describeDamageContext(DamageContext damageContext) {
         if (damageContext == null) {
-            return "<null>";
+            return fieldText("null_value", "<null>");
         }
-        return "attacker=" + entityDebugLabel(damageContext.attacker())
-                + ", target=" + entityDebugLabel(damageContext.target())
-                + ", projectile=" + entityDebugLabel(damageContext.projectile())
-                + ", cause=" + (damageContext.cause() == null ? "<none>" : damageContext.cause().name())
-                + ", damageType=" + damageContext.damageTypeId()
-                + ", sourceDamage=" + formatNumber(damageContext.sourceDamage())
-                + ", baseDamage=" + formatNumber(damageContext.baseDamage());
+        return fieldMessage("context", Map.of(
+                "attacker", entityDebugLabel(damageContext.attacker()),
+                "target", entityDebugLabel(damageContext.target()),
+                "projectile", entityDebugLabel(damageContext.projectile()),
+                "cause", damageContext.cause() == null
+                        ? fieldText("none", "<none>")
+                        : damageContext.cause().name(),
+                "damage_type", Texts.toStringSafe(damageContext.damageTypeId()),
+                "source_damage", formatNumber(damageContext.sourceDamage()),
+                "base_damage", formatNumber(damageContext.baseDamage())
+        ));
     }
 
     String formatStageValues(Map<String, Double> stageValues) {
         if (stageValues == null || stageValues.isEmpty()) {
-            return "{}";
+            return fieldMessage("stage_values", Map.of("values", ""));
         }
-        StringBuilder builder = new StringBuilder("{");
+        StringBuilder builder = new StringBuilder();
         boolean first = true;
         for (Map.Entry<String, Double> entry : stageValues.entrySet()) {
             if (!first) {
@@ -116,19 +120,17 @@ final class CombatDebugService {
             builder.append(entry.getKey()).append('=').append(formatNumber(entry.getValue() == null ? 0D : entry.getValue()));
             first = false;
         }
-        builder.append('}');
-        return builder.toString();
+        return fieldMessage("stage_values", Map.of("values", builder.toString()));
     }
 
     String formatSnapshot(AttributeSnapshot snapshot) {
         if (snapshot == null) {
-            return "<null>";
+            return fieldText("null_value", "<null>");
         }
         if (snapshot.values().isEmpty()) {
-            return "signature=" + snapshot.sourceSignature() + ", values={}";
+            return snapshotMessage(snapshot, "");
         }
         StringBuilder builder = new StringBuilder();
-        builder.append("signature=").append(snapshot.sourceSignature()).append(", values={");
         boolean first = true;
         for (Map.Entry<String, Double> entry : orderedSnapshotEntries(snapshot).entrySet()) {
             Double value = entry.getValue();
@@ -142,11 +144,9 @@ final class CombatDebugService {
             first = false;
         }
         if (first) {
-            builder.append('}');
-            return builder.toString();
+            return snapshotMessage(snapshot, "");
         }
-        builder.append('}');
-        return builder.toString();
+        return snapshotMessage(snapshot, builder.toString());
     }
 
     Map<String, Double> orderedSnapshotEntries(AttributeSnapshot snapshot) {
@@ -174,16 +174,48 @@ final class CombatDebugService {
 
     String entityDebugLabel(Entity entity) {
         if (entity == null) {
-            return "<none>";
+            return fieldText("none", "<none>");
         }
         String name = Texts.toStringSafe(entity.getName()).trim();
         if (Texts.isBlank(name)) {
             name = entity.getType().name();
         }
-        return name + "(" + entity.getType().name() + "," + entity.getUniqueId() + ")";
+        return fieldMessage("entity", Map.of(
+                "name", name,
+                "type", entity.getType().name(),
+                "uuid", entity.getUniqueId().toString()
+        ));
     }
 
     String formatNumber(double value) {
         return Numbers.formatNumber(value, "0.##");
+    }
+
+    private String snapshotMessage(AttributeSnapshot snapshot, String values) {
+        return fieldMessage("snapshot", Map.of(
+                "signature", Texts.toStringSafe(snapshot.sourceSignature()),
+                "values", values
+        ));
+    }
+
+    private String fieldMessage(String field, Map<String, ?> replacements) {
+        MessageService messageService = service == null || service.plugin() == null
+                ? null
+                : service.plugin().messageService();
+        String key = "combat_debug.field." + field;
+        if (messageService == null) {
+            return key;
+        }
+        return messageService.message(key, replacements);
+    }
+
+    private String fieldText(String field, String fallback) {
+        MessageService messageService = service == null || service.plugin() == null
+                ? null
+                : service.plugin().messageService();
+        if (messageService == null) {
+            return fallback;
+        }
+        return messageService.messageOrFallback("combat_debug.field." + field, fallback);
     }
 }

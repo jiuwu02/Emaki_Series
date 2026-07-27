@@ -6,6 +6,8 @@ import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
@@ -22,6 +24,7 @@ import emaki.jiuwu.craft.cooking.loader.SteamerRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.WokRecipeLoader;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
 import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
+import emaki.jiuwu.craft.cooking.service.CookingCompletionCoordinator;
 import emaki.jiuwu.craft.cooking.service.CookingInspectService;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
@@ -39,7 +42,9 @@ import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
-record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
+record CookingRuntimeComponents(ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
+        YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         ChoppingBoardRecipeLoader choppingBoardRecipeLoader,
         WokRecipeLoader wokRecipeLoader,
@@ -61,6 +66,7 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         StationStateStore stationStateStore,
         CookingRecipeService recipeService,
         CookingRewardService rewardService,
+        CookingCompletionCoordinator completionCoordinator,
         CookingInspectService inspectService,
         CookingDisplayService displayService,
         CookingTextDisplayService textDisplayService,
@@ -79,6 +85,8 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(ChoppingBoardRecipeLoader.class, choppingBoardRecipeLoader),
@@ -99,6 +107,7 @@ record CookingRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(StationStateStore.class, stationStateStore),
                 RuntimeComponents.component(CookingRecipeService.class, recipeService),
                 RuntimeComponents.component(CookingRewardService.class, rewardService),
+                RuntimeComponents.component(CookingCompletionCoordinator.class, completionCoordinator),
                 RuntimeComponents.component(CookingInspectService.class, inspectService),
                 RuntimeComponents.component(CookingDisplayService.class, displayService),
                 RuntimeComponents.component(CookingTextDisplayService.class, textDisplayService),

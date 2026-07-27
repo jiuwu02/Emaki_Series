@@ -1,0 +1,34 @@
+# EmakiAttribute 父级属性定义 - 力量
+# 父级属性可从物品 Lore / PDC 或玩家加点进入快照，并按 child_bonuses 展开为子属性贡献。
+
+id: strength
+
+display_name: "力量"
+
+value_kind: DERIVED
+
+target_type: GENERIC
+
+target_id: parent_attribute
+
+default_value: 0.0
+
+min_value: 0.0
+
+max_value: 999999.0
+
+allow_negative: false
+
+priority: 1000
+
+lore_format_id: default_flat
+
+attribute_power: 0.0
+
+parent_attribute: true
+
+child_bonuses:
+  physical_attack: 1.0
+  projectile_attack: 0.5
+
+description: "每点力量提升物理伤害与部分弹射物伤害。"

@@ -3,9 +3,9 @@ package emaki.jiuwu.craft.attribute.model;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Runtime-only diagnostic entry describing where one attribute value came from.
- */
+
+
+
 public record AttributeContributionTrace(
         String attributeId,
         double value,

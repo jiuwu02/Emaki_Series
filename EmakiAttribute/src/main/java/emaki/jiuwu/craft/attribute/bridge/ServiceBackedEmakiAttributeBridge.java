@@ -4,22 +4,50 @@ import java.util.Map;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.api.PlayerResourceConsumeEvent;
+import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGate;
+import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
-import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBridge {
+/**
+ * Canonical {@link EmakiAttributeApi.Bridge} implementation backed by the
+ * EmakiAttribute runtime services.
+ *
+ * <p>This is the single authoritative implementation of the resource, attribute,
+ * damage and equipment-sync rules; the deprecated CoreLib mirror only delegates
+ * here.
+ */
+public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeApi.Bridge {
 
     private final AttributeServiceFacade attributeService;
+    private final ThreadOwnership threadOwnership;
+    private final ItemContributionGateRegistry gateRegistry;
 
     public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService) {
+        this(attributeService, null, null);
+    }
+
+    public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService, ThreadOwnership threadOwnership) {
+        this(attributeService, threadOwnership, null);
+    }
+
+    public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService,
+            ThreadOwnership threadOwnership,
+            ItemContributionGateRegistry gateRegistry) {
         this.attributeService = attributeService;
+        this.threadOwnership = threadOwnership;
+        this.gateRegistry = gateRegistry;
     }
 
     @Override
@@ -41,7 +69,8 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
 
     @Override
     public boolean consumeResource(Player player, String resourceId, double amount) {
-        if (player == null || Texts.isBlank(resourceId) || amount < 0D || attributeService == null) {
+        if (player == null || Texts.isBlank(resourceId) || amount < 0D || attributeService == null
+                || !isEntityOwned(player)) {
             return false;
         }
         ResourceState state = attributeService.readResourceState(player, resourceId);
@@ -52,19 +81,17 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
         if (definition == null) {
             return false;
         }
-        // 自定义资源消费对外开放，可取消、可改消费量；bridge 由外部插件调用，线程不定，仅主线程派发。
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
-            PlayerResourceConsumeEvent consumeEvent = new PlayerResourceConsumeEvent(
-                    player, resourceId, amount, state.currentValue(), state.currentMax());
-            org.bukkit.Bukkit.getPluginManager().callEvent(consumeEvent);
-            if (consumeEvent.isCancelled()) {
-                return false;
-            }
-            amount = consumeEvent.getAmount();
-            // 改写后重新校验：消费量非法或超出当前余额则中止。
-            if (amount < 0D || state.currentValue() < amount) {
-                return false;
-            }
+
+        PlayerResourceConsumeEvent consumeEvent = new PlayerResourceConsumeEvent(
+                player, resourceId, amount, state.currentValue(), state.currentMax());
+        org.bukkit.Bukkit.getPluginManager().callEvent(consumeEvent);
+        if (consumeEvent.isCancelled()) {
+            return false;
+        }
+        amount = consumeEvent.getAmount();
+
+        if (amount < 0D || state.currentValue() < amount) {
+            return false;
         }
         AttributeSnapshot snapshot = attributeService.collectPlayerCombatSnapshot(player);
         attributeService.syncResource(
@@ -79,7 +106,8 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
 
     @Override
     public double readAttributeValue(Player player, String attributeId) {
-        if (player == null || Texts.isBlank(attributeId) || attributeService == null) {
+        if (player == null || Texts.isBlank(attributeId) || attributeService == null
+                || !isEntityOwned(player)) {
             return 0D;
         }
         AttributeSnapshot snapshot = attributeService.collectPlayerCombatSnapshot(player);
@@ -104,8 +132,28 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeBr
         return attributeService.applyDamage(attacker, target, resolvedType, baseDamage, context);
     }
 
+    @Override
+    public ItemContributionGateRegistration registerItemContributionGate(Plugin plugin, ItemContributionGate gate) {
+        return gateRegistry == null
+                ? ItemContributionGateRegistration.noop()
+                : gateRegistry.register(plugin, gate);
+    }
+
+    @Override
+    public boolean isItemContributionActive(Player player, ItemStack itemStack, String slotName) {
+        if (gateRegistry == null || itemStack == null || itemStack.getType().isAir()) {
+            return true;
+        }
+        return gateRegistry.rejectingGateId(player, itemStack, slotName).isEmpty();
+    }
+
+    private boolean isEntityOwned(Player player) {
+        return threadOwnership != null && threadOwnership.isEntityOwned(player);
+    }
+
     private ResourceState readResourceState(Player player, String resourceId) {
-        if (player == null || Texts.isBlank(resourceId) || attributeService == null) {
+        if (player == null || Texts.isBlank(resourceId) || attributeService == null
+                || !isEntityOwned(player)) {
             return null;
         }
         return attributeService.readResourceState(player, resourceId);

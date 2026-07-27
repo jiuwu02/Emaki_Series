@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 
 public final class JavaScriptLevelExpRuleRegistry {
 
-    /** JavaScript registration type id for level exp rules (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "level_exp_rule";
 
     private final EmakiLevelPlugin plugin;
@@ -101,10 +101,12 @@ public final class JavaScriptLevelExpRuleRegistry {
             return;
         }
         for (Map<String, Object> trace : traces) {
-            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
-                    + " | before=" + Texts.toStringSafe(trace.get("before"))
-                    + " | after=" + Texts.toStringSafe(trace.get("after"))
-                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+            plugin.debugLogger().log("script", playerId, "script.trace", Map.of(
+                    "rule", Texts.toStringSafe(trace.get("id")),
+                    "before", Texts.toStringSafe(trace.get("before")),
+                    "after", Texts.toStringSafe(trace.get("after")),
+                    "message", Texts.toStringSafe(trace.get("message"))
+            ));
         }
     }
 

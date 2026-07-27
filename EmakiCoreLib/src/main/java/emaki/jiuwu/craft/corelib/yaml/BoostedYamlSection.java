@@ -138,6 +138,10 @@ public final class BoostedYamlSection implements YamlSection {
         if (section == null || Texts.isBlank(path)) {
             return;
         }
+        if (value == null) {
+            section.remove(path);
+            return;
+        }
         section.set(path, MapYamlSection.normalizeValue(value));
     }
 

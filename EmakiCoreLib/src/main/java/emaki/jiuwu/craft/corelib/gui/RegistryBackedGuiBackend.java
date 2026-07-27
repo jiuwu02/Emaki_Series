@@ -4,29 +4,37 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-/**
- * A {@link GuiBackend} that delegates to whichever backend is currently active
- * in the {@link GuiBackendRegistry}.
- *
- * <p>This is the instance returned by {@code EmakiCoreLibPlugin#guiBackend()}.
- * Keeping the public type stable means the six business plugins can keep passing
- * {@code coreLib.guiBackend()} straight into their {@code new GuiService(...)}
- * with no change.</p>
- *
- * <p>{@link GuiService} unwraps this proxy when it creates a session and binds
- * the resolved real backend to that session, so each open menu keeps a stable
- * backend for its whole lifetime. The forwarding methods here are a defensive
- * fallback for any code path that calls a proxy directly.</p>
- */
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 public final class RegistryBackedGuiBackend implements GuiBackend {
 
     private final GuiBackendRegistry registry;
+    private final ConfiguredItemService configuredItemService;
 
     public RegistryBackedGuiBackend(GuiBackendRegistry registry) {
-        this.registry = registry;
+        this(registry, null);
     }
 
-    /** {@return the backend currently selected by {@code gui.backend}} */
+    public RegistryBackedGuiBackend(GuiBackendRegistry registry, ConfiguredItemService configuredItemService) {
+        this.registry = registry;
+        this.configuredItemService = configuredItemService;
+    }
+
+
     public GuiBackend resolveActive() {
         return registry.activeBackend();
     }
@@ -52,7 +60,12 @@ public final class RegistryBackedGuiBackend implements GuiBackend {
     }
 
     @Override
+    public ConfiguredItemService configuredItemService() {
+        return configuredItemService;
+    }
+
+    @Override
     public void shutdown() {
-        // No-op: backend lifecycles are managed by the registry's shutdownAll().
+
     }
 }

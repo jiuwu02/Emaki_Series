@@ -12,7 +12,7 @@
 #   hard_lock: 是否锁定为仅允许列出的事件触发
 #   stages: 伤害计算阶段列表
 #   recovery: 吸血/回复配置
-#   attacker_message/target_message: 伤害消息模板
+#   attacker_message/target_message: 伤害消息模板；填空字符串时不发送对应消息，可减少刷屏
 #
 # 文件放置位置: plugins/EmakiAttribute/damage_types/
 # ============================================================

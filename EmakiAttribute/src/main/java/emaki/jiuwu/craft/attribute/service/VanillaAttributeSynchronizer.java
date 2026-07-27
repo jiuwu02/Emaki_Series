@@ -112,7 +112,34 @@ final class VanillaAttributeSynchronizer {
         }
     }
 
-    int resolveAttackCooldownTicks(AttributeSnapshot snapshot, List<AttributeDefinition> attackSpeedDefinitions) {
+    /**
+     * Returns whether the snapshot carries any EmakiAttribute attack speed value,
+     * so callers can tell an explicitly configured attack speed apart from a plain
+     * vanilla item.
+     *
+     * @param snapshot the attribute snapshot, may be {@code null}
+     * @param attackSpeedDefinitions the generic attack speed definitions
+     * @return whether an EmakiAttribute attack speed value is present
+     */
+    boolean hasAttackSpeedValue(AttributeSnapshot snapshot, List<AttributeDefinition> attackSpeedDefinitions) {
+        if (snapshot == null || attackSpeedDefinitions == null) {
+            return false;
+        }
+        for (AttributeDefinition definition : attackSpeedDefinitions) {
+            Double value = snapshot.values().get(definition.id());
+            if (value == null) {
+                continue;
+            }
+            if (definition.valueKind() == AttributeValueKind.PERCENT || isNumericFlat(definition.valueKind())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    int resolveAttackCooldownTicks(LivingEntity entity,
+            AttributeSnapshot snapshot,
+            List<AttributeDefinition> attackSpeedDefinitions) {
         double flatAttackRate = 0D;
         double percentModifier = 0D;
         for (AttributeDefinition definition : attackSpeedDefinitions) {
@@ -126,14 +153,37 @@ final class VanillaAttributeSynchronizer {
                 flatAttackRate += value;
             }
         }
+        if (!hasAttackSpeedValue(snapshot, attackSpeedDefinitions)) {
+            return vanillaAttackCooldownTicks(entity);
+        }
         double effectiveAttackRate = AttributeFusionMath.usesFusedCombatValues(snapshot)
                 ? Math.max(0D, flatAttackRate)
                 : Math.max(0D, flatAttackRate) * AttributeFusionMath.percentFactor(percentModifier, true);
         if (effectiveAttackRate <= 0D) {
-            return DEFAULT_ATTACK_COOLDOWN_TICKS;
+            return vanillaAttackCooldownTicks(entity);
         }
         double cooldownTicks = 20D / effectiveAttackRate;
         return Math.max(1, (int) Math.round(cooldownTicks));
+    }
+
+    /**
+     * Resolves the attack cooldown from the entity's current vanilla
+     * {@code ATTACK_SPEED} attribute, so items without any EmakiAttribute attack
+     * speed value keep their vanilla attack rate (a diamond sword stays 1.6
+     * instead of being forced to 1.0).
+     */
+    private int vanillaAttackCooldownTicks(LivingEntity entity) {
+        double vanillaAttackRate = 0D;
+        if (entity != null) {
+            AttributeInstance instance = entity.getAttribute(Attribute.ATTACK_SPEED);
+            if (instance != null) {
+                vanillaAttackRate = instance.getValue();
+            }
+        }
+        if (vanillaAttackRate <= 0D) {
+            return DEFAULT_ATTACK_COOLDOWN_TICKS;
+        }
+        return Math.max(1, (int) Math.round(20D / vanillaAttackRate));
     }
 
     Set<Attribute> collectManagedAttributes(List<VanillaAttributeBinding> bindings) {

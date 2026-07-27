@@ -24,8 +24,9 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -48,18 +49,26 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
 
     private final JavaPlugin plugin;
     private final CookingSettingsService settingsService;
+    private final ExecutionDispatcher executionDispatcher;
+    @SuppressWarnings("unused")
+    private final ThreadOwnership threadOwnership;
     private final Map<String, VirtualDisplay> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
     private final Set<String> animatingStations = new LinkedHashSet<>();
     private final DisplayVisibilityListener listener = new DisplayVisibilityListener();
     private final TaskHandle refreshTask;
 
-    public PacketEventsCookingDisplayService(JavaPlugin plugin, CookingSettingsService settingsService) {
+    public PacketEventsCookingDisplayService(JavaPlugin plugin,
+            CookingSettingsService settingsService,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.settingsService = settingsService;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
         plugin.getServer().getPluginManager().registerEvents(listener, plugin);
         int interval = settingsService.displayEntitiesRefreshIntervalTicks();
-        refreshTask = FoliaSchedulerAdapter.runTaskTimer(plugin, this::refreshAll, interval, interval);
+        refreshTask = executionDispatcher.runGlobalTimer(plugin, this::refreshAll, interval, interval);
     }
 
     static boolean isRuntimeSupported() {
@@ -165,7 +174,7 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
             if (delay == 0) {
                 segmentTask.run();
             } else {
-                FoliaSchedulerAdapter.runTaskLater(plugin, segmentTask, delay);
+                executionDispatcher.runGlobalLater(plugin, segmentTask, delay);
             }
         }
 
@@ -189,11 +198,11 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
                     sendAnimationMetadata(display, ticksPerSegment, currentHeight, rotationAxis, currentDegrees);
                 }
             };
-            FoliaSchedulerAdapter.runTaskLater(plugin, segmentTask, delay);
+            executionDispatcher.runGlobalLater(plugin, segmentTask, delay);
         }
 
         int totalTicks = riseEndTick + segments * ticksPerSegment;
-        FoliaSchedulerAdapter.runTaskLater(plugin, () -> animatingStations.remove(stationKey), totalTicks);
+        executionDispatcher.runGlobalLater(plugin, () -> animatingStations.remove(stationKey), totalTicks);
     }
 
     @Override
@@ -206,7 +215,9 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
 
     @Override
     public void shutdown() {
-        FoliaSchedulerAdapter.cancelTask(refreshTask);
+        if (refreshTask != null) {
+            refreshTask.cancel();
+        }
         HandlerList.unregisterAll(listener);
         for (VirtualDisplay display : Set.copyOf(displays.values())) {
             destroyForAllVisible(display);
@@ -265,7 +276,7 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         for (UUID playerId : Set.copyOf(display.visiblePlayers)) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null && player.isOnline()) {
-                PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet);
+                sendPacket(player, packet);
             }
         }
     }
@@ -292,17 +303,25 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         Set<UUID> onlinePlayers = new LinkedHashSet<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
             onlinePlayers.add(player.getUniqueId());
-            boolean visible = isVisible(player, display.spec);
-            boolean alreadyVisible = display.visiblePlayers.contains(player.getUniqueId());
-            if (visible && !alreadyVisible) {
-                spawnFor(player, display);
-                display.visiblePlayers.add(player.getUniqueId());
-            } else if (!visible && alreadyVisible) {
-                destroyFor(player, display);
-                display.visiblePlayers.remove(player.getUniqueId());
-            }
+            executionDispatcher.runEntity(plugin, player, () -> refreshVisibilityForPlayer(display, player), () ->
+                    display.visiblePlayers.remove(player.getUniqueId()));
         }
         display.visiblePlayers.removeIf(playerId -> !onlinePlayers.contains(playerId));
+    }
+
+    private void refreshVisibilityForPlayer(VirtualDisplay display, Player player) {
+        if (display == null || player == null || !player.isOnline()) {
+            return;
+        }
+        boolean visible = isVisible(player, display.spec);
+        boolean alreadyVisible = display.visiblePlayers.contains(player.getUniqueId());
+        if (visible && !alreadyVisible) {
+            spawnFor(player, display);
+            display.visiblePlayers.add(player.getUniqueId());
+        } else if (!visible && alreadyVisible) {
+            destroyFor(player, display);
+            display.visiblePlayers.remove(player.getUniqueId());
+        }
     }
 
     private boolean isVisible(Player player, CookingDisplaySpec spec) {
@@ -338,8 +357,8 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
                 0,
                 Vector3d.zero()
         );
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, spawnPacket);
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, metadataPacket(display));
+        sendPacket(player, spawnPacket);
+        sendPacket(player, metadataPacket(display));
     }
 
     private WrapperPlayServerEntityMetadata metadataPacket(VirtualDisplay display) {
@@ -385,7 +404,31 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
     }
 
     private void destroyFor(Player player, VirtualDisplay display) {
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, new WrapperPlayServerDestroyEntities(display.entityId));
+        sendPacket(player, new WrapperPlayServerDestroyEntities(display.entityId));
+    }
+
+    private void sendPacket(Player player, WrapperPlayServerSpawnEntity packet) {
+        sendPacketInternal(player, () -> PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet));
+    }
+
+    private void sendPacket(Player player, WrapperPlayServerEntityMetadata packet) {
+        sendPacketInternal(player, () -> PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet));
+    }
+
+    private void sendPacket(Player player, WrapperPlayServerDestroyEntities packet) {
+        sendPacketInternal(player, () -> PacketEvents.getAPI().getPlayerManager().sendPacket(player, packet));
+    }
+
+    private void sendPacketInternal(Player player, Runnable sender) {
+        if (player == null || sender == null) {
+            return;
+        }
+        executionDispatcher.runEntity(plugin, player, () -> {
+            if (player.isOnline()) {
+                sender.run();
+            }
+        }, () -> {
+        });
     }
 
     private void destroyForAllVisible(VirtualDisplay display) {
@@ -461,7 +504,7 @@ public final class PacketEventsCookingDisplayService implements CookingDisplaySe
         }
 
         private void scheduleRefresh() {
-            FoliaSchedulerAdapter.runTask(plugin, PacketEventsCookingDisplayService.this::refreshAll);
+            executionDispatcher.runGlobal(plugin, PacketEventsCookingDisplayService.this::refreshAll);
         }
     }
 

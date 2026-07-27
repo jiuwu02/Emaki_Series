@@ -19,7 +19,7 @@ public record ScriptConfig(boolean enabled,
 
     public static ScriptConfig defaults() {
         return new ScriptConfig(
-                true,
+                false,
                 Engine.defaults(),
                 Paths.defaults(),
                 Action.defaults(),
@@ -31,11 +31,12 @@ public record ScriptConfig(boolean enabled,
     }
 
     public static ScriptConfig fromConfig(YamlSection section) {
+        ScriptConfig defaults = defaults();
         if (section == null) {
-            return defaults();
+            return defaults;
         }
         return new ScriptConfig(
-                section.getBoolean("enabled", true),
+                section.getBoolean("enabled", defaults.enabled()),
                 Engine.fromConfig(section.getSection("engine")),
                 Paths.fromConfig(section.getSection("paths")),
                 Action.fromConfig(section.getSection("action")),
@@ -203,7 +204,7 @@ public record ScriptConfig(boolean enabled,
             boolean allowRawEventAccess) {
 
         public static ServerApi defaults() {
-            return new ServerApi(true, false, List.of("org.bukkit.", "io.papermc.paper."), false, false);
+            return new ServerApi(false, false, List.of("org.bukkit.", "io.papermc.paper."), false, false);
         }
 
         public static ServerApi fromConfig(YamlSection section) {

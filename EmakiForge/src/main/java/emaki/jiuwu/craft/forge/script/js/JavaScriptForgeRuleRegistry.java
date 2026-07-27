@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
 import emaki.jiuwu.craft.corelib.script.ScriptModuleContext;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -28,7 +29,7 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class JavaScriptForgeRuleRegistry {
 
-    /** JavaScript registration type id for forge rules (CoreLib tracks this as a free-form string). */
+
     private static final String REGISTRATION_TYPE = "forge_rule";
 
     private final EmakiForgePlugin plugin;
@@ -111,10 +112,12 @@ public final class JavaScriptForgeRuleRegistry {
             return;
         }
         for (Map<String, Object> trace : traces) {
-            plugin.debugLogger().logRaw("script", playerId, "script trace | rule=" + Texts.toStringSafe(trace.get("id"))
-                    + " | before=" + Texts.toStringSafe(trace.get("before"))
-                    + " | after=" + Texts.toStringSafe(trace.get("after"))
-                    + " | msg=" + Texts.toStringSafe(trace.get("message")));
+            plugin.debugLogger().log("script", playerId, "script.trace", Map.of(
+                    "rule", Texts.toStringSafe(trace.get("id")),
+                    "before", Texts.toStringSafe(trace.get("before")),
+                    "after", Texts.toStringSafe(trace.get("after")),
+                    "message", Texts.toStringSafe(trace.get("message"))
+            ));
         }
     }
 
@@ -274,10 +277,10 @@ public final class JavaScriptForgeRuleRegistry {
             List<Map<String, Object>> traces) {
 
         public Decision {
-            targetItem = targetItem == null ? Map.of() : Map.copyOf(targetItem);
-            requiredMaterials = requiredMaterials == null ? List.of() : List.copyOf(requiredMaterials);
-            optionalMaterials = optionalMaterials == null ? List.of() : List.copyOf(optionalMaterials);
-            traces = traces == null ? List.of() : List.copyOf(traces);
+            targetItem = targetItem == null ? Map.of() : ScriptSnapshots.immutableMap(targetItem);
+            requiredMaterials = requiredMaterials == null ? List.of() : castMapList(ScriptSnapshots.immutableValue(requiredMaterials));
+            optionalMaterials = optionalMaterials == null ? List.of() : castMapList(ScriptSnapshots.immutableValue(optionalMaterials));
+            traces = traces == null ? List.of() : castMapList(ScriptSnapshots.immutableValue(traces));
         }
 
         static Decision from(Player player, Recipe recipe, GuiItems guiItems, double successRate) {
@@ -346,7 +349,12 @@ public final class JavaScriptForgeRuleRegistry {
             map.put("requiredMaterials", requiredMaterials);
             map.put("optionalMaterials", optionalMaterials);
             map.put("traces", traces);
-            return map;
+            return ScriptSnapshots.immutableMap(map);
+        }
+
+        @SuppressWarnings("unchecked")
+        private static List<Map<String, Object>> castMapList(Object value) {
+            return value instanceof List<?> list ? (List<Map<String, Object>>) (List<?>) list : List.of();
         }
     }
 }

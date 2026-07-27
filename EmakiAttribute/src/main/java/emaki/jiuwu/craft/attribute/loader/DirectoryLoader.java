@@ -50,7 +50,9 @@ public abstract class DirectoryLoader<T> {
                         )
                 );
             }
-            seedBundledResources(directory);
+            if (plugin.configModel().releaseDefaultData()) {
+                seedBundledResources(directory);
+            }
             File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
             int total = files == null ? 0 : files.length;
             notifyProgress(progressCallback, 0, total, "", total == 0);
@@ -156,14 +158,40 @@ public abstract class DirectoryLoader<T> {
     }
 
     protected void issue(String key, Map<String, ?> replacements) {
-        String message = plugin.messageService() == null
-                ? key
-                : plugin.messageService().message(key, replacements);
-        issues.add(message);
-        if (plugin.messageService() == null) {
-            return;
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        issues.add(localized(key, safeReplacements));
+        if (plugin.messageService() != null) {
+            plugin.messageService().warning(key, safeReplacements);
         }
-        plugin.messageService().warning(key, replacements);
+    }
+
+    protected String localized(String key, Map<String, ?> replacements) {
+        Map<String, ?> safeReplacements = replacements == null ? Map.of() : replacements;
+        if (plugin.messageService() != null) {
+            String rendered = plugin.messageService().message(key, safeReplacements);
+            if (!Texts.isBlank(rendered) && !key.equals(rendered.trim())) {
+                return rendered;
+            }
+        }
+        String safeKey = Texts.toStringSafe(key);
+        int separator = safeKey.lastIndexOf('.');
+        String token = (separator < 0 ? safeKey : safeKey.substring(separator + 1)).replace('_', ' ').trim();
+        String label = Texts.isBlank(token)
+                ? "Configuration loader issue"
+                : Character.toUpperCase(token.charAt(0)) + token.substring(1);
+        if (safeReplacements.isEmpty()) {
+            return label;
+        }
+        StringBuilder builder = new StringBuilder(label).append(": ");
+        boolean first = true;
+        for (Map.Entry<String, ?> entry : safeReplacements.entrySet()) {
+            if (!first) {
+                builder.append(", ");
+            }
+            builder.append(entry.getKey()).append('=').append(Texts.toStringSafe(entry.getValue()));
+            first = false;
+        }
+        return builder.toString();
     }
 
     protected String normalizeId(String id) {

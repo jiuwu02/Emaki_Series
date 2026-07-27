@@ -5,23 +5,63 @@ import java.util.List;
 
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record AttributeConfig(String language,
+        boolean releaseDefaultData,
+        boolean readLoreAttributes,
+        boolean readPdcAttributes,
+        boolean requireLorePdcMatch,
         boolean hardLockDamage,
         String defaultDamageType,
+        String projectileDamageType,
         boolean vanillaEventDamageEnabled,
         String vanillaEventDamageType,
+        boolean sameSignatureIgnoresInvulnerabilityEnabled,
+        long sameSignatureInvulnerabilityWindowMs,
+        boolean attackSpeedAttributeOnly,
         int regenIntervalTicks,
         int syncDelayTicks,
+        boolean healthDisplayScalingEnabled,
+        double healthDisplayScalingTarget,
         DefaultProfile defaultProfile,
         boolean syntheticHitKnockback,
         double syntheticHitKnockbackStrength,
         boolean syntheticHitHurtSound,
         List<DamageCauseRule> allowedDamageCauses) {
 
+    /** Attack speed cooldown is managed by EmakiAttribute for every attack. */
+    private static final String ATTACK_SPEED_SCOPE_GLOBAL = "global";
+
+    /** Attack speed cooldown is managed only for items carrying an EmakiAttribute attack speed value. */
+    private static final String ATTACK_SPEED_SCOPE_ATTRIBUTE_ONLY = "attribute_only";
+
     public static AttributeConfig defaults() {
-        return new AttributeConfig("zh_CN", true, "physical", true, "physical", 20, 1, defaultProfileDefaults(), true, 0.4D, true, List.of());
+        return new AttributeConfig(
+                "zh_CN",
+                true,
+                true,
+                true,
+                false,
+                true,
+                "physical",
+                "projectile",
+                true,
+                "physical",
+                true,
+                500L,
+                false,
+                20,
+                1,
+                false,
+                20D,
+                defaultProfileDefaults(),
+                true,
+                0.4D,
+                true,
+                List.of()
+        );
     }
 
     public static AttributeConfig fromConfig(YamlSection configuration) {
@@ -30,12 +70,30 @@ public record AttributeConfig(String language,
         }
         AttributeConfig defaults = defaults();
         String language = ConfigNodes.string(configuration, "language", "zh_CN");
+        boolean releaseDefaultData = Boolean.TRUE.equals(configuration.getBoolean("release_default_data", true));
+        boolean readLoreAttributes = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.read_lore_attributes", true));
+        boolean readPdcAttributes = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.read_pdc_attributes", true));
+        boolean requireLorePdcMatch = Boolean.TRUE.equals(configuration.getBoolean("attribute_sources.require_lore_pdc_match", false));
         boolean hardLockDamage = Boolean.TRUE.equals(configuration.getBoolean("hard_lock_damage", true));
         String defaultDamageType = ConfigNodes.string(configuration, "default_damage_type", "physical");
+        String projectileDamageType = ConfigNodes.string(configuration, "projectile_damage_type", "projectile");
         boolean vanillaEventDamageEnabled = Boolean.TRUE.equals(configuration.getBoolean("vanilla_event_damage.enabled", true));
         String vanillaEventDamageType = ConfigNodes.string(configuration, "vanilla_event_damage.damage_type", defaultDamageType);
+        boolean sameSignatureIgnoresInvulnerabilityEnabled = Boolean.TRUE.equals(
+                configuration.getBoolean("same_signature_ignores_invulnerability.enabled", true));
+        long sameSignatureInvulnerabilityWindowMs = Math.max(0L, Numbers.tryParseLong(
+                configuration.get("same_signature_ignores_invulnerability.window_ms"), 500L));
+        boolean attackSpeedAttributeOnly = ATTACK_SPEED_SCOPE_ATTRIBUTE_ONLY.equals(
+                ConfigNodes.string(configuration, "attack_speed.scope", ATTACK_SPEED_SCOPE_GLOBAL)
+                        .trim()
+                        .toLowerCase(java.util.Locale.ROOT));
         int regenIntervalTicks = Math.max(1, configuration.getInt("regen_interval_ticks", 20));
         int syncDelayTicks = Math.max(0, configuration.getInt("sync_delay_ticks", 1));
+        boolean healthDisplayScalingEnabled = Boolean.TRUE.equals(configuration.getBoolean("health_display_scaling.enabled", false));
+        double healthDisplayScalingTarget = configuration.getDouble("health_display_scaling.target", 20D);
+        if (!Double.isFinite(healthDisplayScalingTarget) || healthDisplayScalingTarget <= 0D) {
+            healthDisplayScalingTarget = 20D;
+        }
         DefaultProfile defaultProfile = DefaultProfile.fromMap(configuration.getSection("default_profile"));
         if (defaultProfile == null) {
             defaultProfile = defaults.defaultProfile();
@@ -53,12 +111,22 @@ public record AttributeConfig(String language,
         }
         return new AttributeConfig(
                 language,
+                releaseDefaultData,
+                readLoreAttributes,
+                readPdcAttributes,
+                requireLorePdcMatch,
                 hardLockDamage,
                 defaultDamageType,
+                projectileDamageType,
                 vanillaEventDamageEnabled,
                 vanillaEventDamageType,
+                sameSignatureIgnoresInvulnerabilityEnabled,
+                sameSignatureInvulnerabilityWindowMs,
+                attackSpeedAttributeOnly,
                 regenIntervalTicks,
                 syncDelayTicks,
+                healthDisplayScalingEnabled,
+                healthDisplayScalingTarget,
                 defaultProfile,
                 syntheticHitKnockback,
                 syntheticHitKnockbackStrength,

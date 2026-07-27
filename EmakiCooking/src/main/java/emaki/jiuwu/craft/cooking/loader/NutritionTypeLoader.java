@@ -14,12 +14,12 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 
-/**
- * 扫描 {@code nutrition/} 目录加载全部营养类型定义。
- *
- * <p>实现参考 EmakiLevel 的 {@code LevelTypeLoader}：每个 {@code .yml} 文件定义一个营养类型，
- * 文件名作为缺省 id。</p>
- */
+
+
+
+
+
+
 public final class NutritionTypeLoader {
 
     private final JavaPlugin plugin;

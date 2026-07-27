@@ -8,7 +8,9 @@ import org.bukkit.World;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.action.ActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.action.ActionParameter;
+import emaki.jiuwu.craft.corelib.action.ActionPlanningContext;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
@@ -33,6 +35,19 @@ public final class SpawnParticleAction extends BaseAction {
                 ActionParameter.optional("offset_z", ActionParameterType.DOUBLE, "0", "Offset z"),
                 ActionParameter.optional("extra", ActionParameterType.DOUBLE, "0", "Extra")
         );
+    }
+
+    @Override
+    public ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        if (context == null || context.actionContext() == null
+                || !"location".equals(Texts.lower(context.arguments().get("target")))) {
+            return super.executionTarget(context);
+        }
+        ActionLocationResolver.ResolvedLocation resolved = ActionLocationResolver.resolve(
+                context.actionContext(), context.arguments(), id());
+        return resolved.success()
+                ? ActionExecutionTarget.location(resolved.location())
+                : super.executionTarget(context);
     }
 
     @Override

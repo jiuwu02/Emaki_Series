@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.script;
 
+import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,9 @@ public final class ScriptModuleRegistry {
         return module == null ? new UnavailableScriptModuleApi(normalizedId) : module;
     }
 
+
+
+
     public ScriptModulesApi api(ScriptModuleContext context) {
         return new ScriptModulesApi(this, context);
     }
@@ -50,69 +54,66 @@ public final class ScriptModuleRegistry {
 
     public static final class ScriptModulesApi {
 
-        private final ScriptModuleRegistry registry;
-        private final ScriptModuleContext context;
-        private final Map<String, Object> moduleOverrides;
-        private final Map<String, Object> localCache = new LinkedHashMap<>();
+        private final Map<String, ModuleSnapshot> modules;
 
         private ScriptModulesApi(ScriptModuleRegistry registry, ScriptModuleContext context) {
-            this.registry = registry;
-            this.context = context;
-            this.moduleOverrides = normalizeOverrides(context == null ? Map.of() : context.moduleOverrides());
+            Map<String, ModuleSnapshot> captured = new LinkedHashMap<>();
+            for (String id : registry.moduleIds()) {
+                captured.put(id, snapshot(registry.create(id, context)));
+            }
+            Map<String, Object> overrides = context == null ? Map.of() : context.moduleOverrides();
+            if (overrides != null) {
+                for (Map.Entry<String, Object> entry : overrides.entrySet()) {
+                    String id = Texts.normalizeId(entry.getKey());
+                    if (Texts.isNotBlank(id) && entry.getValue() != null) {
+                        captured.put(id, snapshot(entry.getValue()));
+                    }
+                }
+            }
+            this.modules = Map.copyOf(captured);
         }
 
         @HostAccess.Export
         public Object get(String id) {
-            return ScriptHostObjectProxy.wrapIfExported(rawModule(id));
+            String normalizedId = Texts.normalizeId(id);
+            ModuleSnapshot snapshot = modules.get(normalizedId);
+            if (snapshot != null) {
+                return snapshot.value();
+            }
+            return ScriptHostObjectProxy.wrapIfExported(new UnavailableScriptModuleApi(normalizedId));
         }
 
         @HostAccess.Export
         public boolean available(String id) {
-            Object module = rawModule(id);
+            ModuleSnapshot snapshot = modules.get(Texts.normalizeId(id));
+            return snapshot != null && snapshot.available();
+        }
+
+        @HostAccess.Export
+        public List<String> ids() {
+            return modules.keySet().stream().sorted().toList();
+        }
+
+        private static ModuleSnapshot snapshot(Object module) {
+            Object safeModule = module == null ? new UnavailableScriptModuleApi("") : module;
+            boolean available = moduleAvailable(safeModule);
+            return new ModuleSnapshot(ScriptHostObjectProxy.wrapIfExported(safeModule), available);
+        }
+
+        private static boolean moduleAvailable(Object module) {
             if (module instanceof UnavailableScriptModuleApi) {
                 return false;
             }
             try {
-                java.lang.reflect.Method method = module.getClass().getMethod("available");
+                Method method = module.getClass().getMethod("available");
                 Object result = method.invoke(module);
                 return result instanceof Boolean value ? value : true;
             } catch (ReflectiveOperationException | RuntimeException ignored) {
                 return true;
             }
         }
+    }
 
-        private Object rawModule(String id) {
-            String normalizedId = Texts.normalizeId(id);
-            if (Texts.isBlank(normalizedId)) {
-                return new UnavailableScriptModuleApi(id);
-            }
-            Object override = moduleOverrides.get(normalizedId);
-            if (override != null) {
-                return override;
-            }
-            return localCache.computeIfAbsent(normalizedId, key -> registry.create(key, context));
-        }
-
-        @HostAccess.Export
-        public List<String> ids() {
-            return java.util.stream.Stream.concat(registry.moduleIds().stream(), moduleOverrides.keySet().stream())
-                    .distinct()
-                    .sorted()
-                    .toList();
-        }
-
-        private static Map<String, Object> normalizeOverrides(Map<String, Object> overrides) {
-            if (overrides == null || overrides.isEmpty()) {
-                return Map.of();
-            }
-            Map<String, Object> normalized = new LinkedHashMap<>();
-            for (Map.Entry<String, Object> entry : overrides.entrySet()) {
-                String key = Texts.normalizeId(entry.getKey());
-                if (Texts.isNotBlank(key) && entry.getValue() != null) {
-                    normalized.put(key, entry.getValue());
-                }
-            }
-            return Map.copyOf(normalized);
-        }
+    private record ModuleSnapshot(Object value, boolean available) {
     }
 }

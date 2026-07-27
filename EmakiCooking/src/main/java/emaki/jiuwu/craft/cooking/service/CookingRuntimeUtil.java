@@ -4,12 +4,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.Texts;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -42,7 +46,7 @@ public final class CookingRuntimeUtil {
         if (player == null) {
             return;
         }
-        AdventureSupport.sendActionBar(plugin, player, messageService.message(key, replacements));
+        player.sendActionBar(MiniMessages.parse(messageService.message(key, replacements)));
     }
 
     static long parseLong(Object raw, long fallback) {
@@ -72,5 +76,44 @@ public final class CookingRuntimeUtil {
         } catch (Exception _) {
             return null;
         }
+    }
+
+
+
+
+
+
+
+
+
+    static String resolveBlockId(EmakiCookingPlugin plugin, Block block) {
+        if (block == null) {
+            return "";
+        }
+        if (plugin != null) {
+            String custom = identifyCustomBlock(plugin.craftEngineBlockBridge(), block);
+            if (Texts.isBlank(custom)) {
+                custom = identifyCustomBlock(plugin.itemsAdderBlockBridge(), block);
+            }
+            if (Texts.isBlank(custom)) {
+                custom = identifyCustomBlock(plugin.nexoBlockBridge(), block);
+            }
+            if (Texts.isBlank(custom)) {
+                custom = identifyCustomBlock(plugin.oraxenBlockBridge(), block);
+            }
+            if (Texts.isNotBlank(custom)) {
+                return custom;
+            }
+        }
+        Material material = block.getType();
+        return material == null ? "" : material.getKey().toString();
+    }
+
+    private static String identifyCustomBlock(CustomBlockBridge bridge, Block block) {
+        if (bridge == null || !bridge.available() || !bridge.isCustomBlock(block)) {
+            return "";
+        }
+        String identifier = bridge.identifyBlock(block);
+        return Texts.isBlank(identifier) ? "" : identifier;
     }
 }

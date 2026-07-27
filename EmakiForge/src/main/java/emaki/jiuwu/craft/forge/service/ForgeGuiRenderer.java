@@ -48,7 +48,8 @@ final class ForgeGuiRenderer {
         if (dynamic != null) {
             return dynamic;
         }
-        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state), plugin.itemIdentifierService()::createItem);
+        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state),
+                state.runtimeSnapshot().itemIdentifierService()::createItem);
     }
 
     public Map<String, Object> titleReplacements(ForgeGuiSession state) {
@@ -64,12 +65,14 @@ final class ForgeGuiRenderer {
     }
 
     private ItemStack buildCapacityDisplayItem(GuiSlot slot, ForgeGuiSession state) {
-        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state), plugin.itemIdentifierService()::createItem);
+        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state),
+                state.runtimeSnapshot().itemIdentifierService()::createItem);
     }
 
     private ItemStack buildConfirmItem(GuiSlot slot, ForgeGuiSession state) {
         if (state.maxCapacity() > 0 && state.currentCapacity() > state.maxCapacity()) {
             return guiSupport.build(
+                    state.runtimeSnapshot(),
                     "forge_gui",
                     "virtual_items.confirm_blocked",
                     slotReplacements(state),
@@ -89,7 +92,8 @@ final class ForgeGuiRenderer {
                     )
             );
         }
-        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state), plugin.itemIdentifierService()::createItem);
+        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state),
+                state.runtimeSnapshot().itemIdentifierService()::createItem);
     }
 
     private Map<String, Object> slotReplacements(ForgeGuiSession state) {
@@ -103,14 +107,14 @@ final class ForgeGuiRenderer {
 
     private String capacityStateText(ForgeGuiSession state) {
         if (state.maxCapacity() <= 0) {
-            return guiSupport.text("forge_gui", "texts.capacity_state.waiting", "<gray>等待图纸</gray>", Map.of());
+            return guiSupport.text(state.runtimeSnapshot(), "forge_gui", "texts.capacity_state.waiting", "<gray>等待图纸</gray>", Map.of());
         }
         if (state.currentCapacity() > state.maxCapacity()) {
-            return guiSupport.text("forge_gui", "texts.capacity_state.overflow", "<red>已超限</red>", Map.of());
+            return guiSupport.text(state.runtimeSnapshot(), "forge_gui", "texts.capacity_state.overflow", "<red>已超限</red>", Map.of());
         }
         if (state.currentCapacity() >= Math.max(1, (int) Math.ceil(state.maxCapacity() * 0.8D))) {
-            return guiSupport.text("forge_gui", "texts.capacity_state.warning", "<gold>接近上限</gold>", Map.of());
+            return guiSupport.text(state.runtimeSnapshot(), "forge_gui", "texts.capacity_state.warning", "<gold>接近上限</gold>", Map.of());
         }
-        return guiSupport.text("forge_gui", "texts.capacity_state.normal", "<green>正常</green>", Map.of());
+        return guiSupport.text(state.runtimeSnapshot(), "forge_gui", "texts.capacity_state.normal", "<green>正常</green>", Map.of());
     }
 }

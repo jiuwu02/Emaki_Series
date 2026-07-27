@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.inventory;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -38,7 +40,7 @@ public final class InventoryItemUtil {
         }
         long total = 0L;
         for (ItemStack itemStack : contents) {
-            if (itemStack == null || itemStack.getType().isAir()) {
+            if (isEmptyStack(itemStack)) {
                 continue;
             }
             ItemSource source = itemSourceService.identifyItem(itemStack);
@@ -55,7 +57,7 @@ public final class InventoryItemUtil {
         }
         long total = 0L;
         for (ItemStack itemStack : items.values()) {
-            if (itemStack == null || itemStack.getType().isAir()) {
+            if (isEmptyStack(itemStack)) {
                 continue;
             }
             ItemSource source = itemSourceService.identifyItem(itemStack);
@@ -80,37 +82,43 @@ public final class InventoryItemUtil {
         if (inventory == null || itemSourceService == null || targetSource == null || amount <= 0L) {
             return amount <= 0L;
         }
-        long remaining = amount;
-        ItemStack[] contents = inventory.getContents();
-        for (int slot = 0; slot < contents.length && remaining > 0L; slot++) {
-            ItemStack itemStack = contents[slot];
-            if (itemStack == null || itemStack.getType().isAir()) {
-                continue;
-            }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
-            if (!ItemSourceUtil.matches(targetSource, source)) {
-                continue;
-            }
-            int take = (int) Math.min(remaining, itemStack.getAmount());
-            itemStack.setAmount(itemStack.getAmount() - take);
-            remaining -= take;
-            contents[slot] = itemStack.getAmount() <= 0 ? null : itemStack;
-        }
-        inventory.setContents(contents);
-        return remaining <= 0L;
+        RemovalPlan plan = planRemoval(inventory.getContents(), itemSourceService, targetSource, amount);
+        return plan.complete() && applyRemoval(inventory, plan);
     }
 
     public static long removeItems(Map<Integer, ItemStack> items,
             ItemSourceService itemSourceService,
             ItemSource targetSource,
             long amount) {
-        if (items == null || items.isEmpty() || itemSourceService == null || targetSource == null || amount <= 0L) {
+        if (amount <= 0L) {
             return amount;
         }
+        if (items == null || items.isEmpty() || itemSourceService == null || targetSource == null) {
+            return amount;
+        }
+        RemovalPlan plan = planRemoval(items, itemSourceService, targetSource, amount);
+        return plan.complete() && applyRemoval(items, plan) ? 0L : amount;
+    }
+
+    public static RemovalPlan planRemoval(PlayerInventory inventory,
+            ItemSourceService itemSourceService,
+            ItemSource targetSource,
+            long amount) {
+        return planRemoval(inventory == null ? null : inventory.getContents(), itemSourceService, targetSource, amount);
+    }
+
+    public static RemovalPlan planRemoval(ItemStack[] contents,
+            ItemSourceService itemSourceService,
+            ItemSource targetSource,
+            long amount) {
+        if (contents == null || contents.length == 0 || itemSourceService == null || targetSource == null || amount <= 0L) {
+            return RemovalPlan.empty(amount);
+        }
         long remaining = amount;
-        for (Map.Entry<Integer, ItemStack> entry : items.entrySet()) {
-            ItemStack itemStack = entry.getValue();
-            if (itemStack == null || itemStack.getType().isAir()) {
+        List<SlotRemoval> removals = new ArrayList<>();
+        for (int slot = 0; slot < contents.length && remaining > 0L; slot++) {
+            ItemStack itemStack = contents[slot];
+            if (isEmptyStack(itemStack)) {
                 continue;
             }
             ItemSource source = itemSourceService.identifyItem(itemStack);
@@ -118,17 +126,172 @@ public final class InventoryItemUtil {
                 continue;
             }
             int take = (int) Math.min(remaining, itemStack.getAmount());
-            itemStack.setAmount(itemStack.getAmount() - take);
-            remaining -= take;
-            if (itemStack.getAmount() <= 0) {
-                entry.setValue(null);
+            if (take <= 0) {
+                continue;
             }
+            removals.add(slotRemoval(slot, itemStack, take));
+            remaining -= take;
+        }
+        return new RemovalPlan(amount, amount - remaining, removals);
+    }
+
+    public static RemovalPlan planRemoval(Map<Integer, ItemStack> items,
+            ItemSourceService itemSourceService,
+            ItemSource targetSource,
+            long amount) {
+        if (items == null || items.isEmpty() || itemSourceService == null || targetSource == null || amount <= 0L) {
+            return RemovalPlan.empty(amount);
+        }
+        long remaining = amount;
+        List<SlotRemoval> removals = new ArrayList<>();
+        for (Map.Entry<Integer, ItemStack> entry : items.entrySet()) {
             if (remaining <= 0L) {
                 break;
             }
+            ItemStack itemStack = entry.getValue();
+            if (isEmptyStack(itemStack)) {
+                continue;
+            }
+            ItemSource source = itemSourceService.identifyItem(itemStack);
+            if (!ItemSourceUtil.matches(targetSource, source)) {
+                continue;
+            }
+            int take = (int) Math.min(remaining, itemStack.getAmount());
+            if (take <= 0) {
+                continue;
+            }
+            removals.add(slotRemoval(entry.getKey(), itemStack, take));
+            remaining -= take;
         }
-        items.entrySet().removeIf(entry -> entry.getValue() == null || entry.getValue().getType().isAir());
-        return remaining;
+        return new RemovalPlan(amount, amount - remaining, removals);
+    }
+
+    public static boolean applyRemoval(PlayerInventory inventory, RemovalPlan plan) {
+        if (inventory == null || plan == null) {
+            return false;
+        }
+        ItemStack[] contents = inventory.getContents();
+        if (!matchesBefore(contents, plan)) {
+            return false;
+        }
+        ItemStack[] updated = cloneContents(contents);
+        for (SlotRemoval removal : plan.removals()) {
+            updated[removal.slot()] = cloneNonAir(removal.after());
+        }
+        inventory.setContents(updated);
+        return true;
+    }
+
+    public static boolean rollbackRemoval(PlayerInventory inventory, RemovalPlan plan) {
+        if (inventory == null || plan == null) {
+            return false;
+        }
+        ItemStack[] contents = inventory.getContents();
+        if (!matchesAfter(contents, plan)) {
+            return false;
+        }
+        ItemStack[] restored = cloneContents(contents);
+        for (SlotRemoval removal : plan.removals()) {
+            restored[removal.slot()] = cloneNonAir(removal.before());
+        }
+        inventory.setContents(restored);
+        return true;
+    }
+
+    public static boolean applyRemoval(Map<Integer, ItemStack> items, RemovalPlan plan) {
+        if (items == null || plan == null || !matchesBefore(items, plan)) {
+            return false;
+        }
+        for (SlotRemoval removal : plan.removals()) {
+            putStack(items, removal.slot(), removal.after());
+        }
+        return true;
+    }
+
+    public static boolean rollbackRemoval(Map<Integer, ItemStack> items, RemovalPlan plan) {
+        if (items == null || plan == null || !matchesAfter(items, plan)) {
+            return false;
+        }
+        for (SlotRemoval removal : plan.removals()) {
+            putStack(items, removal.slot(), removal.before());
+        }
+        return true;
+    }
+
+    private static SlotRemoval slotRemoval(int slot, ItemStack itemStack, int take) {
+        ItemStack before = cloneNonAir(itemStack);
+        ItemStack after = cloneNonAir(itemStack);
+        if (after != null) {
+            after.setAmount(after.getAmount() - take);
+        }
+        return new SlotRemoval(slot, before, cloneNonAir(after));
+    }
+
+    private static boolean matchesBefore(ItemStack[] contents, RemovalPlan plan) {
+        for (SlotRemoval removal : plan.removals()) {
+            if (removal.slot() < 0 || removal.slot() >= contents.length
+                    || !sameStack(contents[removal.slot()], removal.before())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean matchesAfter(ItemStack[] contents, RemovalPlan plan) {
+        for (SlotRemoval removal : plan.removals()) {
+            if (removal.slot() < 0 || removal.slot() >= contents.length
+                    || !sameStack(contents[removal.slot()], removal.after())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean matchesBefore(Map<Integer, ItemStack> items, RemovalPlan plan) {
+        for (SlotRemoval removal : plan.removals()) {
+            if (!sameStack(items.get(removal.slot()), removal.before())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean matchesAfter(Map<Integer, ItemStack> items, RemovalPlan plan) {
+        for (SlotRemoval removal : plan.removals()) {
+            if (!sameStack(items.get(removal.slot()), removal.after())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static ItemStack[] cloneContents(ItemStack[] contents) {
+        ItemStack[] clone = new ItemStack[contents.length];
+        for (int slot = 0; slot < contents.length; slot++) {
+            clone[slot] = cloneNonAir(contents[slot]);
+        }
+        return clone;
+    }
+
+    private static void putStack(Map<Integer, ItemStack> items, int slot, ItemStack itemStack) {
+        ItemStack clone = cloneNonAir(itemStack);
+        if (clone == null) {
+            items.remove(slot);
+        } else {
+            items.put(slot, clone);
+        }
+    }
+
+    private static boolean sameStack(ItemStack first, ItemStack second) {
+        ItemStack left = cloneNonAir(first);
+        ItemStack right = cloneNonAir(second);
+        return left == null ? right == null : right != null
+                && left.getAmount() == right.getAmount()
+                && left.isSimilar(right);
+    }
+
+    private static boolean isEmptyStack(ItemStack itemStack) {
+        return itemStack == null || itemStack.isEmpty();
     }
 
     public static Map<Integer, ItemStack> addOrDrop(Player player, ItemStack itemStack) {
@@ -151,7 +314,7 @@ public final class InventoryItemUtil {
     }
 
     public static ItemStack cloneNonAir(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
+        if (isEmptyStack(itemStack)) {
             return null;
         }
         return itemStack.clone();
@@ -173,6 +336,35 @@ public final class InventoryItemUtil {
         } finally {
             player.getInventory().setItemInMainHand(originalMainHand);
             player.getInventory().setItemInOffHand(originalOffHand);
+        }
+    }
+
+    public record SlotRemoval(int slot, ItemStack before, ItemStack after) {
+
+        public SlotRemoval {
+            before = cloneNonAir(before);
+            after = cloneNonAir(after);
+        }
+    }
+
+    public record RemovalPlan(long requestedAmount, long removedAmount, List<SlotRemoval> removals) {
+
+        public RemovalPlan {
+            requestedAmount = Math.max(0L, requestedAmount);
+            removedAmount = Math.max(0L, Math.min(requestedAmount, removedAmount));
+            removals = removals == null ? List.of() : List.copyOf(removals);
+        }
+
+        public static RemovalPlan empty(long requestedAmount) {
+            return new RemovalPlan(requestedAmount, 0L, List.of());
+        }
+
+        public long remainingAmount() {
+            return Math.max(0L, requestedAmount - removedAmount);
+        }
+
+        public boolean complete() {
+            return remainingAmount() == 0L;
         }
     }
 

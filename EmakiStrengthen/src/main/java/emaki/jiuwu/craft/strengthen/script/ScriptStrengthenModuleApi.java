@@ -39,7 +39,7 @@ public final class ScriptStrengthenModuleApi {
     @HostAccess.Export
     public Map<String, Object> readState(String itemKey) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        return ScriptServiceApiSupport.strengthenStateToMap(EmakiStrengthenApi.readState(itemStack));
+        return ScriptStrengthenDtoMapper.strengthenStateToMap(EmakiStrengthenApi.readState(itemStack));
     }
 
     @HostAccess.Export

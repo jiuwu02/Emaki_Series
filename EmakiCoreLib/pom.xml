@@ -12,18 +12,14 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.4.0</version>
+    <version>4.6.0</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
-    <properties>
-        <skip.web.console>false</skip.web.console>
-    </properties>
-
     <dependencies>
         <dependency>
-            <groupId>org.spigotmc</groupId>
-            <artifactId>spigot-api</artifactId>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -33,10 +29,12 @@
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
-            <artifactId>emaki-bstats-runtime</artifactId>
-            <version>${project.version}</version>
-            <scope>runtime</scope>
-            <optional>true</optional>
+            <artifactId>emaki-skills-protocol</artifactId>
+            <version>${emaki.skills.protocol.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bstats</groupId>
+            <artifactId>bstats-bukkit</artifactId>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
@@ -45,10 +43,6 @@
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-minimessage</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.kyori</groupId>
-            <artifactId>adventure-platform-bukkit</artifactId>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
@@ -140,6 +134,38 @@
             <artifactId>NeigeItems</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- eco 家族坐标/版本/classifier 及排除策略统一由根 pom dependencyManagement 管理，
+             详见根 pom 对应注释。EcoItems 必须用不带 classifier 的 plain jar（classifier=all
+             的胖 jar 父类被 relocate 成公开构件不存在的 ConfigCategory，会导致编译失败）。 -->
+        <dependency>
+            <groupId>com.willfp</groupId>
+            <artifactId>EcoItems</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.willfp</groupId>
+            <artifactId>libreforge-loader</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.willfp</groupId>
+            <artifactId>eco</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.willfp</groupId>
+            <artifactId>libreforge</artifactId>
+            <classifier>all</classifier>
+            <scope>provided</scope>
+            <!-- libreforge.core:common 仅存在于 auxilor 私有仓库，maven-public 解析不到；
+                 all 胖 jar 已自包含编译所需类，整组排除避免解析失败。 -->
+            <exclusions>
+                <exclusion>
+                    <groupId>libreforge.core</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
@@ -177,66 +203,18 @@
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>
-                    <exclude>plugin.yml</exclude>
+                    <exclude>paper-plugin.yml</exclude>
                 </excludes>
             </resource>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>plugin.yml</include>
+                    <include>paper-plugin.yml</include>
                 </includes>
             </resource>
         </resources>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.5.0</version>
-                <executions>
-                    <execution>
-                        <id>build-web-console</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <workingDirectory>${project.basedir}/..</workingDirectory>
-                            <executable>npm</executable>
-                            <arguments>
-                                <argument>run</argument>
-                                <argument>build:web:core</argument>
-                            </arguments>
-                            <skip>${skip.web.console}</skip>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.8.1</version>
-                <executions>
-                    <execution>
-                        <id>copy-bstats-runtime</id>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-                                <artifactItem>
-                                    <groupId>emaki.jiuwu.craft</groupId>
-                                    <artifactId>emaki-bstats-runtime</artifactId>
-                                    <version>${project.version}</version>
-                                    <outputDirectory>${project.build.outputDirectory}/runtime-libraries/emaki/jiuwu/craft/emaki-bstats-runtime/${project.version}</outputDirectory>
-                                    <destFileName>emaki-bstats-runtime-${project.version}.jar</destFileName>
-                                </artifactItem>
-                            </artifactItems>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -266,8 +244,21 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-corelib-api</include>
+                                    <include>emaki.jiuwu.craft:emaki-skills-protocol</include>
+                                    <include>org.bstats:bstats-bukkit</include>
+                                    <include>org.bstats:bstats-base</include>
                                 </includes>
                             </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>emaki.jiuwu.craft.skills.protocol</pattern>
+                                    <shadedPattern>emaki.jiuwu.craft.corelib.runtime.skillsprotocol</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.bstats</pattern>
+                                    <shadedPattern>emaki.jiuwu.craft.runtime.bstats</shadedPattern>
+                                </relocation>
+                            </relocations>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>

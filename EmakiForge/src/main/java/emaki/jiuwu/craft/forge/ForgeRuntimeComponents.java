@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.forge;
 
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -17,9 +19,11 @@ import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 import emaki.jiuwu.craft.forge.config.AppConfig;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 
 record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
+        ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
         LanguageLoader languageLoader,
         RecipeLoader recipeLoader,
         GuiTemplateLoader guiTemplateLoader,
@@ -28,7 +32,7 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         BootstrapService bootstrapService,
         GuiService guiService,
         ItemIdentifierService itemIdentifierService,
-        PdcAttributeGateway pdcAttributeGateway,
+        ForgeAttributeBridge pdcAttributeGateway,
         ForgeItemRefreshService itemRefreshService,
         ForgeService forgeService,
         ForgeGuiService forgeGuiService,
@@ -38,6 +42,8 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(RecipeLoader.class, recipeLoader),
                 RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),
@@ -46,7 +52,7 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(GuiService.class, guiService),
                 RuntimeComponents.component(ItemIdentifierService.class, itemIdentifierService),
-                RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
+                RuntimeComponents.component(ForgeAttributeBridge.class, pdcAttributeGateway),
                 RuntimeComponents.component(ForgeItemRefreshService.class, itemRefreshService),
                 RuntimeComponents.component(ForgeService.class, forgeService),
                 RuntimeComponents.component(ForgeGuiService.class, forgeGuiService),

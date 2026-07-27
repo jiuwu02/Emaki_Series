@@ -1,0 +1,19 @@
+package emaki.jiuwu.craft.corelib.api.action;
+
+/**
+ * Stable error categories returned by CoreLib actions.
+ */
+public enum CoreActionErrorType {
+    NONE,
+    INVALID_ARGUMENT,
+    ACTION_NOT_FOUND,
+    EXECUTION_EXCEPTION,
+    INVALID_STATE,
+    PROVIDER_UNAVAILABLE,
+    CURRENCY_NOT_FOUND,
+    INSUFFICIENT_BALANCE,
+    WORLD_NOT_FOUND,
+    TEMPLATE_NOT_FOUND,
+    SYNTAX_ERROR,
+    UNSUPPORTED
+}

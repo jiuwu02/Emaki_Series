@@ -141,15 +141,23 @@ final class StrengthenCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
-        plugin.reloadPluginStateAsync(true).thenRun(() -> {
+        plugin.reloadPluginStateAsync(true).thenRun(() -> runForSender(sender, () -> {
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "recipes", plugin.recipeLoader().all().size(),
                     "materials", plugin.recipeLoader().materialCatalog().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
-        });
+        }));
         return true;
+    }
+
+    private void runForSender(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player) {
+            plugin.executionDispatcher().runEntity(plugin, player, task);
+            return;
+        }
+        plugin.executionDispatcher().runGlobal(plugin, task);
     }
 
     private boolean handleInspect(CommandSender sender, String[] args) {

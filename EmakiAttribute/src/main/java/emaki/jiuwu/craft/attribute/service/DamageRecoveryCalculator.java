@@ -30,15 +30,24 @@ final class DamageRecoveryCalculator {
             DamageTypeDefinition damageType,
             DamageResult result,
             double finalDamage) {
+        if (damageContext == null) {
+            return;
+        }
+        applyRecovery(damageContext.attacker(), calculateRecoveryAmount(damageContext, damageType, result, finalDamage));
+    }
+
+    double calculateRecoveryAmount(DamageContext damageContext,
+            DamageTypeDefinition damageType,
+            DamageResult result,
+            double finalDamage) {
         if (damageContext == null || damageType == null || !damageType.hasRecovery() || result == null) {
-            return;
+            return 0D;
         }
-        LivingEntity attacker = damageContext.attacker();
-        if (attacker == null || !attacker.isValid() || attacker.isDead()) {
-            return;
-        }
-        double recoveryAmount = resolveRecoveryAmount(damageContext, damageType.recovery(), finalDamage);
-        if (recoveryAmount <= 0D) {
+        return resolveRecoveryAmount(damageContext, damageType.recovery(), finalDamage);
+    }
+
+    void applyRecovery(LivingEntity attacker, double recoveryAmount) {
+        if (attacker == null || !attacker.isValid() || attacker.isDead() || recoveryAmount <= 0D) {
             return;
         }
         double currentHealth = Math.max(0D, attacker.getHealth());

@@ -13,7 +13,7 @@ public record DamageCauseRule(String cause,
         boolean enabled,
         DamageContextVariables context) {
 
-    public DamageCauseRule     {
+    public DamageCauseRule {
         cause = Texts.normalizeId(cause);
         damageTypeId = Texts.normalizeId(damageTypeId);
         context = context == null ? DamageContextVariables.empty() : context;

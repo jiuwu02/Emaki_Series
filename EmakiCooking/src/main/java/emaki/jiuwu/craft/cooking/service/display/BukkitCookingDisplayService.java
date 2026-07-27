@@ -7,8 +7,8 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import org.bukkit.Bukkit;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import org.bukkit.Location;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.inventory.ItemStack;
@@ -20,12 +20,19 @@ import org.joml.Vector3f;
 public final class BukkitCookingDisplayService implements CookingDisplayService {
 
     private final JavaPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    @SuppressWarnings("unused")
+    private final ThreadOwnership threadOwnership;
     private final Map<String, ItemDisplay> displays = new LinkedHashMap<>();
     private final Map<String, Set<String>> displaysByStation = new LinkedHashMap<>();
     private final Set<String> animatingStations = new LinkedHashSet<>();
 
-    public BukkitCookingDisplayService(JavaPlugin plugin) {
+    public BukkitCookingDisplayService(JavaPlugin plugin,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     @Override
@@ -40,15 +47,22 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
         }
         String key = spec.runtimeKey();
         ItemDisplay display = displays.get(key);
-        if (display == null || display.isDead() || !sameWorld(display.getLocation(), location)) {
-            remove(spec.stationType(), spec.stationCoordinates(), spec.displayKey());
-            display = location.getWorld().spawn(location, ItemDisplay.class);
-            displays.put(key, display);
-            displaysByStation.computeIfAbsent(spec.stationRuntimeKey(), ignored -> new LinkedHashSet<>()).add(key);
-        } else {
-            display.teleport(location);
+        if (display == null) {
+            spawnAtLocation(spec);
+            return;
         }
-        apply(display, spec);
+        executionDispatcher.runEntity(plugin, display, () -> {
+            if (display.isDead() || !sameWorld(display.getLocation(), location)) {
+                removeKeyOwned(spec.stationRuntimeKey(), key, display);
+                spawnAtLocation(spec);
+                return;
+            }
+            display.teleport(location);
+            apply(display, spec);
+        }, () -> {
+            removeMapOnly(spec.stationRuntimeKey(), key);
+            spawnAtLocation(spec);
+        });
     }
 
     @Override
@@ -111,10 +125,14 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
         Map<String, Transformation> originalTransformations = new LinkedHashMap<>();
         for (String key : Set.copyOf(keys)) {
             ItemDisplay display = displays.get(key);
-            if (display == null || display.isDead()) {
+            if (display == null) {
                 continue;
             }
-            originalTransformations.put(key, display.getTransformation());
+            executionDispatcher.runEntity(plugin, display, () -> {
+                if (!display.isDead()) {
+                    originalTransformations.put(key, display.getTransformation());
+                }
+            }, () -> removeMapOnly(stationKey, key));
         }
 
         for (int segment = 0; segment < segments; segment++) {
@@ -127,26 +145,29 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
                 }
                 for (String key : Set.copyOf(currentKeys)) {
                     ItemDisplay display = displays.get(key);
-                    if (display == null || display.isDead()) {
+                    if (display == null) {
                         continue;
                     }
-                    Transformation original = originalTransformations.get(key);
-                    if (original == null) {
-                        continue;
-                    }
-                    double cumulativeDegrees = degreesPerSegment * segmentIndex;
-                    double cumulativeHeight = heightPerSegment * segmentIndex;
-                    Transformation target = buildAnimatedTransformation(
-                            original, cumulativeHeight, rotationAxis, cumulativeDegrees);
-                    display.setInterpolationDuration(ticksPerSegment);
-                    display.setTransformation(target);
-                    display.setInterpolationDelay(0);
+                    executionDispatcher.runEntity(plugin, display, () -> {
+                        if (display.isDead()) {
+                            removeMapOnly(stationKey, key);
+                            return;
+                        }
+                        Transformation original = originalTransformations.computeIfAbsent(key, ignored -> display.getTransformation());
+                        double cumulativeDegrees = degreesPerSegment * segmentIndex;
+                        double cumulativeHeight = heightPerSegment * segmentIndex;
+                        Transformation target = buildAnimatedTransformation(
+                                original, cumulativeHeight, rotationAxis, cumulativeDegrees);
+                        display.setInterpolationDuration(ticksPerSegment);
+                        display.setTransformation(target);
+                        display.setInterpolationDelay(0);
+                    }, () -> removeMapOnly(stationKey, key));
                 }
             };
             if (delay == 0) {
                 segmentTask.run();
             } else {
-                FoliaSchedulerAdapter.runTaskLater(plugin, segmentTask, delay);
+                executionDispatcher.runAtLocationLater(plugin, coordinates.location(0.5D, 0.5D, 0.5D), segmentTask, delay);
             }
         }
 
@@ -161,28 +182,31 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
                 }
                 for (String key : Set.copyOf(currentKeys)) {
                     ItemDisplay display = displays.get(key);
-                    if (display == null || display.isDead()) {
+                    if (display == null) {
                         continue;
                     }
-                    Transformation original = originalTransformations.get(key);
-                    if (original == null) {
-                        continue;
-                    }
-                    double remainingFraction = 1.0D - ((double) segmentIndex / segments);
-                    double currentDegrees = rotationDegrees * remainingFraction;
-                    double currentHeight = heightOffset * remainingFraction;
-                    Transformation target = buildAnimatedTransformation(
-                            original, currentHeight, rotationAxis, currentDegrees);
-                    display.setInterpolationDuration(ticksPerSegment);
-                    display.setTransformation(target);
-                    display.setInterpolationDelay(0);
+                    executionDispatcher.runEntity(plugin, display, () -> {
+                        if (display.isDead()) {
+                            removeMapOnly(stationKey, key);
+                            return;
+                        }
+                        Transformation original = originalTransformations.computeIfAbsent(key, ignored -> display.getTransformation());
+                        double remainingFraction = 1.0D - ((double) segmentIndex / segments);
+                        double currentDegrees = rotationDegrees * remainingFraction;
+                        double currentHeight = heightOffset * remainingFraction;
+                        Transformation target = buildAnimatedTransformation(
+                                original, currentHeight, rotationAxis, currentDegrees);
+                        display.setInterpolationDuration(ticksPerSegment);
+                        display.setTransformation(target);
+                        display.setInterpolationDelay(0);
+                    }, () -> removeMapOnly(stationKey, key));
                 }
             };
-            FoliaSchedulerAdapter.runTaskLater(plugin, segmentTask, delay);
+            executionDispatcher.runAtLocationLater(plugin, coordinates.location(0.5D, 0.5D, 0.5D), segmentTask, delay);
         }
 
         int totalTicks = riseEndTick + segments * ticksPerSegment;
-        FoliaSchedulerAdapter.runTaskLater(plugin, () -> animatingStations.remove(stationKey), totalTicks);
+        executionDispatcher.runAtLocationLater(plugin, coordinates.location(0.5D, 0.5D, 0.5D), () -> animatingStations.remove(stationKey), totalTicks);
     }
 
     @Override
@@ -195,9 +219,15 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
 
     @Override
     public void shutdown() {
-        for (ItemDisplay display : Set.copyOf(displays.values())) {
-            if (display != null && !display.isDead()) {
-                display.remove();
+        for (Map.Entry<String, ItemDisplay> entry : Map.copyOf(displays).entrySet()) {
+            ItemDisplay display = entry.getValue();
+            if (display != null) {
+                executionDispatcher.runEntity(plugin, display, () -> {
+                    if (!display.isDead()) {
+                        display.remove();
+                    }
+                }, () -> {
+                });
             }
         }
         displays.clear();
@@ -251,24 +281,52 @@ public final class BukkitCookingDisplayService implements CookingDisplayService 
         display.setGravity(false);
     }
 
+    private void spawnAtLocation(CookingDisplaySpec spec) {
+        Location location = spec.displayLocation();
+        if (location == null || location.getWorld() == null) {
+            return;
+        }
+        executionDispatcher.runAtLocation(plugin, location, () -> {
+            String key = spec.runtimeKey();
+            if (displays.containsKey(key)) {
+                return;
+            }
+            ItemDisplay display = location.getWorld().spawn(location, ItemDisplay.class);
+            displays.put(key, display);
+            displaysByStation.computeIfAbsent(spec.stationRuntimeKey(), ignored -> new LinkedHashSet<>()).add(key);
+            apply(display, spec);
+        });
+    }
+
     private void removeStationKey(String stationKey) {
         Set<String> keys = displaysByStation.remove(stationKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
         for (String key : Set.copyOf(keys)) {
-            ItemDisplay display = displays.remove(key);
-            if (display != null && !display.isDead()) {
-                display.remove();
-            }
+            removeKey(stationKey, key);
         }
     }
 
     private void removeKey(String stationKey, String key) {
-        ItemDisplay display = displays.remove(key);
+        ItemDisplay display = displays.get(key);
+        if (display == null) {
+            removeMapOnly(stationKey, key);
+            return;
+        }
+        executionDispatcher.runEntity(plugin, display, () -> removeKeyOwned(stationKey, key, display), () ->
+                removeMapOnly(stationKey, key));
+    }
+
+    private void removeKeyOwned(String stationKey, String key, ItemDisplay display) {
+        removeMapOnly(stationKey, key);
         if (display != null && !display.isDead()) {
             display.remove();
         }
+    }
+
+    private void removeMapOnly(String stationKey, String key) {
+        displays.remove(key);
         Set<String> stationKeys = displaysByStation.get(stationKey);
         if (stationKeys == null) {
             return;

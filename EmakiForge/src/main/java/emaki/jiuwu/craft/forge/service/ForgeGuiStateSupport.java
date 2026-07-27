@@ -11,10 +11,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
-import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -27,20 +25,11 @@ final class ForgeGuiStateSupport {
 
     }
 
-    private final EmakiForgePlugin plugin;
-    private final ForgeMaterialUsagePlanner usagePlanner;
-
-    ForgeGuiStateSupport(EmakiForgePlugin plugin) {
-        this.plugin = plugin;
-        this.usagePlanner = new ForgeMaterialUsagePlanner(plugin);
+    ForgeGuiStateSupport() {
     }
 
     public String resolveTemplateId(Recipe recipe) {
         return "forge_gui";
-    }
-
-    public GuiTemplate prepareTemplate(Recipe recipe, String templateId) {
-        return plugin.guiTemplateLoader().get(Texts.isBlank(templateId) ? "forge_gui" : templateId);
     }
 
     public void refreshDerivedValues(ForgeGuiSession state) {
@@ -66,7 +55,8 @@ final class ForgeGuiStateSupport {
                 && state.targetItem() == null) {
             return null;
         }
-        return plugin.forgeService().findMatchingRecipe(state.player(), state.toGuiItems()).recipe();
+        ForgeService forgeService = state.runtimeSnapshot().forgeService();
+        return forgeService == null ? null : forgeService.findMatchingRecipe(state.player(), state.toGuiItems()).recipe();
     }
 
     public int calculateCurrentCapacity(ForgeGuiSession state) {
@@ -77,7 +67,7 @@ final class ForgeGuiStateSupport {
         if (recipe == null) {
             return 0;
         }
-        return usagePlanner.optionalCapacityCost(recipe, state.toGuiItems());
+        return usagePlanner(state).optionalCapacityCost(recipe, state.toGuiItems());
     }
 
     public int resolveMaxCapacity(ForgeGuiSession state) {
@@ -93,7 +83,7 @@ final class ForgeGuiStateSupport {
             }
         }
         if (recipe != null) {
-            max += usagePlanner.optionalCapacityBonus(recipe, state.toGuiItems());
+            max += usagePlanner(state).optionalCapacityBonus(recipe, state.toGuiItems());
         }
         return max;
     }
@@ -149,8 +139,8 @@ final class ForgeGuiStateSupport {
         List<String> optionalIds = new ArrayList<>();
         int optionalLimit = 0;
         List<Recipe> candidateRecipes = new ArrayList<>(resolveCandidateRecipes(state));
-        if (candidateRecipes.isEmpty()) {
-            candidateRecipes.addAll(plugin.recipeLoader().all().values());
+        if (candidateRecipes.isEmpty() && state != null && state.runtimeSnapshot().recipeLoader() != null) {
+            candidateRecipes.addAll(state.runtimeSnapshot().recipeLoader().all().values());
         }
         for (Recipe recipe : candidateRecipes) {
             if (recipe == null) {
@@ -183,8 +173,11 @@ final class ForgeGuiStateSupport {
             return List.of();
         }
         List<Recipe> result = new ArrayList<>();
-        for (Recipe recipe : plugin.recipeLoader().all().values()) {
-            if (recipe != null && matchesBlueprintRequirements(recipe, blueprints)) {
+        if (state.runtimeSnapshot().recipeLoader() == null) {
+            return result;
+        }
+        for (Recipe recipe : state.runtimeSnapshot().recipeLoader().all().values()) {
+            if (recipe != null && matchesBlueprintRequirements(state, recipe, blueprints)) {
                 result.add(recipe);
             }
         }
@@ -210,35 +203,53 @@ final class ForgeGuiStateSupport {
         return rules.optionalLimit() <= 0 || occupiedCount < rules.optionalLimit();
     }
 
-    public BlueprintRequirement findBlueprintRequirementBySource(ItemSource source) {
-        return plugin.forgeService().findBlueprintRequirementBySource(source);
+    public BlueprintRequirement findBlueprintRequirementBySource(ForgeGuiSession state, ItemSource source) {
+        ForgeService forgeService = state == null ? null : state.runtimeSnapshot().forgeService();
+        return forgeService == null ? null : forgeService.findBlueprintRequirementBySource(source);
     }
 
-    public ForgeMaterial findMaterialBySource(ItemSource source) {
-        return plugin.forgeService().findMaterialBySource(source);
+    public ForgeMaterial findMaterialBySource(ForgeGuiSession state, ItemSource source) {
+        ForgeService forgeService = state == null ? null : state.runtimeSnapshot().forgeService();
+        return forgeService == null ? null : forgeService.findMaterialBySource(source);
     }
 
     public void returnItems(ForgeGuiSession state) {
+        returnItems(state, null);
+    }
+
+    public void returnItems(ForgeGuiSession state, ItemStack additionalItem) {
         if (state == null) {
             return;
         }
-        returnItemCollection(state.player(), state.blueprintItems().values());
-        returnItemCollection(state.player(), state.requiredMaterialItems().values());
-        returnItemCollection(state.player(), state.optionalMaterialItems().values());
-        state.clearStoredItems();
+        if (!state.returnPlanPrepared()) {
+            List<ItemStack> returns = new ArrayList<>();
+            returns.add(state.targetItem());
+            returns.addAll(state.blueprintItems().values());
+            returns.addAll(state.requiredMaterialItems().values());
+            returns.addAll(state.optionalMaterialItems().values());
+            returns.add(additionalItem);
+            state.prepareReturnPlan(returns);
+        }
+        drainPendingReturns(state);
     }
 
     public void returnUnusedInputs(ForgeGuiSession state, Recipe recipe) {
         if (state == null || recipe == null) {
             return;
         }
-        returnItemCollection(state.player(), usagePlanner.unconsumedInputs(recipe, state.toGuiItems()));
+        if (!state.returnPlanPrepared()) {
+            state.prepareReturnPlan(usagePlanner(state).unconsumedInputs(recipe, state.toGuiItems()));
+        }
+        drainPendingReturns(state);
     }
 
     public void giveBackToPlayer(Player player, ItemStack itemStack) {
         ItemStack clone = cloneNonAir(itemStack);
-        if (player == null || clone == null) {
+        if (clone == null) {
             return;
+        }
+        if (player == null) {
+            throw new IllegalStateException("Forge item return has no player owner.");
         }
         Map<Integer, ItemStack> leftover = player.getInventory().addItem(clone);
         leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
@@ -258,14 +269,21 @@ final class ForgeGuiStateSupport {
         return itemStack.clone();
     }
 
-    private boolean matchesBlueprintRequirements(Recipe recipe, List<ItemStack> blueprints) {
-        if (recipe == null) {
+    private ForgeMaterialUsagePlanner usagePlanner(ForgeGuiSession state) {
+        ItemIdentifierService identifier = state == null || state.runtimeSnapshot() == null
+                ? null
+                : state.runtimeSnapshot().itemIdentifierService();
+        return new ForgeMaterialUsagePlanner(identifier);
+    }
+
+    private boolean matchesBlueprintRequirements(ForgeGuiSession state, Recipe recipe, List<ItemStack> blueprints) {
+        if (state == null || recipe == null) {
             return false;
         }
         if (recipe.blueprintRequirements().isEmpty()) {
             return true;
         }
-        Map<String, Integer> available = blueprintAvailability(blueprints);
+        Map<String, Integer> available = blueprintAvailability(state, blueprints);
         for (BlueprintRequirement requirement : recipe.blueprintRequirements()) {
             if (available.getOrDefault(requirement.key(), 0) < requirement.amount()) {
                 return false;
@@ -274,13 +292,15 @@ final class ForgeGuiStateSupport {
         return true;
     }
 
-    private Map<String, Integer> blueprintAvailability(List<ItemStack> blueprints) {
+    private Map<String, Integer> blueprintAvailability(ForgeGuiSession state, List<ItemStack> blueprints) {
         Map<String, Integer> available = new LinkedHashMap<>();
-        if (blueprints == null) {
+        if (state == null || blueprints == null || state.runtimeSnapshot().itemIdentifierService() == null) {
             return available;
         }
         for (ItemStack itemStack : blueprints) {
-            BlueprintRequirement requirement = findBlueprintRequirementBySource(plugin.itemIdentifierService().identifyItem(itemStack));
+            BlueprintRequirement requirement = findBlueprintRequirementBySource(
+                    state,
+                    state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
             if (requirement == null) {
                 continue;
             }
@@ -289,17 +309,24 @@ final class ForgeGuiStateSupport {
         return available;
     }
 
-    private ForgeMaterial resolveMaterial(Recipe recipe, ItemStack itemStack, boolean optional) {
-        if (recipe == null || itemStack == null) {
-            return null;
-        }
-        ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
-        return recipe.findMaterialBySource(source, optional);
-    }
-
-    private void returnItemCollection(Player player, Iterable<ItemStack> items) {
-        for (ItemStack item : items) {
-            giveBackToPlayer(player, item);
+    private void drainPendingReturns(ForgeGuiSession state) {
+        while (state != null && state.hasPendingReturns()) {
+            Player player = state.player();
+            ItemStack pending = cloneNonAir(state.pendingReturn());
+            if (player == null || pending == null) {
+                throw new IllegalStateException("Forge item return has no valid pending owner item.");
+            }
+            if (state.pendingReturnInventoryAttempted()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), pending);
+                state.commitPendingReturn();
+                continue;
+            }
+            Map<Integer, ItemStack> leftover = player.getInventory().addItem(pending);
+            if (leftover.isEmpty()) {
+                state.commitPendingReturn();
+                continue;
+            }
+            state.replacePendingReturnWithDropRemainders(leftover.values());
         }
     }
 
@@ -311,7 +338,12 @@ final class ForgeGuiStateSupport {
             state.refreshPreviewRoll();
             return;
         }
-        String fingerprint = plugin.forgeService().buildPreviewFingerprint(state.player(), previewRecipe, state.toGuiItems());
+        ForgeService forgeService = state.runtimeSnapshot().forgeService();
+        if (forgeService == null) {
+            state.setPreparedForge(null);
+            return;
+        }
+        String fingerprint = forgeService.buildPreviewFingerprint(state.player(), previewRecipe, state.toGuiItems());
         if (!fingerprint.equals(state.previewFingerprint())) {
             state.setPreviewFingerprint(fingerprint);
             state.setPreparedForge(null);

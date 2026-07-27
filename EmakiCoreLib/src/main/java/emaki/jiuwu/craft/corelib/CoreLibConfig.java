@@ -5,21 +5,22 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
-import emaki.jiuwu.craft.corelib.web.WebConsoleConfig;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record CoreLibConfig(
         String language,
+        boolean releaseDefaultData,
         Map<String, List<String>> actionTemplates,
         LoopConfig loopConfig,
         ScriptConfig scriptConfig,
-        WebConsoleConfig webConsoleConfig,
-        GuiConfig guiConfig
+        GuiConfig guiConfig,
+        GameplayEventConfig gameplayEventConfig,
+        DebugConfig debugConfig
 ) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig("zh_CN", Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
-                WebConsoleConfig.defaults(), GuiConfig.defaults());
+        return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
+                GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -37,26 +38,28 @@ public record CoreLibConfig(
         }
         return new CoreLibConfig(
                 language,
+                configuration.getBoolean("release_default_data", defaults().releaseDefaultData()),
                 Map.copyOf(templates),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 ScriptConfig.fromConfig(configuration.getSection("script")),
-                WebConsoleConfig.fromConfig(configuration.getSection("web_console")),
-                GuiConfig.fromConfig(configuration.getSection("gui"))
+                GuiConfig.fromConfig(configuration.getSection("gui")),
+                GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events")),
+                DebugConfig.fromConfig(configuration.getSection("debug"))
         );
     }
 
-    /**
-     * Selects which {@link emaki.jiuwu.craft.corelib.gui.GuiBackend} presents
-     * Emaki menus.
-     *
-     * <ul>
-     *   <li>{@code bukkit} — real server-side inventory (default).</li>
-     *   <li>{@code packet} — packet-driven virtual container (requires
-     *       PacketEvents); cursor survives in-place row-count changes.</li>
-     *   <li>{@code auto} — packet when PacketEvents is present, otherwise
-     *       bukkit.</li>
-     * </ul>
-     */
+
+
+
+
+
+
+
+
+
+
+
+
     public record GuiConfig(String backend) {
 
         public GuiConfig {
@@ -72,6 +75,62 @@ public record CoreLibConfig(
                 return defaults();
             }
             return new GuiConfig(section.getString("backend", defaults().backend()));
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public record DebugConfig(boolean globalAll) {
+
+        public static DebugConfig defaults() {
+            return new DebugConfig(false);
+        }
+
+        public static DebugConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new DebugConfig(section.getBoolean("global_all", defaults().globalAll()));
+        }
+    }
+
+    public record GameplayEventConfig(
+            boolean enabled,
+            int lastDamagerExpireTicks,
+            long brewAttributionExpireTicks
+    ) {
+
+        public static GameplayEventConfig defaults() {
+            return new GameplayEventConfig(true, 200, 6000L);
+        }
+
+        public static GameplayEventConfig fromConfig(YamlSection section) {
+            GameplayEventConfig defaults = defaults();
+            if (section == null) {
+                return defaults;
+            }
+            Boolean enabled = section.getBoolean("enabled", defaults.enabled());
+            Integer lastDamager = section.getInt("last_damager_expire_ticks", defaults.lastDamagerExpireTicks());
+            Integer brew = section.getInt("brew_attribution_expire_ticks", (int) defaults.brewAttributionExpireTicks());
+            return new GameplayEventConfig(
+                    enabled == null ? defaults.enabled() : enabled,
+                    lastDamager == null ? defaults.lastDamagerExpireTicks() : Math.max(0, lastDamager),
+                    brew == null ? defaults.brewAttributionExpireTicks() : Math.max(0L, brew.longValue())
+            );
         }
     }
 

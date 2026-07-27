@@ -195,22 +195,30 @@ public final class Recipe {
     }
 
     private static ResultConfig parseResult(Object raw) {
-        if (raw == null) {
+        Object success = ConfigNodes.get(raw, "success");
+        if (success == null) {
             return new ResultConfig(null, List.of(), List.of(), List.of());
         }
-        Object outputItem = ConfigNodes.get(raw, "item_sources");
+        Object outputItem = firstResultOutput(ConfigNodes.get(success, "outputs"));
         ItemSource parsedOutputItem = ItemSourceUtil.parse(outputItem);
-        if (!ConfigNodes.asObjectList(outputItem).isEmpty() && parsedOutputItem == null) {
+        if (outputItem != null && parsedOutputItem == null) {
             return null;
         }
-        Object metaActions = ConfigNodes.get(raw, "meta_actions");
-        Object nameActions = ConfigNodes.get(metaActions, "name_actions");
         return new ResultConfig(
                 parsedOutputItem,
-                List.copyOf(Texts.asStringList(ConfigNodes.get(raw, "actions"))),
-                toActionList(nameActions),
-                toActionList(ConfigNodes.get(metaActions, "lore_actions"))
+                List.copyOf(Texts.asStringList(ConfigNodes.get(success, "actions"))),
+                toActionList(ConfigNodes.get(success, "name_actions")),
+                toActionList(ConfigNodes.get(success, "lore_actions"))
         );
+    }
+
+    private static Object firstResultOutput(Object rawOutputs) {
+        for (Object entry : ConfigNodes.asObjectList(rawOutputs)) {
+            if (entry != null) {
+                return entry;
+            }
+        }
+        return null;
     }
 
     private static ActionPhases parseAction(Object raw) {

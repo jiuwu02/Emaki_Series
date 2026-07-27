@@ -13,8 +13,9 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -24,23 +25,22 @@ import emaki.jiuwu.craft.cooking.api.event.NutritionThresholdChangeEvent;
 import emaki.jiuwu.craft.cooking.api.event.PlayerNutritionConsumeEvent;
 import emaki.jiuwu.craft.cooking.model.NutritionComboThreshold;
 import emaki.jiuwu.craft.cooking.model.NutritionFoodSource;
+import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
-import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
-/**
- * 营养系统核心服务。负责：
- * <ul>
- *   <li>增/减/设置营养值（按营养类型 min~max 截断）；</li>
- *   <li>食用物品时按物品来源匹配 {@code food_sources} 增加营养；</li>
- *   <li>单类型阈值与组合阈值（膳食均衡反胃）的边沿触发，执行 CoreLib 动作；</li>
- *   <li>定时落盘。</li>
- * </ul>
- *
- * <p>本服务只提供机制：反胃、持续 BUFF、营养衰减均由服主在配置里用 CoreLib 动作
- * （含循环动作 {@code loopsync}/{@code cancelloop}）+ 条件 {@code @if}/{@code stop_if_condition} 拼装。</p>
- */
+
+
+
+
+
+
+
+
+
+
+
 public final class NutritionService {
 
     private final EmakiCookingPlugin plugin;
@@ -49,8 +49,10 @@ public final class NutritionService {
     private final CookingSettingsService settingsService;
     private final NutritionTypeRegistry typeRegistry;
     private final PlayerNutritionDataStore dataStore;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
 
-    // 阈值满足状态（边沿触发）：单类型 key = ruleId + ":" + typeId；组合 key = ruleId
+
     private final Map<UUID, Set<String>> metSingleKeys = new ConcurrentHashMap<>();
     private final Map<UUID, Set<String>> metComboKeys = new ConcurrentHashMap<>();
 
@@ -65,13 +67,17 @@ public final class NutritionService {
             ItemSourceService itemSourceService,
             CookingSettingsService settingsService,
             NutritionTypeRegistry typeRegistry,
-            PlayerNutritionDataStore dataStore) {
+            PlayerNutritionDataStore dataStore,
+            ExecutionDispatcher executionDispatcher,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.actionExecutor = actionExecutor;
         this.itemSourceService = itemSourceService;
         this.settingsService = settingsService;
         this.typeRegistry = typeRegistry;
         this.dataStore = dataStore;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     public boolean enabled() {
@@ -86,16 +92,15 @@ public final class NutritionService {
         return dataStore;
     }
 
-    /**
-     * 重新加载营养配置并重置定时任务；同时为在线玩家补齐新增类型默认值并重算阈值状态。
-     */
+
+
+
     public void reload() {
         this.enabled = settingsService.nutritionEnabled();
         this.foodSources = settingsService.nutritionFoodSources();
         this.singleThresholds = settingsService.nutritionSingleThresholds();
         this.comboThresholds = settingsService.nutritionComboThresholds();
         dataStore.ensureTypesForCached(typeRegistry.asMap());
-        // 配置可能变化，清空旧的满足状态，按当前配置对在线玩家重新判定
         metSingleKeys.clear();
         metComboKeys.clear();
         restartSaveTask();
@@ -113,15 +118,15 @@ public final class NutritionService {
         cancelSaveTask();
     }
 
-    // ===================== 数值读写 =====================
+
 
     public double value(UUID uuid, String typeId) {
         NutritionTypeConfig type = typeRegistry.type(typeId).orElse(null);
         if (uuid == null || type == null) {
             return 0D;
         }
-        PlayerNutritionData data = dataStore.getOrLoad(uuid, typeRegistry.asMap());
-        return data.value(type.id(), type.defaultValue());
+        PlayerNutritionData data = dataStore.cached(uuid);
+        return data == null ? type.defaultValue() : data.value(type.id(), type.defaultValue());
     }
 
     public NutritionOperationResult add(UUID uuid, String typeId, double amount) {
@@ -144,26 +149,32 @@ public final class NutritionService {
         if (type == null) {
             return NutritionOperationResult.failure(typeId, "unknown_type");
         }
-        PlayerNutritionData data = dataStore.getOrLoad(uuid, typeRegistry.asMap());
-        double oldValue = data.value(type.id(), type.defaultValue());
-        double newValue = type.clamp(operator.applyAsDouble(oldValue));
-        if (newValue != oldValue) {
-            data.set(type.id(), newValue);
+        NutritionOperationResult result = dataStore.mutateActive(uuid, typeRegistry.asMap(), data -> {
+            double oldValue = data.value(type.id(), type.defaultValue());
+            double newValue = type.clamp(operator.applyAsDouble(oldValue));
+            if (Double.compare(newValue, oldValue) != 0) {
+                data.set(type.id(), newValue);
+            }
+            return NutritionOperationResult.ok(type.id(), oldValue, newValue);
+        });
+        if (result == null) {
+            return NutritionOperationResult.failure(type.id(), "data_unavailable");
         }
         Player player = Bukkit.getPlayer(uuid);
-        if (player != null) {
-            evaluateThresholds(player, data);
+        PlayerNutritionData current = dataStore.cached(uuid);
+        if (player != null && current != null) {
+            evaluateThresholds(player, current);
         }
-        return NutritionOperationResult.ok(type.id(), oldValue, newValue);
+        return result;
     }
 
-    // ===================== 食用接入 =====================
 
-    /**
-     * 玩家食用一个物品时调用：识别物品来源，匹配 {@code food_sources} 并增加对应营养、执行额外动作。
-     *
-     * @return 是否命中了任意食物来源规则
-     */
+
+
+
+
+
+
     public boolean applyFood(Player player, ItemStack itemStack) {
         if (!enabled || player == null || itemStack == null || itemStack.getType().isAir()) {
             return false;
@@ -172,8 +183,7 @@ public final class NutritionService {
         if (source == null) {
             return false;
         }
-        // 进食营养接入点对外开放，可取消；监听器仅在主线程派发时生效（食用监听器均为主线程）。
-        if (Bukkit.isPrimaryThread()) {
+        if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
             PlayerNutritionConsumeEvent consumeEvent =
                     new PlayerNutritionConsumeEvent(player, itemStack, ItemSourceUtil.toShorthand(source));
             Bukkit.getPluginManager().callEvent(consumeEvent);
@@ -186,25 +196,31 @@ public final class NutritionService {
             if (!matchesAny(rule.itemSources(), source)) {
                 continue;
             }
-            matched = true;
-            PlayerNutritionData data = dataStore.getOrLoad(player.getUniqueId(), typeRegistry.asMap());
-            for (Map.Entry<String, Double> entry : rule.nutrition().entrySet()) {
-                NutritionTypeConfig type = typeRegistry.type(entry.getKey()).orElse(null);
-                if (type == null) {
-                    continue;
+            PlayerNutritionData updated = dataStore.mutateActive(player.getUniqueId(), typeRegistry.asMap(), data -> {
+                for (Map.Entry<String, Double> entry : rule.nutrition().entrySet()) {
+                    NutritionTypeConfig type = typeRegistry.type(entry.getKey()).orElse(null);
+                    if (type == null) {
+                        continue;
+                    }
+                    double oldValue = data.value(type.id(), type.defaultValue());
+                    double newValue = type.clamp(oldValue + entry.getValue());
+                    if (Double.compare(newValue, oldValue) != 0) {
+                        data.set(type.id(), newValue);
+                    }
                 }
-                double oldValue = data.value(type.id(), type.defaultValue());
-                double newValue = type.clamp(oldValue + entry.getValue());
-                if (newValue != oldValue) {
-                    data.set(type.id(), newValue);
-                }
+                return data.copy();
+            });
+            if (updated == null) {
+                continue;
             }
+            matched = true;
             if (!rule.actions().isEmpty()) {
-                ActionContext context = baseContext(player, "cooking.nutrition.food").withPlaceholders(nutritionPlaceholders(data));
-                context = context.withPlaceholder("consumed_item", ItemSourceUtil.toShorthand(source));
+                ActionContext context = baseContext(player, "cooking.nutrition.food")
+                        .withPlaceholders(nutritionPlaceholders(updated))
+                        .withPlaceholder("consumed_item", ItemSourceUtil.toShorthand(source));
                 actionExecutor.executeAll(context, rule.actions(), false);
             }
-            evaluateThresholds(player, data);
+            evaluateThresholds(player, updated);
         }
         return matched;
     }
@@ -218,7 +234,19 @@ public final class NutritionService {
         return false;
     }
 
-    // ===================== 阈值判定 =====================
+
+
+    public boolean recheckThresholds(Player player) {
+        if (!enabled || player == null) {
+            return false;
+        }
+        PlayerNutritionData data = dataStore.cached(player.getUniqueId());
+        if (data == null) {
+            return false;
+        }
+        evaluateThresholds(player, data);
+        return true;
+    }
 
     private void evaluateThresholds(Player player, PlayerNutritionData data) {
         if (!enabled || player == null || data == null) {
@@ -247,12 +275,15 @@ public final class NutritionService {
                     met.add(key);
                     runActions(player, data, rule.onMeetActions(), "cooking.nutrition.single." + rule.id(),
                             singlePlaceholders(type, value, rule.value()));
-                    fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.SINGLE, rule.id(), type.id(), true, value, rule.value(), 0, 0);
+                    fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.SINGLE, rule.id(), type.id(), true,
+                            value, rule.value(), 0, 0);
                 } else if (!meets && wasMet) {
                     met.remove(key);
-                    runActions(player, data, rule.onRecoverActions(), "cooking.nutrition.single." + rule.id() + ".recover",
+                    runActions(player, data, rule.onRecoverActions(),
+                            "cooking.nutrition.single." + rule.id() + ".recover",
                             singlePlaceholders(type, value, rule.value()));
-                    fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.SINGLE, rule.id(), type.id(), false, value, rule.value(), 0, 0);
+                    fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.SINGLE, rule.id(), type.id(), false,
+                            value, rule.value(), 0, 0);
                 }
             }
         }
@@ -281,12 +312,15 @@ public final class NutritionService {
                 met.add(rule.id());
                 runActions(player, data, rule.onMeetActions(), "cooking.nutrition.combo." + rule.id(),
                         comboPlaceholders(count, rule.requiredCount(), rule.value()));
-                fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.COMBO, rule.id(), null, true, 0D, rule.value(), count, rule.requiredCount());
+                fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.COMBO, rule.id(), null, true,
+                        0D, rule.value(), count, rule.requiredCount());
             } else if (!meets && wasMet) {
                 met.remove(rule.id());
-                runActions(player, data, rule.onRecoverActions(), "cooking.nutrition.combo." + rule.id() + ".recover",
+                runActions(player, data, rule.onRecoverActions(),
+                        "cooking.nutrition.combo." + rule.id() + ".recover",
                         comboPlaceholders(count, rule.requiredCount(), rule.value()));
-                fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.COMBO, rule.id(), null, false, 0D, rule.value(), count, rule.requiredCount());
+                fireThresholdEvent(player, NutritionThresholdChangeEvent.Kind.COMBO, rule.id(), null, false,
+                        0D, rule.value(), count, rule.requiredCount());
             }
         }
     }
@@ -300,17 +334,17 @@ public final class NutritionService {
             double threshold,
             int matchedCount,
             int requiredCount) {
-        // 阈值边沿通知对外开放；Bukkit 同步事件只能在主线程派发，异步路径跳过。
-        if (!Bukkit.isPrimaryThread()) {
+        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return;
         }
         Bukkit.getPluginManager().callEvent(new NutritionThresholdChangeEvent(
                 player, kind, ruleId, typeId, met, value, threshold, matchedCount, requiredCount));
     }
 
-    // ===================== 动作与占位符 =====================
 
-    private void runActions(Player player, PlayerNutritionData data, List<String> actions, String phase, Map<String, Object> extra) {
+
+    private void runActions(Player player, PlayerNutritionData data, List<String> actions, String phase,
+            Map<String, Object> extra) {
         if (actions == null || actions.isEmpty() || actionExecutor == null) {
             return;
         }
@@ -325,9 +359,9 @@ public final class NutritionService {
         return ActionContext.create(plugin, player, phase, false);
     }
 
-    /**
-     * 构造全部营养值占位符：{@code nutrition_<type>} 与 {@code nutrition_<type>_max}。
-     */
+
+
+
     public Map<String, Object> nutritionPlaceholders(PlayerNutritionData data) {
         Map<String, Object> placeholders = new LinkedHashMap<>();
         for (NutritionTypeConfig type : typeRegistry.all()) {
@@ -355,17 +389,21 @@ public final class NutritionService {
         return placeholders;
     }
 
-    /**
-     * 统计满足组合阈值条件的营养类型数量（供占位符/命令查询使用）。
-     */
+
+
+
     public int comboCount(UUID uuid, NutritionComboThreshold rule) {
         if (uuid == null || rule == null) {
             return 0;
         }
-        PlayerNutritionData data = dataStore.getOrLoad(uuid, typeRegistry.asMap());
+        PlayerNutritionData data = dataStore.cached(uuid);
+        if (data == null) {
+            return 0;
+        }
         int count = 0;
         for (NutritionTypeConfig type : typeRegistry.all()) {
-            if (rule.counts(type.id()) && rule.compare().test(data.value(type.id(), type.defaultValue()), rule.value())) {
+            if (rule.counts(type.id())
+                    && rule.compare().test(data.value(type.id(), type.defaultValue()), rule.value())) {
                 count++;
             }
         }
@@ -383,7 +421,7 @@ public final class NutritionService {
         return Texts.toStringSafe(value);
     }
 
-    // ===================== 定时落盘 =====================
+
 
     private void restartSaveTask() {
         cancelSaveTask();
@@ -392,12 +430,12 @@ public final class NutritionService {
             return;
         }
         long periodTicks = (long) seconds * 20L;
-        saveTask = FoliaSchedulerAdapter.runTaskTimer(plugin, dataStore::saveAll, periodTicks, periodTicks);
+        saveTask = executionDispatcher.runGlobalTimer(plugin, () -> dataStore.saveAllAsync(), periodTicks, periodTicks);
     }
 
     private void cancelSaveTask() {
         if (saveTask != null) {
-            FoliaSchedulerAdapter.cancelTask(saveTask);
+            saveTask.cancel();
             saveTask = null;
         }
     }

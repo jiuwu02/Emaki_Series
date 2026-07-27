@@ -9,7 +9,6 @@ import java.util.logging.Level;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -115,7 +114,7 @@ public class AbstractMessageService implements LogMessages {
         if (sender == null || component == null) {
             return;
         }
-        AdventureSupport.sendMessage(plugin(), sender, component);
+        sender.sendMessage(component);
     }
 
     protected String resolveMessage(String key) {
@@ -144,7 +143,7 @@ public class AbstractMessageService implements LogMessages {
         if (sender == null || Texts.isBlank(text)) {
             return;
         }
-        AdventureSupport.sendMessage(plugin(), sender, render(withPrefix(text)));
+        sender.sendMessage(render(withPrefix(text)));
     }
 
     protected final String withPrefix(String text) {
@@ -162,7 +161,7 @@ public class AbstractMessageService implements LogMessages {
         }
         if (includePrefixInLogs()) {
             String loggedText = withPrefix(text);
-            AdventureSupport.sendMessage(plugin, Bukkit.getConsoleSender(), render(loggedText));
+            Bukkit.getConsoleSender().sendMessage(render(loggedText));
         } else {
             plugin.getLogger().log(level, MiniMessages.plain(render(text)));
         }

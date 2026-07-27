@@ -11,11 +11,19 @@ public interface ScriptService {
     ScriptExecutionResult invoke(ScriptInvocationRequest request);
 
     default CompletableFuture<ScriptExecutionResult> executeAsync(ScriptExecutionRequest request) {
-        return CompletableFuture.supplyAsync(() -> execute(request));
+        try {
+            return CompletableFuture.completedFuture(execute(request));
+        } catch (Throwable throwable) {
+            return CompletableFuture.failedFuture(throwable);
+        }
     }
 
     default CompletableFuture<ScriptExecutionResult> invokeAsync(ScriptInvocationRequest request) {
-        return CompletableFuture.supplyAsync(() -> invoke(request));
+        try {
+            return CompletableFuture.completedFuture(invoke(request));
+        } catch (Throwable throwable) {
+            return CompletableFuture.failedFuture(throwable);
+        }
     }
 
     ScriptReloadResult reload();

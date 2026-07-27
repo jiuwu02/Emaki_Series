@@ -49,13 +49,13 @@ public final class ScriptAttributeModuleApi {
     @HostAccess.Export
     public Map<String, Object> read(String itemKey, String sourceId) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        return ScriptServiceApiSupport.payloadToMap(PdcAttributeApi.read(itemStack, sourceId));
+        return ScriptAttributeDtoMapper.payloadToMap(PdcAttributeApi.read(itemStack, sourceId));
     }
 
     @HostAccess.Export
     public Map<String, Object> readAll(String itemKey) {
         ItemStack itemStack = ScriptServiceApiSupport.item(context, itemKey);
-        return ScriptServiceApiSupport.payloadsToMap(PdcAttributeApi.readAll(itemStack));
+        return ScriptAttributeDtoMapper.payloadsToMap(PdcAttributeApi.readAll(itemStack));
     }
 
     @HostAccess.Export
@@ -106,7 +106,7 @@ public final class ScriptAttributeModuleApi {
             return Map.of();
         }
         return ScriptServiceApiSupport.service(FACADE)
-                .map(service -> ScriptServiceApiSupport.damageResultToMap(ScriptServiceApiSupport.invoke(service,
+                .map(service -> ScriptAttributeDtoMapper.damageResultToMap(ScriptServiceApiSupport.invoke(service,
                         "calculateDamage",
                         new Class<?>[] { LivingEntity.class, LivingEntity.class, String.class, double.class, Map.class },
                         attackerEntity,

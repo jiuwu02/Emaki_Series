@@ -6,6 +6,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
+import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class ScriptAttributeDefinitionParser {
@@ -32,7 +33,11 @@ final class ScriptAttributeDefinitionParser {
                 string(definition, "loreFormatId", string(definition, "lore_format_id", "")),
                 stringList(definition.containsKey("lorePatterns") ? definition.get("lorePatterns") : definition.get("lore_patterns")),
                 string(definition, "description", ""),
-                number(definition.get("attributePower"), number(definition.get("attribute_power"), 1D))
+                number(definition.get("attributePower"), number(definition.get("attribute_power"), 1D)),
+                stringList(definition.containsKey("tags") ? definition.get("tags") : definition.get("tag")),
+                enumValue(TemporaryStackMode.class, string(definition, "temporaryStackMode", string(definition, "temporary_stack_mode", "REPLACE")), TemporaryStackMode.REPLACE),
+                bool(definition, "parentAttribute", bool(definition, "parent_attribute", false)),
+                childBonuses(definition.containsKey("childBonuses") ? definition.get("childBonuses") : definition.get("child_bonuses"))
         );
     }
 
@@ -82,6 +87,21 @@ final class ScriptAttributeDefinitionParser {
             }
         }
         return List.copyOf(result);
+    }
+
+    private static Map<String, Double> childBonuses(Object value) {
+        if (!(value instanceof Map<?, ?> map) || map.isEmpty()) {
+            return Map.of();
+        }
+        java.util.Map<String, Double> result = new java.util.LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            String id = Texts.normalizeId(Texts.toStringSafe(entry.getKey()));
+            if (Texts.isBlank(id)) {
+                continue;
+            }
+            result.put(id, number(entry.getValue(), 0D));
+        }
+        return Map.copyOf(result);
     }
 
     private static <T extends Enum<T>> T enumValue(Class<T> type, String raw, T fallback) {

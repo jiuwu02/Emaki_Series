@@ -12,6 +12,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -26,21 +27,26 @@ import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 public final class CombatDamageListener implements Listener {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
     private final CombatDebugHandler debugHandler;
+    private final ExecutionDispatcher executionDispatcher;
 
-    public CombatDamageListener(EmakiAttributePlugin plugin, AttributeService attributeService, CombatDebugHandler debugHandler) {
+    public CombatDamageListener(EmakiAttributePlugin plugin,
+            AttributeService attributeService,
+            CombatDebugHandler debugHandler,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.attributeService = attributeService;
         this.debugHandler = debugHandler;
+        this.executionDispatcher = executionDispatcher;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
         if (!(event.getEntity() instanceof Projectile projectile)) {
             return;
@@ -48,11 +54,6 @@ public final class CombatDamageListener implements Listener {
         Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
         if (shooter instanceof LivingEntity livingEntity) {
             Player playerShooter = livingEntity instanceof Player player ? player : null;
-            if (isAttackCoolingDown(playerShooter, livingEntity, null, projectile,
-                    "PROJECTILE_LAUNCH_BLOCKED", "combat_debug.projectile_launch_blocked", "shooter")) {
-                event.setCancelled(true);
-                return;
-            }
             var snapshot = attributeService.snapshotProjectile(projectile, livingEntity);
             if (debugHandler.shouldDebugCombat(livingEntity, null, projectile)) {
                 debugHandler.debugCombat(livingEntity, null, projectile, "PROJECTILE_LAUNCH", "combat_debug.projectile_launch_snapshot_written", Map.of(
@@ -61,7 +62,7 @@ public final class CombatDamageListener implements Listener {
                         "signature", snapshot == null ? "<none>" : snapshot.sourceSignature()
                 ));
             }
-            if (playerShooter != null) {
+            if (playerShooter != null && !attributeService.isAttackCoolingDown(playerShooter)) {
                 attributeService.startAttackCooldown(
                         playerShooter,
                         snapshot == null ? null : snapshot.attackSnapshot(),
@@ -69,6 +70,22 @@ public final class CombatDamageListener implements Listener {
                 );
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onProjectileHitEntity(ProjectileHitEvent event) {
+        if (!attributeService.config().sameSignatureIgnoresInvulnerabilityEnabled()
+                || !(event.getHitEntity() instanceof LivingEntity target)) {
+            return;
+        }
+        Projectile projectile = event.getEntity();
+        var snapshot = attributeService.readProjectileSnapshot(projectile);
+        if (snapshot == null
+                || !attributeService.attackBatchInvulnerabilityGate().matchesCurrentBatch(target, snapshot)) {
+            return;
+        }
+        target.setNoDamageTicks(0);
+        target.setLastDamage(0D);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -99,14 +116,15 @@ public final class CombatDamageListener implements Listener {
             return;
         }
         EntityDamageEvent.DamageCause cause = event.getCause();
-        if (attributeService.config().vanillaEventDamageEnabled()) {
-            handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
-            return;
-        }
         if (cause == EntityDamageEvent.DamageCause.PROJECTILE) {
             if (damager instanceof Projectile projectile) {
                 Entity shooter = projectile.getShooter() instanceof Entity entity ? entity : null;
                 LivingEntity shootingEntity = shooter instanceof LivingEntity livingEntity ? livingEntity : null;
+                if (!attributeService.config().vanillaEventDamageEnabled()
+                        && attributeService.config().damageCauseRule(cause.name()) == null) {
+                    handleEnvironmentalDamage(event, target, shootingEntity);
+                    return;
+                }
                 if (debugHandler.shouldDebugCombat(shootingEntity, target, projectile)) {
                     debugHandler.debugCombat(shootingEntity, target, projectile, "PROJECTILE_HIT", "combat_debug.projectile_hit_intercept", Map.of(
                             "shooter", debugHandler.describeEntity(shootingEntity),
@@ -117,25 +135,25 @@ public final class CombatDamageListener implements Listener {
                             "vanilla_final", debugHandler.formatNumber(event.getFinalDamage())
                     ));
                 }
-                Player playerShooter = shooter instanceof Player player ? player : null;
-                if (isAttackCoolingDown(playerShooter, shootingEntity, target, projectile,
-                        "PROJECTILE_HIT_BLOCKED", "combat_debug.projectile_hit_blocked", "shooter")) {
-                    event.setCancelled(true);
-                    return;
-                }
-                event.setCancelled(true);
                 DamageContextVariables context = CombatSupport.baseContext(event, target);
                 DamageContext damageContext = createProjectileDamageContext(event, projectile, target, context);
                 if (damageContext == null) {
                     debugHandler.debugCombat(shootingEntity, target, projectile, "PROJECTILE_RESOLVE_EMPTY", "combat_debug.projectile_resolve_empty");
+                    handleEnvironmentalDamage(event, target, shootingEntity);
                     return;
                 }
+                if (attributeService.config().vanillaEventDamageEnabled()) {
+                    applyPerfectTakeover(event, damageContext, shootingEntity, target, projectile, projectile);
+                    return;
+                }
+                event.setCancelled(true);
                 resolveAndApplyDamage(
                         attributeService.resolveDamageApplicationAsync(damageContext),
                         shootingEntity,
                         target,
                         projectile,
                         projectile,
+                        event.getFinalDamage(),
                         "PROJECTILE_RESOLVE_EMPTY",
                         "combat_debug.projectile_resolve_empty",
                         "PROJECTILE_RESOLVED",
@@ -146,6 +164,20 @@ public final class CombatDamageListener implements Listener {
                 return;
             }
             handleEnvironmentalDamage(event, target, damager instanceof LivingEntity livingEntity ? livingEntity : null);
+            return;
+        }
+        if (attributeService.config().vanillaEventDamageEnabled()) {
+            LivingEntity takeoverAttacker = damager instanceof LivingEntity livingEntity ? livingEntity : null;
+            if ((cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK
+                    || cause == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)
+                    && isMeleeAttackCoolingDown(
+                            takeoverAttacker instanceof Player player ? player : null,
+                            takeoverAttacker,
+                            target)) {
+                event.setCancelled(true);
+                return;
+            }
+            handleEnvironmentalDamage(event, target, takeoverAttacker);
             return;
         }
         if (cause == EntityDamageEvent.DamageCause.ENTITY_ATTACK || cause == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
@@ -161,8 +193,7 @@ public final class CombatDamageListener implements Listener {
                     ));
                 }
                 Player attackingPlayer = attacker instanceof Player player ? player : null;
-                if (isAttackCoolingDown(attackingPlayer, attacker, target, null,
-                        "MELEE_HIT_BLOCKED", "combat_debug.melee_hit_blocked", "attacker")) {
+                if (isMeleeAttackCoolingDown(attackingPlayer, attacker, target)) {
                     event.setCancelled(true);
                     return;
                 }
@@ -178,6 +209,7 @@ public final class CombatDamageListener implements Listener {
                         target,
                         null,
                         damager,
+                        event.getFinalDamage(),
                         "MELEE_RESOLVE_EMPTY",
                         "combat_debug.melee_resolve_empty",
                         "MELEE_RESOLVED",
@@ -274,6 +306,7 @@ public final class CombatDamageListener implements Listener {
                 target,
                 null,
                 attacker,
+                event.getFinalDamage(),
                 "ENVIRONMENT_RESOLVE_EMPTY",
                 "combat_debug.environment_resolve_empty",
                 "ENVIRONMENT_ASYNC_RESOLVED",
@@ -303,7 +336,21 @@ public final class CombatDamageListener implements Listener {
             }
             return;
         }
-        attributeService.perfectTakeoverCoordinator().claimAndApply(event, resolvedDamage, visualSource);
+        var invulnerabilityGate = attributeService.attackBatchInvulnerabilityGate();
+        boolean bypassInvulnerability = invulnerabilityGate.shouldBypass(target, damageContext);
+        attributeService.perfectTakeoverCoordinator().claimAndApply(
+                event,
+                resolvedDamage,
+                visualSource,
+                bypassInvulnerability);
+        if (bypassInvulnerability && debugHandler.shouldDebugCombat(attacker, target, projectile)) {
+            debugHandler.debugCombat(attacker, target, projectile, "INVULNERABILITY_BYPASSED", "combat_debug.invulnerability_bypassed", Map.of(
+                    "target", debugHandler.describeEntity(target),
+                    "reason", "same_attacker_snapshot_and_damage_type",
+                    "batch_signature", invulnerabilityGate.batchKey(damageContext),
+                    "window_ms", invulnerabilityGate.windowMs()
+            ));
+        }
         if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
             debugHandler.debugCombat(attacker, target, projectile, "PERFECT_TAKEOVER_APPLIED", "combat_debug.perfect_takeover_applied", Map.of(
                     "cause", event.getCause().name(),
@@ -326,26 +373,13 @@ public final class CombatDamageListener implements Listener {
         context.put("fall_damage_formula", fallDamageFormula);
     }
 
-    private void scheduleDamageApplication(Runnable action) {
-        if (action == null) {
-            return;
-        }
-        FoliaSchedulerAdapter.runTask(plugin, action);
-    }
-
-    private boolean isAttackCoolingDown(Player player,
-            LivingEntity attacker,
-            LivingEntity target,
-            Projectile projectile,
-            String phase,
-            String messageKey,
-            String entityKey) {
+    private boolean isMeleeAttackCoolingDown(Player player, LivingEntity attacker, LivingEntity target) {
         if (player == null || !attributeService.isAttackCoolingDown(player)) {
             return false;
         }
-        if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
-            debugHandler.debugCombat(attacker, target, projectile, phase, messageKey, Map.of(
-                    entityKey, debugHandler.describeEntity(attacker)
+        if (debugHandler.shouldDebugCombat(attacker, target, null)) {
+            debugHandler.debugCombat(attacker, target, null, "MELEE_HIT_BLOCKED", "combat_debug.melee_hit_blocked", Map.of(
+                    "attacker", debugHandler.describeEntity(attacker)
             ));
         }
         return true;
@@ -390,14 +424,16 @@ public final class CombatDamageListener implements Listener {
         var attackerSnapshot = snapshot.attackSnapshot();
         var targetSnapshot = attributeService.collectCombatSnapshot(target);
         String damageTypeId = snapshot.damageTypeId();
+        double sourceDamage = event.getDamage();
+        double baseDamage = attributeService.config().vanillaEventDamageEnabled() ? sourceDamage : 0D;
         return attributeService.createDamageContext(
                 shooter,
                 target,
                 projectile,
                 event.getCause(),
                 damageTypeId,
-                event.getDamage(),
-                0D,
+                sourceDamage,
+                baseDamage,
                 attackerSnapshot,
                 targetSnapshot,
                 context
@@ -409,6 +445,7 @@ public final class CombatDamageListener implements Listener {
             LivingEntity target,
             Projectile projectile,
             Entity visualSource,
+            double fallbackDamage,
             String emptyPhase,
             String emptyMessageKey,
             String resolvedPhase,
@@ -417,29 +454,77 @@ public final class CombatDamageListener implements Listener {
             String applyMessageKey) {
         if (future == null) {
             debugHandler.debugCombat(attacker, target, projectile, emptyPhase, emptyMessageKey);
+            applyFallbackDamage(target, fallbackDamage);
             return;
         }
-        future.whenComplete((resolvedDamage, throwable) -> scheduleDamageApplication(() -> {
-            if (throwable != null) {
-                if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
-                    debugHandler.debugCombat(attacker, target, projectile, "ASYNC_DAMAGE_FAILED", "combat_debug.async_damage_failed", Map.of(
-                            "error", CombatSupport.rootCauseMessage(throwable)
-                    ));
-                }
-                return;
-            }
+        future.thenCompose(resolvedDamage -> {
             if (resolvedDamage == null) {
                 debugHandler.debugCombat(attacker, target, projectile, emptyPhase, emptyMessageKey);
-                return;
+                return applyFallbackDamage(target, fallbackDamage);
             }
-            if (debugHandler.shouldDebugCombat(attacker, target, projectile)) {
-                debugHandler.debugCombat(attacker, target, projectile, resolvedPhase, resolvedMessageKey, Map.of(
-                        "resolved", debugHandler.describeResolvedDamage(resolvedDamage)
-                ));
-            }
-            CombatSupport.applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage(), attributeService.config());
+            debugHandler.debugCombat(attacker, target, projectile, resolvedPhase, resolvedMessageKey, Map.of(
+                    "resolved", debugHandler.describeResolvedDamage(resolvedDamage)
+            ));
             debugHandler.debugCombat(attacker, target, projectile, applyPhase, applyMessageKey);
-            attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
-        }));
+            return attributeService.applyResolvedDamageAsync(resolvedDamage, visualSource, 0D);
+        }).whenComplete((applied, throwable) -> {
+            if (throwable != null) {
+                debugHandler.debugCombat(attacker, target, projectile, "ASYNC_DAMAGE_FAILED", "combat_debug.async_damage_failed", Map.of(
+                        "error", CombatSupport.rootCauseMessage(throwable)
+                ));
+                applyFallbackDamage(target, fallbackDamage);
+            }
+        });
+    }
+
+    private CompletableFuture<Boolean> applyFallbackDamage(LivingEntity target, double damage) {
+        if (target == null || damage <= 0D) {
+            return CompletableFuture.completedFuture(false);
+        }
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            ExecutionDispatcher dispatcher = executionDispatcher != null ? executionDispatcher : plugin.executionDispatcher();
+            if (dispatcher == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "Fallback damage dispatcher is unavailable."));
+                return future;
+            }
+            var scheduled = dispatcher.runEntity(
+                    plugin,
+                    target,
+                    () -> {
+                        if (!target.isValid() || target.isDead()) {
+                            future.complete(false);
+                            return;
+                        }
+                        try {
+                            target.setNoDamageTicks(0);
+                            double remaining = Math.max(0D, damage);
+                            double absorption = Math.max(0D, target.getAbsorptionAmount());
+                            if (absorption > 0D) {
+                                double absorbed = Math.min(absorption, remaining);
+                                target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
+                                remaining -= absorbed;
+                            }
+                            target.setLastDamage(damage);
+                            if (remaining > 0D) {
+                                target.setHealth(Math.max(0D, target.getHealth() - remaining));
+                            }
+                            future.complete(true);
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    },
+                    () -> future.completeExceptionally(new IllegalStateException(
+                            "Fallback damage entity retired before execution."))
+            );
+            if (scheduled == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "Fallback damage scheduling was rejected."));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
     }
 }

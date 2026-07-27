@@ -23,6 +23,6 @@ public final class DefaultEmakiForgeApi implements EmakiForgeApi.Bridge {
 
     @Override
     public boolean isReady() {
-        return plugin.isEnabled() && plugin.forgeService() != null;
+        return plugin.isEnabled() && plugin.isRuntimeReady();
     }
 }

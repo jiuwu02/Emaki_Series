@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.corelib.action;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -41,6 +43,26 @@ public interface Action {
     @NotNull
     default ActionExecutionMode executionMode() {
         return ActionExecutionMode.SYNC;
+    }
+
+
+
+
+
+
+
+
+    default ActionExecutionTarget executionTarget(ActionPlanningContext context) {
+        if (executionMode() == ActionExecutionMode.ASYNC_IO) {
+            return ActionExecutionTarget.async();
+        }
+        return contextualTarget(context == null ? null : context.actionContext());
+    }
+
+    static ActionExecutionTarget contextualTarget(ActionContext context) {
+        return context != null && context.player() != null
+                ? ActionExecutionTarget.entity(context.player())
+                : ActionExecutionTarget.global();
     }
 
     default long timeoutMillis() {
@@ -84,5 +106,16 @@ public interface Action {
     }
 
     @NotNull
+    default CompletionStage<ActionResult> validateAsync(@NotNull Map<String, String> arguments) {
+        return CompletableFuture.completedFuture(validate(arguments));
+    }
+
+    @NotNull
     ActionResult execute(@NotNull ActionContext context, @NotNull Map<String, String> arguments);
+
+    @NotNull
+    default CompletionStage<ActionResult> executeAsync(@NotNull ActionContext context,
+            @NotNull Map<String, String> arguments) {
+        return CompletableFuture.completedFuture(execute(context, arguments));
+    }
 }

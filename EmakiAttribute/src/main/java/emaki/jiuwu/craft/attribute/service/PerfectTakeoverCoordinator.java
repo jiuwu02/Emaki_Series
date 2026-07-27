@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -13,7 +14,7 @@ import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 
 public final class PerfectTakeoverCoordinator implements Listener {
 
-    public record Pending(ResolvedDamage resolvedDamage, Entity visualSource) {
+    public record Pending(ResolvedDamage resolvedDamage) {
     }
 
     private final AttributeService service;
@@ -28,13 +29,21 @@ public final class PerfectTakeoverCoordinator implements Listener {
     }
 
     @SuppressWarnings("deprecation")
-    public void claimAndApply(EntityDamageEvent event, ResolvedDamage resolvedDamage, Entity visualSource) {
+    public void claimAndApply(EntityDamageEvent event,
+            ResolvedDamage resolvedDamage,
+            Entity visualSource,
+            boolean bypassInvulnerability) {
         if (event == null || resolvedDamage == null) {
             return;
         }
+        if (bypassInvulnerability && event.getEntity() instanceof LivingEntity livingEntity) {
+            zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.INVULNERABILITY_REDUCTION);
+            livingEntity.setNoDamageTicks(0);
+            livingEntity.setLastDamage(0D);
+        }
         neutralizeVanillaMitigation(event);
         event.setDamage(EntityDamageEvent.DamageModifier.BASE, resolvedDamage.finalDamage());
-        pending.put(event, new Pending(resolvedDamage, visualSource));
+        pending.put(event, new Pending(resolvedDamage));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -46,7 +55,7 @@ public final class PerfectTakeoverCoordinator implements Listener {
         if (event.isCancelled() || event.getFinalDamage() <= 0D) {
             return;
         }
-        service.applyDamageSideEffects(claimed.resolvedDamage(), claimed.visualSource());
+        service.applyDamageSideEffectsAsync(claimed.resolvedDamage()).exceptionally(throwable -> false);
     }
 
     private void neutralizeVanillaMitigation(EntityDamageEvent event) {

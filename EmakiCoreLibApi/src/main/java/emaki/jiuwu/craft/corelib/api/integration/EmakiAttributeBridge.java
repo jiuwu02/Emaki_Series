@@ -5,6 +5,16 @@ import java.util.Map;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
+/**
+ * Legacy CoreLib mirror of EmakiAttribute's gameplay bridge.
+ *
+ * @deprecated Superseded by {@code emaki.jiuwu.craft.attribute.api.EmakiAttributeApi}
+ *             in EmakiAttributeApi, which is the canonical contract. The only
+ *             remaining implementation is EmakiAttribute's compatibility adapter,
+ *             which merely delegates to that facade. Retained for one synchronized
+ *             release window and removed afterwards.
+ */
+@Deprecated(forRemoval = true)
 public interface EmakiAttributeBridge {
 
     boolean available();

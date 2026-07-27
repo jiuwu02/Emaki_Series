@@ -30,7 +30,9 @@ abstract class BaseRecipeLoader extends YamlDirectoryLoader<RecipeDocument> {
 
     @Override
     protected final String typeName() {
-        return stationType.displayName() + "配方";
+        return localized("loader.type.recipe", Map.of(
+                "station", localized("loader.station." + stationType.folderName())
+        ));
     }
 
     @Override
@@ -39,7 +41,7 @@ abstract class BaseRecipeLoader extends YamlDirectoryLoader<RecipeDocument> {
             issue("loader.load_failed", Map.of(
                     "type", typeName(),
                     "file", file.getName(),
-                    "error", "Empty document"
+                    "error", localized("loader.error.empty_document")
             ));
             return null;
         }
@@ -48,7 +50,7 @@ abstract class BaseRecipeLoader extends YamlDirectoryLoader<RecipeDocument> {
                 issue("loader.load_failed", Map.of(
                         "type", typeName(),
                         "file", file.getName(),
-                        "error", "Missing field: " + path
+                        "error", localized("loader.error.missing_field", Map.of("path", path))
                 ));
                 return null;
             }

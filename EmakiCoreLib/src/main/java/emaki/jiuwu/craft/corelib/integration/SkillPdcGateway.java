@@ -1,107 +1,80 @@
 package emaki.jiuwu.craft.corelib.integration;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
-import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
-import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
 
+@Deprecated(since = "4.5.21", forRemoval = true)
 public final class SkillPdcGateway {
 
-    private static final NamespacedKey SKILL_IDS_KEY = new NamespacedKey("emaki_skills", "item.skills.ids");
-    private static final NamespacedKey SKILL_ACTIVE_SLOT_KEY = new NamespacedKey("emaki_skills", "item.skills.active_slot");
+    private final DebugLogger debugLogger;
+
+    public SkillPdcGateway() {
+        this(null);
+    }
+
+    public SkillPdcGateway(DebugLogger debugLogger) {
+        this.debugLogger = debugLogger;
+    }
 
     public void write(ItemStack itemStack, Collection<String> skillIds) {
-        write(itemStack, skillIds, EquipmentSlotMatcher.SLOT_ALL);
+        observe(itemStack, EquipmentSkillPdcCodec.write(itemStack, skillIds));
     }
 
     public void write(ItemStack itemStack, Collection<String> skillIds, String activeSlot) {
-        if (itemStack == null) {
-            return;
-        }
-        List<String> normalized = normalize(skillIds);
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (itemMeta == null) {
-            return;
-        }
-        if (normalized.isEmpty()) {
-            if (!hasSkillPayload(itemMeta)) {
-                return;
-            }
-            itemMeta.getPersistentDataContainer().remove(SKILL_IDS_KEY);
-            itemMeta.getPersistentDataContainer().remove(SKILL_ACTIVE_SLOT_KEY);
-            itemStack.setItemMeta(itemMeta);
-            return;
-        }
-        itemMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, String.join(";", normalized));
-        itemMeta.getPersistentDataContainer().set(
-                SKILL_ACTIVE_SLOT_KEY,
-                PersistentDataType.STRING,
-                EquipmentSlotMatcher.normalizeRequired(activeSlot)
-        );
-        itemStack.setItemMeta(itemMeta);
+        observe(itemStack, EquipmentSkillPdcCodec.write(itemStack, skillIds, activeSlot, Map.of()));
+    }
+
+    public void write(
+            ItemStack itemStack,
+            Collection<String> skillIds,
+            String activeSlot,
+            Map<String, String> boundTriggers) {
+        observe(itemStack, EquipmentSkillPdcCodec.write(itemStack, skillIds, activeSlot, boundTriggers));
     }
 
     public void clear(ItemStack itemStack) {
-        write(itemStack, List.of());
+        observe(itemStack, EquipmentSkillPdcCodec.clear(itemStack));
+    }
+
+    public List<String> readSkillIds(ItemStack itemStack) {
+        return EquipmentSkillPdcCodec.read(itemStack).skillIds();
+    }
+
+    public String readActiveSlot(ItemStack itemStack) {
+        return EquipmentSkillPdcCodec.read(itemStack).activeSlot();
+    }
+
+    public Map<String, String> readBoundTriggers(ItemStack itemStack) {
+        return EquipmentSkillPdcCodec.read(itemStack).boundTriggers();
     }
 
     public void copy(ItemStack original, ItemStack rebuilt) {
-        if (original == null || rebuilt == null) {
-            return;
-        }
-        ItemMeta originalMeta = original.getItemMeta();
-        ItemMeta rebuiltMeta = rebuilt.getItemMeta();
-        if (originalMeta == null || rebuiltMeta == null) {
-            return;
-        }
-        String raw = originalMeta.getPersistentDataContainer().get(SKILL_IDS_KEY, PersistentDataType.STRING);
-        String activeSlot = originalMeta.getPersistentDataContainer().get(SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING);
-        if (Texts.isBlank(raw)) {
-            if (!hasSkillPayload(rebuiltMeta)) {
-                return;
-            }
-            rebuiltMeta.getPersistentDataContainer().remove(SKILL_IDS_KEY);
-            rebuiltMeta.getPersistentDataContainer().remove(SKILL_ACTIVE_SLOT_KEY);
-            rebuilt.setItemMeta(rebuiltMeta);
-            return;
-        }
-        rebuiltMeta.getPersistentDataContainer().set(SKILL_IDS_KEY, PersistentDataType.STRING, raw);
-        rebuiltMeta.getPersistentDataContainer().set(
-                SKILL_ACTIVE_SLOT_KEY,
-                PersistentDataType.STRING,
-                EquipmentSlotMatcher.normalizeRequired(activeSlot)
-        );
-        rebuilt.setItemMeta(rebuiltMeta);
+        observe(rebuilt, EquipmentSkillPdcCodec.copy(original, rebuilt));
     }
 
-    private boolean hasSkillPayload(ItemMeta itemMeta) {
-        return itemMeta != null
-                && (itemMeta.getPersistentDataContainer().get(SKILL_IDS_KEY, PersistentDataType.STRING) != null
-                || itemMeta.getPersistentDataContainer().get(SKILL_ACTIVE_SLOT_KEY, PersistentDataType.STRING) != null);
+    private void observe(ItemStack itemStack, SkillPdcMutation mutation) {
+        if (!isDebugEnabled() || mutation == null) {
+            return;
+        }
+        debugLogger.log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+                "operation", mutation.operation(),
+                "item", itemStack == null ? "null" : itemStack.getType(),
+                "amount", itemStack == null ? 0 : itemStack.getAmount(),
+                "before", mutation.before().values(),
+                "after", mutation.after().values(),
+                "committed", mutation.committed(),
+                "reason", mutation.reason()
+        ));
     }
 
-    private List<String> normalize(Collection<String> skillIds) {
-        if (skillIds == null || skillIds.isEmpty()) {
-            return List.of();
-        }
-        Set<String> values = new LinkedHashSet<>();
-        for (String skillId : skillIds) {
-            String normalized = Texts.normalizeId(skillId);
-            if (Texts.isNotBlank(normalized)) {
-                values.add(normalized);
-            }
-        }
-        List<String> result = new ArrayList<>(values);
-        result.sort(String::compareTo);
-        return result;
+    private boolean isDebugEnabled() {
+        return debugLogger != null && debugLogger.shouldLog("pdc", (java.util.UUID) null);
     }
 }

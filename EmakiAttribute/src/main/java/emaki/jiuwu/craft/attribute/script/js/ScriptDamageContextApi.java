@@ -1,91 +1,240 @@
 package emaki.jiuwu.craft.attribute.script.js;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.bukkit.entity.LivingEntity;
 import org.graalvm.polyglot.HostAccess;
 
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.DamageContext;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.DamageResult;
 import emaki.jiuwu.craft.corelib.api.script.ScriptServerApi.ScriptEntityApi;
+import emaki.jiuwu.craft.corelib.script.ScriptEntitySnapshot;
+import emaki.jiuwu.craft.corelib.script.ScriptEntitySnapshot.EntityView;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.text.Texts;
+
 
 public final class ScriptDamageContextApi {
 
-    private final DamageContext context;
+    private final EntityView source;
+    private final EntityView target;
+    private final EntityView projectile;
+    private final ScriptEntityApi sourceApi;
+    private final ScriptEntityApi targetApi;
+    private final ScriptEntityApi projectileApi;
+    private DamageContext legacyContext;
+    private final CauseView cause;
+    private final String damageType;
+    private final double sourceDamage;
+    private final double baseDamage;
+    private final double originalRoll;
+    private final Map<String, Double> attackerSnapshot;
+    private final Map<String, Double> targetSnapshot;
     private final Map<String, Object> variables;
-    private boolean cancelled;
+    private final boolean targetPlayer;
+    private final Map<String, Boolean> flags = new LinkedHashMap<>();
+    private final List<MessageIntent> messages = new ArrayList<>();
     private double damage;
-    private boolean damageSet;
-    private boolean critical;
+    private double targetHealingAmount;
+    private double attackerHealingAmount;
     private double recovery;
+    private boolean cancelled;
+    private boolean critical;
 
     public ScriptDamageContextApi(DamageContext context) {
-        this.context = context == null ? DamageContext.empty() : context;
-        this.variables = new LinkedHashMap<>(this.context.context());
+        this(
+                ScriptEntitySnapshot.capture(context == null ? null : context.attacker()),
+                ScriptEntitySnapshot.capture(context == null ? null : context.target()),
+                ScriptEntitySnapshot.capture(context == null ? null : context.projectile()),
+                context == null ? "" : context.causeName(),
+                context == null ? "" : context.damageTypeId(),
+                context == null ? 0D : context.sourceDamage(),
+                context == null ? 0D : context.baseDamage(),
+                context == null ? Map.of() : context.attackerSnapshot().values(),
+                context == null ? Map.of() : context.targetSnapshot().values(),
+                context == null ? Map.of() : context.variables().asMap(),
+                context != null && context.target() instanceof org.bukkit.entity.Player
+        );
+        this.legacyContext = context == null ? DamageContext.empty() : context;
+    }
+
+    public ScriptDamageContextApi(
+            EntityView source,
+            EntityView target,
+            EntityView projectile,
+            String cause,
+            String damageType,
+            double sourceDamage,
+            double damage,
+            Map<String, Double> attackerSnapshot,
+            Map<String, Double> targetSnapshot,
+            Map<String, ?> variables,
+            boolean targetPlayer) {
+        this(source, target, projectile, cause, damageType, sourceDamage, damage,
+                numberValue(variables == null ? null : variables.get("roll"), 0D),
+                attackerSnapshot, targetSnapshot, variables, targetPlayer);
+    }
+
+    public ScriptDamageContextApi(
+            EntityView source,
+            EntityView target,
+            EntityView projectile,
+            String cause,
+            String damageType,
+            double sourceDamage,
+            double damage,
+            double originalRoll,
+            Map<String, Double> attackerSnapshot,
+            Map<String, Double> targetSnapshot,
+            Map<String, ?> variables,
+            boolean targetPlayer) {
+        this.source = source == null ? EntityView.empty() : source;
+        this.target = target == null ? EntityView.empty() : target;
+        this.projectile = projectile == null ? EntityView.empty() : projectile;
+        this.sourceApi = new ScriptEntityApi(this.source);
+        this.targetApi = new ScriptEntityApi(this.target);
+        this.projectileApi = new ScriptEntityApi(this.projectile);
+        this.cause = new CauseView(cause);
+        this.damageType = damageType == null ? "" : damageType;
+        this.sourceDamage = sourceDamage;
+        this.baseDamage = Math.max(0D, damage);
+        this.originalRoll = Double.isFinite(originalRoll) ? originalRoll : 0D;
+        this.damage = this.baseDamage;
+        this.attackerSnapshot = immutableDoubleMap(attackerSnapshot);
+        this.targetSnapshot = immutableDoubleMap(targetSnapshot);
+        this.variables = variables == null
+                ? new LinkedHashMap<>()
+                : new LinkedHashMap<>(ScriptSnapshots.immutableMap(variables));
+        this.targetPlayer = targetPlayer;
+    }
+
+    @HostAccess.Export
+    public EntityView source() {
+        return source;
     }
 
     @HostAccess.Export
     public ScriptEntityApi attacker() {
-        return new ScriptEntityApi(context.attacker());
+        return sourceApi;
     }
 
     @HostAccess.Export
     public ScriptEntityApi target() {
-        return new ScriptEntityApi(context.target());
+        return targetApi;
     }
 
     @HostAccess.Export
     public ScriptEntityApi projectile() {
-        return new ScriptEntityApi(context.projectile());
+        return projectileApi;
     }
 
     @HostAccess.Export
-    public String damageTypeId() {
-        return context.damageTypeId();
+    public EntityView attackerView() {
+        return source;
+    }
+
+    @HostAccess.Export
+    public EntityView targetView() {
+        return target;
+    }
+
+    @HostAccess.Export
+    public EntityView projectileView() {
+        return projectile;
     }
 
     @HostAccess.Export
     public String cause() {
-        return context.causeName();
+        return cause.name();
+    }
+
+    @HostAccess.Export
+    public CauseView causeView() {
+        return cause;
+    }
+
+    @HostAccess.Export
+    public String damageType() {
+        return damageType;
+    }
+
+    @HostAccess.Export
+    public String damageTypeId() {
+        return damageType;
     }
 
     @HostAccess.Export
     public double sourceDamage() {
-        return context.sourceDamage();
+        return sourceDamage;
     }
 
     @HostAccess.Export
     public double baseDamage() {
-        return context.baseDamage();
+        return baseDamage;
     }
 
     @HostAccess.Export
-    public double attackerAttribute(String attributeId) {
-        return attributeValue(context.attackerSnapshot(), attributeId);
+    public double damage() {
+        return damage;
     }
 
     @HostAccess.Export
-    public double targetAttribute(String attributeId) {
-        return attributeValue(context.targetSnapshot(), attributeId);
+    public void setDamage(double damage) {
+        this.damage = Math.max(0D, damage);
+    }
+
+    @HostAccess.Export
+    public double addDamage(double amount) {
+        setDamage(this.damage + amount);
+        return this.damage;
+    }
+
+    @HostAccess.Export
+    public double multiplyDamage(double multiplier) {
+        setDamage(this.damage * multiplier);
+        return this.damage;
+    }
+
+    @HostAccess.Export
+    public Map<String, Double> attackerSnapshot() {
+        return attackerSnapshot;
     }
 
     @HostAccess.Export
     public Map<String, Double> attackerAttributes() {
-        return context.attackerSnapshot().values();
+        return attackerSnapshot;
+    }
+
+    @HostAccess.Export
+    public double attackerAttribute(String attributeId) {
+        return attributeValue(attackerSnapshot, attributeId);
+    }
+
+    @HostAccess.Export
+    public Map<String, Double> targetSnapshot() {
+        return targetSnapshot;
     }
 
     @HostAccess.Export
     public Map<String, Double> targetAttributes() {
-        return context.targetSnapshot().values();
+        return targetSnapshot;
+    }
+
+    @HostAccess.Export
+    public double targetAttribute(String attributeId) {
+        return attributeValue(targetSnapshot, attributeId);
+    }
+
+    @HostAccess.Export
+    public Map<String, Object> variables() {
+        return ScriptSnapshots.immutableMap(variables);
     }
 
     @HostAccess.Export
     public Object variable(String key) {
-        return variables.get(key);
+        return Texts.isBlank(key) ? null : variables.get(Texts.normalizeId(key));
     }
 
     @HostAccess.Export
@@ -93,23 +242,46 @@ public final class ScriptDamageContextApi {
         if (Texts.isBlank(key)) {
             return;
         }
+        String normalized = Texts.normalizeId(key);
         if (value == null) {
-            variables.remove(key);
+            variables.remove(normalized);
         } else {
-            variables.put(key, value);
+            variables.put(normalized, ScriptSnapshots.immutableValue(value));
         }
     }
 
     @HostAccess.Export
-    public Map<String, Object> variables() {
-        return Map.copyOf(variables);
+    public double variable(String key, double fallback) {
+        Object value = variables.get(key);
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        try {
+            return value == null ? fallback : Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    @HostAccess.Export
+    public void flag(String key, boolean value) {
+        if (!Texts.isBlank(key)) {
+            flags.put(Texts.trim(key), value);
+            if ("critical".equalsIgnoreCase(Texts.trim(key))) {
+                critical = value;
+            }
+        }
+    }
+
+    @HostAccess.Export
+    public boolean flag(String key) {
+        return Boolean.TRUE.equals(flags.get(Texts.trim(key)));
     }
 
     @HostAccess.Export
     public void cancel() {
         cancelled = true;
-        damage = 0D;
-        damageSet = true;
+        setDamage(0D);
     }
 
     @HostAccess.Export
@@ -118,19 +290,9 @@ public final class ScriptDamageContextApi {
     }
 
     @HostAccess.Export
-    public void setDamage(double value) {
-        damage = Math.max(0D, value);
-        damageSet = true;
-    }
-
-    @HostAccess.Export
-    public double damage() {
-        return damageSet ? damage : context.baseDamage();
-    }
-
-    @HostAccess.Export
     public void setCritical(boolean value) {
         critical = value;
+        flag("critical", value);
     }
 
     @HostAccess.Export
@@ -140,7 +302,7 @@ public final class ScriptDamageContextApi {
 
     @HostAccess.Export
     public void setRecovery(double value) {
-        recovery = Math.max(0D, value);
+        recovery = finitePositive(value);
     }
 
     @HostAccess.Export
@@ -149,94 +311,204 @@ public final class ScriptDamageContextApi {
     }
 
     @HostAccess.Export
+    public void heal(double amount) {
+        healTarget(amount);
+    }
+
+    @HostAccess.Export
     public void healAttacker(double amount) {
-        heal(context.attacker(), amount);
+        attackerHealingAmount += finitePositive(amount);
     }
 
     @HostAccess.Export
     public void healTarget(double amount) {
-        heal(context.target(), amount);
+        targetHealingAmount += finitePositive(amount);
     }
 
-    public DamageResult toDamageResult(Object rawReturn) {
-        Map<String, Object> output = asMap(rawReturn);
-        boolean success = booleanValue(output.get("success"), true);
-        if (!success || booleanValue(output.get("cancelled"), cancelled)) {
-            return new DamageResult(context.damageTypeId(), 0D, critical, 0D, Map.of("script", 0D), context.withVariables(variables));
+    @HostAccess.Export
+    public void message(String message, Map<String, ?> placeholders) {
+        if (targetPlayer && !Texts.isBlank(message)) {
+            messages.add(new MessageIntent(message, ScriptSnapshots.immutableMap(placeholders)));
         }
-        double finalDamage = number(output.get("damage"), number(output.get("finalDamage"), damage()));
-        boolean resolvedCritical = booleanValue(output.get("critical"), critical);
-        double resolvedRecovery = number(output.get("recovery"), recovery);
-        if (resolvedRecovery > 0D) {
-            heal(context.attacker(), resolvedRecovery);
+    }
+
+    public double healingAmount() {
+        return targetHealingAmount;
+    }
+
+    public double attackerHealingAmount() {
+        return attackerHealingAmount + recovery;
+    }
+
+    public List<MessageIntent> messages() {
+        return List.copyOf(messages);
+    }
+
+    public ResultSnapshot toResultSnapshot(Object returnValue) {
+        if (returnValue instanceof Number number) {
+            setDamage(number.doubleValue());
+        } else if (returnValue instanceof Boolean bool && !bool) {
+            cancel();
         }
-        Map<String, Double> stages = new LinkedHashMap<>();
-        stages.put("script", Math.max(0D, finalDamage));
-        Object rawStages = output.get("stageValues");
-        if (!(rawStages instanceof Map<?, ?>)) {
-            rawStages = output.get("stages");
-        }
-        if (rawStages instanceof Map<?, ?> map) {
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                if (entry.getKey() != null) {
-                    stages.put(Texts.normalizeId(entry.getKey().toString()), number(entry.getValue(), 0D));
+        String resolvedDamageType = damageType;
+        boolean resolvedCritical = critical || flag("critical");
+        double resolvedRoll = originalRoll;
+        Map<String, Double> stageValues = new LinkedHashMap<>();
+        Map<String, Object> outputVariables = new LinkedHashMap<>(variables);
+        if (returnValue instanceof Map<?, ?> map) {
+            if (!booleanValue(map.get("success"), true) || booleanValue(map.get("cancelled"), cancelled)) {
+                cancel();
+            }
+            Object damageValue = firstValue(map, "damage", "finalDamage", "final_damage");
+            if (damageValue != null) {
+                setDamage(numberValue(damageValue, damage));
+            }
+            Object typeValue = firstValue(map, "damage_type", "damageTypeId", "damage_type_id");
+            if (typeValue != null && !Texts.isBlank(String.valueOf(typeValue))) {
+                resolvedDamageType = Texts.normalizeId(String.valueOf(typeValue));
+            }
+            resolvedCritical = booleanValue(map.get("critical"), resolvedCritical);
+            resolvedRoll = numberValue(map.get("roll"), resolvedRoll);
+            Object multiplierValue = firstValue(map, "critical_multiplier", "criticalMultiplier");
+            if (multiplierValue != null) {
+                outputVariables.put("critical_multiplier", Math.max(0D, numberValue(multiplierValue, 1D)));
+            }
+            Map<String, Double> defenseTrace = doubleMap(firstValue(map, "defense_trace", "defenseTrace"));
+            if (!defenseTrace.isEmpty()) {
+                outputVariables.put("defense_trace", defenseTrace);
+            }
+            Map<String, Double> returnedStages = doubleMap(firstValue(map, "stage_values", "stageValues", "stages"));
+            stageValues.putAll(returnedStages);
+            Object contextValue = map.get("context");
+            if (contextValue instanceof Map<?, ?> contextMap) {
+                for (Map.Entry<?, ?> entry : contextMap.entrySet()) {
+                    if (entry.getKey() != null && entry.getValue() != null) {
+                        outputVariables.put(Texts.normalizeId(String.valueOf(entry.getKey())),
+                                ScriptSnapshots.immutableValue(entry.getValue()));
+                    }
                 }
             }
+            setRecovery(numberValue(map.get("recovery"), recovery));
         }
-        return new DamageResult(context.damageTypeId(), finalDamage, resolvedCritical, 0D, stages, context.withVariables(variables));
+        double finalDamage = cancelled ? 0D : damage;
+        stageValues.putIfAbsent("script", finalDamage);
+        return new ResultSnapshot(resolvedDamageType, finalDamage, resolvedCritical, resolvedRoll, stageValues, outputVariables);
     }
 
-    private double attributeValue(AttributeSnapshot snapshot, String attributeId) {
+    public DamageResult toDamageResult(Object returnValue) {
+        ResultSnapshot snapshot = toResultSnapshot(returnValue);
+        DamageContext baseContext = legacyContext == null ? DamageContext.empty() : legacyContext;
+        return new DamageResult(
+                snapshot.damageTypeId(),
+                snapshot.finalDamage(),
+                snapshot.critical(),
+                snapshot.roll(),
+                snapshot.stageValues(),
+                baseContext.withVariables(snapshot.variables())
+        );
+    }
+
+    private static Map<String, Double> immutableDoubleMap(Map<String, Double> source) {
+        return source == null || source.isEmpty() ? Map.of() : Map.copyOf(new LinkedHashMap<>(source));
+    }
+
+    private static double attributeValue(Map<String, Double> snapshot, String attributeId) {
         if (snapshot == null || Texts.isBlank(attributeId)) {
             return 0D;
         }
-        return snapshot.values().getOrDefault(Texts.normalizeId(attributeId), 0D);
+        return snapshot.getOrDefault(Texts.normalizeId(attributeId), 0D);
     }
 
-    private void heal(LivingEntity entity, double amount) {
-        if (entity == null || amount <= 0D) {
-            return;
+    private static double finitePositive(double value) {
+        return Double.isFinite(value) ? Math.max(0D, value) : 0D;
+    }
+
+    private static Object firstValue(Map<?, ?> map, String... keys) {
+        if (map == null || keys == null) {
+            return null;
         }
-        entity.setHealth(Math.max(0D, Math.min(entity.getMaxHealth(), entity.getHealth() + amount)));
-    }
-
-    private Map<String, Object> asMap(Object value) {
-        if (value instanceof Map<?, ?> map) {
-            Map<String, Object> result = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                if (entry.getKey() != null) {
-                    result.put(entry.getKey().toString(), entry.getValue());
-                }
+        for (String key : keys) {
+            if (map.containsKey(key)) {
+                return map.get(key);
             }
-            return result;
         }
-        if (value instanceof Number number) {
-            return Map.of("damage", number.doubleValue());
-        }
-        if (value instanceof Boolean bool) {
-            return bool ? Map.of() : Map.of("cancelled", true);
-        }
-        return Map.of();
+        return null;
     }
 
-    private boolean booleanValue(Object value, boolean fallback) {
+    private static Map<String, Double> doubleMap(Object value) {
+        if (!(value instanceof Map<?, ?> map)) {
+            return Map.of();
+        }
+        Map<String, Double> parsed = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (entry.getKey() == null) {
+                continue;
+            }
+            double number = numberValue(entry.getValue(), Double.NaN);
+            if (Double.isFinite(number)) {
+                parsed.put(Texts.normalizeId(String.valueOf(entry.getKey())), number);
+            }
+        }
+        return parsed.isEmpty() ? Map.of() : Map.copyOf(parsed);
+    }
+
+    private static boolean booleanValue(Object value, boolean fallback) {
         if (value instanceof Boolean bool) {
             return bool;
         }
-        if (value instanceof String string) {
-            return Boolean.parseBoolean(string);
-        }
-        return fallback;
+        return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value));
     }
 
-    private double number(Object value, double fallback) {
+    private static double numberValue(Object value, double fallback) {
         if (value instanceof Number number) {
             return number.doubleValue();
         }
         try {
-            return Double.parseDouble(Texts.toStringSafe(value));
-        } catch (NumberFormatException exception) {
+            return value == null ? fallback : Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
             return fallback;
+        }
+    }
+
+    public record CauseView(String name) {
+
+        public CauseView {
+            name = name == null ? "" : name;
+        }
+
+        @Override
+        @HostAccess.Export
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    public record ResultSnapshot(
+            String damageTypeId,
+            double finalDamage,
+            boolean critical,
+            double roll,
+            Map<String, Double> stageValues,
+            Map<String, Object> variables) {
+
+        public ResultSnapshot {
+            damageTypeId = damageTypeId == null ? "" : damageTypeId;
+            finalDamage = Math.max(0D, finalDamage);
+            stageValues = stageValues == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stageValues));
+            variables = variables == null ? Map.of() : ScriptSnapshots.immutableMap(variables);
+        }
+    }
+
+    public record MessageIntent(String message, Map<String, Object> placeholders) {
+
+        public MessageIntent {
+            message = message == null ? "" : message;
+            placeholders = placeholders == null ? Map.of() : ScriptSnapshots.immutableMap(placeholders);
         }
     }
 }

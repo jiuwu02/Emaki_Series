@@ -20,25 +20,34 @@ public final class InventoryInteractionListener implements Listener {
 
     @EventHandler
     public void onHeldItemChange(PlayerItemHeldEvent event) {
-        attributeService.scheduleEquipmentSync(event.getPlayer());
+        attributeService.scheduleEquipmentSync(
+                event.getPlayer(),
+                "held_item_change:" + event.getPreviousSlot() + "->" + event.getNewSlot()
+        );
     }
 
     @EventHandler
     public void onSwapHand(PlayerSwapHandItemsEvent event) {
-        attributeService.scheduleEquipmentSync(event.getPlayer());
+        attributeService.scheduleEquipmentSync(event.getPlayer(), "swap_hand");
     }
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (event.getWhoClicked() instanceof Player player) {
-            attributeService.scheduleEquipmentSync(player);
+            attributeService.scheduleEquipmentSync(
+                    player,
+                    "inventory_click:" + event.getAction() + ":raw_slot=" + event.getRawSlot()
+            );
         }
     }
 
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent event) {
         if (event.getWhoClicked() instanceof Player player) {
-            attributeService.scheduleEquipmentSync(player);
+            attributeService.scheduleEquipmentSync(
+                    player,
+                    "inventory_drag:slots=" + event.getRawSlots().size()
+            );
         }
     }
 }

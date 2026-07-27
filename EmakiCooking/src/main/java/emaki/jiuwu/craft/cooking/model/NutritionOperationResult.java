@@ -1,14 +1,14 @@
 package emaki.jiuwu.craft.cooking.model;
 
-/**
- * 营养增/减/设置操作的结果。
- *
- * @param success 操作是否成功
- * @param typeId  营养类型 id
- * @param oldValue 操作前的值
- * @param newValue 操作后的值（已截断）
- * @param reason  失败原因（成功时为空字符串）
- */
+
+
+
+
+
+
+
+
+
 public record NutritionOperationResult(boolean success,
         String typeId,
         double oldValue,

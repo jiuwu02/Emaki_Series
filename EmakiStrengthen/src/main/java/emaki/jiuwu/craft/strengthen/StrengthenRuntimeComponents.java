@@ -2,9 +2,11 @@ package emaki.jiuwu.craft.strengthen;
 
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
@@ -22,7 +24,9 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
-record StrengthenRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
+record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
+        ThreadOwnership threadOwnership,
+        YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         StrengthenRecipeLoader recipeLoader,
         GuiTemplateLoader guiTemplateLoader,
@@ -30,7 +34,7 @@ record StrengthenRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         BootstrapService bootstrapService,
         GuiService guiService,
         ItemSourceService coreItemSourceService,
-        PdcAttributeGateway pdcAttributeGateway,
+        StrengthenAttributeBridge pdcAttributeGateway,
         StrengthenRecipeResolver recipeResolver,
         ChanceCalculator chanceCalculator,
         StrengthenEconomyService economyService,
@@ -43,6 +47,8 @@ record StrengthenRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
+                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
+                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(StrengthenRecipeLoader.class, recipeLoader),
@@ -51,7 +57,7 @@ record StrengthenRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(GuiService.class, guiService),
                 RuntimeComponents.component(ItemSourceService.class, coreItemSourceService),
-                RuntimeComponents.component(PdcAttributeGateway.class, pdcAttributeGateway),
+                RuntimeComponents.component(StrengthenAttributeBridge.class, pdcAttributeGateway),
                 RuntimeComponents.component(StrengthenRecipeResolver.class, recipeResolver),
                 RuntimeComponents.component(ChanceCalculator.class, chanceCalculator),
                 RuntimeComponents.component(StrengthenEconomyService.class, economyService),

@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
-import emaki.jiuwu.craft.corelib.script.js.event.JavaScriptEventRegistry;
+import emaki.jiuwu.craft.corelib.script.event.JavaScriptEventRegistry;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationSnapshot;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTypes;
@@ -153,9 +153,19 @@ public final class JavaScriptActionExtensionLoader implements AutoCloseable {
 
     @Override
     public void close() {
+        closeInternal(true);
+    }
+
+    public void closeAfterBukkitUnregister() {
+        closeInternal(false);
+    }
+
+    private void closeInternal(boolean unregisterBukkitListeners) {
         if (eventRegistry != null) {
-            HandlerList.unregisterAll(eventRegistry);
-            eventRegistry.close();
+            if (unregisterBukkitListeners) {
+                HandlerList.unregisterAll(eventRegistry);
+            }
+            eventRegistry.clear();
             eventRegistry = null;
         }
         if (expressionFunctionRegistry != null) {

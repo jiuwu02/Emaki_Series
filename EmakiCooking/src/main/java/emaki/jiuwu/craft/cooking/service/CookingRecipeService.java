@@ -527,7 +527,18 @@ public final class CookingRecipeService {
         String existing = pdc.getOrDefault(key, org.bukkit.persistence.PersistentDataType.STRING, "");
         String updated = existing.isEmpty() ? recipeId : existing + "," + recipeId;
         pdc.set(key, org.bukkit.persistence.PersistentDataType.STRING, updated);
-        itemStack.setItemMeta(meta);
+        boolean committed = itemStack.setItemMeta(meta);
+        if (plugin.debugLogger() != null) {
+            plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.cooking_history", Map.of(
+                    "item", itemStack.getType(),
+                    "amount", itemStack.getAmount(),
+                    "key", key,
+                    "before", existing,
+                    "after", updated,
+                    "recipe", recipeId,
+                    "committed", committed
+            ));
+        }
     }
 
     private List<Map<String, Object>> mapList(List<Map<?, ?>> raw) {

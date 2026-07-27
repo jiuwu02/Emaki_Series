@@ -3,36 +3,44 @@ package emaki.jiuwu.craft.corelib.yaml;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 
 public final class AsyncYamlFiles {
 
-    private final AsyncFileService fileService;
+    private final FileScope fileScope;
 
     public AsyncYamlFiles(AsyncFileService fileService) {
-        this.fileService = fileService;
+        this(Objects.requireNonNull(fileService, "fileService").defaultScope());
+    }
+
+    public AsyncYamlFiles(FileScope fileScope) {
+        this.fileScope = Objects.requireNonNull(fileScope, "fileScope");
+    }
+
+    public <T> CompletableFuture<T> read(String taskName, Supplier<T> action) {
+        return fileScope.read(taskName, action);
     }
 
     public CompletableFuture<YamlSection> load(File file) {
-        if (fileService == null) {
-            return CompletableFuture.completedFuture(YamlFiles.load(file));
+        if (file == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("file"));
         }
-        return fileService.read("yaml-load:" + safeName(file), () -> YamlFiles.load(file));
+        return fileScope.read(file.toPath(), "yaml-load:" + safeName(file), () -> YamlFiles.load(file));
     }
 
     public CompletableFuture<Void> save(File file, YamlSection section) {
-        if (fileService == null) {
-            try {
-                YamlFiles.save(file, section);
-                return CompletableFuture.completedFuture(null);
-            } catch (IOException exception) {
-                return failedFuture(exception);
-            }
+        if (file == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("file"));
         }
-        return fileService.write(file == null ? null : file.toPath(), "yaml-save:" + safeName(file), () -> {
+        return fileScope.write(file.toPath(), "yaml-save:" + safeName(file), () -> {
             try {
                 YamlFiles.save(file, section);
             } catch (IOException exception) {
@@ -42,15 +50,10 @@ public final class AsyncYamlFiles {
     }
 
     public CompletableFuture<Void> save(File file, Map<String, ?> values) {
-        if (fileService == null) {
-            try {
-                YamlFiles.save(file, values);
-                return CompletableFuture.completedFuture(null);
-            } catch (IOException exception) {
-                return failedFuture(exception);
-            }
+        if (file == null) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("file"));
         }
-        return fileService.write(file == null ? null : file.toPath(), "yaml-save:" + safeName(file), () -> {
+        return fileScope.write(file.toPath(), "yaml-save:" + safeName(file), () -> {
             try {
                 YamlFiles.save(file, values);
             } catch (IOException exception) {
@@ -60,16 +63,18 @@ public final class AsyncYamlFiles {
     }
 
     public CompletableFuture<Void> waitForIdle() {
-        return fileService == null ? CompletableFuture.completedFuture(null) : fileService.waitForIdle();
+        return fileScope.waitForIdle();
+    }
+
+    public DrainResult sealAndDrain(long timeout, TimeUnit unit) {
+        return fileScope.sealAndDrain(timeout, unit);
+    }
+
+    public int pendingOperationCount() {
+        return fileScope.pendingOperationCount();
     }
 
     private String safeName(File file) {
         return file == null ? "unknown" : file.getName();
-    }
-
-    private <T> CompletableFuture<T> failedFuture(Throwable throwable) {
-        CompletableFuture<T> future = new CompletableFuture<>();
-        future.completeExceptionally(throwable);
-        return future;
     }
 }

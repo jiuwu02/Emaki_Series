@@ -20,14 +20,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class ItemSourceIntegrationCoordinator implements Listener {
+public final class ItemSourceIntegrationCoordinator implements Listener, AutoCloseable {
 
     private final JavaPlugin plugin;
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
     private final List<ManagedItemSourceResolver> managedResolvers;
     private final Map<String, ManagedItemSourceResolver.Status> lastStatuses = new HashMap<>();
-    private final Set<String> registeredResolverIds = new HashSet<>();
+    private final Map<String, ItemSourceService.ResolverRegistration> resolverRegistrations = new HashMap<>();
     private final Set<String> loadEventBindings = new HashSet<>();
     private boolean initialized;
 
@@ -103,6 +103,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
         registerResolverForPlugin("ItemsAdder");
         registerResolverForPlugin("Nexo");
         registerResolverForPlugin("Oraxen");
+        registerResolverForPlugin("EcoItems");
     }
 
     private boolean registerResolverForPlugin(String pluginName) {
@@ -118,10 +119,14 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
             return false;
         }
         String resolverId = Texts.normalizeId(resolver.id());
-        if (!registeredResolverIds.add(resolverId)) {
+        if (resolverRegistrations.containsKey(resolverId)) {
             return false;
         }
-        itemSourceService.registerResolver(resolver);
+        ItemSourceService.ResolverRegistration registration = itemSourceService.registerResolverHandle(resolver);
+        if (!registration.registered()) {
+            return false;
+        }
+        resolverRegistrations.put(resolverId, registration);
         if (resolver instanceof ManagedItemSourceResolver managedResolver) {
             managedResolvers.add(managedResolver);
             ensureLoadEventListener(managedResolver);
@@ -142,6 +147,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
                 case "itemsadder" -> new ItemsAdderItemSourceResolver();
                 case "nexo" -> new NexoItemSourceResolver();
                 case "oraxen" -> new OraxenItemSourceResolver();
+                case "ecoitems" -> new EcoItemsItemSourceResolver();
                 default -> null;
             };
         } catch (LinkageError exception) {
@@ -205,6 +211,29 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
         return managedResolvers.size();
     }
 
+    @Override
+    public void close() {
+        closeInternal(true);
+    }
+
+    public void closeAfterBukkitUnregister() {
+        closeInternal(false);
+    }
+
+    private void closeInternal(boolean unregisterBukkitListeners) {
+        if (unregisterBukkitListeners) {
+            org.bukkit.event.HandlerList.unregisterAll(this);
+        }
+        for (ItemSourceService.ResolverRegistration registration : List.copyOf(resolverRegistrations.values())) {
+            registration.close();
+        }
+        resolverRegistrations.clear();
+        managedResolvers.clear();
+        lastStatuses.clear();
+        loadEventBindings.clear();
+        initialized = false;
+    }
+
     private String defaultWaitingDetail(String library, String detail) {
         return defaultDetail(detail, switch (Texts.lower(library)) {
             case "itemsadder" ->
@@ -217,6 +246,8 @@ public final class ItemSourceIntegrationCoordinator implements Listener {
                 "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。";
             case "oraxen" ->
                 "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。";
+            case "ecoitems" ->
+                "插件已启用，但物品注册表尚未就绪，请等待其加载完成。";
             default ->
                 "外部物品注册尚未完成，请等待依赖插件完成加载。";
         });

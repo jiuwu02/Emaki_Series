@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 
@@ -14,19 +14,27 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
 
     private final EmakiStrengthenPlugin plugin;
     private final StrengthenAttemptService attemptService;
+    private final ExecutionDispatcher executionDispatcher;
 
-    public StrengthenRefreshService(EmakiStrengthenPlugin plugin, StrengthenAttemptService attemptService) {
+    public StrengthenRefreshService(EmakiStrengthenPlugin plugin,
+            StrengthenAttemptService attemptService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.attemptService = attemptService;
+        this.executionDispatcher = executionDispatcher;
     }
 
     public void refreshOnlinePlayers() {
-        if (!Bukkit.isPrimaryThread()) {
-            FoliaSchedulerAdapter.runTask(plugin, this::refreshOnlinePlayers);
-            return;
-        }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            refreshPlayerInventory(player);
+            try {
+                if (executionDispatcher.runEntity(
+                        plugin, player, () -> refreshPlayerInventory(player)) == null) {
+                    plugin.getLogger().warning("Player refresh scheduling was rejected for " + player.getUniqueId());
+                }
+            } catch (Throwable throwable) {
+                plugin.getLogger().warning("Failed to schedule player refresh for " + player.getUniqueId()
+                        + ": " + throwable.getMessage());
+            }
         }
     }
 

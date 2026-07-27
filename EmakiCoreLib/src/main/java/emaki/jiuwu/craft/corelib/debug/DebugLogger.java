@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class DebugLogger {
@@ -22,6 +22,8 @@ public final class DebugLogger {
     private final JavaPlugin plugin;
     private final LanguageLoader languageLoader;
     private final Set<UUID> trackedPlayers = ConcurrentHashMap.newKeySet();
+    private static volatile boolean globalAllEnabled;
+
     private final Set<String> enabledModules = ConcurrentHashMap.newKeySet();
     private volatile boolean globalEnabled;
 
@@ -40,7 +42,18 @@ public final class DebugLogger {
     }
 
 
+    public static void setGlobalAllEnabled(boolean enabled) {
+        globalAllEnabled = enabled;
+    }
+
+    public static boolean isGlobalAllEnabled() {
+        return globalAllEnabled;
+    }
+
     public boolean shouldLog(String module, UUID player) {
+        if (globalAllEnabled) {
+            return true;
+        }
         if (!globalEnabled) {
             return false;
         }
@@ -195,7 +208,7 @@ public final class DebugLogger {
                 ? template
                 : Texts.formatTemplate(template, replacements);
         if (plugin != null && plugin.isEnabled()) {
-            AdventureSupport.sendMiniMessage(plugin, Bukkit.getConsoleSender(), withPrefix(message));
+            Bukkit.getConsoleSender().sendMessage(MiniMessages.parse(withPrefix(message)));
             return;
         }
         logger.info(Texts.formatTemplate(message, replacements == null ? Map.of() : replacements));

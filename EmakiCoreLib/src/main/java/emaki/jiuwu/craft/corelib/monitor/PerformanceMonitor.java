@@ -13,16 +13,25 @@ import java.util.function.Supplier;
 public final class PerformanceMonitor {
 
     private static final long DEFAULT_WARNING_THRESHOLD_NANOS = 50_000_000L;
+    private static final int DEFAULT_MAX_OPERATION_METRICS = Integer.getInteger(
+            "emaki.performance.maxOperationMetrics", 1_024);
 
     private final Map<String, MetricAccumulator> metrics = new ConcurrentHashMap<>();
+    private final Object metricLock = new Object();
     private final long warningThresholdNanos;
+    private final int maxOperationMetrics;
 
     public PerformanceMonitor() {
         this(DEFAULT_WARNING_THRESHOLD_NANOS);
     }
 
     public PerformanceMonitor(long warningThresholdNanos) {
+        this(warningThresholdNanos, DEFAULT_MAX_OPERATION_METRICS);
+    }
+
+    PerformanceMonitor(long warningThresholdNanos, int maxOperationMetrics) {
         this.warningThresholdNanos = warningThresholdNanos <= 0L ? DEFAULT_WARNING_THRESHOLD_NANOS : warningThresholdNanos;
+        this.maxOperationMetrics = Math.max(1, maxOperationMetrics);
     }
 
     public <T> T measure(String operation, Supplier<T> supplier) {
@@ -46,7 +55,14 @@ public final class PerformanceMonitor {
     }
 
     public void record(String operation, long durationNanos, boolean success) {
-        MetricAccumulator accumulator = metrics.computeIfAbsent(normalizeOperation(operation), ignored -> new MetricAccumulator());
+        String normalizedOperation = normalizeOperation(operation);
+        MetricAccumulator accumulator;
+        synchronized (metricLock) {
+            if (!metrics.containsKey(normalizedOperation) && metrics.size() >= maxOperationMetrics) {
+                evictOldestMetric();
+            }
+            accumulator = metrics.computeIfAbsent(normalizedOperation, ignored -> new MetricAccumulator());
+        }
         accumulator.record(durationNanos, success, warningThresholdNanos);
     }
 
@@ -79,6 +95,21 @@ public final class PerformanceMonitor {
         return operation == null || operation.isBlank() ? "unknown" : operation.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
+    private void evictOldestMetric() {
+        String oldestOperation = null;
+        long oldestUpdatedAt = Long.MAX_VALUE;
+        for (Map.Entry<String, MetricAccumulator> entry : metrics.entrySet()) {
+            long updatedAt = entry.getValue().lastUpdatedAt();
+            if (updatedAt < oldestUpdatedAt) {
+                oldestUpdatedAt = updatedAt;
+                oldestOperation = entry.getKey();
+            }
+        }
+        if (oldestOperation != null) {
+            metrics.remove(oldestOperation);
+        }
+    }
+
     private static final class MetricAccumulator {
 
         private final AtomicLong count = new AtomicLong();
@@ -104,6 +135,10 @@ public final class PerformanceMonitor {
             lastDurationNanos.set(Math.max(0L, durationNanos));
             lastUpdatedAt.set(System.currentTimeMillis());
             maxDurationNanos.accumulateAndGet(Math.max(0L, durationNanos), Math::max);
+        }
+
+        private long lastUpdatedAt() {
+            return lastUpdatedAt.get();
         }
 
         private PerformanceOperationSnapshot snapshot(String operation) {

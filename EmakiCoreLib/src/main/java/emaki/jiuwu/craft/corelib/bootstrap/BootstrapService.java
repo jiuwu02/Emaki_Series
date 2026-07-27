@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.bootstrap;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -41,7 +42,7 @@ public final class BootstrapService {
         } : hooks;
     }
 
-    public boolean bootstrap() {
+    public synchronized boolean bootstrap() {
         info("console.bootstrap_start");
         hooks.beforeBootstrap();
         ensureDirectory(plugin.getDataFolder().toPath());
@@ -69,18 +70,28 @@ public final class BootstrapService {
 
     private void ensureDefaultFile(String relativePath) {
         Path target = dataPath(relativePath);
-        if (Files.exists(target)) {
-            return;
-        }
         try {
-            if (!YamlFiles.copyResourceIfMissing(plugin, relativePath, target.toFile())) {
+            byte[] bundled = readBundledResource(relativePath);
+            if (bundled == null) {
                 warning("console.default_file_missing", Map.of("path", relativePath));
+                return;
             }
+            if (Files.exists(target)) {
+                return;
+            }
+            ensureDirectory(target.getParent());
+            Files.write(target, bundled);
         } catch (IOException exception) {
             warning("console.bootstrap_copy_failed", Map.of(
                     "path", relativePath,
                     "error", String.valueOf(exception.getMessage())
             ));
+        }
+    }
+
+    private byte[] readBundledResource(String relativePath) throws IOException {
+        try (InputStream input = plugin.getResource(relativePath)) {
+            return input == null ? null : input.readAllBytes();
         }
     }
 

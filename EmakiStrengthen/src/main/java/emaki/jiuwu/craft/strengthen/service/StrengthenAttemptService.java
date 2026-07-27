@@ -5,13 +5,19 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
@@ -19,12 +25,13 @@ import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenChanceRuleRegistry;
-import emaki.jiuwu.craft.strengthen.script.js.JavaScriptStrengthenResultHookRegistry;
+import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenChanceRuleRegistry;
+import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenResultHookRegistry;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
@@ -33,6 +40,7 @@ import emaki.jiuwu.craft.strengthen.api.event.StrengthenPreAttemptEvent;
 import emaki.jiuwu.craft.strengthen.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.model.AttemptCost;
 import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
+import emaki.jiuwu.craft.strengthen.model.AttemptOutcome;
 import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.model.StrengthenConditionGroup;
@@ -44,6 +52,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
 
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final String OPERATION_NAMESPACE = "strengthen";
+    private static final int MAX_JOURNAL_ENTRIES = 4_096;
 
     private final EmakiStrengthenPlugin plugin;
     private final StrengthenRecipeResolver recipeResolver;
@@ -55,6 +64,11 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     private final EmakiItemAssemblyService itemAssemblyService;
     private final StrengthenPdcAttributeWriter pdcAttributeWriter;
     private final ItemOperationLedger operationLedger;
+    private final ThreadOwnership threadOwnership;
+    private final Object lifecycleMonitor = new Object();
+    private final LinkedHashMap<String, JournalEntry> operationJournal = new LinkedHashMap<>();
+    private boolean accepting = true;
+    private int inFlight;
 
     public StrengthenAttemptService(EmakiStrengthenPlugin plugin,
             StrengthenRecipeResolver recipeResolver,
@@ -62,7 +76,8 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             StrengthenEconomyService economyService,
             StrengthenSnapshotBuilder snapshotBuilder,
             StrengthenActionCoordinator actionCoordinator,
-            EmakiItemAssemblyService itemAssemblyService) {
+            EmakiItemAssemblyService itemAssemblyService,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.recipeResolver = recipeResolver;
         this.materialPlanResolver = new MaterialPlanResolver(recipeResolver);
@@ -71,6 +86,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         this.snapshotBuilder = snapshotBuilder;
         this.actionCoordinator = actionCoordinator;
         this.itemAssemblyService = itemAssemblyService;
+        this.threadOwnership = threadOwnership;
         this.pdcAttributeWriter = new StrengthenPdcAttributeWriter(plugin, PDC_ATTRIBUTE_SOURCE_ID);
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
@@ -177,9 +193,56 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
 
     @Override
     public AttemptResult attempt(Player player, AttemptContext context) {
+        String operationId = resolveOperationId(context);
+        AttemptContext safeContext = context == null
+                ? AttemptContext.of(null, List.of(), operationId)
+                : context.withOperationId(operationId);
+        String journalKey = journalKey(player, operationId);
+        int fingerprint = attemptFingerprint(safeContext);
+        AttemptStart start = beginOperation(journalKey, fingerprint);
+        if (start.existingResult() != null) {
+            return start.existingResult();
+        }
+        if (!start.started()) {
+            AttemptPreview rejectedPreview = preview(player, safeContext);
+            return AttemptResult.failure(start.errorKey(), rejectedPreview,
+                    replacements(rejectedPreview, rejectedPreview.currentStar()), operationId);
+        }
+
+        AttemptResult result = null;
+        try {
+            logOperation(player, operationId, "started", AttemptOutcome.NOT_COMMITTED);
+            result = attemptOnce(player, safeContext, operationId);
+        } catch (RuntimeException | LinkageError exception) {
+            plugin.getLogger().severe("Strengthen attempt failed closed | operationId=" + operationId
+                    + " | error=" + exception.getMessage());
+            result = internalFailure(player, safeContext, operationId);
+        } finally {
+            if (result == null) {
+                result = AttemptResult.failure("strengthen.error.internal", null, Map.of(), operationId);
+            }
+            completeOperation(journalKey, fingerprint, result);
+            finishInFlight();
+            logOperation(player, operationId, "completed", result.outcome());
+        }
+        return result;
+    }
+
+    private AttemptResult internalFailure(Player player, AttemptContext context, String operationId) {
+        try {
+            AttemptPreview failedPreview = preview(player, context);
+            return AttemptResult.failure("strengthen.error.internal", failedPreview,
+                    replacements(failedPreview, failedPreview.currentStar()), operationId);
+        } catch (RuntimeException | LinkageError ignored) {
+            return AttemptResult.failure("strengthen.error.internal", null, Map.of(), operationId);
+        }
+    }
+
+    private AttemptResult attemptOnce(Player player, AttemptContext context, String operationId) {
         AttemptPreview preview = preview(player, context);
         if (!preview.eligible()) {
-            return finishAttempt(player, AttemptResult.failure(preview.errorKey(), preview, replacements(preview, preview.currentStar())));
+            return finishAttempt(player, AttemptResult.failure(preview.errorKey(), preview,
+                    replacements(preview, preview.currentStar()), operationId));
         }
 
         StrengthenRecipe recipe = preview.recipe();
@@ -188,33 +251,36 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                     toCoreConditionGroup(recipe.conditions()),
                     text -> resolvePlaceholders(player, text),
                     true,
-                    ConditionContext.of(player, context == null ? null : context.targetItem(),
+                    ConditionContext.of(player, context.targetItem(),
                             java.util.Map.of(
+                                    "operationId", operationId,
                                     "recipeId", recipe.id(),
                                     "currentStar", preview.currentStar(),
                                     "targetStar", preview.targetStar(),
                                     "successRate", preview.successRate()))
             );
             if (!conditionsPassed) {
-                return finishAttempt(player, AttemptResult.failure("strengthen.error.condition_not_met", preview, replacements(preview, preview.currentStar())));
+                return finishAttempt(player, AttemptResult.failure("strengthen.error.condition_not_met", preview,
+                        replacements(preview, preview.currentStar()), operationId));
             }
         }
 
-        double rollSuccessRate = preview.successRate();
-        // attempt 可能通过公开 API 在异步线程调用；Bukkit 同步事件只能在主线程派发。
-        if (Bukkit.isPrimaryThread()) {
+        double rollSuccessRate = sanitizeRate(preview.successRate());
+        if (isPlayerOwned(player)) {
             StrengthenPreAttemptEvent preAttemptEvent = new StrengthenPreAttemptEvent(
                     player,
-                    context == null ? null : context.targetItem(),
+                    context.targetItem(),
                     recipe == null ? null : recipe.id(),
                     preview.currentStar(),
                     preview.targetStar(),
-                    preview.successRate());
+                    rollSuccessRate,
+                    operationId);
             Bukkit.getPluginManager().callEvent(preAttemptEvent);
             if (preAttemptEvent.isCancelled()) {
-                return finishAttempt(player, AttemptResult.failure("strengthen.error.cancelled", preview, replacements(preview, preview.currentStar())));
+                return finishAttempt(player, AttemptResult.failure("strengthen.error.cancelled", preview,
+                        replacements(preview, preview.currentStar()), operationId));
             }
-            rollSuccessRate = preAttemptEvent.getSuccessRate();
+            rollSuccessRate = sanitizeRate(preAttemptEvent.getSuccessRate());
         }
 
         boolean success = ThreadLocalRandom.current().nextDouble(100D) < rollSuccessRate;
@@ -239,28 +305,172 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 currentState.branchPath()
         );
 
-        ItemStack rebuilt = rebuildWithState(context == null ? null : context.targetItem(), updated, buildMaterialsSignature(preview));
+        ItemStack rebuilt = rebuildWithState(context.targetItem(), updated, buildMaterialsSignature(preview));
         if (rebuilt == null) {
-            return finishAttempt(player, AttemptResult.failure("strengthen.error.rebuild_failed", preview, replacements(preview, resultStar)));
+            return finishAttempt(player, AttemptResult.failure("strengthen.error.rebuild_failed", preview,
+                    replacements(preview, resultStar), operationId));
         }
 
-        StrengthenEconomyService.ChargeResult chargeResult = economyService.charge(player, preview.costs());
+        StrengthenEconomyService.ChargeResult chargeResult = economyService.charge(player, preview.costs(), operationId);
         if (!chargeResult.success()) {
-            return finishAttempt(player, AttemptResult.failure(chargeResult.errorKey(), preview, replacements(preview, preview.currentStar())));
+            AttemptOutcome outcome = chargeResult.compensationPending()
+                    ? AttemptOutcome.COMPENSATION_PENDING : AttemptOutcome.NOT_COMMITTED;
+            return finishAttempt(player, AttemptResult.failure(chargeResult.errorKey(), preview,
+                    replacements(preview, preview.currentStar()), operationId, outcome));
         }
 
-        return finishAttempt(player, new AttemptResult(success, "", replacements(preview, resultStar), preview, rebuilt, resultStar, resultTemper, progress.newlyReached()));
+        AttemptOutcome outcome = success ? AttemptOutcome.COMMITTED_SUCCESS : AttemptOutcome.COMMITTED_FAILURE;
+        return finishAttempt(player, new AttemptResult(success, "", replacements(preview, resultStar), preview,
+                rebuilt, resultStar, resultTemper, progress.newlyReached(), operationId, outcome));
     }
 
     private AttemptResult finishAttempt(Player player, AttemptResult result) {
-        JavaScriptStrengthenResultHookRegistry resultHookRegistry = plugin.javaScriptResultHookRegistry();
-        if (resultHookRegistry != null) {
-            resultHookRegistry.fire(player, result);
+        try {
+            JavaScriptStrengthenResultHookRegistry resultHookRegistry = plugin.javaScriptResultHookRegistry();
+            if (resultHookRegistry != null) {
+                resultHookRegistry.fire(player, result);
+            }
+        } catch (RuntimeException | LinkageError exception) {
+            plugin.getLogger().warning("Strengthen result hook dispatch failed | operationId="
+                    + result.operationId() + " | error=" + exception.getMessage());
         }
-        if (Bukkit.isPrimaryThread()) {
-            Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
+        if (isPlayerOwned(player)) {
+            try {
+                Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
+            } catch (RuntimeException | LinkageError exception) {
+                plugin.getLogger().warning("Strengthen result event dispatch failed | operationId="
+                        + result.operationId() + " | error=" + exception.getMessage());
+            }
         }
         return result;
+    }
+
+    private boolean isPlayerOwned(Player player) {
+        return threadOwnership != null && player != null && threadOwnership.isEntityOwned(player);
+    }
+
+    public boolean accepting() {
+        synchronized (lifecycleMonitor) {
+            return accepting;
+        }
+    }
+
+    public void freezeAccepting() {
+        synchronized (lifecycleMonitor) {
+            accepting = false;
+        }
+    }
+
+    public void resumeAccepting() {
+        synchronized (lifecycleMonitor) {
+            accepting = true;
+        }
+    }
+
+    public boolean drain(long timeout, TimeUnit unit) {
+        long timeoutNanos = Math.max(0L, unit == null ? 0L : unit.toNanos(timeout));
+        long deadline = System.nanoTime() + timeoutNanos;
+        synchronized (lifecycleMonitor) {
+            while (inFlight > 0) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0L) {
+                    return false;
+                }
+                try {
+                    TimeUnit.NANOSECONDS.timedWait(lifecycleMonitor, remaining);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    public Map<String, String> journalSnapshot() {
+        synchronized (lifecycleMonitor) {
+            Map<String, String> snapshot = new LinkedHashMap<>();
+            operationJournal.forEach((operationId, entry) -> snapshot.put(operationId,
+                    entry.result() == null ? "IN_FLIGHT" : entry.result().outcome().name()));
+            return Map.copyOf(snapshot);
+        }
+    }
+
+    private AttemptStart beginOperation(String journalKey, int fingerprint) {
+        synchronized (lifecycleMonitor) {
+            JournalEntry existing = operationJournal.get(journalKey);
+            if (existing != null) {
+                if (existing.fingerprint() != fingerprint) {
+                    return new AttemptStart(false, null, "strengthen.error.operation_conflict");
+                }
+                return existing.result() == null
+                        ? new AttemptStart(false, null, "strengthen.error.operation_in_progress")
+                        : new AttemptStart(false, existing.result(), "");
+            }
+            if (!accepting) {
+                return new AttemptStart(false, null, "strengthen.error.not_accepting");
+            }
+            operationJournal.put(journalKey, new JournalEntry(fingerprint, null));
+            inFlight++;
+            pruneJournal();
+            return new AttemptStart(true, null, "");
+        }
+    }
+
+    private void completeOperation(String journalKey, int fingerprint, AttemptResult result) {
+        synchronized (lifecycleMonitor) {
+            operationJournal.put(journalKey, new JournalEntry(fingerprint, result));
+            pruneJournal();
+        }
+    }
+
+    private void finishInFlight() {
+        synchronized (lifecycleMonitor) {
+            inFlight = Math.max(0, inFlight - 1);
+            lifecycleMonitor.notifyAll();
+        }
+    }
+
+    private void pruneJournal() {
+        if (operationJournal.size() <= MAX_JOURNAL_ENTRIES) {
+            return;
+        }
+        var iterator = operationJournal.entrySet().iterator();
+        while (operationJournal.size() > MAX_JOURNAL_ENTRIES && iterator.hasNext()) {
+            var entry = iterator.next();
+            AttemptResult result = entry.getValue().result();
+            if (result != null && !result.compensationPending()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    private String resolveOperationId(AttemptContext context) {
+        String supplied = context == null ? "" : Texts.trim(context.operationId());
+        return Texts.isBlank(supplied) ? UUID.randomUUID().toString() : supplied;
+    }
+
+    private String journalKey(Player player, String operationId) {
+        return (player == null ? "-" : player.getUniqueId().toString()) + ":" + operationId;
+    }
+
+    private int attemptFingerprint(AttemptContext context) {
+        return context == null ? 0 : Objects.hash(context.targetItem(), context.materialInputs());
+    }
+
+    private double sanitizeRate(double value) {
+        return Double.isFinite(value) ? Numbers.clamp(value, 0D, 100D) : 0D;
+    }
+
+    private void logOperation(Player player, String operationId, String phase, AttemptOutcome outcome) {
+        java.util.UUID playerId = player == null ? null : player.getUniqueId();
+        if (plugin.debugLogger() != null && plugin.debugLogger().shouldLog("attempt", playerId)) {
+            plugin.debugLogger().log("attempt", playerId, "attempt.operation", Map.of(
+                    "operation_id", Texts.toStringSafe(operationId),
+                    "phase", Texts.toStringSafe(phase),
+                    "outcome", outcome == null ? "" : outcome.name()
+            ));
+        }
     }
 
     @Override
@@ -324,20 +534,51 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         return rebuilt;
     }
 
-    public void triggerSuccessActions(Player player, StrengthenRecipe recipe, String resultSlotId, ItemStack resultItem, int star, int temper) {
-        actionCoordinator.triggerSuccessActions(player, recipe, resultSlotId, resultItem, star, temper);
-    }
-
-    public void triggerFailureActions(Player player,
+    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
-            ItemStack resultItem,
+            CoreActionItemTarget itemTarget,
+            int star,
+            int temper) {
+        return triggerSuccessActions(player, recipe, resultSlotId, itemTarget, star, temper, "");
+    }
+
+    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
+            StrengthenRecipe recipe,
+            String resultSlotId,
+            CoreActionItemTarget itemTarget,
+            int star,
+            int temper,
+            String operationId) {
+        return actionCoordinator.triggerSuccessActions(
+                player, recipe, resultSlotId, itemTarget, star, temper, operationId);
+    }
+
+    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+            StrengthenRecipe recipe,
+            String resultSlotId,
+            CoreActionItemTarget itemTarget,
             int wasStar,
             int resultStar,
             int temper,
             boolean dropped,
             boolean protectionApplied) {
-        actionCoordinator.triggerFailureActions(player, recipe, resultSlotId, resultItem, wasStar, resultStar, temper, dropped, protectionApplied);
+        return triggerFailureActions(player, recipe, resultSlotId, itemTarget, wasStar, resultStar, temper,
+                dropped, protectionApplied, "");
+    }
+
+    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+            StrengthenRecipe recipe,
+            String resultSlotId,
+            CoreActionItemTarget itemTarget,
+            int wasStar,
+            int resultStar,
+            int temper,
+            boolean dropped,
+            boolean protectionApplied,
+            String operationId) {
+        return actionCoordinator.triggerFailureActions(player, recipe, resultSlotId, itemTarget, wasStar, resultStar,
+                temper, dropped, protectionApplied, operationId);
     }
 
     public void broadcastFirstReach(Player player, ItemStack resultItem, Set<Integer> newlyReached) {
@@ -628,6 +869,12 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
 
     record StarProgress(Set<Integer> updatedFlags, Set<Integer> newlyReached) {
 
+    }
+
+    private record AttemptStart(boolean started, AttemptResult existingResult, String errorKey) {
+    }
+
+    private record JournalEntry(int fingerprint, AttemptResult result) {
     }
 
     private String resolvePlaceholders(Player player, String text) {

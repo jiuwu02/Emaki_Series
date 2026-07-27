@@ -3,15 +3,21 @@ package emaki.jiuwu.craft.cooking;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import emaki.jiuwu.craft.cooking.api.event.CookingStationInteractEvent;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationInteractionType;
+import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.ChoppingBoardRuntimeService;
+import emaki.jiuwu.craft.cooking.service.CookingBlockMatcher;
+import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.cooking.service.FermentationBarrelRuntimeService;
 import emaki.jiuwu.craft.cooking.service.GrinderRuntimeService;
 import emaki.jiuwu.craft.cooking.service.JuicerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.OvenRuntimeService;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -33,6 +39,8 @@ final class CookingStationListener implements Listener {
     private final OvenRuntimeService ovenRuntimeService;
     private final JuicerRuntimeService juicerRuntimeService;
     private final FermentationBarrelRuntimeService fermentationBarrelRuntimeService;
+    private final CookingBlockMatcher blockMatcher;
+    private final CookingSettingsService settingsService;
     private final Map<String, Long> handledBreaks = new ConcurrentHashMap<>();
 
     CookingStationListener(ChoppingBoardRuntimeService choppingBoardRuntimeService,
@@ -41,7 +49,9 @@ final class CookingStationListener implements Listener {
             SteamerRuntimeService steamerRuntimeService,
             OvenRuntimeService ovenRuntimeService,
             JuicerRuntimeService juicerRuntimeService,
-            FermentationBarrelRuntimeService fermentationBarrelRuntimeService) {
+            FermentationBarrelRuntimeService fermentationBarrelRuntimeService,
+            CookingBlockMatcher blockMatcher,
+            CookingSettingsService settingsService) {
         this.choppingBoardRuntimeService = choppingBoardRuntimeService;
         this.wokRuntimeService = wokRuntimeService;
         this.grinderRuntimeService = grinderRuntimeService;
@@ -49,6 +59,8 @@ final class CookingStationListener implements Listener {
         this.ovenRuntimeService = ovenRuntimeService;
         this.juicerRuntimeService = juicerRuntimeService;
         this.fermentationBarrelRuntimeService = fermentationBarrelRuntimeService;
+        this.blockMatcher = blockMatcher;
+        this.settingsService = settingsService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -77,6 +89,11 @@ final class CookingStationListener implements Listener {
     }
 
     void dispatchInteraction(StationInteraction interaction) {
+        StationType stationType = resolveStationType(interaction);
+        if (isInteractionDisabled(stationType, interaction == null ? null : interaction.block())) {
+            return;
+        }
+        fireInteractEvent(interaction, stationType);
         if (choppingBoardRuntimeService.handleInteraction(interaction)) {
             return;
         }
@@ -98,7 +115,70 @@ final class CookingStationListener implements Listener {
         grinderRuntimeService.handleInteraction(interaction);
     }
 
+
+
+
+
+
+    private void fireInteractEvent(StationInteraction interaction, StationType stationType) {
+        if (interaction == null) {
+            return;
+        }
+        Block block = interaction.block();
+        if (block == null || interaction.player() == null || stationType == null) {
+            return;
+        }
+        StationInteractionType interactionType = interaction.type();
+        Bukkit.getPluginManager().callEvent(new CookingStationInteractEvent(
+                interaction.player(),
+                block.getLocation(),
+                stationType.folderName(),
+                interactionType == null ? "" : interactionType.configKey()
+        ));
+    }
+
+
+
+
+
+
+
+    private StationType resolveStationType(StationInteraction interaction) {
+        if (blockMatcher == null) {
+            return null;
+        }
+        for (StationType type : StationType.values()) {
+            if (blockMatcher.matches(interaction, type)) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    private StationType resolveStationType(StationBreakContext context) {
+        if (blockMatcher == null) {
+            return null;
+        }
+        for (StationType type : StationType.values()) {
+            if (blockMatcher.matches(context, type)) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    private boolean isInteractionDisabled(StationType stationType, Block block) {
+        if (stationType == null || block == null || block.getWorld() == null || settingsService == null) {
+            return false;
+        }
+        return settingsService.isInteractionDisabled(stationType, block.getWorld().getName());
+    }
+
     void dispatchBreak(StationBreakContext context) {
+        StationType stationType = resolveStationType(context);
+        if (isInteractionDisabled(stationType, context == null ? null : context.block())) {
+            return;
+        }
         if (recentlyHandledBreak(context)) {
             return;
         }

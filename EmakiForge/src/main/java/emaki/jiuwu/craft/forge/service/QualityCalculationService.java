@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.forge.loader.PlayerDataStore.GuaranteeCounterUpdate;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
@@ -30,6 +31,18 @@ final class QualityCalculationService {
         void increment(UUID playerId, String key);
 
         void reset(UUID playerId, String key);
+
+        default int counter(UUID playerId, long generation, String key) {
+            return counter(playerId, key);
+        }
+
+        default void increment(UUID playerId, long generation, String key) {
+            increment(playerId, key);
+        }
+
+        default void reset(UUID playerId, long generation, String key) {
+            reset(playerId, key);
+        }
     }
 
     private record GuaranteePolicy(boolean enabled, int threshold, String minimumName) {
@@ -77,29 +90,63 @@ final class QualityCalculationService {
     }
 
     void applyGuaranteeOutcome(UUID playerId, Recipe recipe, QualitySettings.QualityTier rolledTier, boolean forceApplied) {
+        applyGuaranteeOutcome(playerId, 0L, recipe, rolledTier, forceApplied);
+    }
+
+    void applyGuaranteeOutcome(UUID playerId,
+            long generation,
+            Recipe recipe,
+            QualitySettings.QualityTier rolledTier,
+            boolean forceApplied) {
+        GuaranteeCounterUpdate update = resolveGuaranteeUpdate(
+                playerId,
+                generation,
+                recipe,
+                rolledTier,
+                forceApplied
+        );
+        if (update == GuaranteeCounterUpdate.INCREMENT) {
+            if (generation > 0L) {
+                guaranteeCounterStore.increment(playerId, generation, recipe.id());
+            } else {
+                guaranteeCounterStore.increment(playerId, recipe.id());
+            }
+        } else if (update == GuaranteeCounterUpdate.RESET) {
+            if (generation > 0L) {
+                guaranteeCounterStore.reset(playerId, generation, recipe.id());
+            } else {
+                guaranteeCounterStore.reset(playerId, recipe.id());
+            }
+        }
+    }
+
+    GuaranteeCounterUpdate resolveGuaranteeUpdate(UUID playerId,
+            long generation,
+            Recipe recipe,
+            QualitySettings.QualityTier rolledTier,
+            boolean forceApplied) {
         if (playerId == null || recipe == null || rolledTier == null || forceApplied) {
-            return;
+            return GuaranteeCounterUpdate.NONE;
         }
         QualitySettings settings = settings();
         GuaranteePolicy guaranteePolicy = resolveGuaranteePolicy(recipe.quality(), settings);
         if (!guaranteePolicy.enabled()) {
-            return;
+            return GuaranteeCounterUpdate.NONE;
         }
-        int counter = guaranteeCounterStore.counter(playerId, recipe.id());
+        int counter = generation > 0L
+                ? guaranteeCounterStore.counter(playerId, generation, recipe.id())
+                : guaranteeCounterStore.counter(playerId, recipe.id());
         if (counter >= guaranteePolicy.threshold() - 1) {
-            guaranteeCounterStore.reset(playerId, recipe.id());
-            return;
+            return GuaranteeCounterUpdate.RESET;
         }
         List<QualitySettings.QualityTier> tiers = resolveQualityPool(recipe.quality(), settings);
         QualitySettings.QualityTier minimumTier = findMinimumTier(recipe.quality().customPool(), guaranteePolicy.minimumName());
         if (minimumTier == null) {
             minimumTier = settings.minimumTier();
         }
-        if (tierIndex(tiers, rolledTier) < tierIndex(tiers, minimumTier)) {
-            guaranteeCounterStore.increment(playerId, recipe.id());
-        } else {
-            guaranteeCounterStore.reset(playerId, recipe.id());
-        }
+        return tierIndex(tiers, rolledTier) < tierIndex(tiers, minimumTier)
+                ? GuaranteeCounterUpdate.INCREMENT
+                : GuaranteeCounterUpdate.RESET;
     }
 
     private QualitySettings settings() {

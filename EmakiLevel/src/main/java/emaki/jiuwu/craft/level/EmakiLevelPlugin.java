@@ -8,32 +8,40 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
-import emaki.jiuwu.craft.corelib.web.WebConsoleRegistry;
-import emaki.jiuwu.craft.corelib.web.WebPluginApiRegistry;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.level.action.LevelActionRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
+import emaki.jiuwu.craft.level.api.LevelOperationType;
 import emaki.jiuwu.craft.level.api.LevelTypeView;
 import emaki.jiuwu.craft.level.api.LevelUpCause;
 import emaki.jiuwu.craft.level.api.PlayerLevelEntryView;
@@ -43,23 +51,17 @@ import emaki.jiuwu.craft.level.command.LevelCommand;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
-import emaki.jiuwu.craft.level.listener.BlockSourceListener;
-import emaki.jiuwu.craft.level.listener.BrewingSourceListener;
-import emaki.jiuwu.craft.level.listener.CombatSourceListener;
-import emaki.jiuwu.craft.level.listener.CraftingSourceListener;
-import emaki.jiuwu.craft.level.listener.FishingSourceListener;
+import emaki.jiuwu.craft.level.listener.LevelGameplaySubscriber;
 import emaki.jiuwu.craft.level.listener.PlayerDataListener;
-import emaki.jiuwu.craft.level.listener.SmeltingSourceListener;
-import emaki.jiuwu.craft.level.listener.TamingSourceListener;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
 import emaki.jiuwu.craft.level.papi.LevelPlaceholderExpansion;
+import emaki.jiuwu.craft.level.placeholder.LevelCorePlaceholderResolver;
 import emaki.jiuwu.craft.level.service.LevelAntiAbuseService;
 import emaki.jiuwu.craft.level.service.LevelAttributeBridge;
-import emaki.jiuwu.craft.level.service.LevelCurveService;
 import emaki.jiuwu.craft.level.service.LevelExperienceRuleService;
 import emaki.jiuwu.craft.level.service.LevelGuiService;
 import emaki.jiuwu.craft.level.service.LevelMessageService;
@@ -74,7 +76,7 @@ import emaki.jiuwu.craft.level.script.ScriptLevelModuleApi;
 import emaki.jiuwu.craft.level.script.js.JavaScriptLevelExpRuleRegistry;
 import emaki.jiuwu.craft.level.script.js.JavaScriptLevelUpHookRegistry;
 
-public final class EmakiLevelPlugin extends JavaPlugin {
+public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
 
     private static final int BSTATS_PLUGIN_ID = 31794;
     private static final String STARTUP_ASCII = """
@@ -84,8 +86,9 @@ public final class EmakiLevelPlugin extends JavaPlugin {
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\__| \\ \\_____\\ \\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/   \\/_____/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0x7DD3FC;
+    private static final int STARTUP_ASCII_END_COLOR = 0xC084FC;
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> STATIC_FILES = List.of("web-console.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
             "requirements.yml",
             "gui/level_gui.yml",
@@ -116,8 +119,11 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private static final Set<String> DEBUG_MODULES = Set.of("script");
 
     private EmakiCoreLibPlugin coreLib;
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
     private AppConfig appConfig = AppConfig.defaults();
     private LevelMessageService messages;
+    private LanguageLoader debugLanguageLoader;
     private DebugLogger debugLogger;
     private DebugCommand debugCommand;
     private AbstractMessageService debugMessageService;
@@ -129,7 +135,6 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private GuiService guiService;
     private LevelTypeRegistry typeRegistry;
     private RequirementService requirementService;
-    private LevelCurveService curveService;
     private PlayerLevelDataStore dataStore;
     private LevelPdcService pdcService;
     private LevelExperienceRuleService experienceRuleService;
@@ -142,6 +147,9 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private LevelTopGuiService levelTopGuiService;
     private LevelAttributeBridge attributeBridge;
     private MythicLevelDropBridge mythicDropBridge;
+    private LevelGameplaySubscriber gameplaySubscriber;
+    private PlayerDataListener playerDataListener;
+    private LevelCorePlaceholderResolver corePlaceholderResolver;
     private LevelPlaceholderExpansion placeholderExpansion;
     private BStatsRegistration metrics;
     private final EmakiLevelApi.Bridge levelApiBridge = new EmakiLevelApi.Bridge() {
@@ -157,7 +165,10 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
         @Override
         public CompletableFuture<PlayerLevelView> getPlayerData(UUID uuid) {
-            return CompletableFuture.completedFuture(playerView(dataStore.getOrLoad(uuid, typeRegistry.asMap())));
+            return dataStore.getOrLoadAsync(uuid, typeRegistry.asMap())
+                    .thenApply(data -> data == null
+                            ? new PlayerLevelView(uuid, "", Map.of())
+                            : playerView(data));
         }
 
         @Override
@@ -189,44 +200,154 @@ public final class EmakiLevelPlugin extends JavaPlugin {
 
         @Override
         public LevelOperationResult addExp(UUID uuid, String typeId, double amount, String reason) {
-            return levelService.addExp(uuid, typeId, amount, reason);
+            return ownsWriteTarget(uuid)
+                    ? levelService.addExp(uuid, typeId, amount, reason)
+                    : ownerFailure(LevelOperationType.ADD_EXP, typeId);
         }
 
         @Override
         public LevelOperationResult removeExp(UUID uuid, String typeId, double amount, String reason) {
-            return levelService.removeExp(uuid, typeId, amount, reason);
+            return ownsWriteTarget(uuid)
+                    ? levelService.removeExp(uuid, typeId, amount, reason)
+                    : ownerFailure(LevelOperationType.REMOVE_EXP, typeId);
         }
 
         @Override
         public LevelOperationResult setExp(UUID uuid, String typeId, double amount, String reason) {
-            return levelService.setExp(uuid, typeId, amount, reason);
+            return ownsWriteTarget(uuid)
+                    ? levelService.setExp(uuid, typeId, amount, reason)
+                    : ownerFailure(LevelOperationType.SET_EXP, typeId);
         }
 
         @Override
         public LevelOperationResult addLevel(UUID uuid, String typeId, int amount, String reason) {
-            return levelService.addLevel(uuid, typeId, amount, reason);
+            return ownsWriteTarget(uuid)
+                    ? levelService.addLevel(uuid, typeId, amount, reason)
+                    : ownerFailure(LevelOperationType.ADD_LEVEL, typeId);
         }
 
         @Override
         public LevelOperationResult removeLevel(UUID uuid, String typeId, int amount, String reason) {
-            return levelService.removeLevel(uuid, typeId, amount, reason);
+            return ownsWriteTarget(uuid)
+                    ? levelService.removeLevel(uuid, typeId, amount, reason)
+                    : ownerFailure(LevelOperationType.REMOVE_LEVEL, typeId);
         }
 
         @Override
         public LevelOperationResult setLevel(UUID uuid, String typeId, int level, String reason) {
-            return levelService.setLevel(uuid, typeId, level, reason);
+            return ownsWriteTarget(uuid)
+                    ? levelService.setLevel(uuid, typeId, level, reason)
+                    : ownerFailure(LevelOperationType.SET_LEVEL, typeId);
         }
 
         @Override
         public LevelOperationResult levelUp(UUID uuid, String typeId, LevelUpCause cause) {
-            return levelService.levelUp(uuid, typeId, cause);
+            return ownsWriteTarget(uuid)
+                    ? levelService.levelUp(uuid, typeId, cause)
+                    : ownerFailure(LevelOperationType.LEVEL_UP, typeId);
+        }
+
+        @Override
+        public CompletableFuture<LevelOperationResult> addExpAsync(UUID uuid, String typeId, double amount, String reason) {
+            return runOwnerWriteAsync(uuid, LevelOperationType.ADD_EXP, typeId,
+                    () -> levelService.addExp(uuid, typeId, amount, reason));
+        }
+
+        @Override
+        public CompletableFuture<LevelOperationResult> removeExpAsync(UUID uuid, String typeId, double amount, String reason) {
+            return runOwnerWriteAsync(uuid, LevelOperationType.REMOVE_EXP, typeId,
+                    () -> levelService.removeExp(uuid, typeId, amount, reason));
+        }
+
+        @Override
+        public CompletableFuture<LevelOperationResult> setExpAsync(UUID uuid, String typeId, double amount, String reason) {
+            return runOwnerWriteAsync(uuid, LevelOperationType.SET_EXP, typeId,
+                    () -> levelService.setExp(uuid, typeId, amount, reason));
+        }
+
+        @Override
+        public CompletableFuture<LevelOperationResult> addLevelAsync(UUID uuid, String typeId, int amount, String reason) {
+            return runOwnerWriteAsync(uuid, LevelOperationType.ADD_LEVEL, typeId,
+                    () -> levelService.addLevel(uuid, typeId, amount, reason));
+        }
+
+        @Override
+        public CompletableFuture<LevelOperationResult> removeLevelAsync(UUID uuid, String typeId, int amount, String reason) {
+            return runOwnerWriteAsync(uuid, LevelOperationType.REMOVE_LEVEL, typeId,
+                    () -> levelService.removeLevel(uuid, typeId, amount, reason));
+        }
+
+        @Override
+        public CompletableFuture<LevelOperationResult> setLevelAsync(UUID uuid, String typeId, int level, String reason) {
+            return runOwnerWriteAsync(uuid, LevelOperationType.SET_LEVEL, typeId,
+                    () -> levelService.setLevel(uuid, typeId, level, reason));
+        }
+
+        @Override
+        public CompletableFuture<LevelOperationResult> levelUpAsync(UUID uuid, String typeId, LevelUpCause cause) {
+            return runOwnerWriteAsync(uuid, LevelOperationType.LEVEL_UP, typeId,
+                    () -> levelService.levelUp(uuid, typeId, cause));
         }
     };
 
+    private boolean ownsWriteTarget(UUID uuid) {
+        Player target = uuid == null ? null : Bukkit.getPlayer(uuid);
+        if (target == null || !target.isOnline()) {
+            return false;
+        }
+        return threadOwnership != null && threadOwnership.isEntityOwned(target);
+    }
+
+    private LevelOperationResult ownerFailure(LevelOperationType operationType, String typeId) {
+        return LevelOperationResult.failure("not_entity_owner", operationType, typeId);
+    }
+
+    private CompletableFuture<LevelOperationResult> runOwnerWriteAsync(
+            UUID uuid,
+            LevelOperationType operationType,
+            String typeId,
+            Supplier<LevelOperationResult> operation) {
+        Player target = uuid == null ? null : Bukkit.getPlayer(uuid);
+        if (target == null || !target.isOnline()) {
+            return CompletableFuture.completedFuture(LevelOperationResult.failure("player_offline", operationType, typeId));
+        }
+        if (ownsWriteTarget(uuid)) {
+            return CompletableFuture.completedFuture(operation.get());
+        }
+        CompletableFuture<LevelOperationResult> future = new CompletableFuture<>();
+        try {
+            TaskHandle scheduled = executionDispatcher.runEntity(
+                    EmakiLevelPlugin.this,
+                    target,
+                    () -> {
+                        try {
+                            future.complete(operation.get());
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    },
+                    () -> future.complete(LevelOperationResult.failure("owner_schedule_retired", operationType, typeId))
+            );
+            if (scheduled == null) {
+                future.complete(LevelOperationResult.failure("owner_schedule_rejected", operationType, typeId));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
     @Override
     public void onEnable() {
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        executionDispatcher = coreLib.executionDispatcher();
+        threadOwnership = coreLib.threadOwnership();
         initializeServices();
         registerConfigPrecheckContributor();
         messages.info("console.plugin_starting");
@@ -238,7 +359,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         registerScriptModule();
         releaseBundledScripts();
         registerActions();
-        registerWebConsole();
+        registerCorePlaceholders();
         registerPlaceholderExpansion();
         registerAttributeBridge();
         registerMythicDrops();
@@ -265,6 +386,10 @@ public final class EmakiLevelPlugin extends JavaPlugin {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
+        if (corePlaceholderResolver != null && coreLib != null && coreLib.placeholderRegistry() != null) {
+            coreLib.placeholderRegistry().unregister(corePlaceholderResolver);
+            corePlaceholderResolver = null;
+        }
         if (attributeBridge != null) {
             attributeBridge.unregister();
         }
@@ -272,11 +397,20 @@ public final class EmakiLevelPlugin extends JavaPlugin {
             HandlerList.unregisterAll(mythicDropBridge);
             mythicDropBridge = null;
         }
-        WebConsoleRegistry.unregisterModule(this);
-        WebPluginApiRegistry.unregister(this);
+        if (gameplaySubscriber != null) {
+            gameplaySubscriber.unsubscribe();
+            gameplaySubscriber = null;
+        }
         EmakiLevelApi.uninstall(levelApiBridge);
         if (dataStore != null) {
-            dataStore.saveAll();
+            PlayerLevelDataStore.FlushResult flushResult = dataStore.flushAndSeal(5L, TimeUnit.SECONDS);
+            if (!flushResult.clean()) {
+                getLogger().warning("[Shutdown] Level data drain incomplete: pending="
+                        + flushResult.drainResult().pendingOperations()
+                        + ", ioFailures=" + flushResult.drainResult().failures().size()
+                        + ", saveFailures=" + flushResult.failedEntries()
+                        + ", remainingDirty=" + flushResult.remainingDirtyEntries());
+            }
         }
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
@@ -288,12 +422,13 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         if (messages != null) {
             messages.info("console.plugin_stopped");
         }
-        AdventureSupport.close(this);
     }
 
     public void reloadPluginState() {
         appConfig = AppConfig.parse(YamlFiles.load(getDataFolder().toPath().resolve("config.yml").toFile()));
         messages.load(appConfig.language());
+        debugLanguageLoader.load();
+        debugLanguageLoader.setLanguage(appConfig.language());
         typeLoader.load(appConfig);
         requirementLoader.load();
         sourceRuleLoader.load();
@@ -308,10 +443,14 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         if (attributeBridge != null) {
             attributeBridge.config(appConfig);
         }
+        dataStore.ensureTypesForCached(typeRegistry.asMap());
         for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
-            dataStore.load(player, typeRegistry.asMap());
+            playerDataListener.ensureSession(player);
         }
-        topService.rebuild();
+        topService.rebuildAsync().exceptionally(throwable -> {
+            getLogger().log(java.util.logging.Level.WARNING, "Failed to rebuild level leaderboard", throwable);
+            return null;
+        });
         levelService.syncAllOnline();
         messages.info("console.types_loaded", Map.of("count", String.valueOf(typeRegistry.all().size())));
         messages.info("console.sources_loaded", Map.of("count", String.valueOf(sourceRuleLoader.rules().size())));
@@ -329,7 +468,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     private void initializeServices() {
         messages = new LevelMessageService(this);
         messages.load(appConfig.language());
-        debugLogger = new DebugLogger(this, coreLib.languageLoader());
+        debugLanguageLoader = new LanguageLoader(this);
+        debugLogger = new DebugLogger(this, debugLanguageLoader);
         debugMessageService = new AbstractMessageService(this, messages.message("general.prefix"),
                 messages::message, messages::message);
         debugCommand = new DebugCommand(debugLogger, DEBUG_MODULES);
@@ -337,7 +477,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
                 this,
                 messages,
                 VERSIONED_FILES,
-                STATIC_FILES,
+                List.of(),
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
                 new BootstrapHooks() {
@@ -363,11 +503,11 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         requirementLoader = new RequirementLoader(this);
         sourceRuleLoader = new SourceRuleLoader(this);
         guiTemplateLoader = new GuiTemplateLoader(this);
-        guiService = new GuiService(this, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
+        guiService = new GuiService(this, executionDispatcher, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
         typeRegistry = new LevelTypeRegistry();
         requirementService = new RequirementService();
-        curveService = new LevelCurveService(typeRegistry, requirementService);
-        dataStore = new PlayerLevelDataStore(this);
+        var playerDataFiles = coreLib.asyncYamlFiles(this);
+        dataStore = new PlayerLevelDataStore(this, () -> playerDataFiles);
         pdcService = new LevelPdcService(appConfig.pdcNamespace(), appConfig.pdcEnabled());
         javaScriptExpRuleRegistry = new JavaScriptLevelExpRuleRegistry(this);
         javaScriptLevelUpHookRegistry = new JavaScriptLevelUpHookRegistry(this);
@@ -388,34 +528,33 @@ public final class EmakiLevelPlugin extends JavaPlugin {
                 coreLib.itemSourceService(),
                 coreLib.economyManager(),
                 coreLib.actionExecutor(),
+                executionDispatcher,
+                threadOwnership,
                 appConfig,
                 () -> attributeBridge.resyncAll(),
                 player -> attributeBridge.resync(player),
                 data -> topService.update(data)
         );
+        playerDataListener = new PlayerDataListener(this, executionDispatcher);
         levelGuiService = new LevelGuiService(this, guiService, guiTemplateLoader);
         levelTopGuiService = new LevelTopGuiService(this, guiService, guiTemplateLoader);
     }
 
     private void registerCommand() {
         LevelCommand command = new LevelCommand(this);
-        PluginCommand pluginCommand = getCommand("emakilevel");
-        if (pluginCommand != null) {
-            pluginCommand.setExecutor(command);
-            pluginCommand.setTabCompleter(command);
-        }
+        registerCommand(
+                "emakilevel",
+                "emakilevel command",
+                java.util.List.of("elv", "elevel"),
+                new PaperCommandAdapter("emakilevel", "emakilevel.use", command, command)
+        );
     }
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(guiService, this);
-        getServer().getPluginManager().registerEvents(new PlayerDataListener(this), this);
-        getServer().getPluginManager().registerEvents(new CombatSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new BlockSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new FishingSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new CraftingSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new BrewingSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new SmeltingSourceListener(this), this);
-        getServer().getPluginManager().registerEvents(new TamingSourceListener(this), this);
+        getServer().getPluginManager().registerEvents(playerDataListener, this);
+        gameplaySubscriber = new LevelGameplaySubscriber(this);
+        gameplaySubscriber.subscribe(coreLib.eventBus());
     }
 
     private void registerApi() {
@@ -435,40 +574,15 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         messages.info("console.actions_registered");
     }
 
-    private void registerJavaScriptCompletions() {
-        scriptMethod("available", "available()", "available()");
-        scriptMethod("typeIds", "typeIds()", "typeIds()");
-        scriptMethod("type", "type(typeId)", "type(\"combat\")");
-        scriptMethod("level", "level(playerUuid, typeId)", "level(playerUuid, \"combat\")");
-        scriptMethod("exp", "exp(playerUuid, typeId)", "exp(playerUuid, \"combat\")");
-        scriptMethod("totalExp", "totalExp(playerUuid, typeId)", "totalExp(playerUuid, \"combat\")");
-        scriptMethod("requiredExp", "requiredExp(playerUuid, typeId, targetLevel)", "requiredExp(playerUuid, \"combat\", 10)");
-        scriptMethod("registerExpRule", "registerExpRule(definition)", "registerExpRule({ id: \"weekend_bonus\", function: \"modifyExp\" })");
-        scriptMethod("unregisterExpRule", "unregisterExpRule(id)", "unregisterExpRule(\"weekend_bonus\")");
-        scriptMethod("registeredExpRules", "registeredExpRules()", "registeredExpRules()");
-        scriptMethod("onLevelUp", "onLevelUp(definition)", "onLevelUp({ id: \"level_reward\", function: \"reward\" })");
-        scriptMethod("unregisterLevelUpHook", "unregisterLevelUpHook(id)", "unregisterLevelUpHook(\"level_reward\")");
-        scriptMethod("registeredLevelUpHooks", "registeredLevelUpHooks()", "registeredLevelUpHooks()");
-    }
-
-    private void scriptMethod(String label, String detail, String apply) {
-        try {
-            WebConsoleRegistry.class.getMethod("registerJavaScriptMethod", String.class, String.class, String.class, String.class, String.class, String.class)
-                    .invoke(null, getName(), "module:level", label, detail, apply, "function");
-        } catch (NoSuchMethodException ignored) {
-            // Older CoreLib builds do not expose JavaScript completion registration; completions are optional.
-        } catch (ReflectiveOperationException exception) {
-            getLogger().warning("Failed to register JavaScript completion " + label + ": " + exception.getMessage());
+    private void registerCorePlaceholders() {
+        if (coreLib == null || coreLib.placeholderRegistry() == null) {
+            return;
         }
-    }
-
-    private void registerWebConsole() {
-        WebConsoleRegistry.registerFromYaml(this);
-        registerJavaScriptCompletions();
-        WebPluginApiRegistry.register(this, "level", "curve", request -> {
-            request.requirePost();
-            return curveService.curves(request.stringList("types"), request.integer("fromLevel", 1), request.integer("toLevel", 0));
-        });
+        if (corePlaceholderResolver != null) {
+            coreLib.placeholderRegistry().unregister(corePlaceholderResolver);
+        }
+        corePlaceholderResolver = new LevelCorePlaceholderResolver(this);
+        coreLib.placeholderRegistry().register(corePlaceholderResolver);
     }
 
     private void registerPlaceholderExpansion() {
@@ -501,8 +615,8 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         if (uuid == null) {
             return null;
         }
-        PlayerLevelData data = dataStore.getOrLoad(uuid, typeRegistry.asMap());
-        return data.entry(emaki.jiuwu.craft.corelib.text.Texts.normalizeId(typeId));
+        PlayerLevelData data = dataStore.cached(uuid);
+        return data == null ? null : data.entry(emaki.jiuwu.craft.corelib.text.Texts.normalizeId(typeId));
     }
 
     private LevelTypeView view(LevelTypeConfig type) {
@@ -531,6 +645,7 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         return messages;
     }
 
+    @Override
     public DebugLogger debugLogger() {
         return debugLogger;
     }
@@ -575,6 +690,14 @@ public final class EmakiLevelPlugin extends JavaPlugin {
         return coreLib;
     }
 
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
+    }
+
     public LevelTopService topService() {
         return topService;
     }
@@ -590,4 +713,40 @@ public final class EmakiLevelPlugin extends JavaPlugin {
     public LevelTopGuiService levelTopGuiService() {
         return levelTopGuiService;
     }
+
+    private static final class PaperCommandAdapter implements BasicCommand {
+
+        private final String rootLabel;
+        private final String permission;
+        private final org.bukkit.command.CommandExecutor executor;
+        private final org.bukkit.command.TabCompleter tabCompleter;
+
+        private PaperCommandAdapter(String rootLabel,
+                String permission,
+                org.bukkit.command.CommandExecutor executor,
+                org.bukkit.command.TabCompleter tabCompleter) {
+            this.rootLabel = rootLabel;
+            this.permission = permission;
+            this.executor = executor;
+            this.tabCompleter = tabCompleter;
+        }
+
+        @Override
+        public void execute(CommandSourceStack source, String[] args) {
+            executor.onCommand(source.getSender(), null, rootLabel, args);
+        }
+
+        @Override
+        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
+            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? java.util.List.of() : suggestions;
+        }
+
+        @Override
+        public String permission() {
+            return permission;
+        }
+    }
+
 }

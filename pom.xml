@@ -21,7 +21,7 @@
 
     <modules>
         <module>EmakiCoreLibApi</module>
-        <module>EmakiBStatsRuntime</module>
+        <module>EmakiSkillsProtocol</module>
         <module>EmakiCoreLib</module>
         <module>EmakiItemApi</module>
         <module>EmakiStrengthenApi</module>
@@ -31,11 +31,14 @@
         <module>EmakiCookingApi</module>
         <module>EmakiGemApi</module>
         <module>EmakiLevelApi</module>
+        <module>EmakiCodexApi</module>
+        <module>EmakiStorageApi</module>
         <module>EmakiForge</module>
         <module>EmakiStrengthen</module>
         <module>EmakiCooking</module>
         <module>EmakiAttribute</module>
         <module>EmakiLevel</module>
+        <module>EmakiCodex</module>
     </modules>
 
     <profiles>
@@ -50,6 +53,7 @@
                 <module>EmakiSkills</module>
                 <module>EmakiGem</module>
                 <module>EmakiItem</module>
+                <module>EmakiStorage</module>
             </modules>
         </profile>
     </profiles>
@@ -57,10 +61,13 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.4.0</emaki.corelib.version>
-        <spigot.api.version>1.21.11-R0.1-SNAPSHOT</spigot.api.version>
+        <emaki.corelib.version>4.6.0</emaki.corelib.version>
+        <emaki.attribute.version>4.6.0</emaki.attribute.version>
+        <emaki.item.version>2.6.0</emaki.item.version>
+        <emaki.skills.version>2.6.0</emaki.skills.version>
+        <emaki.skills.protocol.version>2.6.0</emaki.skills.protocol.version>
+        <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
-        <adventure.platform.version>4.4.1</adventure.platform.version>
         <exp4j.version>0.4.8</exp4j.version>
         <jetbrains.annotations.version>26.1.0</jetbrains.annotations.version>
         <boosted.yaml.version>1.3.7</boosted.yaml.version>
@@ -68,15 +75,19 @@
         <mythiclib.version>1.7.1-SNAPSHOT</mythiclib.version>
         <vault.api.version>1.7.1</vault.api.version>
         <excellenteconomy.version>2.8.0</excellenteconomy.version>
-        <nightcore.version>2.14.0</nightcore.version>
-        <placeholderapi.version>2.12.2</placeholderapi.version>
+        <nightcore.version>2.16.3</nightcore.version>
+        <placeholderapi.version>2.12.3</placeholderapi.version>
         <mmoitems.version>6.10.1-SNAPSHOT</mmoitems.version>
-        <craftengine.version>26.6</craftengine.version>
+        <craftengine.version>26.7.2</craftengine.version>
         <itemsadder.version>4.0.17</itemsadder.version>
-        <nexo.version>1.24.0</nexo.version>
+        <nexo.version>1.25.0</nexo.version>
         <oraxen.version>1.217.0</oraxen.version>
-        <neigeitems.version>1.21.145</neigeitems.version>
-        <packetevents.version>2.12.2</packetevents.version>
+        <neigeitems.version>1.21.151</neigeitems.version>
+        <ecoitems.version>2026.27</ecoitems.version>
+        <eco.version>2026.28</eco.version>
+        <libreforge.version>2026.27</libreforge.version>
+        <libreforge.loader.version>2026.27</libreforge.loader.version>
+        <packetevents.version>2.13.0</packetevents.version>
         <bstats.version>3.2.1</bstats.version>
         <caffeine.version>3.2.4</caffeine.version>
         <graalvm.polyglot.version>25.0.3</graalvm.polyglot.version>
@@ -101,9 +112,9 @@
                 <version>${boosted.yaml.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.spigotmc</groupId>
-                <artifactId>spigot-api</artifactId>
-                <version>${spigot.api.version}</version>
+                <groupId>io.papermc.paper</groupId>
+                <artifactId>paper-api</artifactId>
+                <version>${paper.api.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -118,17 +129,22 @@
             </dependency>
             <dependency>
                 <groupId>net.kyori</groupId>
-                <artifactId>adventure-platform-bukkit</artifactId>
-                <version>${adventure.platform.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>net.kyori</groupId>
                 <artifactId>adventure-text-serializer-plain</artifactId>
                 <version>${adventure.version}</version>
             </dependency>
             <dependency>
                 <groupId>net.kyori</groupId>
                 <artifactId>adventure-text-serializer-legacy</artifactId>
+                <version>${adventure.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.kyori</groupId>
+                <artifactId>adventure-text-serializer-gson</artifactId>
+                <version>${adventure.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.kyori</groupId>
+                <artifactId>adventure-text-serializer-json</artifactId>
                 <version>${adventure.version}</version>
             </dependency>
             <dependency>
@@ -226,6 +242,66 @@
                 <version>${neigeitems.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <!--
+                EcoItems 物品源编译期依赖。EcoItems 发布的 Maven pom 是 Gradle 精简 pom
+                （完整传递依赖在 .module 元数据里，Maven 不读），故必须显式声明它继承的框架
+                超类型来源。全部为 provided：不进 shade jar（artifactSet 白名单只含
+                corelib-api + bstats），运行时由 EcoItems/eco 插件自身提供。
+                版本锁定到 auxilor 公开仓库的最新 CalVer 世代（eco 2026.28、libreforge /
+                EcoItems / libreforge-loader 2026.27）。以下结构经字节码（javap）与真实 javac
+                编译逐一验证，务必注意 classifier 的取舍：
+                - EcoItems 必须用【主坐标 / 不带 classifier】的 plain jar。其 EcoItems.class
+                  父类是标准包名 com.willfp.libreforge.loader.configs.ConfigCategory，可由
+                  libreforge-loader 提供而解析。反之 classifier=all 的胖 jar 里 EcoItems 父类
+                  被 relocate 成 com.willfp.ecoitems.libreforge.loader.configs.ConfigCategory，
+                  该类未打进任何公开构件（jar 内仅含 relocate 后的 ConditionHasEcoItem），纯
+                  Maven 无法解析 —— 这正是加 classifier=all 会报“找不到 ConfigCategory 类文件”
+                  的根因；
+                  ★ 注意仓库来源：auxilor 公开仓库发布的 EcoItems 主坐标 jar 是 261B 空壳
+                    （真身只在 Gradle .module 元数据指向的 -all 里，而 -all 又是坏的 relocate
+                    版本）。真正含 EcoItems 类、且父类为标准 ConfigCategory 的 plain jar 由
+                    jitpack.io 提供（约 82KB，本仓库 repositories 已配置 jitpack）。故此依赖
+                    实际从 jitpack 解析，切勿移除 jitpack 仓库或将其排到 auxilor 之后失效；
+                - libreforge-loader 提供 EcoItems 父类链所需的 ConfigCategory / LegacyLocation
+                  / LibreforgePlugin（未 relocate 的标准包名）；
+                - libreforge（classifier=all 胖 jar）提供 Holder 等；其 pom 声明只存在于私有
+                  仓库的运行期依赖 libreforge.core:common（maven-public 返回 404），故整组排除
+                  libreforge.core（all jar 已自包含编译所需类，排除后不影响编译；通配排除避免
+                  版本升级增删子模块时再次踩坑）；
+                - eco 2026.28 主 jar 即完整类（约 569KB），提供 Registrable / FastItemStack，
+                  无需 classifier；其传递依赖仅 kotlin-stdlib / kotlinx-coroutines，可公开解析。
+            -->
+            <dependency>
+                <groupId>com.willfp</groupId>
+                <artifactId>EcoItems</artifactId>
+                <version>${ecoitems.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.willfp</groupId>
+                <artifactId>libreforge-loader</artifactId>
+                <version>${libreforge.loader.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.willfp</groupId>
+                <artifactId>eco</artifactId>
+                <version>${eco.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.willfp</groupId>
+                <artifactId>libreforge</artifactId>
+                <version>${libreforge.version}</version>
+                <classifier>all</classifier>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>libreforge.core</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
             <dependency>
                 <groupId>com.github.retrooper</groupId>
                 <artifactId>packetevents-spigot</artifactId>
@@ -258,12 +334,12 @@
 
     <repositories>
         <repository>
-            <id>phoenix</id>
-            <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
         </repository>
         <repository>
-            <id>spigotmc-snapshots</id>
-            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+            <id>phoenix</id>
+            <url>https://nexus.phoenixdevt.fr/repository/maven-public/</url>
         </repository>
         <repository>
             <id>irepo-space</id>
@@ -300,6 +376,10 @@
         <repository>
             <id>oraxen-releases</id>
             <url>https://repo.oraxen.com/releases/</url>
+        </repository>
+        <repository>
+            <id>auxilor-releases</id>
+            <url>https://repo.auxilor.io/repository/maven-public/</url>
         </repository>
         <repository>
             <id>codemc-releases</id>

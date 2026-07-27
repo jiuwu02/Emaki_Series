@@ -1,12 +1,16 @@
 package emaki.jiuwu.craft.corelib.runtime;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.bukkit.plugin.Plugin;
+
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 
 public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponents> {
@@ -25,10 +29,15 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             BiConsumer<String, Exception> failureHandler) {
         try {
             stage.run();
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             if (failureHandler != null) {
-                failureHandler.accept(stageName, exception);
+                try {
+                    failureHandler.accept(stageName, exception);
+                } catch (RuntimeException handlerFailure) {
+                    exception.addSuppressed(handlerFailure);
+                }
             }
+            throw exception;
         }
     }
 
@@ -38,8 +47,12 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         }
         notifyProgress(config.progressListener(), config.progressMessage());
         if (scheduler == null) {
-            runReloadStage(config.stageName(), config.stage(), config.failureHandler());
-            return CompletableFuture.completedFuture(config.passthrough());
+            try {
+                runReloadStage(config.stageName(), config.stage(), config.failureHandler());
+                return CompletableFuture.completedFuture(config.passthrough());
+            } catch (RuntimeException exception) {
+                return failedFuture(exception);
+            }
         }
         String taskPrefix = config.taskPrefix();
         String taskName = (taskPrefix == null || taskPrefix.isBlank() ? "reload" : taskPrefix) + "-" + config.stageName();
@@ -50,6 +63,8 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
     }
 
     protected final <L, R> CompletableFuture<R> runReloadPipelineAsync(AsyncTaskScheduler scheduler,
+            ExecutionDispatcher executionDispatcher,
+            Plugin executionOwner,
             ReloadPipelineConfig<L, R> config) {
         if (config == null) {
             return CompletableFuture.completedFuture(null);
@@ -70,6 +85,12 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
                 return failedFuture(exception);
             }
         }
+        if (executionDispatcher == null || executionOwner == null) {
+            IllegalStateException exception = new IllegalStateException(
+                    "Reload pipeline requires an ExecutionDispatcher and owner for the global apply stage");
+            handleReloadPipelineFailure(config, config.applyStageName(), exception);
+            return failedFuture(exception);
+        }
         String prefix = config.taskPrefix() == null || config.taskPrefix().isBlank() ? "reload" : config.taskPrefix();
         notifyProgress(config.progressListener(), config.loadProgressMessage());
         return scheduler.supplyAsync(prefix + "-" + config.loadStageName(), () -> {
@@ -79,22 +100,40 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
                 handleReloadPipelineFailure(config, config.loadStageName(), exception);
                 throw new java.util.concurrent.CompletionException(exception);
             }
-        }).thenCompose(loaded -> {
-            notifyProgress(config.progressListener(), config.applyProgressMessage());
-            return scheduler.callSync(prefix + "-" + config.applyStageName(), () -> {
-                try {
-                    R result = config.syncApply() == null ? null : config.syncApply().apply(loaded);
-                    if (config.postRefresh() != null) {
-                        notifyProgress(config.progressListener(), config.postRefreshProgressMessage());
-                        config.postRefresh().accept(result);
-                    }
-                    return result;
-                } catch (Exception exception) {
-                    handleReloadPipelineFailure(config, config.applyStageName(), exception);
-                    throw new java.util.concurrent.CompletionException(exception);
+        }).thenCompose(loaded -> runReloadApplyOnGlobal(executionDispatcher, executionOwner, loaded, config));
+    }
+
+    private <L, R> CompletableFuture<R> runReloadApplyOnGlobal(ExecutionDispatcher executionDispatcher,
+            Plugin executionOwner,
+            L loaded,
+            ReloadPipelineConfig<L, R> config) {
+        CompletableFuture<R> future = new CompletableFuture<>();
+        notifyProgress(config.progressListener(), config.applyProgressMessage());
+        Runnable task = () -> {
+            try {
+                R result = config.syncApply() == null ? null : config.syncApply().apply(loaded);
+                if (config.postRefresh() != null) {
+                    notifyProgress(config.progressListener(), config.postRefreshProgressMessage());
+                    config.postRefresh().accept(result);
                 }
-            });
-        });
+                future.complete(result);
+            } catch (Exception exception) {
+                handleReloadPipelineFailure(config, config.applyStageName(), exception);
+                future.completeExceptionally(exception);
+            }
+        };
+        try {
+            if (executionDispatcher.runGlobal(executionOwner, task) == null) {
+                RejectedExecutionException exception = new RejectedExecutionException(
+                        "Reload pipeline global apply stage was rejected");
+                handleReloadPipelineFailure(config, config.applyStageName(), exception);
+                future.completeExceptionally(exception);
+            }
+        } catch (RuntimeException exception) {
+            handleReloadPipelineFailure(config, config.applyStageName(), exception);
+            future.completeExceptionally(exception);
+        }
+        return future;
     }
 
     private <L, R> void handleReloadPipelineFailure(ReloadPipelineConfig<L, R> config, String stageName, Exception exception) {
@@ -115,6 +154,17 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         return future;
     }
 
+    /**
+     * Synchronizes a legacy {@link PdcAttributeGateway} source registration.
+     *
+     * @param gateway the legacy gateway; {@code null} is a no-op
+     * @param sourceId the source id to register
+     * @deprecated Register through
+     *             {@code emaki.jiuwu.craft.attribute.api.PdcAttributeApi} from the
+     *             owning module's optional Attribute integration instead. Retained
+     *             for one synchronized release window.
+     */
+    @Deprecated(forRemoval = true)
     protected final void syncPdcAttributeRegistration(PdcAttributeGateway gateway, String sourceId) {
         if (gateway == null || sourceId == null || sourceId.isBlank()) {
             return;

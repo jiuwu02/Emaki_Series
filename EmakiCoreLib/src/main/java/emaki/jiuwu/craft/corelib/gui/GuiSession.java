@@ -13,8 +13,10 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import net.kyori.adventure.text.Component;
 
 public final class GuiSession implements InventoryHolder {
 
@@ -22,12 +24,14 @@ public final class GuiSession implements InventoryHolder {
     private final Player viewer;
     private final GuiTemplate template;
     private final GuiItemBuilder.ItemFactory itemFactory;
+    private final ConfiguredItemService configuredItemService;
     private final GuiRenderer renderer;
     private final GuiSessionHandler handler;
     private final GuiBackend backend;
     private final GuiSessionRegistry registry;
     private final Map<String, Object> replacements = new LinkedHashMap<>();
-    private final String title;
+    private final String plainTitle;
+    private final Component titleComponent;
     private Inventory inventory;
 
     GuiSession(Plugin owner,
@@ -35,6 +39,7 @@ public final class GuiSession implements InventoryHolder {
             GuiTemplate template,
             Map<String, ?> replacements,
             GuiItemBuilder.ItemFactory itemFactory,
+            ConfiguredItemService configuredItemService,
             GuiRenderer renderer,
             GuiSessionHandler handler,
             GuiBackend backend,
@@ -43,6 +48,7 @@ public final class GuiSession implements InventoryHolder {
         this.viewer = viewer;
         this.template = template;
         this.itemFactory = itemFactory;
+        this.configuredItemService = configuredItemService;
         this.renderer = renderer;
         this.handler = handler == null ? new GuiSessionHandler() {
         } : handler;
@@ -51,19 +57,20 @@ public final class GuiSession implements InventoryHolder {
         if (replacements != null) {
             this.replacements.putAll(replacements);
         }
-        this.title = MiniMessages.plain(MiniMessages.parse(resolveTitle(template, this.replacements)));
-        this.inventory = createInventory(template, this.title);
+        this.titleComponent = MiniMessages.parse(resolveTitle(template, this.replacements));
+        this.plainTitle = MiniMessages.plain(this.titleComponent);
+        this.inventory = createInventory(template, this.titleComponent);
     }
 
-    private Inventory createInventory(GuiTemplate template, String title) {
+    private Inventory createInventory(GuiTemplate template, Component titleComponent) {
         InventoryType type = template.inventoryType();
         if (template.isChest()) {
-            return Bukkit.createInventory(this, template.rows() * 9, title);
+            return Bukkit.createInventory(this, template.rows() * 9, titleComponent);
         }
         if (!isCreatable(type)) {
-            return Bukkit.createInventory(this, Math.max(9, template.slotCount()), title);
+            return Bukkit.createInventory(this, Math.max(9, template.slotCount()), titleComponent);
         }
-        return Bukkit.createInventory(this, type, title);
+        return Bukkit.createInventory(this, type, titleComponent);
     }
 
     private static boolean isCreatable(InventoryType type) {
@@ -103,13 +110,15 @@ public final class GuiSession implements InventoryHolder {
                 GuiTemplate.ResolvedSlot resolved = new GuiTemplate.ResolvedSlot(slot, inventorySlot, index);
                 ItemStack rendered = renderer == null ? null : renderer.render(this, resolved);
                 if (rendered == null) {
-                    rendered = GuiItemBuilder.build(
-                            slot.item(),
-                            slot.components(),
-                            1,
-                            replacements,
-                            itemFactory
-                    );
+                    rendered = configuredItemService == null
+                            ? GuiItemBuilder.build(
+                                    slot.item(),
+                                    slot.components(),
+                                    1,
+                                    replacements,
+                                    itemFactory
+                            )
+                            : GuiItemBuilder.build(slot.itemDefinition(), replacements, configuredItemService);
                 }
                 renderedSlots.put(inventorySlot, rendered);
             }
@@ -165,7 +174,15 @@ public final class GuiSession implements InventoryHolder {
     }
 
     public String title() {
-        return title;
+        return plainTitle;
+    }
+
+    public String plainTitle() {
+        return plainTitle;
+    }
+
+    public Component titleComponent() {
+        return titleComponent;
     }
 
     public Map<String, Object> replacements() {

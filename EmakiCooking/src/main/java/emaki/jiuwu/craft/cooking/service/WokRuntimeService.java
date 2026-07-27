@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -13,7 +14,9 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
@@ -21,6 +24,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
+import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
@@ -55,6 +59,7 @@ public final class WokRuntimeService {
     private final ItemSourceService itemSourceService;
     private final CookingDisplayService displayService;
     private final CookingTextDisplayService textDisplayService;
+    private CookingCompletionCoordinator completionCoordinator;
 
     public WokRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -78,20 +83,82 @@ public final class WokRuntimeService {
         this.textDisplayService = Objects.requireNonNull(textDisplayService, "textDisplayService");
     }
 
+    public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
+        this.completionCoordinator = completionCoordinator;
+        if (completionCoordinator != null) {
+            completionCoordinator.register(completionStateAccess());
+        }
+    }
+
+    CookingStationStateAccess completionStateAccess() {
+        return new CookingStationStateAccess() {
+            @Override
+            public StationType stationType() {
+                return StationType.WOK;
+            }
+
+            @Override
+            public Map<String, Object> snapshot(StationCoordinates coordinates) {
+                WokState state = readState(stateStore.load(coordinates));
+                return state == null ? null : serializeState(coordinates, state);
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> replace(
+                    StationCoordinates coordinates,
+                    Map<String, Object> committedState) {
+                WokState state = readState(new MapYamlSection(committedState));
+                if (state == null) {
+                    return java.util.concurrent.CompletableFuture.failedFuture(
+                            new IllegalArgumentException("Invalid committed wok state"));
+                }
+                return stateStore.saveAsync(coordinates, committedState)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> refreshDisplays(coordinates, state)));
+            }
+
+            @Override
+            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+                return stateStore.deleteAsync(coordinates)
+                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
+                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> clearRuntimeVisuals(coordinates)));
+            }
+        };
+    }
+
     public void reload() {
         displayService.removeStationType(StationType.WOK);
-        for (Map.Entry<StationCoordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection> entry : stateStore.loadAll(StationType.WOK).entrySet()) {
-            StationCoordinates coordinates = entry.getKey();
-            WokState state = readState(entry.getValue());
-            ItemSource stationSource = stateStore.stationSource(entry.getValue());
-            Block block = coordinates.block();
-            if (state == null || !blockMatcher.matches(block, StationType.WOK, stationSource) || !state.hasIngredients()) {
-                stateStore.deleteAsync(coordinates);
-                displayService.removeStation(StationType.WOK, coordinates);
-                continue;
-            }
-            refreshDisplays(coordinates, state);
+        stateStore.forEachLoadedState(StationType.WOK, this::restoreStoredState);
+    }
+
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+        if (coordinates == null) {
+            return false;
         }
+        WokState state = readState(section);
+        ItemSource stationSource = stateStore.stationSource(section);
+        Block block = coordinates.block();
+        if (state == null || !state.hasIngredients()) {
+            displayService.removeStation(StationType.WOK, coordinates);
+            textDisplayService.removeStation(StationType.WOK, coordinates);
+            return false;
+        }
+        if (!blockMatcher.matches(block, StationType.WOK, stationSource)) {
+            displayService.removeStation(StationType.WOK, coordinates);
+            textDisplayService.removeStation(StationType.WOK, coordinates);
+            plugin.getLogger().warning("Station restore report: skipped_mismatch type=wok coordinate=" + coordinates.runtimeKey());
+            return false;
+        }
+        refreshDisplays(coordinates, state);
+        return true;
+    }
+
+    public void unloadStoredState(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return;
+        }
+        displayService.removeStation(StationType.WOK, coordinates);
+        textDisplayService.removeStation(StationType.WOK, coordinates);
     }
 
     public boolean handleInteraction(StationInteraction interaction) {
@@ -108,6 +175,10 @@ public final class WokRuntimeService {
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
         stateStore.rememberStationSource(coordinates, interaction.stationSource());
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.WOK, coordinates)) {
+            interaction.cancel();
+            return true;
+        }
         WokState state = readState(stateStore.load(coordinates));
         int heatLevel = resolveHeatLevel(block.getRelative(BlockFace.DOWN));
         ItemStack hand = player.getInventory().getItemInMainHand();
@@ -327,6 +398,9 @@ public final class WokRuntimeService {
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(block);
         stateStore.rememberStationSource(coordinates, context.stationSource());
+        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.WOK, coordinates)) {
+            return true;
+        }
         WokState state = readState(stateStore.load(coordinates));
         if (state == null || !state.hasIngredients()) {
             return false;
@@ -356,6 +430,48 @@ public final class WokRuntimeService {
         }
         clearState(coordinates);
         return true;
+    }
+
+
+
+
+    public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
+        if (coordinates == null) {
+            return Optional.empty();
+        }
+        WokState state = readState(stateStore.load(coordinates));
+        if (state == null || !state.hasIngredients()) {
+            return Optional.empty();
+        }
+        Block block = coordinates.block();
+        int heatLevel = block == null ? 0 : resolveHeatLevel(block.getRelative(BlockFace.DOWN));
+        WokIngredientState first = state.ingredients().get(0);
+        RecipeDocument recipe = predictRecipe(state, heatLevel);
+        int target = recipe == null ? 0 : recipeService.wokStirTotalMin(recipe);
+        int current = state.totalStirCount();
+        double percent = target > 0 ? Math.min(100.0D, (double) current * 100.0D / (double) target) : 0.0D;
+        return Optional.of(new StationSnapshot(
+                StationType.WOK,
+                coordinates.world(), coordinates.x(), coordinates.y(), coordinates.z(),
+                CookingRuntimeUtil.resolveBlockId(plugin, block),
+                CookingRuntimeUtil.resolveBlockId(plugin, block == null ? null : block.getRelative(BlockFace.DOWN)),
+                false,
+                0L,
+                heatLevel, 0, 0,
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(first.source())),
+                first.source(),
+                first.amount(),
+                state.ingredients().size(),
+                recipe == null ? "" : recipe.id(),
+                recipe == null ? "" : recipe.displayName(),
+                current,
+                target,
+                percent,
+                false,
+                "",
+                0,
+                ""
+        ));
     }
 
     private void showContents(Player player, WokState state, int heatLevel) {
@@ -390,13 +506,12 @@ public final class WokRuntimeService {
             if (!settingsService.wokFailureEnabled() || Texts.isBlank(settingsService.wokFailureOutputSource())) {
                 return false;
             }
-            if (consumeBowl) {
-                CookingRuntimeUtil.takeOneFromMainHand(player);
-            }
             completeWithCustomSource(
                     player,
                     block,
                     coordinates,
+                    state,
+                    consumeBowl,
                     settingsService.wokFailureOutputSource(),
                     settingsService.wokDropResult(),
                     "cooking_wok_invalid",
@@ -413,27 +528,38 @@ public final class WokRuntimeService {
             case "overcooked" -> recipeService.outcome(recipe, "result.overcooked");
             default -> invalidOutcome(recipe);
         };
-        if (consumeBowl) {
-            CookingRuntimeUtil.takeOneFromMainHand(player);
+        CookingCompletionRequest.PlayerInventoryInput bowlInput = consumeBowl
+                ? CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "wok serving bowl")
+                : null;
+        boolean accepted = (!consumeBowl || bowlInput != null)
+                && completionCoordinator != null
+                && completionCoordinator.submit(new CookingCompletionRequest(
+                        "serve:" + state.lastStirTimeMs() + ":" + state.totalStirCount() + ":" + branch,
+                        StationType.WOK,
+                        coordinates,
+                        serializeState(coordinates, state),
+                        CookingCompletionOperation.CommitMode.DELETE,
+                        Map.of(),
+                        recipe,
+                        player,
+                        block.getLocation().add(0.5D, 1.0D, 0.5D),
+                        settingsService.wokDropResult(),
+                        state.ingredients().stream()
+                                .map(ingredient -> new CookingInputIngredient(ingredient.source(), ingredient.amount()))
+                                .toList(),
+                        recipeService.outputs(outcome),
+                        recipeService.actions(outcome),
+                        "cooking_wok_" + branch,
+                        Map.of(
+                                "recipe_id", recipe.id(),
+                                "station_type", StationType.WOK.folderName(),
+                                "outcome", branch
+                        ),
+                        bowlInput == null ? List.of() : List.of(bowlInput)
+                ));
+        if (!accepted) {
+            return false;
         }
-        clearState(coordinates);
-        rewardService.deliver(
-                recipe,
-                player,
-                block.getLocation().add(0.5D, 1.0D, 0.5D),
-                settingsService.wokDropResult(),
-                state.ingredients().stream()
-                        .map(ingredient -> new CookingInputIngredient(ingredient.source(), ingredient.amount()))
-                        .toList(),
-                recipeService.outputs(outcome),
-                recipeService.actions(outcome),
-                "cooking_wok_" + branch,
-                Map.of(
-                        "recipe_id", recipe.id(),
-                        "station_type", StationType.WOK.folderName(),
-                        "outcome", branch
-                )
-        );
         switch (branch) {
             case "success" -> CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.completed_success", Map.of("recipe", recipe.displayName()));
             case "undercooked" -> CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.completed_undercooked", Map.of("recipe", recipe.displayName()));
@@ -461,24 +587,40 @@ public final class WokRuntimeService {
     private void completeWithCustomSource(Player player,
             Block block,
             StationCoordinates coordinates,
+            WokState state,
+            boolean consumeBowl,
             String source,
             boolean dropResult,
             String phase,
             String messageKey,
             Map<String, ?> replacements) {
-        clearState(coordinates);
-        rewardService.deliver(
-                null,
-                player,
-                block.getLocation().add(0.5D, 1.0D, 0.5D),
-                dropResult,
-                List.of(),
-                List.of(Map.of("item_sources", List.of(source), "amount", 1)),
-                List.of(),
-                phase,
-                Map.of("station_type", StationType.WOK.folderName())
-        );
-        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, messageKey, replacements);
+        CookingCompletionRequest.PlayerInventoryInput bowlInput = consumeBowl
+                ? CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "wok serving bowl")
+                : null;
+        boolean accepted = state != null
+                && (!consumeBowl || bowlInput != null)
+                && completionCoordinator != null
+                && completionCoordinator.submit(new CookingCompletionRequest(
+                        "serve:" + state.lastStirTimeMs() + ":" + state.totalStirCount() + ":invalid",
+                        StationType.WOK,
+                        coordinates,
+                        serializeState(coordinates, state),
+                        CookingCompletionOperation.CommitMode.DELETE,
+                        Map.of(),
+                        null,
+                        player,
+                        block.getLocation().add(0.5D, 1.0D, 0.5D),
+                        dropResult,
+                        List.of(),
+                        List.of(Map.of("item_sources", List.of(source), "amount", 1)),
+                        List.of(),
+                        phase,
+                        Map.of("station_type", StationType.WOK.folderName()),
+                        bowlInput == null ? List.of() : List.of(bowlInput)
+                ));
+        if (accepted) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, messageKey, replacements);
+        }
     }
 
     private String determineOutcomeBranch(WokState state, RecipeDocument recipe) {
@@ -729,6 +871,10 @@ public final class WokRuntimeService {
     }
 
     private void saveState(StationCoordinates coordinates, WokState state) {
+        stateStore.saveAsync(coordinates, serializeState(coordinates, state));
+    }
+
+    private Map<String, Object> serializeState(StationCoordinates coordinates, WokState state) {
         Map<String, Object> root = CookingRuntimeUtil.buildStateRoot(StationType.WOK, coordinates);
 
         List<Map<String, Object>> ingredients = new ArrayList<>();
@@ -751,7 +897,7 @@ public final class WokRuntimeService {
                 "last_stir_time_ms", state.lastStirTimeMs(),
                 "stir_fried_time_ms", state.lastStirActionMs()
         ));
-        stateStore.saveAsync(coordinates, root);
+        return root;
     }
 
     private void refreshText(StationCoordinates coordinates, WokState state) {
@@ -956,11 +1102,15 @@ public final class WokRuntimeService {
     }
 
     private void clearState(StationCoordinates coordinates) {
+        clearRuntimeVisuals(coordinates);
+        stateStore.deleteAsync(coordinates);
+    }
+
+    private void clearRuntimeVisuals(StationCoordinates coordinates) {
         Block block = coordinates == null ? null : coordinates.block();
         setWokHeatSourceLit(block, false);
         displayService.removeStation(StationType.WOK, coordinates);
         textDisplayService.removeStation(StationType.WOK, coordinates);
-        stateStore.deleteAsync(coordinates);
     }
 
     private WokState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {

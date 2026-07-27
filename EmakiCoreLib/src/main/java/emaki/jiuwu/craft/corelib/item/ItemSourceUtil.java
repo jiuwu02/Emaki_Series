@@ -105,22 +105,15 @@ public final class ItemSourceUtil {
             return registered;
         }
         return switch (source.getType()) {
-            case MMOITEMS ->
-                "mmoitems-" + source.getIdentifier();
-            case ITEMSADDER ->
-                "itemsadder-" + source.getIdentifier();
-            case NEIGEITEMS ->
-                "neigeitems-" + source.getIdentifier();
-            case EMAKIITEM ->
-                null;
-            case NEXO ->
-                "nexo-" + source.getIdentifier();
-            case ORAXEN ->
-                "oraxen-" + source.getIdentifier();
-            case CRAFTENGINE ->
-                "craftengine-" + source.getIdentifier();
-            case VANILLA ->
-                canonicalVanillaShorthand(source.getIdentifier());
+            case MMOITEMS -> "mmoitems-" + source.getIdentifier();
+            case ITEMSADDER -> "itemsadder-" + source.getIdentifier();
+            case NEIGEITEMS -> "neigeitems-" + source.getIdentifier();
+            case EMAKIITEM -> "emakiitem-" + source.getIdentifier();
+            case NEXO -> "nexo-" + source.getIdentifier();
+            case ORAXEN -> "oraxen-" + source.getIdentifier();
+            case ECOITEMS -> "ecoitems-" + source.getIdentifier();
+            case CRAFTENGINE -> "craftengine-" + source.getIdentifier();
+            case VANILLA -> canonicalVanillaShorthand(source.getIdentifier());
         };
     }
 

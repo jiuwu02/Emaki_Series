@@ -34,7 +34,7 @@ public record AppConfig(String version,
 
     public static AppConfig defaults() {
         return new AppConfig(
-                "1.1.7",
+                "1.2.8",
                 "zh_CN",
                 true,
                 "main",

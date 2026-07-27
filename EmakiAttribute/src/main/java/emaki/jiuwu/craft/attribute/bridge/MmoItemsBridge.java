@@ -33,8 +33,8 @@ import emaki.jiuwu.craft.attribute.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
@@ -48,13 +48,21 @@ public final class MmoItemsBridge implements Listener {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
+    private final ExecutionDispatcher executionDispatcher;
     private final DirectMmoItemsAccessor accessor;
     private final AttributeContributionProvider contributionProvider;
     private final Set<UUID> trackedProjectiles = ConcurrentHashMap.newKeySet();
 
     public MmoItemsBridge(EmakiAttributePlugin plugin, AttributeService attributeService) {
+        this(plugin, attributeService, null);
+    }
+
+    public MmoItemsBridge(EmakiAttributePlugin plugin,
+            AttributeService attributeService,
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.attributeService = attributeService;
+        this.executionDispatcher = executionDispatcher;
         this.accessor = new DirectMmoItemsAccessor(plugin);
         this.contributionProvider = new MmoItemsAttributeContributionProvider();
         this.attributeService.registerContributionProvider(contributionProvider);
@@ -63,7 +71,7 @@ public final class MmoItemsBridge implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
         if (!(event.getEntity() instanceof Projectile projectile)) {
             return;
@@ -111,8 +119,13 @@ public final class MmoItemsBridge implements Listener {
             applyPerfectTakeover(event, damageContext, target, event.getDamager());
             return;
         }
+        double fallbackDamage = Math.max(0D, event.getFinalDamage());
         event.setCancelled(true);
-        resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, event.getDamager());
+        resolveAndApplyDamage(
+                attributeService.resolveDamageApplicationAsync(damageContext),
+                target,
+                event.getDamager(),
+                fallbackDamage);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -133,10 +146,6 @@ public final class MmoItemsBridge implements Listener {
     private void handleProjectileDamage(EntityDamageByEntityEvent event, Projectile projectile, LivingEntity target) {
         trackedProjectiles.remove(projectile.getUniqueId());
         LivingEntity shooter = projectile.getShooter() instanceof LivingEntity livingEntity ? livingEntity : null;
-        if (shooter instanceof Player player && attributeService.isAttackCoolingDown(player)) {
-            event.setCancelled(true);
-            return;
-        }
         ProjectileDamageSnapshot snapshot = attributeService.readProjectileSnapshot(projectile);
         if (snapshot == null) {
             return;
@@ -158,8 +167,13 @@ public final class MmoItemsBridge implements Listener {
             applyPerfectTakeover(event, damageContext, target, projectile);
             return;
         }
+        double fallbackDamage = Math.max(0D, event.getFinalDamage());
         event.setCancelled(true);
-        resolveAndApplyDamage(attributeService.resolveDamageApplicationAsync(damageContext), target, projectile);
+        resolveAndApplyDamage(
+                attributeService.resolveDamageApplicationAsync(damageContext),
+                target,
+                projectile,
+                fallbackDamage);
     }
 
     private void applyPerfectTakeover(EntityDamageEvent event, DamageContext damageContext, LivingEntity target, Entity visualSource) {
@@ -171,7 +185,13 @@ public final class MmoItemsBridge implements Listener {
             event.setCancelled(true);
             return;
         }
-        attributeService.perfectTakeoverCoordinator().claimAndApply(event, resolvedDamage, visualSource);
+        boolean bypassInvulnerability = attributeService.attackBatchInvulnerabilityGate()
+                .shouldBypass(target, damageContext);
+        attributeService.perfectTakeoverCoordinator().claimAndApply(
+                event,
+                resolvedDamage,
+                visualSource,
+                bypassInvulnerability);
     }
 
     private ItemStack sourceItem(LivingEntity entity) {
@@ -193,17 +213,71 @@ public final class MmoItemsBridge implements Listener {
         return null;
     }
 
-    private void resolveAndApplyDamage(CompletableFuture<ResolvedDamage> future, LivingEntity target, Entity visualSource) {
+    private void resolveAndApplyDamage(CompletableFuture<ResolvedDamage> future,
+            LivingEntity target,
+            Entity visualSource,
+            double fallbackDamage) {
         if (future == null) {
+            applyFallbackDamage(target, fallbackDamage);
             return;
         }
-        future.whenComplete((resolvedDamage, throwable) -> FoliaSchedulerAdapter.runEntityTask(plugin, target, () -> {
-            if (throwable != null || resolvedDamage == null || target == null || !target.isValid() || target.isDead()) {
-                return;
+        future.thenCompose(resolvedDamage -> {
+            if (resolvedDamage == null || target == null) {
+                return applyFallbackDamage(target, fallbackDamage);
             }
-            CombatSupport.applySyntheticKnockback(target, visualSource, resolvedDamage.finalDamage(), attributeService.config());
-            attributeService.applyResolvedDamage(resolvedDamage, visualSource, 0D);
-        }));
+            return attributeService.applyResolvedDamageAsync(resolvedDamage, visualSource, 0D);
+        }).exceptionallyCompose(throwable -> applyFallbackDamage(target, fallbackDamage));
+    }
+
+    private CompletableFuture<Boolean> applyFallbackDamage(LivingEntity target, double damage) {
+        if (target == null || damage <= 0D) {
+            return CompletableFuture.completedFuture(false);
+        }
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            ExecutionDispatcher dispatcher = executionDispatcher != null ? executionDispatcher : plugin.executionDispatcher();
+            if (dispatcher == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "MMOItems fallback damage dispatcher is unavailable."));
+                return future;
+            }
+            var scheduled = dispatcher.runEntity(
+                    plugin,
+                    target,
+                    () -> {
+                        if (!target.isValid() || target.isDead()) {
+                            future.complete(false);
+                            return;
+                        }
+                        try {
+                            target.setNoDamageTicks(0);
+                            double remaining = Math.max(0D, damage);
+                            double absorption = Math.max(0D, target.getAbsorptionAmount());
+                            if (absorption > 0D) {
+                                double absorbed = Math.min(absorption, remaining);
+                                target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
+                                remaining -= absorbed;
+                            }
+                            target.setLastDamage(damage);
+                            if (remaining > 0D) {
+                                target.setHealth(Math.max(0D, target.getHealth() - remaining));
+                            }
+                            future.complete(true);
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    },
+                    () -> future.completeExceptionally(new IllegalStateException(
+                            "MMOItems fallback damage entity retired before execution."))
+            );
+            if (scheduled == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        "MMOItems fallback damage scheduling was rejected."));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
     }
 
     private void warnBridgeUnavailable(String error) {

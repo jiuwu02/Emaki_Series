@@ -1,9 +1,9 @@
 package emaki.jiuwu.craft.strengthen;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -15,14 +15,16 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
+import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
@@ -38,13 +40,17 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 
 final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiStrengthenPlugin, StrengthenRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiStrengthen</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#FACC15:#F97316>EmakiStrengthen</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml");
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
+        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
         registerScriptModule(coreLibPlugin);
         releaseBundledScripts(coreLibPlugin, plugin);
@@ -63,15 +69,19 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 plugin,
                 messageService,
                 VERSIONED_FILES,
-                staticFiles(plugin),
-                List.of(),
+                STATIC_FILES,
+                DEFAULT_DATA_FILES,
                 List.of(),
                 new BootstrapHooks() {
+                    @Override
+                    public boolean shouldInstallDefaultData() {
+                        return plugin.appConfig().releaseDefaultData();
+                    }
                 }
         );
-        GuiService guiService = new GuiService(plugin, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
-        PdcAttributeGateway pdcAttributeGateway = new PdcAttributeGateway(plugin);
-        syncPdcAttributeRegistration(pdcAttributeGateway, PDC_ATTRIBUTE_SOURCE_ID);
+        GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
+        StrengthenAttributeBridge pdcAttributeGateway = new StrengthenAttributeBridgeHolder(plugin.getLogger());
+        pdcAttributeGateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
         StrengthenRecipeResolver recipeResolver = new StrengthenRecipeResolver(
                 plugin,
                 coreLibPlugin.itemAssemblyService(),
@@ -92,11 +102,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 economyService,
                 snapshotBuilder,
                 actionCoordinator,
-                coreLibPlugin.itemAssemblyService()
+                coreLibPlugin.itemAssemblyService(),
+                threadOwnership
         );
-        StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService);
-        StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService);
+        StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService, executionDispatcher);
+        StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService, threadOwnership);
         return new StrengthenRuntimeComponents(
+                executionDispatcher,
+                threadOwnership,
                 appConfigLoader,
                 languageLoader,
                 recipeLoader,
@@ -118,26 +131,26 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     }
 
     public void reload(EmakiStrengthenPlugin plugin, boolean closeInventories) {
-        if (closeInventories && plugin.strengthenGuiService() != null) {
-            for (var player : Bukkit.getOnlinePlayers()) {
-                if (plugin.strengthenGuiService().getSession(player) != null) {
-                    player.closeInventory();
-                }
-            }
-            plugin.strengthenGuiService().clearAllSessions();
+        if (!freezeAndDrain(plugin, closeInventories, "reload")) {
+            resumeAccepting(plugin);
+            return;
         }
-        plugin.languageLoader().load();
-        plugin.appConfigLoader().load();
-        plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        plugin.recipeLoader().load();
-        StrengthenRecipeResolver.clearPatternCache();
-        plugin.guiTemplateLoader().load();
-        syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
-        plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
-        plugin.refreshService().refreshOnlinePlayers();
-        plugin.messageService().info("console.recipes_loaded", Map.of(
-                "count", String.valueOf(plugin.recipeLoader().all().size())
-        ));
+        try {
+            plugin.languageLoader().load();
+            plugin.appConfigLoader().load();
+            plugin.languageLoader().setLanguage(plugin.appConfig().language());
+            plugin.recipeLoader().load();
+            StrengthenRecipeResolver.clearPatternCache();
+            plugin.guiTemplateLoader().load();
+                plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
+            plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+            plugin.refreshService().refreshOnlinePlayers();
+            plugin.messageService().info("console.recipes_loaded", Map.of(
+                    "count", String.valueOf(plugin.recipeLoader().all().size())
+            ));
+        } finally {
+            resumeAccepting(plugin);
+        }
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiStrengthenPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
@@ -146,19 +159,17 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             reload(plugin, closeInventories);
             return CompletableFuture.completedFuture(null);
         }
-
-        if (closeInventories && plugin.strengthenGuiService() != null) {
-            for (var player : Bukkit.getOnlinePlayers()) {
-                if (plugin.strengthenGuiService().getSession(player) != null) {
-                    player.closeInventory();
-                }
-            }
-            plugin.strengthenGuiService().clearAllSessions();
+        if (!freezeAndDrain(plugin, false, "reload-async")) {
+            resumeAccepting(plugin);
+            return CompletableFuture.failedFuture(new IllegalStateException("Strengthen operations did not drain"));
         }
 
+        CompletableFuture<Void> closeSessions = closeInventories && plugin.strengthenGuiService() != null
+                ? plugin.strengthenGuiService().clearAllSessionsAsync()
+                : CompletableFuture.completedFuture(null);
         notifyProgress(progressListener, "Loading configuration files...");
 
-        return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
+        return closeSessions.thenCompose(_ -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "strengthen", "config-load", "Loading configs...", progressListener,
                 () -> {
                     plugin.languageLoader().load();
@@ -169,31 +180,83 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
             notifyProgress(progressListener, "Applying configuration...");
-            return scheduler.callSync("strengthen-reload-apply", () -> {
+            return submitGlobalStage(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
-                syncPdcAttributeRegistration(plugin.pdcAttributeGateway(), PDC_ATTRIBUTE_SOURCE_ID);
+            plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                 plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
                 plugin.refreshService().refreshOnlinePlayers();
                 plugin.messageService().info("console.recipes_loaded", Map.of(
                         "count", String.valueOf(plugin.recipeLoader().all().size())
                 ));
                 notifyProgress(progressListener, "Reload complete.");
+            });
+        })).whenComplete((_, _) -> resumeAccepting(plugin));
+    }
+
+    private CompletableFuture<Void> submitGlobalStage(EmakiStrengthenPlugin plugin, Runnable stage) {
+        try {
+            return plugin.executionDispatcher().submitGlobal(plugin, () -> {
+                stage.run();
                 return null;
             });
-        });
+        } catch (Throwable throwable) {
+            CompletableFuture<Void> failed = new CompletableFuture<>();
+            failed.completeExceptionally(throwable);
+            return failed;
+        }
     }
 
     public void shutdown(EmakiStrengthenPlugin plugin) {
+        freezeAndDrain(plugin, true, "shutdown");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLibPlugin.namespaceRegistry().unregister("strengthen");
-        coreLibPlugin.javaScriptRegistrationTracker().unregisterOwner(plugin);
+        var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
+        if (javaScriptRegistrationTracker != null) {
+            javaScriptRegistrationTracker.unregisterOwner(plugin);
+        }
         coreLibPlugin.scriptModuleRegistry().unregister("strengthen");
+        coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
         }
-        if (plugin.strengthenGuiService() != null) {
+    }
+
+    private boolean freezeAndDrain(EmakiStrengthenPlugin plugin, boolean closeInventories, String phase) {
+        if (plugin == null) {
+            return false;
+        }
+        if (plugin.attemptService() != null) {
+            plugin.attemptService().freezeAccepting();
+        }
+        if (plugin.javaScriptResultHookRegistry() != null) {
+            plugin.javaScriptResultHookRegistry().freeze();
+        }
+        boolean attemptsDrained = plugin.attemptService() == null
+                || plugin.attemptService().drain(5L, TimeUnit.SECONDS);
+        boolean hooksDrained = plugin.javaScriptResultHookRegistry() == null
+                || plugin.javaScriptResultHookRegistry().drain(5L, TimeUnit.SECONDS);
+        if (closeInventories && plugin.strengthenGuiService() != null) {
             plugin.strengthenGuiService().clearAllSessions();
+        }
+        if (!attemptsDrained || !hooksDrained) {
+            plugin.getLogger().severe("[Lifecycle] Strengthen drain incomplete | phase=" + phase
+                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
+                    + " | resultHooks=" + (plugin.javaScriptResultHookRegistry() == null
+                            ? 0 : plugin.javaScriptResultHookRegistry().inFlightCount()));
+            return false;
+        }
+        return true;
+    }
+
+    private void resumeAccepting(EmakiStrengthenPlugin plugin) {
+        if (plugin == null) {
+            return;
+        }
+        if (plugin.javaScriptResultHookRegistry() != null) {
+            plugin.javaScriptResultHookRegistry().resume();
+        }
+        if (plugin.attemptService() != null) {
+            plugin.attemptService().resumeAccepting();
         }
     }
 
@@ -205,6 +268,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
                 configuration.getString("version", defaults.configVersion()),
+                configuration.getBoolean("release_default_data", defaults.releaseDefaultData()),
                 configuration.getInt("local_broadcast_radius", defaults.localBroadcastRadius()),
                 parseIntegerList(configuration.getSection("broadcast.local_stars"), configuration.get("broadcast.local_stars"), defaults.localBroadcastStars()),
                 parseIntegerList(configuration.getSection("broadcast.global_stars"), configuration.get("broadcast.global_stars"), defaults.globalBroadcastStars()),
@@ -247,13 +311,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return java.util.List.copyOf(fallback);
         }
         return java.util.List.copyOf(values);
-    }
-
-    private List<String> staticFiles(EmakiStrengthenPlugin plugin) {
-        List<String> files = new ArrayList<>();
-        files.addAll(YamlFiles.listResourcePaths(plugin, "gui"));
-        files.addAll(YamlFiles.listResourcePaths(plugin, "recipes"));
-        return List.copyOf(files);
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {

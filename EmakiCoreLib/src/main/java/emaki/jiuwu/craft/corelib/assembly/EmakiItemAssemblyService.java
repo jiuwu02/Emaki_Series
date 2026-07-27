@@ -2,22 +2,32 @@ package emaki.jiuwu.craft.corelib.assembly;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -26,7 +36,7 @@ import net.kyori.adventure.text.Component;
 
 public final class EmakiItemAssemblyService {
 
-    private static final int CURRENT_SCHEMA_VERSION = 1;
+    private static final int CURRENT_SCHEMA_VERSION = 2;
     private static final int PREVIEW_CACHE_SIZE = 128;
     private static final long PREVIEW_CACHE_TTL_MILLIS = Action.DEFAULT_TIMEOUT_MILLIS;
 
@@ -34,40 +44,136 @@ public final class EmakiItemAssemblyService {
     private final AssemblyDataManager dataManager;
     private final EmakiNamespaceRegistry namespaceRegistry;
     private final ItemRenderService itemRenderService;
-    private final ItemOperationLedger operationLedger = new ItemOperationLedger();
-    private final CacheManager<String, ItemStack> previewCache =
+    private final ItemOperationLedger operationLedger;
+    private final ItemLoreReconciler loreReconciler = new ItemLoreReconciler();
+    private final CacheManager<String, ManagedProjection> previewCache =
             new CacheManager<>(PREVIEW_CACHE_SIZE, PREVIEW_CACHE_TTL_MILLIS);
-    private volatile AsyncConfig asyncConfig = new AsyncConfig(null, null);
+    private volatile AsyncConfig asyncConfig = new AsyncConfig(null, null, null, null);
 
     public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
             EmakiItemLayerCodecRegistry codecRegistry,
             ItemSourceService itemSourceService) {
-        this.namespaceRegistry = Objects.requireNonNull(namespaceRegistry, "namespaceRegistry");
-        this.itemSourceService = Objects.requireNonNull(itemSourceService, "itemSourceService");
-        this.dataManager = new AssemblyDataManager(namespaceRegistry, codecRegistry);
-        this.itemRenderService = new ItemRenderService(namespaceRegistry);
+        this(namespaceRegistry, codecRegistry, itemSourceService, null);
     }
 
-    public void configureAsync(AsyncTaskScheduler asyncTaskScheduler, PerformanceMonitor performanceMonitor) {
-        this.asyncConfig = new AsyncConfig(asyncTaskScheduler, performanceMonitor);
+    public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
+            EmakiItemLayerCodecRegistry codecRegistry,
+            ItemSourceService itemSourceService,
+            DebugLogger debugLogger) {
+        this.namespaceRegistry = Objects.requireNonNull(namespaceRegistry, "namespaceRegistry");
+        this.itemSourceService = Objects.requireNonNull(itemSourceService, "itemSourceService");
+        this.dataManager = new AssemblyDataManager(namespaceRegistry, codecRegistry, debugLogger);
+        this.itemRenderService = new ItemRenderService(namespaceRegistry);
+        this.operationLedger = new ItemOperationLedger(debugLogger);
+    }
+
+    public void configureAsync(AsyncTaskScheduler asyncTaskScheduler,
+            ExecutionDispatcher executionDispatcher,
+            Plugin executionOwner,
+            PerformanceMonitor performanceMonitor) {
+        this.asyncConfig = new AsyncConfig(asyncTaskScheduler, executionDispatcher, executionOwner, performanceMonitor);
     }
 
     public ItemStack preview(EmakiItemAssemblyRequest request) {
+        return preview(request, "direct", null);
+    }
+
+    public ItemStack preview(EmakiItemAssemblyRequest request, String debugTarget, DebugLogger debugLogger) {
+        return preview(request, debugTarget, debugLogger, null);
+    }
+
+    public ItemStack preview(EmakiItemAssemblyRequest request, ItemOperationLedger.ReadResult readResult) {
+        return preview(request, "direct", null, readResult);
+    }
+
+    private ItemStack preview(EmakiItemAssemblyRequest request,
+                              String debugTarget,
+                              DebugLogger debugLogger,
+                              ItemOperationLedger.ReadResult suppliedReadResult) {
         return measure("assembly-preview", () -> {
-            AssemblyContext context = resolveContext(request);
+            ItemStack existingItem = request == null ? null : request.existingItem();
+            ItemOperationLedger.ReadResult readResult = existingItem == null
+                    ? ItemOperationLedger.ReadResult.absent()
+                    : suppliedReadResult == null ? operationLedger.read(existingItem) : suppliedReadResult;
+            UUID playerId = request == null ? null : request.feedbackPlayerId();
+            boolean debugEnabled = debugLogger != null && debugLogger.shouldLog("forge", playerId);
+            if (debugEnabled) {
+                Map<String, Object> replacements = debugReplacements(
+                        "target", debugTarget,
+                        "request_layers", request == null ? List.of() : request.layerSnapshots().stream()
+                                .map(EmakiItemLayerSnapshot::namespaceId).toList(),
+                        "removed", request == null ? List.of() : request.removedNamespaceIds()
+                );
+                putItemState(replacements, existingItem, readResult);
+                debugAssembly(debugLogger, playerId, "common.assembly.input", replacements);
+            }
+
+            AssemblyContext context = resolveContext(request, readResult);
             if (context == null || context.baseSource() == null) {
+                if (debugEnabled) {
+                    debugAssembly(debugLogger, playerId, "common.assembly.output_no_context",
+                            debugReplacements("target", debugTarget));
+                }
                 return null;
             }
-            String cacheKey = context.assemblySignature();
-            ItemStack cached = previewCache.get(cacheKey);
-            if (cached != null) {
-                return cached.clone();
+            if (debugEnabled) {
+                debugAssembly(debugLogger, playerId, "common.assembly.context", debugReplacements(
+                        "target", debugTarget,
+                        "base", ItemSourceUtil.toShorthand(context.baseSource()),
+                        "amount", context.amount(),
+                        "base_lore", context.baseLore().size(),
+                        "active_layers", context.activeLayers(),
+                        "previous_layers", context.previousActiveLayers(),
+                        "operations", operationIds(context.operationEntries()),
+                        "assembly_signature", context.assemblySignature()
+                ));
             }
-            ItemStack rendered = renderPreview(context);
-            if (rendered != null) {
-                previewCache.put(cacheKey, rendered.clone());
+
+            String source = "cache";
+            ManagedProjection managed = previewCache.get(context.assemblySignature());
+            if (managed != null) {
+                managed = managed.copy();
+                if (!managedCacheValid(managed, context)) {
+                    previewCache.invalidate(context.assemblySignature());
+                    managed = null;
+                    source = "render_after_invalid_cache";
+                }
             }
-            return rendered;
+            if (managed == null) {
+                if (!"render_after_invalid_cache".equals(source)) {
+                    source = "render";
+                }
+                managed = renderManagedProjection(context);
+                if (managed == null || !managedCacheValid(managed, context)) {
+                    if (debugEnabled) {
+                        debugAssembly(debugLogger, playerId, "common.assembly.output_render_invalid",
+                                debugReplacements(
+                                        "target", debugTarget,
+                                        "expected", operationIds(context.operationEntries())
+                                ));
+                    }
+                    return null;
+                }
+                previewCache.put(context.assemblySignature(), managed.copy());
+            }
+
+            ItemStack result = commitInstance(context, managed);
+            if (result == null) {
+                if (debugEnabled) {
+                    debugAssembly(debugLogger, playerId, "common.assembly.output_commit_failed",
+                            debugReplacements("target", debugTarget));
+                }
+                return null;
+            }
+            if (debugEnabled) {
+                Map<String, Object> replacements = debugReplacements(
+                        "target", debugTarget,
+                        "source", source
+                );
+                putItemState(replacements, result, managed.readResult());
+                debugAssembly(debugLogger, playerId, "common.assembly.output", replacements);
+            }
+            return result;
         });
     }
 
@@ -76,8 +182,17 @@ public final class EmakiItemAssemblyService {
         if (config.scheduler() == null) {
             return CompletableFuture.completedFuture(preview(request));
         }
-        return config.scheduler().supplyAsync("assembly-preview", AsyncTaskScheduler.TaskPriority.NORMAL, 10_000L, () -> preview(request))
-                .thenCompose(rendered -> config.scheduler().callSync("assembly-preview-sync", () -> rendered == null ? null : rendered.clone()));
+        CompletableFuture<ItemStack> rendered = config.scheduler().supplyAsync(
+                "assembly-preview",
+                AsyncTaskScheduler.TaskPriority.NORMAL,
+                10_000L,
+                () -> preview(request));
+        if (config.executionDispatcher() == null || config.executionOwner() == null) {
+            return rendered.thenApply(itemStack -> itemStack == null ? null : itemStack.clone());
+        }
+        return rendered.thenCompose(itemStack -> config.executionDispatcher().submitGlobal(
+                config.executionOwner(),
+                () -> itemStack == null ? null : itemStack.clone()));
     }
 
     public ItemStack rebuild(ItemStack itemStack) {
@@ -103,22 +218,11 @@ public final class EmakiItemAssemblyService {
         EmakiItemAssemblyRequest effectiveRequest = request == null
                 ? null
                 : request.withFeedbackPlayerId(player == null ? null : player.getUniqueId());
-        return previewAsync(effectiveRequest).thenApply(itemStack -> {
-            if (player == null || itemStack == null) {
-                return itemStack;
-            }
-            deliverToPlayer(player, itemStack);
-            return itemStack;
-        });
+        return previewAsync(effectiveRequest).thenCompose(itemStack -> deliverToPlayerAsync(player, itemStack));
     }
 
     public boolean isEmakiItem(ItemStack itemStack) {
         return dataManager.isEmakiItem(itemStack);
-    }
-
-    private void deliverToPlayer(Player player, ItemStack itemStack) {
-        Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
-        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
     }
 
     public ItemSource readBaseSource(ItemStack itemStack) {
@@ -159,47 +263,134 @@ public final class EmakiItemAssemblyService {
         previewCache.clear();
     }
 
-    private AssemblyContext resolveContext(EmakiItemAssemblyRequest request) {
+    private CompletableFuture<ItemStack> deliverToPlayerAsync(Player player, ItemStack itemStack) {
+        if (player == null || itemStack == null) {
+            return CompletableFuture.completedFuture(itemStack);
+        }
+        AsyncConfig config = asyncConfig;
+        if (config.executionDispatcher() == null || config.executionOwner() == null) {
+            if (config.scheduler() != null) {
+                return CompletableFuture.failedFuture(new RejectedExecutionException(
+                        "Async assembly delivery requires an ExecutionDispatcher and owner."));
+            }
+            deliverToPlayer(player, itemStack);
+            return CompletableFuture.completedFuture(itemStack);
+        }
+        CompletableFuture<ItemStack> future = new CompletableFuture<>();
+        Runnable retired = () -> future.completeExceptionally(new RejectedExecutionException(
+                "Assembly delivery target retired before item could be delivered."));
+        try {
+            if (config.executionDispatcher().runEntity(config.executionOwner(), player, () -> {
+                try {
+                    deliverToPlayer(player, itemStack);
+                    future.complete(itemStack);
+                } catch (Throwable throwable) {
+                    future.completeExceptionally(throwable);
+                }
+            }, retired) == null) {
+                retired.run();
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
+    }
+
+    private void deliverToPlayer(Player player, ItemStack itemStack) {
+        Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
+        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+    }
+
+    private AssemblyContext resolveContext(EmakiItemAssemblyRequest request,
+                                           ItemOperationLedger.ReadResult suppliedReadResult) {
         if (request == null) {
             return null;
         }
-        Map<String, EmakiItemLayerSnapshot> mergedLayers = new LinkedHashMap<>();
-        ItemSource baseSource = request.baseSource();
-        int amount = request.amount() > 0 ? request.amount() : 1;
-        List<String> previousActiveLayers = List.of();
-        boolean existingIsEmakiItem = request.existingItem() != null && dataManager.isEmakiItem(request.existingItem());
-        Map<String, EmakiItemLayerSnapshot> storedLayers = Map.of();
-        List<ItemOperationEntry> operationEntries = resolveOperationEntries(request.existingItem(), existingIsEmakiItem);
-        if (existingIsEmakiItem) {
-            if (baseSource == null) {
-                baseSource = dataManager.readBaseSource(request.existingItem());
-            }
-            if (request.amount() <= 0) {
-                amount = dataManager.readBaseAmount(request.existingItem());
-            }
-            previousActiveLayers = dataManager.readActiveLayers(request.existingItem());
-            storedLayers = dataManager.readLayerSnapshots(request.existingItem());
-            mergedLayers.putAll(storedLayers);
+        ItemStack existingItem = request.existingItem();
+        ItemOperationLedger.ReadResult readResult = suppliedReadResult == null
+                ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                : suppliedReadResult;
+        if (readResult.corrupt()) {
+            return null;
         }
-        if (baseSource == null && request.existingItem() != null && !request.existingItem().getType().isAir()) {
-            baseSource = itemSourceService.identifyItem(request.existingItem());
+        boolean existingIsEmakiItem = existingItem != null && dataManager.isEmakiItem(existingItem);
+        List<ItemOperationEntry> operationEntries = readResult.entries();
+        Map<String, EmakiItemLayerSnapshot> mergedLayers = new LinkedHashMap<>();
+        Map<String, EmakiItemLayerSnapshot> storedLayers = Map.of();
+        List<String> previousActiveLayers = List.of();
+
+        ItemSource storedBaseSource = existingIsEmakiItem ? dataManager.readBaseSource(existingItem) : null;
+        int storedAmount = existingIsEmakiItem
+                ? dataManager.readBaseAmount(existingItem)
+                : existingItem == null ? 1 : Math.max(1, existingItem.getAmount());
+        String storedBaseCustomName = existingIsEmakiItem ? dataManager.readBaseCustomName(existingItem) : "";
+        List<String> storedBaseLore = existingIsEmakiItem ? safeLore(dataManager.readBaseLore(existingItem)) : List.of();
+
+        ItemSource baseSource = request.baseSource() != null ? request.baseSource() : storedBaseSource;
+        int amount = request.amount() > 0 ? request.amount() : storedAmount;
+        String baseCustomName;
+        List<String> baseLore;
+        ItemPresentationSnapshot previousPresentation;
+
+        if (existingIsEmakiItem) {
+            previousActiveLayers = dataManager.readActiveLayers(existingItem);
+            storedLayers = dataManager.readLayerSnapshots(existingItem);
+            mergedLayers.putAll(storedLayers);
+            baseCustomName = storedBaseCustomName;
+            baseLore = storedBaseLore;
+            previousPresentation = dataManager.readPresentationSnapshot(existingItem);
+            if (previousPresentation == null) {
+                previousPresentation = renderPresentationSnapshot(
+                        storedBaseSource,
+                        storedAmount,
+                        storedBaseCustomName,
+                        storedBaseLore,
+                        storedLayers,
+                        operationEntries
+                );
+                if (previousPresentation == null) {
+                    return null;
+                }
+            }
+        } else if (existingItem != null && !operationEntries.isEmpty()) {
+            ItemOperationBaseView baseView = operationLedger.resolveBaseView(existingItem, operationEntries);
+            baseCustomName = baseView.customName();
+            baseLore = baseView.lore();
+            ItemOperationReplayer.ReplayResult projection = operationLedger.renderFromBase(
+                    existingItem,
+                    baseView,
+                    operationEntries
+            );
+            previousPresentation = capturePresentation(projection.itemStack());
+            if (previousPresentation == null) {
+                return null;
+            }
+        } else {
+            baseCustomName = currentCustomName(existingItem);
+            baseLore = currentLore(existingItem);
+            previousPresentation = existingItem == null
+                    ? new ItemPresentationSnapshot("", List.of())
+                    : new ItemPresentationSnapshot(baseCustomName, baseLore);
+        }
+
+        if (baseSource == null && existingItem != null && !existingItem.getType().isAir()) {
+            baseSource = itemSourceService.identifyItem(existingItem);
         }
         if (baseSource == null) {
             return null;
         }
-        String baseCustomName = resolveBaseCustomName(request.existingItem(), existingIsEmakiItem, storedLayers, operationEntries);
-        List<String> baseLore = resolveBaseLore(request.existingItem(), existingIsEmakiItem, baseSource, amount, storedLayers, operationEntries);
+
+        boolean previousManagedNameOverlay = hasManagedNameOverlay(storedLayers, operationEntries);
         for (String namespaceId : request.removedNamespaceIds()) {
             mergedLayers.remove(Texts.normalizeId(namespaceId));
         }
-        if (request.layerSnapshots() != null) {
-            for (EmakiItemLayerSnapshot snapshot : request.layerSnapshots()) {
-                if (snapshot == null || Texts.isBlank(snapshot.namespaceId())) {
-                    continue;
-                }
-                mergedLayers.put(Texts.normalizeId(snapshot.namespaceId()), snapshot);
+        for (EmakiItemLayerSnapshot snapshot : request.layerSnapshots()) {
+            if (snapshot == null || Texts.isBlank(snapshot.namespaceId())) {
+                continue;
             }
+            mergedLayers.put(Texts.normalizeId(snapshot.namespaceId()), snapshot);
         }
+
         List<String> activeLayers = namespaceRegistry.orderNamespaces(mergedLayers.keySet());
         Map<String, EmakiItemLayerSnapshot> orderedLayers = new LinkedHashMap<>();
         for (String namespaceId : activeLayers) {
@@ -208,15 +399,24 @@ public final class EmakiItemAssemblyService {
                 orderedLayers.put(namespaceId, snapshot);
             }
         }
+        boolean commitAssembly = existingIsEmakiItem
+                || Texts.isNotBlank(baseCustomName)
+                || !baseLore.isEmpty()
+                || !operationEntries.isEmpty()
+                || !orderedLayers.isEmpty();
+        boolean assemblyNameOverlay = hasAssemblyNameOverlay(orderedLayers);
+        boolean managedNameOverlay = assemblyNameOverlay || hasOperationNameOverlay(operationEntries);
         String signature = SignatureUtil.stableSignature(List.of(
                 ItemSourceUtil.toShorthand(baseSource),
-                amount,
+                Math.max(1, amount),
                 baseCustomName,
                 baseLore,
                 orderedLayers.values().stream().map(EmakiItemLayerSnapshot::toMap).toList(),
                 operationEntries.stream().map(ItemOperationEntry::toMap).toList()
         ));
         return new AssemblyContext(
+                existingItem,
+                existingIsEmakiItem,
                 baseSource,
                 Math.max(1, amount),
                 baseCustomName,
@@ -225,105 +425,237 @@ public final class EmakiItemAssemblyService {
                 activeLayers,
                 previousActiveLayers,
                 operationEntries,
+                previousPresentation,
+                previousManagedNameOverlay,
+                assemblyNameOverlay,
+                managedNameOverlay,
+                commitAssembly,
                 signature
         );
     }
 
-    private ItemStack renderPreview(AssemblyContext context) {
+    private ManagedProjection renderManagedProjection(AssemblyContext context) {
         ItemStack itemStack = itemSourceService.createItem(context.baseSource(), context.amount());
         if (itemStack == null) {
             return null;
         }
-        if (!requiresRenderedAssembly(context)) {
-            return itemStack;
-        }
         applyBaseLore(itemStack, context.baseLore());
-        itemRenderService.renderItem(itemStack, context.layerSnapshots().values(), baseNameOverride(context.baseCustomName()));
-        dataManager.writeAssemblyData(
+        itemRenderService.renderItem(
                 itemStack,
-                CURRENT_SCHEMA_VERSION,
-                context.baseSource(),
-                context.amount(),
-                context.baseCustomName(),
-                context.baseLore(),
-                context.activeLayers(),
-                context.previousActiveLayers(),
-                context.assemblySignature(),
-                context.layerSnapshots().values()
+                context.layerSnapshots().values(),
+                baseNameOverride(context.baseCustomName())
         );
-        operationLedger.replay(itemStack, context.operationEntries());
-        return itemStack;
+        List<ItemOperationEntry> refreshedEntries = operationLedger.replay(itemStack, context.operationEntries());
+        ItemOperationLedger.ReadResult refreshedReadResult = ItemOperationLedger.ReadResult.valid(refreshedEntries);
+        ItemPresentationSnapshot snapshot = capturePresentation(itemStack, context.assemblyNameOverlay());
+        if (snapshot == null) {
+            return null;
+        }
+        if (context.commitAssembly()) {
+            dataManager.writeAssemblyData(
+                    itemStack,
+                    CURRENT_SCHEMA_VERSION,
+                    context.baseSource(),
+                    context.amount(),
+                    context.baseCustomName(),
+                    context.baseLore(),
+                    context.activeLayers(),
+                    context.previousActiveLayers(),
+                    context.assemblySignature(),
+                    context.layerSnapshots().values()
+            );
+            operationLedger.replaceAll(itemStack, refreshedEntries);
+            if (!dataManager.writePresentationSnapshot(itemStack, snapshot)) {
+                return null;
+            }
+        }
+        return new ManagedProjection(itemStack, refreshedReadResult);
     }
 
-    private boolean requiresRenderedAssembly(AssemblyContext context) {
-        if (context == null) {
+    private ItemStack commitInstance(AssemblyContext context, ManagedProjection managedProjection) {
+        if (managedProjection == null || managedProjection.itemStack() == null
+                || managedProjection.readResult().corrupt()) {
+            return null;
+        }
+        ItemStack managedItem = managedProjection.itemStack();
+        ItemStack result = managedItem.clone();
+        ItemPresentationSnapshot managedSnapshot = capturePresentation(
+                managedItem,
+                context.assemblyNameOverlay()
+        );
+        if (managedSnapshot == null) {
+            return null;
+        }
+        ItemOperationLedger.ReadResult managedReadResult = managedProjection.readResult();
+        List<ItemOperationEntry> managedEntries = managedReadResult.entries();
+        Set<String> knownLayerNamespaces = new LinkedHashSet<>(context.previousActiveLayers());
+        knownLayerNamespaces.addAll(context.activeLayers());
+        Set<NamespacedKey> expectedNonOwnedKeys = dataManager.nonOwnedKeys(
+                context.existingItem(),
+                knownLayerNamespaces
+        );
+
+        ItemLoreReconciler.Reconciliation reconciliation = context.existingItem() == null
+                ? new ItemLoreReconciler.Reconciliation(managedSnapshot.lore(), List.of(), List.of())
+                : loreReconciler.reconcile(
+                        context.previousPresentation().lore(),
+                        currentLore(context.existingItem()),
+                        managedSnapshot.lore()
+                );
+        if (!loreReconciler.preservesExternalProjection(
+                managedSnapshot.lore(),
+                reconciliation.lore(),
+                reconciliation.externalLines())) {
+            return null;
+        }
+        ItemOperationLedger.CustomNameUpdate customNameUpdate = context.existingItem() == null
+                ? new ItemOperationLedger.CustomNameUpdate(managedSnapshot.customName(), false, "")
+                : operationLedger.prepareCustomNameUpdate(
+                        context.existingItem(),
+                        context.previousPresentation().customName(),
+                        managedSnapshot.customName(),
+                        context.previousManagedNameOverlay(),
+                        context.managedNameOverlay()
+                );
+
+        dataManager.copyPersistentDataForCommit(context.existingItem(), result);
+        if (context.commitAssembly()) {
+            dataManager.writeAssemblyData(
+                    result,
+                    CURRENT_SCHEMA_VERSION,
+                    context.baseSource(),
+                    context.amount(),
+                    context.baseCustomName(),
+                    context.baseLore(),
+                    context.activeLayers(),
+                    context.previousActiveLayers(),
+                    context.assemblySignature(),
+                    context.layerSnapshots().values()
+            );
+            operationLedger.replaceAll(result, managedEntries);
+            if (!dataManager.writePresentationSnapshot(result, managedSnapshot)) {
+                return null;
+            }
+        }
+        if (!writeDisplay(result, customNameUpdate.customName(), reconciliation.lore())) {
+            return null;
+        }
+        operationLedger.writeCustomNameUpdate(result, customNameUpdate);
+        return validateCommit(
+                context,
+                result,
+                managedSnapshot,
+                managedReadResult,
+                expectedNonOwnedKeys,
+                reconciliation
+        ) ? result : null;
+    }
+
+    private boolean validateCommit(AssemblyContext context,
+            ItemStack result,
+            ItemPresentationSnapshot managedSnapshot,
+            ItemOperationLedger.ReadResult managedReadResult,
+            Set<NamespacedKey> expectedNonOwnedKeys,
+            ItemLoreReconciler.Reconciliation reconciliation) {
+        if (!dataManager.containsKeys(result, expectedNonOwnedKeys)) {
             return false;
         }
-        if (Texts.isNotBlank(context.baseCustomName())) {
-            return true;
-        }
-        if (context.baseLore() != null && !context.baseLore().isEmpty()) {
-            return true;
-        }
-        if (context.operationEntries() != null && !context.operationEntries().isEmpty()) {
-            return true;
-        }
-        if (context.layerSnapshots() == null || context.layerSnapshots().isEmpty()) {
+        if (!loreReconciler.preservesExternalProjection(
+                managedSnapshot.lore(),
+                currentLore(result),
+                reconciliation.externalLines())) {
             return false;
         }
-        for (EmakiItemLayerSnapshot snapshot : context.layerSnapshots().values()) {
-            if (snapshot != null && snapshot.hasStructuredPresentation()) {
+        if (!context.commitAssembly()) {
+            return true;
+        }
+        if (!context.baseSource().equals(dataManager.readBaseSource(result))) {
+            return false;
+        }
+        if (!context.activeLayers().equals(dataManager.readActiveLayers(result))) {
+            return false;
+        }
+        if (managedReadResult == null || managedReadResult.corrupt()) {
+            return false;
+        }
+        return managedSnapshot.equals(dataManager.readPresentationSnapshot(result));
+    }
+
+    private boolean managedCacheValid(ManagedProjection managedProjection, AssemblyContext context) {
+        if (managedProjection == null || managedProjection.itemStack() == null
+                || managedProjection.readResult().corrupt()
+                || !operationIdentities(context.operationEntries()).equals(
+                        operationIdentities(managedProjection.readResult().entries()))) {
+            return false;
+        }
+        return !context.commitAssembly()
+                || dataManager.readPresentationSnapshot(managedProjection.itemStack()) != null;
+    }
+
+    private ItemPresentationSnapshot renderPresentationSnapshot(ItemSource baseSource,
+            int amount,
+            String baseCustomName,
+            List<String> baseLore,
+            Map<String, EmakiItemLayerSnapshot> layers,
+            List<ItemOperationEntry> operationEntries) {
+        if (baseSource == null) {
+            return null;
+        }
+        ItemStack itemStack = itemSourceService.createItem(baseSource, Math.max(1, amount));
+        if (itemStack == null) {
+            return null;
+        }
+        applyBaseLore(itemStack, baseLore);
+        itemRenderService.renderItem(
+                itemStack,
+                layers == null ? List.of() : layers.values(),
+                baseNameOverride(baseCustomName)
+        );
+        operationLedger.replay(itemStack, operationEntries);
+        return capturePresentation(itemStack, hasAssemblyNameOverlay(layers));
+    }
+
+    private ItemPresentationSnapshot capturePresentation(ItemStack itemStack) {
+        return capturePresentation(itemStack, false);
+    }
+
+    private ItemPresentationSnapshot capturePresentation(ItemStack itemStack, boolean assemblyNameOverlay) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return null;
+        }
+        return new ItemPresentationSnapshot(
+                currentCustomName(itemStack),
+                currentLore(itemStack),
+                assemblyNameOverlay
+        );
+    }
+
+    private boolean hasManagedNameOverlay(Map<String, EmakiItemLayerSnapshot> layers,
+            List<ItemOperationEntry> operationEntries) {
+        return hasAssemblyNameOverlay(layers) || hasOperationNameOverlay(operationEntries);
+    }
+
+    private boolean hasAssemblyNameOverlay(Map<String, EmakiItemLayerSnapshot> layers) {
+        if (layers == null) {
+            return false;
+        }
+        for (EmakiItemLayerSnapshot snapshot : layers.values()) {
+            EmakiStructuredPresentation presentation = snapshot == null ? null : snapshot.structuredPresentation();
+            if (presentation == null) {
+                continue;
+            }
+            if (presentation.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE
+                    && Texts.isNotBlank(presentation.baseNameTemplate())) {
+                return true;
+            }
+            if (!presentation.nameContributions().isEmpty()) {
                 return true;
             }
         }
         return false;
     }
 
-    private String resolveBaseCustomName(ItemStack existingItem,
-            boolean existingIsEmakiItem,
-            Map<String, EmakiItemLayerSnapshot> storedLayers,
-            List<ItemOperationEntry> operationEntries) {
-        if (existingItem == null) {
-            return "";
-        }
-        String currentCustomName = currentCustomName(existingItem);
-        if (!existingIsEmakiItem) {
-            return currentCustomName;
-        }
-        String storedCustomName = dataManager.readBaseCustomName(existingItem);
-        if (!hasEmakiNameOverlay(storedLayers, operationEntries)) {
-            return currentCustomName.equals(storedCustomName) ? storedCustomName : currentCustomName;
-        }
-        return storedCustomName;
-    }
-
-    private String currentCustomName(ItemStack itemStack) {
-        if (itemStack == null) {
-            return "";
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        if (!ItemTextBridge.hasCustomName(itemMeta)) {
-            return "";
-        }
-        return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
-    }
-
-    private boolean hasEmakiNameOverlay(Map<String, EmakiItemLayerSnapshot> storedLayers,
-            List<ItemOperationEntry> operationEntries) {
-        if (storedLayers != null) {
-            for (EmakiItemLayerSnapshot snapshot : storedLayers.values()) {
-                EmakiStructuredPresentation presentation = snapshot == null ? null : snapshot.structuredPresentation();
-                if (presentation == null) {
-                    continue;
-                }
-                if (presentation.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE && Texts.isNotBlank(presentation.baseNameTemplate())) {
-                    return true;
-                }
-                if (!presentation.nameContributions().isEmpty()) {
-                    return true;
-                }
-            }
-        }
+    private boolean hasOperationNameOverlay(List<ItemOperationEntry> operationEntries) {
         if (operationEntries == null) {
             return false;
         }
@@ -335,155 +667,15 @@ public final class EmakiItemAssemblyService {
         return false;
     }
 
-    private List<String> resolveBaseLore(ItemStack existingItem,
-            boolean existingIsEmakiItem,
-            ItemSource baseSource,
-            int amount,
-            Map<String, EmakiItemLayerSnapshot> storedLayers,
-            List<ItemOperationEntry> operationEntries) {
-        if (existingItem == null) {
-            return List.of();
-        }
-        List<String> currentLore = currentLore(existingItem);
-        if (!existingIsEmakiItem) {
-            return currentLore;
-        }
-        List<String> storedLore = safeLore(dataManager.readBaseLore(existingItem));
-        List<String> expectedLore = renderExpectedLore(baseSource, amount, storedLore, storedLayers, operationEntries);
-        if (expectedLore == null) {
-            return storedLore;
-        }
-        return inferMergedBaseLore(storedLore, expectedLore, currentLore);
-    }
-
-    private List<String> currentLore(ItemStack itemStack) {
-        if (itemStack == null) {
-            return List.of();
-        }
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        List<String> loreLines = ItemTextBridge.loreLines(itemMeta);
-        return safeLore(loreLines);
-    }
-
-    private List<String> renderExpectedLore(ItemSource baseSource,
-            int amount,
-            List<String> baseLore,
-            Map<String, EmakiItemLayerSnapshot> storedLayers,
-            List<ItemOperationEntry> operationEntries) {
-        if (baseSource == null) {
-            return null;
-        }
-        ItemStack expected = itemSourceService.createItem(baseSource, Math.max(1, amount));
-        if (expected == null) {
-            return null;
-        }
-        applyBaseLore(expected, baseLore);
-        itemRenderService.renderItem(expected, storedLayers == null ? List.of() : storedLayers.values(), null);
-        operationLedger.replay(expected, operationEntries);
-        return currentLore(expected);
-    }
-
-    private List<String> inferMergedBaseLore(List<String> storedBaseLore, List<String> expectedLore, List<String> currentLore) {
-        List<String> safeStored = safeLore(storedBaseLore);
-        List<String> safeExpected = safeLore(expectedLore);
-        List<String> safeCurrent = safeLore(currentLore);
-        if (safeCurrent.equals(safeExpected)) {
-            return safeStored;
-        }
-        if (safeExpected.isEmpty()) {
-            return safeCurrent;
-        }
-        int[] leftMatches = leftmostSubsequenceMatches(safeExpected, safeCurrent);
-        if (leftMatches == null) {
-            return safeStored;
-        }
-        int[] rightMatches = rightmostSubsequenceMatches(safeExpected, safeCurrent);
-        if (!sameMatches(leftMatches, rightMatches)) {
-            return safeStored;
-        }
-        List<String> externalLines = new ArrayList<>();
-        int matchIndex = 0;
-        for (int index = 0; index < safeCurrent.size(); index++) {
-            if (matchIndex < leftMatches.length && leftMatches[matchIndex] == index) {
-                matchIndex++;
-                continue;
-            }
-            externalLines.add(safeCurrent.get(index));
-        }
-        if (externalLines.isEmpty()) {
-            return safeStored;
-        }
-        List<String> merged = new ArrayList<>(safeStored);
-        merged.addAll(externalLines);
-        return List.copyOf(merged);
-    }
-
-    private int[] leftmostSubsequenceMatches(List<String> expected, List<String> current) {
-        int[] matches = new int[expected.size()];
-        int currentIndex = 0;
-        for (int expectedIndex = 0; expectedIndex < expected.size(); expectedIndex++) {
-            String expectedLine = expected.get(expectedIndex);
-            boolean matched = false;
-            while (currentIndex < current.size()) {
-                if (Objects.equals(expectedLine, current.get(currentIndex))) {
-                    matches[expectedIndex] = currentIndex;
-                    currentIndex++;
-                    matched = true;
-                    break;
-                }
-                currentIndex++;
-            }
-            if (!matched) {
-                return null;
-            }
-        }
-        return matches;
-    }
-
-    private int[] rightmostSubsequenceMatches(List<String> expected, List<String> current) {
-        int[] matches = new int[expected.size()];
-        int currentIndex = current.size() - 1;
-        for (int expectedIndex = expected.size() - 1; expectedIndex >= 0; expectedIndex--) {
-            String expectedLine = expected.get(expectedIndex);
-            boolean matched = false;
-            while (currentIndex >= 0) {
-                if (Objects.equals(expectedLine, current.get(currentIndex))) {
-                    matches[expectedIndex] = currentIndex;
-                    currentIndex--;
-                    matched = true;
-                    break;
-                }
-                currentIndex--;
-            }
-            if (!matched) {
-                return null;
-            }
-        }
-        return matches;
-    }
-
-    private boolean sameMatches(int[] first, int[] second) {
-        if (first == null || second == null || first.length != second.length) {
+    private boolean writeDisplay(ItemStack itemStack, String customName, List<String> lore) {
+        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
+        if (itemMeta == null) {
             return false;
         }
-        for (int index = 0; index < first.length; index++) {
-            if (first[index] != second[index]) {
-                return false;
-            }
-        }
+        ItemTextBridge.customName(itemMeta, Texts.isBlank(customName) ? null : MiniMessages.parse(customName));
+        ItemTextBridge.setLoreLines(itemMeta, lore);
+        itemStack.setItemMeta(itemMeta);
         return true;
-    }
-
-    private List<String> safeLore(List<String> loreLines) {
-        return loreLines == null || loreLines.isEmpty() ? List.of() : List.copyOf(loreLines);
-    }
-
-    private List<ItemOperationEntry> resolveOperationEntries(ItemStack existingItem, boolean existingIsEmakiItem) {
-        if (existingItem == null || !existingIsEmakiItem) {
-            return List.of();
-        }
-        List<ItemOperationEntry> entries = operationLedger.readAll(existingItem);
-        return entries == null || entries.isEmpty() ? List.of() : List.copyOf(entries);
     }
 
     private void applyBaseLore(ItemStack itemStack, List<String> baseLore) {
@@ -500,6 +692,102 @@ public final class EmakiItemAssemblyService {
 
     private Component baseNameOverride(String baseCustomName) {
         return Texts.isBlank(baseCustomName) ? null : MiniMessages.parse(baseCustomName);
+    }
+
+    private List<String> currentLore(ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
+        List<String> lore = ItemTextBridge.loreLines(itemMeta);
+        return lore == null || lore.isEmpty() ? List.of() : List.copyOf(lore);
+    }
+
+    private String currentCustomName(ItemStack itemStack) {
+        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
+        if (!ItemTextBridge.hasCustomName(itemMeta)) {
+            return "";
+        }
+        return MiniMessages.serialize(ItemTextBridge.customName(itemMeta));
+    }
+
+    private List<String> operationIds(List<ItemOperationEntry> entries) {
+        return operationIdentities(entries);
+    }
+
+    private List<String> operationIdentities(List<ItemOperationEntry> entries) {
+        if (entries == null || entries.isEmpty()) {
+            return List.of();
+        }
+        return entries.stream()
+                .filter(Objects::nonNull)
+                .map(entry -> entry.sourceNamespace() + ":" + entry.operationId())
+                .toList();
+    }
+
+    private List<String> safeLore(List<String> lore) {
+        return lore == null || lore.isEmpty() ? List.of() : List.copyOf(lore);
+    }
+
+    private void debugAssembly(DebugLogger debugLogger,
+                               UUID playerId,
+                               String langKey,
+                               Map<String, ?> replacements) {
+        debugLogger.log("forge", playerId, langKey, replacements);
+    }
+
+    private Map<String, Object> debugReplacements(Object... entries) {
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        for (int index = 0; index + 1 < entries.length; index += 2) {
+            replacements.put(Texts.toStringSafe(entries[index]), entries[index + 1]);
+        }
+        return replacements;
+    }
+
+    private void putItemState(Map<String, Object> replacements,
+                              ItemStack itemStack,
+                              ItemOperationLedger.ReadResult readResult) {
+        boolean empty = itemStack == null || itemStack.getType().isAir();
+        replacements.put("item_empty", empty);
+        if (empty) {
+            replacements.put("item_type", "");
+            replacements.put("item_lore_lines", 0);
+            replacements.put("item_set_signature", "");
+            replacements.put("item_set_lore_lines", "");
+            replacements.put("item_operations", List.of());
+            return;
+        }
+        ItemMeta itemMeta = itemStack.getItemMeta();
+        replacements.put("item_type", itemStack.getType());
+        replacements.put("item_lore_lines", currentLore(itemStack).size());
+        replacements.put("item_set_signature", pdcString(itemMeta, "set_signature"));
+        replacements.put("item_set_lore_lines", Objects.toString(pdcInteger(itemMeta, "set_lore_lines"), ""));
+        replacements.put("item_operations", readResult == null || readResult.corrupt()
+                ? "corrupt"
+                : operationIds(readResult.entries()));
+    }
+
+    private String pdcString(ItemMeta itemMeta, String field) {
+        if (itemMeta == null || Texts.isBlank(field)) {
+            return "";
+        }
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
+        for (NamespacedKey key : container.getKeys()) {
+            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.STRING)) {
+                return Texts.toStringSafe(container.get(key, PersistentDataType.STRING));
+            }
+        }
+        return "";
+    }
+
+    private Integer pdcInteger(ItemMeta itemMeta, String field) {
+        if (itemMeta == null || Texts.isBlank(field)) {
+            return null;
+        }
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
+        for (NamespacedKey key : container.getKeys()) {
+            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.INTEGER)) {
+                return container.get(key, PersistentDataType.INTEGER);
+            }
+        }
+        return null;
     }
 
     private <T> T measure(String metricKey, SupplierWithException<T> supplier) {
@@ -523,15 +811,31 @@ public final class EmakiItemAssemblyService {
 
     @FunctionalInterface
     private interface SupplierWithException<T> {
-
         T get() throws Exception;
     }
 
-    private record AsyncConfig(AsyncTaskScheduler scheduler, PerformanceMonitor monitor) {
-
+    private record AsyncConfig(AsyncTaskScheduler scheduler,
+            ExecutionDispatcher executionDispatcher,
+            Plugin executionOwner,
+            PerformanceMonitor monitor) {
     }
 
-    private record AssemblyContext(ItemSource baseSource,
+    private record ManagedProjection(ItemStack itemStack, ItemOperationLedger.ReadResult readResult) {
+
+        private ManagedProjection {
+            readResult = readResult == null
+                    ? ItemOperationLedger.ReadResult.corrupt(List.of())
+                    : readResult;
+        }
+
+        private ManagedProjection copy() {
+            return new ManagedProjection(itemStack == null ? null : itemStack.clone(), readResult);
+        }
+    }
+
+    private record AssemblyContext(ItemStack existingItem,
+            boolean existingIsEmakiItem,
+            ItemSource baseSource,
             int amount,
             String baseCustomName,
             List<String> baseLore,
@@ -539,7 +843,11 @@ public final class EmakiItemAssemblyService {
             List<String> activeLayers,
             List<String> previousActiveLayers,
             List<ItemOperationEntry> operationEntries,
+            ItemPresentationSnapshot previousPresentation,
+            boolean previousManagedNameOverlay,
+            boolean assemblyNameOverlay,
+            boolean managedNameOverlay,
+            boolean commitAssembly,
             String assemblySignature) {
-
     }
 }

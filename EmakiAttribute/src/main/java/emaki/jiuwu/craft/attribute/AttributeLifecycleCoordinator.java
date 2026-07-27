@@ -10,12 +10,16 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import io.papermc.paper.command.brigadier.BasicCommand;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+
 import org.bukkit.Bukkit;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
-import emaki.jiuwu.craft.corelib.async.FoliaSchedulerAdapter;
-import emaki.jiuwu.craft.corelib.async.TaskHandle;
+
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 import emaki.jiuwu.craft.attribute.bridge.ServiceBackedEmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -36,14 +40,20 @@ import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
+import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
+import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
+import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
+import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
@@ -54,6 +64,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
+        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         LanguageLoader languageLoader = new LanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, plugin::configModel);
         AttributeRegistry attributeRegistry = new AttributeRegistry(plugin);
@@ -63,7 +75,13 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         LoreFormatRegistry loreFormatRegistry = new LoreFormatRegistry(plugin);
         AttributePresetRegistry presetRegistry = new AttributePresetRegistry(plugin);
         PdcReadRuleLoader pdcReadRuleLoader = new PdcReadRuleLoader(plugin);
-        PdcAttributeService pdcAttributeService = new PdcAttributeService(plugin, pdcReadRuleLoader);
+        ItemContributionGateRegistry itemContributionGateRegistry = new ItemContributionGateRegistry(plugin.getLogger());
+        PdcAttributeService pdcAttributeService = new PdcAttributeService(plugin, pdcReadRuleLoader, itemContributionGateRegistry);
+        ParentAttributeDataStore parentAttributeDataStore = new ParentAttributeDataStore(plugin);
+        ParentAttributeService parentAttributeService = new ParentAttributeService(plugin, parentAttributeDataStore);
+        GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
+        GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
+        AttributePointsGuiService attributePointsGuiService = new AttributePointsGuiService(plugin, guiService, guiTemplateLoader);
         AttributeService attributeService = new AttributeService(
                 plugin,
                 coreLibPlugin.pdcService(),
@@ -75,23 +93,33 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 defaultProfileRegistry,
                 loreFormatRegistry,
                 presetRegistry,
-                pdcAttributeService
+                pdcAttributeService,
+                parentAttributeService,
+                executionDispatcher,
+                threadOwnership
         );
-        EmakiAttributeBridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(attributeService);
+        EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(
+                attributeService,
+                threadOwnership,
+                itemContributionGateRegistry);
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),
                 new PluginIntegrationListener(plugin),
                 new InventoryInteractionListener(attributeService),
-                new CombatDamageListener(plugin, attributeService, combatDebugHandler),
+                new CombatDamageListener(plugin, attributeService, combatDebugHandler, executionDispatcher),
                 attributeService.perfectTakeoverCoordinator(),
-                new CombatDebugListener(attributeService)
+                new CombatDebugListener(attributeService),
+                itemContributionGateRegistry,
+                guiService
         );
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
                 ? new MythicBridge(plugin, attributeService)
                 : null;
-        AttributeCommand command = new AttributeCommand(plugin, attributeService);
+        AttributeCommand command = new AttributeCommand(plugin, attributeService, executionDispatcher);
         return new AttributeRuntimeComponents(
+                executionDispatcher,
+                threadOwnership,
                 attributeRegistry,
                 attributeBalanceRegistry,
                 damageTypeRegistry,
@@ -99,10 +127,16 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 loreFormatRegistry,
                 presetRegistry,
                 pdcReadRuleLoader,
+                itemContributionGateRegistry,
                 languageLoader,
                 messageService,
                 emakiAttributeBridge,
                 pdcAttributeService,
+                parentAttributeDataStore,
+                parentAttributeService,
+                guiTemplateLoader,
+                guiService,
+                attributePointsGuiService,
                 attributeService,
                 listeners,
                 command,
@@ -111,12 +145,15 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     }
 
     public void registerCommand(EmakiAttributePlugin plugin) {
-        PluginCommand pluginCommand = getPluginCommand(plugin);
-        if (pluginCommand == null || plugin.command() == null) {
+        if (plugin.command() == null) {
             return;
         }
-        pluginCommand.setExecutor(plugin.command());
-        pluginCommand.setTabCompleter(plugin.command());
+        plugin.registerCommand(
+                "emakiattribute",
+                "emakiattribute command",
+                java.util.List.of("eattribute", "ea"),
+                new PaperCommandAdapter("emakiattribute", "emakiattribute.use", plugin.command(), plugin.command())
+        );
     }
 
     public void registerListener(EmakiAttributePlugin plugin) {
@@ -144,6 +181,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().setLanguage(plugin.configModel().language());
         }
+        loadGuiTemplates(plugin);
         runReloadStage("lore_format_registry", () -> plugin.loreFormatRegistry().load(), failureHandler(plugin));
         runReloadStage("attribute_registry", () -> plugin.attributeRegistry().load(), failureHandler(plugin));
         runReloadStage("default_profile_registry", () -> plugin.defaultProfileRegistry().load(), failureHandler(plugin));
@@ -170,7 +208,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             boolean resyncPlayers,
             Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
-        return runReloadPipelineAsync(scheduler, new ReloadPipelineConfig<>(
+        return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<>(
                 "attribute",
                 "bootstrap",
                 "正在读取语言与配置...",
@@ -190,6 +228,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                     if (plugin.languageLoader() != null) {
                         plugin.languageLoader().setLanguage(plugin.configModel().language());
                     }
+                    loadGuiTemplates(plugin);
                     return configModel;
                 },
                 null,
@@ -253,7 +292,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.damageTypeRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        ))).thenCompose(configModel -> scheduler.callSync("attribute-reload-finalize", () -> {
+        ))).thenCompose(configModel -> plugin.executionDispatcher().submitGlobal(plugin, () -> {
             notifyProgress(progressListener, "正在刷新缓存并同步在线实体...");
             if (plugin.attributeService() != null) {
                 plugin.attributeService().refreshCaches();
@@ -278,7 +317,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             return nextTask;
         }
         int intervalTicks = Math.max(1, plugin.configModel().regenIntervalTicks());
-        return FoliaSchedulerAdapter.runTaskTimer(
+        return plugin.executionDispatcher().runGlobalTimer(
                 plugin,
                 plugin.attributeService()::regenerateOnlinePlayers,
                 intervalTicks,
@@ -287,12 +326,17 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     }
 
     public TaskHandle cancelRegenTask(TaskHandle currentTask) {
-        FoliaSchedulerAdapter.cancelTask(currentTask);
+        if (currentTask != null) {
+            currentTask.cancel();
+        }
         return null;
     }
 
     public void shutdown(EmakiAttributePlugin plugin, TaskHandle currentTask) {
         cancelRegenTask(currentTask);
+        if (plugin.itemContributionGateRegistry() != null) {
+            plugin.itemContributionGateRegistry().close();
+        }
         if (plugin.attributeService() != null) {
             plugin.attributeService().shutdown();
         }
@@ -307,8 +351,27 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-    private PluginCommand getPluginCommand(EmakiAttributePlugin plugin) {
-        return plugin.getCommand("emakiattribute");
+
+    private void loadGuiTemplates(EmakiAttributePlugin plugin) {
+        if (plugin.guiTemplateLoader() == null) {
+            return;
+        }
+        if (plugin.configModel().releaseDefaultData()) {
+            try {
+                YamlFiles.copyResourceIfMissing(
+                        plugin,
+                        "gui/attribute_points.yml",
+                        plugin.dataPath("gui/attribute_points.yml").toFile()
+                );
+            } catch (Exception exception) {
+                plugin.messageService().warning("loader.bundled_resource_write_failed", Map.of(
+                        "type", "gui",
+                        "path", plugin.dataPath("gui/attribute_points.yml").toString(),
+                        "error", Texts.toStringSafe(exception.getMessage())
+                ));
+            }
+        }
+        plugin.guiTemplateLoader().load();
     }
 
     private java.util.function.BiConsumer<String, Exception> failureHandler(EmakiAttributePlugin plugin) {
@@ -422,4 +485,40 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         runtime.set("allowed_damage_causes", runtimeEntries);
         return true;
     }
+
+    private static final class PaperCommandAdapter implements BasicCommand {
+
+        private final String rootLabel;
+        private final String permission;
+        private final org.bukkit.command.CommandExecutor executor;
+        private final org.bukkit.command.TabCompleter tabCompleter;
+
+        private PaperCommandAdapter(String rootLabel,
+                String permission,
+                org.bukkit.command.CommandExecutor executor,
+                org.bukkit.command.TabCompleter tabCompleter) {
+            this.rootLabel = rootLabel;
+            this.permission = permission;
+            this.executor = executor;
+            this.tabCompleter = tabCompleter;
+        }
+
+        @Override
+        public void execute(CommandSourceStack source, String[] args) {
+            executor.onCommand(source.getSender(), null, rootLabel, args);
+        }
+
+        @Override
+        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
+            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? java.util.List.of() : suggestions;
+        }
+
+        @Override
+        public String permission() {
+            return permission;
+        }
+    }
+
 }

@@ -8,14 +8,14 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * {@link GuiClickContext} backed by a Bukkit {@link InventoryClickEvent}.
- *
- * <p>This preserves the exact behaviour the handlers previously implemented
- * inline: cursor/number-key/off-hand carry resolution, blocked-transfer
- * detection and clicked-slot clearing. The packet backend provides a parallel
- * implementation of the same interface.</p>
- */
+
+
+
+
+
+
+
+
 final class BukkitGuiClickContext implements GuiClickContext {
 
     private final InventoryClickEvent event;

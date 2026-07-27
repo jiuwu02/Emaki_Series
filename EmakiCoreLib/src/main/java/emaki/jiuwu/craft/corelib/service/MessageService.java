@@ -11,7 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class MessageService extends AbstractMessageService {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A78BFA:#60A5FA>EmakiCoreLib</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>";
 
     public MessageService(EmakiCoreLibPlugin plugin, LanguageLoader languageLoader) {
         this(plugin, languageLoader, DEFAULT_PREFIX, true);

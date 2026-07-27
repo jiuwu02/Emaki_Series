@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
+import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -58,6 +59,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
         AttributeValueKind valueKind = parseEnum(configuration.getString("value_kind", "FLAT"), AttributeValueKind.FLAT);
         AttributeTargetType targetType = parseEnum(configuration.getString("target_type", "GENERIC"), AttributeTargetType.GENERIC);
+        TemporaryStackMode temporaryStackMode = parseEnum(configuration.getString("temporary_stack_mode", "REPLACE"), TemporaryStackMode.REPLACE);
         return new AttributeDefinition(
                 configuration.getString("id"),
                 configuration.getString("display_name"),
@@ -73,7 +75,11 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
                 configuration.getString("lore_format_id"),
                 patterns,
                 configuration.getString("description"),
-                configuration.contains("attribute_power") ? configuration.getDouble("attribute_power") : 1D
+                configuration.contains("attribute_power") ? configuration.getDouble("attribute_power") : 1D,
+                configuration.getStringList("tags"),
+                temporaryStackMode,
+                configuration.getBoolean("parent_attribute", false),
+                parseChildBonuses(configuration)
         );
     }
 
@@ -137,6 +143,17 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
             );
             valid = false;
         }
+        if (configuration.contains("temporary_stack_mode") && !isValidEnum(configuration.getString("temporary_stack_mode"), TemporaryStackMode.class)) {
+            issue(
+                    "loader.schema_invalid_enum",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "temporary_stack_mode"
+                    )
+            );
+            valid = false;
+        }
         if (!validateNumericField(configuration, file, "priority", typeName())) {
             valid = false;
         }
@@ -152,6 +169,61 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         if (!validateNumericField(configuration, file, "attribute_power", typeName())) {
             valid = false;
         }
+        if (!validateChildBonuses(configuration, file)) {
+            valid = false;
+        }
+        return valid;
+    }
+
+    private Map<String, Double> parseChildBonuses(YamlSection configuration) {
+        YamlSection section = configuration.getSection("child_bonuses");
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, Double> bonuses = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            if (Texts.isBlank(key)) {
+                continue;
+            }
+            Double value = section.getDouble(key, null);
+            if (value != null) {
+                bonuses.put(normalizeId(key), value);
+            }
+        }
+        return bonuses;
+    }
+
+    private boolean validateChildBonuses(YamlSection configuration, File file) {
+        if (!configuration.contains("child_bonuses")) {
+            return true;
+        }
+        YamlSection section = configuration.getSection("child_bonuses");
+        if (section == null) {
+            issue(
+                    "loader.schema_invalid_section",
+                    Map.of(
+                            "type", typeName(),
+                            "file", file.getName(),
+                            "field", "child_bonuses"
+                    )
+            );
+            return false;
+        }
+        boolean valid = true;
+        for (String key : section.getKeys(false)) {
+            Object raw = section.get(key);
+            if (Numbers.tryParseDouble(raw, null) == null) {
+                issue(
+                        "loader.schema_invalid_number",
+                        Map.of(
+                                "type", typeName(),
+                                "file", file.getName(),
+                                "field", "child_bonuses." + key
+                        )
+                );
+                valid = false;
+            }
+        }
         return valid;
     }
 
@@ -163,6 +235,7 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
     @Override
     protected void afterLoad() {
         List<AttributeDefinition> definitions = rebuildIndexes();
+        validateParentChildBonuses(definitions);
         logLoadReport(definitions);
         detectKeyContainmentConflicts(definitions);
     }
@@ -248,6 +321,34 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
         orderedPatterns.sort(Comparator.comparingInt(PatternEntry::priority).reversed());
         return definitions;
+    }
+
+    private void validateParentChildBonuses(List<AttributeDefinition> definitions) {
+        if (definitions == null || definitions.isEmpty()) {
+            return;
+        }
+        Map<String, AttributeDefinition> byId = new LinkedHashMap<>();
+        for (AttributeDefinition definition : definitions) {
+            byId.put(definition.id(), definition);
+        }
+        for (AttributeDefinition parent : definitions) {
+            if (parent == null || parent.childBonuses().isEmpty()) {
+                continue;
+            }
+            if (!parent.parentAttribute()) {
+                issue("loader.parent_child_bonus_on_non_parent", Map.of("attribute", parent.id()));
+            }
+            for (String childId : parent.childBonuses().keySet()) {
+                AttributeDefinition child = byId.get(childId);
+                if (child == null) {
+                    issue("loader.parent_child_bonus_unknown", Map.of("parent", parent.id(), "child", childId));
+                    continue;
+                }
+                if (child.parentAttribute()) {
+                    issue("loader.parent_child_bonus_parent_target", Map.of("parent", parent.id(), "child", childId));
+                }
+            }
+        }
     }
 
     public AttributeDefinition resolve(String id) {
@@ -415,11 +516,11 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         return "([+-]?\\d+(?:\\.\\d+)?)(?:\\s*[-~～]\\s*([+-]?\\d+(?:\\.\\d+)?))?";
     }
 
-    /**
-     * A numeric value parsed from a lore line. When {@link #min()} and
-     * {@link #max()} differ the source declared a range such as
-     * {@code 1-5}, which feeds per-hit random rolling.
-     */
+
+
+
+
+
     public record MatchedRange(String min, String max) {
 
         public boolean hasRange() {

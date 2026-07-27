@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.config.precheck;
 
+import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public record ConfigPrecheckIssue(
@@ -22,9 +23,7 @@ public record ConfigPrecheckIssue(
         return new ConfigPrecheckIssue(module, path, severity, message, "");
     }
 
-    public String format() {
-        String location = Texts.isBlank(path) ? module : module + ":" + path;
-        String suffix = Texts.isBlank(hint) ? "" : " (" + hint + ")";
-        return "[" + severity + "] " + location + " -> " + message + suffix;
+    public String format(LogMessages messages) {
+        return ConfigPrecheckMessages.formatIssue(messages, this);
     }
 }

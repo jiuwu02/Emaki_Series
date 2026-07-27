@@ -1,30 +1,46 @@
 package emaki.jiuwu.craft.strengthen.service;
 
-import org.bukkit.entity.Player;
+import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 
-public final class StrengthenGuiService {
+public final class StrengthenGuiService implements Listener {
 
     private final EmakiStrengthenPlugin plugin;
     private final GuiService guiService;
     private final StrengthenGuiStateManager stateManager;
     private final StrengthenGuiRenderer renderer;
     private final StrengthenGuiInteractionController interactionController;
+    private final ThreadOwnership threadOwnership;
 
-    public StrengthenGuiService(EmakiStrengthenPlugin plugin, GuiService guiService, StrengthenAttemptService attemptService) {
+    public StrengthenGuiService(EmakiStrengthenPlugin plugin,
+            GuiService guiService,
+            StrengthenAttemptService attemptService,
+            ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.guiService = guiService;
+        this.threadOwnership = threadOwnership;
         this.stateManager = new StrengthenGuiStateManager();
         this.renderer = new StrengthenGuiRenderer(plugin, attemptService);
         this.interactionController = new StrengthenGuiInteractionController(plugin, stateManager, attemptService, renderer);
     }
 
     public boolean open(Player player) {
-        if (player == null) {
+        if (player == null || plugin.attemptService() == null || !plugin.attemptService().accepting()
+                || !threadOwnership.isEntityOwned(player)) {
+            return false;
+        }
+        if (stateManager.hasPendingSettlement(player)) {
+            interactionController.resumePendingSettlement(player);
             return false;
         }
         var template = plugin.guiTemplateLoader().get("strengthen_gui");
@@ -55,7 +71,21 @@ public final class StrengthenGuiService {
         return stateManager.get(player);
     }
 
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        if (event != null) {
+            interactionController.resumePendingSettlement(event.getPlayer());
+        }
+    }
+
     public void clearAllSessions() {
-        stateManager.clear();
+        clearAllSessionsAsync().exceptionally(throwable -> {
+            plugin.getLogger().warning("Failed to close all strengthen GUI sessions: " + throwable.getMessage());
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> clearAllSessionsAsync() {
+        return guiService.closeAllAsync().whenComplete((_, _) -> stateManager.clear());
     }
 }

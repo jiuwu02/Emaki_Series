@@ -3,53 +3,35 @@ package emaki.jiuwu.craft.corelib.gui.packet;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientClickWindow;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientClickWindow.WindowClickType;
 
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiClickType;
 
-/**
- * {@link GuiClickContext} backed by a virtual packet window.
- *
- * <p>The cursor lives on {@link PacketGuiBackend.PacketWindow#cursor()} rather
- * than the real player cursor (which a packet window does not own). Number-key
- * and off-hand "held" sources still map to the real player inventory slots,
- * exactly as the Bukkit backend does, because those are genuine player slots.</p>
- *
- * <p>Vanilla window-click semantics used here:</p>
- * <ul>
- *   <li>{@link WindowClickType#PICKUP} button 0 = left, 1 = right.</li>
- *   <li>{@link WindowClickType#QUICK_MOVE} = shift transfer.</li>
- *   <li>{@link WindowClickType#SWAP} button 0..8 = number key (hotbar),
- *       button 40 = swap off-hand.</li>
- *   <li>{@link WindowClickType#PICKUP_ALL} = double click (collect to cursor).</li>
- * </ul>
- */
 final class PacketGuiClickContext implements GuiClickContext {
 
     private static final int OFFHAND_BUTTON = 40;
 
     private final Player viewer;
     private final PacketGuiBackend.PacketWindow window;
-    private final WrapperPlayClientClickWindow packet;
+    private final PacketGuiBackend.ClickSnapshot click;
+    private final int containerTopSize;
     private final boolean topInventory;
-    private final PacketGuiBackend backend;
 
     PacketGuiClickContext(Player viewer,
             PacketGuiBackend.PacketWindow window,
-            WrapperPlayClientClickWindow packet,
-            boolean topInventory,
-            PacketGuiBackend backend) {
+            PacketGuiBackend.ClickSnapshot click,
+            int containerTopSize,
+            boolean topInventory) {
         this.viewer = viewer;
         this.window = window;
-        this.packet = packet;
+        this.click = click;
+        this.containerTopSize = containerTopSize;
         this.topInventory = topInventory;
-        this.backend = backend;
     }
 
     private WindowClickType mode() {
-        return packet.getWindowClickType();
+        return click.clickType();
     }
 
     @Override
@@ -64,7 +46,23 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public GuiClickType clickType() {
-        return GuiClickType.from(mode().ordinal(), packet.getButton());
+        return switch (mode()) {
+            case PICKUP -> click.button() == 1
+                    ? GuiClickType.RIGHTCLICK
+                    : GuiClickType.LEFTCLICK;
+            case QUICK_MOVE -> click.button() == 1
+                    ? GuiClickType.SHIFT_RIGHTCLICK
+                    : GuiClickType.SHIFT_LEFTCLICK;
+            case SWAP -> click.button() == OFFHAND_BUTTON
+                    ? GuiClickType.SWAP_OFFHAND
+                    : GuiClickType.NUMBER_KEY;
+            case CLONE -> GuiClickType.MIDDLECLICK;
+            case THROW -> click.button() == 1
+                    ? GuiClickType.CONTROL_DROP
+                    : GuiClickType.DROP;
+            case PICKUP_ALL -> GuiClickType.DOUBLECLICK;
+            case QUICK_CRAFT, UNKNOWN -> GuiClickType.CLICK;
+        };
     }
 
     @Override
@@ -74,12 +72,14 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public boolean isLeftClick() {
-        return mode() == WindowClickType.PICKUP && packet.getButton() == 0;
+        return (mode() == WindowClickType.PICKUP || mode() == WindowClickType.QUICK_MOVE)
+                && click.button() == 0;
     }
 
     @Override
     public boolean isRightClick() {
-        return mode() == WindowClickType.PICKUP && packet.getButton() == 1;
+        return (mode() == WindowClickType.PICKUP || mode() == WindowClickType.QUICK_MOVE)
+                && click.button() == 1;
     }
 
     @Override
@@ -95,28 +95,26 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public ItemStack cursorItem() {
-        ItemStack cursor = window.cursor();
-        return cursor == null ? null : cursor.clone();
+        return clone(window.cursor());
     }
 
     @Override
     public void setCursor(ItemStack item) {
-        window.setCursor(item == null ? null : item.clone());
+        window.setCursor(clone(item));
     }
 
     @Override
     public ItemStack currentItem() {
-        int rawSlot = packet.getSlot();
         if (topInventory) {
-            return window.topItem(rawSlot);
+            return window.topItem(click.rawSlot());
         }
-        return playerSlotItem(rawSlot);
+        return playerSlotItem(click.rawSlot());
     }
 
     @Override
     public ItemStack heldItem() {
         if (mode() == WindowClickType.SWAP) {
-            int button = packet.getButton();
+            int button = click.button();
             if (button == OFFHAND_BUTTON) {
                 return clone(viewer.getInventory().getItemInOffHand());
             }
@@ -131,7 +129,7 @@ final class PacketGuiClickContext implements GuiClickContext {
     @Override
     public void setHeldItem(ItemStack item) {
         if (mode() == WindowClickType.SWAP) {
-            int button = packet.getButton();
+            int button = click.button();
             if (button == OFFHAND_BUTTON) {
                 viewer.getInventory().setItemInOffHand(item);
                 return;
@@ -146,9 +144,6 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public boolean isUnsupportedKeyboardClick() {
-        // The only keyboard-style window actions are SWAP (number key / off-hand)
-        // and DROP. Number-key/off-hand swaps are supported; anything else that
-        // is not a normal pickup/quick-move is treated as unsupported.
         return mode() == WindowClickType.THROW;
     }
 
@@ -157,11 +152,16 @@ final class PacketGuiClickContext implements GuiClickContext {
         if (topInventory) {
             return;
         }
-        int rawSlot = packet.getSlot();
-        int playerSlot = toPlayerInventorySlot(rawSlot);
+        int playerSlot = toPlayerInventorySlot(click.rawSlot());
         if (playerSlot >= 0) {
             viewer.getInventory().setItem(playerSlot, null);
         }
+    }
+
+    @Override
+    public void setCancelled(boolean cancelled) {
+        // Managed packet clicks are cancelled before entity-thread dispatch. The
+        // authoritative WindowItems response determines the visible result.
     }
 
     private ItemStack playerSlotItem(int rawSlot) {
@@ -169,27 +169,12 @@ final class PacketGuiClickContext implements GuiClickContext {
         return playerSlot >= 0 ? viewer.getInventory().getItem(playerSlot) : null;
     }
 
-    @Override
-    public void setCancelled(boolean cancelled) {
-        // No-op: the packet backend is authoritative and never applied the click
-        // server-side; re-sending window items after the handler resolves state.
-    }
-
-    /**
-     * Maps a container raw slot in the player-inventory region to a Bukkit
-     * player-inventory slot index. Returns -1 when the raw slot is in the top
-     * (GUI) region.
-     */
     private int toPlayerInventorySlot(int rawSlot) {
-        int offset = rawSlot - window.topSize();
+        int offset = rawSlot - containerTopSize;
         if (offset < 0 || offset >= 36) {
             return -1;
         }
-        // Container layout: main inventory (27) then hotbar (9).
-        if (offset < 27) {
-            return offset + 9;
-        }
-        return offset - 27;
+        return offset < 27 ? offset + 9 : offset - 27;
     }
 
     private static ItemStack clone(ItemStack item) {

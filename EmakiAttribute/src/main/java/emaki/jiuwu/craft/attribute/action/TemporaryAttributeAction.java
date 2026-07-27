@@ -24,10 +24,16 @@ public final class TemporaryAttributeAction implements Action {
     public static final String REMOVE_ID = "attribute_remove";
 
     private final String id;
+    private final String operationId;
     private final AttributeServiceFacade attributeService;
 
     TemporaryAttributeAction(String id, AttributeServiceFacade attributeService) {
-        this.id = id;
+        this(id, id, attributeService);
+    }
+
+    TemporaryAttributeAction(String id, String operationId, AttributeServiceFacade attributeService) {
+        this.id = Texts.normalizeId(id);
+        this.operationId = Texts.normalizeId(operationId);
         this.attributeService = attributeService;
     }
 
@@ -38,10 +44,10 @@ public final class TemporaryAttributeAction implements Action {
 
     @Override
     public String description() {
-        if (ADD_ID.equals(id)) {
+        if (ADD_ID.equals(operationId)) {
             return "Add a temporary attribute value to the current player.";
         }
-        if (SET_ID.equals(id)) {
+        if (SET_ID.equals(operationId)) {
             return "Set a temporary attribute value for the current player.";
         }
         return "Remove a temporary attribute from the current player.";
@@ -54,7 +60,7 @@ public final class TemporaryAttributeAction implements Action {
 
     @Override
     public List<ActionParameter> parameters() {
-        if (REMOVE_ID.equals(id)) {
+        if (REMOVE_ID.equals(operationId)) {
             return List.of(ActionParameter.required("effect_id", ActionParameterType.STRING, "Temporary effect id"));
         }
         return List.of(
@@ -71,7 +77,7 @@ public final class TemporaryAttributeAction implements Action {
         if (!validation.success()) {
             return validation;
         }
-        if (!REMOVE_ID.equals(id) && ActionParsers.parseTicks(arguments.get("duration_ticks")) <= 0L) {
+        if (!REMOVE_ID.equals(operationId) && ActionParsers.parseTicks(arguments.get("duration_ticks")) <= 0L) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "duration_ticks must be greater than 0.");
         }
         return ActionResult.ok();
@@ -85,14 +91,14 @@ public final class TemporaryAttributeAction implements Action {
         }
         TemporaryAttributeService service = attributeService.temporaryAttributeService();
         String effectId = Texts.normalizeId(arguments.get("effect_id"));
-        if (REMOVE_ID.equals(id)) {
+        if (REMOVE_ID.equals(operationId)) {
             TemporaryAttributeService.TemporaryAttributeResult result = service.remove(player, effectId);
             return ActionResult.ok(resultData(result, effectId, "", 0D, 0L));
         }
         String attributeId = Texts.normalizeId(arguments.get("attribute"));
         double value = ActionParsers.parseDouble(arguments.get("value"), 0D);
         long durationTicks = ActionParsers.parseTicks(arguments.get("duration_ticks"));
-        TemporaryAttributeService.TemporaryAttributeResult result = ADD_ID.equals(id)
+        TemporaryAttributeService.TemporaryAttributeResult result = ADD_ID.equals(operationId)
                 ? service.add(player, effectId, attributeId, value, durationTicks)
                 : service.set(player, effectId, attributeId, value, durationTicks);
         return ActionResult.ok(resultData(result, effectId, attributeId, value, durationTicks));

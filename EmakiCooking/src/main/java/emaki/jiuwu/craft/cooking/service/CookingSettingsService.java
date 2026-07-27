@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,6 +74,8 @@ public final class CookingSettingsService {
     private volatile YamlSection juicerGuiConfiguration = new MapYamlSection();
     private volatile YamlSection fermentationBarrelGuiConfiguration = new MapYamlSection();
     private volatile Map<String, ItemDisplayAdjustmentOverride> itemAdjustments = Map.of();
+    private volatile Set<String> globalDisabledWorlds = Set.of();
+    private volatile Map<StationType, Set<String>> stationDisabledWorlds = Map.of();
 
     public CookingSettingsService(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -85,6 +88,8 @@ public final class CookingSettingsService {
         juicerGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("juicer.yml").toFile());
         fermentationBarrelGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("fermentation_barrel.yml").toFile());
         itemAdjustments = loadItemAdjustments();
+        globalDisabledWorlds = disabledWorldSet(configuration.get("station.disabled_worlds"));
+        stationDisabledWorlds = loadStationDisabledWorlds();
     }
 
     public List<ItemSource> stationBlockSources(StationType stationType) {
@@ -94,6 +99,27 @@ public final class CookingSettingsService {
     public ItemSource stationBlockSource(StationType stationType) {
         List<ItemSource> sources = stationBlockSources(stationType);
         return sources.isEmpty() ? null : sources.getFirst();
+    }
+
+    public boolean isInteractionDisabled(StationType stationType, String worldName) {
+        String world = normalizeWorldName(worldName);
+        if (world.isBlank()) {
+            return false;
+        }
+        if (globalDisabledWorlds.contains(world)) {
+            return true;
+        }
+        Set<String> stationWorlds = stationType == null ? null : stationDisabledWorlds.get(stationType);
+        return stationWorlds != null && stationWorlds.contains(world);
+    }
+
+    public Set<String> globalDisabledWorlds() {
+        return globalDisabledWorlds;
+    }
+
+    public Set<String> disabledWorlds(StationType stationType) {
+        Set<String> worlds = stationType == null ? null : stationDisabledWorlds.get(stationType);
+        return worlds == null ? Set.of() : worlds;
     }
 
     public boolean onlyRecipeItems(StationType stationType) {
@@ -690,6 +716,32 @@ public final class CookingSettingsService {
         return stationDefaults == null ? resolved : stationDefaults.resolve(resolved);
     }
 
+    private Map<StationType, Set<String>> loadStationDisabledWorlds() {
+        EnumMap<StationType, Set<String>> result = new EnumMap<>(StationType.class);
+        for (StationType stationType : StationType.values()) {
+            Set<String> worlds = disabledWorldSet(configuration.get(stationPath(stationType) + ".disabled_worlds"));
+            if (!worlds.isEmpty()) {
+                result.put(stationType, worlds);
+            }
+        }
+        return result.isEmpty() ? Map.of() : Map.copyOf(result);
+    }
+
+    private Set<String> disabledWorldSet(Object raw) {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
+        for (Object token : ConfigNodes.asObjectList(raw)) {
+            String world = normalizeWorldName(Texts.toStringSafe(token));
+            if (!world.isBlank()) {
+                result.add(world);
+            }
+        }
+        return result.isEmpty() ? Set.of() : Set.copyOf(result);
+    }
+
+    private String normalizeWorldName(String worldName) {
+        return Texts.toStringSafe(worldName).trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
     private Map<String, ItemDisplayAdjustmentOverride> loadItemAdjustments() {
         Path directory = plugin.getDataFolder().toPath().resolve("item_adjustments");
         try {
@@ -1028,7 +1080,7 @@ public final class CookingSettingsService {
         return actions == null ? List.of() : actions;
     }
 
-    // ===================== 营养系统配置 =====================
+
 
     public boolean nutritionEnabled() {
         return configuration.getBoolean("nutrition.enabled", true);
@@ -1038,9 +1090,9 @@ public final class CookingSettingsService {
         return Math.max(0, configuration.getInt("nutrition.save_interval_seconds", 300));
     }
 
-    /**
-     * 食物来源规则：吃下匹配来源的物品时按配置增加营养值。
-     */
+
+
+
     public List<NutritionFoodSource> nutritionFoodSources() {
         List<NutritionFoodSource> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
@@ -1059,9 +1111,9 @@ public final class CookingSettingsService {
         return List.copyOf(result);
     }
 
-    /**
-     * 单营养类型阈值规则列表。
-     */
+
+
+
     public List<NutritionSingleThreshold> nutritionSingleThresholds() {
         List<NutritionSingleThreshold> result = new ArrayList<>();
         int index = 0;
@@ -1086,9 +1138,9 @@ public final class CookingSettingsService {
         return List.copyOf(result);
     }
 
-    /**
-     * 组合营养阈值规则列表（达标类型数量满足时触发，例如膳食均衡反胃）。
-     */
+
+
+
     public List<NutritionComboThreshold> nutritionComboThresholds() {
         List<NutritionComboThreshold> result = new ArrayList<>();
         int index = 0;

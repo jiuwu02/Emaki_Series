@@ -10,7 +10,9 @@ import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeDamageEvent;
 import emaki.jiuwu.craft.corelib.script.JavaScriptService;
 import emaki.jiuwu.craft.corelib.script.ScriptConfig;
+import emaki.jiuwu.craft.corelib.script.ScriptExecutionResult;
 import emaki.jiuwu.craft.corelib.script.ScriptInvocationRequest;
+import emaki.jiuwu.craft.corelib.script.ScriptSnapshots;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 public final class JavaScriptDamageHookRegistry {
@@ -51,27 +53,39 @@ public final class JavaScriptDamageHookRegistry {
         if (event == null || javaScriptService == null || !javaScriptService.enabled()) {
             return;
         }
-        ScriptDamageEventApi api = new ScriptDamageEventApi(event);
         for (Hook hook : List.copyOf(hooks)) {
             if (!hook.matches(event.getDamageTypeId())) {
                 continue;
             }
+            ScriptDamageEventApi api = new ScriptDamageEventApi(event);
             try {
-                javaScriptService.invoke(new ScriptInvocationRequest(
+                ScriptExecutionResult result = javaScriptService.invoke(new ScriptInvocationRequest(
                         plugin,
                         null,
                         hook.scriptPath(),
                         hook.functionName(),
                         List.of(api),
-                        Map.of("hook", hook.id(), "damage_type", event.getDamageTypeId()),
+                        ScriptSnapshots.immutableMap(Map.of(
+                                "hook", hook.id(),
+                                "damage_type", event.getDamageTypeId()
+                        )),
                         scriptConfig.clampTimeoutMillis(scriptConfig.engine().defaultTimeoutMillis()),
                         true
                 ));
+                if (result == null || !result.success()) {
+                    plugin.messageService().warning("console.js_damage_hook_failed", Map.of(
+                            "id", hook.id(),
+                            "error", result == null ? "no result" : Texts.toStringSafe(result.message())
+                    ));
+                    continue;
+                }
+                api.commitTo(event);
             } catch (RuntimeException exception) {
                 plugin.messageService().warning("console.js_damage_hook_failed", Map.of(
                         "id", hook.id(),
                         "error", Texts.toStringSafe(exception.getMessage())
                 ));
+                continue;
             }
             if (event.isCancelled()) {
                 return;

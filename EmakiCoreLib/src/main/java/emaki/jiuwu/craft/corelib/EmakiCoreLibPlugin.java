@@ -2,12 +2,16 @@ package emaki.jiuwu.craft.corelib;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
-import org.bukkit.command.PluginCommand;
 import org.bukkit.event.HandlerList;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -22,28 +26,29 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckService;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.library.RuntimeLibraryLoader;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bridge.mythic.MythicJavaScriptBridge;
+import emaki.jiuwu.craft.corelib.command.CoreLibBasicCommand;
 import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
+import emaki.jiuwu.craft.corelib.apiimpl.DefaultEmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.OraxenBlockBridgeProvider;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.metrics.BStatsService;
@@ -60,17 +65,20 @@ import emaki.jiuwu.craft.corelib.script.ScriptService;
 import emaki.jiuwu.craft.corelib.script.graal.GraalJavaScriptService;
 import emaki.jiuwu.craft.corelib.script.js.JavaScriptActionExtensionLoader;
 import emaki.jiuwu.craft.corelib.script.js.registration.JavaScriptRegistrationTracker;
+import emaki.jiuwu.craft.corelib.execution.ExecutionBackendLoader;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
-import emaki.jiuwu.craft.corelib.text.AdventureSupport;
-import emaki.jiuwu.craft.corelib.web.WebConsoleService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 
-public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry {
+public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, DebugLoggerProvider {
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __      __  ______
@@ -79,6 +87,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_/ /_/\\/_____/\\/_____/\\/_/\\/_____/
 """;
+    private static final int STARTUP_ASCII_START_COLOR = 0xFF80FF;
+    private static final int STARTUP_ASCII_END_COLOR = 0x00FFFF;
     private static final int BSTATS_PLUGIN_ID = 31763;
 
     private BStatsRegistration metrics;
@@ -93,6 +103,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private emaki.jiuwu.craft.corelib.gui.GuiBackend guiBackend;
     private AsyncFileService asyncFileService;
     private AsyncYamlFiles asyncYamlFiles;
+    private PlatformCapabilities platformCapabilities;
+    private ExecutionDispatcher executionDispatcher;
+    private ThreadOwnership threadOwnership;
+    private CorePluginLifecycle corePluginLifecycle;
     private ActionRegistry actionRegistry;
     private ActionTemplateRegistry actionTemplateRegistry;
     private PlaceholderRegistry placeholderRegistry;
@@ -104,6 +118,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final ScriptModuleRegistry scriptModuleRegistry = new ScriptModuleRegistry();
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
+    private ConfiguredItemService configuredItemService;
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
     private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
@@ -118,59 +133,40 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             = new emaki.jiuwu.craft.corelib.event.EmakiEventBus();
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
-    private WebConsoleService webConsoleService;
     private CoreLibCommandRouter commandRouter;
-    private final EmakiCoreLibApi.Bridge coreLibApiBridge = new EmakiCoreLibApi.Bridge() {
-        @Override
-        public String apiVersion() {
-            return getDescription().getVersion();
-        }
-
-        @Override
-        public String pluginName() {
-            return getName();
-        }
-
-        @Override
-        public boolean isReady() {
-            return isEnabled() && messageService() != null;
-        }
-
-        @Override
-        public String itemDisplayName(String itemSource) {
-            ItemSource source = ItemSourceUtil.parse(itemSource);
-            String displayName = itemSourceService.displayName(source);
-            return emaki.jiuwu.craft.corelib.text.Texts.isBlank(displayName)
-                    ? emaki.jiuwu.craft.corelib.text.Texts.toStringSafe(itemSource)
-                    : displayName;
-        }
-
-        @Override
-        public String itemDisplayName(ItemStack itemStack) {
-            if (itemStack == null || itemStack.getType().isAir()) {
-                return "";
-            }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
-            String displayName = itemSourceService.displayName(source);
-            return emaki.jiuwu.craft.corelib.text.Texts.isBlank(displayName)
-                    ? ItemTextBridge.effectiveNameText(itemStack)
-                    : displayName;
-        }
-    };
+    private EmakiCoreLibApi.Bridge coreLibApiBridge;
     private JavaScriptActionExtensionLoader javaScriptActionExtensionLoader;
     private MythicJavaScriptBridge mythicJavaScriptBridge;
+    private emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher gameplayEventPublisher;
 
     @Override
     public void onLoad() {
-        new RuntimeLibraryLoader(this).load();
+
+
     }
 
     @Override
     public void onEnable() {
+        platformCapabilities = PlatformCapabilities.detect(getServer());
+        CompatibilityReport compatibilityReport = platformCapabilities.compatibilityReport(getDescription().getVersion());
+        logCompatibilityReport(compatibilityReport);
+        if (!compatibilityReport.compatible()) {
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        ExecutionBackendLoader.LoadedExecution loadedExecution = ExecutionBackendLoader.load(getServer(), platformCapabilities);
+        executionDispatcher = loadedExecution.dispatcher();
+        threadOwnership = loadedExecution.ownership();
+        coreLibApiBridge = new DefaultEmakiCoreLibApi(this, platformCapabilities);
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
         initializeServices();
-        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII);
+        ConsoleOutputs.sendGradientAscii(
+                this,
+                STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR,
+                STARTUP_ASCII_END_COLOR
+        );
         messageService.info("console.plugin_starting");
         itemSourceIntegrationCoordinator.initialize();
         if (!reloadActionSystem()) {
@@ -188,17 +184,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onDisable() {
-        if (messageService != null) {
-            try {
-                messageService.info("console.plugin_stopped");
-            } catch (RuntimeException exception) {
-                getLogger().info("EmakiCoreLib stopped.");
-            }
-        }
-        if (webConsoleService != null) {
-            webConsoleService.stop();
-            webConsoleService = null;
-        }
+        DebugLogger.setGlobalAllEnabled(false);
         if (metrics != null) {
             metrics.close();
             metrics = null;
@@ -207,33 +193,40 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             bStatsService.shutdownAll();
             bStatsService = null;
         }
-        if (javaScriptActionExtensionLoader != null) {
-            javaScriptActionExtensionLoader.close();
-            javaScriptActionExtensionLoader = null;
-        }
         if (loopActionService != null) {
             loopActionService.cancelAll();
         }
-        if (mythicJavaScriptBridge != null) {
-            HandlerList.unregisterAll(mythicJavaScriptBridge);
-            mythicJavaScriptBridge = null;
-        }
-        if (javaScriptService != null) {
-            javaScriptService.close();
-        }
-        EmakiCoreLibApi.uninstall(coreLibApiBridge);
-        if (guiBackendRegistry != null) {
-            guiBackendRegistry.shutdownAll();
-            guiBackendRegistry = null;
-            guiBackend = null;
-        }
-        if (asyncTaskScheduler != null) {
-            asyncTaskScheduler.shutdown(5_000L);
-        }
-        ExpressionEngine.clearGlobalCache();
+
+        // Bukkit registrations must be retired while the disable callback still owns the server thread.
+        HandlerList.unregisterAll(this);
+        getServer().getServicesManager().unregisterAll(this);
         ExpressionEngine.clearThreadLocalCache();
-        emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer.clearRegexCache();
-        AdventureSupport.close(this);
+
+        CorePluginLifecycle lifecycle = corePluginLifecycle;
+        if (lifecycle == null) {
+            lifecycle = new CorePluginLifecycle(this::finalizeCoreRuntimeAsync);
+            corePluginLifecycle = lifecycle;
+        }
+        lifecycle.shutdownAsync(15L, TimeUnit.SECONDS).whenComplete((report, throwable) -> {
+            if (throwable != null) {
+                getLogger().warning("CoreLib async shutdown failed: " + shutdownError(throwable));
+            } else if (report != null && !report.clean()) {
+                getLogger().warning("CoreLib async shutdown was incomplete: pendingFiles="
+                        + report.pendingFileOperations()
+                        + ", shutdownFailures=" + report.fileFailures().size()
+                        + ", schedulerTerminated=" + report.schedulerTerminated());
+            }
+            asyncFileService = null;
+            asyncYamlFiles = null;
+            asyncTaskScheduler = null;
+            if (messageService != null) {
+                try {
+                    messageService.info("console.plugin_stopped");
+                } catch (RuntimeException exception) {
+                    getLogger().info("EmakiCoreLib stopped.");
+                }
+            }
+        });
     }
 
     @Override
@@ -256,11 +249,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public boolean reloadActionSystem() {
         CoreLibConfig candidateConfig = loadConfigModel();
-        ActionRegistry candidateActionRegistry = new ActionRegistry();
+        ActionRegistry candidateActionRegistry = new ActionRegistry(this);
         ActionTemplateRegistry candidateTemplateRegistry = new ActionTemplateRegistry();
         PlaceholderRegistry candidatePlaceholderRegistry = new PlaceholderRegistry(this::debugLogger);
         EconomyManager candidateEconomyManager = new EconomyManager(this);
-        LoopActionService effectiveLoopService = loopActionService == null ? new LoopActionService(this) : loopActionService;
+        LoopActionService effectiveLoopService = loopActionService == null
+                ? new LoopActionService(this, executionDispatcher)
+                : loopActionService;
         candidatePlaceholderRegistry.register(new ActionContextPlaceholderResolver());
         candidatePlaceholderRegistry.register(new ActionInlineTokenResolver());
         candidatePlaceholderRegistry.register(new PlaceholderApiResolver());
@@ -287,6 +282,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             loopActionService.cancelAll();
         }
         configModel = candidateConfig;
+        DebugLogger.setGlobalAllEnabled(configModel.debugConfig().globalAll());
         if (guiBackendRegistry != null && configModel.guiConfig() != null) {
             guiBackendRegistry.setConfiguredName(configModel.guiConfig().backend());
         }
@@ -299,7 +295,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             languageLoader.load();
             languageLoader.setLanguage(configModel.language());
         }
-        reloadWebConsole();
         reloadScriptSystem();
         if (javaScriptService != null && javaScriptService.enabled()) {
             for (RunJavaScriptAction action : RunJavaScriptAction.createAll(javaScriptService, configModel.scriptConfig())) {
@@ -313,6 +308,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 new ActionLineParser(),
                 placeholderRegistry,
                 actionTemplateRegistry,
+                executionDispatcher,
+                platformCapabilities,
                 asyncTaskScheduler,
                 performanceMonitor
         );
@@ -341,10 +338,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         try {
             javaScriptService = new GraalJavaScriptService(
                     this,
+                    executionDispatcher,
                     configModel.scriptConfig(),
                     dataPath(configModel.scriptConfig().paths().root()),
                     () -> actionExecutor,
-                    scriptModuleRegistry
+                    scriptModuleRegistry,
+                    configModel.releaseDefaultData()
             );
             messageService.info("console.script_engine_ready");
             messageService.info("console.scripts_loaded", Map.of("count", String.valueOf(javaScriptService.loadedScripts().size())));
@@ -374,16 +373,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         javaScriptActionExtensionLoader.reload();
     }
 
-    private void reloadWebConsole() {
-        if (webConsoleService == null) {
-            webConsoleService = new WebConsoleService(this, configModel.webConsoleConfig());
-        }
-        webConsoleService.stop();
-        webConsoleService.restart(configModel.webConsoleConfig());
-        refreshServiceRegistry();
-    }
-
     private void registerPublicApiService() {
+        if (coreLibApiBridge == null) {
+            coreLibApiBridge = new DefaultEmakiCoreLibApi(this, platformCapabilities);
+        }
         EmakiCoreLibApi.install(coreLibApiBridge);
     }
 
@@ -407,6 +400,18 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         messageService.info("console.mythic_js_bridge_ready");
     }
 
+    private void logCompatibilityReport(CompatibilityReport report) {
+        getLogger().info("[Compatibility] " + report.summary());
+        for (CompatibilityReport.Issue issue : report.issues()) {
+            String message = "[Compatibility][" + issue.code() + "] " + issue.message();
+            switch (issue.severity()) {
+                case INFO -> getLogger().info(message);
+                case WARNING -> getLogger().warning(message);
+                case ERROR -> getLogger().severe(message);
+            }
+        }
+    }
+
     private void logStartupAudit() {
         if (economyManager == null) {
             return;
@@ -426,6 +431,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     public void releaseBundledScripts(JavaPlugin sourcePlugin, String directory, boolean skipWhenAnyFileExists, java.util.List<String> names) {
+        releaseBundledScripts(sourcePlugin, directory, skipWhenAnyFileExists, names, releaseDefaultDataEnabled(sourcePlugin));
+    }
+
+    public void releaseBundledScripts(JavaPlugin sourcePlugin,
+            String directory,
+            boolean skipWhenAnyFileExists,
+            java.util.List<String> names,
+            boolean releaseDefaultData) {
+        if (!releaseDefaultData) {
+            return;
+        }
         CoreLibConfig effectiveConfig = configModel == null ? CoreLibConfig.defaults() : configModel;
         var scriptConfig = effectiveConfig.scriptConfig() == null
                 ? emaki.jiuwu.craft.corelib.script.ScriptConfig.defaults()
@@ -436,13 +452,113 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         ).releaseScriptGroup(sourcePlugin, directory, skipWhenAnyFileExists, names);
     }
 
-    private void registerCommandHandler() {
-        commandRouter = new CoreLibCommandRouter(this);
-        PluginCommand pluginCommand = getCommand("emakicorelib");
-        if (pluginCommand != null) {
-            pluginCommand.setExecutor(commandRouter);
-            pluginCommand.setTabCompleter(commandRouter);
+    private boolean releaseDefaultDataEnabled(JavaPlugin sourcePlugin) {
+        if (sourcePlugin == null) {
+            return true;
         }
+        if (sourcePlugin == this) {
+            return configModel == null || configModel.releaseDefaultData();
+        }
+        File file = new File(sourcePlugin.getDataFolder(), "config.yml");
+        if (!file.isFile()) {
+            return true;
+        }
+        try {
+            return YamlFiles.load(file).getBoolean("release_default_data", true);
+        } catch (Exception _) {
+            return true;
+        }
+    }
+
+    private void registerCommandHandler() {
+        commandRouter = new CoreLibCommandRouter(this, executionDispatcher);
+
+
+
+        registerCommand(
+                "emakicorelib",
+                "EmakiCoreLib management command",
+                java.util.List.of("corelib", "emakicore"),
+                new CoreLibBasicCommand(commandRouter)
+        );
+    }
+
+    private CompletionStage<Void> finalizeCoreRuntimeAsync() {
+        CompletionStage<Void> guiShutdown = CompletableFuture.completedFuture(null);
+        if (guiBackendRegistry != null) {
+            try {
+                guiShutdown = guiBackendRegistry.shutdownAllAsync();
+            } catch (Throwable throwable) {
+                getLogger().warning("CoreLib GUI shutdown dispatch failed: " + shutdownError(throwable));
+            }
+        }
+        return guiShutdown.handle((ignored, throwable) -> {
+            if (throwable != null) {
+                getLogger().warning("CoreLib GUI shutdown was incomplete: " + shutdownError(throwable));
+            }
+            return null;
+        }).thenRunAsync(() -> {
+            runShutdownStep("JavaScript registrations", () -> {
+                if (javaScriptActionExtensionLoader != null) {
+                    javaScriptActionExtensionLoader.closeAfterBukkitUnregister();
+                    javaScriptActionExtensionLoader = null;
+                }
+            });
+            runShutdownStep("item source integrations", () -> {
+                if (itemSourceIntegrationCoordinator != null) {
+                    itemSourceIntegrationCoordinator.closeAfterBukkitUnregister();
+                    itemSourceIntegrationCoordinator = null;
+                }
+            });
+            runShutdownStep("event bus", () -> {
+                if (eventBus != null) {
+                    eventBus.clear();
+                }
+            });
+            runShutdownStep("JavaScript runtime", () -> {
+                if (javaScriptService != null) {
+                    javaScriptService.close();
+                    javaScriptService = null;
+                }
+            });
+            runShutdownStep("public API", () -> {
+                if (coreLibApiBridge != null) {
+                    EmakiCoreLibApi.uninstall(coreLibApiBridge);
+                    coreLibApiBridge = null;
+                }
+            });
+            mythicJavaScriptBridge = null;
+            gameplayEventPublisher = null;
+            guiBackendRegistry = null;
+            guiBackend = null;
+            serviceRegistry.clear();
+            executionDispatcher = null;
+            threadOwnership = null;
+            platformCapabilities = null;
+            ExpressionEngine.clearGlobalCache();
+            ExpressionEngine.clearThreadLocalCache();
+            emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer.clearRegexCache();
+        });
+    }
+
+    private void runShutdownStep(String name, Runnable step) {
+        try {
+            step.run();
+        } catch (Throwable throwable) {
+            getLogger().warning("CoreLib " + name + " shutdown failed: " + shutdownError(throwable));
+        }
+    }
+
+    private static String shutdownError(Throwable throwable) {
+        Throwable current = throwable;
+        while ((current instanceof java.util.concurrent.CompletionException
+                || current instanceof java.util.concurrent.ExecutionException)
+                && current.getCause() != null) {
+            current = current.getCause();
+        }
+        String message = current.getMessage();
+        return current.getClass().getSimpleName()
+                + (message == null || message.isBlank() ? "" : ": " + message);
     }
 
     private void initializeServices() {
@@ -452,19 +568,32 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         bStatsService = new BStatsService(this, messageService);
         debugLogger = new DebugLogger(this, languageLoader);
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
-        configPrecheckService = new ConfigPrecheckService();
-        loopActionService = new LoopActionService(this);
+        configuredItemService = new ConfiguredItemService(this, itemSourceService);
+        configPrecheckService = new ConfigPrecheckService(messageService);
+        loopActionService = new LoopActionService(this, executionDispatcher);
         getServer().getPluginManager().registerEvents(loopActionService, this);
         performanceMonitor = new PerformanceMonitor();
-        asyncTaskScheduler = AsyncTaskScheduler.forPlugin(this, "emaki-corelib-async", performanceMonitor);
+        asyncTaskScheduler = AsyncTaskScheduler.forPlugin(
+                "emaki-corelib-async",
+                performanceMonitor);
         asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
         asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
+        corePluginLifecycle = new CorePluginLifecycle(this::finalizeCoreRuntimeAsync);
+        corePluginLifecycle.start(asyncFileService, asyncTaskScheduler);
         languageLoader.load();
         guiBackendRegistry = new emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry(messageService);
         guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
-        guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry);
-        itemAssemblyService = new EmakiItemAssemblyService(namespaceRegistry, itemLayerCodecRegistry, itemSourceService);
-        itemAssemblyService.configureAsync(asyncTaskScheduler, performanceMonitor);
+        guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
+        itemAssemblyService = new EmakiItemAssemblyService(
+                namespaceRegistry,
+                itemLayerCodecRegistry,
+                itemSourceService,
+                debugLogger
+        );
+        itemAssemblyService.configureAsync(asyncTaskScheduler, executionDispatcher, this, performanceMonitor);
+        gameplayEventPublisher = new emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher(
+                this, executionDispatcher, eventBus, () -> configModel == null ? null : configModel.gameplayEventConfig());
+        getServer().getPluginManager().registerEvents(gameplayEventPublisher, this);
         refreshServiceRegistry();
     }
 
@@ -498,7 +627,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private CoreLibConfig loadConfigModel() {
         try {
             File file = new File(getDataFolder(), "config.yml");
-            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(this, file, "config.yml", "version");
+            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
+                    this,
+                    file,
+                    "config.yml",
+                    "version",
+                    previous -> previous.root().set("script.runtime_opt_in", null)
+            );
             logVersionUpdate("config.yml", versionedFile);
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
@@ -532,6 +667,16 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public CoreLibConfig configModel() {
         return configModel;
+    }
+
+
+
+
+
+
+
+    public emaki.jiuwu.craft.corelib.event.EmakiEventBus eventBus() {
+        return eventBus;
     }
 
     public ActionRegistry actionRegistry() {
@@ -582,27 +727,27 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return guiBackend;
     }
 
-    /**
-     * The CoreLib-wide GUI backend registry. The built-in {@code bukkit} backend
-     * is always available; the optional {@code packet} backend is installed by
-     * {@link #installPacketBackend()} when PacketEvents is present.
-     */
+
+
+
+
+
     public emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry guiBackendRegistry() {
         return guiBackendRegistry;
     }
 
-    /**
-     * Installs the built-in packet GUI backend when the optional PacketEvents
-     * plugin is present and enabled.
-     *
-     * <p>The packet backend lives inside CoreLib but depends on PacketEvents,
-     * which CoreLib declares only as a {@code softdepend}. To keep CoreLib's zero
-     * hard-dependency guarantee, the PacketEvents-touching classes are reached
-     * only through {@code PacketBackendInstaller} and only after the PacketEvents
-     * plugin is confirmed loaded, with {@link LinkageError} guarded so a missing
-     * or incompatible PacketEvents never breaks startup. When unavailable the
-     * registry keeps only the Bukkit backend.</p>
-     */
+
+
+
+
+
+
+
+
+
+
+
+
     private void installPacketBackend() {
         if (guiBackendRegistry == null) {
             return;
@@ -612,7 +757,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             return;
         }
         try {
-            emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller.install(this, guiBackendRegistry);
+            emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller.install(this, guiBackendRegistry, executionDispatcher);
         } catch (LinkageError | RuntimeException exception) {
             getLogger().warning("Failed to register the packet GUI backend: " + exception.getMessage()
                     + ". EmakiCoreLib will use the Bukkit (entity) backend.");
@@ -627,12 +772,58 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return asyncYamlFiles;
     }
 
+    public AsyncYamlFiles asyncYamlFiles(Plugin owner) {
+        if (asyncFileService == null) {
+            throw new IllegalStateException("Async file service is unavailable");
+        }
+        String ownerName = owner == null ? "anonymous" : owner.getName();
+        return new AsyncYamlFiles(asyncFileService.openScope(ownerName));
+    }
+
+    public AsyncFileService.FileScope asyncFileScope(Plugin owner) {
+        if (asyncFileService == null) {
+            throw new IllegalStateException("Async file service is unavailable");
+        }
+        String ownerName = owner == null ? "anonymous" : owner.getName();
+        return asyncFileService.openScope(ownerName);
+    }
+
+    public PlatformCapabilities platformCapabilities() {
+        return platformCapabilities;
+    }
+
+    public ExecutionDispatcher executionDispatcher() {
+        return executionDispatcher;
+    }
+
+    public ThreadOwnership threadOwnership() {
+        return threadOwnership;
+    }
+
+    public CorePluginLifecycle corePluginLifecycle() {
+        return corePluginLifecycle;
+    }
+
+    public boolean registerDependentShutdown(String ownerKey, CompletionStage<?> shutdown) {
+        CorePluginLifecycle lifecycle = corePluginLifecycle;
+        return lifecycle != null && lifecycle.registerDependentShutdown(ownerKey, shutdown);
+    }
+
+    public boolean registerDependentShutdownFuture(String ownerKey, Future<?> shutdown) {
+        CorePluginLifecycle lifecycle = corePluginLifecycle;
+        return lifecycle != null && lifecycle.registerDependentShutdownFuture(ownerKey, shutdown);
+    }
+
     public PdcService pdcService() {
         return pdcService;
     }
 
     public ItemSourceService itemSourceService() {
         return itemSourceService;
+    }
+
+    public ConfiguredItemService configuredItemService() {
+        return configuredItemService;
     }
 
     public EmakiNamespaceRegistry namespaceRegistry() {
@@ -663,12 +854,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return oraxenBlockBridge;
     }
 
+    @Override
     public DebugLogger debugLogger() {
         return debugLogger;
-    }
-
-    public WebConsoleService webConsoleService() {
-        return webConsoleService;
     }
 
     public JavaScriptRegistrationTracker javaScriptRegistrationTracker() {
@@ -696,6 +884,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(AsyncTaskScheduler.class, asyncTaskScheduler);
         registerService(AsyncFileService.class, asyncFileService);
         registerService(AsyncYamlFiles.class, asyncYamlFiles);
+        registerService(PlatformCapabilities.class, platformCapabilities);
+        registerService(ExecutionDispatcher.class, executionDispatcher);
+        registerService(ThreadOwnership.class, threadOwnership);
+        registerService(CorePluginLifecycle.class, corePluginLifecycle);
         registerService(ActionRegistry.class, actionRegistry);
         registerService(ActionTemplateRegistry.class, actionTemplateRegistry);
         registerService(PlaceholderRegistry.class, placeholderRegistry);
@@ -706,9 +898,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(JavaScriptService.class, javaScriptService);
         registerService(ScriptService.class, javaScriptService);
         registerService(ScriptModuleRegistry.class, scriptModuleRegistry);
-        registerService(WebConsoleService.class, webConsoleService);
         registerService(PdcService.class, pdcService);
         registerService(ItemSourceService.class, itemSourceService);
+        registerService(ConfiguredItemService.class, configuredItemService);
         registerService(EmakiNamespaceRegistry.class, namespaceRegistry);
         registerService(EmakiItemLayerCodecRegistry.class, itemLayerCodecRegistry);
         registerService(CraftEngineBlockBridge.class, craftEngineBlockBridge);

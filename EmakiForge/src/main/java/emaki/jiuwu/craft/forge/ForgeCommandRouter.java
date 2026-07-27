@@ -11,6 +11,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+
 final class ForgeCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_ROOT = "emakiforge";
@@ -20,9 +23,15 @@ final class ForgeCommandRouter implements TabExecutor {
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
 
     private final EmakiForgePlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
+    private final ThreadOwnership threadOwnership;
 
-    ForgeCommandRouter(EmakiForgePlugin plugin) {
+    ForgeCommandRouter(EmakiForgePlugin plugin,
+                       ExecutionDispatcher executionDispatcher,
+                       ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
+        this.threadOwnership = threadOwnership;
     }
 
     @Override
@@ -36,16 +45,11 @@ final class ForgeCommandRouter implements TabExecutor {
                 sendHelp(sender);
                 yield true;
             }
-            case "forge" ->
-                handleForge(sender);
-            case "book" ->
-                handleBook(sender);
-            case "reload" ->
-                handleReload(sender);
-            case "list" ->
-                handleList(sender, args);
-            case "debug" ->
-                handleDebug(sender, args);
+            case "forge" -> handleForge(sender);
+            case "book" -> handleBook(sender);
+            case "reload" -> handleReload(sender);
+            case "list" -> handleList(sender, args);
+            case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
@@ -104,14 +108,38 @@ final class ForgeCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
-        plugin.reloadPluginStateAsync(true).thenRun(() -> {
+        plugin.reloadPluginStateAsync(true).whenComplete((result, throwable) -> runForSender(sender, () -> {
+            if (throwable != null || result == null || !result.successful()) {
+                plugin.messageService().send(sender, "general.reload_fail");
+                if (result != null && !result.detail().isBlank()) {
+                    plugin.messageService().sendRaw(sender, "<red>" + result.detail() + "</red>");
+                }
+                return;
+            }
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
-                    "recipes", plugin.recipeLoader().all().size(),
-                    "guis", plugin.guiTemplateLoader().all().size()
+                    "recipes", result.recipes(),
+                    "guis", result.guiTemplates()
             )));
-        });
+        }));
         return true;
+    }
+
+    private void runForSender(CommandSender sender, Runnable task) {
+        if (sender instanceof Player player) {
+            if (threadOwnership.isEntityOwned(player)) {
+                task.run();
+            } else {
+                executionDispatcher.runEntity(plugin, player, task, () -> {
+                });
+            }
+            return;
+        }
+        if (threadOwnership.isGlobalOwned()) {
+            task.run();
+        } else {
+            executionDispatcher.runGlobal(plugin, task);
+        }
     }
 
     private boolean handleList(CommandSender sender, String[] args) {
@@ -129,8 +157,7 @@ final class ForgeCommandRouter implements TabExecutor {
                 plugin.recipeLoader().all().forEach((id, recipe)
                         -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.recipe_line", Map.of("id", id, "name", recipe.displayName()))));
             }
-            default ->
-                plugin.messageService().send(sender, "general.invalid_args");
+            default -> plugin.messageService().send(sender, "general.invalid_args");
         }
         return true;
     }
@@ -138,6 +165,33 @@ final class ForgeCommandRouter implements TabExecutor {
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
             plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length >= 2 && ("stats".equalsIgnoreCase(args[1]) || "status".equalsIgnoreCase(args[1]))) {
+            var runtime = plugin.runtimeMetrics().snapshot();
+            var recipeReport = plugin.recipeLoader().report();
+            plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                    "command.debug.runtime",
+                    runtime.debugValues(plugin.runtimeStatus(), plugin.runtimeSnapshot().guiState())
+            ));
+            plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                    "command.debug.recipe_load",
+                    Map.ofEntries(
+                            Map.entry("generation", recipeReport.generation()),
+                            Map.entry("files", recipeReport.discovered()),
+                            Map.entry("parsed", recipeReport.parsed()),
+                            Map.entry("skipped", recipeReport.skipped()),
+                            Map.entry("registered", recipeReport.registered()),
+                            Map.entry("duplicates", recipeReport.duplicates()),
+                            Map.entry("executable", recipeReport.executable()),
+                            Map.entry("gui_visible", recipeReport.guiVisible()),
+                            Map.entry("issues", recipeReport.issueCount()),
+                            Map.entry("warnings", recipeReport.warningCount()),
+                            Map.entry("hash", recipeReport.fileSummaryHash()),
+                            Map.entry("duration_ms", String.format(java.util.Locale.ROOT, "%.3f", recipeReport.durationNanos() / 1_000_000D)),
+                            Map.entry("source_statuses", recipeReport.sourceStatuses())
+                    )
+            ));
             return true;
         }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
