@@ -95,6 +95,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private ItemContributionGateRegistry itemContributionGateRegistry;
     private LanguageLoader languageLoader;
     private MessageService messageService;
+    private emaki.jiuwu.craft.attribute.service.DamageIndicatorService damageIndicatorService;
     private EmakiAttributeApi.Bridge emakiAttributeBridge;
     private PdcAttributeApi.Bridge pdcAttributeApi;
     @SuppressWarnings("deprecation")
@@ -247,6 +248,15 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         itemContributionGateRegistry = components.itemContributionGateRegistry();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
+        // 飘字服务用 Supplier 取依赖，这样 reload 后自动读到新配置，无需重建实例。
+        damageIndicatorService = new emaki.jiuwu.craft.attribute.service.DamageIndicatorService(
+                () -> {
+                    emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin coreLib =
+                            getPlugin(emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin.class);
+                    return coreLib == null ? null : coreLib.textDisplayService();
+                },
+                () -> configModel() == null ? null : configModel().damageIndicator(),
+                this::messageService);
         emakiAttributeBridge = components.emakiAttributeBridge();
         pdcAttributeApi = components.pdcAttributeApi();
         parentAttributeDataStore = components.parentAttributeDataStore();
@@ -366,6 +376,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public LanguageLoader languageLoader() {
         return languageLoader;
+    }
+
+    /** {@return 伤害飘字服务，未启用飘字时仍返回实例但不会生成任何实体} */
+    public emaki.jiuwu.craft.attribute.service.DamageIndicatorService damageIndicatorService() {
+        return damageIndicatorService;
     }
 
     public MessageService messageService() {

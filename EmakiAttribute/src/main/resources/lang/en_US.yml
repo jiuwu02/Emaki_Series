@@ -118,6 +118,12 @@ damage:
   target: "Target"
   critical_text: "Critical"
   critical_suffix: " <red>Critical</red>"
+  # Damage indicator templates. %damage% is the damage dealt, %amount% the amount healed.
+  indicator:
+    normal: "<white>-%damage%</white>"
+    critical: "<red><bold>-%damage% ✦</bold></red>"
+    heal: "<green>+%amount%</green>"
+    dodge: "<gray><i>Dodge</i></gray>"
   cause:
     environment: "Environment"
     unknown: "Unknown"

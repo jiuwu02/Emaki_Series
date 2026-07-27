@@ -66,6 +66,7 @@ public final class PlayerStorageStore {
     private final Map<UUID, PendingLoad> pendingLoads = new ConcurrentHashMap<>();
 
     private volatile SortMode defaultSortMode = SortMode.AMOUNT_DESC;
+    private volatile boolean defaultAutoPickup;
     private volatile int warnEntryCount;
     private FlushResult flushResult;
 
@@ -90,8 +91,20 @@ public final class PlayerStorageStore {
 
     /** Applies reloaded settings that affect loading defaults. */
     public void configure(SortMode defaultSortMode, int warnEntryCount) {
+        configure(defaultSortMode, warnEntryCount, defaultAutoPickup);
+    }
+
+    /**
+     * Applies reloaded settings that affect loading defaults.
+     *
+     * @param defaultSortMode   sort mode for players without a stored value
+     * @param warnEntryCount    entry count that triggers a size warning
+     * @param defaultAutoPickup auto pickup state for players without a stored value
+     */
+    public void configure(SortMode defaultSortMode, int warnEntryCount, boolean defaultAutoPickup) {
         this.defaultSortMode = defaultSortMode == null ? SortMode.AMOUNT_DESC : defaultSortMode;
         this.warnEntryCount = Math.max(0, warnEntryCount);
+        this.defaultAutoPickup = defaultAutoPickup;
     }
 
     public PlayerStorageCache cache() {
@@ -166,11 +179,12 @@ public final class PlayerStorageStore {
     private PlayerStorage readStorage(UUID playerId, String playerName) {
         PlayerStorage storage = new PlayerStorage(playerId);
         storage.playerName(playerName);
-        StorageMetaFile.Meta meta = metaFile.load(playerId, defaultSortMode);
+        StorageMetaFile.Meta meta = metaFile.load(playerId, defaultSortMode, defaultAutoPickup);
         storage.grantedSlots(meta.grantedSlots());
         storage.purchasedSlots(meta.purchasedSlots());
         storage.defaultStackLimit(meta.defaultStackLimit());
         storage.sortMode(meta.sortMode());
+        storage.autoPickupEnabled(meta.autoPickupEnabled());
         if (playerName == null || playerName.isBlank()) {
             storage.playerName(meta.playerName());
         }
@@ -281,7 +295,7 @@ public final class PlayerStorageStore {
         }
         StorageMetaFile.Meta meta = new StorageMetaFile.Meta(snapshot.playerName(),
                 snapshot.grantedSlots(), snapshot.purchasedSlots(),
-                snapshot.defaultStackLimit(), snapshot.sortMode());
+                snapshot.defaultStackLimit(), snapshot.sortMode(), snapshot.autoPickupEnabled());
         return fileScope.write(dataFile.dataFile(playerId), "storage-save", () -> {
             try {
                 dataFile.save(playerId, records);

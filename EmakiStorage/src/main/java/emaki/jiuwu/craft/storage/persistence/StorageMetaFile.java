@@ -42,10 +42,20 @@ public final class StorageMetaFile {
             int grantedSlots,
             int purchasedSlots,
             long defaultStackLimit,
-            SortMode sortMode) {
+            SortMode sortMode,
+            boolean autoPickupEnabled) {
 
         public static Meta defaults(SortMode fallbackSort) {
-            return new Meta("", 0, 0, 0L, fallbackSort);
+            return defaults(fallbackSort, false);
+        }
+
+        /**
+         * @param fallbackSort         缺省排序
+         * @param autoPickupByDefault  新玩家的自动拾取默认状态
+         * @return 缺省元数据
+         */
+        public static Meta defaults(SortMode fallbackSort, boolean autoPickupByDefault) {
+            return new Meta("", 0, 0, 0L, fallbackSort, autoPickupByDefault);
         }
     }
 
@@ -68,16 +78,29 @@ public final class StorageMetaFile {
      * @return the parsed metadata, never {@code null}
      */
     public Meta load(UUID playerId, SortMode fallbackSort) {
+        return load(playerId, fallbackSort, false);
+    }
+
+    /**
+     * Loads metadata, falling back to defaults for any missing or malformed key.
+     *
+     * @param playerId            the storage owner
+     * @param fallbackSort        the sort mode to use when none is persisted
+     * @param autoPickupByDefault the auto pickup state for players without a stored value
+     * @return the parsed metadata, never {@code null}
+     */
+    public Meta load(UUID playerId, SortMode fallbackSort, boolean autoPickupByDefault) {
         YamlSection section = YamlFiles.load(metaFile(playerId).toFile());
         if (section == null || section.isEmpty()) {
-            return Meta.defaults(fallbackSort);
+            return Meta.defaults(fallbackSort, autoPickupByDefault);
         }
         return new Meta(
                 section.getString("player_name", ""),
                 intValue(section, "granted_slots", 0),
                 Math.max(0, intValue(section, "purchased_slots", 0)),
                 Math.max(0L, longValue(section, "default_stack_limit", 0L)),
-                SortMode.fromId(section.getString("sort_mode", null), fallbackSort));
+                SortMode.fromId(section.getString("sort_mode", null), fallbackSort),
+                Boolean.TRUE.equals(section.getBoolean("auto_pickup", autoPickupByDefault)));
     }
 
     /**
@@ -95,6 +118,7 @@ public final class StorageMetaFile {
         values.put("purchased_slots", meta.purchasedSlots());
         values.put("default_stack_limit", meta.defaultStackLimit());
         values.put("sort_mode", meta.sortMode() == null ? SortMode.AMOUNT_DESC.id() : meta.sortMode().id());
+        values.put("auto_pickup", meta.autoPickupEnabled());
         YamlFiles.save(metaFile(playerId).toFile(), values);
     }
 

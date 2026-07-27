@@ -8,7 +8,8 @@ public enum StorageOperationSource {
     GUI("gui"),
     COMMAND("command"),
     API("api"),
-    ACTION("action");
+    ACTION("action"),
+    AUTO_PICKUP("auto_pickup");
 
     private final String id;
 

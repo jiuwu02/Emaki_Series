@@ -29,6 +29,7 @@ public record AttributeConfig(String language,
         boolean syntheticHitKnockback,
         double syntheticHitKnockbackStrength,
         boolean syntheticHitHurtSound,
+        DamageIndicatorConfig damageIndicator,
         List<DamageCauseRule> allowedDamageCauses) {
 
     /** Attack speed cooldown is managed by EmakiAttribute for every attack. */
@@ -60,6 +61,7 @@ public record AttributeConfig(String language,
                 true,
                 0.4D,
                 true,
+                DamageIndicatorConfig.defaults(),
                 List.of()
         );
     }
@@ -131,6 +133,7 @@ public record AttributeConfig(String language,
                 syntheticHitKnockback,
                 syntheticHitKnockbackStrength,
                 syntheticHitHurtSound,
+                DamageIndicatorConfig.fromConfig(configuration.getSection("damage_indicator")),
                 List.copyOf(causes)
         );
     }

@@ -115,6 +115,12 @@ damage:
   target: "目标"
   critical_text: "暴击"
   critical_suffix: " <red>暴击</red>"
+  # 伤害飘字模板。%damage% 为伤害值，%amount% 为恢复量。
+  indicator:
+    normal: "<white>-%damage%</white>"
+    critical: "<red><bold>-%damage% ✦</bold></red>"
+    heal: "<green>+%amount%</green>"
+    dodge: "<gray><i>闪避</i></gray>"
   cause:
     environment: "环境"
     unknown: "未知来源"

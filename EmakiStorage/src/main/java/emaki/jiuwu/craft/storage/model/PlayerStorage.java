@@ -31,6 +31,7 @@ public final class PlayerStorage {
     private int purchasedSlots;
     private long defaultStackLimit;
     private SortMode sortMode = SortMode.AMOUNT_DESC;
+    private boolean autoPickupEnabled;
     private long nextTemplateId = 1L;
 
     private long revision;
@@ -86,6 +87,15 @@ public final class PlayerStorage {
         if (sortMode != null) {
             this.sortMode = sortMode;
         }
+    }
+
+    /** {@return 该玩家是否开启了自动拾取} */
+    public boolean autoPickupEnabled() {
+        return autoPickupEnabled;
+    }
+
+    public void autoPickupEnabled(boolean autoPickupEnabled) {
+        this.autoPickupEnabled = autoPickupEnabled;
     }
 
     public long nextTemplateId() {
@@ -246,6 +256,7 @@ public final class PlayerStorage {
         copy.purchasedSlots = purchasedSlots;
         copy.defaultStackLimit = defaultStackLimit;
         copy.sortMode = sortMode;
+        copy.autoPickupEnabled = autoPickupEnabled;
         copy.nextTemplateId = nextTemplateId;
         copy.revision = revision;
         copy.persistedRevision = persistedRevision;

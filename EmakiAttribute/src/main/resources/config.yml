@@ -131,6 +131,46 @@ synthetic_hit_feedback:
   knockback_strength: 0.4
   hurt_sound: true
 
+# 伤害飘字
+# 用展示实体在目标上方显示伤害数字，覆盖普通攻击、暴击、生命恢复与闪避。
+# 渲染后端由 EmakiCoreLib 的 display.backend 决定，可见范围随后端而不同：
+#   packet 后端 - 只有下方 visible_to 指定的相关玩家能看到。
+#   bukkit 后端 - 飘字是真实体，附近所有玩家都能看到，visible_to 不生效。
+damage_indicator:
+  enabled: true
+  # 飘字存活时长(tick)。到期由 CoreLib 展示实体服务自动回收。
+  lifetime_ticks: 20
+  # 飘字相对目标脚部的上抬高度(格)。
+  offset_y: 2.2
+  # 水平随机散布范围(格)，避免同位置的飘字完全重叠。0 表示不散布。
+  spread: 0.5
+  # 同一目标在该窗口(毫秒)内的多次伤害会累加合并为一个飘字。
+  # 与 same_signature_ignores_invulnerability.window_ms 保持一致时，
+  # 多重射击的多段命中会显示为一个总伤害而不是一堆数字。0 表示不合并。
+  merge_window_ms: 500
+  # 同一目标每秒最多生成的飘字数，用于抑制 AOE 群伤刷屏。0 表示不限制。
+  max_per_target_per_second: 4
+  # 可见对象，仅 packet 后端生效：
+  #   involved - 仅攻击者与受击者可见(默认)
+  #   all      - 附近所有玩家可见
+  visible_to: "involved"
+  # 不显示飘字的伤害原因。持续伤害每 tick 都会结算，默认全部屏蔽。
+  ignored_causes:
+    - FIRE_TICK
+    - POISON
+    - WITHER
+    - DROWNING
+    - FREEZE
+    - SUFFOCATION
+    - STARVATION
+  # 四个触发器各自的开关。
+  # 注意 dodge 还需要闪避判定本身被启用；原版战斗默认不进行闪避判定。
+  triggers:
+    normal: true
+    critical: true
+    heal: true
+    dodge: true
+
 # ============================================================
 # 属性衰减曲线（Scaling Curves）
 # ============================================================

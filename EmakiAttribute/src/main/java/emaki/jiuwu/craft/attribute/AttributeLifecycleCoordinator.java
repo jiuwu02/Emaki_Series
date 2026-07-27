@@ -110,6 +110,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 new CombatDamageListener(plugin, attributeService, combatDebugHandler, executionDispatcher),
                 attributeService.perfectTakeoverCoordinator(),
                 new CombatDebugListener(attributeService),
+                new emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener(
+                        plugin::damageIndicatorService,
+                        () -> plugin.configModel() == null ? null : plugin.configModel().damageIndicator()),
                 itemContributionGateRegistry,
                 guiService
         );

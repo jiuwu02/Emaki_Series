@@ -637,7 +637,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         dialogService = new emaki.jiuwu.craft.corelib.dialog.DialogService(
                 this,
                 new emaki.jiuwu.craft.corelib.dialog.DialogLoader(this, config.dialogConfig().directory()),
-                itemSourceService);
+                itemSourceService,
+                executionDispatcher);
         dialogService.setEnabled(config.dialogConfig().enabled());
         dialogService.load();
         gameplayEventPublisher = new emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher(

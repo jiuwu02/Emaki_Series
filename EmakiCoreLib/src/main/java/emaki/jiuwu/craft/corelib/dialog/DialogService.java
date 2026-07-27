@@ -40,12 +40,17 @@ public final class DialogService {
     private final JavaPlugin plugin;
     private final DialogLoader loader;
     private final ItemSourceService itemSourceService;
+    private final emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher executionDispatcher;
     private volatile boolean enabled;
 
-    public DialogService(JavaPlugin plugin, DialogLoader loader, ItemSourceService itemSourceService) {
+    public DialogService(JavaPlugin plugin,
+            DialogLoader loader,
+            ItemSourceService itemSourceService,
+            emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.loader = loader;
         this.itemSourceService = itemSourceService;
+        this.executionDispatcher = executionDispatcher;
     }
 
     public void setEnabled(boolean enabled) {
@@ -102,6 +107,34 @@ public final class DialogService {
     }
 
     /**
+     * 展示运行时构造的对话框，并在玩家提交时回调。
+     *
+     * <p>用于取值随上下文变化、无法预先写进 YAML 的场景，例如让玩家输入取出数量。
+     * 定义不会进入注册表，每次调用现构建。
+     *
+     * <p>{@code handler} 最多被调用一次，且在玩家的所有者线程执行。玩家直接关闭
+     * 对话框时不会触发回调。
+     *
+     * @param player     目标玩家，必须在其所有者线程调用
+     * @param definition 运行时构造的定义；其按钮动作会被替换为提交回调
+     * @param handler    提交回调
+     * @return 成功展示返回 {@code true}
+     */
+    public boolean show(Player player, DialogDefinition definition, DialogSubmitHandler handler) {
+        if (!enabled || player == null || definition == null || handler == null) {
+            return false;
+        }
+        try {
+            player.showDialog(buildInteractive(definition, handler));
+            return true;
+        } catch (Throwable throwable) {
+            plugin.getLogger().warning("[dialog] Could not show the runtime dialog "
+                    + definition.id() + " to " + player.getName() + ": " + throwable.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 关闭玩家当前的对话框。
      *
      * @param player 目标玩家，必须在其所有者线程调用
@@ -125,6 +158,94 @@ public final class DialogService {
         return Dialog.create(factory -> factory.empty()
                 .base(buildBase(definition))
                 .type(buildType(definition)));
+    }
+
+    /** 构建按钮动作为提交回调的对话框。 */
+    private Dialog buildInteractive(DialogDefinition definition, DialogSubmitHandler handler) {
+        java.util.concurrent.atomic.AtomicBoolean delivered =
+                new java.util.concurrent.atomic.AtomicBoolean();
+        return Dialog.create(factory -> factory.empty()
+                .base(buildBase(definition))
+                .type(buildInteractiveType(definition, handler, delivered)));
+    }
+
+    private DialogType buildInteractiveType(DialogDefinition definition,
+            DialogSubmitHandler handler,
+            java.util.concurrent.atomic.AtomicBoolean delivered) {
+        List<DialogDefinition.Button> buttons = definition.buttons();
+        return switch (definition.type()) {
+            case CONFIRMATION -> DialogType.confirmation(
+                    submitButton(buttons.get(0), handler, delivered),
+                    buildButton(buttons.get(1)));
+            case MULTI_ACTION -> {
+                List<ActionButton> actions = new ArrayList<>();
+                for (DialogDefinition.Button button : buttons) {
+                    ActionButton built = submitButton(button, handler, delivered);
+                    if (built != null) {
+                        actions.add(built);
+                    }
+                }
+                yield DialogType.multiAction(actions)
+                        .exitAction(buildButton(definition.exitButton()))
+                        .columns(definition.columns())
+                        .build();
+            }
+            default -> buttons.isEmpty()
+                    ? DialogType.notice()
+                    : DialogType.notice(submitButton(buttons.get(0), handler, delivered));
+        };
+    }
+
+    /** 构建一个把提交派发给 handler 的按钮。 */
+    private ActionButton submitButton(DialogDefinition.Button button,
+            DialogSubmitHandler handler,
+            java.util.concurrent.atomic.AtomicBoolean delivered) {
+        if (button == null) {
+            return null;
+        }
+        ActionButton.Builder builder = ActionButton.builder(MiniMessages.parse(button.label()));
+        if (Texts.isNotBlank(button.tooltip())) {
+            builder.tooltip(MiniMessages.parse(button.tooltip()));
+        }
+        if (button.width() > 0) {
+            builder.width(button.width());
+        }
+        String buttonId = button.action() == null ? "" : Texts.toStringSafe(button.action().value());
+        builder.action(DialogAction.customClick(
+                (response, audience) -> dispatch(response, audience, buttonId, handler, delivered),
+                net.kyori.adventure.text.event.ClickCallback.Options.builder().build()));
+        return builder.build();
+    }
+
+    /**
+     * 把提交派发回玩家的所有者线程。
+     *
+     * <p>用 CAS 保证回调恰好一次：Paper 的回调可能因客户端重复提交而多次触发。
+     */
+    private void dispatch(io.papermc.paper.dialog.DialogResponseView response,
+            net.kyori.adventure.audience.Audience audience,
+            String buttonId,
+            DialogSubmitHandler handler,
+            java.util.concurrent.atomic.AtomicBoolean delivered) {
+        if (!(audience instanceof Player player) || !delivered.compareAndSet(false, true)) {
+            return;
+        }
+        DialogSubmission submission = new DialogSubmission(response, buttonId);
+        Runnable task = () -> {
+            try {
+                handler.onSubmit(player, submission);
+            } catch (RuntimeException exception) {
+                plugin.getLogger().warning("[dialog] The submit handler failed for "
+                        + player.getName() + ": " + exception.getMessage());
+            }
+        };
+        if (executionDispatcher == null) {
+            task.run();
+            return;
+        }
+        if (executionDispatcher.runEntity(plugin, player, task, task) == null) {
+            task.run();
+        }
     }
 
     private DialogBase buildBase(DialogDefinition definition) {
