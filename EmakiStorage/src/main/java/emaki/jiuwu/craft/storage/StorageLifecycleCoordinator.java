@@ -100,7 +100,7 @@ final class StorageLifecycleCoordinator
         StorageSortService sortService = new StorageSortService();
         StorageOverflowService overflowService =
                 new StorageOverflowService(operationLog, textIndexer, config);
-        UnlockCostConfig costConfig = loadCostConfig(plugin, config);
+        UnlockCostConfig costConfig = loadCostConfig(plugin, config, false);
         StorageUnlockService unlockService = new StorageUnlockService(coreLib.economyManager(),
                 coreLib.itemSourceService(), capacityService, operationLog, config, costConfig);
 
@@ -128,7 +128,7 @@ final class StorageLifecycleCoordinator
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
 
         AppConfig config = plugin.appConfig();
-        UnlockCostConfig costConfig = loadCostConfig(plugin, config);
+        UnlockCostConfig costConfig = loadCostConfig(plugin, config, true);
 
         plugin.capacityService().reconfigure(config);
         plugin.transactionService().reconfigure(config);
@@ -315,13 +315,23 @@ final class StorageLifecycleCoordinator
      * <p>Business data, so it is released once as a default and never overwritten by a version
      * upgrade. A missing or unparsable file yields an empty config, which refuses purchases rather
      * than making them free.
+     *
+     * @param reportMissingFile whether a missing or empty file should be logged. This is
+     *                          {@code false} during {@link #initialize(EmakiStoragePlugin)}
+     *                          because the bootstrap that releases the bundled default has not run
+     *                          yet, so on a first launch the file is legitimately absent and the
+     *                          result is immediately superseded by the post-bootstrap reload.
+     *                          A reload runs after bootstrap, so an absent file is then real.
      */
-    private UnlockCostConfig loadCostConfig(EmakiStoragePlugin plugin, AppConfig config) {
+    private UnlockCostConfig loadCostConfig(EmakiStoragePlugin plugin, AppConfig config,
+            boolean reportMissingFile) {
         String fileName = config.unlock().costFile();
         YamlSection section = YamlFiles.load(plugin.dataPath(fileName).toFile());
         if (section == null || section.isEmpty()) {
-            plugin.getLogger().warning("[storage] " + fileName
-                    + " is missing or empty; paid expansion is disabled until it is provided.");
+            if (reportMissingFile) {
+                plugin.getLogger().warning("[storage] " + fileName
+                        + " is missing or empty; paid expansion is disabled until it is provided.");
+            }
             return UnlockCostConfig.empty();
         }
         List<UnlockCostConfig.Tier> tiers = new ArrayList<>();
