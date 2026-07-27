@@ -2,36 +2,37 @@
 
 Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采用多模块 Maven 工程组织。项目以 `EmakiCoreLib` 为共享基础库，向上承载属性战斗、锻造、强化、烹饪与装备宝石等 RPG 玩法模块。
 
-当前源码版本线为：`EmakiCoreLib 4.5.22`、`EmakiAttribute 4.5.17`、`EmakiForge 4.5.12`、`EmakiStrengthen 4.5.10`、`EmakiCooking 4.0.4`、`EmakiGem 2.5.9`、`EmakiSkills 2.5.12`、`EmakiItem 2.5.20`、`EmakiLevel 1.3.6`、`EmakiCodex 1.1.3`。
+当前源码版本线为：`EmakiCoreLib 4.6.0`、`EmakiAttribute 4.6.0`、`EmakiForge 4.6.0`、`EmakiStrengthen 4.6.0`、`EmakiCooking 4.1.0`、`EmakiGem 2.6.0`、`EmakiSkills 2.6.0`、`EmakiItem 2.6.0`、`EmakiLevel 1.4.0`、`EmakiCodex 1.0.0`、`EmakiStorage 1.0.0`。
 
 ## 模块概览
 
 | 模块              | 当前版本 | 角色       | 说明                                                                                  |
 | ----------------- | -------- | ---------- | ------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.5.22` | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
-| `EmakiAttribute`  | `4.5.17` | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
-| `EmakiForge`      | `4.5.12` | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
-| `EmakiStrengthen` | `4.5.10` | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
-| `EmakiCooking`    | `4.0.4`  | 烹饪系统   | 提供多类世界工位运行时、配方判定、输入限制、展示与状态持久化能力                      |
-| `EmakiGem`        | `2.5.9`  | 宝石系统   | 提供装备开孔、宝石镶嵌、取出、升级、装备模板、宝石定义与可选属性系统接入能力          |
-| `EmakiSkills`     | `2.5.12` | 技能系统   | 提供主动技能槽位、被动触发器、施法模式、冷却与 MythicMobs / Attribute 桥接能力        |
-| `EmakiItem`       | `2.5.20` | 物品系统   | 提供自定义物品定义、原版组件、修复、自动更新、套装、触发器与旧配置安全迁移            |
-| `EmakiLevel`      | `1.3.6`  | 等级系统   | 提供多等级类型、经验来源、升级需求、PDC、占位符与跨模块成长桥接                       |
-| `EmakiCodex`      | `1.1.3`  | 图鉴系统   | 提供图鉴、进度追踪、Gameplay Event 条件、奖励与客户端成就提示桥接                     |
+| `EmakiCoreLib`    | `4.6.0`  | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
+| `EmakiAttribute`  | `4.6.0`  | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
+| `EmakiForge`      | `4.6.0`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
+| `EmakiStrengthen` | `4.6.0`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
+| `EmakiCooking`    | `4.1.0`  | 烹饪系统   | 提供多类世界工位运行时、配方判定、输入限制、展示与状态持久化能力                      |
+| `EmakiGem`        | `2.6.0`  | 宝石系统   | 提供装备开孔、宝石镶嵌、取出、升级、装备模板、宝石定义与可选属性系统接入能力          |
+| `EmakiSkills`     | `2.6.0`  | 技能系统   | 提供主动技能槽位、被动触发器、施法模式、冷却与 MythicMobs / Attribute 桥接能力        |
+| `EmakiItem`       | `2.6.0`  | 物品系统   | 提供自定义物品定义、原版组件、修复、自动更新、套装、触发器与旧配置安全迁移            |
+| `EmakiLevel`      | `1.4.0`  | 等级系统   | 提供多等级类型、经验来源、升级需求、PDC、占位符与跨模块成长桥接                       |
+| `EmakiCodex`      | `1.0.0`  | 图鉴系统   | 提供图鉴、进度追踪、Gameplay Event 条件、奖励与客户端成就提示桥接                     |
+| `EmakiStorage`    | `1.0.0`  | 仓库系统   | 提供分页 GUI 仓库、单槽大额存量、容量档位与权限、付费解锁与存取事件                   |
 
-除上述运行时模块外，仓库还包含各模块对应的 `Emaki*Api` 编译期契约模块，以及纯协议模块 `EmakiSkillsProtocol`（artifact `emaki-skills-protocol`，版本 `2.5.12`）。它们不是服务器插件，不要放入 `plugins/`。
+除上述运行时模块外，仓库还包含各模块对应的 `Emaki*Api` 编译期契约模块，以及纯协议模块 `EmakiSkillsProtocol`（artifact `emaki-skills-protocol`，版本 `2.6.0`）。它们不是服务器插件，不要放入 `plugins/`。
 
 ## 技术基线
 
-| 项目       | 说明                              |
-| ---------- | --------------------------------- |
-| Java       | `25`                              |
-| 服务端 API | `Paper API 1.21.8-R0.1-SNAPSHOT`  |
-| 描述符基线 | `api-version: "1.21.8"`           |
+| 项目       | 说明                                       |
+| ---------- | ------------------------------------------ |
+| Java       | `25`                                       |
+| 服务端 API | `Paper API 1.21.8-R0.1-SNAPSHOT`           |
+| 描述符基线 | `api-version: "1.21.8"`                    |
 | Folia      | 所有运行时插件声明 `folia-supported: true` |
-| 文本组件   | `Adventure 4.26.1`                |
-| 构建工具   | Maven 多模块聚合                  |
-| 许可证     | `GPL-3.0-only`                    |
+| 文本组件   | `Adventure 4.26.1`                         |
+| 构建工具   | Maven 多模块聚合                           |
+| 许可证     | `GPL-3.0-only`                             |
 
 ## 模块关系
 
