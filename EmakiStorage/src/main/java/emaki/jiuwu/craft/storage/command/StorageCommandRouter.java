@@ -41,7 +41,7 @@ public final class StorageCommandRouter implements TabExecutor {
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
 
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "open", "slot", "stacklimit", "info", "export", "reload", "debug");
+            List.of("help", "open", "autopickup", "slot", "stacklimit", "info", "export", "reload", "debug");
 
     private final EmakiStoragePlugin plugin;
 
@@ -60,6 +60,7 @@ public final class StorageCommandRouter implements TabExecutor {
                 yield true;
             }
             case "open" -> handleOpen(sender, args);
+            case "autopickup" -> handleAutoPickup(sender, args);
             case "slot" -> handleSlot(sender, args);
             case "stacklimit" -> handleStackLimit(sender, args);
             case "info" -> handleInfo(sender, args);
@@ -71,6 +72,47 @@ public final class StorageCommandRouter implements TabExecutor {
                 yield true;
             }
         };
+    }
+
+    /**
+     * 开关自己的自动拾取。
+     *
+     * <p>写入的是玩家自己的仓库元数据，因此必须回到该玩家的所有者线程执行。
+     */
+    private boolean handleAutoPickup(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!player.hasPermission(emaki.jiuwu.craft.storage.service.StorageAutoPickupService.PERMISSION)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (plugin.appConfig() == null || !plugin.appConfig().autoPickup().enabled()) {
+            plugin.messageService().send(sender, "auto_pickup.disabled");
+            return true;
+        }
+        String mode = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "toggle";
+        plugin.runOwnerWriteAsync(player, () -> {
+            var storage = plugin.dataStore().cached(player.getUniqueId());
+            if (storage == null) {
+                plugin.messageService().send(player, "general.session_expired");
+                return null;
+            }
+            boolean target = switch (mode) {
+                case "on", "true", "enable" -> true;
+                case "off", "false", "disable" -> false;
+                default -> !storage.autoPickupEnabled();
+            };
+            storage.autoPickupEnabled(target);
+            storage.markDirty();
+            plugin.messageService().send(player, target ? "auto_pickup.enabled" : "auto_pickup.turned_off");
+            return null;
+        }, () -> {
+            plugin.messageService().send(player, "general.session_expired");
+            return null;
+        });
+        return true;
     }
 
     private boolean handleOpenSelf(CommandSender sender) {
@@ -397,6 +439,7 @@ public final class StorageCommandRouter implements TabExecutor {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("", messages.message("command.help.commands.open_self"));
         lines.put("open <player>", messages.message("command.help.commands.open"));
+        lines.put("autopickup [on|off]", messages.message("command.help.commands.autopickup"));
         lines.put("slot grant <player> <amount>", messages.message("command.help.commands.slot"));
         lines.put("stacklimit player <player> <limit>",
                 messages.message("command.help.commands.stacklimit_player"));
@@ -420,6 +463,9 @@ public final class StorageCommandRouter implements TabExecutor {
         return switch (sub) {
             case "open", "info", "export" -> args.length == 2
                     ? CommandTabHelper.completeOnlinePlayers(args[1])
+                    : List.of();
+            case "autopickup" -> args.length == 2
+                    ? CommandTabHelper.completeLiterals(args[1], "on", "off", "toggle")
                     : List.of();
             case "slot" -> switch (args.length) {
                 case 2 -> CommandTabHelper.completeLiterals(args[1], "grant");

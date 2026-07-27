@@ -91,7 +91,8 @@ final class StorageLifecycleCoordinator
                 plugin.dataPath("logs"), plugin.getLogger(), fileScope, config.logging());
         PlayerStorageStore dataStore = new PlayerStorageStore(plugin.getLogger(), fileScope,
                 plugin.dataPath("data"), plugin.dataPath("corrupt"), textIndexer);
-        dataStore.configure(config.behavior().defaultSort(), config.capacity().warnEntryCount());
+        dataStore.configure(config.behavior().defaultSort(), config.capacity().warnEntryCount(),
+                config.autoPickup().defaultEnabled());
 
         StorageCapacityService capacityService = new StorageCapacityService(config);
         StorageTransactionService transactionService = new StorageTransactionService(
@@ -136,7 +137,8 @@ final class StorageLifecycleCoordinator
         plugin.unlockService().reconfigure(config, costConfig);
         plugin.amountFormatter().reconfigure(config.display());
         plugin.operationLog().reconfigure(config.logging());
-        plugin.dataStore().configure(config.behavior().defaultSort(), config.capacity().warnEntryCount());
+        plugin.dataStore().configure(config.behavior().defaultSort(), config.capacity().warnEntryCount(),
+                config.autoPickup().defaultEnabled());
 
         int templates = plugin.guiTemplateLoader().load();
         StorageLayoutResolver.Layout layout =
@@ -172,6 +174,10 @@ final class StorageLifecycleCoordinator
                 parseUnlock(configuration.getSection("unlock")),
                 parseDisplay(configuration.getSection("display")),
                 parseBehavior(configuration.getSection("behavior")),
+                emaki.jiuwu.craft.storage.config.AutoPickupConfig.fromConfig(
+                        configuration.getSection("auto_pickup")),
+                emaki.jiuwu.craft.storage.config.InputModeConfig.fromConfig(
+                        configuration.getSection("behavior")),
                 parseSearch(configuration.getSection("search")),
                 parsePersistence(configuration.getSection("persistence")),
                 parseLogging(configuration.getSection("logging")),

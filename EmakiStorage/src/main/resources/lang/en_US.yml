@@ -87,6 +87,24 @@ gui:
   click:
     unsupported: "<red>That click type is not supported in the warehouse.</red>"
 
+dialog:
+  confirm: "<green>Confirm</green>"
+  unavailable: "<red>The input screen is unavailable right now; ask an admin to check the config.</red>"
+  withdraw:
+    title: "<dark_gray>Withdraw amount</dark_gray>"
+    body: "<gray>Suffixes such as k/m/b work, and all or max takes everything.</gray>"
+    label: "<white>Amount</white>"
+  search:
+    title: "<dark_gray>Search items</dark_gray>"
+    body: "<gray>Prefixes: %name% name, %lore% lore, %id% id, %exclude% exclude. Leave empty to clear.</gray>"
+    label: "<white>Keyword</white>"
+
+auto_pickup:
+  enabled: "<green>Auto pickup is on; drops will go straight to your warehouse.</green>"
+  turned_off: "<yellow>Auto pickup is off.</yellow>"
+  disabled: "<red>Auto pickup is not enabled on this server.</red>"
+  rejected: "<yellow>Your warehouse is full for now, so the pickup went to your inventory.</yellow>"
+
 chat:
   input:
     cancelled: "<gray>Input cancelled.</gray>"
@@ -120,6 +138,7 @@ command:
     line: "<yellow>/estorage %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
       open_self: "Open your own warehouse"
+      autopickup: "Toggle auto pickup"
       open: "Open another player's warehouse"
       slot: "Grant or reclaim slots (negative reclaims)"
       stacklimit_player: "Set a player's default per-slot limit"

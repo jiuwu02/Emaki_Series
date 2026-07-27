@@ -275,6 +275,8 @@ public final class AppConfig extends BaseAppConfig {
     private final UnlockConfig unlock;
     private final DisplayConfig display;
     private final BehaviorConfig behavior;
+    private final AutoPickupConfig autoPickup;
+    private final InputModeConfig inputMode;
     private final SearchConfig search;
     private final PersistenceConfig persistence;
     private final LoggingConfig logging;
@@ -289,6 +291,8 @@ public final class AppConfig extends BaseAppConfig {
             UnlockConfig unlock,
             DisplayConfig display,
             BehaviorConfig behavior,
+            AutoPickupConfig autoPickup,
+            InputModeConfig inputMode,
             SearchConfig search,
             PersistenceConfig persistence,
             LoggingConfig logging,
@@ -301,6 +305,8 @@ public final class AppConfig extends BaseAppConfig {
         this.unlock = unlock == null ? UnlockConfig.defaults() : unlock;
         this.display = display == null ? DisplayConfig.defaults() : display;
         this.behavior = behavior == null ? BehaviorConfig.defaults() : behavior;
+        this.autoPickup = autoPickup == null ? AutoPickupConfig.defaults() : autoPickup;
+        this.inputMode = inputMode == null ? InputModeConfig.defaults() : inputMode;
         this.search = search == null ? SearchConfig.defaults() : search;
         this.persistence = persistence == null ? PersistenceConfig.defaults() : persistence;
         this.logging = logging == null ? LoggingConfig.defaults() : logging;
@@ -310,7 +316,8 @@ public final class AppConfig extends BaseAppConfig {
     public static AppConfig defaults() {
         return new AppConfig("zh_CN", CURRENT_VERSION, true, false,
                 GuiConfig.defaults(), CapacityConfig.defaults(), UnlockConfig.defaults(),
-                DisplayConfig.defaults(), BehaviorConfig.defaults(), SearchConfig.defaults(),
+                DisplayConfig.defaults(), BehaviorConfig.defaults(),
+                AutoPickupConfig.defaults(), InputModeConfig.defaults(), SearchConfig.defaults(),
                 PersistenceConfig.defaults(), LoggingConfig.defaults(), false);
     }
 
@@ -340,6 +347,16 @@ public final class AppConfig extends BaseAppConfig {
 
     public BehaviorConfig behavior() {
         return behavior;
+    }
+
+    /** {@return 自动拾取设置} */
+    public AutoPickupConfig autoPickup() {
+        return autoPickup;
+    }
+
+    /** {@return 数量与搜索的输入方式设置} */
+    public InputModeConfig inputMode() {
+        return inputMode;
     }
 
     public SearchConfig search() {

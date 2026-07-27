@@ -102,7 +102,7 @@ behavior:
     right: 16
     shift_left: 32
     shift_right: 64
-  # 中键是否启用 chat 自定义数量输入
+  # 中键是否启用自定义数量输入（输入方式见下方 input_mode）
   withdraw_prompt_enabled: true
   deposit_filter:
     mode: blacklist # blacklist | whitelist | off
@@ -113,6 +113,39 @@ behavior:
   default_sort: amount_desc
   # 是否允许玩家在 GUI 中切换排序（false 时强制使用 default_sort）
   player_sort_enabled: true
+  # 自定义数量与搜索关键词的输入方式：
+  #   auto   - 原版对话框可用则用对话框，否则退回聊天输入(默认)
+  #   dialog - 强制对话框；不可用时这两项交互被禁用
+  #   chat   - 强制聊天输入
+  # 对话框需要客户端 1.21.6 及以上，并且 EmakiCoreLib 的 dialog.enabled 为 true。
+  input_mode: "auto"
+
+# ------------------------------------------------------------
+# 自动拾取
+# ------------------------------------------------------------
+# 让掉落物直接进入仓库而不占用背包。
+# 需要 emakistorage.autopickup 权限，并由玩家用 /storage autopickup 自行开启；
+# 开关按玩家保存在各自的 meta.yml 中。
+auto_pickup:
+  enabled: true
+  # 拾取模式：
+  #   on_pickup - 玩家拾取物品时决定该掉落物是否直接进入仓库(默认)。
+  #               零额外开销，行为可预测，推荐使用。
+  #   radius    - 周期扫描玩家附近的掉落物并吸入仓库，类似磁铁效果。
+  #               只吸取无主或属于该玩家的掉落物，且尊重拾取延迟。
+  mode: "on_pickup"
+  # radius 模式的扫描半径(格)，会被 max_radius 夹紧。仅 radius 模式生效。
+  radius: 8
+  # 半径上限，防止配置过大导致扫描开销失控。
+  max_radius: 16
+  # radius 模式的扫描间隔(tick)。调小更灵敏但更耗性能。仅 radius 模式生效。
+  scan_interval_ticks: 10
+  # 新玩家的默认状态。默认关闭，避免既有玩家升级后行为突变。
+  default_enabled: false
+  # 仓库存不下时的提示节流(毫秒)，0 表示不提示。
+  # 拾取是高频事件，设得过小会刷屏。
+  # 注意：仓库放不下时会整单交还原版拾取(进背包)，不做部分存入。
+  notify_cooldown_ms: 3000
 
 # ------------------------------------------------------------
 # 搜索

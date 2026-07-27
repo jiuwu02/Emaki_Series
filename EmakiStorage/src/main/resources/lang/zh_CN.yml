@@ -31,7 +31,7 @@ gui:
     amount_unlimited: "<gray>数量: <white>%amount%</white> <dark_gray>(无上限)</dark_gray></gray>"
     exact: "<dark_gray>精确: %exact%</dark_gray>"
     withdraw_hint: "<yellow>左键取 %left% | 右键 %right% | Shift+左键 %shift_left% | Shift+右键 %shift_right%</yellow>"
-    custom_hint: "<yellow>中键输入自定义数量</yellow>"
+    custom_hint: "<yellow>中键指定自定义数量</yellow>"
     overflow_locked: "<red>超出当前容量：只可取出，不可存入</red>"
     search_readonly: "<gold>搜索状态：展示区禁止存入，请使用投入口</gold>"
   page_info:
@@ -87,6 +87,24 @@ gui:
   click:
     unsupported: "<red>该操作方式在仓库中不受支持。</red>"
 
+dialog:
+  confirm: "<green>确认</green>"
+  unavailable: "<red>当前无法打开输入界面，请联系管理员检查配置。</red>"
+  withdraw:
+    title: "<dark_gray>取出数量</dark_gray>"
+    body: "<gray>支持 k/m/b 等后缀，也可填 all 或 max 取出全部。</gray>"
+    label: "<white>数量</white>"
+  search:
+    title: "<dark_gray>搜索物品</dark_gray>"
+    body: "<gray>可用前缀：%name% 名称、%lore% 描述、%id% ID、%exclude% 排除。留空清除搜索。</gray>"
+    label: "<white>关键词</white>"
+
+auto_pickup:
+  enabled: "<green>自动拾取已开启，掉落物将直接进入仓库。</green>"
+  turned_off: "<yellow>自动拾取已关闭。</yellow>"
+  disabled: "<red>本服未启用自动拾取功能。</red>"
+  rejected: "<yellow>仓库暂时放不下，拾取的物品已进入背包。</yellow>"
+
 chat:
   input:
     cancelled: "<gray>已取消输入。</gray>"
@@ -120,6 +138,7 @@ command:
     line: "<yellow>/estorage %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
       open_self: "打开自己的仓库"
+      autopickup: "开关自动拾取"
       open: "打开他人仓库"
       slot: "授予或回收槽位（可为负数）"
       stacklimit_player: "设置玩家默认单槽上限"

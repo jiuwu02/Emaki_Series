@@ -104,13 +104,52 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
     @Override
     public void promptWithdrawAmount(Player viewer, GuiSession session, StorageKey key) {
         AppConfig config = plugin.appConfig();
-        plugin.messageService().send(viewer, "chat.withdraw.prompt",
-                Map.of("cancel", String.join(", ", config.search().cancelKeywords())));
         UUID storageOwner = ownerOf(session);
         long generation = plugin.dataStore().currentGeneration(storageOwner);
+        if (promptWithdrawByDialog(viewer, session, key, storageOwner, generation)) {
+            return;
+        }
+        if (!config.inputMode().allowsChat()) {
+            plugin.messageService().send(viewer, "dialog.unavailable");
+            return;
+        }
+        plugin.messageService().send(viewer, "chat.withdraw.prompt",
+                Map.of("cancel", String.join(", ", config.search().cancelKeywords())));
         plugin.chatInputService().await(new ChatInputRequest(plugin, viewer,
                 config.search().inputTimeoutSeconds(), config.search().cancelKeywords(),
                 result -> handleWithdrawInput(viewer, session, key, storageOwner, generation, result)));
+    }
+
+    /**
+     * 尝试用对话框询问取出数量。
+     *
+     * @return 成功展示对话框返回 {@code true}；此时不再走聊天输入
+     */
+    private boolean promptWithdrawByDialog(Player viewer,
+            GuiSession session,
+            StorageKey key,
+            UUID storageOwner,
+            long generation) {
+        if (!plugin.appConfig().inputMode().allowsDialog()) {
+            return false;
+        }
+        var dialogService = dialogService();
+        if (dialogService == null || !dialogService.enabled()) {
+            return false;
+        }
+        var messages = plugin.messageService();
+        var definition = emaki.jiuwu.craft.corelib.dialog.Dialogs.textPrompt(
+                "emakistorage/withdraw_amount",
+                messages.message("dialog.withdraw.title"),
+                java.util.List.of(messages.message("dialog.withdraw.body")),
+                "amount",
+                messages.message("dialog.withdraw.label"),
+                "",
+                32,
+                messages.message("dialog.confirm"));
+        return dialogService.show(viewer, definition, (player, submission) ->
+                applyWithdrawInput(player, session, key, storageOwner, generation,
+                        submission.text("amount")));
     }
 
     private void handleWithdrawInput(Player viewer,
@@ -123,15 +162,30 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
             reportInputOutcome(viewer, result);
             return;
         }
+        applyWithdrawInput(viewer, session, key, storageOwner, generation, result.text());
+    }
+
+    /**
+     * 执行取出。
+     *
+     * <p>聊天输入与对话框提交共用这段逻辑，两者只是取值来源不同；
+     * 会话代际校验必须保留，避免玩家在等待输入期间仓库被换掉。
+     */
+    private void applyWithdrawInput(Player viewer,
+            GuiSession session,
+            StorageKey key,
+            UUID storageOwner,
+            long generation,
+            String input) {
         PlayerStorage storage = plugin.dataStore().cached(storageOwner);
         if (storage == null || !plugin.dataStore().isCurrentGeneration(storageOwner, generation)) {
             plugin.messageService().send(viewer, "general.session_expired");
             return;
         }
-        long amount = parseAmount(result.text(), storage, key);
+        long amount = parseAmount(input, storage, key);
         if (amount <= 0L) {
             plugin.messageService().send(viewer, "chat.withdraw.invalid",
-                    Map.of("input", result.text()));
+                    Map.of("input", input == null ? "" : input));
             return;
         }
         StorageResult withdrawn = plugin.transactionService().withdraw(storage, viewer, key, amount,
@@ -215,6 +269,15 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
     @Override
     public void promptSearch(Player viewer, GuiSession session) {
         AppConfig config = plugin.appConfig();
+        UUID dialogOwner = ownerOf(session);
+        long dialogGeneration = plugin.dataStore().currentGeneration(dialogOwner);
+        if (promptSearchByDialog(viewer, session, dialogOwner, dialogGeneration)) {
+            return;
+        }
+        if (!config.inputMode().allowsChat()) {
+            plugin.messageService().send(viewer, "dialog.unavailable");
+            return;
+        }
         plugin.messageService().send(viewer, "chat.search.prompt", Map.of(
                 "name", config.search().operators().name(),
                 "lore", config.search().operators().lore(),
@@ -228,6 +291,48 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
                 result -> handleSearchInput(viewer, session, storageOwner, generation, result)));
     }
 
+    /**
+     * 尝试用对话框询问搜索关键词。
+     *
+     * @return 成功展示对话框返回 {@code true}
+     */
+    private boolean promptSearchByDialog(Player viewer,
+            GuiSession session,
+            UUID storageOwner,
+            long generation) {
+        if (!plugin.appConfig().inputMode().allowsDialog()) {
+            return false;
+        }
+        var dialogService = dialogService();
+        if (dialogService == null || !dialogService.enabled()) {
+            return false;
+        }
+        var operators = plugin.appConfig().search().operators();
+        var messages = plugin.messageService();
+        var definition = emaki.jiuwu.craft.corelib.dialog.Dialogs.textPrompt(
+                "emakistorage/search",
+                messages.message("dialog.search.title"),
+                java.util.List.of(messages.message("dialog.search.body", Map.of(
+                        "name", operators.name(),
+                        "lore", operators.lore(),
+                        "id", operators.id(),
+                        "exclude", operators.exclude()))),
+                "query",
+                messages.message("dialog.search.label"),
+                "",
+                64,
+                messages.message("dialog.confirm"));
+        return dialogService.show(viewer, definition, (player, submission) ->
+                applySearchInput(player, session, storageOwner, generation, submission.text("query")));
+    }
+
+    /** {@return CoreLib 的对话框服务；不可用时为 {@code null}} */
+    private emaki.jiuwu.craft.corelib.dialog.DialogService dialogService() {
+        var coreLib = org.bukkit.plugin.java.JavaPlugin
+                .getPlugin(emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin.class);
+        return coreLib == null ? null : coreLib.dialogService();
+    }
+
     private void handleSearchInput(Player viewer,
             GuiSession session,
             UUID storageOwner,
@@ -237,16 +342,26 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
             reportInputOutcome(viewer, result);
             return;
         }
+        applySearchInput(viewer, session, storageOwner, generation, result.text());
+    }
+
+    /** 应用搜索条件；聊天输入与对话框提交共用。 */
+    private void applySearchInput(Player viewer,
+            GuiSession session,
+            UUID storageOwner,
+            long generation,
+            String input) {
+        String text = input == null ? "" : input;
         PlayerStorage storage = plugin.dataStore().cached(storageOwner);
         if (storage == null || !plugin.dataStore().isCurrentGeneration(storageOwner, generation)) {
             plugin.messageService().send(viewer, "general.session_expired");
             return;
         }
-        SearchQuery query = SearchQuery.parse(result.text(), plugin.appConfig().search().operators());
+        SearchQuery query = SearchQuery.parse(text, plugin.appConfig().search().operators());
         StorageGuiService.ViewState state = plugin.storageGuiService().viewState(viewer.getUniqueId());
-        applyQuery(viewer, session, storage, state, query, result.text());
+        applyQuery(viewer, session, storage, state, query, text);
         plugin.messageService().send(viewer, "chat.search.applied",
-                Map.of("query", result.text(), "count", state.visible().size()));
+                Map.of("query", text, "count", state.visible().size()));
     }
 
     @Override

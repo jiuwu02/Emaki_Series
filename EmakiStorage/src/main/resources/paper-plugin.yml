@@ -18,6 +18,8 @@ permissions:
     default: true
   emakistorage.unlock.purchase:
     default: true
+  emakistorage.autopickup:
+    default: true
   emakistorage.reload:
     default: op
   emakistorage.debug:

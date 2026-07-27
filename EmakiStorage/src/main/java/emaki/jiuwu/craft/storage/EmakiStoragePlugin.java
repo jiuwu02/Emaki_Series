@@ -106,6 +106,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private StorageSessionManager sessionManager;
     private StoragePlayerListener playerListener;
+    private emaki.jiuwu.craft.storage.service.StorageAutoPickupService autoPickupService;
     private StorageActionRegistrar actionRegistrar;
     private StoragePlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
@@ -155,6 +156,10 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         if (chatInputService != null) {
             chatInputService.close();
+        }
+        if (autoPickupService != null) {
+            autoPickupService.stop();
+            autoPickupService = null;
         }
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -226,6 +231,10 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         getServer().getPluginManager().registerEvents(chatInputService, this);
         playerListener = new StoragePlayerListener(this);
         getServer().getPluginManager().registerEvents(playerListener, this);
+        autoPickupService = new emaki.jiuwu.craft.storage.service.StorageAutoPickupService(this);
+        autoPickupService.configure();
+        getServer().getPluginManager().registerEvents(
+                new emaki.jiuwu.craft.storage.listener.StorageAutoPickupListener(this), this);
     }
 
     private void registerPlaceholders() {
@@ -317,6 +326,11 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     public StorageTextIndexer textIndexer() {
         return textIndexer;
+    }
+
+    /** {@return 自动拾取服务，未启用时仍返回实例但不会转入任何物品} */
+    public emaki.jiuwu.craft.storage.service.StorageAutoPickupService autoPickupService() {
+        return autoPickupService;
     }
 
     public PlayerStorageStore dataStore() {
