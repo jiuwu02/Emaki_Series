@@ -61,8 +61,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.6.2</emaki.corelib.version>
-        <emaki.attribute.version>4.6.1</emaki.attribute.version>
+        <emaki.corelib.version>4.6.3</emaki.corelib.version>
+        <emaki.attribute.version>4.6.2</emaki.attribute.version>
         <emaki.item.version>2.6.1</emaki.item.version>
         <emaki.skills.version>2.6.0</emaki.skills.version>
         <emaki.skills.protocol.version>2.6.0</emaki.skills.protocol.version>

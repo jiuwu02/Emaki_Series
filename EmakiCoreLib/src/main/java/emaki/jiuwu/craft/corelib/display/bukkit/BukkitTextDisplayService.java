@@ -12,6 +12,7 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.DisplayMotionRunner;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -26,6 +27,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
 
     private final Plugin plugin;
     private final ExecutionDispatcher executionDispatcher;
+    private final DisplayMotionRunner motionRunner;
     private final Map<String, TextDisplay> displays = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
     private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
@@ -33,6 +35,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
     public BukkitTextDisplayService(Plugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.executionDispatcher = executionDispatcher;
+        this.motionRunner = new DisplayMotionRunner(plugin, executionDispatcher);
     }
 
     @Override
@@ -63,6 +66,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             }
             display.teleport(location);
             apply(display, spec);
+            startMotion(spec, display);
             scheduleExpiry(spec);
         }, () -> {
             removeMapOnly(spec.groupKey(), key);
@@ -118,6 +122,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             cancelQuietly(handle);
         }
         expiryTasks.clear();
+        motionRunner.shutdown();
         for (Map.Entry<String, TextDisplay> entry : Map.copyOf(displays).entrySet()) {
             TextDisplay display = entry.getValue();
             if (display != null) {
@@ -138,12 +143,20 @@ public final class BukkitTextDisplayService implements TextDisplayService {
         return "bukkit";
     }
 
+    /**
+     * 写入 spec 的静态渲染参数。
+     *
+     * <p>有运动时这里直接写运动第 0 帧且插值时长为 0：调度器会把后续帧回调推迟到下一 tick，
+     * 若此处只写 profile 原始变换，出场缩放会有一 tick 显示为错误尺寸。
+     */
     private void apply(TextDisplay display, TextDisplaySpec spec) {
         DisplayGeometry.TextProfile profile = spec.profile();
         display.text(spec.component());
         display.setBillboard(billboard(profile.billboard()));
-        display.setTransformation(spec.transformation());
         display.setInterpolationDuration(0);
+        display.setTransformation(spec.hasMotion()
+                ? spec.transformation(spec.motion().translationAt(0), spec.motion().scaleFactorAt(0))
+                : spec.transformation());
         display.setInterpolationDelay(0);
         display.setSeeThrough(profile.seeThrough());
         display.setShadowed(profile.shadow());
@@ -184,8 +197,33 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             displays.put(key, display);
             displaysByGroup.computeIfAbsent(spec.groupKey(), ignored -> ConcurrentHashMap.newKeySet()).add(key);
             apply(display, spec);
+            startMotion(spec, display);
             scheduleExpiry(spec);
         });
+    }
+
+    /**
+     * 启动或重启该条目的运动。
+     *
+     * <p>帧回调在全局线程触发，写实体状态前必须切回实体所属 region 线程，
+     * 这是 Folia 下的硬要求。实体已退休时顺带取消运动，避免空转。
+     */
+    private void startMotion(TextDisplaySpec spec, TextDisplay display) {
+        String key = spec.runtimeKey();
+        if (!spec.hasMotion()) {
+            motionRunner.cancel(key);
+            return;
+        }
+        motionRunner.start(key, spec.motion(), (interpolationTicks, translation, scaleFactor) ->
+                executionDispatcher.runEntity(plugin, display, () -> {
+                    if (display.isDead()) {
+                        motionRunner.cancel(key);
+                        return;
+                    }
+                    display.setInterpolationDuration(interpolationTicks);
+                    display.setTransformation(spec.transformation(translation, scaleFactor));
+                    display.setInterpolationDelay(0);
+                }, () -> motionRunner.cancel(key)));
     }
 
     /**
@@ -237,6 +275,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
 
     private void removeKey(String groupKey, String key) {
         cancelQuietly(expiryTasks.remove(key));
+        motionRunner.cancel(key);
         TextDisplay display = displays.get(key);
         if (display == null) {
             removeMapOnly(groupKey, key);

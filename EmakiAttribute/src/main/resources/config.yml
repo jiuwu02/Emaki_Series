@@ -8,7 +8,7 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.6.1"
+version: "4.6.2"
 
 # 语言文件 ID
 language: zh_CN
@@ -138,15 +138,10 @@ synthetic_hit_feedback:
 #   bukkit 后端 - 飘字是真实体，附近所有玩家都能看到，visible_to 不生效。
 damage_indicator:
   enabled: true
-  # 飘字存活时长(tick)。到期由 CoreLib 展示实体服务自动回收。
-  lifetime_ticks: 20
-  # 飘字相对目标脚部的上抬高度(格)。
-  offset_y: 2.2
-  # 水平随机散布范围(格)，避免同位置的飘字完全重叠。0 表示不散布。
-  spread: 0.5
   # 同一目标在该窗口(毫秒)内的多次伤害会累加合并为一个飘字。
   # 与 same_signature_ignores_invulnerability.window_ms 保持一致时，
   # 多重射击的多段命中会显示为一个总伤害而不是一堆数字。0 表示不合并。
+  # 窗口内再次命中会让飘字从起点重新抛出。
   merge_window_ms: 500
   # 同一目标每秒最多生成的飘字数，用于抑制 AOE 群伤刷屏。0 表示不限制。
   max_per_target_per_second: 4
@@ -163,13 +158,92 @@ damage_indicator:
     - FREEZE
     - SUFFOCATION
     - STARVATION
-  # 四个触发器各自的开关。
+
+  # --- 以下为全部触发器的默认表现，可在 triggers.<名称> 下逐键覆盖 ---
+
+  # 飘字存活时长(tick)，同时是一次抛物运动的总时长。
+  # 到期由 CoreLib 展示实体服务自动回收。
+  lifetime_ticks: 24
+  spawn:
+    # 相对目标脚部的固定偏移(格)。
+    offset:
+      x: 0.0
+      y: 2.0
+      z: 0.0
+    # 各轴的随机散布范围(格)，实际取 ±该值，避免同位置飘字完全重叠。0 表示该轴不散布。
+    random_offset:
+      x: 0.4
+      y: 0.15
+      z: 0.4
+  # 抛物运动。轨迹为 p(t) = v·t + ½·a·t²，由客户端插值渲染，
+  # 飘字实体本身不移动，因此不产生传送开销。
+  motion:
+    enabled: true
+    # 关键帧间隔(tick)，同时是客户端插值时长。1 最平滑，值越大包越少、折线感越强。
+    step_ticks: 2
+    # 抛出初速度(格/tick)。
+    speed: 0.30
+    # 竖直加速度(格/tick²)，负值下坠。这一项决定抛物线的弯曲程度。
+    gravity: -0.030
+    direction:
+      # 抛出方向模式：
+      #   random             - 按下面的 pitch/yaw 区间随机
+      #   fixed              - 使用 fixed 指定的向量
+      #   away_from_attacker - 沿攻击者到目标的水平方向抛出并叠加 pitch 仰角；
+      #                        无攻击者时退化为 random
+      mode: "random"
+      fixed:
+        x: 0.0
+        y: 1.0
+        z: 0.0
+      # 仰角区间(度)，90 为正上方。
+      pitch:
+        min: 55.0
+        max: 85.0
+      # 水平角区间(度)。
+      yaw:
+        min: -180.0
+        max: 180.0
+    # 出场放大与退场缩小，与位移共用同一条插值通道。
+    scale:
+      # 出场起始缩放，前 pop_ticks 内线性放大到 1.0。
+      pop_from: 0.6
+      pop_ticks: 3
+      # 退场目标缩放，最后 shrink_ticks 内从 1.0 线性缩到该值。0 表示缩到不可见。
+      shrink_to: 0.0
+      shrink_ticks: 6
+
+  # 四个触发器。每个触发器可只写需要改的键，未写的键继承上面的默认值。
   # 注意 dodge 还需要闪避判定本身被启用；原版战斗默认不进行闪避判定。
   triggers:
-    normal: true
-    critical: true
-    heal: true
-    dodge: true
+    normal:
+      enabled: true
+    critical:
+      enabled: true
+      # 暴击抛得更高更快，并从更小的尺寸弹出以强调打击感。
+      motion:
+        speed: 0.42
+        gravity: -0.036
+        scale:
+          pop_from: 0.35
+          pop_ticks: 4
+    heal:
+      enabled: true
+      # 治疗改为垂直缓慢上浮。
+      motion:
+        speed: 0.16
+        gravity: -0.004
+        direction:
+          mode: "fixed"
+          fixed:
+            x: 0.0
+            y: 1.0
+            z: 0.0
+    dodge:
+      enabled: true
+      motion:
+        speed: 0.20
+        gravity: -0.016
 
 # ============================================================
 # 属性衰减曲线（Scaling Curves）

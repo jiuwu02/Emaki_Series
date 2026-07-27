@@ -32,6 +32,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.DisplayMotionRunner;
 import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
@@ -52,6 +53,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     private final Plugin plugin;
     private final DisplayRuntimeSettings settings;
     private final ExecutionDispatcher executionDispatcher;
+    private final DisplayMotionRunner motionRunner;
     private final Map<String, VirtualText> displays = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
     private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
@@ -63,6 +65,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         this.plugin = plugin;
         this.settings = settings;
         this.executionDispatcher = executionDispatcher;
+        this.motionRunner = new DisplayMotionRunner(plugin, executionDispatcher);
         Bukkit.getPluginManager().registerEvents(this, plugin);
         int interval = Math.max(1, settings.refreshIntervalTicks());
         this.refreshTask = executionDispatcher.runGlobalTimer(plugin, this::refreshAll, interval, interval);
@@ -83,13 +86,18 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             display = new VirtualText(VirtualEntityIds.next(), UUID.randomUUID(), spec);
             displays.put(key, display);
             displaysByGroup.computeIfAbsent(spec.groupKey(), ignored -> ConcurrentHashMap.newKeySet()).add(key);
+            // 同理先落第 0 帧，再由 refreshEntry 发出携带该帧的 spawn 与 metadata。
+            startMotion(key, display);
             refreshEntry(display);
             scheduleExpiry(spec);
             return;
         }
         display.spec = spec;
+        // 必须先重启运动再构建整体 metadata：startMotion 会把当前帧回写为第 0 帧，
+        // 否则合并窗口内的「重新抛出」会先发出上一次飞行的旧位置，产生一次跳变。
+        startMotion(key, display);
         WrapperPlayServerEntityMetadata packet =
-                new WrapperPlayServerEntityMetadata(display.entityId, metadata(spec));
+                new WrapperPlayServerEntityMetadata(display.entityId, metadata(display));
         for (UUID playerId : Set.copyOf(display.visiblePlayers)) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null && player.isOnline()) {
@@ -148,6 +156,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             cancelQuietly(handle);
         }
         expiryTasks.clear();
+        motionRunner.shutdown();
         cancelQuietly(refreshTask);
         HandlerList.unregisterAll(this);
         for (VirtualText display : Set.copyOf(displays.values())) {
@@ -220,6 +229,64 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         return player.getLocation().distanceSquared(location) <= distance * distance;
     }
 
+    /** 启动或重启该条目的运动，并把每帧状态回写到 {@link VirtualText} 供后续 spawn 复用。 */
+    private void startMotion(String key, VirtualText display) {
+        TextDisplaySpec spec = display.spec;
+        if (spec == null || !spec.hasMotion()) {
+            motionRunner.cancel(key);
+            display.motionTranslation = DisplayGeometry.Vector3.ZERO;
+            display.motionScaleFactor = 1D;
+            return;
+        }
+        motionRunner.start(key, spec.motion(), (interpolationTicks, translation, scaleFactor) -> {
+            display.motionTranslation = translation;
+            display.motionScaleFactor = scaleFactor;
+            sendMotionFrame(display, interpolationTicks, translation, scaleFactor);
+        });
+    }
+
+    /**
+     * 只发运动相关的四项 metadata。
+     *
+     * <p>文本、背景、样式等静态项不重复发送，飞行期间每帧的包体因此保持很小。
+     */
+    private void sendMotionFrame(VirtualText display,
+            int interpolationTicks,
+            DisplayGeometry.Vector3 translation,
+            double scaleFactor) {
+        TextDisplaySpec spec = display.spec;
+        if (spec == null) {
+            return;
+        }
+        ServerVersion version = PacketEvents.getAPI().getServerManager().getVersion();
+        boolean hasPositionRotationInterpolation = version.isNewerThanOrEquals(ServerVersion.V_1_20_2);
+        int translationIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 3 : 2);
+        DisplayGeometry.Vector3 scale = spec.profile().scale();
+
+        List<EntityData<?>> metadata = new ArrayList<>();
+        metadata.add(new EntityData<>(ENTITY_METADATA_BASE, EntityDataTypes.INT, 0));
+        metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 1, EntityDataTypes.INT, interpolationTicks));
+        if (hasPositionRotationInterpolation) {
+            metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
+        }
+        metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F,
+                new Vector3f((float) translation.x(), (float) translation.y(), (float) translation.z())));
+        metadata.add(new EntityData<>(translationIndex + 1, EntityDataTypes.VECTOR3F,
+                new Vector3f(
+                        (float) (scale.x() * scaleFactor),
+                        (float) (scale.y() * scaleFactor),
+                        (float) (scale.z() * scaleFactor))));
+
+        WrapperPlayServerEntityMetadata packet =
+                new WrapperPlayServerEntityMetadata(display.entityId, metadata);
+        for (UUID playerId : Set.copyOf(display.visiblePlayers)) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                sendPacket(player, packet);
+            }
+        }
+    }
+
     /** 与真实体后端同理：重排到期任务前必须取消旧任务。 */
     private void scheduleExpiry(TextDisplaySpec spec) {
         String key = spec.runtimeKey();
@@ -259,6 +326,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         }
         for (String key : Set.copyOf(keys)) {
             cancelQuietly(expiryTasks.remove(key));
+            motionRunner.cancel(key);
             VirtualText display = displays.remove(key);
             if (display != null) {
                 destroyForAllVisible(display);
@@ -268,6 +336,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
 
     private void removeKey(String groupKey, String key) {
         cancelQuietly(expiryTasks.remove(key));
+        motionRunner.cancel(key);
         VirtualText display = displays.remove(key);
         if (display != null) {
             destroyForAllVisible(display);
@@ -327,7 +396,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
                 Vector3d.zero()
         );
         sendPacket(player, spawnPacket);
-        sendPacket(player, new WrapperPlayServerEntityMetadata(display.entityId, metadata(display.spec)));
+        sendPacket(player, new WrapperPlayServerEntityMetadata(display.entityId, metadata(display)));
     }
 
     /**
@@ -336,7 +405,8 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
      * <p>索引需按服务端版本推导：1.20.2 起新增了位置旋转插值字段，
      * 之后的所有索引整体后移一位。
      */
-    private List<EntityData<?>> metadata(TextDisplaySpec spec) {
+    private List<EntityData<?>> metadata(VirtualText display) {
+        TextDisplaySpec spec = display.spec;
         ServerVersion version = PacketEvents.getAPI().getServerManager().getVersion();
         boolean hasPositionRotationInterpolation = version.isNewerThanOrEquals(ServerVersion.V_1_20_2);
         int translationIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 3 : 2);
@@ -346,6 +416,8 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
 
         DisplayGeometry.TextProfile profile = spec.profile();
         DisplayGeometry.Vector3 scale = profile.scale();
+        DisplayGeometry.Vector3 translation = display.motionTranslation;
+        double scaleFactor = display.motionScaleFactor;
 
         List<EntityData<?>> metadata = new ArrayList<>();
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE, EntityDataTypes.INT, 0));
@@ -353,9 +425,13 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         if (hasPositionRotationInterpolation) {
             metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
         }
-        metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F, Vector3f.zero()));
+        metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F,
+                new Vector3f((float) translation.x(), (float) translation.y(), (float) translation.z())));
         metadata.add(new EntityData<>(translationIndex + 1, EntityDataTypes.VECTOR3F,
-                new Vector3f((float) scale.x(), (float) scale.y(), (float) scale.z())));
+                new Vector3f(
+                        (float) (scale.x() * scaleFactor),
+                        (float) (scale.y() * scaleFactor),
+                        (float) (scale.z() * scaleFactor))));
         metadata.add(new EntityData<>(translationIndex + 2, EntityDataTypes.QUATERNION,
                 new Quaternion4f(0F, 0F, 0F, 1F)));
         metadata.add(new EntityData<>(translationIndex + 3, EntityDataTypes.QUATERNION,
@@ -434,12 +510,21 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         display.visiblePlayers.clear();
     }
 
+    /**
+     * 一个虚拟文本实体。
+     *
+     * <p>{@code motionTranslation} / {@code motionScaleFactor} 记录当前运动帧，
+     * 供 {@link #metadata(TextDisplaySpec)} 复用：飞行途中才进入视野的玩家必须
+     * 直接看到当前帧，否则会看到飘字从原点重新出现。
+     */
     private static final class VirtualText {
 
         private final int entityId;
         private final UUID uuid;
         private final Set<UUID> visiblePlayers = ConcurrentHashMap.newKeySet();
         private volatile TextDisplaySpec spec;
+        private volatile DisplayGeometry.Vector3 motionTranslation = DisplayGeometry.Vector3.ZERO;
+        private volatile double motionScaleFactor = 1D;
 
         private VirtualText(int entityId, UUID uuid, TextDisplaySpec spec) {
             this.entityId = entityId;

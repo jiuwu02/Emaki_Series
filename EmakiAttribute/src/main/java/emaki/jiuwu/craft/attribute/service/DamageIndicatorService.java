@@ -13,7 +13,9 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.attribute.config.DamageIndicatorConfig;
+import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.DisplayMotion;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -65,11 +67,11 @@ public final class DamageIndicatorService {
         if (config == null || !config.enabled() || damage <= 0D) {
             return;
         }
-        if (critical ? !config.criticalEnabled() : !config.normalEnabled()) {
+        String id = critical ? ID_CRITICAL : ID_NORMAL;
+        if (!config.settingsFor(id).enabled()) {
             return;
         }
-        show(target, attacker, critical ? ID_CRITICAL : ID_NORMAL,
-                critical ? "critical" : "normal", damage, true);
+        show(target, attacker, id, critical ? "critical" : "normal", damage, true);
     }
 
     /**
@@ -80,7 +82,7 @@ public final class DamageIndicatorService {
      */
     public void showHeal(LivingEntity beneficiary, double amount) {
         DamageIndicatorConfig config = config();
-        if (config == null || !config.enabled() || !config.healEnabled() || amount <= 0D) {
+        if (config == null || !config.enabled() || !config.settingsFor(ID_HEAL).enabled() || amount <= 0D) {
             return;
         }
         show(beneficiary, beneficiary, ID_HEAL, "heal", amount, true);
@@ -94,7 +96,7 @@ public final class DamageIndicatorService {
      */
     public void showDodge(LivingEntity target, LivingEntity attacker) {
         DamageIndicatorConfig config = config();
-        if (config == null || !config.enabled() || !config.dodgeEnabled()) {
+        if (config == null || !config.enabled() || !config.settingsFor(ID_DODGE).enabled()) {
             return;
         }
         show(target, attacker, ID_DODGE, "dodge", 0D, false);
@@ -129,14 +131,88 @@ public final class DamageIndicatorService {
         if (Texts.isBlank(text)) {
             return;
         }
+        DamageIndicatorConfig.TriggerSettings settings = config.settingsFor(id);
         service.upsert(new TextDisplaySpec(
                 new DisplayKey(NAMESPACE, target.getUniqueId().toString(), id),
                 text,
-                anchor(config, target),
+                anchor(settings, target),
                 null,
-                config.lifetimeTicks(),
-                viewers(config, target, attacker)
+                settings.lifetimeTicks(),
+                viewers(config, target, attacker),
+                buildMotion(settings, target, attacker)
         ));
+    }
+
+    /**
+     * 组装抛物运动。
+     *
+     * <p>{@code durationTicks} 取该触发器的存活时长，使运动与实体回收同时结束。
+     */
+    private DisplayMotion buildMotion(DamageIndicatorConfig.TriggerSettings settings,
+            LivingEntity target,
+            LivingEntity attacker) {
+        DamageIndicatorConfig.MotionSettings motion = settings.motion();
+        if (!motion.enabled()) {
+            return DisplayMotion.NONE;
+        }
+        DisplayGeometry.Vector3 direction = resolveDirection(motion.direction(), target, attacker);
+        DamageIndicatorConfig.ScaleSettings scale = motion.scale();
+        return new DisplayMotion(
+                new DisplayGeometry.Vector3(
+                        direction.x() * motion.speed(),
+                        direction.y() * motion.speed(),
+                        direction.z() * motion.speed()
+                ),
+                new DisplayGeometry.Vector3(0D, motion.gravity(), 0D),
+                settings.lifetimeTicks(),
+                motion.stepTicks(),
+                scale.popFrom(),
+                scale.popTicks(),
+                scale.shrinkTo(),
+                scale.shrinkTicks()
+        );
+    }
+
+    /**
+     * 解析抛出方向为单位向量。
+     *
+     * <p>{@code away_from_attacker} 取攻击者到目标的水平朝向再叠加 pitch 仰角；
+     * 缺攻击者或两者重合时退化为 {@code random}，避免出现零向量。
+     */
+    private DisplayGeometry.Vector3 resolveDirection(DamageIndicatorConfig.DirectionSettings direction,
+            LivingEntity target,
+            LivingEntity attacker) {
+        if (DamageIndicatorConfig.DirectionSettings.MODE_FIXED.equals(direction.mode())) {
+            return normalize(direction.fixed().x(), direction.fixed().y(), direction.fixed().z());
+        }
+        double pitch = Math.toRadians(direction.pitch().resolve());
+        if (DamageIndicatorConfig.DirectionSettings.MODE_AWAY_FROM_ATTACKER.equals(direction.mode())
+                && attacker != null
+                && target.getWorld().equals(attacker.getWorld())) {
+            double awayX = target.getLocation().getX() - attacker.getLocation().getX();
+            double awayZ = target.getLocation().getZ() - attacker.getLocation().getZ();
+            double horizontal = Math.sqrt(awayX * awayX + awayZ * awayZ);
+            if (horizontal > 1.0E-6D) {
+                double cos = Math.cos(pitch);
+                return new DisplayGeometry.Vector3(
+                        awayX / horizontal * cos,
+                        Math.sin(pitch),
+                        awayZ / horizontal * cos
+                );
+            }
+        }
+        double yaw = Math.toRadians(direction.yaw().resolve());
+        double cos = Math.cos(pitch);
+        return new DisplayGeometry.Vector3(cos * Math.cos(yaw), Math.sin(pitch), cos * Math.sin(yaw));
+    }
+
+    /** {@return 单位化后的向量；零向量归一为正上方} */
+    private DisplayGeometry.Vector3 normalize(double x, double y, double z) {
+        double length = Math.sqrt(x * x + y * y + z * z);
+        if (length <= 1.0E-6D) {
+            return new DisplayGeometry.Vector3(0D, 1D, 0D);
+        }
+        return new DisplayGeometry.Vector3(x / length, y / length, z / length);
     }
 
     /**
@@ -173,14 +249,24 @@ public final class DamageIndicatorService {
         return updated.count <= config.maxPerTargetPerSecond();
     }
 
-    private Location anchor(DamageIndicatorConfig config, LivingEntity target) {
+    /** {@return 飘字基准位置，为目标脚部加固定偏移再加三轴随机散布} */
+    private Location anchor(DamageIndicatorConfig.TriggerSettings settings, LivingEntity target) {
+        DamageIndicatorConfig.SpawnSettings spawn = settings.spawn();
         Location base = target.getLocation().clone();
-        double spread = config.spread();
-        if (spread > 0D) {
-            ThreadLocalRandom random = ThreadLocalRandom.current();
-            base.add(random.nextDouble(-spread, spread), 0D, random.nextDouble(-spread, spread));
+        base.add(spawn.offset().x(), spawn.offset().y(), spawn.offset().z());
+        return base.add(
+                randomSpread(spawn.randomOffset().x()),
+                randomSpread(spawn.randomOffset().y()),
+                randomSpread(spawn.randomOffset().z())
+        );
+    }
+
+    /** {@return 在 ±range 内取随机值；range 不为正时返回 0} */
+    private double randomSpread(double range) {
+        if (range <= 0D) {
+            return 0D;
         }
-        return base.add(0D, config.offsetY(), 0D);
+        return ThreadLocalRandom.current().nextDouble(-range, range);
     }
 
     /**
