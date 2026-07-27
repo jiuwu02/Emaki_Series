@@ -33,6 +33,26 @@ gui:
   #   auto    - 安装了 PacketEvents 则使用 packet 后端，否则使用 bukkit。
   # 默认 bukkit：升级 CoreLib 不会改变现有菜单行为，需要时再安装 PacketEvents 并切换。
   backend: "bukkit"
+  # 同一玩家两次菜单点击的最小间隔(毫秒)，用于抑制连点与宏点击造成的重复结算。
+  # 0 表示不限制。被拦截的点击会被安全丢弃：菜单不会错乱，玩家也不会收到提示。
+  # 默认 100，正常手动点击不会触发；需要更严格时可上调，建议不超过 500。
+  click_interval_ms: 100
+
+# MiniMessage 文本渲染
+minimessage:
+  # 默认取消斜体。原版对物品名称与 Lore 默认套用斜体，开启后 Emaki 系列所有文本
+  # (菜单物品名与 Lore、菜单标题、聊天消息、对话框)在未显式声明斜体时一律不倾斜。
+  # 这是“默认值”而非强制值：文本中显式写出 <i> 或 <italic> 仍然生效。
+  default_no_italic: true
+
+# 原版对话框(Dialog)
+# 基于服务端原生对话框能力，向玩家展示带说明文本、输入框与按钮的界面。
+# 需要客户端 1.21.6 及以上；低版本客户端的表现未经验证。
+dialog:
+  # 总开关。关闭后不加载对话框定义，DialogApi 进入不可用状态。
+  enabled: true
+  # 定义文件目录，相对 plugins/EmakiCoreLib/。目录内所有 .yml 均会被加载。
+  directory: "dialogs"
 
 # 统一游戏事件层
 # CoreLib 注册一个共享监听器，捕获常见玩法事件(击杀/挖掘/合成/钓鱼/驯服/酿造等)，

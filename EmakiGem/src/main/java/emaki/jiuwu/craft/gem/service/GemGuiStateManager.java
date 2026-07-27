@@ -22,10 +22,6 @@ final class GemGuiStateManager {
         return get(player, GemOpenGuiSession.class);
     }
 
-    public GemUpgradeGuiSession getUpgrade(Player player) {
-        return get(player, GemUpgradeGuiSession.class);
-    }
-
     public void put(GemPlayerGuiSession session) {
         sessions.put(session);
         if (session != null && session.player() != null) {

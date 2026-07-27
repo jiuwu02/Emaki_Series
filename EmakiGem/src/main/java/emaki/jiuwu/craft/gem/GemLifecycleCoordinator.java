@@ -50,7 +50,6 @@ import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
-import emaki.jiuwu.craft.gem.service.GemUpgradeService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
 final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGemPlugin, GemRuntimeComponents> {
@@ -142,14 +141,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 executionDispatcher,
                 threadOwnership
         );
-        GemUpgradeService upgradeService = new GemUpgradeService(
-                plugin,
-                itemFactory,
-                economyService,
-                actionCoordinator,
-                executionDispatcher,
-                threadOwnership
-        );
         GemGuiService gemGuiService = new GemGuiService(plugin, guiService, executionDispatcher, threadOwnership);
         return new GemRuntimeComponents(
                 executionDispatcher,
@@ -174,7 +165,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 socketOpenerService,
                 inlayService,
                 extractService,
-                upgradeService,
                 gemGuiService
         );
     }
@@ -306,7 +296,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         AppConfig defaults = AppConfig.defaults();
         YamlSection inlaySuccess = configuration.getSection("inlay_success");
-        YamlSection upgrade = configuration.getSection("upgrade");
         YamlSection permission = configuration.getSection("permission");
         YamlSection numberFormat = configuration.getSection("number_format");
         YamlSection gui = configuration.getSection("gui");
@@ -317,11 +306,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 configuration.getBoolean("release_default_data", defaults.releaseDefaultData()),
                 parseSocketOpeners(configuration.getSection("socket_openers")),
                 parseInlaySuccess(inlaySuccess, defaults.inlaySuccess()),
-                new AppConfig.UpgradeSettings(
-                        parseUpgradeSuccessRates(upgrade, defaults.upgrade().globalSuccessRates()),
-                        upgrade == null ? defaults.upgrade().globalFailurePenalty()
-                                : upgrade.getString("global_failure_penalty", defaults.upgrade().globalFailurePenalty())
-                ),
                 numberFormat == null ? defaults.numberFormat() : numberFormat.getString("default", defaults.numberFormat()),
                 permission != null && permission.getBoolean("op_bypass", defaults.opBypass()),
                 parseGuiSettings(gui, defaults.gui()),
@@ -368,28 +352,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         );
     }
 
-    private Map<Integer, Double> parseUpgradeSuccessRates(YamlSection section, Map<Integer, Double> defaults) {
-        Map<Integer, Double> rates = new LinkedHashMap<>();
-        if (defaults != null) {
-            rates.putAll(defaults);
-        }
-        if (section == null) {
-            return Map.copyOf(rates);
-        }
-        YamlSection configured = section.getSection("global_success_rates");
-        if (configured == null) {
-            return Map.copyOf(rates);
-        }
-        for (String key : configured.getKeys(false)) {
-            Integer level = Numbers.tryParseInt(key, null);
-            Double chance = Numbers.tryParseDouble(configured.get(key), null);
-            if (level != null && chance != null) {
-                rates.put(level, chance);
-            }
-        }
-        return Map.copyOf(rates);
-    }
-
     private AppConfig.GuiSettings parseGuiSettings(YamlSection section, AppConfig.GuiSettings defaults) {
         if (section == null || section.getKeys(false).isEmpty()) {
             return defaults;
@@ -397,7 +359,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         String configuredMode = section.getString("default_mode", defaults.defaultMode().name());
         GemGuiMode defaultMode = switch (configuredMode == null ? "" : configuredMode.toLowerCase(java.util.Locale.ROOT)) {
             case "open", "open_socket", "socket_open" -> GemGuiMode.OPEN_SOCKET;
-            case "upgrade" -> GemGuiMode.UPGRADE;
             default -> GemGuiMode.INLAY;
         };
         return new AppConfig.GuiSettings(

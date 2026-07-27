@@ -79,30 +79,16 @@ inlay_success:
   # destroy_both: 扣宝石，不扣镶嵌成本
   failure_action: "destroy_gem"
 
-upgrade:
-  # 宝石未单独配置 success_rate / success_rates 时使用这里
-  global_success_rates:
-    2: 100.0
-    3: 80.0
-    4: 60.0
-    5: 45.0
-    6: 30.0
-  # 宝石未单独配置 failure_penalty 时使用这里
-  # none: 不处理
-  # downgrade: 降 1 级，最低保留 1 级
-  # destroy: 直接销毁
-  global_failure_penalty: "none"
-
 number_format:
   # 默认数值格式
   default: "0.##"
 
 permission:
-  # OP 是否跳过镶嵌、开孔、取出、升级的消耗与条件检查
+  # OP 是否跳过镶嵌、开孔、取出的消耗与条件检查
   op_bypass: false
 
 gui:
-  # 默认打开模式: inlay | open | upgrade。取出模式在 inlay GUI 内手动切换。
+  # 默认打开模式: inlay | open。取出模式在 inlay GUI 内手动切换。
   default_mode: "inlay"
   # 关闭界面时是否自动保存状态
   save_on_close: false

@@ -26,7 +26,6 @@ import emaki.jiuwu.craft.gem.service.GemItemMatcher;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
-import emaki.jiuwu.craft.gem.service.GemUpgradeService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
 record GemRuntimeComponents(ExecutionDispatcher executionDispatcher,
@@ -51,7 +50,6 @@ record GemRuntimeComponents(ExecutionDispatcher executionDispatcher,
         SocketOpenerService socketOpenerService,
         GemInlayService inlayService,
         GemExtractService extractService,
-        GemUpgradeService upgradeService,
         GemGuiService gemGuiService) implements RuntimeComponents {
 
     @Override
@@ -79,7 +77,6 @@ record GemRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(SocketOpenerService.class, socketOpenerService),
                 RuntimeComponents.component(GemInlayService.class, inlayService),
                 RuntimeComponents.component(GemExtractService.class, extractService),
-                RuntimeComponents.component(GemUpgradeService.class, upgradeService),
                 RuntimeComponents.component(GemGuiService.class, gemGuiService)
         );
     }

@@ -1,0 +1,55 @@
+# ============================================================
+# EmakiCoreLib 对话框示例
+# ============================================================
+# 文件放置位置: plugins/EmakiCoreLib/dialogs/
+# 需要客户端 1.21.6 及以上；低版本客户端表现未经验证。
+#
+# 业务插件通过公开 API 展示: DialogApi.show(player, "example/notice")
+# ============================================================
+
+# 对话框 id，跨插件唯一
+id: "example/notice"
+
+# 类型: notice(单按钮) | confirmation(是/否，需两个按钮) | multi_action(多按钮)
+type: "notice"
+
+# 标题，支持 MiniMessage
+title: "<gold>服务器公告</gold>"
+
+# 玩家按 ESC 是否可以关闭
+can_close_with_escape: true
+
+# 打开时是否暂停单人游戏
+pause: false
+
+# 交互结束后的行为: close | none | wait_for_response
+after_action: "close"
+
+# 正文。字符串条目即纯文本；写成映射可指定 width，或用 item 展示物品
+body:
+  - "<gray>欢迎来到服务器。</gray>"
+  - text: "<yellow>请遵守服务器规则，祝你玩得愉快。</yellow>"
+    width: 320
+
+# 输入控件。key 会作为 command_template 中 $(key) 的取值来源
+inputs:
+  - type: "text"
+    key: "feedback"
+    label: "<white>留言(可选)</white>"
+    max_length: 64
+    width: 300
+
+# 按钮。notice 用第一个按钮；confirmation 需要两个；multi_action 可多个
+buttons:
+  - label: "<green>我知道了</green>"
+    tooltip: "<gray>关闭该公告</gray>"
+    width: 120
+    # 动作类型: none | command_template | run_command | open_url
+    # command_template 可引用输入项，例如 "say $(feedback)"
+    action:
+      type: "none"
+
+# multi_action 类型可额外配置退出按钮与列数
+# exit_button:
+#   label: "<red>关闭</red>"
+# columns: 2

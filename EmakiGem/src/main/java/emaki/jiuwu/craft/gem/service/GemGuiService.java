@@ -30,10 +30,8 @@ public final class GemGuiService {
     private final GemGuiStateManager stateManager;
     private final GemGuiRenderer gemRenderer;
     private final GemOpenGuiRenderer openRenderer;
-    private final GemUpgradeGuiRenderer upgradeRenderer;
     private final GemGuiInteractionController gemInteractionController;
     private final GemOpenGuiInteractionController openInteractionController;
-    private final GemUpgradeGuiInteractionController upgradeInteractionController;
 
     public GemGuiService(EmakiGemPlugin plugin,
             GuiService guiService,
@@ -46,10 +44,8 @@ public final class GemGuiService {
         this.stateManager = new GemGuiStateManager();
         this.gemRenderer = new GemGuiRenderer(plugin);
         this.openRenderer = new GemOpenGuiRenderer(plugin);
-        this.upgradeRenderer = new GemUpgradeGuiRenderer(plugin);
         this.gemInteractionController = new GemGuiInteractionController(plugin, stateManager, gemRenderer, this);
         this.openInteractionController = new GemOpenGuiInteractionController(plugin, stateManager, openRenderer, this);
-        this.upgradeInteractionController = new GemUpgradeGuiInteractionController(plugin, stateManager, upgradeRenderer, this);
     }
 
     public boolean open(Player player) {
@@ -67,7 +63,6 @@ public final class GemGuiService {
         return switch (normalizeMode(mode)) {
             case INLAY, EXTRACT -> openEmptyGem(player, mode);
             case OPEN_SOCKET -> openSocket(player, null);
-            case UPGRADE -> openUpgrade(player, null);
         };
     }
 
@@ -90,21 +85,6 @@ public final class GemGuiService {
         return openSocket(player, initialTarget, null);
     }
 
-    public boolean openUpgrade(Player player) {
-        return openUpgrade(player, null);
-    }
-
-    public boolean openUpgrade(Player player, ItemStack initialGem) {
-        if (player == null) {
-            return false;
-        }
-        if (!threadOwnership.isEntityOwned(player)) {
-            plugin.getLogger().warning("Cannot open gem upgrade GUI outside player ownership: " + player.getUniqueId());
-            return false;
-        }
-        return openUpgrade(player, initialGem, null);
-    }
-
     public boolean switchTemplate(GemGuiSession state) {
         if (state == null) {
             return false;
@@ -123,18 +103,6 @@ public final class GemGuiService {
         }
         state.setTemplateSwitching(true);
         boolean opened = openSocket(state.player(), state.mutableTargetItem(), state);
-        if (!opened) {
-            state.setTemplateSwitching(false);
-        }
-        return opened;
-    }
-
-    boolean switchUpgradeTemplate(GemUpgradeGuiSession state) {
-        if (state == null) {
-            return false;
-        }
-        state.setTemplateSwitching(true);
-        boolean opened = openUpgrade(state.player(), state.mutableTargetGem(), state);
         if (!opened) {
             state.setTemplateSwitching(false);
         }
@@ -196,30 +164,6 @@ public final class GemGuiService {
         return true;
     }
 
-    private boolean openUpgrade(Player player, ItemStack initialGem, GemUpgradeGuiSession existingState) {
-        if (player == null) {
-            return false;
-        }
-        GemItemInstance instance = plugin.itemMatcher().readGemInstance(initialGem);
-        GemDefinition definition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
-        GuiTemplate template = GemGuiTemplates.resolveUpgradeTemplate(plugin.guiTemplateLoader(), definition);
-        if (template == null) {
-            plugin.messageService().send(player, "gui.upgrade_open_failed");
-            return false;
-        }
-        GemUpgradeGuiSession state = existingState == null ? new GemUpgradeGuiSession(player) : existingState;
-        state.setTargetGem(initialGem);
-        GuiSession session = openGui(player, template, (guiSession, slot) -> upgradeRenderer.renderSlot(state, slot),
-                upgradeInteractionController.createSessionHandler(state));
-        if (session == null) {
-            return false;
-        }
-        state.setCurrentTemplateId(template.id());
-        state.setGuiSession(session);
-        stateManager.put(state);
-        return true;
-    }
-
     private GuiSession openGui(Player player,
             GuiTemplate template,
             GuiRenderer renderer,
@@ -241,10 +185,6 @@ public final class GemGuiService {
 
     public GemOpenGuiSession getOpenSession(Player player) {
         return stateManager.getOpen(player);
-    }
-
-    public GemUpgradeGuiSession getUpgradeSession(Player player) {
-        return stateManager.getUpgrade(player);
     }
 
     public CompletableFuture<Void> clearAllSessionsAsync() {

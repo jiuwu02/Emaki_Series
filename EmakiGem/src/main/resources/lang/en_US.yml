@@ -92,8 +92,8 @@ command:
     header: "<gold>EmakiGem Help</gold>"
     line: "<gray>/emakigem <yellow>%cmd%</yellow> <dark_gray>-</dark_gray>
       %desc%</gray>"
-    footer: "<dark_gray>For inlay/extraction, socket opening and upgrade
-      interfaces, use <gray>/emakigem gui [inlay|open|upgrade]</gray> to
+    footer: "<dark_gray>For inlay/extraction and socket opening
+      interfaces, use <gray>/emakigem gui [inlay|open]</gray> to
       open.</dark_gray>"
     desc:
       help: "Show help information"
@@ -154,27 +154,12 @@ command:
       state.</red>"
     success: "<green>Cleared the gem layer on the main hand item.</green>"
 
-  upgrade:
-    hold_gem: "<red>Please place the gem item to upgrade first.</red>"
-    slot_empty: "<red>No upgradeable gem in the specified slot #%slot%.</red>"
-    direct_disabled:
-      "<red>Direct in-equipment upgrade is not enabled, please use
-      the standalone upgrade interface.</red>"
-    max_level: "<red>This gem has already reached the maximum upgradeable level.</red>"
-    failed: "<red>Upgrade failed, materials consumed but gem was not improved.</red>"
-    apply_failed: "<red>Upgrade failed, unable to generate new gem item.</red>"
-    success: "<green>Gem upgraded successfully, current level
-      <gold>%target_level%</gold>.</green>"
-
 gui:
   open_failed: "<red>Unable to open gem main interface, please check if the GUI
     template exists.</red>"
   open_socket_failed:
     "<red>Unable to open socket opening interface, please check
     if the GUI template exists.</red>"
-  upgrade_open_failed:
-    "<red>Unable to open gem upgrade interface, please check if
-    the GUI template exists.</red>"
   gem:
     target_required: "<red>Please place an inlayable equipment in the left slot first.</red>"
     invalid_target: "<red>The placed item is not an equipment that supports gem inlay.</red>"
@@ -193,10 +178,6 @@ gui:
     invalid_opener: "<red>The placed item is not a valid socket opener.</red>"
     hold_opener: "<red>Please place a usable socket opener first.</red>"
     no_slot_selected: "<red>Please select a locked slot to open first.</red>"
-  upgrade:
-    invalid_gem: "<red>The placed item is not a valid gem item.</red>"
-    invalid_material: "<red>This material slot only accepts items matching
-      <yellow>%material%</yellow>.</red>"
 
 gui_text:
   common:
@@ -262,7 +243,6 @@ gui_text:
     mode_inlay: "Inlay"
     mode_extract: "Extract"
     mode_open_socket: "Open Socket"
-    mode_upgrade: "Upgrade"
     mode_inlay_title: "Inlay Mode"
     mode_extract_title: "Extract Mode"
     mode_inlay_desc: "Hold a gem and click an opened empty slot to preview inlay"
@@ -305,39 +285,6 @@ gui_text:
     opener_not_placed: "Not placed"
     opener_placed_pending: "Placed, waiting for slot selection"
     slot_not_selected: "Not selected"
-  upgrade:
-    target_empty_name: "<red>Place Gem</red>"
-    target_empty_lore_1: "<gray>Place an uninlaid gem item here</gray>"
-    level_info_name: "<gold>Level Info</gold>"
-    level_info_empty: "<gray>Please place an upgradeable gem first</gray>"
-    gem_line: "<gray>Gem: <yellow>%gem%</yellow></gray>"
-    current_level: "<gray>Current level: <yellow>%level%</yellow></gray>"
-    target_level: "<gray>Target level: <gold>%level%</gold></gray>"
-    max_level: "<gray>Max level: <aqua>%level%</aqua></gray>"
-    material_slot_name: "<dark_gray>Material Slot</dark_gray>"
-    material_slot_empty: "<dark_gray>No material preview</dark_gray>"
-    material_line: "<gray>Material: <yellow>%material%</yellow></gray>"
-    material_amount: "<gray>Required amount: <gold>x%amount%</gold></gray>"
-    material_place: "<gray>Please place matching item source material</gray>"
-    material_scope: "<dark_gray>Only materials placed in this GUI are consumed</dark_gray>"
-    material_name: "<aqua>Upgrade Material</aqua>"
-    preview_name: "<gold>Upgrade Preview</gold>"
-    preview_empty_1: "<gray>Upgrade preview will be shown here</gray>"
-    preview_empty_2: "<gray>Place a gem to view materials and result</gray>"
-    result_name: "<gray>Result item name: <yellow>%gem%</yellow></gray>"
-    economy_cost: "<gray>Economy cost:</gray>"
-    economy_line: "<gold> - %provider%: %amount%</gold>"
-    material_required_hint: "<gray>All upgrade materials must be placed in material slots</gray>"
-    confirm_update_hint: "<green>Confirming will directly update this gem item</green>"
-    success_rate_name: "<gold>Success Rate</gold>"
-    success_rate_empty: "<gray>Success rate will be shown after placing a gem</gray>"
-    success_rate_line: "<gray>Base success rate: <green>%rate%%</green></gray>"
-    failure_penalty: "<gray>Failure penalty: <yellow>%penalty%</yellow></gray>"
-    confirm_disabled_name: "<red>Cannot Upgrade</red>"
-    confirm_disabled_lore: "<gray>Please satisfy upgrade requirements first</gray>"
-    confirm_name: "<green>Confirm Upgrade</green>"
-    confirm_lore: "<gray>Click to consume only materials in this GUI and try upgrading</gray>"
-
 # Debug mode messages
 debug:
   common:

@@ -302,8 +302,14 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                         "top_inventory", event.getClickedInventory() == session.getInventory()
                 )
         ));
-        if (event.getClickedInventory() == session.getInventory()) {
+        boolean topInventory = event.getClickedInventory() == session.getInventory();
+        if (topInventory) {
             event.setCancelled(true);
+        }
+        if (!GuiClickThrottle.allow(session)) {
+            return;
+        }
+        if (topInventory) {
             GuiTemplate.ResolvedSlot slot = session.template().resolvedSlotAt(event.getRawSlot());
             playClickSound(session, slot, GuiClickType.from(event));
             session.handler().onSlotClick(session, click, slot);

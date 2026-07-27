@@ -33,6 +33,7 @@ public final class GuiSession implements InventoryHolder {
     private final String plainTitle;
     private final Component titleComponent;
     private Inventory inventory;
+    private long lastClickAt;
 
     GuiSession(Plugin owner,
             Player viewer,
@@ -60,6 +61,23 @@ public final class GuiSession implements InventoryHolder {
         this.titleComponent = MiniMessages.parse(resolveTitle(template, this.replacements));
         this.plainTitle = MiniMessages.plain(this.titleComponent);
         this.inventory = createInventory(template, this.titleComponent);
+    }
+
+    /**
+     * 判断本次点击是否满足最小间隔。满足时记录时间戳并返回 {@code true}；
+     * 间隔不足时返回 {@code false}，调用方应丢弃该次点击回调。
+     * {@code intervalMs} 小于等于 0 表示不限制。
+     */
+    boolean tryConsumeClick(long intervalMs) {
+        if (intervalMs <= 0L) {
+            return true;
+        }
+        long now = System.currentTimeMillis();
+        if (lastClickAt != 0L && now - lastClickAt < intervalMs) {
+            return false;
+        }
+        lastClickAt = now;
+        return true;
     }
 
     private Inventory createInventory(GuiTemplate template, Component titleComponent) {

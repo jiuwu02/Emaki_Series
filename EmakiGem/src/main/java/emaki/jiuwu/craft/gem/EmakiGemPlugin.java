@@ -52,7 +52,6 @@ import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
-import emaki.jiuwu.craft.gem.service.GemUpgradeService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
 public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
@@ -100,7 +99,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private SocketOpenerService socketOpenerService;
     private GemInlayService inlayService;
     private GemExtractService extractService;
-    private GemUpgradeService upgradeService;
     private GemGuiService gemGuiService;
     private GemResonanceLoader resonanceLoader;
     private GemResonanceService resonanceService;
@@ -218,7 +216,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         socketOpenerService = components.socketOpenerService();
         inlayService = components.inlayService();
         extractService = components.extractService();
-        upgradeService = components.upgradeService();
         gemGuiService = components.gemGuiService();
         javaScriptSocketRuleRegistry = new JavaScriptGemSocketRuleRegistry(this);
         javaScriptSetBonusRegistry = new JavaScriptGemSetBonusRegistry(this);
@@ -354,10 +351,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public GemExtractService extractService() {
         return extractService;
-    }
-
-    public GemUpgradeService upgradeService() {
-        return upgradeService;
     }
 
     public GemGuiService gemGuiService() {

@@ -15,12 +15,15 @@ public record CoreLibConfig(
         ScriptConfig scriptConfig,
         GuiConfig guiConfig,
         GameplayEventConfig gameplayEventConfig,
-        DebugConfig debugConfig
+        DebugConfig debugConfig,
+        MiniMessageConfig miniMessageConfig,
+        DialogConfig dialogConfig
 ) {
 
     public static CoreLibConfig defaults() {
         return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
-                GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults());
+                GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults(),
+                MiniMessageConfig.defaults(), DialogConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -44,7 +47,9 @@ public record CoreLibConfig(
                 ScriptConfig.fromConfig(configuration.getSection("script")),
                 GuiConfig.fromConfig(configuration.getSection("gui")),
                 GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events")),
-                DebugConfig.fromConfig(configuration.getSection("debug"))
+                DebugConfig.fromConfig(configuration.getSection("debug")),
+                MiniMessageConfig.fromConfig(configuration.getSection("minimessage")),
+                DialogConfig.fromConfig(configuration.getSection("dialog"))
         );
     }
 
@@ -60,21 +65,62 @@ public record CoreLibConfig(
 
 
 
-    public record GuiConfig(String backend) {
+    public record GuiConfig(String backend, int clickIntervalMs) {
 
         public GuiConfig {
             backend = backend == null ? "bukkit" : backend.trim().toLowerCase(java.util.Locale.ROOT);
+            clickIntervalMs = Math.max(0, clickIntervalMs);
         }
 
         public static GuiConfig defaults() {
-            return new GuiConfig("bukkit");
+            return new GuiConfig("bukkit", 100);
         }
 
         public static GuiConfig fromConfig(YamlSection section) {
             if (section == null) {
                 return defaults();
             }
-            return new GuiConfig(section.getString("backend", defaults().backend()));
+            return new GuiConfig(
+                    section.getString("backend", defaults().backend()),
+                    section.getInt("click_interval_ms", defaults().clickIntervalMs())
+            );
+        }
+    }
+
+    public record MiniMessageConfig(boolean defaultNoItalic) {
+
+        public static MiniMessageConfig defaults() {
+            return new MiniMessageConfig(true);
+        }
+
+        public static MiniMessageConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new MiniMessageConfig(
+                    section.getBoolean("default_no_italic", defaults().defaultNoItalic())
+            );
+        }
+    }
+
+    public record DialogConfig(boolean enabled, String directory) {
+
+        public DialogConfig {
+            directory = directory == null || directory.isBlank() ? "dialogs" : directory.trim();
+        }
+
+        public static DialogConfig defaults() {
+            return new DialogConfig(true, "dialogs");
+        }
+
+        public static DialogConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new DialogConfig(
+                    section.getBoolean("enabled", defaults().enabled()),
+                    section.getString("directory", defaults().directory())
+            );
         }
     }
 

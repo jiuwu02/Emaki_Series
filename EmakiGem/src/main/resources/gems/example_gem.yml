@@ -138,33 +138,16 @@ extract_return:
   degraded_chance: 0.0
 
 # ============================================================
-# 宝石升级配置
+# 宝石分等级配置
 # ============================================================
-# 宝石可以通过消耗材料和金币来升级，提升属性和解锁新效果。
+# 同一个宝石可以拥有多个等级，每个等级有各自的显示名与效果。
+# 高等级宝石由管理员直接发放(/emakigem give 或 give 类动作指定 level)，
+# 服务器内不提供升级台或升级动作。
 upgrade:
-  enabled: true
+  # 该宝石允许的最高等级，同时作为物品层预览的等级上界。
   max_level: 4
-  gui_template: "upgrade/default"
-  # 升级失败时的惩罚: "none"（无惩罚）/ "downgrade"（降级）/ "destroy"（销毁）
-  failure_penalty: "none"
 
-  # 升级经济配置（全局默认，各等级可单独覆盖）
-  economy:
-    enabled: true
-    currencies:
-      - provider: "vault"
-        currency_id: ""
-        base_cost: 2000
-        cost_formula: "%base_cost% * %target_level%"
-        display_name: "<gold>金币</gold>"
-
-  # 各等级升级成功率
-  success_rates:
-    2: 100.0
-    3: 80.0
-    4: 60.0
-
-  # 各等级详细配置
+  # 各等级详细配置。未在此声明的等级沿用上方基础 effects。
   levels:
     2:
       display_name: "<red>红宝石 II</red>"
@@ -187,19 +170,6 @@ upgrade:
             - action: "append"
               content:
                 - "<red>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</red>"
-      # 升级所需材料
-      materials:
-        - item_sources:
-            - "minecraft-gold_nugget"
-          amount: 3
-        - item_sources:
-            - "minecraft-blaze_powder"
-          amount: 1
-      success_rate: 100.0
-      actions:
-        success:
-          - 'sendmessage text="<gold>红宝石升级至 II！</gold>"'
-        failure: []
 
     3:
       display_name: "<red>红宝石 III</red>"
@@ -221,16 +191,6 @@ upgrade:
             - action: "append"
               content:
                 - "<red>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</red>"
-      materials:
-        - item_sources:
-            - "minecraft-gold_ingot"
-          amount: 2
-        - item_sources:
-            - "minecraft-blaze_rod"
-          amount: 1
-      actions:
-        success: []
-        failure: []
 
     # 满级：解锁技能效果
     4:
@@ -258,30 +218,6 @@ upgrade:
               content:
                 - "<red>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</red>"
                 - "<gold>  ★ 解锁技能: 红宝石爆发</gold>"
-      materials:
-        - item_sources:
-            - "minecraft-netherite_ingot"
-          amount: 1
-        - item_sources:
-            - "minecraft-blaze_rod"
-          amount: 3
-      # 单独覆盖此等级的经济配置
-      economy:
-        enabled: true
-        currencies:
-          - provider: "vault"
-            currency_id: ""
-            base_cost: 5000
-            cost_formula: "%base_cost%"
-            display_name: "<gold>金币</gold>"
-      success_rate: 60.0
-      failure_penalty: "downgrade"
-      actions:
-        success:
-          - 'sendmessage text="<gold>%player%</gold> <yellow>成功将红宝石升级至 IV！</yellow>"'
-          - "playsound sound=minecraft:entity.player.levelup volume=1 pitch=1.5"
-        failure:
-          - 'sendmessage text="<red>升级失败，宝石降级了...</red>"'
 
 # ============================================================
 # 宝石动作

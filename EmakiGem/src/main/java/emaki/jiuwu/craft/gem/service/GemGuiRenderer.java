@@ -90,7 +90,7 @@ final class GemGuiRenderer {
         lore.add(switch (state.mode()) {
             case INLAY -> text("inlay_help", "<gray>Hold a gem and click an opened empty slot</gray>");
             case EXTRACT -> text("extract_help", "<gray>Click an inlaid gem slot</gray>");
-            case OPEN_SOCKET, UPGRADE -> text("default_help", "<gray>Equipment gem operation mode</gray>");
+            case OPEN_SOCKET -> text("default_help", "<gray>Equipment gem operation mode</gray>");
         });
         lore.add(text("unopened_help", "<gray>Use the socket opening GUI for unopened slots</gray>"));
         return buildConfiguredItem(slot, Material.BOOK, text("info_name", "<gold>Instructions</gold>"), lore);
@@ -332,7 +332,6 @@ final class GemGuiRenderer {
             case INLAY -> text("mode_inlay", "Inlay");
             case EXTRACT -> text("mode_extract", "Extract");
             case OPEN_SOCKET -> text("mode_open_socket", "Open Socket");
-            case UPGRADE -> text("mode_upgrade", "Upgrade");
         };
     }
 

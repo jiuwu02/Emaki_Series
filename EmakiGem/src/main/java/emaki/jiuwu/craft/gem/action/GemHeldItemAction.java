@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
-import emaki.jiuwu.craft.gem.service.GemUpgradeService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
 public final class GemHeldItemAction implements Action {
@@ -26,7 +25,6 @@ public final class GemHeldItemAction implements Action {
         OPEN_SOCKET,
         INLAY,
         EXTRACT,
-        UPGRADE_GEM_ITEM,
         CLEAR_LAYER
     }
 
@@ -68,7 +66,6 @@ public final class GemHeldItemAction implements Action {
             case EXTRACT -> List.of(
                     ActionParameter.required("slot", ActionParameterType.INTEGER, "Target socket slot."),
                     ActionParameter.optional("bypass_cost", ActionParameterType.BOOLEAN, "false", "Bypass configured cost."));
-            case UPGRADE_GEM_ITEM -> List.of(ActionParameter.optional("bypass_cost", ActionParameterType.BOOLEAN, "false", "Bypass configured cost."));
             case CLEAR_LAYER -> List.of();
         };
     }
@@ -83,7 +80,6 @@ public final class GemHeldItemAction implements Action {
             case OPEN_SOCKET -> openSocket(player, arguments);
             case INLAY -> inlay(player, arguments);
             case EXTRACT -> extract(player, arguments);
-            case UPGRADE_GEM_ITEM -> upgrade(player, arguments);
             case CLEAR_LAYER -> clearLayer(player);
         };
     }
@@ -129,14 +125,6 @@ public final class GemHeldItemAction implements Action {
         }
         result.commit();
         return ActionResult.ok(result.result().placeholders());
-    }
-
-    private ActionResult upgrade(Player player, Map<String, String> arguments) {
-        GemUpgradeService.Result result = plugin.upgradeService().upgradeGemItem(player, player.getInventory().getItemInMainHand(), boolArgument(arguments, "bypass_cost", false));
-        if (!result.success()) {
-            return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, result.messageKey());
-        }
-        return ActionResult.ok(result.placeholders());
     }
 
     private ActionResult clearLayer(Player player) {

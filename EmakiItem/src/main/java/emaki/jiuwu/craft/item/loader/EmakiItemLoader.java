@@ -10,7 +10,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.item.loader.migration.configureditem.ConfiguredItemMigrationBridge;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 
@@ -39,7 +38,6 @@ public final class EmakiItemLoader {
         }
         Map<String, EmakiItemDefinition> loaded = new LinkedHashMap<>();
         File[] files = files(directory);
-        ConfiguredItemMigrationBridge.migrate(plugin, files);
         for (File file : files) {
             try {
                 EmakiItemDefinition definition = parser.parse(YamlFiles.load(file), file.getPath());

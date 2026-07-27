@@ -18,7 +18,6 @@ public final class AppConfig extends BaseAppConfig {
     private final boolean releaseDefaultData;
     private final Map<String, SocketOpenerConfig> socketOpeners;
     private final InlaySuccessConfig inlaySuccess;
-    private final UpgradeSettings upgrade;
     private final String numberFormat;
     private final boolean opBypass;
     private final GuiSettings gui;
@@ -29,7 +28,6 @@ public final class AppConfig extends BaseAppConfig {
             boolean releaseDefaultData,
             Map<String, SocketOpenerConfig> socketOpeners,
             InlaySuccessConfig inlaySuccess,
-            UpgradeSettings upgrade,
             String numberFormat,
             boolean opBypass,
             GuiSettings gui,
@@ -38,7 +36,6 @@ public final class AppConfig extends BaseAppConfig {
         this.releaseDefaultData = releaseDefaultData;
         this.socketOpeners = socketOpeners == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(socketOpeners));
         this.inlaySuccess = inlaySuccess == null ? InlaySuccessConfig.defaults() : inlaySuccess;
-        this.upgrade = upgrade == null ? UpgradeSettings.defaults() : upgrade;
         this.numberFormat = numberFormat == null || numberFormat.isBlank() ? "0.##" : numberFormat;
         this.opBypass = opBypass;
         this.gui = gui == null ? GuiSettings.defaults() : gui;
@@ -52,7 +49,6 @@ public final class AppConfig extends BaseAppConfig {
                 true,
                 Map.of(),
                 InlaySuccessConfig.defaults(),
-                UpgradeSettings.defaults(),
                 "0.##",
                 false,
                 GuiSettings.defaults(),
@@ -70,10 +66,6 @@ public final class AppConfig extends BaseAppConfig {
 
     public InlaySuccessConfig inlaySuccess() {
         return inlaySuccess;
-    }
-
-    public UpgradeSettings upgrade() {
-        return upgrade;
     }
 
     public String numberFormat() {
@@ -107,19 +99,6 @@ public final class AppConfig extends BaseAppConfig {
 
         public static InlaySuccessConfig defaults() {
             return new InlaySuccessConfig(false, 100D, "%default_chance%", "return_gem", Map.of());
-        }
-    }
-
-    public record UpgradeSettings(Map<Integer, Double> globalSuccessRates,
-            String globalFailurePenalty) {
-
-        public UpgradeSettings {
-            globalSuccessRates = globalSuccessRates == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(globalSuccessRates));
-            globalFailurePenalty = Texts.isBlank(globalFailurePenalty) ? "none" : Texts.lower(globalFailurePenalty);
-        }
-
-        public static UpgradeSettings defaults() {
-            return new UpgradeSettings(Map.of(), "none");
         }
     }
 

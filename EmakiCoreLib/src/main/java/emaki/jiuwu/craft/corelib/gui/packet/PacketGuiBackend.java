@@ -37,6 +37,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWi
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.gui.GuiBackend;
+import emaki.jiuwu.craft.corelib.gui.GuiClickThrottle;
 import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionRegistry;
@@ -552,6 +553,19 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                     )
             ));
             authoritativeResync(viewer, expectedWindow, "invalid-click-range");
+            return;
+        }
+
+        if (!GuiClickThrottle.allow(expectedWindow.session)) {
+            debug(viewer, "common.gui.packet_click_rejected_throttled", windowFields(
+                    expectedWindow,
+                    GuiDebugSupport.replacements(
+                            "click_type", click.clickType(),
+                            "raw_slot", click.rawSlot(),
+                            "interval_ms", GuiClickThrottle.intervalMs()
+                    )
+            ));
+            authoritativeResync(viewer, expectedWindow, "throttled");
             return;
         }
 
