@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.gui;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.bukkit.event.inventory.InventoryType;
 
@@ -18,10 +19,32 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class GuiTemplateParser {
 
+    /**
+     * Recognised {@code sounds} keys. Keys absent from this map are ignored so templates written
+     * for the pre-expansion click set keep loading unchanged.
+     */
+    private static final Map<String, GuiClickType> SOUND_KEYS = Map.ofEntries(
+            Map.entry("click", GuiClickType.CLICK),
+            Map.entry("left_click", GuiClickType.LEFTCLICK),
+            Map.entry("right_click", GuiClickType.RIGHTCLICK),
+            Map.entry("shift_left_click", GuiClickType.SHIFT_LEFTCLICK),
+            Map.entry("shift_right_click", GuiClickType.SHIFT_RIGHTCLICK),
+            Map.entry("middle_click", GuiClickType.MIDDLECLICK),
+            Map.entry("double_click", GuiClickType.DOUBLECLICK),
+            Map.entry("number_key", GuiClickType.NUMBER_KEY),
+            Map.entry("swap_offhand", GuiClickType.SWAP_OFFHAND),
+            Map.entry("drop", GuiClickType.DROP),
+            Map.entry("control_drop", GuiClickType.CONTROL_DROP)
+    );
+
     private GuiTemplateParser() {
     }
 
     public static GuiTemplate parse(YamlSection section) {
+        return parse(section, null);
+    }
+
+    public static GuiTemplate parse(YamlSection section, Consumer<String> issueSink) {
         if (section == null) {
             return null;
         }
@@ -37,7 +60,7 @@ public final class GuiTemplateParser {
         YamlSection slotsSection = section.getSection("slots");
         if (slotsSection != null) {
             for (String key : slotsSection.getKeys(false)) {
-                GuiSlot slot = parseSlot(key, slotsSection.get(key));
+                GuiSlot slot = parseSlot(key, slotsSection.get(key), issueSink);
                 if (slot != null) {
                     slots.put(key, slot);
                 }
@@ -65,7 +88,7 @@ public final class GuiTemplateParser {
         }
     }
 
-    private static GuiSlot parseSlot(String key, Object raw) {
+    private static GuiSlot parseSlot(String key, Object raw, Consumer<String> issueSink) {
         if (raw == null) {
             return null;
         }
@@ -80,7 +103,7 @@ public final class GuiTemplateParser {
                 positions,
                 resolveType(key, raw),
                 parseItemDefinition(raw),
-                parseSounds(raw)
+                parseSounds(raw, issueSink)
         );
     }
 
@@ -148,21 +171,23 @@ public final class GuiTemplateParser {
         return source == null ? null : ItemSourceUtil.toShorthand(source);
     }
 
-    private static Map<GuiClickType, SoundParser.SoundDefinition> parseSounds(Object raw) {
+    private static Map<GuiClickType, SoundParser.SoundDefinition> parseSounds(Object raw, Consumer<String> issueSink) {
         Map<GuiClickType, SoundParser.SoundDefinition> result = new LinkedHashMap<>();
         Object sounds = ConfigNodes.get(raw, "sounds");
-        if (sounds != null) {
-            SoundParser.SoundDefinition nestedClick = SoundParser.parse(ConfigNodes.get(sounds, "click"));
-            SoundParser.SoundDefinition nestedLeft = SoundParser.parse(ConfigNodes.get(sounds, "left_click"));
-            SoundParser.SoundDefinition nestedRight = SoundParser.parse(ConfigNodes.get(sounds, "right_click"));
-            if (nestedClick != null) {
-                result.put(GuiClickType.CLICK, nestedClick);
+        if (sounds == null) {
+            return result;
+        }
+        for (Map.Entry<String, Object> entry : ConfigNodes.entries(sounds).entrySet()) {
+            GuiClickType clickType = SOUND_KEYS.get(Texts.lower(entry.getKey()));
+            if (clickType == null) {
+                if (issueSink != null) {
+                    issueSink.accept("Unknown gui sound key '" + entry.getKey() + "' ignored.");
+                }
+                continue;
             }
-            if (nestedLeft != null) {
-                result.put(GuiClickType.LEFTCLICK, nestedLeft);
-            }
-            if (nestedRight != null) {
-                result.put(GuiClickType.RIGHTCLICK, nestedRight);
+            SoundParser.SoundDefinition definition = SoundParser.parse(entry.getValue());
+            if (definition != null) {
+                result.put(clickType, definition);
             }
         }
         return result;

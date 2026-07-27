@@ -102,11 +102,15 @@ public final class GuiSlot {
     }
 
     public SoundParser.SoundDefinition soundFor(GuiClickType clickType) {
-        if (clickType == GuiClickType.LEFTCLICK && sounds.containsKey(GuiClickType.LEFTCLICK)) {
-            return sounds.get(GuiClickType.LEFTCLICK);
+        if (clickType == null) {
+            return sounds.get(GuiClickType.CLICK);
         }
-        if (clickType == GuiClickType.RIGHTCLICK && sounds.containsKey(GuiClickType.RIGHTCLICK)) {
-            return sounds.get(GuiClickType.RIGHTCLICK);
+        if (clickType != GuiClickType.CLICK && sounds.containsKey(clickType)) {
+            return sounds.get(clickType);
+        }
+        GuiClickType legacy = clickType.legacyFallback();
+        if (legacy != null && sounds.containsKey(legacy)) {
+            return sounds.get(legacy);
         }
         return sounds.get(GuiClickType.CLICK);
     }

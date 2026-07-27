@@ -1,0 +1,160 @@
+# ============================================================
+# EmakiStorage language file - English
+# ============================================================
+# MiniMessage formatting is supported. Run /estorage reload after editing.
+# ============================================================
+
+# version is maintained by resource synchronisation
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to do that.</red>"
+  player_only: "<red>This command can only be run by a player.</red>"
+  player_not_found: "<red>Player %player% could not be found.</red>"
+  unknown_command: "<red>Unknown subcommand. Run /estorage help for usage.</red>"
+  invalid_args: "<red>Invalid arguments. Run /estorage help for usage.</red>"
+  reloading: "<gray>Reloading configuration...</gray>"
+  reload_success: "<green>Configuration reloaded.</green>"
+  reload_summary: "<gray>Loaded %templates% GUI template(s).</gray>"
+  data_loading: "<yellow>Storage data is still loading. Try again shortly.</yellow>"
+  session_expired: "<red>This session is no longer valid. Reopen the warehouse.</red>"
+  storage_unavailable: "<red>The storage service is currently unavailable.</red>"
+  open_failed: "<red>Failed to open the warehouse window. Check the console log.</red>"
+
+gui:
+  locked:
+    name: "<dark_gray>Locked slot</dark_gray>"
+    lore: "<gray>Expand your capacity to use this slot</gray>"
+  entry:
+    amount_with_limit: "<gray>Amount: <white>%amount%</white> / <white>%limit%</white> <dark_gray>(%percent%%)</dark_gray></gray>"
+    amount_unlimited: "<gray>Amount: <white>%amount%</white> <dark_gray>(no limit)</dark_gray></gray>"
+    exact: "<dark_gray>Exact: %exact%</dark_gray>"
+    withdraw_hint: "<yellow>Left %left% | Right %right% | Shift+Left %shift_left% | Shift+Right %shift_right%</yellow>"
+    custom_hint: "<yellow>Middle click for a custom amount</yellow>"
+    overflow_locked: "<red>Beyond current capacity: withdraw only, no deposits</red>"
+    search_readonly: "<gold>While searching the display area rejects deposits; use the deposit port</gold>"
+  page_info:
+    name: "<gold>Page %current_page% / %total_pages%</gold>"
+    capacity: "<gray>Using <white>%used_slots%</white> / <white>%total_slots%</white> slots (%free_slots% free)</gray>"
+    searching: "<gold>Filtering: <white>%query%</white> (%visible% matched)</gold>"
+    overflow: "<red>%count% entr(ies) exceed capacity and are read-only</red>"
+  sort:
+    name: "<aqua>Sort</aqua>"
+    current: "<gray>Current order: <white>%mode%</white></gray>"
+    hint: "<yellow>Click to change dimension | Shift+Click to reverse</yellow>"
+    changed: "<green>Sort order changed to %mode%.</green>"
+    disabled: "<red>Player-controlled sorting is disabled on this server.</red>"
+    modes:
+      material_asc: "Material ascending"
+      material_desc: "Material descending"
+      name_asc: "Name ascending"
+      name_desc: "Name descending"
+      amount_asc: "Amount ascending"
+      amount_desc: "Amount descending"
+  search:
+    name: "<aqua>Search</aqua>"
+    none: "not set"
+    current: "<gray>Current filter: <white>%query%</white></gray>"
+    hint: "<yellow>Left click to enter a search term</yellow>"
+    clear_hint: "<yellow>Right click to clear the filter</yellow>"
+    disabled: "<red>Search is disabled.</red>"
+  unlock:
+    name: "<green>Expand</green>"
+    status: "<gray>Capacity <white>%total_slots%</white> (purchased %purchased_slots%, ceiling %max_slots%)</gray>"
+    hint: "<yellow>Click to buy slots</yellow>"
+    at_ceiling: "<red>Slot ceiling reached</red>"
+    unlimited: "unlimited"
+  deposit:
+    success: "<green>Stored %amount%.</green>"
+    partial: "<gold>Stored %amount%; %remaining% could not be stored.</gold>"
+    bulk_success: "<green>Bulk deposit complete, %amount% stored.</green>"
+    bulk_empty: "<yellow>Nothing in your inventory could be stored.</yellow>"
+    cancelled: "<red>The deposit was cancelled by another plugin.</red>"
+    failed: "<red>Deposit failed.</red>"
+    filtered: "<red>That item is rejected by the deposit filter.</red>"
+    unique_rejected: "<red>This server does not allow storing uniquely marked items.</red>"
+    no_free_slot: "<red>No free slot is available for a new item kind.</red>"
+    slot_full: "<red>That slot has reached its per-slot limit.</red>"
+    inventory_conflict: "<red>Your inventory changed; the deposit was cancelled.</red>"
+    search_blocked: "<red>While searching the display area rejects deposits. Use the deposit port.</red>"
+    port_empty: "<yellow>Pick the item up onto your cursor first, then click the deposit port.</yellow>"
+    cursor_guard: "<yellow>Cursor guard is enabled: the display area rejects deposits while your cursor is loaded. Use the deposit port.</yellow>"
+  withdraw:
+    partial: "<gold>Withdrew %amount%; %remaining% stayed behind for lack of inventory space.</gold>"
+    cancelled: "<red>The withdrawal was cancelled by another plugin.</red>"
+    failed: "<red>Withdrawal failed.</red>"
+  click:
+    unsupported: "<red>That click type is not supported in the warehouse.</red>"
+
+chat:
+  input:
+    cancelled: "<gray>Input cancelled.</gray>"
+    timeout: "<gray>Input timed out and was cancelled.</gray>"
+  withdraw:
+    prompt: "<aqua>Type the amount to withdraw in chat</aqua><gray> (10K / 1M / all are accepted; type %cancel% to cancel)</gray>"
+    invalid: "<red>Unrecognised amount: %input%</red>"
+    done: "<green>Withdrew %amount%.</green>"
+  search:
+    prompt: "<aqua>Type a search filter in chat</aqua><gray> (%name% name only, %lore% lore only, %id% id only, %exclude% excludes, space = AND; type %cancel% to cancel)</gray>"
+    applied: "<green>Filter applied: %query% (%count% matched)</green>"
+    cleared: "<gray>Search filter cleared.</gray>"
+
+unlock:
+  disabled: "<red>Paid expansion is disabled on this server.</red>"
+  success: "<green>Purchased %slots% slot(s) for %cost%.</green>"
+  failed: "<red>Expansion failed.</red>"
+  no_price: "<red>No valid expansion price is configured, so nothing can be purchased.</red>"
+  at_ceiling: "<red>The slot ceiling has been reached; no further expansion is possible.</red>"
+  price_invalid: "<red>The computed price exceeds the configured cap. Ask an admin to review unlock_costs.yml.</red>"
+  insufficient_currency: "<red>Not enough currency.</red>"
+  insufficient_items: "<red>Not enough of the required items.</red>"
+  unknown_item: "<red>An item source in the price table could not be resolved. Contact an admin.</red>"
+  cancelled: "<red>The expansion was cancelled by another plugin.</red>"
+
+command:
+  target_offline: "<red>Player %player% is offline, so this write operation cannot run.</red>"
+  help:
+    header: "<gold>========== EmakiStorage help ==========</gold>"
+    footer: "<gold>=======================================</gold>"
+    line: "<yellow>/estorage %cmd%</yellow> <gray>- %desc%</gray>"
+    commands:
+      open_self: "Open your own warehouse"
+      open: "Open another player's warehouse"
+      slot: "Grant or reclaim slots (negative reclaims)"
+      stacklimit_player: "Set a player's default per-slot limit"
+      stacklimit_slot: "Set the limit of one slot"
+      info: "Show capacity, occupancy and the per-source breakdown"
+      export: "Export a readable YAML dump for troubleshooting"
+      reload: "Reload config, language and GUI templates"
+      debug: "Manage debug mode"
+  slot:
+    granted: "<green>Adjusted %player%'s slots by %amount%; granted total is now %granted%.</green>"
+    invalid_amount: "<red>Unrecognised slot amount: %input%</red>"
+  stacklimit:
+    player_set: "<green>Set %player%'s default per-slot limit to %limit%.</green>"
+    slot_set: "<green>Set slot %slot% of %player% to a limit of %limit%.</green>"
+    slot_empty: "<red>Slot %slot% currently holds no entry.</red>"
+    invalid: "<red>Unrecognised limit: %input% (10M / 1B / max are accepted)</red>"
+  info:
+    header: "<gold>—— Warehouse of %player% ——</gold>"
+    capacity: "<gray>Using <white>%used_slots%</white> / <white>%total_slots%</white> slots across %pages% page(s), %total_amount% items total</gray>"
+    sources: "<gray>Breakdown: base %base_slots% + permission %permission_slots% + granted %granted_slots% + purchased %purchased_slots% (ceiling %max_slots%)</gray>"
+    limits: "<gray>Default per-slot limit %stack_limit%, sort order %sort_mode%</gray>"
+  export:
+    done: "<green>Exported %player%'s warehouse to %file%.</green>"
+    failed: "<red>Failed to export %player%'s warehouse. Check the console log.</red>"
+
+console:
+  plugin_starting: "Starting EmakiStorage..."
+  plugin_started: "EmakiStorage started."
+  bootstrap_start: "Installing default resources..."
+  bootstrap_skip: "Skipped default business data installation."
+  bootstrap_complete: "Default resources are ready."
+
+debug:
+  common:
+    storage:
+      deposit: "deposit complete | player=%player% | item=%item% | amount=%amount% | balance=%balance%"
+      withdraw: "withdraw complete | player=%player% | item=%item% | amount=%amount% | balance=%balance%"
+      capacity: "capacity recomputed | player=%player% | used=%used% | total=%total% | overflow=%overflow%"

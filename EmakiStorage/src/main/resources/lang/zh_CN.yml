@@ -1,0 +1,160 @@
+# ============================================================
+# EmakiStorage 语言文件 - 简体中文
+# ============================================================
+# 支持 MiniMessage 格式。修改后使用 /estorage reload 重载。
+# ============================================================
+
+# version 由资源同步维护
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此操作。</red>"
+  player_only: "<red>此命令只能由玩家执行。</red>"
+  player_not_found: "<red>找不到玩家 %player%。</red>"
+  unknown_command: "<red>未知命令，输入 /estorage help 查看帮助。</red>"
+  invalid_args: "<red>参数错误，输入 /estorage help 查看用法。</red>"
+  reloading: "<gray>正在重载配置...</gray>"
+  reload_success: "<green>配置已重载。</green>"
+  reload_summary: "<gray>已加载界面模板 %templates% 个。</gray>"
+  data_loading: "<yellow>仓库数据仍在加载，请稍后再试。</yellow>"
+  session_expired: "<red>本次会话已失效，请重新打开仓库。</red>"
+  storage_unavailable: "<red>仓库服务当前不可用。</red>"
+  open_failed: "<red>仓库界面打开失败，请检查控制台日志。</red>"
+
+gui:
+  locked:
+    name: "<dark_gray>未解锁槽位</dark_gray>"
+    lore: "<gray>扩容后即可使用此槽位</gray>"
+  entry:
+    amount_with_limit: "<gray>数量: <white>%amount%</white> / <white>%limit%</white> <dark_gray>(%percent%%)</dark_gray></gray>"
+    amount_unlimited: "<gray>数量: <white>%amount%</white> <dark_gray>(无上限)</dark_gray></gray>"
+    exact: "<dark_gray>精确: %exact%</dark_gray>"
+    withdraw_hint: "<yellow>左键取 %left% | 右键 %right% | Shift+左键 %shift_left% | Shift+右键 %shift_right%</yellow>"
+    custom_hint: "<yellow>中键输入自定义数量</yellow>"
+    overflow_locked: "<red>超出当前容量：只可取出，不可存入</red>"
+    search_readonly: "<gold>搜索状态：展示区禁止存入，请使用投入口</gold>"
+  page_info:
+    name: "<gold>第 %current_page% / %total_pages% 页</gold>"
+    capacity: "<gray>已用 <white>%used_slots%</white> / <white>%total_slots%</white> 槽位（剩余 %free_slots%）</gray>"
+    searching: "<gold>搜索中: <white>%query%</white>（命中 %visible% 条）</gold>"
+    overflow: "<red>有 %count% 条目超出容量，处于只读状态</red>"
+  sort:
+    name: "<aqua>整理</aqua>"
+    current: "<gray>当前排序: <white>%mode%</white></gray>"
+    hint: "<yellow>点击切换维度 | Shift+点击反转方向</yellow>"
+    changed: "<green>排序已切换为 %mode%。</green>"
+    disabled: "<red>服务器未开放玩家自定义排序。</red>"
+    modes:
+      material_asc: "材质 升序"
+      material_desc: "材质 降序"
+      name_asc: "名称 升序"
+      name_desc: "名称 降序"
+      amount_asc: "数量 升序"
+      amount_desc: "数量 降序"
+  search:
+    name: "<aqua>搜索</aqua>"
+    none: "未启用"
+    current: "<gray>当前条件: <white>%query%</white></gray>"
+    hint: "<yellow>左键输入搜索关键词</yellow>"
+    clear_hint: "<yellow>右键清除搜索条件</yellow>"
+    disabled: "<red>搜索功能已被关闭。</red>"
+  unlock:
+    name: "<green>扩容</green>"
+    status: "<gray>当前容量 <white>%total_slots%</white>（已购买 %purchased_slots%，上限 %max_slots%）</gray>"
+    hint: "<yellow>点击购买槽位</yellow>"
+    at_ceiling: "<red>已达槽位上限</red>"
+    unlimited: "无限"
+  deposit:
+    success: "<green>已存入 %amount% 个。</green>"
+    partial: "<gold>已存入 %amount% 个，剩余 %remaining% 个未能存入。</gold>"
+    bulk_success: "<green>一键存入完成，共 %amount% 个。</green>"
+    bulk_empty: "<yellow>背包中没有可存入的物品。</yellow>"
+    cancelled: "<red>存入被其他插件取消。</red>"
+    failed: "<red>存入失败。</red>"
+    filtered: "<red>该物品被存入过滤规则拒绝。</red>"
+    unique_rejected: "<red>服务器不允许存入带唯一标记的物品。</red>"
+    no_free_slot: "<red>没有空闲槽位可容纳新的物品种类。</red>"
+    slot_full: "<red>该槽位已达单槽上限。</red>"
+    inventory_conflict: "<red>背包内容发生变化，本次存入已取消。</red>"
+    search_blocked: "<red>搜索状态下展示区禁止存入，请使用投入口。</red>"
+    port_empty: "<yellow>请先把物品拿到光标上，再点击投入口。</yellow>"
+    cursor_guard: "<yellow>已开启光标保护：光标有物品时展示区不接受存入，请使用投入口。</yellow>"
+  withdraw:
+    partial: "<gold>已取出 %amount% 个，%remaining% 个因背包空间不足未取出。</gold>"
+    cancelled: "<red>取出被其他插件取消。</red>"
+    failed: "<red>取出失败。</red>"
+  click:
+    unsupported: "<red>该操作方式在仓库中不受支持。</red>"
+
+chat:
+  input:
+    cancelled: "<gray>已取消输入。</gray>"
+    timeout: "<gray>输入超时，已取消。</gray>"
+  withdraw:
+    prompt: "<aqua>请在聊天栏输入取出数量</aqua><gray>（支持 10K / 1M / all，输入 %cancel% 取消）</gray>"
+    invalid: "<red>无法识别的数量: %input%</red>"
+    done: "<green>已取出 %amount% 个。</green>"
+  search:
+    prompt: "<aqua>请在聊天栏输入搜索条件</aqua><gray>（%name% 仅名称，%lore% 仅描述，%id% 仅 ID，%exclude% 排除，空格 = 且；输入 %cancel% 取消）</gray>"
+    applied: "<green>搜索条件已应用: %query%（命中 %count% 条）</green>"
+    cleared: "<gray>已清除搜索条件。</gray>"
+
+unlock:
+  disabled: "<red>服务器未开放付费扩容。</red>"
+  success: "<green>已购买 %slots% 个槽位，花费 %cost%。</green>"
+  failed: "<red>扩容失败。</red>"
+  no_price: "<red>未配置有效的扩容价格，无法购买。</red>"
+  at_ceiling: "<red>已达槽位上限，无法继续扩容。</red>"
+  price_invalid: "<red>扩容价格超出配置上限，请联系管理员检查 unlock_costs.yml。</red>"
+  insufficient_currency: "<red>货币不足。</red>"
+  insufficient_items: "<red>所需物品不足。</red>"
+  unknown_item: "<red>扩容价格中的物品来源无法解析，请联系管理员。</red>"
+  cancelled: "<red>扩容被其他插件取消。</red>"
+
+command:
+  target_offline: "<red>玩家 %player% 当前离线，无法执行该写操作。</red>"
+  help:
+    header: "<gold>========== EmakiStorage 帮助 ==========</gold>"
+    footer: "<gold>=======================================</gold>"
+    line: "<yellow>/estorage %cmd%</yellow> <gray>- %desc%</gray>"
+    commands:
+      open_self: "打开自己的仓库"
+      open: "打开他人仓库"
+      slot: "授予或回收槽位（可为负数）"
+      stacklimit_player: "设置玩家默认单槽上限"
+      stacklimit_slot: "设置指定槽位上限"
+      info: "查看容量、占用与各来源明细"
+      export: "导出可读 YAML 供人工排查"
+      reload: "重载配置、语言与界面模板"
+      debug: "管理 Debug 模式"
+  slot:
+    granted: "<green>已为 %player% 调整槽位 %amount%，当前授予值 %granted%。</green>"
+    invalid_amount: "<red>无法识别的槽位数量: %input%</red>"
+  stacklimit:
+    player_set: "<green>已将 %player% 的默认单槽上限设为 %limit%。</green>"
+    slot_set: "<green>已将 %player% 第 %slot% 槽的上限设为 %limit%。</green>"
+    slot_empty: "<red>第 %slot% 槽当前没有条目。</red>"
+    invalid: "<red>无法识别的上限值: %input%（支持 10M / 1B / max）</red>"
+  info:
+    header: "<gold>—— %player% 的仓库 ——</gold>"
+    capacity: "<gray>占用 <white>%used_slots%</white> / <white>%total_slots%</white> 槽位，共 %pages% 页，总数量 %total_amount%</gray>"
+    sources: "<gray>来源明细: 默认 %base_slots% + 权限 %permission_slots% + 授予 %granted_slots% + 购买 %purchased_slots%（上限 %max_slots%）</gray>"
+    limits: "<gray>默认单槽上限 %stack_limit%，排序 %sort_mode%</gray>"
+  export:
+    done: "<green>已导出 %player% 的仓库到 %file%。</green>"
+    failed: "<red>导出 %player% 的仓库失败，请检查控制台日志。</red>"
+
+console:
+  plugin_starting: "正在启动 EmakiStorage..."
+  plugin_started: "EmakiStorage 已启动。"
+  bootstrap_start: "正在释放默认资源..."
+  bootstrap_skip: "已跳过默认业务数据释放。"
+  bootstrap_complete: "默认资源就绪。"
+
+debug:
+  common:
+    storage:
+      deposit: "存入完成 | 玩家=%player% | 物品=%item% | 数量=%amount% | 余额=%balance%"
+      withdraw: "取出完成 | 玩家=%player% | 物品=%item% | 数量=%amount% | 余额=%balance%"
+      capacity: "容量重算 | 玩家=%player% | 已用=%used% | 总量=%total% | 溢出=%overflow%"

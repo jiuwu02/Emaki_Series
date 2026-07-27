@@ -11,9 +11,9 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>emaki-corelib-api</artifactId>
-    <version>4.5.24</version>
-    <name>EmakiCoreLibApi</name>
+    <artifactId>emaki-storage-api</artifactId>
+    <version>1.0.0</version>
+    <name>EmakiStorageApi</name>
     <packaging>jar</packaging>
 
     <dependencies>

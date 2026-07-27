@@ -1,0 +1,26 @@
+name: EmakiStorage
+main: emaki.jiuwu.craft.storage.EmakiStoragePlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakistorage.use:
+    default: true
+  emakistorage.unlock.purchase:
+    default: true
+  emakistorage.reload:
+    default: op
+  emakistorage.debug:
+    default: op
+  emakistorage.admin:
+    default: op

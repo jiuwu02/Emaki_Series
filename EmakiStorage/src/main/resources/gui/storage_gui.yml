@@ -1,0 +1,101 @@
+# ============================================================
+# EmakiStorage 仓库界面模板
+# ============================================================
+# 注意：本文件的 slots 只是【占位值】，不是真实槽位。
+# 窗口行数由 config.yml 的 gui.storage_rows 决定（合法 1-5），
+# 功能区永远独占最后一行，实际窗口行数 = storage_rows + 1。
+#
+#   展示区槽位 = 0 .. storage_rows * 9 - 1     （加载时自动填满）
+#   功能区槽位 = storage_rows * 9 + offset     （offset 为行内偏移 0-8）
+#
+# 因此改 gui.storage_rows 后功能区会自动跟随，不需要手改任何槽位号。
+# 每个功能条目请只调整 offset：它必须落在 0-8，且不能被两个条目重复占用，
+# 否则该条目会被拒绝并记 warning。slots 键仅为通过通用模板解析而保留。
+# ============================================================
+
+id: storage_gui
+gui_type: CHEST
+title: "<gradient:#4DA6FF:#FFD166>绘卷仓库</gradient>"
+
+slots:
+  # 展示区原型：加载时展开为整个展示区。
+  # 这里配置的物品只作为“未解锁槽位”的占位外观来源。
+  storage_slot:
+    type: storage_slot
+    slots: [0]
+    item:
+      source: "gray_stained_glass_pane"
+
+  # 以下为功能区。请只改 offset，slots 会被换算结果覆盖。
+  page_prev:
+    type: page_prev
+    offset: 0
+    slots: [0]
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>上一页</gray>"
+        lore:
+          - "<dark_gray>空页不可翻入，第 1 页始终可达</dark_gray>"
+
+  page_info:
+    type: page_info
+    offset: 1
+    slots: [1]
+    item:
+      source: "book"
+
+  deposit_slot:
+    type: deposit_slot
+    offset: 3
+    slots: [3]
+    item:
+      source: "hopper"
+      components:
+        custom_name: "<aqua>投入口</aqua>"
+        lore:
+          - "<gray>把光标上的物品放到这里即存入</gray>"
+          - "<gray>搜索状态下展示区禁止存入，此处仍可用</gray>"
+
+  search:
+    type: search
+    offset: 4
+    slots: [4]
+    item:
+      source: "compass"
+
+  sort:
+    type: sort
+    offset: 5
+    slots: [5]
+    item:
+      source: "hopper"
+
+  deposit_all:
+    type: deposit_all
+    offset: 6
+    slots: [6]
+    item:
+      source: "chest"
+      components:
+        custom_name: "<green>一键存入</green>"
+        lore:
+          - "<gray>把背包中可存入的物品全部放入仓库</gray>"
+
+  unlock:
+    type: unlock
+    offset: 7
+    slots: [7]
+    item:
+      source: "emerald"
+
+  page_next:
+    type: page_next
+    offset: 8
+    slots: [8]
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>下一页</gray>"
+        lore:
+          - "<dark_gray>空页不可翻入</dark_gray>"

@@ -47,10 +47,21 @@ final class PacketGuiClickContext implements GuiClickContext {
     @Override
     public GuiClickType clickType() {
         return switch (mode()) {
-            case PICKUP, QUICK_MOVE -> click.button() == 1
+            case PICKUP -> click.button() == 1
                     ? GuiClickType.RIGHTCLICK
                     : GuiClickType.LEFTCLICK;
-            case SWAP, CLONE, THROW, PICKUP_ALL, QUICK_CRAFT, UNKNOWN -> GuiClickType.CLICK;
+            case QUICK_MOVE -> click.button() == 1
+                    ? GuiClickType.SHIFT_RIGHTCLICK
+                    : GuiClickType.SHIFT_LEFTCLICK;
+            case SWAP -> click.button() == OFFHAND_BUTTON
+                    ? GuiClickType.SWAP_OFFHAND
+                    : GuiClickType.NUMBER_KEY;
+            case CLONE -> GuiClickType.MIDDLECLICK;
+            case THROW -> click.button() == 1
+                    ? GuiClickType.CONTROL_DROP
+                    : GuiClickType.DROP;
+            case PICKUP_ALL -> GuiClickType.DOUBLECLICK;
+            case QUICK_CRAFT, UNKNOWN -> GuiClickType.CLICK;
         };
     }
 

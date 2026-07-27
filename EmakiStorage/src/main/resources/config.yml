@@ -1,0 +1,156 @@
+# ============================================================
+# EmakiStorage 主配置文件
+# ============================================================
+# 类 AE2 的 GUI 仓库：单个逻辑槽位可存 long 量级物品，并完整保留原始物品数据。
+# 修改后使用 /estorage reload 重载配置、语言与 GUI 模板。
+#
+# 文件放置位置: plugins/EmakiStorage/config.yml
+# ============================================================
+
+# version 由资源同步维护
+version: "1.0.0"
+
+# 语言文件 ID
+language: "zh_CN"
+
+# 是否写入默认业务数据（unlock_costs.yml）
+release_default_data: true
+
+# OP 是否绕过权限限制
+op_bypass: false
+
+# ------------------------------------------------------------
+# 界面
+# ------------------------------------------------------------
+gui:
+  # 展示区行数，合法范围 1-5，默认 5。
+  # 功能区永远独占最后一行，因此实际窗口行数 = storage_rows + 1（上限 6）。
+  # 填 >=6 时钳到 5 并记 warning；填 <=0 时钳到 1。
+  # 每页展示格数 = storage_rows * 9，功能区槽位 = storage_rows * 9 + offset。
+  storage_rows: 5
+  # 存入成功后的反馈方式：actionbar | message | none
+  # 混用存入（展示区任意槽位 + 固定投入口）下物品可能落到别的页，
+  # 关掉反馈玩家会以为物品消失，不建议设为 none
+  deposit_feedback: actionbar
+  # 取出是否要求光标为空。
+  # true 更防手滑，但会让“光标有物品时点条目”从存入变成无操作
+  require_empty_cursor_for_withdraw: false
+
+# ------------------------------------------------------------
+# 容量
+# ------------------------------------------------------------
+capacity:
+  # 默认开放槽位数（45 = 5 行 x 9，与 gui.storage_rows 默认值一致）。
+  # 这只是“默认”部分，与权限档位、命令授予、付费购买的槽位分开累加。
+  # 调小此值不会吃掉玩家已授予/已购买的槽位。
+  base_slots: 45
+  # 槽位总量硬上限。设为 0 表示无限。
+  # 注意：设为 0 后单玩家 10 万条目约占 100-200MB 堆内存（推算值，未实测），
+  # 多个重度玩家可能耗尽堆内存，请确认服务器内存充足后再放开。
+  max_slots: 1000
+  # 条目数超过此值时向控制台记录 warning（0 = 不提醒）
+  warn_entry_count: 5000
+  # 默认单槽堆叠上限。
+  # 顶层的 0 = 不限制（等价 Long.MAX_VALUE）；
+  # 玩家级与条目级的 0 含义不同，那里表示“继承上一级”
+  default_stack_limit: 100
+
+# ------------------------------------------------------------
+# 扩容与缩容
+# ------------------------------------------------------------
+unlock:
+  # 容量缩小导致占用超出时的处理策略：
+  #   lock_readonly     超出槽位只读，可取出不可存入，取空后释放（推荐）
+  #   compact           超出条目自动前滚填补空位，填不下的退化为 lock_readonly
+  #   return_inventory  尝试退回背包，装不下的退化为 lock_readonly
+  #   reject_change     直接拒绝本次缩容
+  # 不提供 drop/delete：不可逆数据丢失不应由配置调整隐式触发
+  overflow_policy: lock_readonly
+  # 是否开放 GUI 内付费扩容（还需 emakistorage.unlock.purchase 权限）
+  purchase_enabled: true
+  # 付费档位配置文件（业务数据，不随版本覆盖）
+  cost_file: "unlock_costs.yml"
+
+# ------------------------------------------------------------
+# 展示
+# ------------------------------------------------------------
+display:
+  # 槽位物品的 amount 表达方式：
+  #   percent  用 1-99 表示占用百分比
+  #   one      恒为 1，不表达占用率
+  # stackLimit 为不限制时自动退化为 one
+  amount_mode: percent
+  # percent 模式的 amount 刻度上限。
+  # max_stack_size 组件合法范围是 1-99，不要改成 100 或更大（未定义行为）
+  percent_scale: 99
+  # 紧凑数量单位（K/M/B/T/P/E），置空则使用精确数字
+  compact_units: ["K", "M", "B", "T", "P", "E"]
+  compact_decimals: 2
+  # 是否在 lore 中额外显示带千分位的精确数量
+  show_exact_amount: true
+  # 展示信息插入 lore 的位置：top | bottom
+  lore_position: bottom
+
+# ------------------------------------------------------------
+# 存取行为
+# ------------------------------------------------------------
+behavior:
+  # 取出时背包装不下的剩余部分：return（回补仓库）| drop（地面掉落）
+  overflow_on_withdraw: return
+  withdraw_amounts:
+    left: 1
+    right: 16
+    shift_left: 32
+    shift_right: 64
+  # 中键是否启用 chat 自定义数量输入
+  withdraw_prompt_enabled: true
+  deposit_filter:
+    mode: blacklist # blacklist | whitelist | off
+    entries: [] # CoreLib ItemSource token 列表
+  # 是否允许存入带唯一标记（EmakiItem 实例 UUID 等）的物品
+  allow_unique_items: true
+  # 排序默认值：material_asc|material_desc|name_asc|name_desc|amount_asc|amount_desc
+  default_sort: amount_desc
+  # 是否允许玩家在 GUI 中切换排序（false 时强制使用 default_sort）
+  player_sort_enabled: true
+
+# ------------------------------------------------------------
+# 搜索
+# ------------------------------------------------------------
+search:
+  enabled: true
+  # 前缀操作符（可改，避免与物品名冲突）
+  operators:
+    name: "@"
+    lore: "#"
+    id: "$"
+    exclude: "!"
+  # chat 输入等待超时（秒）
+  input_timeout: 30
+  cancel_keywords: ["取消", "cancel"]
+  # 不提供正则搜索：恶意正则会造成 ReDoS 卡服，且子串匹配已够用
+
+# ------------------------------------------------------------
+# 持久化
+# ------------------------------------------------------------
+persistence:
+  # 自动保存间隔（秒），0 = 仅在关闭 GUI 与下线时保存。
+  # 期间的多次数量变化会合并为一次写盘
+  autosave_interval: 300
+  # 停用时等待文件 drain 的超时（秒）
+  drain_timeout: 10
+
+# ------------------------------------------------------------
+# 存取流水日志
+# ------------------------------------------------------------
+# 只写不读，业务逻辑永不读取这些文件。
+logging:
+  enabled: true
+  # 日志保留天数。过期文件按日删除；某玩家的日志全部过期后其目录一并删除
+  retention_days: 30
+  # 只记录这些来源（gui/command/api/action），留空 = 全部
+  sources: []
+  # 注意：ADMIN_SET / ADMIN_GIVE / ADMIN_CLEAR 三类管理员操作强制记录，
+  # 不受 enabled 与 sources 影响
+
+debug: false

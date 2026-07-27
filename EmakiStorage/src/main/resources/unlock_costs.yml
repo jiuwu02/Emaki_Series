@@ -1,0 +1,41 @@
+# ============================================================
+# EmakiStorage 付费扩容档位
+# ============================================================
+# 业务数据文件：release_default_data 只在文件缺失时释放一次，
+# 版本升级不会覆盖管理员已有内容。
+#
+# 计价规则：玩家购买第 N 格时，用 N 落在哪个 count_range 决定价格。
+# 越靠前的档优先；未匹配任何档则用 fallback。
+# 批量购买按【逐格计价再求和】结算，不是「单价 x 数量」。
+# ============================================================
+
+tiers:
+  - count_range: "1-9"
+    currency:
+      type: vault # vault | excellent
+      amount: 1000
+  - count_range: "10-19"
+    item:
+      source: "diamond" # CoreLib ItemSource token
+      amount: 16
+  - count_range: "20-49"
+    currency:
+      type: vault
+      amount: 50000
+    item:
+      source: "netherite_ingot"
+      amount: 4
+
+# 兜底档：超出所有 tiers 后的每一格
+fallback:
+  currency:
+    type: vault
+    # %count% = 即将购买的第几格，走 CoreLib ExpressionEngine
+    amount: "100000 * 1.05 ^ (%count% - 50)"
+  # 单次购买价格上限，防止指数表达式溢出为 Infinity。
+  # 这是必需项：缺失或非正数时兜底档整体失效，超出 tiers 的格子将不可购买。
+  max_amount: 1000000000
+
+batch:
+  enabled: true
+  options: [1, 5, 10, 64]
