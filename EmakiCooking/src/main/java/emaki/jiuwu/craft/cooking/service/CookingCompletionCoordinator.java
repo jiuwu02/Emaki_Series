@@ -24,6 +24,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
@@ -498,13 +500,23 @@ public final class CookingCompletionCoordinator {
         }
         Map<String, Object> current = access.snapshot(operation.stationCoordinates());
         String currentDigest = CookingCompletionStateDigest.digest(current == null ? Map.of() : current);
+        StateRelation resolved;
         if (currentDigest.equals(operation.expectedStateDigest())) {
-            return StateRelation.EXPECTED;
+            resolved = StateRelation.EXPECTED;
+        } else if (currentDigest.equals(operation.committedStateDigest())) {
+            resolved = StateRelation.COMMITTED;
+        } else {
+            resolved = StateRelation.OTHER;
         }
-        if (currentDigest.equals(operation.committedStateDigest())) {
-            return StateRelation.COMMITTED;
-        }
-        return StateRelation.OTHER;
+        debugCompletion("station.completion_relation", Map.of(
+                "operation", operation.operationId(),
+                "station", operation.stationCoordinates().runtimeKey(),
+                "status", operation.status().name(),
+                "relation", resolved.name(),
+                "snapshot", current == null ? "null" : "present",
+                "commit_mode", operation.commitMode().name()
+        ));
+        return resolved;
     }
 
     private CompletableFuture<CookingCompletionOperation> save(CookingCompletionOperation operation) {
@@ -528,10 +540,24 @@ public final class CookingCompletionCoordinator {
             String error) {
         String reason = Texts.isBlank(error) ? "Cooking completion recovery rejected operation" : error;
         logger.warning("Quarantining cooking completion " + operation.operationId() + ": " + reason);
+        debugCompletion("station.completion_quarantined", Map.of(
+                "operation", operation.operationId(),
+                "station", operation.stationCoordinates().runtimeKey(),
+                "status", operation.status().name(),
+                "reason", reason
+        ));
         return journalStore.quarantine(operation, reason).thenApply(quarantined -> {
             remove(quarantined);
             return quarantined;
         });
+    }
+
+    private void debugCompletion(String langKey, Map<String, ?> replacements) {
+        DebugLogger debugLogger = plugin instanceof DebugLoggerProvider provider ? provider.debugLogger() : null;
+        if (debugLogger == null) {
+            return;
+        }
+        debugLogger.log("station", (java.util.UUID) null, langKey, replacements);
     }
 
     private void remove(CookingCompletionOperation operation) {

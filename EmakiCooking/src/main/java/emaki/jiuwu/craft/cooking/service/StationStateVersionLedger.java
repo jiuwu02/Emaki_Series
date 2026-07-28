@@ -49,6 +49,23 @@ final class StationStateVersionLedger {
         return coordinates == null ? null : mutations.get(coordinates);
     }
 
+
+
+
+    boolean abandonMutation(StationCoordinates coordinates, long version, Mutation previous) {
+        if (coordinates == null || version < 0L) {
+            return false;
+        }
+        Mutation current = mutations.get(coordinates);
+        if (current == null || current.version() != version) {
+            return false;
+        }
+        if (previous == null) {
+            return mutations.remove(coordinates, current);
+        }
+        return mutations.replace(coordinates, current, previous);
+    }
+
     void observe(StationCoordinates coordinates, long version, boolean tombstone) {
         if (coordinates == null || version < 0L) {
             return;

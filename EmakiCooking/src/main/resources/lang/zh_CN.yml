@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.1.1"
+version: "4.1.2"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -414,6 +414,26 @@ debug:
     ingredient_add: "放入食材 | 玩家=%player% | 工位=%station% | 物品=%item%"
     ingredient_remove: "取出食材 | 玩家=%player% | 工位=%station% | 物品=%item%"
     state_change: "工位状态变化 | 工位=%station% | 旧状态=%old% | 新状态=%new%"
+    state_load: "读取工位状态 | 工位=%station% | 结果=%result% | 内存版本=%in_memory_version% | 内存墓碑=%in_memory_tombstone% | 持久版本=%persisted_version% | PDC存在=%pdc_present% | YAML存在=%yaml_present%"
+    state_save_begin: "开始写入工位状态 | 工位=%station% | 版本=%version% | 类型=%backend_hint%"
+    state_save_result: "写入工位状态完成 | 工位=%station% | 版本=%version% | 成功=%success% | 仍为当前版本=%still_current% | 错误=%error%"
+    state_delete_begin: "开始删除工位状态 | 工位=%station% | 版本=%version%"
+    state_delete_result: "删除工位状态完成 | 工位=%station% | 版本=%version% | 成功=%success% | 错误=%error%"
+    migrate_skipped: "跳过 YAML→PDC 迁移 | 工位=%station% | 原因=%reason%"
+    migrate_ok: "YAML→PDC 迁移成功 | 工位=%station% | 版本=%version%"
+    migrate_failed: "YAML→PDC 迁移失败 | 工位=%station% | 版本=%version% | 回滚前版本=%previous_version% | 已回滚=%rolled_back%"
+    break_without_state: "破坏工位但无可读状态，仅清理残留展示 | 工位=%station% | 类型=%type%"
+    wok_interact: "炒锅交互 | 玩家=%player% | 工位=%station% | 交互=%interaction% | 手持=%hand% | 手持来源=%hand_source% | 是锅铲=%is_spatula% | 是空碗=%is_bowl% | 火候=%heat% | 状态=%state%"
+    wok_serve: "炒锅出锅 | 玩家=%player% | 工位=%station% | 结果=%result% | 用碗=%with_bowl% | 翻炒=%stir% | 配方=%recipe%"
+    wok_outcome: "炒锅结果判定 | 工位=%station% | 配方=%recipe% | 分支=%branch% | 翻炒=%stir% | 最少=%stir_min% | 最多=%stir_max% | 容错=%tolerance%"
+    ingredient_rejected: "食材被拒绝 | 玩家=%player% | 工位=%station% | 物品=%item% | 原因=%reason% | 候选序列=%candidates% | 火候=%heat%"
+    chopping_interact: "砧板交互 | 玩家=%player% | 工位=%station% | 交互=%interaction% | 状态=%state%"
+    chopping_rejected: "砧板操作被拒绝 | 玩家=%player% | 工位=%station% | 操作=%operation% | 原因=%reason%"
+    chopping_cut: "砧板切割 | 玩家=%player% | 工位=%station% | 配方=%recipe% | 第%cut%刀/共%required%刀"
+    grinder_start: "研磨机启动 | 玩家=%player% | 工位=%station% | 手持=%hand% | 已有状态=%existing_state%"
+    grinder_tick: "研磨机计时 | 工位=%station% | 结果=%result% | 已用=%elapsed_ms%ms | 目标=%target_ms%ms"
+    completion_relation: "完成流水线状态比对 | 操作=%operation% | 工位=%station% | 阶段=%status% | 关系=%relation% | 快照=%snapshot% | 提交模式=%commit_mode%"
+    completion_quarantined: "完成流水线隔离 | 操作=%operation% | 工位=%station% | 阶段=%status% | 原因=%reason%"
   recipe:
     source_resolve: "食材来源解析 | 物品来源=%sources% | 解析结果=%resolved%"
     match_start: "开始配方匹配 | 工位=%station% | 食材=%ingredients%"
@@ -421,6 +441,7 @@ debug:
     match_result: "配方匹配完成 | 结果=%recipe_id%"
   stir:
     trigger: "翻炒触发 | 玩家=%player% | 工位=%station% | 次数=%count%/%max%"
+    rejected: "翻炒被拒绝 | 玩家=%player% | 工位=%station% | 原因=%reason%"
     animation_start: "翻炒动画开始 | 实体数=%entities% | 高度=%height%"
     animation_end: "翻炒动画结束 | 工位=%station%"
   display:

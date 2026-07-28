@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.1.1"
+version: "4.1.2"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -424,6 +424,26 @@ debug:
     ingredient_add: "Ingredient added | Player=%player% | Station=%station% | Item=%item%"
     ingredient_remove: "Ingredient removed | Player=%player% | Station=%station% | Item=%item%"
     state_change: "Station state change | Station=%station% | Old=%old% | New=%new%"
+    state_load: "Station state load | Station=%station% | Result=%result% | InMemoryVersion=%in_memory_version% | InMemoryTombstone=%in_memory_tombstone% | PersistedVersion=%persisted_version% | PdcPresent=%pdc_present% | YamlPresent=%yaml_present%"
+    state_save_begin: "Station state save begin | Station=%station% | Version=%version% | Type=%backend_hint%"
+    state_save_result: "Station state save result | Station=%station% | Version=%version% | Success=%success% | StillCurrent=%still_current% | Error=%error%"
+    state_delete_begin: "Station state delete begin | Station=%station% | Version=%version%"
+    state_delete_result: "Station state delete result | Station=%station% | Version=%version% | Success=%success% | Error=%error%"
+    migrate_skipped: "YAML to PDC migration skipped | Station=%station% | Reason=%reason%"
+    migrate_ok: "YAML to PDC migration succeeded | Station=%station% | Version=%version%"
+    migrate_failed: "YAML to PDC migration failed | Station=%station% | Version=%version% | PreviousVersion=%previous_version% | RolledBack=%rolled_back%"
+    break_without_state: "Station broken without readable state, clearing residual displays only | Station=%station% | Type=%type%"
+    wok_interact: "Wok interact | Player=%player% | Station=%station% | Interaction=%interaction% | Hand=%hand% | HandSource=%hand_source% | IsSpatula=%is_spatula% | IsBowl=%is_bowl% | Heat=%heat% | State=%state%"
+    wok_serve: "Wok serve | Player=%player% | Station=%station% | Result=%result% | WithBowl=%with_bowl% | Stir=%stir% | Recipe=%recipe%"
+    wok_outcome: "Wok outcome resolved | Station=%station% | Recipe=%recipe% | Branch=%branch% | Stir=%stir% | Min=%stir_min% | Max=%stir_max% | Tolerance=%tolerance%"
+    ingredient_rejected: "Ingredient rejected | Player=%player% | Station=%station% | Item=%item% | Reason=%reason% | Candidates=%candidates% | Heat=%heat%"
+    chopping_interact: "Chopping board interact | Player=%player% | Station=%station% | Interaction=%interaction% | State=%state%"
+    chopping_rejected: "Chopping board operation rejected | Player=%player% | Station=%station% | Operation=%operation% | Reason=%reason%"
+    chopping_cut: "Chopping board cut | Player=%player% | Station=%station% | Recipe=%recipe% | Cut %cut% of %required%"
+    grinder_start: "Grinder started | Player=%player% | Station=%station% | Hand=%hand% | ExistingState=%existing_state%"
+    grinder_tick: "Grinder tick | Station=%station% | Result=%result% | Elapsed=%elapsed_ms%ms | Target=%target_ms%ms"
+    completion_relation: "Completion pipeline state relation | Operation=%operation% | Station=%station% | Status=%status% | Relation=%relation% | Snapshot=%snapshot% | CommitMode=%commit_mode%"
+    completion_quarantined: "Completion pipeline quarantined | Operation=%operation% | Station=%station% | Status=%status% | Reason=%reason%"
   recipe:
     source_resolve: "Ingredient source resolve | Sources=%sources% | Resolved=%resolved%"
     match_start: "Recipe match start | Station=%station% | Ingredients=%ingredients%"
@@ -431,6 +451,7 @@ debug:
     match_result: "Recipe match complete | Result=%recipe_id%"
   stir:
     trigger: "Stir triggered | Player=%player% | Station=%station% | Count=%count%/%max%"
+    rejected: "Stir rejected | Player=%player% | Station=%station% | Reason=%reason%"
     animation_start: "Stir animation start | Entities=%entities% | Height=%height%"
     animation_end: "Stir animation end | Station=%station%"
   display:

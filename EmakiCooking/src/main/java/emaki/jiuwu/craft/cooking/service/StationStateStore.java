@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,6 +41,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -152,6 +155,15 @@ public final class StationStateStore {
                 || inMemory.version() > persisted.version()
                 || (inMemory.version() == persisted.version() && inMemory.tombstone()))) {
             if (inMemory.tombstone() || persisted == null || inMemory.version() > persisted.version()) {
+                debugStation("station.state_load", Map.of(
+                        "station", coordinates.runtimeKey(),
+                        "result", "null_in_memory_ahead",
+                        "in_memory_version", inMemory.version(),
+                        "in_memory_tombstone", inMemory.tombstone(),
+                        "persisted_version", persisted == null ? "none" : persisted.version(),
+                        "pdc_present", pdc != null,
+                        "yaml_present", yaml != null
+                ));
                 return null;
             }
         }
@@ -160,6 +172,15 @@ public final class StationStateStore {
             if (existing != null && existing.backend() == StationStorageBackend.BLOCK_PDC && backendForCurrentBlock(coordinates) == StationStorageBackend.YAML_FALLBACK) {
                 removeIndex(coordinates, true);
             }
+            debugStation("station.state_load", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "result", "null_no_persisted_state",
+                    "in_memory_version", inMemory == null ? "none" : inMemory.version(),
+                    "in_memory_tombstone", inMemory != null && inMemory.tombstone(),
+                    "persisted_version", "none",
+                    "pdc_present", false,
+                    "yaml_present", false
+            ));
             return null;
         }
 
@@ -167,10 +188,28 @@ public final class StationStateStore {
         if (persisted.tombstone() || persisted.state() == null) {
             yamlCache.remove(coordinates);
             removeIndex(coordinates, true);
+            debugStation("station.state_load", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "result", "null_tombstoned",
+                    "in_memory_version", versionLedger.currentVersion(coordinates),
+                    "in_memory_tombstone", versionLedger.isTombstoned(coordinates),
+                    "persisted_version", persisted.version(),
+                    "pdc_present", pdc != null,
+                    "yaml_present", yaml != null
+            ));
             return null;
         }
 
         YamlSection state = persisted.state();
+        debugStation("station.state_load", Map.of(
+                "station", coordinates.runtimeKey(),
+                "result", "loaded",
+                "in_memory_version", versionLedger.currentVersion(coordinates),
+                "in_memory_tombstone", false,
+                "persisted_version", persisted.version(),
+                "pdc_present", pdc != null,
+                "yaml_present", yaml != null
+        ));
         rememberStationSource(coordinates, stationSource(state));
         StationType type = stationType(state);
         if (persisted.backend() == StationStorageBackend.BLOCK_PDC) {
@@ -204,6 +243,18 @@ public final class StationStateStore {
         Map<String, Object> stateWithMetadata = stateWithMetadata(coordinates, state, mutationVersion, false);
         YamlSection section = new MapYamlSection(stateWithMetadata);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
+        debugStation("station.state_save_begin", Map.of(
+                "station", coordinates.runtimeKey(),
+                "version", mutationVersion,
+                "backend_hint", stationType(section) == null ? "unknown" : stationType(section).folderName()
+        ));
+        future.whenComplete((success, throwable) -> debugStation("station.state_save_result", Map.of(
+                "station", coordinates.runtimeKey(),
+                "version", mutationVersion,
+                "success", Boolean.TRUE.equals(success),
+                "still_current", versionLedger.isCurrentSave(coordinates, mutationVersion),
+                "error", throwable == null ? "" : rootCauseMessage(throwable)
+        )));
         runOnBlockThread(coordinates, () -> {
             if (!versionLedger.isCurrentSave(coordinates, mutationVersion)) {
                 future.complete(false);
@@ -244,6 +295,10 @@ public final class StationStateStore {
             return CompletableFuture.completedFuture(false);
         }
         long mutationVersion = versionLedger.beginDelete(coordinates);
+        debugStation("station.state_delete_begin", Map.of(
+                "station", coordinates.runtimeKey(),
+                "version", mutationVersion
+        ));
         CompletableFuture<Boolean> result = writeTombstoneAsync(coordinates, mutationVersion).thenCompose(persisted -> {
             if (!Boolean.TRUE.equals(persisted) || !versionLedger.isCurrentDelete(coordinates, mutationVersion)) {
                 return CompletableFuture.completedFuture(false);
@@ -262,6 +317,12 @@ public final class StationStateStore {
             plugin.getLogger().warning("Async delete failed for station " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
             return false;
         });
+        result.whenComplete((success, throwable) -> debugStation("station.state_delete_result", Map.of(
+                "station", coordinates.runtimeKey(),
+                "version", mutationVersion,
+                "success", Boolean.TRUE.equals(success),
+                "error", throwable == null ? "" : rootCauseMessage(throwable)
+        )));
         return trackOperation(result);
     }
 
@@ -839,6 +900,14 @@ public final class StationStateStore {
         if (coordinates == null || yamlState == null || yamlState.isEmpty() || versionLedger.isTombstoned(coordinates)) {
             return false;
         }
+        if (backendForCurrentBlock(coordinates) == StationStorageBackend.YAML_FALLBACK) {
+            debugStation("station.migrate_skipped", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "reason", "block_is_not_tile_state"
+            ));
+            return false;
+        }
+        StationStateVersionLedger.Mutation previous = versionLedger.currentMutation(coordinates);
         long mutationVersion = versionLedger.beginSave(coordinates);
         Map<String, Object> stateWithVersion = new LinkedHashMap<>(yamlState.asMap());
         stateWithVersion.put(STATE_VERSION_KEY, mutationVersion);
@@ -847,8 +916,19 @@ public final class StationStateStore {
         if (tryWritePdcState(coordinates, versionedState, mutationVersion)) {
             archiveYamlAsync(coordinates, mutationVersion);
             yamlCache.remove(coordinates);
+            debugStation("station.migrate_ok", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "version", mutationVersion
+            ));
             return true;
         }
+        boolean rolledBack = versionLedger.abandonMutation(coordinates, mutationVersion, previous);
+        debugStation("station.migrate_failed", Map.of(
+                "station", coordinates.runtimeKey(),
+                "version", mutationVersion,
+                "previous_version", previous == null ? "none" : previous.version(),
+                "rolled_back", rolledBack
+        ));
         return false;
     }
 
@@ -1574,6 +1654,14 @@ public final class StationStateStore {
             cause = ce.getCause();
         }
         return cause == null ? "unknown" : String.valueOf(cause.getMessage());
+    }
+
+    private void debugStation(String langKey, Map<String, ?> replacements) {
+        DebugLogger debugLogger = plugin instanceof DebugLoggerProvider provider ? provider.debugLogger() : null;
+        if (debugLogger == null) {
+            return;
+        }
+        debugLogger.log("station", (UUID) null, langKey, replacements);
     }
 
     public enum StationStorageBackend {

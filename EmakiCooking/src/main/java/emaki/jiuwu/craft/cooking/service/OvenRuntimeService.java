@@ -289,6 +289,7 @@ public final class OvenRuntimeService implements Listener {
                         Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName()
                 );
         if (state.isCompletelyEmpty()) {
+            textDisplayService.removeStation(StationType.OVEN, coordinates);
             return false;
         }
         guiController.closeOpenInventories(coordinates, true);

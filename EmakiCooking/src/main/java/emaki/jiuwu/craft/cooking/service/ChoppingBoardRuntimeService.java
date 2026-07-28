@@ -202,12 +202,26 @@ public final class ChoppingBoardRuntimeService {
         }
         ChoppingBoardState state = readState(stateStore.load(coordinates));
         long now = System.currentTimeMillis();
+        debugStation("station.chopping_interact", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "interaction", interaction.type() == null ? "none" : interaction.type().configKey(),
+                "state", state == null
+                        ? "null"
+                        : "input=" + state.inputSource() + ",amount=" + state.inputAmount() + ",cuts=" + state.cutCount()
+        ));
 
         if (settingsService.matchesInteraction(
                 StationType.CHOPPING_BOARD,
                 CookingSettingsService.INTERACTION_RETURN_INPUT,
                 interaction)) {
             if (state == null || !state.hasInputSource()) {
+                debugStation("station.chopping_rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "operation", "return_input",
+                        "reason", state == null ? "no_state" : "no_input_source"
+                ));
                 return false;
             }
             returnStoredInput(player, coordinates, state);
@@ -242,14 +256,33 @@ public final class ChoppingBoardRuntimeService {
             }
             if (settingsService.choppingInteractionDelayMs() > 0L
                     && now - state.lastInteractionMs() < settingsService.choppingInteractionDelayMs()) {
+                debugStation("station.chopping_rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "operation", "process",
+                        "reason", "too_fast elapsed=" + (now - state.lastInteractionMs())
+                                + "ms required=" + settingsService.choppingInteractionDelayMs() + "ms"
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.too_fast", Map.of());
                 interaction.cancel();
                 return true;
             }
             if (hand == null || hand.getType().isAir()) {
+                debugStation("station.chopping_rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "operation", "process",
+                        "reason", "empty_hand"
+                ));
                 return false;
             }
             if (!isTool(hand)) {
+                debugStation("station.chopping_rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "operation", "process",
+                        "reason", "wrong_tool hand=" + hand.getType().getKey()
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.wrong_tool", Map.of());
                 interaction.cancel();
                 return true;
@@ -262,18 +295,36 @@ public final class ChoppingBoardRuntimeService {
             }
             RecipeDocument recipe = recipeService.findChoppingBoardRecipe(state.inputSource(), player);
             if (recipe == null) {
+                debugStation("station.chopping_rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "operation", "process",
+                        "reason", "no_recipe_for_input input=" + state.inputSource()
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.cannot_cut", Map.of());
                 interaction.cancel();
                 return true;
             }
             int cutsRequired = recipeService.choppingCutsRequired(recipe);
             if (cutsRequired <= 0) {
+                debugStation("station.chopping_rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "operation", "process",
+                        "reason", "cuts_required_not_positive recipe=" + recipe.id()
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.cannot_cut", Map.of());
                 interaction.cancel();
                 return true;
             }
             int inputRequired = recipeService.choppingInputAmount(recipe);
             if (state.inputAmount() < inputRequired) {
+                debugStation("station.chopping_rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "operation", "process",
+                        "reason", "not_enough_input current=" + state.inputAmount() + " required=" + inputRequired
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.not_enough_input", Map.of(
                         "current", state.inputAmount(),
                         "required", inputRequired
@@ -284,6 +335,13 @@ public final class ChoppingBoardRuntimeService {
             }
 
             int nextCutCount = state.cutCount() + 1;
+            debugStation("station.chopping_cut", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "recipe", recipe.id(),
+                    "cut", nextCutCount,
+                    "required", cutsRequired
+            ));
             applyToolDamage(player, hand, recipeService.choppingToolDamage(recipe));
             maybeDamagePlayer(player, recipeService.choppingDamageChance(recipe), recipeService.choppingDamageValue(recipe));
             plugin.effectService().playActions(StationType.CHOPPING_BOARD, "cut", player);
@@ -407,6 +465,12 @@ public final class ChoppingBoardRuntimeService {
         }
         ChoppingBoardState state = readState(stateStore.load(coordinates));
         if (state == null) {
+            debugStation("station.break_without_state", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "type", StationType.CHOPPING_BOARD.folderName()
+            ));
+            clearDisplay(coordinates, null, null);
+            textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
             return false;
         }
         if (state.hasInputSource()) {
@@ -816,6 +880,13 @@ public final class ChoppingBoardRuntimeService {
             builder.append('\n');
         }
         builder.append(line);
+    }
+
+    private void debugStation(String langKey, Map<String, ?> replacements) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        plugin.debugLogger().log("station", (UUID) null, langKey, replacements);
     }
 
     private void clearDisplay(StationCoordinates coordinates, UUID knownId, String inputSource) {

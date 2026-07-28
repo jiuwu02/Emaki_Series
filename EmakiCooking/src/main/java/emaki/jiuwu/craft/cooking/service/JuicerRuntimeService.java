@@ -234,6 +234,7 @@ public final class JuicerRuntimeService implements Listener {
                 Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName()
         );
         if (state.isCompletelyEmpty()) {
+            textDisplayService.removeStation(StationType.JUICER, coordinates);
             return false;
         }
         guiController.closeOpenInventories(coordinates, true);

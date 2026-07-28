@@ -204,6 +204,12 @@ public final class GrinderRuntimeService {
             return true;
         }
         GrinderState existing = readState(stateStore.load(coordinates));
+        debugStation("station.grinder_start", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "hand", String.valueOf(hand.getType().getKey()),
+                "existing_state", existing == null ? "null" : "input=" + existing.inputSource()
+        ));
         if (existing != null) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.busy", Map.of());
             interaction.cancel();
@@ -250,6 +256,12 @@ public final class GrinderRuntimeService {
         }
         GrinderState state = readState(stateStore.load(coordinates));
         if (state == null) {
+            debugStation("station.break_without_state", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "type", StationType.GRINDER.folderName()
+            ));
+            activeStations.remove(coordinates.runtimeKey());
+            textDisplayService.removeStation(StationType.GRINDER, coordinates);
             return false;
         }
         if (state.hasInputSource()) {
@@ -307,6 +319,13 @@ public final class GrinderRuntimeService {
         ));
     }
 
+    private void debugStation(String langKey, Map<String, ?> replacements) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        plugin.debugLogger().log("station", (java.util.UUID) null, langKey, replacements);
+    }
+
     private void ensureTicker() {
         if (activeStations.isEmpty()) {
             cancelTicker();
@@ -358,7 +377,14 @@ public final class GrinderRuntimeService {
                 try {
                     GrinderState state = readState(stateStore.load(coordinates));
                     if (state == null) {
+                        debugStation("station.grinder_tick", Map.of(
+                                "station", coordinates.runtimeKey(),
+                                "result", "aborted_state_null",
+                                "elapsed_ms", 0,
+                                "target_ms", 0
+                        ));
                         activeStations.remove(stationKey);
+                        textDisplayService.removeStation(StationType.GRINDER, coordinates);
                         return;
                     }
                     processStation(coordinates, state);
@@ -390,6 +416,12 @@ public final class GrinderRuntimeService {
         }
         int grindTimeSeconds = recipeService.grinderTimeSeconds(recipe);
         long elapsed = System.currentTimeMillis() - state.startTimeMs();
+        debugStation("station.grinder_tick", Map.of(
+                "station", coordinates.runtimeKey(),
+                "result", elapsed >= grindTimeSeconds * 1000L ? "completing" : "running",
+                "elapsed_ms", elapsed,
+                "target_ms", grindTimeSeconds * 1000L
+        ));
         if (elapsed >= grindTimeSeconds * 1000L) {
             complete(coordinates, block, state, recipe);
             return;

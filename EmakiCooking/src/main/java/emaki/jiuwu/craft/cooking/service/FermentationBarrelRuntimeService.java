@@ -243,6 +243,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         FermentationBarrelState state = openHolder == null ? loadStateOrEmpty(coordinates) : guiController.snapshotInventoryState(coordinates,
                 openHolder.getInventory(), openHolder.viewerId(), Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName());
         if (state.isCompletelyEmpty()) {
+            textDisplayService.removeStation(StationType.FERMENTATION_BARREL, coordinates);
             return false;
         }
         guiController.closeOpenInventories(coordinates, true);

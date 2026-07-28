@@ -182,6 +182,17 @@ public final class WokRuntimeService {
         WokState state = readState(stateStore.load(coordinates));
         int heatLevel = resolveHeatLevel(block.getRelative(BlockFace.DOWN));
         ItemStack hand = player.getInventory().getItemInMainHand();
+        debugStation("station.wok_interact", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "interaction", interaction.type() == null ? "none" : interaction.type().configKey(),
+                "hand", hand == null || hand.getType().isAir() ? "air" : String.valueOf(hand.getType().getKey()),
+                "hand_source", identifySource(hand),
+                "is_spatula", isSpatula(hand),
+                "is_bowl", isPlainBowl(hand),
+                "heat", heatLevel,
+                "state", state == null ? "null" : "ingredients=" + state.ingredients().size() + ",stir=" + state.totalStirCount()
+        ));
 
         if (isSpatula(hand) && settingsService.matchesInteraction(
                 StationType.WOK,
@@ -211,6 +222,11 @@ public final class WokRuntimeService {
                 return true;
             }
             if (state == null || !state.hasIngredients()) {
+                debugStir("stir.rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "reason", "no_state"
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_item", Map.of());
                 interaction.cancel();
                 return true;
@@ -219,6 +235,11 @@ public final class WokRuntimeService {
             if (state.totalStirCount() > 0
                     && settingsService.wokTimeoutMs() > 0L
                     && now - state.lastStirTimeMs() > settingsService.wokTimeoutMs()) {
+                debugStir("stir.rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "reason", "burnt_timeout elapsed=" + (now - state.lastStirTimeMs()) + "ms limit=" + settingsService.wokTimeoutMs() + "ms"
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.burnt_timeout", Map.of());
                 interaction.cancel();
                 return true;
@@ -226,6 +247,11 @@ public final class WokRuntimeService {
             if (state.lastStirActionMs() > 0L
                     && settingsService.wokStirDelayMs() > 0L
                     && now - state.lastStirActionMs() < settingsService.wokStirDelayMs()) {
+                debugStir("stir.rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "reason", "too_fast elapsed=" + (now - state.lastStirActionMs()) + "ms required=" + settingsService.wokStirDelayMs() + "ms"
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.too_fast", Map.of());
                 interaction.cancel();
                 return true;
@@ -241,6 +267,13 @@ public final class WokRuntimeService {
                 ));
             }
             WokState updated = new WokState(updatedIngredients, state.totalStirCount() + 1, now, now);
+            RecipeDocument stirPredicted = predictRecipe(updated, heatLevel);
+            debugStir("stir.trigger", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "count", updated.totalStirCount(),
+                    "max", stirPredicted == null ? 0 : recipeService.wokStirTotalMax(stirPredicted)
+            ));
             saveState(coordinates, updated);
             refreshText(coordinates, updated);
             Location particleLocation = block.getLocation().add(0.5D, 1.05D, 0.5D);
@@ -276,6 +309,14 @@ public final class WokRuntimeService {
                 return true;
             }
             if (state == null || !state.hasIngredients()) {
+                debugStation("station.wok_serve", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "result", "rejected_no_state",
+                        "with_bowl", servingWithBowl,
+                        "stir", 0,
+                        "recipe", ""
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_item", Map.of());
                 interaction.cancel();
                 return true;
@@ -284,6 +325,14 @@ public final class WokRuntimeService {
                 interaction.cancel();
                 return true;
             }
+            debugStation("station.wok_serve", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "result", state.totalStirCount() <= 0 ? "rejected_never_stirred" : "rejected_submit_failed",
+                    "with_bowl", servingWithBowl,
+                    "stir", state.totalStirCount(),
+                    "recipe", describeRecipe(findMatchingRecipe(state, player, heatLevel))
+            ));
             if (servingWithBowl) {
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_recipe", Map.of());
                 interaction.cancel();
@@ -310,6 +359,14 @@ public final class WokRuntimeService {
                 }
                 if (settingsService.onlyRecipeItems(StationType.WOK)
                         && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source), player, heatLevel)) {
+                    debugStation("station.ingredient_rejected", Map.of(
+                            "player", player.getName(),
+                            "station", coordinates.runtimeKey(),
+                            "item", source,
+                            "reason", "first_ingredient_not_in_any_recipe",
+                            "candidates", String.valueOf(candidateIngredients(state, source)),
+                            "heat", heatLevel
+                    ));
                     CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
                     interaction.cancel();
                     return true;
@@ -335,6 +392,14 @@ public final class WokRuntimeService {
 
             if (settingsService.onlyRecipeItems(StationType.WOK)
                     && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source), player, heatLevel)) {
+                debugStation("station.ingredient_rejected", Map.of(
+                        "player", player.getName(),
+                        "station", coordinates.runtimeKey(),
+                        "item", source,
+                        "reason", "prefix_not_in_any_recipe",
+                        "candidates", String.valueOf(candidateIngredients(state, source)),
+                        "heat", heatLevel
+                ));
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
                 interaction.cancel();
                 return true;
@@ -403,6 +468,11 @@ public final class WokRuntimeService {
         }
         WokState state = readState(stateStore.load(coordinates));
         if (state == null || !state.hasIngredients()) {
+            debugStation("station.break_without_state", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "type", StationType.WOK.folderName()
+            ));
+            clearRuntimeVisuals(coordinates);
             return false;
         }
         Location dropLocation = block.getLocation().add(0.5D, 1.0D, 0.5D);
@@ -522,6 +592,15 @@ public final class WokRuntimeService {
         }
 
         String branch = determineOutcomeBranch(state, recipe);
+        debugStation("station.wok_outcome", Map.of(
+                "station", coordinates.runtimeKey(),
+                "recipe", recipe.id(),
+                "branch", branch,
+                "stir", state.totalStirCount(),
+                "stir_min", recipeService.wokStirTotalMin(recipe),
+                "stir_max", recipeService.wokStirTotalMax(recipe),
+                "tolerance", recipeService.wokFaultTolerance(recipe)
+        ));
         Map<String, Object> outcome = switch (branch) {
             case "success" -> recipeService.outcome(recipe, "result.success");
             case "undercooked" -> recipeService.outcome(recipe, "result.undercooked");
@@ -557,6 +636,14 @@ public final class WokRuntimeService {
                         ),
                         bowlInput == null ? List.of() : List.of(bowlInput)
                 ));
+        debugStation("station.wok_serve", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "result", accepted ? "submitted" : "submit_rejected",
+                "with_bowl", consumeBowl,
+                "stir", state.totalStirCount(),
+                "recipe", recipe.id()
+        ));
         if (!accepted) {
             return false;
         }
@@ -848,6 +935,10 @@ public final class WokRuntimeService {
         return Texts.isBlank(displayName) ? source : displayName;
     }
 
+    private String describeRecipe(RecipeDocument recipe) {
+        return recipe == null ? "none" : recipe.id();
+    }
+
     private void damageHeldTool(Player player, ItemStack itemStack, int amount) {
         if (player == null || itemStack == null || itemStack.getType().isAir() || amount <= 0) {
             return;
@@ -872,6 +963,20 @@ public final class WokRuntimeService {
 
     private void saveState(StationCoordinates coordinates, WokState state) {
         stateStore.saveAsync(coordinates, serializeState(coordinates, state));
+    }
+
+    private void debugStation(String langKey, Map<String, ?> replacements) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        plugin.debugLogger().log("station", (java.util.UUID) null, langKey, replacements);
+    }
+
+    private void debugStir(String langKey, Map<String, ?> replacements) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        plugin.debugLogger().log("stir", (java.util.UUID) null, langKey, replacements);
     }
 
     private Map<String, Object> serializeState(StationCoordinates coordinates, WokState state) {
