@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.1"
+version: "1.0.2"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -102,8 +102,40 @@ behavior:
     right: 16
     shift_left: 32
     shift_right: 64
-  # 中键是否启用自定义数量输入（输入方式见下方 input_mode）
-  withdraw_prompt_enabled: true
+  # 中键自定义取出数量
+  withdraw_prompt:
+    # 是否启用中键自定义数量输入
+    enabled: true
+    # 输入方式：
+    #   auto   - 原版对话框可用则用对话框，否则退回聊天输入(默认)
+    #   dialog - 强制对话框；不可用时该交互被禁用
+    #   chat   - 强制聊天输入
+    # 对话框需要客户端 1.21.6 及以上，并且 EmakiCoreLib 的 dialog.enabled 为 true。
+    mode: "auto"
+    # 对话框配置。键集与 EmakiCoreLib/dialogs/*.yml 完全一致，
+    # 但 id 由插件提供，这里不需要写。
+    #
+    # title / body 的 text / inputs 的 label / buttons 的 label 与 tooltip
+    # 填语言键名时会读取 lang/*.yml；键不存在则按原文渲染，可直接写 MiniMessage。
+    #
+    # inputs 必须保留一个 key 为 amount 的输入框，否则对话框取不到数量，
+    # 该交互会按 mode 回退聊天输入(auto)或被禁用(dialog)。
+    dialog:
+      title: "dialog.withdraw.title"
+      # 玩家按 ESC 是否可以关闭
+      can_close_with_escape: true
+      # 打开时是否暂停单人游戏
+      pause: false
+      body:
+        - "dialog.withdraw.body"
+      inputs:
+        - type: "text"
+          key: "amount"
+          label: "dialog.withdraw.label"
+          # 输入长度上限，0 表示不限制
+          max_length: 32
+      buttons:
+        - label: "dialog.confirm"
   deposit_filter:
     mode: blacklist # blacklist | whitelist | off
     entries: [] # CoreLib ItemSource token 列表
@@ -113,12 +145,6 @@ behavior:
   default_sort: amount_desc
   # 是否允许玩家在 GUI 中切换排序（false 时强制使用 default_sort）
   player_sort_enabled: true
-  # 自定义数量与搜索关键词的输入方式：
-  #   auto   - 原版对话框可用则用对话框，否则退回聊天输入(默认)
-  #   dialog - 强制对话框；不可用时这两项交互被禁用
-  #   chat   - 强制聊天输入
-  # 对话框需要客户端 1.21.6 及以上，并且 EmakiCoreLib 的 dialog.enabled 为 true。
-  input_mode: "auto"
 
 # ------------------------------------------------------------
 # 自动拾取
@@ -158,9 +184,31 @@ search:
     lore: "#"
     id: "$"
     exclude: "!"
-  # chat 输入等待超时（秒）
-  input_timeout: 30
-  cancel_keywords: ["取消", "cancel"]
+  # 搜索关键词的输入方式
+  input:
+    # auto - 对话框可用则用对话框，否则退回聊天输入(默认)
+    # dialog - 强制对话框；不可用时搜索输入被禁用
+    # chat - 强制聊天输入
+    mode: "auto"
+    # 聊天输入等待超时（秒）
+    timeout: 30
+    # 取消聊天输入的关键词
+    cancel_keywords: ["取消", "cancel"]
+    # 对话框配置，键集同 behavior.withdraw_prompt.dialog。
+    # inputs 必须保留一个 key 为 query 的输入框，否则对话框取不到关键词。
+    dialog:
+      title: "dialog.search.title"
+      can_close_with_escape: true
+      pause: false
+      body:
+        - "dialog.search.body"
+      inputs:
+        - type: "text"
+          key: "query"
+          label: "dialog.search.label"
+          max_length: 64
+      buttons:
+        - label: "dialog.confirm"
   # 不提供正则搜索：恶意正则会造成 ReDoS 卡服，且子串匹配已够用
 
 # ------------------------------------------------------------

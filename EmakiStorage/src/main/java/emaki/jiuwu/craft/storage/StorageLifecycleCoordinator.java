@@ -59,7 +59,8 @@ final class StorageLifecycleCoordinator
         EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
-                plugin, "config.yml", AppConfig::defaults, this::parseAppConfig);
+                plugin, "config.yml", AppConfig::defaults,
+                section -> parseAppConfig(section, plugin));
         appConfigLoader.load();
 
         LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
@@ -160,10 +161,12 @@ final class StorageLifecycleCoordinator
         }
     }
 
-    private AppConfig parseAppConfig(YamlSection configuration) {
+    private AppConfig parseAppConfig(YamlSection configuration, EmakiStoragePlugin plugin) {
         if (configuration == null || configuration.getKeys(false).isEmpty()) {
             return AppConfig.defaults();
         }
+        java.util.function.Consumer<String> issues =
+                issue -> plugin.getLogger().warning("[config] " + issue);
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
                 configuration.getString("version", AppConfig.CURRENT_VERSION),
@@ -173,12 +176,10 @@ final class StorageLifecycleCoordinator
                 parseCapacity(configuration.getSection("capacity")),
                 parseUnlock(configuration.getSection("unlock")),
                 parseDisplay(configuration.getSection("display")),
-                parseBehavior(configuration.getSection("behavior")),
+                parseBehavior(configuration.getSection("behavior"), issues),
                 emaki.jiuwu.craft.storage.config.AutoPickupConfig.fromConfig(
                         configuration.getSection("auto_pickup")),
-                emaki.jiuwu.craft.storage.config.InputModeConfig.fromConfig(
-                        configuration.getSection("behavior")),
-                parseSearch(configuration.getSection("search")),
+                parseSearch(configuration.getSection("search"), issues),
                 parsePersistence(configuration.getSection("persistence")),
                 parseLogging(configuration.getSection("logging")),
                 bool(configuration, "debug", false));
@@ -237,7 +238,8 @@ final class StorageLifecycleCoordinator
                         defaults.lorePosition()));
     }
 
-    private AppConfig.BehaviorConfig parseBehavior(YamlSection section) {
+    private AppConfig.BehaviorConfig parseBehavior(YamlSection section,
+            java.util.function.Consumer<String> issues) {
         AppConfig.BehaviorConfig defaults = AppConfig.BehaviorConfig.defaults();
         if (section == null) {
             return defaults;
@@ -260,18 +262,26 @@ final class StorageLifecycleCoordinator
                         filter.getStringList("entries") == null
                                 ? List.of() : filter.getStringList("entries"));
 
+        YamlSection withdrawPrompt = section.getSection("withdraw_prompt");
+        boolean withdrawPromptEnabled = withdrawPrompt == null
+                ? defaults.withdrawPromptEnabled()
+                : bool(withdrawPrompt, "enabled", defaults.withdrawPromptEnabled());
+
         return new AppConfig.BehaviorConfig(
                 AppConfig.WithdrawOverflow.fromId(section.getString("overflow_on_withdraw", null),
                         defaults.overflowOnWithdraw()),
                 withdrawAmounts,
-                bool(section, "withdraw_prompt_enabled", defaults.withdrawPromptEnabled()),
+                withdrawPromptEnabled,
+                emaki.jiuwu.craft.storage.config.InputModeConfig.fromConfig(withdrawPrompt,
+                        "emakistorage/withdraw_amount", AppConfig.WITHDRAW_INPUT_KEY, issues),
                 depositFilter,
                 bool(section, "allow_unique_items", defaults.allowUniqueItems()),
                 SortMode.fromId(section.getString("default_sort", null), defaults.defaultSort()),
                 bool(section, "player_sort_enabled", defaults.playerSortEnabled()));
     }
 
-    private AppConfig.SearchConfig parseSearch(YamlSection section) {
+    private AppConfig.SearchConfig parseSearch(YamlSection section,
+            java.util.function.Consumer<String> issues) {
         AppConfig.SearchConfig defaults = AppConfig.SearchConfig.defaults();
         if (section == null) {
             return defaults;
@@ -284,11 +294,17 @@ final class StorageLifecycleCoordinator
                         operators.getString("lore", defaults.operators().lore()),
                         operators.getString("id", defaults.operators().id()),
                         operators.getString("exclude", defaults.operators().exclude()));
-        List<String> cancelKeywords = section.getStringList("cancel_keywords");
+        YamlSection input = section.getSection("input");
+        long timeout = input == null
+                ? defaults.inputTimeoutSeconds()
+                : longValue(input, "timeout", defaults.inputTimeoutSeconds());
+        List<String> cancelKeywords = input == null ? null : input.getStringList("cancel_keywords");
         return new AppConfig.SearchConfig(
                 bool(section, "enabled", defaults.enabled()),
                 parsedOperators,
-                Math.max(0L, longValue(section, "input_timeout", defaults.inputTimeoutSeconds())),
+                emaki.jiuwu.craft.storage.config.InputModeConfig.fromConfig(input,
+                        "emakistorage/search", AppConfig.SEARCH_INPUT_KEY, issues),
+                Math.max(0L, timeout),
                 cancelKeywords == null || cancelKeywords.isEmpty()
                         ? defaults.cancelKeywords() : cancelKeywords);
     }

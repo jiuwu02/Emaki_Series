@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.storage.session;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -9,11 +11,13 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.chat.ChatInputRequest;
 import emaki.jiuwu.craft.corelib.chat.ChatInputResult;
+import emaki.jiuwu.craft.corelib.dialog.DialogDefinition;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
 import emaki.jiuwu.craft.storage.api.model.StorageResult;
 import emaki.jiuwu.craft.storage.config.AppConfig;
+import emaki.jiuwu.craft.storage.config.InputModeConfig;
 import emaki.jiuwu.craft.storage.gui.StorageGuiHandler;
 import emaki.jiuwu.craft.storage.gui.StorageGuiService;
 import emaki.jiuwu.craft.storage.log.StorageOperationSource;
@@ -109,7 +113,7 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         if (promptWithdrawByDialog(viewer, session, key, storageOwner, generation)) {
             return;
         }
-        if (!config.inputMode().allowsChat()) {
+        if (!config.behavior().withdrawInput().allowsChat()) {
             plugin.messageService().send(viewer, "dialog.unavailable");
             return;
         }
@@ -130,26 +134,14 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
             StorageKey key,
             UUID storageOwner,
             long generation) {
-        if (!plugin.appConfig().inputMode().allowsDialog()) {
+        InputModeConfig input = plugin.appConfig().behavior().withdrawInput();
+        DialogDefinition definition = resolveDialog(input, Map.of());
+        if (definition == null) {
             return false;
         }
-        var dialogService = dialogService();
-        if (dialogService == null || !dialogService.enabled()) {
-            return false;
-        }
-        var messages = plugin.messageService();
-        var definition = emaki.jiuwu.craft.corelib.dialog.Dialogs.textPrompt(
-                "emakistorage/withdraw_amount",
-                messages.message("dialog.withdraw.title"),
-                java.util.List.of(messages.message("dialog.withdraw.body")),
-                "amount",
-                messages.message("dialog.withdraw.label"),
-                "",
-                32,
-                messages.message("dialog.confirm"));
-        return dialogService.show(viewer, definition, (player, submission) ->
+        return dialogService().show(viewer, definition, (player, submission) ->
                 applyWithdrawInput(player, session, key, storageOwner, generation,
-                        submission.text("amount")));
+                        submission.text(input.inputKey())));
     }
 
     private void handleWithdrawInput(Player viewer,
@@ -274,7 +266,7 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         if (promptSearchByDialog(viewer, session, dialogOwner, dialogGeneration)) {
             return;
         }
-        if (!config.inputMode().allowsChat()) {
+        if (!config.search().input().allowsChat()) {
             plugin.messageService().send(viewer, "dialog.unavailable");
             return;
         }
@@ -300,30 +292,103 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
             GuiSession session,
             UUID storageOwner,
             long generation) {
-        if (!plugin.appConfig().inputMode().allowsDialog()) {
+        InputModeConfig input = plugin.appConfig().search().input();
+        var operators = plugin.appConfig().search().operators();
+        DialogDefinition definition = resolveDialog(input, Map.of(
+                "name", operators.name(),
+                "lore", operators.lore(),
+                "id", operators.id(),
+                "exclude", operators.exclude()));
+        if (definition == null) {
             return false;
+        }
+        return dialogService().show(viewer, definition, (player, submission) ->
+                applySearchInput(player, session, storageOwner, generation,
+                        submission.text(input.inputKey())));
+    }
+
+    /**
+     * 把配置里的对话框定义解析为可展示的定义。
+     *
+     * <p>配置存的是语言键名，这里才解析为文案，因此重载语言或切换语言后立即生效；
+     * 键不存在时按原文渲染，服主可以直接写文本而不建语言键。
+     *
+     * @param input        该交互的输入方式配置
+     * @param replacements 文本占位符替换值
+     * @return 可展示的定义；不该用对话框或定义不可用时返回 {@code null}
+     */
+    private DialogDefinition resolveDialog(InputModeConfig input, Map<String, ?> replacements) {
+        if (!input.allowsDialog() || !input.dialogUsable()) {
+            return null;
         }
         var dialogService = dialogService();
         if (dialogService == null || !dialogService.enabled()) {
-            return false;
+            return null;
         }
-        var operators = plugin.appConfig().search().operators();
-        var messages = plugin.messageService();
-        var definition = emaki.jiuwu.craft.corelib.dialog.Dialogs.textPrompt(
-                "emakistorage/search",
-                messages.message("dialog.search.title"),
-                java.util.List.of(messages.message("dialog.search.body", Map.of(
-                        "name", operators.name(),
-                        "lore", operators.lore(),
-                        "id", operators.id(),
-                        "exclude", operators.exclude()))),
-                "query",
-                messages.message("dialog.search.label"),
-                "",
-                64,
-                messages.message("dialog.confirm"));
-        return dialogService.show(viewer, definition, (player, submission) ->
-                applySearchInput(player, session, storageOwner, generation, submission.text("query")));
+        DialogDefinition source = input.dialog();
+        List<DialogDefinition.Body> body = new ArrayList<>();
+        for (DialogDefinition.Body entry : source.body()) {
+            body.add(new DialogDefinition.Body(
+                    text(entry.text(), replacements), entry.item(), entry.width()));
+        }
+        List<DialogDefinition.Input> inputs = new ArrayList<>();
+        for (DialogDefinition.Input entry : source.inputs()) {
+            inputs.add(new DialogDefinition.Input(
+                    entry.type(),
+                    entry.key(),
+                    text(entry.label(), replacements),
+                    entry.labelVisible(),
+                    entry.initial(),
+                    entry.maxLength(),
+                    entry.width(),
+                    entry.start(),
+                    entry.end(),
+                    entry.step(),
+                    entry.initialBoolean(),
+                    entry.onTrue(),
+                    entry.onFalse(),
+                    entry.options()));
+        }
+        List<DialogDefinition.Button> buttons = new ArrayList<>();
+        for (DialogDefinition.Button entry : source.buttons()) {
+            buttons.add(button(entry, replacements));
+        }
+        return new DialogDefinition(
+                source.id(),
+                source.type(),
+                text(source.title(), replacements),
+                source.externalTitle() == null ? null : text(source.externalTitle(), replacements),
+                source.canCloseWithEscape(),
+                source.pause(),
+                source.afterAction(),
+                body,
+                inputs,
+                buttons,
+                source.exitButton() == null ? null : button(source.exitButton(), replacements),
+                source.columns());
+    }
+
+    private DialogDefinition.Button button(DialogDefinition.Button source,
+            Map<String, ?> replacements) {
+        return new DialogDefinition.Button(
+                text(source.label(), replacements),
+                source.tooltip() == null ? null : text(source.tooltip(), replacements),
+                source.width(),
+                source.action());
+    }
+
+    /**
+     * 把配置值当作语言键解析。
+     *
+     * <p>语言键缺失时 {@code message} 会回显键名本身，等价于按原文渲染，
+     * 因此服主既可以填语言键，也可以直接写 MiniMessage 文本。
+     */
+    private String text(String raw, Map<String, ?> replacements) {
+        if (raw == null || raw.isBlank()) {
+            return raw;
+        }
+        String resolved = plugin.messageService().message(raw, replacements);
+        return resolved == null ? raw : resolved;
     }
 
     /** {@return CoreLib 的对话框服务；不可用时为 {@code null}} */

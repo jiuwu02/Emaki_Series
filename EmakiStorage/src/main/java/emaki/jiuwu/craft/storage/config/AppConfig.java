@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.storage.model.SortMode;
 public final class AppConfig extends BaseAppConfig {
 
     /** Structure version of {@code config.yml}, independent of the plugin version. */
-    public static final String CURRENT_VERSION = "1.0.0";
+    public static final String CURRENT_VERSION = "1.1.0";
 
     /** Feedback style after a successful deposit. */
     public enum DepositFeedback {
@@ -209,17 +209,31 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
+    /** 自定义取出数量输入项的 key；对话框配置必须提供同名输入框。 */
+    public static final String WITHDRAW_INPUT_KEY = "amount";
+
+    /** 搜索关键词输入项的 key；对话框配置必须提供同名输入框。 */
+    public static final String SEARCH_INPUT_KEY = "query";
+
     /** Transaction behaviour settings. */
     public record BehaviorConfig(WithdrawOverflow overflowOnWithdraw,
             WithdrawAmounts withdrawAmounts,
             boolean withdrawPromptEnabled,
+            InputModeConfig withdrawInput,
             DepositFilter depositFilter,
             boolean allowUniqueItems,
             SortMode defaultSort,
             boolean playerSortEnabled) {
 
+        public BehaviorConfig {
+            withdrawInput = withdrawInput == null
+                    ? InputModeConfig.defaults(WITHDRAW_INPUT_KEY)
+                    : withdrawInput;
+        }
+
         public static BehaviorConfig defaults() {
             return new BehaviorConfig(WithdrawOverflow.RETURN, WithdrawAmounts.defaults(), true,
+                    InputModeConfig.defaults(WITHDRAW_INPUT_KEY),
                     DepositFilter.defaults(), true, SortMode.AMOUNT_DESC, true);
         }
     }
@@ -227,21 +241,25 @@ public final class AppConfig extends BaseAppConfig {
     /** Search settings. No regex option exists at any permission level. */
     public record SearchConfig(boolean enabled,
             SearchQuery.Operators operators,
+            InputModeConfig input,
             long inputTimeoutSeconds,
             List<String> cancelKeywords) {
 
         public SearchConfig(boolean enabled,
                 SearchQuery.Operators operators,
+                InputModeConfig input,
                 long inputTimeoutSeconds,
                 List<String> cancelKeywords) {
             this.enabled = enabled;
             this.operators = operators;
+            this.input = input == null ? InputModeConfig.defaults(SEARCH_INPUT_KEY) : input;
             this.inputTimeoutSeconds = inputTimeoutSeconds;
             this.cancelKeywords = List.copyOf(cancelKeywords);
         }
 
         public static SearchConfig defaults() {
-            return new SearchConfig(true, SearchQuery.Operators.defaults(), 30L,
+            return new SearchConfig(true, SearchQuery.Operators.defaults(),
+                    InputModeConfig.defaults(SEARCH_INPUT_KEY), 30L,
                     List.of("取消", "cancel"));
         }
     }
@@ -276,7 +294,6 @@ public final class AppConfig extends BaseAppConfig {
     private final DisplayConfig display;
     private final BehaviorConfig behavior;
     private final AutoPickupConfig autoPickup;
-    private final InputModeConfig inputMode;
     private final SearchConfig search;
     private final PersistenceConfig persistence;
     private final LoggingConfig logging;
@@ -292,7 +309,6 @@ public final class AppConfig extends BaseAppConfig {
             DisplayConfig display,
             BehaviorConfig behavior,
             AutoPickupConfig autoPickup,
-            InputModeConfig inputMode,
             SearchConfig search,
             PersistenceConfig persistence,
             LoggingConfig logging,
@@ -306,7 +322,6 @@ public final class AppConfig extends BaseAppConfig {
         this.display = display == null ? DisplayConfig.defaults() : display;
         this.behavior = behavior == null ? BehaviorConfig.defaults() : behavior;
         this.autoPickup = autoPickup == null ? AutoPickupConfig.defaults() : autoPickup;
-        this.inputMode = inputMode == null ? InputModeConfig.defaults() : inputMode;
         this.search = search == null ? SearchConfig.defaults() : search;
         this.persistence = persistence == null ? PersistenceConfig.defaults() : persistence;
         this.logging = logging == null ? LoggingConfig.defaults() : logging;
@@ -317,7 +332,7 @@ public final class AppConfig extends BaseAppConfig {
         return new AppConfig("zh_CN", CURRENT_VERSION, true, false,
                 GuiConfig.defaults(), CapacityConfig.defaults(), UnlockConfig.defaults(),
                 DisplayConfig.defaults(), BehaviorConfig.defaults(),
-                AutoPickupConfig.defaults(), InputModeConfig.defaults(), SearchConfig.defaults(),
+                AutoPickupConfig.defaults(), SearchConfig.defaults(),
                 PersistenceConfig.defaults(), LoggingConfig.defaults(), false);
     }
 
@@ -352,11 +367,6 @@ public final class AppConfig extends BaseAppConfig {
     /** {@return 自动拾取设置} */
     public AutoPickupConfig autoPickup() {
         return autoPickup;
-    }
-
-    /** {@return 数量与搜索的输入方式设置} */
-    public InputModeConfig inputMode() {
-        return inputMode;
     }
 
     public SearchConfig search() {
