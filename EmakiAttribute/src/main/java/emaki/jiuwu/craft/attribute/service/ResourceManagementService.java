@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -248,9 +249,10 @@ final class ResourceManagementService {
             }
         }
         double factor = AttributeFusionMath.percentFactor(percentBonus, true);
-        double currentMax = AttributeFusionMath.usesFusedCombatValues(snapshot)
+        double ownMax = AttributeFusionMath.usesFusedCombatValues(snapshot)
                 ? resourceDefinition.clampMax((defaultMax * factor) + flatBonus)
                 : resourceDefinition.clampMax((defaultMax + flatBonus) * factor);
+        double currentMax = resolveHealthCeiling(player, resourceDefinition, ownMax, reason);
         double currentValue;
         if (currentValueOverride != null) {
             currentValue = currentValueOverride;
@@ -374,6 +376,16 @@ final class ResourceManagementService {
             ResourceSyncReason reason,
             Double healthOverride,
             boolean forceHealthToFull) {
+        // Vanilla-mapped attributes are refreshed first: the health resource reads
+        // the modified MAX_HEALTH value as its ceiling, so a VANILLA-mapped max
+        // health binding must already be applied for this tick rather than lagging
+        // one sync behind.
+        service.vanillaSynchronizer().syncVanillaMappedAttributes(
+                player,
+                snapshot,
+                service.registryService().vanillaAttributeBindings(),
+                service.registryService().vanillaMappedAttributes()
+        );
         for (ResourceDefinition resourceDefinition : service.resourceDefinitions().values()) {
             Double override = HEALTH_RESOURCE_ID.equals(resourceDefinition.id()) ? healthOverride : null;
             ResourceSyncReason effectiveReason = forceHealthToFull && HEALTH_RESOURCE_ID.equals(resourceDefinition.id())
@@ -382,29 +394,67 @@ final class ResourceManagementService {
             syncResource(player, resourceDefinition, snapshot, effectiveReason, override);
         }
         service.vanillaSynchronizer().syncMovementSpeed(player, snapshot, service.registryService().genericSpeedDefinitions());
-        service.vanillaSynchronizer().syncVanillaMappedAttributes(
-                player,
-                snapshot,
-                service.registryService().vanillaAttributeBindings(),
-                service.registryService().vanillaMappedAttributes()
-        );
+    }
+
+    /**
+     * Resolves the effective ceiling for the health resource.
+     *
+     * <p>EmakiAttribute owns the {@code MAX_HEALTH} base value, but other
+     * sources (its own {@code VANILLA}-mapped attributes, potion effects such as
+     * Health Boost, and third-party plugins) contribute attribute modifiers on
+     * top of that base. {@code Player#setHealth(double)} is bounded by the
+     * modified attribute value, not by the base, so the resource ceiling must
+     * follow the engine-computed value. Otherwise the resource cap stays at the
+     * EmakiAttribute-only figure and every sync forces health back down to it,
+     * which prevents the player from ever healing past it.
+     *
+     * <p>For non-health resources, and when the health resource does not sync to
+     * Bukkit, the EmakiAttribute-only cap is returned unchanged.
+     *
+     * @param player the player being synchronized
+     * @param resourceDefinition the resource being synchronized
+     * @param ownMax the cap derived from EmakiAttribute's own resource attributes
+     * @param reason the sync reason, used for diagnostics
+     * @return the ceiling the resource state should adopt
+     */
+    private double resolveHealthCeiling(Player player,
+            ResourceDefinition resourceDefinition,
+            double ownMax,
+            ResourceSyncReason reason) {
+        if (!resourceDefinition.syncToBukkit() || !HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
+            return ownMax;
+        }
+        AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
+        if (maxHealthAttribute == null) {
+            return ownMax;
+        }
+        double base = Math.max(1D, ownMax);
+        maxHealthAttribute.setBaseValue(base);
+        double effective = maxHealthAttribute.getValue();
+        double ceiling = Double.isFinite(effective) && effective > 0D ? effective : base;
+        debugResource(player, "resource.health_ceiling", debugReplacements(
+                "player", player.getName(),
+                "resource", resourceDefinition.id(),
+                "reason", describeReason(reason),
+                "own_max", describeNumber(ownMax),
+                "bukkit_max_health_base", describeNumber(base),
+                "bukkit_max_health_value", describeNumber(effective),
+                "ceiling", describeNumber(ceiling)
+        ));
+        debugMaxHealthModifiers(player, reason, maxHealthAttribute);
+        return ceiling;
     }
 
     private void syncHealthToBukkit(Player player, ResourceState state, ResourceSyncReason reason) {
         if (player == null || state == null) {
             return;
         }
-        double rawMaxHealth = state.currentMax();
-        double maxHealth = Math.max(1D, rawMaxHealth);
-        double bukkitHealth = rawMaxHealth <= 0D
-                ? 1D
-                : Math.max(0D, Math.min(state.currentValue(), maxHealth));
         AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
         debugBukkitHealth(player, state, reason, "before", maxHealthAttribute);
-        if (maxHealthAttribute != null) {
-            maxHealthAttribute.setBaseValue(maxHealth);
-        }
-        player.setHealth(Math.min(maxHealth, bukkitHealth));
+        double ceiling = maxHealthAttribute == null
+                ? Math.max(1D, state.currentMax())
+                : maxHealthAttribute.getValue();
+        player.setHealth(Math.max(0D, Math.min(state.currentValue(), ceiling)));
         debugBukkitHealth(player, state, reason, "after", player.getAttribute(Attribute.MAX_HEALTH));
         syncHealthDisplayScaling(player);
     }
@@ -489,6 +539,33 @@ final class ResourceManagementService {
                 Map.entry("bukkit_max_health_base", describeAttributeBase(maxHealthAttribute)),
                 Map.entry("bukkit_max_health_value", describeAttributeValue(maxHealthAttribute))
         ));
+    }
+
+    /**
+     * Logs every modifier currently present on the player's {@code MAX_HEALTH}
+     * instance, so the source of an unexpected effective maximum can be named
+     * instead of guessed. Each modifier is reported with its key, amount,
+     * operation and slot group.
+     */
+    private void debugMaxHealthModifiers(Player player, ResourceSyncReason reason, AttributeInstance maxHealthAttribute) {
+        if (maxHealthAttribute == null || !shouldDebugResource(player)) {
+            return;
+        }
+        List<AttributeModifier> modifiers = List.copyOf(maxHealthAttribute.getModifiers());
+        int total = modifiers.size();
+        for (int index = 0; index < total; index++) {
+            AttributeModifier modifier = modifiers.get(index);
+            debugResource(player, "resource.max_health_modifier", debugReplacements(
+                    "player", player.getName(),
+                    "reason", describeReason(reason),
+                    "index", index + 1,
+                    "total", total,
+                    "modifier_key", modifier == null || modifier.getKey() == null ? "" : modifier.getKey().toString(),
+                    "modifier_amount", modifier == null ? "" : describeNumber(modifier.getAmount()),
+                    "modifier_operation", modifier == null || modifier.getOperation() == null ? "" : modifier.getOperation().name(),
+                    "modifier_slot_group", modifier == null || modifier.getSlotGroup() == null ? "" : modifier.getSlotGroup().toString()
+            ));
+        }
     }
 
     private static String describeAttributeBase(AttributeInstance attribute) {

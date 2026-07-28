@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.6.4"
+version: "4.6.5"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -604,6 +604,8 @@ debug:
     max_update: "资源上限更新 | 玩家=%player% | 资源=%resource% | 上限=%max%"
     request: "收到资源同步请求 | 玩家=%player% | 来源=%source% | 原因=%reason% | 延迟=%delay_ticks% tick"
     execute: "开始执行资源同步 | 玩家=%player% | 来源=%source% | 原因=%reason% | 延迟=%delay_ticks% tick | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value% | 已存状态存在=%stored_present% | 已存资源=%stored_resource_id% | 已存默认上限=%stored_default_max% | 已存加成上限=%stored_bonus_max% | 已存当前上限=%stored_current_max% | 已存当前值=%stored_current_value% | 已存来源签名=%stored_source_signature% | 已存模式版本=%stored_schema_version%"
+    health_ceiling: "生命上限解析 | 玩家=%player% | 资源=%resource% | 原因=%reason% | EA自算上限=%own_max% | 已写入Bukkit基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value% | 采用上限=%ceiling%"
+    max_health_modifier: "最大生命修饰器 | 玩家=%player% | 原因=%reason% | 序号=%index% | 总数=%total% | 修饰器键=%modifier_key% | 修饰器数值=%modifier_amount% | 修饰器运算=%modifier_operation% | 修饰器槽位组=%modifier_slot_group%"
     calculate: "资源计算 | 玩家=%player% | 资源=%resource% | 原因=%reason% | 传入当前值=%current_value_override% | 默认上限=%default_max% | 固定加成=%flat_bonus% | 百分比加成=%percent_bonus% | 百分比系数=%percent_factor% | 计算上限=%current_max% | 计算当前值=%current_value% | 是否写入状态=%write_state% | 现有状态存在=%existing_present% | 现有资源=%existing_resource_id% | 现有默认上限=%existing_default_max% | 现有加成上限=%existing_bonus_max% | 现有当前上限=%existing_current_max% | 现有当前值=%existing_current_value% | 现有来源签名=%existing_source_signature% | 现有模式版本=%existing_schema_version%"
     state_written: "资源状态已写入 | 玩家=%player% | 资源=%resource% | 原因=%reason% | 状态存在=%state_present% | 状态资源=%state_resource_id% | 状态默认上限=%state_default_max% | 状态加成上限=%state_bonus_max% | 状态当前上限=%state_current_max% | 状态当前值=%state_current_value% | 状态来源签名=%state_source_signature% | 状态模式版本=%state_schema_version%"
     state_unchanged: "资源状态未变化 | 玩家=%player% | 资源=%resource% | 原因=%reason% | 状态存在=%state_present% | 状态资源=%state_resource_id% | 状态默认上限=%state_default_max% | 状态加成上限=%state_bonus_max% | 状态当前上限=%state_current_max% | 状态当前值=%state_current_value% | 状态来源签名=%state_source_signature% | 状态模式版本=%state_schema_version%"

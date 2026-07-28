@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.6.4"
+version: "4.6.5"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -654,6 +654,8 @@ debug:
     max_update: "Resource max update | player=%player% | resource=%resource% | max=%max%"
     request: "Resource sync requested | player=%player% | source=%source% | reason=%reason% | delay_ticks=%delay_ticks%"
     execute: "Resource sync executing | player=%player% | source=%source% | reason=%reason% | delay_ticks=%delay_ticks% | bukkit_health=%bukkit_health% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value% | stored_present=%stored_present% | stored_resource_id=%stored_resource_id% | stored_default_max=%stored_default_max% | stored_bonus_max=%stored_bonus_max% | stored_current_max=%stored_current_max% | stored_current_value=%stored_current_value% | stored_source_signature=%stored_source_signature% | stored_schema_version=%stored_schema_version%"
+    health_ceiling: "Health ceiling resolved | player=%player% | resource=%resource% | reason=%reason% | own_max=%own_max% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value% | ceiling=%ceiling%"
+    max_health_modifier: "Max health modifier | player=%player% | reason=%reason% | index=%index% | total=%total% | modifier_key=%modifier_key% | modifier_amount=%modifier_amount% | modifier_operation=%modifier_operation% | modifier_slot_group=%modifier_slot_group%"
     calculate: "Resource calculation | player=%player% | resource=%resource% | reason=%reason% | current_value_override=%current_value_override% | default_max=%default_max% | flat_bonus=%flat_bonus% | percent_bonus=%percent_bonus% | percent_factor=%percent_factor% | current_max=%current_max% | current_value=%current_value% | write_state=%write_state% | existing_present=%existing_present% | existing_resource_id=%existing_resource_id% | existing_default_max=%existing_default_max% | existing_bonus_max=%existing_bonus_max% | existing_current_max=%existing_current_max% | existing_current_value=%existing_current_value% | existing_source_signature=%existing_source_signature% | existing_schema_version=%existing_schema_version%"
     state_written: "Resource state written | player=%player% | resource=%resource% | reason=%reason% | state_present=%state_present% | state_resource_id=%state_resource_id% | state_default_max=%state_default_max% | state_bonus_max=%state_bonus_max% | state_current_max=%state_current_max% | state_current_value=%state_current_value% | state_source_signature=%state_source_signature% | state_schema_version=%state_schema_version%"
     state_unchanged: "Resource state unchanged | player=%player% | resource=%resource% | reason=%reason% | state_present=%state_present% | state_resource_id=%state_resource_id% | state_default_max=%state_default_max% | state_bonus_max=%state_bonus_max% | state_current_max=%state_current_max% | state_current_value=%state_current_value% | state_source_signature=%state_source_signature% | state_schema_version=%state_schema_version%"
