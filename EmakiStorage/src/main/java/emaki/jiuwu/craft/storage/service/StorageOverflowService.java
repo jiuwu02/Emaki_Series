@@ -63,14 +63,17 @@ public final class StorageOverflowService {
 
     private final StorageOperationLog operationLog;
     private final StorageTextIndexer textIndexer;
+    private final StorageCapacityService capacityService;
 
     private volatile AppConfig config;
 
     public StorageOverflowService(StorageOperationLog operationLog,
             StorageTextIndexer textIndexer,
+            StorageCapacityService capacityService,
             AppConfig config) {
         this.operationLog = operationLog;
         this.textIndexer = textIndexer;
+        this.capacityService = capacityService;
         this.config = config;
     }
 
@@ -106,18 +109,33 @@ public final class StorageOverflowService {
      * <p>{@code compact} needs no separate branch here: entries are already stored in a compact
      * gap-free list, so "pull entries forward into free slots" is the list's natural state. What
      * remains over capacity falls back to read-only, exactly as documented.
+     *
+     * <p>Occupancy is walked as spans rather than entry positions, because under
+     * {@code behavior.multi_slot_stacking} one entry can occupy several slots. An entry whose span
+     * straddles the boundary is locked whole: partially locking it would mean an entry that accepts
+     * deposits into its first slot but not its second, which cannot be expressed to the player.
+     * Locking is read-only, so this stays zero-loss either way.
      */
     private Set<StorageKey> overflowKeys(PlayerStorage storage, StorageCapacity capacity) {
         List<StorageKey> order = storage.entryOrder();
         int effective = Math.max(0, capacity.effectiveSlots());
-        if (order.size() <= effective) {
-            return Set.of();
-        }
         Set<StorageKey> locked = new LinkedHashSet<>();
-        for (int index = effective; index < order.size(); index++) {
-            locked.add(order.get(index));
+        long consumed = 0L;
+        for (StorageKey key : order) {
+            StorageEntry entry = storage.entry(key);
+            if (entry == null) {
+                continue;
+            }
+            if (consumed >= effective) {
+                locked.add(key);
+                continue;
+            }
+            consumed += capacityService.slotSpan(storage, entry);
+            if (consumed > effective) {
+                locked.add(key);
+            }
         }
-        return locked;
+        return locked.isEmpty() ? Set.of() : locked;
     }
 
     /**

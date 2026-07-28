@@ -384,47 +384,49 @@ public final class StorageTransactionService {
      * Pre-transaction validation shared by every deposit path.
      *
      * @param room      how many units may still be accepted
+     * @param ceiling   the total amount this entry is allowed to reach, already accounting for the
+     *                  slots it may grow into under {@code behavior.multi_slot_stacking}
      * @param entry     the existing entry, {@code null} when a new one is needed
      * @param rejection a reason key when the deposit is refused outright, otherwise {@code null}
      */
-    private record PreCheck(long room, StorageEntry entry, String rejection) {
+    private record PreCheck(long room, long ceiling, StorageEntry entry, String rejection) {
     }
 
     private PreCheck preCheck(PlayerStorage storage, StorageKey key, StorageCapacity capacity) {
         AppConfig active = config;
         ItemStack template = key.toItemStack();
         if (!passesFilter(template, active.behavior().depositFilter())) {
-            return new PreCheck(0L, null, "filtered");
+            return new PreCheck(0L, 0L, null, "filtered");
         }
         StorageEntry entry = storage.entry(key);
         if (entry == null) {
             if (!active.behavior().allowUniqueItems() && isUnique(template)) {
-                return new PreCheck(0L, null, "unique_rejected");
+                return new PreCheck(0L, 0L, null, "unique_rejected");
             }
             if (!capacityService.hasFreeSlot(capacity)) {
-                return new PreCheck(0L, null, "no_free_slot");
+                return new PreCheck(0L, 0L, null, "no_free_slot");
             }
-            long limit = capacityService.effectiveStackLimit(storage, null);
-            return new PreCheck(limit, null, null);
+            // A brand new entry may also span several slots straight away, otherwise depositing 120
+            // into an empty warehouse would still store 100 and reject 20.
+            long ceiling = capacityService.spanCeiling(storage, null, capacity.freeSlots());
+            return new PreCheck(ceiling, ceiling, null, null);
         }
-        long limit = capacityService.effectiveStackLimit(storage, entry);
-        long room = limit >= Long.MAX_VALUE ? Long.MAX_VALUE - entry.amount() : limit - entry.amount();
-        return new PreCheck(Math.max(0L, room), entry, null);
+        long ceiling = capacityService.spanCeiling(storage, entry, capacity.freeSlots());
+        long room = ceiling >= Long.MAX_VALUE ? Long.MAX_VALUE - entry.amount() : ceiling - entry.amount();
+        return new PreCheck(Math.max(0L, room), ceiling, entry, null);
     }
 
     private long credit(PlayerStorage storage, StorageKey key, PreCheck preCheck, long amount) {
         StorageEntry entry = preCheck.entry() != null ? preCheck.entry() : storage.entry(key);
         if (entry == null) {
-            long limit = capacityService.effectiveStackLimit(storage, null);
-            long accepted = Math.min(amount, limit);
+            long accepted = Math.min(amount, preCheck.ceiling());
             if (accepted <= 0L) {
                 return 0L;
             }
             storage.append(textIndexer.createEntry(key, accepted, 0L));
             return accepted;
         }
-        long limit = capacityService.effectiveStackLimit(storage, entry);
-        return entry.add(amount, limit);
+        return entry.add(amount, preCheck.ceiling());
     }
 
     /**

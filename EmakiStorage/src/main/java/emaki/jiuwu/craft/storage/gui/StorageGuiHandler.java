@@ -180,11 +180,13 @@ public final class StorageGuiHandler implements GuiSessionHandler {
             StorageGuiService.ViewState state) {
         int page = StorageGuiService.currentPage(session);
         int index = page * guiService.slotsPerPage() + slot.slotIndex();
-        List<StorageKey> visible = state.visible();
-        if (index < 0 || index >= visible.size()) {
+        List<StorageGuiService.SlotView> slots = state.slots();
+        if (index < 0 || index >= slots.size()) {
             return;
         }
-        StorageKey key = visible.get(index);
+        // Every slice of a spanned entry resolves to the same key, so a withdrawal always debits the
+        // one shared total. That is what makes the tail slots collapse forward on their own.
+        StorageKey key = slots.get(index).key();
         StorageEntry entry = storage.entry(key);
         if (entry == null || entry.empty()) {
             return;
@@ -270,8 +272,8 @@ public final class StorageGuiHandler implements GuiSessionHandler {
             return;
         }
         int perPage = guiService.slotsPerPage();
-        int visibleCount = state.visible().size();
-        int reachable = Math.max(1, (int) Math.ceil((double) visibleCount / perPage));
+        int slotCount = state.slots().size();
+        int reachable = Math.max(1, (int) Math.ceil((double) slotCount / perPage));
         StorageCapacity capacity = capacityService.capacityOf(storage, viewer, perPage);
         int allowed = Math.min(reachable, Math.max(1, capacity.totalPages()));
         if (target > allowed - 1) {
@@ -344,8 +346,8 @@ public final class StorageGuiHandler implements GuiSessionHandler {
      */
     private void clampAndRefresh(GuiSession session, Player viewer, StorageGuiService.ViewState state) {
         int perPage = guiService.slotsPerPage();
-        int visibleCount = state.visible().size();
-        int reachable = Math.max(1, (int) Math.ceil((double) visibleCount / perPage));
+        int slotCount = state.slots().size();
+        int reachable = Math.max(1, (int) Math.ceil((double) slotCount / perPage));
         int page = StorageGuiService.currentPage(session);
         int clamped = Math.min(page, reachable - 1);
         if (clamped != page) {

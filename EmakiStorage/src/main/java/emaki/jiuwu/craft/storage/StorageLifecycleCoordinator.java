@@ -101,7 +101,7 @@ final class StorageLifecycleCoordinator
         StorageSearchService searchService = new StorageSearchService();
         StorageSortService sortService = new StorageSortService();
         StorageOverflowService overflowService =
-                new StorageOverflowService(operationLog, textIndexer, config);
+                new StorageOverflowService(operationLog, textIndexer, capacityService, config);
         UnlockCostConfig costConfig = loadCostConfig(plugin, config, false);
         StorageUnlockService unlockService = new StorageUnlockService(coreLib.economyManager(),
                 coreLib.itemSourceService(), capacityService, operationLog, config, costConfig);
@@ -276,6 +276,7 @@ final class StorageLifecycleCoordinator
                         "emakistorage/withdraw_amount", AppConfig.WITHDRAW_INPUT_KEY, issues),
                 depositFilter,
                 bool(section, "allow_unique_items", defaults.allowUniqueItems()),
+                bool(section, "multi_slot_stacking", defaults.multiSlotStacking()),
                 SortMode.fromId(section.getString("default_sort", null), defaults.defaultSort()),
                 bool(section, "player_sort_enabled", defaults.playerSortEnabled()));
     }

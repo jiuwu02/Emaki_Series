@@ -215,13 +215,20 @@ public final class AppConfig extends BaseAppConfig {
     /** 搜索关键词输入项的 key；对话框配置必须提供同名输入框。 */
     public static final String SEARCH_INPUT_KEY = "query";
 
-    /** Transaction behaviour settings. */
+    /**
+     * Transaction behaviour settings.
+     *
+     * @param multiSlotStacking whether one item kind may span several slots once the per-slot
+     *                          ceiling is reached; {@code false} keeps the legacy behaviour of
+     *                          refusing the surplus outright
+     */
     public record BehaviorConfig(WithdrawOverflow overflowOnWithdraw,
             WithdrawAmounts withdrawAmounts,
             boolean withdrawPromptEnabled,
             InputModeConfig withdrawInput,
             DepositFilter depositFilter,
             boolean allowUniqueItems,
+            boolean multiSlotStacking,
             SortMode defaultSort,
             boolean playerSortEnabled) {
 
@@ -234,7 +241,7 @@ public final class AppConfig extends BaseAppConfig {
         public static BehaviorConfig defaults() {
             return new BehaviorConfig(WithdrawOverflow.RETURN, WithdrawAmounts.defaults(), true,
                     InputModeConfig.defaults(WITHDRAW_INPUT_KEY),
-                    DepositFilter.defaults(), true, SortMode.AMOUNT_DESC, true);
+                    DepositFilter.defaults(), true, false, SortMode.AMOUNT_DESC, true);
         }
     }
 

@@ -15,7 +15,10 @@ import org.jetbrains.annotations.NotNull;
  * @param purchasedSlots slots bought through the in-GUI unlock flow
  * @param effectiveSlots the clamped total, never negative
  * @param maxSlots       the configured hard ceiling, {@code 0} meaning unlimited
- * @param usedSlots      how many slots currently hold an entry
+ * @param usedSlots      how many slots are currently occupied. With
+ *                       {@code behavior.multi_slot_stacking} enabled one entry may occupy several
+ *                       slots, so this is the sum of entry spans rather than the entry count; with
+ *                       the option disabled the two are identical
  * @param slotsPerPage   how many storage slots one GUI page renders
  */
 public record StorageCapacity(int baseSlots,
@@ -48,7 +51,7 @@ public record StorageCapacity(int baseSlots,
         return Math.max(1, (int) Math.ceil((double) effectiveSlots / perPage));
     }
 
-    /** {@return the last page that actually holds an entry} */
+    /** {@return the last page that actually holds an occupied slot} */
     public int reachablePages() {
         int perPage = Math.max(1, slotsPerPage);
         return Math.max(1, (int) Math.ceil((double) usedSlots / perPage));

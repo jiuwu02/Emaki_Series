@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.2"
+version: "1.0.3"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -141,6 +141,23 @@ behavior:
     entries: [] # CoreLib ItemSource token 列表
   # 是否允许存入带唯一标记（EmakiItem 实例 UUID 等）的物品
   allow_unique_items: true
+  # 同一物品单槽存满后，是否自动占用新槽位继续存储。
+  #   false（默认）存满即拒绝剩余部分，与旧版行为一致
+  #   true         一个条目可跨多格，占用格数 = ceil(数量 / 单槽上限)
+  #
+  # 例：单槽上限 100，手上 120 个橡木原木。
+  #   false → 存入 100，剩余 20 被拒绝
+  #   true  → 存入 120，显示为 [100] [20] 两格
+  #
+  # 跨格条目的多个格子共享同一个数量池：点任意一格取出都从总量扣。
+  # 上例取出 20 后总量回到 100，第 2 格自动消失，后面的条目前滚填补。
+  #
+  # 仍然受总槽位数限制：装不下的部分照旧被拒绝，不会突破 capacity 上限。
+  # 注意：开启后 usedSlots 需遍历全部条目累加占用格数（关闭时为 O(1)），
+  # 单玩家条目数很大时每次界面刷新的开销会上升。
+  # 从 true 改回 false 不丢数据：已超限的条目仍占一格、显示按 100% 截断、
+  # 拒绝新存入、可正常取空。
+  multi_slot_stacking: false
   # 排序默认值：material_asc|material_desc|name_asc|name_desc|amount_asc|amount_desc
   default_sort: amount_desc
   # 是否允许玩家在 GUI 中切换排序（false 时强制使用 default_sort）

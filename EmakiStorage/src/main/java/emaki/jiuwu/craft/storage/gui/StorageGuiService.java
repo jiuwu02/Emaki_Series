@@ -45,6 +45,11 @@ import emaki.jiuwu.craft.storage.service.StorageSearchService;
  *
  * <p>Slots are dispatched purely by their declared {@code type}; no absolute slot number is
  * hard-coded anywhere, so changing {@code gui.storage_rows} needs no code change.
+ *
+ * <p>A display slot is not the same thing as an entry. {@link ViewState#visible()} holds one key
+ * per matching entry, while {@link ViewState#slots()} holds one {@link SlotView} per rendered slot;
+ * under {@code behavior.multi_slot_stacking} a single entry expands into several of the latter.
+ * Everything that addresses a rendered position reads {@code slots()}.
  */
 public final class StorageGuiService {
 
@@ -68,12 +73,35 @@ public final class StorageGuiService {
     private volatile AppConfig config;
     private volatile StorageLayoutResolver.Layout layout;
 
+    /**
+     * One rendered display slot.
+     *
+     * <p>Under {@code behavior.multi_slot_stacking} a single entry occupies several consecutive
+     * slots, so a display slot is no longer the same thing as an entry. This is the projection that
+     * keeps the two apart: the {@code key} still identifies the one underlying entry, while
+     * {@code spanIndex} says which piece of it this slot shows.
+     *
+     * @param key       the entry's key; every slice of one entry shares it
+     * @param spanIndex zero-based position inside the entry's span
+     * @param spanCount how many slots the entry occupies in total
+     * @param slice     the amount visible in this slot
+     */
+    public record SlotView(StorageKey key, int spanIndex, int spanCount, long slice) {
+
+        /** {@return whether the owning entry occupies more than one slot} */
+        public boolean spanned() {
+            return spanCount > 1;
+        }
+    }
+
     /** Mutable per-session view state. */
     public static final class ViewState {
 
         private SearchQuery query = SearchQuery.empty();
         private String queryText = "";
         private List<StorageKey> visible = List.of();
+        private List<SlotView> slots = List.of();
+        private StorageCapacity capacity = StorageCapacity.empty();
         private StorageOverflowService.OverflowState overflow = StorageOverflowService.OverflowState.none();
 
         public SearchQuery query() {
@@ -88,8 +116,19 @@ public final class StorageGuiService {
             return !query.isEmpty();
         }
 
+        /** {@return the matching entries, one element per entry regardless of span} */
         public List<StorageKey> visible() {
             return visible;
+        }
+
+        /** {@return the expanded display slots, one element per rendered slot} */
+        public List<SlotView> slots() {
+            return slots;
+        }
+
+        /** {@return the capacity resolved by the last refresh} */
+        public StorageCapacity capacity() {
+            return capacity;
         }
 
         public StorageOverflowService.OverflowState overflow() {
@@ -104,6 +143,14 @@ public final class StorageGuiService {
 
         void visible(List<StorageKey> visible) {
             this.visible = visible == null ? List.of() : List.copyOf(visible);
+        }
+
+        void slots(List<SlotView> slots) {
+            this.slots = slots == null ? List.of() : List.copyOf(slots);
+        }
+
+        void capacity(StorageCapacity capacity) {
+            this.capacity = capacity == null ? StorageCapacity.empty() : capacity;
         }
 
         void overflow(StorageOverflowService.OverflowState overflow) {
@@ -180,11 +227,46 @@ public final class StorageGuiService {
         return guiService.open(request);
     }
 
-    /** Recomputes the visible key list and overflow state for a viewer. */
+    /**
+     * Recomputes the visible key list, expanded slot views, capacity and overflow state.
+     *
+     * <p>Capacity is resolved once here rather than per rendered slot. With multi-slot stacking on,
+     * {@code capacityOf} has to sum every entry's span, so calling it once per slot would multiply
+     * that walk by the page size on every repaint.
+     */
     public void refreshView(Player player, PlayerStorage storage, ViewState state) {
         StorageCapacity capacity = capacityService.capacityOf(storage, player, slotsPerPage());
+        state.capacity(capacity);
         state.overflow(overflowService.evaluate(storage, player, capacity));
-        state.visible(searchService.filter(storage, state.query()));
+        List<StorageKey> visible = searchService.filter(storage, state.query());
+        state.visible(visible);
+        state.slots(expandSlots(storage, visible));
+    }
+
+    /**
+     * Expands entries into display slots.
+     *
+     * <p>With multi-slot stacking off every entry yields exactly one slot, so this is the identity
+     * mapping and the old "list index is the slot number" rule still holds.
+     */
+    private List<SlotView> expandSlots(PlayerStorage storage, List<StorageKey> visible) {
+        if (storage == null || visible.isEmpty()) {
+            return List.of();
+        }
+        List<SlotView> expanded = new ArrayList<>(visible.size());
+        for (StorageKey key : visible) {
+            StorageEntry entry = storage.entry(key);
+            if (entry == null) {
+                continue;
+            }
+            long limit = capacityService.effectiveStackLimit(storage, entry);
+            int span = capacityService.slotSpan(storage, entry);
+            for (int spanIndex = 0; spanIndex < span; spanIndex++) {
+                expanded.add(new SlotView(key, spanIndex, span,
+                        capacityService.sliceAmount(entry.amount(), limit, spanIndex)));
+            }
+        }
+        return expanded;
     }
 
     /** {@return the zero-based page held in the session} */
@@ -232,7 +314,7 @@ public final class StorageGuiService {
             return null;
         }
         ViewState state = viewState(session.viewer().getUniqueId());
-        StorageCapacity capacity = capacityService.capacityOf(storage, session.viewer(), slotsPerPage());
+        StorageCapacity capacity = state.capacity();
         return switch (type) {
             case StorageLayoutResolver.TYPE_STORAGE_SLOT ->
                 renderStorageSlot(session, resolved, storage, state, capacity);
@@ -252,8 +334,8 @@ public final class StorageGuiService {
             StorageCapacity capacity) {
         int page = currentPage(session);
         int index = page * slotsPerPage() + resolved.slotIndex();
-        List<StorageKey> visible = state.visible();
-        if (index < 0 || index >= visible.size()) {
+        List<SlotView> slots = state.slots();
+        if (index < 0 || index >= slots.size()) {
             // Beyond the data: an unlocked-but-empty slot renders as air, a slot the player has not
             // unlocked yet renders as the configurable locked placeholder.
             if (index >= 0 && index < capacity.effectiveSlots()) {
@@ -261,13 +343,13 @@ public final class StorageGuiService {
             }
             return renderLockedSlot(resolved);
         }
-        StorageKey key = visible.get(index);
-        StorageEntry entry = storage.entry(key);
+        SlotView view = slots.get(index);
+        StorageEntry entry = storage.entry(view.key());
         if (entry == null) {
             return new ItemStack(Material.AIR);
         }
         long limit = capacityService.effectiveStackLimit(storage, entry);
-        return renderEntry(key, entry, limit, state.overflow().locked(key), state.searching());
+        return renderEntry(view, entry, limit, state.overflow().locked(view.key()), state.searching());
     }
 
     /**
@@ -276,13 +358,15 @@ public final class StorageGuiService {
      * <p>Hard rule: clone first, then stack display lore and {@code max_stack_size} onto the copy.
      * The original template is never touched.
      */
-    private ItemStack renderEntry(StorageKey key,
+    private ItemStack renderEntry(SlotView view,
             StorageEntry entry,
             long stackLimit,
             boolean locked,
             boolean searching) {
-        ItemStack rendered = key.toItemStack();
-        int displayAmount = amountFormatter.displayAmount(entry.amount(), stackLimit);
+        ItemStack rendered = view.key().toItemStack();
+        // Occupancy is per slot, not per entry: a spanned entry shows a full first slot and a
+        // partial tail, matching how the player reads a vanilla container.
+        int displayAmount = amountFormatter.displayAmount(view.slice(), stackLimit);
         rendered.setAmount(displayAmount);
         ItemMeta meta = rendered.getItemMeta();
         if (meta != null) {
@@ -293,7 +377,7 @@ public final class StorageGuiService {
             }
             List<Component> lore = new ArrayList<>();
             List<Component> existing = meta.lore();
-            List<Component> generated = buildEntryLore(entry, stackLimit, locked, searching);
+            List<Component> generated = buildEntryLore(view, entry, stackLimit, locked, searching);
             if (amountFormatter.lorePosition() == AppConfig.LorePosition.TOP) {
                 lore.addAll(generated);
                 if (existing != null) {
@@ -311,16 +395,17 @@ public final class StorageGuiService {
         return rendered;
     }
 
-    private List<Component> buildEntryLore(StorageEntry entry,
+    private List<Component> buildEntryLore(SlotView view,
+            StorageEntry entry,
             long stackLimit,
             boolean locked,
             boolean searching) {
         List<Component> lines = new ArrayList<>();
         Map<String, Object> replacements = new LinkedHashMap<>();
-        replacements.put("amount", amountFormatter.compact(entry.amount()));
+        replacements.put("amount", amountFormatter.compact(view.slice()));
         replacements.put("limit", amountFormatter.compactLimit(stackLimit));
-        replacements.put("percent", amountFormatter.percentText(entry.amount(), stackLimit));
-        replacements.put("exact", amountFormatter.exact(entry.amount()));
+        replacements.put("percent", amountFormatter.percentText(view.slice(), stackLimit));
+        replacements.put("exact", amountFormatter.exact(view.slice()));
 
         if (amountFormatter.percentMeaningful(stackLimit)) {
             lines.add(render("gui.entry.amount_with_limit", replacements));
@@ -329,6 +414,14 @@ public final class StorageGuiService {
         }
         if (amountFormatter.showExactAmount()) {
             lines.add(render("gui.entry.exact", replacements));
+        }
+        if (view.spanned()) {
+            // Per-slot figures alone would hide the real stock, so a spanned entry states its total
+            // and how many slots it occupies. Withdrawing from any slice debits this one total.
+            lines.add(render("gui.entry.span_total", Map.of(
+                    "total", amountFormatter.compact(entry.amount()),
+                    "slots", view.spanCount(),
+                    "slot", view.spanIndex() + 1)));
         }
         AppConfig.WithdrawAmounts amounts = config.behavior().withdrawAmounts();
         Map<String, Object> hints = new LinkedHashMap<>();
@@ -367,8 +460,11 @@ public final class StorageGuiService {
             StorageCapacity capacity) {
         int page = currentPage(session);
         int perPage = slotsPerPage();
+        // Pages follow rendered slots; the search hit count stays a count of entries, because that
+        // is what the player searched for.
+        int slotCount = state.slots().size();
         int visibleCount = state.visible().size();
-        int reachable = Math.max(1, (int) Math.ceil((double) visibleCount / perPage));
+        int reachable = Math.max(1, (int) Math.ceil((double) slotCount / perPage));
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("current_page", page + 1);
         replacements.put("total_pages", Math.max(reachable, 1));

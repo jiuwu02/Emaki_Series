@@ -5,7 +5,7 @@
 # ============================================================
 
 # version is maintained by resource synchronisation
-version: "1.0.2"
+version: "1.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -30,6 +30,7 @@ gui:
     amount_with_limit: "<gray>Amount: <white>%amount%</white> / <white>%limit%</white> <dark_gray>(%percent%%)</dark_gray></gray>"
     amount_unlimited: "<gray>Amount: <white>%amount%</white> <dark_gray>(no limit)</dark_gray></gray>"
     exact: "<dark_gray>Exact: %exact%</dark_gray>"
+    span_total: "<aqua>Spanning %slots% slots (slot %slot%) | Total <white>%total%</white></aqua>"
     withdraw_hint: "<yellow>Left %left% | Right %right% | Shift+Left %shift_left% | Shift+Right %shift_right%</yellow>"
     custom_hint: "<yellow>Middle click for a custom amount</yellow>"
     overflow_locked: "<red>Beyond current capacity: withdraw only, no deposits</red>"

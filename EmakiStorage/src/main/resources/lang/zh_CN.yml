@@ -5,7 +5,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.2"
+version: "1.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -30,6 +30,7 @@ gui:
     amount_with_limit: "<gray>数量: <white>%amount%</white> / <white>%limit%</white> <dark_gray>(%percent%%)</dark_gray></gray>"
     amount_unlimited: "<gray>数量: <white>%amount%</white> <dark_gray>(无上限)</dark_gray></gray>"
     exact: "<dark_gray>精确: %exact%</dark_gray>"
+    span_total: "<aqua>跨 %slots% 格存储（第 %slot% 格）| 总计 <white>%total%</white></aqua>"
     withdraw_hint: "<yellow>左键取 %left% | 右键 %right% | Shift+左键 %shift_left% | Shift+右键 %shift_right%</yellow>"
     custom_hint: "<yellow>中键指定自定义数量</yellow>"
     overflow_locked: "<red>超出当前容量：只可取出，不可存入</red>"
