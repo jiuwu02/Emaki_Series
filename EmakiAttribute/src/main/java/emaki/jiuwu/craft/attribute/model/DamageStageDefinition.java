@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -27,7 +28,8 @@ public record DamageStageDefinition(String id,
         Double minChance,
         Double maxChance,
         Double minMultiplier,
-        Double maxMultiplier) {
+        Double maxMultiplier,
+        Map<String, Object> variables) {
 
     private static final Map<DamageStageDefinition, AttributeSignatureCache> ATTRIBUTE_SIGNATURE_CACHE =
             Collections.synchronizedMap(new WeakHashMap<>());
@@ -42,6 +44,7 @@ public record DamageStageDefinition(String id,
         chanceAttributes = chanceAttributes == null ? List.of() : List.copyOf(chanceAttributes);
         multiplierAttributes = multiplierAttributes == null ? List.of() : List.copyOf(multiplierAttributes);
         expression = Texts.toStringSafe(expression).trim();
+        variables = normalizeVariables(variables);
     }
 
     public static DamageStageDefinition fromMap(Object raw) {
@@ -71,7 +74,8 @@ public record DamageStageDefinition(String id,
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "min_chance"), null),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "max_chance"), null),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "min_multiplier"), null),
-                Numbers.tryParseDouble(ConfigNodes.get(raw, "max_multiplier"), null)
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "max_multiplier"), null),
+                ConfigNodes.entries(ConfigNodes.get(raw, "variables"))
         );
     }
 
@@ -102,7 +106,21 @@ public record DamageStageDefinition(String id,
                 )
         );
     }
-private static List<String> normalizeAttributes(List<String> ids, Function<String, String> attributeNormalizer) {
+private static Map<String, Object> normalizeVariables(Map<String, Object> variables) {
+        if (variables == null || variables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            if (Texts.isBlank(entry.getKey()) || entry.getValue() == null) {
+                continue;
+            }
+            normalized.put(entry.getKey(), ConfigNodes.toPlainData(entry.getValue()));
+        }
+        return normalized.isEmpty() ? Map.of() : Collections.unmodifiableMap(normalized);
+    }
+
+    private static List<String> normalizeAttributes(List<String> ids, Function<String, String> attributeNormalizer) {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }

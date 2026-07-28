@@ -43,6 +43,16 @@ hard_lock: true
 # chance_attributes: 概率属性列表（用于暴击）
 # multiplier_attributes: 倍率属性列表（用于暴击伤害）
 # expression: 自定义计算表达式
+# variables: 本阶段可用的自定义变量（kind=CUSTOM 时被 expression 解析）
+#   每个变量的值可以是数值、表达式或随机数值配置，并可引用内置变量与其他变量：
+#     variables:
+#       soft_cap: 120
+#       overflow: "max(0, %input% - %soft_cap%)"
+#       jitter:
+#         min: 0.95
+#         max: 1.05
+#     expression: "(%input% - %overflow% * 0.5) * %jitter%"
+#   同名变量会覆盖内置变量；表达式内多次引用同一随机变量只掷一次，但每个阶段、每次命中都会重新掷。
 stages:
   - id: attack
     kind: FLAT_PERCENT

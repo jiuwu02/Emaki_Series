@@ -119,6 +119,7 @@ public final class DamageTraceService {
             details.put("chanceAttributes", definition.chanceAttributes());
             details.put("multiplierAttributes", definition.multiplierAttributes());
             details.put("expression", Texts.toStringSafe(definition.expression()));
+            details.put("variables", definition.variables());
             stages.add(new DamageTraceStageRecord(
                     definition.id(),
                     definition.kind() == null ? "" : definition.kind().name(),

@@ -65,6 +65,9 @@ final class StageCalculator {
         if (context != null) {
             variables.putAll(context.asMap());
         }
+        if (!stage.variables().isEmpty()) {
+            variables.putAll(stage.variables());
+        }
         double result = Texts.isBlank(stage.expression())
                 ? defaultCustomResult(input, inputs, stage)
                 : ExpressionEngine.evaluate(stage.expression(), variables);
