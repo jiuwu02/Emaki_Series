@@ -64,6 +64,11 @@ public final class PerfectTakeoverCoordinator implements Listener {
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.RESISTANCE);
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.MAGIC);
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.FREEZING);
+        // BLOCKING 默认保留给原版：举盾按原版规则完全免除该次伤害。切到 attribute 模式后由
+        // 伤害类型的格挡阶段结算，必须在此清零，否则原版减伤会与 EA 阶段重复叠加。
+        if (service.config().shield().attributeModeEnabled()) {
+            zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.BLOCKING);
+        }
     }
 
     @SuppressWarnings("deprecation")

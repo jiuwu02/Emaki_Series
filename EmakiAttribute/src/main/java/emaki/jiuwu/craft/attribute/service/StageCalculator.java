@@ -62,6 +62,9 @@ final class StageCalculator {
         variables.put("multiplier", inputs.multiplier());
         variables.put("roll", roll);
         variables.put("crit", inputs.critical() ? 1D : 0D);
+        // 兜底：不带目标实体的伤害请求（公开 API 直接构造 DamageRequest）没有格挡上下文，
+        // 缺失变量会让引用它的表达式整体求值失败并把结果压成 0。真实值随后由上下文覆盖。
+        variables.put(ShieldBlockResolver.TARGET_BLOCKING, 0D);
         if (context != null) {
             variables.putAll(context.asMap());
         }

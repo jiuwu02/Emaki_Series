@@ -8,7 +8,7 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.6.3"
+version: "4.6.4"
 
 # 语言文件 ID
 language: zh_CN
@@ -122,6 +122,27 @@ default_profile:
     spell_defense: 0.0
     health_regen: 0.1
     mana_regen: 0.1
+    # 格挡基线：只在 shield.mode = attribute 时参与结算。
+    # 默认 100/100 表示举盾必定触发且完全免伤，与原版行为一致，切换模式不改变手感。
+    # 想做成百分比格挡就调低 block_reduction，例如 40 表示只挡掉四成；
+    # 想做成概率格挡就调低 block_rate。盾牌物品的 EA 属性会叠加在此基线之上。
+    block_rate: 100.0
+    block_reduction: 100.0
+
+# 盾牌格挡
+# mode: vanilla   —— 默认。保持原版 BLOCKING 减伤，举盾按原版规则完全免除该次伤害，
+#                    EA 计算出的攻击、暴击、穿透在举盾时全部不生效。
+#       attribute —— 清零原版 BLOCKING，改由伤害类型里的格挡阶段结算，可做成百分比减伤。
+#                    需要在 damage_types/*.yml 保留 block 阶段，并配置 block_rate / block_reduction 属性。
+#                    把 block_reduction 配到 100 即等价于原版全免。
+# require_facing: 仅 attribute 模式生效。原版 BLOCKING 自带正面判定，改由 EA 接管后
+#                 必须自行重建，否则会退化成全向格挡。环境伤害没有来源方向，按不构成正面处理。
+# facing_angle_degrees: 正面判定张角，单位度。180 等价于原版行为（以视线为中心的半平面）；
+#                 调小会要求玩家更精确地正对来源。
+shield:
+  mode: vanilla
+  require_facing: true
+  facing_angle_degrees: 180
 
 synthetic_hit_feedback:
   # 仅在兼容模式（vanilla_event_damage.enabled = false）下生效：

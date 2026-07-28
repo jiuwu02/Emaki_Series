@@ -235,6 +235,11 @@ final class DamageCalculationService {
             merged.put("projectile_type", projectile.getType().name());
             merged.put("projectile_uuid", projectile.getUniqueId().toString());
         }
+        merged.put(ShieldBlockResolver.TARGET_BLOCKING, ShieldBlockResolver.isBlocking(
+                target,
+                projectile != null ? projectile : attacker,
+                service.config().shield()
+        ) ? 1D : 0D);
         return DamageContext.of(
                 attacker,
                 target,

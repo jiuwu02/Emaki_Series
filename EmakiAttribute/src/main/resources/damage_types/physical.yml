@@ -74,6 +74,19 @@ stages:
     flat_attributes: [physical_defense]
     expression: "max(0, %input% - %flat%)"
 
+  # 盾牌格挡。仅在 config.yml 的 shield.mode = attribute 时才可能生效：
+  # vanilla 模式下 %target_blocking% 恒为 0，本阶段等价于不改变伤害。
+  # %target_blocking%：目标本次是否有效举盾（含正面判定），1 或 0。
+  # %crit%：block_rate 概率是否命中。%multiplier%：block_reduction 汇总值。
+  # block_rate 为 0 时 %crit% 恒为 0，格挡永不触发，请勿把基线配成 0。
+  - id: block
+    kind: CUSTOM
+    source: TARGET
+    chance_attributes: [block_rate]
+    multiplier_attributes: [block_reduction]
+    expression: "%input% * (1 - (%target_blocking% * %crit% * (%multiplier% / 100)))"
+    min_result: 0
+
 # ============================================================
 # 吸血/回复配置
 # ============================================================

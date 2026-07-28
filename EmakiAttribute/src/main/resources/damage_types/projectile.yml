@@ -41,6 +41,16 @@ stages:
     percent_attributes: []
     expression: "max(0, %input% - %flat%)"
 
+  # 盾牌格挡。原版盾牌同样能挡投射物，故与 physical.yml 保持一致。
+  # 仅在 config.yml 的 shield.mode = attribute 时才可能生效；字段说明见 physical.yml。
+  - id: block
+    kind: CUSTOM
+    source: TARGET
+    chance_attributes: [block_rate]
+    multiplier_attributes: [block_reduction]
+    expression: "%input% * (1 - (%target_blocking% * %crit% * (%multiplier% / 100)))"
+    min_result: 0
+
 recovery:
   source: ATTACKER
   resistance_source: TARGET
