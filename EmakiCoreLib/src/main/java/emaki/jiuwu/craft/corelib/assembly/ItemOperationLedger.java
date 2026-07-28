@@ -1,9 +1,12 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import org.bukkit.NamespacedKey;
@@ -178,6 +181,61 @@ public final class ItemOperationLedger {
 
     public int revertAll(ItemStack itemStack, String sourceNamespace) {
         return reverter.revertAll(itemStack, sourceNamespace, read(itemStack)).revertedCount();
+    }
+
+    /**
+     * Drops every ledger entry owned by {@code sourceNamespace} without replaying or reverting the
+     * recorded display projection, and clears the stored presentation snapshot.
+     *
+     * <p>Use this only when the caller has already rebuilt the item's managed presentation from an
+     * authoritative source, so the recorded lore baselines and the presentation snapshot no longer
+     * describe the current item. Lore and custom name are left exactly as the caller wrote them.
+     * For user-facing rollbacks that must restore a previous projection, use
+     * {@link #revert(ItemStack, ReadResult, String)} or {@link #revertAll(ItemStack, String, ReadResult)}.
+     */
+    public UpdateResult discardNamespace(ItemStack itemStack,
+                                        ReadResult readResult,
+                                        String sourceNamespace) {
+        return discardNamespaces(itemStack, readResult, List.of(Texts.toStringSafe(sourceNamespace)));
+    }
+
+    /**
+     * Drops every ledger entry owned by any of {@code sourceNamespaces} without replaying or
+     * reverting the recorded display projection, and clears the stored presentation snapshot.
+     *
+     * @see #discardNamespace(ItemStack, ReadResult, String)
+     */
+    public UpdateResult discardNamespaces(ItemStack itemStack,
+                                         ReadResult readResult,
+                                         Collection<String> sourceNamespaces) {
+        ReadResult safeReadResult = safeReadResult(readResult);
+        if (safeReadResult.corrupt()) {
+            return UpdateResult.failure(safeReadResult);
+        }
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return UpdateResult.failure(safeReadResult);
+        }
+        Set<String> namespaces = new LinkedHashSet<>();
+        if (sourceNamespaces != null) {
+            for (String sourceNamespace : sourceNamespaces) {
+                String normalized = Texts.toStringSafe(sourceNamespace);
+                if (Texts.isNotBlank(normalized)) {
+                    namespaces.add(normalized);
+                }
+            }
+        }
+        if (namespaces.isEmpty()) {
+            return UpdateResult.success(safeReadResult);
+        }
+        List<ItemOperationEntry> retained = new ArrayList<>();
+        for (ItemOperationEntry entry : safeReadResult.entries()) {
+            if (entry != null && !namespaces.contains(entry.sourceNamespace())) {
+                retained.add(entry);
+            }
+        }
+        writeAll(itemStack, retained);
+        pdc.remove(itemStack, partition, PRESENTATION_SNAPSHOT_FIELD);
+        return UpdateResult.success(ReadResult.valid(retained));
     }
 
     public UpdateResult revertAll(ItemStack itemStack, String sourceNamespace, ReadResult readResult) {

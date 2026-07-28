@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.6.1"
+version: "2.6.2"
 general:
   prefix: "<gray>[ <gradient:#60A5FA:#34D399>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行这个命令。</red>"
@@ -57,6 +57,7 @@ console:
   bootstrap_save_failed: "保存版本化资源失败: %path% (%error%)"
   directory_create_failed: "创建目录失败: %path%"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
 command:
   help:
     header: "<gold>EmakiItem 命令</gold>"

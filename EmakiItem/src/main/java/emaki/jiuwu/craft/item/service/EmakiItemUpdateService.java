@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
-import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -39,7 +38,6 @@ import emaki.jiuwu.craft.item.model.RefreshScope;
 
 public final class EmakiItemUpdateService {
 
-    private static final String DISPLAY_OPERATION_NAMESPACE = "emakiitem:item_display";
     private final EmakiItemLoader itemLoader;
     private final EmakiItemIdResolver idResolver;
     private final EmakiItemFactory itemFactory;
@@ -385,10 +383,13 @@ public final class EmakiItemUpdateService {
         }
 
         ItemStack assemblyState = original.clone();
-        ItemOperationLedger.UpdateResult assemblyRevert = revertNamespaceOperations(
-                assemblyState, readResult, DISPLAY_OPERATION_NAMESPACE);
+        // The assembly base presentation is rewritten from the rebuilt item right below, so the
+        // recorded baselines of our own display operations and the stored presentation snapshot are
+        // already stale and must be dropped rather than replayed.
+        ItemOperationLedger.UpdateResult assemblyRevert = operationLedger.discardNamespaces(
+                assemblyState, readResult, EmakiItemFactory.OWNED_DISPLAY_NAMESPACES);
         if (!assemblyRevert.success() || assemblyRevert.entries().stream().anyMatch(entry -> entry != null
-                && DISPLAY_OPERATION_NAMESPACE.equals(entry.sourceNamespace()))) {
+                && EmakiItemFactory.OWNED_DISPLAY_NAMESPACES.contains(entry.sourceNamespace()))) {
             return null;
         }
         writeAssemblyBasePresentation(assemblyState, rebuiltBase);
@@ -407,35 +408,6 @@ public final class EmakiItemUpdateService {
         ItemStack merged = patched.success() && patched.itemStack() != null ? patched.itemStack() : assembled;
         copyPersistentData(original, merged, false);
         return new MergeResult(merged, readResult);
-    }
-
-    private ItemOperationLedger.UpdateResult revertNamespaceOperations(
-            ItemStack itemStack,
-            ItemOperationLedger.ReadResult initialReadResult,
-            String sourceNamespace) {
-        ItemOperationLedger.ReadResult currentReadResult = initialReadResult == null
-                ? ItemOperationLedger.ReadResult.corrupt(List.of())
-                : initialReadResult;
-        if (currentReadResult.corrupt()) {
-            return ItemOperationLedger.UpdateResult.failure(currentReadResult);
-        }
-        LinkedHashSet<String> operationIds = new LinkedHashSet<>();
-        List<ItemOperationEntry> entries = currentReadResult.entries();
-        for (int index = entries.size() - 1; index >= 0; index--) {
-            ItemOperationEntry entry = entries.get(index);
-            if (entry != null && sourceNamespace.equals(entry.sourceNamespace())) {
-                operationIds.add(entry.operationId());
-            }
-        }
-        for (String operationId : operationIds) {
-            ItemOperationLedger.UpdateResult reverted = operationLedger.revert(
-                    itemStack, currentReadResult, operationId);
-            if (!reverted.success()) {
-                return ItemOperationLedger.UpdateResult.failure(currentReadResult);
-            }
-            currentReadResult = reverted.readResult();
-        }
-        return ItemOperationLedger.UpdateResult.success(currentReadResult);
     }
 
     private ConfiguredItemDefinition withoutPresentationPatches(ConfiguredItemDefinition definition) {

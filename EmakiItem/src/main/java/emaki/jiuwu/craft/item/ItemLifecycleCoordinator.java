@@ -382,11 +382,18 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (configuration == null || configuration.getKeys(false).isEmpty()) {
             return AppConfig.defaults();
         }
+        List<String> mythicDropNames = configuration.getStringList("mythicmobs.drops.names");
+        if (mythicDropNames.isEmpty()) {
+            mythicDropNames = AppConfig.defaultMythicDropNames();
+        }
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
                 configuration.getString("version", "2.5.19"),
                 configuration.getBoolean("release_default_data", true),
-                parseSetBonus(configuration.getSection("set_bonus"))
+                parseSetBonus(configuration.getSection("set_bonus")),
+                configuration.getBoolean("mythicmobs.enabled", true),
+                configuration.getBoolean("mythicmobs.drops.enabled", true),
+                mythicDropNames
         );
     }
 

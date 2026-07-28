@@ -7,7 +7,7 @@
 # ============================================================
 
 # 配置文件版本。仅用于标识当前默认配置结构，不建议手动修改。
-version: "2.6.1"
+version: "2.6.2"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -42,3 +42,21 @@ set_bonus:
     interact: true
     # 执行 EmakiItem 相关命令时允许触发套装刷新。
     command: true
+
+# MythicMobs 集成设置。
+# 未安装 MythicMobs 时自动跳过，不影响其他功能。
+mythicmobs:
+  # MythicMobs 集成总开关。关闭后不注册任何 Drop。
+  enabled: true
+
+  # 自定义 Drop 设置。
+  # 启用后可在 MythicMobs 的 Drops 中直接掉落 EmakiItem 物品，
+  # 写法示例：emakiitem{id=example_item;amount=1}
+  drops:
+    # 是否注册 MythicMobs 自定义 Drop。
+    enabled: true
+
+    # 可识别的 Drop 名称。为空时回退默认值。
+    names:
+      - "emakiitem"
+      - "ei_item"

@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.item.action.ItemActionRegistrar;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
+import emaki.jiuwu.craft.item.bridge.MythicItemDropBridge;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.config.ItemConfigPrecheckContributor;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
@@ -99,6 +100,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private final ItemLifecycleCoordinator lifecycleCoordinator = new ItemLifecycleCoordinator();
     private final ItemContributionGateLifecycle itemContributionGateLifecycle = new ItemContributionGateLifecycle(this);
+    private MythicItemDropBridge mythicDropBridge;
     private ItemCommandRouter commandRouter;
     private ItemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
@@ -216,6 +218,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerCommandHandler();
         registerEventHandlers();
         itemContributionGateLifecycle.initialize();
+        registerMythicDrops();
         ensurePlaceholderExpansion();
         metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -473,6 +476,16 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         );
         getServer().getPluginManager().registerEvents(new ItemDurabilityListener(this, repairService), this);
         getServer().getPluginManager().registerEvents(new ItemRepairListener(this, repairService), this);
+    }
+
+    private void registerMythicDrops() {
+        if (!appConfig().mythicEnabled() || !appConfig().mythicDropsEnabled()
+                || !Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
+            return;
+        }
+        mythicDropBridge = new MythicItemDropBridge(this);
+        getServer().getPluginManager().registerEvents(mythicDropBridge, this);
+        messageService.info("console.mythic_drops_registered");
     }
 
     private void ensurePlaceholderExpansion() {

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-item</artifactId>
-    <version>2.6.1</version>
+    <version>2.6.2</version>
     <name>EmakiItem</name>
     <packaging>jar</packaging>
 
@@ -41,6 +41,11 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-attribute-api</artifactId>
             <version>${emaki.attribute.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.lumine</groupId>
+            <artifactId>Mythic-Dist</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +27,10 @@ import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 public final class EmakiItemFactory {
 
     private static final String DISPLAY_OPERATION_NAMESPACE = "emakiitem:item_display";
+    private static final String SET_DISPLAY_OPERATION_NAMESPACE = "emakiitem:set_display";
+    static final List<String> OWNED_DISPLAY_NAMESPACES = List.of(
+            DISPLAY_OPERATION_NAMESPACE, SET_DISPLAY_OPERATION_NAMESPACE
+    );
     private static final List<String> RANDOM_TYPES = List.of(
             "range", "uniform", "gaussian", "normal", "skew_normal", "triangle"
     );
@@ -170,11 +173,16 @@ public final class EmakiItemFactory {
         }
         Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
         pdcWriter.write(itemStack, definition, safeVariables);
-        ItemOperationLedger.UpdateResult reverted = revertDisplayOperations(itemStack, currentReadResult);
-        if (!reverted.success()) {
-            return new FinishedBuild(false, itemStack, reverted.readResult());
+        // The item was just rebuilt from the current definition, so its lore is the authoritative
+        // baseline. Recorded baselines and the stored presentation snapshot describe the previous
+        // definition and must be dropped instead of replayed, otherwise the stale baseline resurfaces
+        // as external lines and the old lore lines accumulate on every update.
+        ItemOperationLedger.UpdateResult discarded = itemOperationLedger.discardNamespaces(
+                itemStack, currentReadResult, OWNED_DISPLAY_NAMESPACES);
+        if (!discarded.success()) {
+            return new FinishedBuild(false, itemStack, discarded.readResult());
         }
-        currentReadResult = reverted.readResult();
+        currentReadResult = discarded.readResult();
         if (!hasActions(definition.nameActions()) && !hasActions(definition.loreActions())) {
             return new FinishedBuild(true, itemStack, currentReadResult);
         }
@@ -188,34 +196,6 @@ public final class EmakiItemFactory {
                 safeVariables
         );
         return new FinishedBuild(applied.success(), itemStack, applied.readResult());
-    }
-
-    private ItemOperationLedger.UpdateResult revertDisplayOperations(
-            ItemStack itemStack,
-            ItemOperationLedger.ReadResult initialReadResult) {
-        ItemOperationLedger.ReadResult currentReadResult = initialReadResult == null
-                ? ItemOperationLedger.ReadResult.corrupt(List.of())
-                : initialReadResult;
-        if (currentReadResult.corrupt()) {
-            return ItemOperationLedger.UpdateResult.failure(currentReadResult);
-        }
-        LinkedHashSet<String> operationIds = new LinkedHashSet<>();
-        List<ItemOperationEntry> entries = currentReadResult.entries();
-        for (int index = entries.size() - 1; index >= 0; index--) {
-            ItemOperationEntry entry = entries.get(index);
-            if (entry != null && DISPLAY_OPERATION_NAMESPACE.equals(entry.sourceNamespace())) {
-                operationIds.add(entry.operationId());
-            }
-        }
-        for (String operationId : operationIds) {
-            ItemOperationLedger.UpdateResult reverted = itemOperationLedger.revert(
-                    itemStack, currentReadResult, operationId);
-            if (!reverted.success()) {
-                return ItemOperationLedger.UpdateResult.failure(currentReadResult);
-            }
-            currentReadResult = reverted.readResult();
-        }
-        return ItemOperationLedger.UpdateResult.success(currentReadResult);
     }
 
     private void applyDisplayActions(ItemStack itemStack,
