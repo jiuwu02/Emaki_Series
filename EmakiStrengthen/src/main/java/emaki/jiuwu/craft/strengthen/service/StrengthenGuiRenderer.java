@@ -127,7 +127,7 @@ final class StrengthenGuiRenderer {
         if (Texts.isBlank(item)) {
             return msg("strengthen.misc.unknown_material");
         }
-        String displayName = EmakiCoreLibApi.itemDisplayName(item);
+        String displayName = EmakiCoreLibApi.itemDisplayName(item).orElse("");
         return Texts.isBlank(displayName) ? item : displayName;
     }
 

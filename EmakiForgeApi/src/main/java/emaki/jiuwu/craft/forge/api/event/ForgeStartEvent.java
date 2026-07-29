@@ -6,15 +6,23 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiForge when a player confirms a forge attempt, just before the
- * asynchronous forge execution begins.
+ * Fired by EmakiForge when a player confirms a forge attempt, just before the asynchronous forge
+ * execution begins.
  *
- * <p>This is the only point in the forge flow that runs on the server thread
- * before the async chain starts, so it is the place to cancel a forge. A
- * cancelled event stops EmakiForge from running the attempt. The success rate
- * carried here is the configured recipe value, so it is exposed read-only.
+ * <p>Cancelling this event stops the attempt: EmakiForge returns without scheduling execution and
+ * without consuming materials.
  *
- * <p>This event is fired on the server thread.
+ * <h2>Threading</h2>
+ * Fired synchronously on the thread that owns the forging player. On Paper that is the main thread;
+ * on Folia it is the player's region thread. EmakiForge verifies ownership before firing, so if the
+ * owner thread is unavailable the attempt is abandoned and <em>this event is not fired at all</em>.
+ *
+ * <h2>Coverage</h2>
+ * Only the GUI confirmation path fires this event. It carries no {@code setSuccessRate} because the
+ * quality roll and the prepared assembly request are already fixed before this point; a listener
+ * cannot influence the outcome, only veto it.
+ *
+ * @see ForgeCompletedEvent
  */
 public final class ForgeStartEvent extends Event implements Cancellable {
 

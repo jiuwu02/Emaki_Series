@@ -94,22 +94,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
-    private final EmakiForgeApi.Bridge forgeApiBridge = new EmakiForgeApi.Bridge() {
-        @Override
-        public String apiVersion() {
-            return getDescription().getVersion();
-        }
-
-        @Override
-        public String pluginName() {
-            return getName();
-        }
-
-        @Override
-        public boolean isReady() {
-            return isEnabled() && isRuntimeReady();
-        }
-    };
+    private final EmakiForgeApi.Bridge forgeApiBridge =
+            new emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi(this);
 
     private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "pdc");
 

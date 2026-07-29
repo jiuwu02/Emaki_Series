@@ -30,7 +30,7 @@
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-attribute-api</artifactId>
-            <version>${emaki.attribute.version}</version>
+            <version>${emaki.attribute.api.version}</version>
         </dependency>
         <dependency>
             <groupId>io.lumine</groupId>
@@ -60,7 +60,7 @@
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-skills-api</artifactId>
-            <version>${emaki.skills.version}</version>
+            <version>${emaki.skills.api.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

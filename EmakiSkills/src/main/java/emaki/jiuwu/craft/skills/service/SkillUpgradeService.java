@@ -701,7 +701,7 @@ public final class SkillUpgradeService {
     }
 
     private String resolveMaterialDisplayName(String itemToken) {
-        String displayName = EmakiCoreLibApi.itemDisplayName(itemToken);
+        String displayName = EmakiCoreLibApi.itemDisplayName(itemToken).orElse("");
         return Texts.isBlank(displayName) ? itemToken : displayName;
     }
 

@@ -12,11 +12,17 @@
     </parent>
 
     <artifactId>emaki-strengthen-api</artifactId>
-    <version>4.6.2</version>
+    <version>4.6.3</version>
     <name>EmakiStrengthenApi</name>
     <packaging>jar</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-corelib-api</artifactId>
+            <version>${emaki.corelib.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>

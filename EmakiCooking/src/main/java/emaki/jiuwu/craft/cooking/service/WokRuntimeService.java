@@ -604,7 +604,7 @@ public final class WokRuntimeService {
                 false,
                 0L,
                 heatLevel, 0, 0,
-                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(first.source())),
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(first.source()).orElse("")),
                 first.source(),
                 first.amount(),
                 state.ingredients().size(),
@@ -1007,7 +1007,7 @@ public final class WokRuntimeService {
     }
 
     private String itemDisplayName(String source) {
-        String displayName = EmakiCoreLibApi.itemDisplayName(source);
+        String displayName = EmakiCoreLibApi.itemDisplayName(source).orElse("");
         return Texts.isBlank(displayName) ? source : displayName;
     }
 

@@ -125,9 +125,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
     private CoreLibCommandRouter commandRouter;
-    private EmakiCoreLibApi.Bridge coreLibApiBridge;
+    private DefaultEmakiCoreLibApi coreLibApiBridge;
     private emaki.jiuwu.craft.corelib.dialog.DialogService dialogService;
-    private emaki.jiuwu.craft.corelib.api.dialog.DialogApi.Bridge dialogApiBridge;
+    private emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs dialogApiBridge;
     private emaki.jiuwu.craft.corelib.display.TextDisplayService textDisplayService;
     private emaki.jiuwu.craft.corelib.display.ItemDisplayService itemDisplayService;
     private emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher gameplayEventPublisher;
@@ -319,13 +319,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (coreLibApiBridge == null) {
             coreLibApiBridge = new DefaultEmakiCoreLibApi(this, platformCapabilities);
         }
-        EmakiCoreLibApi.install(coreLibApiBridge);
         if (dialogService != null) {
             if (dialogApiBridge == null) {
                 dialogApiBridge = new emaki.jiuwu.craft.corelib.dialog.DialogApiBridge(dialogService);
             }
-            emaki.jiuwu.craft.corelib.api.dialog.DialogApi.install(dialogApiBridge);
+            coreLibApiBridge.installDialogs(dialogApiBridge);
         }
+        EmakiCoreLibApi.install(coreLibApiBridge);
     }
 
     public BStatsRegistration registerBStats(JavaPlugin plugin, int pluginId) {
@@ -410,13 +410,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             });
             runShutdownStep("public API", () -> {
                 if (coreLibApiBridge != null) {
+                    coreLibApiBridge.installDialogs(null);
                     EmakiCoreLibApi.uninstall(coreLibApiBridge);
                     coreLibApiBridge = null;
                 }
-                if (dialogApiBridge != null) {
-                    emaki.jiuwu.craft.corelib.api.dialog.DialogApi.uninstall(dialogApiBridge);
-                    dialogApiBridge = null;
-                }
+                dialogApiBridge = null;
                 dialogService = null;
                 if (textDisplayService != null) {
                     textDisplayService.shutdown();

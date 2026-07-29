@@ -631,7 +631,7 @@ public final class OvenRuntimeService implements Listener {
                 state.heat(),
                 0,
                 0,
-                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource)),
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource).orElse("")),
                 Texts.toStringSafe(firstSource),
                 firstSource.isBlank() ? 0 : 1,
                 state.slotSources().size(),
@@ -726,7 +726,7 @@ public final class OvenRuntimeService implements Listener {
     }
 
     private String itemDisplayName(ItemStack itemStack) {
-        String displayName = EmakiCoreLibApi.itemDisplayName(itemStack);
+        String displayName = EmakiCoreLibApi.itemDisplayName(itemStack).orElse("");
         return Texts.isBlank(displayName)
                 ? (itemStack == null || itemStack.getType() == null ? "" : itemStack.getType().name())
                 : displayName;

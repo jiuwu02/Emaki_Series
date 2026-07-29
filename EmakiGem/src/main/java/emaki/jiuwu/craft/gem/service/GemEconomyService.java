@@ -632,7 +632,7 @@ public final class GemEconomyService {
         String item = material == null || material.itemSource() == null ? "" : ItemSourceUtil.toShorthand(material.itemSource());
         String displayName = material == null || material.itemSource() == null
                 ? ""
-                : EmakiCoreLibApi.itemDisplayName(item);
+                : EmakiCoreLibApi.itemDisplayName(item).orElse("");
         placeholders.put("item", Texts.isBlank(item) ? "unknown" : item);
         placeholders.put("material", Texts.isBlank(displayName) ? placeholders.get("item") : displayName);
         placeholders.put("display_name", placeholders.get("material"));

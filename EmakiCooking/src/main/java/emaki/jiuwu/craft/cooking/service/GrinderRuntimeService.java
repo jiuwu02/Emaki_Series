@@ -303,7 +303,7 @@ public final class GrinderRuntimeService {
                 false,
                 0L,
                 0, 0, 0,
-                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(state.inputSource())),
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(state.inputSource()).orElse("")),
                 state.inputSource(),
                 state.hasInputSource() ? 1 : 0,
                 state.hasInputSource() ? 1 : 0,
@@ -481,7 +481,7 @@ public final class GrinderRuntimeService {
         StringBuilder builder = new StringBuilder();
         appendLine(builder, messageService.message("text_display.grinder.title"));
         if (state.hasInputSource()) {
-            String itemName = EmakiCoreLibApi.itemDisplayName(state.inputSource());
+            String itemName = EmakiCoreLibApi.itemDisplayName(state.inputSource()).orElse("");
             if (itemName == null || itemName.isBlank()) {
                 itemName = state.inputSource();
             }

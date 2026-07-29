@@ -6,10 +6,13 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.dialog.DialogApi;
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
+import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 
-/** {@link DialogApi.Bridge} 的运行时实现，把公开门面接到 {@link DialogService}。 */
-public final class DialogApiBridge implements DialogApi.Bridge {
+/** {@link CoreLibDialogs} 的运行时实现，把公开门面接到 {@link DialogService}。 */
+public final class DialogApiBridge implements CoreLibDialogs {
 
     private final DialogService service;
 
@@ -33,12 +36,34 @@ public final class DialogApiBridge implements DialogApi.Bridge {
     }
 
     @Override
-    public boolean show(@Nullable Player player, @Nullable String dialogId) {
-        return service != null && service.show(player, dialogId);
+    public @NotNull EmakiResult<Unit> show(@Nullable Player player, @Nullable String dialogId) {
+        if (service == null || !service.enabled()) {
+            return EmakiResult.unavailable();
+        }
+        if (player == null) {
+            return EmakiResult.invalidInput("corelib.dialog.player_missing");
+        }
+        if (dialogId == null || dialogId.isBlank()) {
+            return EmakiResult.invalidInput("corelib.dialog.id_missing");
+        }
+        if (!service.contains(dialogId)) {
+            return EmakiResult.notFound("corelib.dialog.not_found");
+        }
+        return service.show(player, dialogId)
+                ? EmakiResult.ok()
+                : EmakiResult.failure(FailureKind.REJECTED, "corelib.dialog.show_rejected");
     }
 
     @Override
-    public boolean close(@Nullable Player player) {
-        return service != null && service.close(player);
+    public @NotNull EmakiResult<Unit> close(@Nullable Player player) {
+        if (service == null || !service.enabled()) {
+            return EmakiResult.unavailable();
+        }
+        if (player == null) {
+            return EmakiResult.invalidInput("corelib.dialog.player_missing");
+        }
+        return service.close(player)
+                ? EmakiResult.ok()
+                : EmakiResult.failure(FailureKind.REJECTED, "corelib.dialog.close_rejected");
     }
 }

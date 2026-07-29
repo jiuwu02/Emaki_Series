@@ -573,7 +573,7 @@ public final class ChoppingBoardRuntimeService {
     }
 
     private String plainItemName(String source) {
-        return MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(source));
+        return MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(source).orElse(""));
     }
 
     private boolean appendInput(Player player, Block block, StationCoordinates coordinates, ChoppingBoardState state, ItemStack hand, long now) {
@@ -860,7 +860,7 @@ public final class ChoppingBoardRuntimeService {
         if (Texts.isNotBlank(storedName)) {
             return storedName;
         }
-        String sourceName = EmakiCoreLibApi.itemDisplayName(state.inputSource());
+        String sourceName = EmakiCoreLibApi.itemDisplayName(state.inputSource()).orElse("");
         return Texts.isBlank(sourceName) ? state.inputSource() : sourceName;
     }
 

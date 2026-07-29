@@ -550,7 +550,7 @@ public final class JuicerRuntimeService implements Listener {
                 false,
                 0L,
                 0, 0, 0,
-                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource)),
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource).orElse("")),
                 Texts.toStringSafe(firstSource),
                 firstSource.isBlank() ? 0 : 1,
                 state.slotSources().size(),
