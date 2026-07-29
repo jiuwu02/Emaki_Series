@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -15,6 +16,8 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.item.config.AppConfig;
+import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
 import emaki.jiuwu.craft.item.model.ItemSetDefinition;
 import emaki.jiuwu.craft.item.model.ItemSetLoreConfig;
 import emaki.jiuwu.craft.item.model.ItemSetPieceDefinition;
@@ -23,10 +26,16 @@ import emaki.jiuwu.craft.item.model.ItemSetThreshold;
 public final class EmakiItemSetLoader {
 
     private final JavaPlugin plugin;
+    private final Supplier<AppConfig> configSupplier;
     private volatile Snapshot snapshot = new Snapshot(0L, Map.of());
 
     public EmakiItemSetLoader(JavaPlugin plugin) {
+        this(plugin, null);
+    }
+
+    public EmakiItemSetLoader(JavaPlugin plugin, Supplier<AppConfig> configSupplier) {
         this.plugin = plugin;
+        this.configSupplier = configSupplier;
     }
 
     public int load() {
@@ -262,22 +271,43 @@ public final class EmakiItemSetLoader {
         if (directory == null || !directory.exists()) {
             return new File[0];
         }
-        File[] files = directory.listFiles(file -> file.isDirectory()
+        List<File> result = new ArrayList<>();
+        collect(directory, directory, 1, maxDepth(), result);
+        result.sort((left, right) -> left.getPath().compareToIgnoreCase(right.getPath()));
+        return result.toArray(File[]::new);
+    }
+
+    private void collect(File directory, File root, int depth, int maxDepth, List<File> sink) {
+        File[] entries = directory.listFiles(file -> file.isDirectory()
                 || file.getName().endsWith(".yml")
                 || file.getName().endsWith(".yaml"));
-        if (files == null) {
-            return new File[0];
+        if (entries == null) {
+            return;
         }
-        Arrays.sort(files, (left, right) -> left.getPath().compareToIgnoreCase(right.getPath()));
-        List<File> result = new ArrayList<>();
-        for (File file : files) {
-            if (file.isDirectory()) {
-                result.addAll(Arrays.asList(files(file)));
-            } else {
-                result.add(file);
+        Arrays.sort(entries, (left, right) -> left.getPath().compareToIgnoreCase(right.getPath()));
+        for (File entry : entries) {
+            if (!entry.isDirectory()) {
+                sink.add(entry);
+                continue;
             }
+            if (depth >= maxDepth) {
+                plugin.getLogger().warning("Skipping EmakiItem set directory " + relativize(entry, root)
+                        + ": nesting exceeds data_directories.max_depth=" + maxDepth + ".");
+                continue;
+            }
+            collect(entry, root, depth + 1, maxDepth, sink);
         }
-        return result.toArray(File[]::new);
+    }
+
+    private String relativize(File file, File root) {
+        String path = file.getPath();
+        String prefix = root.getPath();
+        return path.startsWith(prefix) ? root.getName() + path.substring(prefix.length()) : path;
+    }
+
+    private int maxDepth() {
+        AppConfig config = configSupplier == null ? null : configSupplier.get();
+        return config == null ? ItemDirectoryConfig.DEFAULT_MAX_DEPTH : config.directories().maxDepth();
     }
 
     public record Snapshot(long generation, Map<String, ItemSetDefinition> definitions) {

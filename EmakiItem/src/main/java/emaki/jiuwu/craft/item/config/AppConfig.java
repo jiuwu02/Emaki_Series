@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.item.config;
 import java.util.List;
 
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
+import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
 import emaki.jiuwu.craft.item.model.SetBonusConfig;
 
 public final class AppConfig extends BaseAppConfig {
@@ -10,6 +11,7 @@ public final class AppConfig extends BaseAppConfig {
     private static final List<String> DEFAULT_MYTHIC_DROP_NAMES = List.of("emakiitem", "ei_item");
 
     private final boolean releaseDefaultData;
+    private final ItemDirectoryConfig directories;
     private final SetBonusConfig setBonus;
     private final boolean mythicEnabled;
     private final boolean mythicDropsEnabled;
@@ -19,18 +21,21 @@ public final class AppConfig extends BaseAppConfig {
             String configVersion,
             boolean releaseDefaultData,
             SetBonusConfig setBonus) {
-        this(language, configVersion, releaseDefaultData, setBonus, true, true, DEFAULT_MYTHIC_DROP_NAMES);
+        this(language, configVersion, releaseDefaultData, ItemDirectoryConfig.defaults(), setBonus,
+                true, true, DEFAULT_MYTHIC_DROP_NAMES);
     }
 
     public AppConfig(String language,
             String configVersion,
             boolean releaseDefaultData,
+            ItemDirectoryConfig directories,
             SetBonusConfig setBonus,
             boolean mythicEnabled,
             boolean mythicDropsEnabled,
             List<String> mythicDropNames) {
         super(language, configVersion, "2.5.19");
         this.releaseDefaultData = releaseDefaultData;
+        this.directories = directories == null ? ItemDirectoryConfig.defaults() : directories;
         this.setBonus = setBonus == null ? SetBonusConfig.defaults() : setBonus;
         this.mythicEnabled = mythicEnabled;
         this.mythicDropsEnabled = mythicDropsEnabled;
@@ -40,7 +45,7 @@ public final class AppConfig extends BaseAppConfig {
     }
 
     public static AppConfig defaults() {
-        return new AppConfig("zh_CN", "2.5.19", true, SetBonusConfig.defaults(),
+        return new AppConfig("zh_CN", "2.5.19", true, ItemDirectoryConfig.defaults(), SetBonusConfig.defaults(),
                 true, true, DEFAULT_MYTHIC_DROP_NAMES);
     }
 
@@ -50,6 +55,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public boolean releaseDefaultData() {
         return releaseDefaultData;
+    }
+
+    public ItemDirectoryConfig directories() {
+        return directories;
     }
 
     public SetBonusConfig setBonus() {

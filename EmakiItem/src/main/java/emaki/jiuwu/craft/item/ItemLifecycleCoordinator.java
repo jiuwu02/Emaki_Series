@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.item.config.AppConfig;
+import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 import emaki.jiuwu.craft.item.model.SetBonusConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
@@ -97,8 +98,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     }
                 }
         );
-        EmakiItemLoader itemLoader = new EmakiItemLoader(plugin);
-        EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin);
+        EmakiItemLoader itemLoader = new EmakiItemLoader(plugin, appConfigLoader::current);
+        EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin, appConfigLoader::current);
         EmakiItemAliasLoader aliasLoader = new EmakiItemAliasLoader(plugin);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
@@ -378,11 +379,19 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 configuration.getString("language", "zh_CN"),
                 configuration.getString("version", "2.5.19"),
                 configuration.getBoolean("release_default_data", true),
+                parseDirectories(configuration.getSection("data_directories")),
                 parseSetBonus(configuration.getSection("set_bonus")),
                 configuration.getBoolean("mythicmobs.enabled", true),
                 configuration.getBoolean("mythicmobs.drops.enabled", true),
                 mythicDropNames
         );
+    }
+
+    private ItemDirectoryConfig parseDirectories(YamlSection section) {
+        if (section == null) {
+            return ItemDirectoryConfig.defaults();
+        }
+        return new ItemDirectoryConfig(section.getInt("max_depth", ItemDirectoryConfig.DEFAULT_MAX_DEPTH));
     }
 
     private SetBonusConfig parseSetBonus(YamlSection section) {
