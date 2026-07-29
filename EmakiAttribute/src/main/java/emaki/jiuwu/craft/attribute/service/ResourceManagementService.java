@@ -90,7 +90,11 @@ final class ResourceManagementService {
             if (regenPerSecond == 0D) {
                 continue;
             }
-            double nextValue = existing.currentValue() + (regenPerSecond * intervalSeconds);
+            // The regeneration increment is applied to the engine-owned baseline
+            // rather than the persisted mirror: an external setHealth call this
+            // plugin never observed would otherwise be reverted on the next tick.
+            double baselineValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
+            double nextValue = baselineValue + (regenPerSecond * intervalSeconds);
             boolean traceHealthRegen = HEALTH_RESOURCE_ID.equals(resourceDefinition.id()) && shouldDebugResource(player);
             ResourceState refreshed = syncResource(player, resourceDefinition, snapshot, ResourceSyncReason.REGEN, nextValue);
             if (traceHealthRegen) {
@@ -98,6 +102,7 @@ final class ResourceManagementService {
                         "player", player.getName(),
                         "resource", resourceDefinition.id(),
                         "old_value", describeNumber(existing.currentValue()),
+                        "baseline_value", describeNumber(baselineValue),
                         "regen_per_second", describeNumber(regenPerSecond),
                         "interval_seconds", describeNumber(intervalSeconds),
                         "candidate_value", describeNumber(nextValue)
@@ -120,7 +125,10 @@ final class ResourceManagementService {
             if (existingHealth == null || existingHealth.currentValue() <= 0D) {
                 syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
             } else {
-                syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, existingHealth.currentValue(), false);
+                // The player's own entity health is authoritative on join: it was
+                // restored from playerdata and reflects changes this plugin never
+                // observed, whereas the persisted resource state is only a mirror.
+                syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, online.getHealth(), false);
             }
         });
     }
@@ -259,7 +267,7 @@ final class ResourceManagementService {
         } else if (reason == ResourceSyncReason.INITIALIZE || !existingState) {
             currentValue = resourceDefinition.fullOnInit() ? currentMax : defaultMax;
         } else {
-            currentValue = existing.currentValue();
+            currentValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
         }
         currentValue = Math.max(0D, Math.min(currentValue, currentMax));
         String sourceSignature = emaki.jiuwu.craft.corelib.pdc.SignatureUtil.combine(
@@ -443,6 +451,35 @@ final class ResourceManagementService {
         ));
         debugMaxHealthModifiers(player, reason, maxHealthAttribute);
         return ceiling;
+    }
+
+    /**
+     * Resolves the baseline EmakiAttribute derives a resource's current value
+     * from when no explicit override applies.
+     *
+     * <p>For a resource that synchronises to Bukkit, the engine owns the current
+     * value: {@code Player#setHealth(double)} can be called by any other plugin,
+     * by vanilla food regeneration, or by a command, and none of those routes
+     * fire {@code EntityRegainHealthEvent}. EmakiAttribute therefore cannot
+     * observe them and its persisted state is only a mirror. Deriving the next
+     * value from that mirror silently reverts every unobserved change, so the
+     * baseline must come from {@code Player#getHealth()} instead.
+     *
+     * <p>For resources that do not synchronise to Bukkit, such as {@code mana},
+     * the persisted state is the only authority and is returned unchanged.
+     *
+     * @param player the player being synchronized
+     * @param resourceDefinition the resource being synchronized
+     * @param existing the persisted resource state, may be {@code null}
+     * @return the baseline the current value should be derived from
+     */
+    private double resolveCurrentValueBaseline(Player player,
+            ResourceDefinition resourceDefinition,
+            ResourceState existing) {
+        if (!resourceDefinition.syncToBukkit() || !HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
+            return existing == null ? 0D : existing.currentValue();
+        }
+        return player.getHealth();
     }
 
     private void syncHealthToBukkit(Player player, ResourceState state, ResourceSyncReason reason) {

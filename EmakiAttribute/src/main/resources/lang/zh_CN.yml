@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.6.7"
+version: "4.6.8"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -589,4 +589,4 @@ debug:
     state_unchanged: "资源状态未变化 | 玩家=%player% | 资源=%resource% | 原因=%reason% | 状态存在=%state_present% | 状态资源=%state_resource_id% | 状态默认上限=%state_default_max% | 状态加成上限=%state_bonus_max% | 状态当前上限=%state_current_max% | 状态当前值=%state_current_value% | 状态来源签名=%state_source_signature% | 状态模式版本=%state_schema_version%"
     bukkit_before: "写入 Bukkit 前 | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value%"
     bukkit_after: "写入 Bukkit 后 | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value%"
-    regen: "生命自然回复 | 玩家=%player% | 资源=%resource% | 旧当前值=%old_value% | 每秒回复=%regen_per_second% | 间隔秒数=%interval_seconds% | 候选值=%candidate_value% | 同步状态存在=%synced_present% | 同步资源=%synced_resource_id% | 同步默认上限=%synced_default_max% | 同步加成上限=%synced_bonus_max% | 同步当前上限=%synced_current_max% | 同步当前值=%synced_current_value% | 同步来源签名=%synced_source_signature% | 同步模式版本=%synced_schema_version%"
+    regen: "生命自然回复 | 玩家=%player% | 资源=%resource% | 旧当前值=%old_value% | 引擎基线值=%baseline_value% | 每秒回复=%regen_per_second% | 间隔秒数=%interval_seconds% | 候选值=%candidate_value% | 同步状态存在=%synced_present% | 同步资源=%synced_resource_id% | 同步默认上限=%synced_default_max% | 同步加成上限=%synced_bonus_max% | 同步当前上限=%synced_current_max% | 同步当前值=%synced_current_value% | 同步来源签名=%synced_source_signature% | 同步模式版本=%synced_schema_version%"
