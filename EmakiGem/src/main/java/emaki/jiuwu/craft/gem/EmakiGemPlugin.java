@@ -102,22 +102,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemResonanceService resonanceService;
     private GemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
-    private final EmakiGemApi.Bridge gemApiBridge = new EmakiGemApi.Bridge() {
-        @Override
-        public String apiVersion() {
-            return getDescription().getVersion();
-        }
-
-        @Override
-        public String pluginName() {
-            return getName();
-        }
-
-        @Override
-        public boolean isReady() {
-            return isEnabled() && stateService() != null;
-        }
-    };
+    private final EmakiGemApi.Bridge gemApiBridge =
+            new emaki.jiuwu.craft.gem.apiimpl.DefaultEmakiGemApi(this);
 
     public EmakiGemPlugin() {
         super(AppConfig::defaults);

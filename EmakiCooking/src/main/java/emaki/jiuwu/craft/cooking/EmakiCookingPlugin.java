@@ -137,22 +137,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private NutritionTypeRegistry nutritionTypeRegistry;
     private PlayerNutritionDataStore nutritionDataStore;
     private NutritionService nutritionService;
-    private final EmakiCookingApi.Bridge cookingApiBridge = new EmakiCookingApi.Bridge() {
-        @Override
-        public String apiVersion() {
-            return getDescription().getVersion();
-        }
-
-        @Override
-        public String pluginName() {
-            return getName();
-        }
-
-        @Override
-        public boolean isReady() {
-            return isEnabled() && recipeService() != null;
-        }
-    };
+    private final EmakiCookingApi.Bridge cookingApiBridge =
+            new emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi(this);
 
     public EmakiCookingPlugin() {
         super(AppConfig::defaults);

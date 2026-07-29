@@ -187,6 +187,17 @@ public sealed interface EmakiResult<T> {
     }
 
     /**
+     * Creates a failure describing a subsystem the server owner has switched off.
+     *
+     * @param reasonKey stable machine-readable key identifying which subsystem is off
+     * @param <T>       the payload type that would have been produced
+     * @return a {@link Failure} of kind {@link FailureKind#DISABLED}
+     */
+    static <T> @NotNull EmakiResult<T> disabled(@NotNull String reasonKey) {
+        return new Failure<>(FailureKind.DISABLED, reasonKey, Map.of());
+    }
+
+    /**
      * Creates a failure describing a missing identifier.
      *
      * @param reasonKey stable machine-readable key identifying what was missing
