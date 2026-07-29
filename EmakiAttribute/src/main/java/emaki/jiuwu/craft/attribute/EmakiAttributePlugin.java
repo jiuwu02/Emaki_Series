@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
-import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
@@ -39,16 +39,9 @@ import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
-import emaki.jiuwu.craft.attribute.script.js.JavaScriptAttributeExtensionLoader;
-import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
-import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookRegistry;
-import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
-import emaki.jiuwu.craft.attribute.bridge.LegacyCoreAttributeCompatibility;
-import emaki.jiuwu.craft.corelib.api.integration.EmakiAttributeBridge;
-import emaki.jiuwu.craft.attribute.script.ScriptAttributeModuleApi;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
@@ -59,8 +52,9 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 
-public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements EmakiServiceRegistry {
+public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String STARTUP_ASCII = """
   ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
@@ -98,8 +92,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private emaki.jiuwu.craft.attribute.service.DamageIndicatorService damageIndicatorService;
     private EmakiAttributeApi.Bridge emakiAttributeBridge;
     private PdcAttributeApi.Bridge pdcAttributeApi;
-    @SuppressWarnings("deprecation")
-    private LegacyCoreAttributeCompatibility legacyCoreCompatibility;
     private ParentAttributeDataStore parentAttributeDataStore;
     private ParentAttributeService parentAttributeService;
     private GuiTemplateLoader guiTemplateLoader;
@@ -111,9 +103,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     private MythicBridge mythicBridge;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
-    private JavaScriptDamageHookRegistry javaScriptDamageHookRegistry;
-    private JavaScriptDamagePipelineRegistry javaScriptDamagePipelineRegistry;
-    private JavaScriptAttributeExtensionLoader javaScriptAttributeExtensionLoader;
     private TaskHandle regenTask;
     private CompletableFuture<Void> reloadFuture;
 
@@ -123,9 +112,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         registerConfigPrecheckContributor();
         registerAttributeBridgeService();
         registerPdcAttributeApi();
-        registerLegacyCoreCompatibility();
         registerAttributeServiceFacade();
-        registerScriptModule();
         ConsoleOutputs.sendGradientAscii(
                 this,
                 STARTUP_ASCII,
@@ -146,14 +133,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     public void onDisable() {
         unregisterCoreLibActions();
         ConfigPrecheckLifecycleSupport.unregister("attribute");
-        coreLib().scriptModuleRegistry().unregister("attribute");
-        if (javaScriptAttributeExtensionLoader != null) {
-            javaScriptAttributeExtensionLoader.close();
-            javaScriptAttributeExtensionLoader = null;
-        }
         PdcAttributeApi.uninstall(pdcAttributeApi);
         EmakiAttributeApi.uninstall(emakiAttributeBridge);
-        legacyCoreCompatibility = null;
         Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
         if (metrics != null) {
@@ -200,7 +181,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
 
     public void reloadPluginState(boolean resyncPlayers) {
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
-        reloadJavaScriptAttributeExtensions();
         registerCoreLibActions();
         logConfigPrecheckReport();
     }
@@ -215,7 +195,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         reloadFuture = lifecycleCoordinator.reloadAsync(this, regenTask, resyncPlayers, progressListener)
                 .thenAccept(task -> {
                     regenTask = task;
-                    reloadJavaScriptAttributeExtensions();
                     registerCoreLibActions();
                     logConfigPrecheckReport();
                 })
@@ -273,8 +252,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
     }
 
     private void initDebugLogger() {
-        emaki.jiuwu.craft.corelib.loader.LanguageLoader coreLanguageLoader =
-                new emaki.jiuwu.craft.corelib.loader.LanguageLoader(this);
+        LanguageLoader coreLanguageLoader = new LanguageLoader(this);
         coreLanguageLoader.load();
         setDebugLogger(new DebugLogger(this, coreLanguageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
@@ -294,32 +272,12 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         EmakiAttributeApi.install(emakiAttributeBridge);
     }
 
-    /**
-     * Publishes the deprecated CoreLib Attribute mirrors through the single
-     * compatibility adapter, which only delegates to the canonical facades.
-     */
-    @SuppressWarnings("deprecation")
-    private void registerLegacyCoreCompatibility() {
-        legacyCoreCompatibility = new LegacyCoreAttributeCompatibility();
-        Bukkit.getServicesManager().unregister(EmakiAttributeBridge.class, legacyCoreCompatibility);
-        Bukkit.getServicesManager().register(EmakiAttributeBridge.class, legacyCoreCompatibility, this, ServicePriority.Normal);
-        Bukkit.getServicesManager().unregister(
-                emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class, legacyCoreCompatibility);
-        Bukkit.getServicesManager().register(
-                emaki.jiuwu.craft.corelib.api.integration.PdcAttributeApi.class,
-                legacyCoreCompatibility, this, ServicePriority.Normal);
-    }
-
     private void registerAttributeServiceFacade() {
         if (attributeService == null) {
             return;
         }
         Bukkit.getServicesManager().unregister(AttributeServiceFacade.class, attributeService);
         Bukkit.getServicesManager().register(AttributeServiceFacade.class, attributeService, this, ServicePriority.Normal);
-    }
-
-    private void registerScriptModule() {
-        coreLib().scriptModuleRegistry().register("attribute", context -> new ScriptAttributeModuleApi(context.actionContext()));
     }
 
     void setConfigModel(AttributeConfig configModel) {
@@ -435,14 +393,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         return placeholderExpansion;
     }
 
-    public JavaScriptDamageHookRegistry javaScriptDamageHookRegistry() {
-        return javaScriptDamageHookRegistry;
-    }
-
-    public JavaScriptDamagePipelineRegistry javaScriptDamagePipelineRegistry() {
-        return javaScriptDamagePipelineRegistry;
-    }
-
     public DebugCommand debugCommand() {
         return debugCommand;
     }
@@ -486,42 +436,12 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements E
         AttributeActions.registerAll(coreLibPlugin.actionRegistry(), this, attributeService);
     }
 
-    private void reloadJavaScriptAttributeExtensions() {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        if (javaScriptAttributeExtensionLoader != null) {
-            javaScriptAttributeExtensionLoader.close();
-        }
-        releaseBundledScripts(coreLibPlugin);
-        if (coreLibPlugin.javaScriptService() == null || attributeService == null) {
-            return;
-        }
-        if (javaScriptDamageHookRegistry == null) {
-            javaScriptDamageHookRegistry = new JavaScriptDamageHookRegistry(this, coreLibPlugin.javaScriptService(), coreLibPlugin.configModel().scriptConfig());
-        }
-        if (javaScriptDamagePipelineRegistry == null) {
-            javaScriptDamagePipelineRegistry = new JavaScriptDamagePipelineRegistry(this, coreLibPlugin.javaScriptService(), coreLibPlugin.configModel().scriptConfig());
-        }
-        javaScriptAttributeExtensionLoader = new JavaScriptAttributeExtensionLoader(
-                this,
-                coreLibPlugin.javaScriptService(),
-                coreLibPlugin.configModel().scriptConfig(),
-                javaScriptDamageHookRegistry,
-                javaScriptDamagePipelineRegistry
-        );
-        javaScriptAttributeExtensionLoader.reload();
-    }
-
     private void unregisterCoreLibActions() {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         if (coreLibPlugin.actionRegistry() == null) {
             return;
         }
         AttributeActions.unregisterAll(coreLibPlugin.actionRegistry(), this);
-    }
-
-    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.releaseBundledScripts(this, "mythic", false, java.util.List.of("mythic_js_damage.js"));
-        coreLibPlugin.releaseBundledScripts(this, "examples", false, java.util.List.of("attribute_buff.js", "js_fire_mastery.js"));
     }
 
     private void registerSkillScriptActions() {

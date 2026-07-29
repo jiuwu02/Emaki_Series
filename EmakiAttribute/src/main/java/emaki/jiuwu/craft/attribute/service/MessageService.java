@@ -7,7 +7,7 @@ import org.bukkit.command.CommandSender;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
-import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 
 public final class MessageService extends AbstractMessageService {

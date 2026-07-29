@@ -14,9 +14,9 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
-import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPayload;
-import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
-import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
+import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPayload;
+import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.api.pdc.SkillPdcMutation;
 
 public final class EmakiItemPdcWriter {
 

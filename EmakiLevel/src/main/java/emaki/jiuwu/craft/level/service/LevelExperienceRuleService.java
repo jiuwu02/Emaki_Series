@@ -3,19 +3,16 @@ package emaki.jiuwu.craft.level.service;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.level.config.AppConfig;
-import emaki.jiuwu.craft.level.script.js.JavaScriptLevelExpRuleRegistry;
 
 public final class LevelExperienceRuleService {
 
     private final Map<String, Map<UUID, Map<String, Double>>> dailyGains = new ConcurrentHashMap<>();
-    private JavaScriptLevelExpRuleRegistry javaScriptRules;
     private AppConfig config = AppConfig.defaults();
     private ZoneId zoneId = ZoneId.systemDefault();
 
@@ -23,10 +20,6 @@ public final class LevelExperienceRuleService {
         if (config != null) {
             this.config = config;
         }
-    }
-
-    public void javaScriptRules(JavaScriptLevelExpRuleRegistry javaScriptRules) {
-        this.javaScriptRules = javaScriptRules;
     }
 
     public void zoneId(ZoneId zoneId) {
@@ -50,31 +43,15 @@ public final class LevelExperienceRuleService {
         clearExpired(today);
         double dailyLimit = resolveDailyLimit(normalizedType);
         double gained = currentGain(today, uuid, normalizedType);
-        JavaScriptLevelExpRuleRegistry.Adjustment scripted = javaScriptRules == null ? null : javaScriptRules.apply(new JavaScriptLevelExpRuleRegistry.Adjustment(
-                uuid.toString(),
-                normalizedType,
-                normalizedReason,
-                amount,
-                multiplier,
-                multiplied,
-                dailyLimit,
-                gained,
-                multiplied,
-                List.of()
-        ));
-        double adjusted = scripted == null ? multiplied : scripted.actualAmount();
-        if (adjusted <= 0D) {
-            return LevelExperienceAdjustment.limitReached(amount, multiplier, multiplied, dailyLimit, gained, 0D, scripted == null ? List.of() : scripted.traces());
-        }
-        double remaining = dailyLimit < 0D ? adjusted : Math.max(0D, dailyLimit - gained);
-        double actual = dailyLimit < 0D ? adjusted : Math.min(adjusted, remaining);
+        double remaining = dailyLimit < 0D ? multiplied : Math.max(0D, dailyLimit - gained);
+        double actual = dailyLimit < 0D ? multiplied : Math.min(multiplied, remaining);
         if (actual <= 0D) {
-            return LevelExperienceAdjustment.limitReached(amount, multiplier, multiplied, dailyLimit, gained, 0D, scripted == null ? List.of() : scripted.traces());
+            return LevelExperienceAdjustment.limitReached(amount, multiplier, multiplied, dailyLimit, gained, 0D);
         }
         dailyGains.computeIfAbsent(today, ignored -> new ConcurrentHashMap<>())
                 .computeIfAbsent(uuid, ignored -> new ConcurrentHashMap<>())
                 .merge(normalizedType, actual, Double::sum);
-        return LevelExperienceAdjustment.applied(amount, multiplier, multiplied, dailyLimit, gained, actual, scripted == null ? List.of() : scripted.traces());
+        return LevelExperienceAdjustment.applied(amount, multiplier, multiplied, dailyLimit, gained, actual);
     }
 
     public synchronized void clearExpired() {
@@ -129,19 +106,14 @@ public final class LevelExperienceRuleService {
             double dailyLimit,
             double gainedToday,
             double actualAmount,
-            String reason,
-            List<Map<String, Object>> javaScriptRules) {
-
-        public LevelExperienceAdjustment {
-            javaScriptRules = javaScriptRules == null ? List.of() : List.copyOf(javaScriptRules);
-        }
+            String reason) {
 
         static LevelExperienceAdjustment invalid(double originalAmount) {
-            return new LevelExperienceAdjustment(originalAmount, 1D, 0D, -1D, 0D, 0D, "invalid_amount", List.of());
+            return new LevelExperienceAdjustment(originalAmount, 1D, 0D, -1D, 0D, 0D, "invalid_amount");
         }
 
         static LevelExperienceAdjustment reached(double originalAmount, double multiplier, double multipliedAmount) {
-            return new LevelExperienceAdjustment(originalAmount, multiplier, multipliedAmount, -1D, 0D, 0D, "invalid_amount", List.of());
+            return new LevelExperienceAdjustment(originalAmount, multiplier, multipliedAmount, -1D, 0D, 0D, "invalid_amount");
         }
 
         static LevelExperienceAdjustment applied(double originalAmount,
@@ -149,9 +121,8 @@ public final class LevelExperienceRuleService {
                 double multipliedAmount,
                 double dailyLimit,
                 double gainedToday,
-                double actualAmount,
-                List<Map<String, Object>> javaScriptRules) {
-            return new LevelExperienceAdjustment(originalAmount, multiplier, multipliedAmount, dailyLimit, gainedToday, actualAmount, "success", javaScriptRules);
+                double actualAmount) {
+            return new LevelExperienceAdjustment(originalAmount, multiplier, multipliedAmount, dailyLimit, gainedToday, actualAmount, "success");
         }
 
         static LevelExperienceAdjustment limitReached(double originalAmount,
@@ -160,17 +131,7 @@ public final class LevelExperienceRuleService {
                 double dailyLimit,
                 double gainedToday,
                 double actualAmount) {
-            return limitReached(originalAmount, multiplier, multipliedAmount, dailyLimit, gainedToday, actualAmount, List.of());
-        }
-
-        static LevelExperienceAdjustment limitReached(double originalAmount,
-                double multiplier,
-                double multipliedAmount,
-                double dailyLimit,
-                double gainedToday,
-                double actualAmount,
-                List<Map<String, Object>> javaScriptRules) {
-            return new LevelExperienceAdjustment(originalAmount, multiplier, multipliedAmount, dailyLimit, gainedToday, actualAmount, "daily_cap_reached", javaScriptRules);
+            return new LevelExperienceAdjustment(originalAmount, multiplier, multipliedAmount, dailyLimit, gainedToday, actualAmount, "daily_cap_reached");
         }
 
         public Map<String, Object> data() {
@@ -182,7 +143,6 @@ public final class LevelExperienceRuleService {
             data.put("gained_today", gainedToday);
             data.put("actual_amount", actualAmount);
             data.put("reason", reason);
-            data.put("js_rules", javaScriptRules);
             return Map.copyOf(data);
         }
     }

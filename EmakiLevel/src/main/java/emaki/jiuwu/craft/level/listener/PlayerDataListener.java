@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.level.listener;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
@@ -14,6 +13,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
@@ -127,10 +127,7 @@ public final class PlayerDataListener implements Listener {
         if (throwable == null) {
             return;
         }
-        Throwable cause = throwable instanceof CompletionException completionException
-                && completionException.getCause() != null
-                        ? completionException.getCause()
-                        : throwable;
+        Throwable cause = AsyncFailures.unwrapOnce(throwable);
         plugin.getLogger().log(Level.WARNING,
                 "[LevelDataStore] Async " + operation + " failed for " + playerId,
                 cause);

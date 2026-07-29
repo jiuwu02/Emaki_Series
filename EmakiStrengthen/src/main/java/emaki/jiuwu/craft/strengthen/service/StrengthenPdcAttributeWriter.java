@@ -6,8 +6,8 @@ import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
-import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
+import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.api.pdc.SkillPdcMutation;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;

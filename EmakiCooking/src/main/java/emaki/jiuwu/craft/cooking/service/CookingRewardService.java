@@ -31,12 +31,9 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
-import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.api.event.CookingRecipeCompleteEvent;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
-import emaki.jiuwu.craft.cooking.script.JavaScriptCookingCompleteHookRegistry;
-import emaki.jiuwu.craft.cooking.script.JavaScriptCookingResultRuleRegistry;
 
 public final class CookingRewardService {
 
@@ -144,23 +141,9 @@ public final class CookingRewardService {
             }
         }
 
-        JavaScriptCookingResultRuleRegistry.DeliveryPlan plan = JavaScriptCookingResultRuleRegistry.DeliveryPlan.from(
-                recipe,
-                player,
-                location,
-                phase,
-                inputs,
-                outputs,
-                actions,
-                basePlaceholders
-        );
-        if (plugin instanceof EmakiCookingPlugin cookingPlugin
-                && cookingPlugin.javaScriptResultRuleRegistry() != null) {
-            plan = cookingPlugin.javaScriptResultRuleRegistry().apply(plan);
-        }
-        if (plan == null || plan.cancelled()) {
-            return new PreparedReward(units);
-        }
+        String effectivePhase = Texts.toStringSafe(phase);
+        List<Map<String, Object>> effectiveOutputs = outputs == null ? List.of() : outputs;
+        List<String> effectiveActions = actions == null ? List.of() : actions;
 
         boolean effectiveDropResult = dropResult;
         if (recipe != null && threadOwnership != null && threadOwnership.isGlobalOwned()) {
@@ -170,8 +153,8 @@ public final class CookingRewardService {
                     recipe.id(),
                     recipe.displayName(),
                     recipe.stationType() == null ? "" : recipe.stationType().folderName(),
-                    plan.phase(),
-                    plan.outputs().size(),
+                    effectivePhase,
+                    effectiveOutputs.size(),
                     dropResult
             );
             Bukkit.getPluginManager().callEvent(completeEvent);
@@ -181,11 +164,11 @@ public final class CookingRewardService {
             effectiveDropResult = completeEvent.isDropResult();
         }
 
-        for (Map<String, Object> output : plan.outputs()) {
+        for (Map<String, Object> output : effectiveOutputs) {
             if (output == null || output.isEmpty() || !passesChance(output.get("chance"))) {
                 continue;
             }
-            ItemStack itemStack = createOutputItem(recipe, output, player, location, plan.phase(), plan.placeholders());
+            ItemStack itemStack = createOutputItem(recipe, output, player, location, effectivePhase, basePlaceholders);
             if (itemStack == null || itemStack.getType().isAir()) {
                 plugin.getLogger().warning("[CookingReward] Output item is null or air. output_map=" + output
                         + ", recipe=" + (recipe == null ? "null" : recipe.id()));
@@ -207,38 +190,21 @@ public final class CookingRewardService {
                         outputActions,
                         player,
                         location,
-                        plan.phase(),
-                        buildOutputPlaceholders(recipe, output, player, location, plan.phase(), plan.placeholders())
+                        effectivePhase,
+                        buildOutputPlaceholders(recipe, output, player, location, effectivePhase, basePlaceholders)
                 ));
             }
         }
-        if (!plan.actions().isEmpty()) {
+        if (!effectiveActions.isEmpty()) {
             units.add(freezeActionUnit(
                     stableOperationId,
-                    sequence++,
-                    plan.actions(),
+                    sequence,
+                    effectiveActions,
                     player,
                     location,
-                    plan.phase(),
+                    effectivePhase,
                     basePlaceholders
             ));
-        }
-        if (plugin instanceof EmakiCookingPlugin cookingPlugin) {
-            JavaScriptCookingCompleteHookRegistry hookRegistry = cookingPlugin.javaScriptCompleteHookRegistry();
-            if (hookRegistry != null) {
-                List<String> hookActions = hookRegistry.prepareActions(plan);
-                if (!hookActions.isEmpty()) {
-                    units.add(freezeActionUnit(
-                            stableOperationId,
-                            sequence,
-                            hookActions,
-                            player,
-                            location,
-                            "cooking.complete",
-                            basePlaceholders
-                    ));
-                }
-            }
         }
         return new PreparedReward(units);
     }

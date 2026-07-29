@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiClickType;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
+import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -273,7 +274,7 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         }
         int perPage = guiService.slotsPerPage();
         int slotCount = state.slots().size();
-        int reachable = Math.max(1, (int) Math.ceil((double) slotCount / perPage));
+        int reachable = GuiPagination.totalPages(slotCount, perPage);
         StorageCapacity capacity = capacityService.capacityOf(storage, viewer, perPage);
         int allowed = Math.min(reachable, Math.max(1, capacity.totalPages()));
         if (target > allowed - 1) {
@@ -347,7 +348,7 @@ public final class StorageGuiHandler implements GuiSessionHandler {
     private void clampAndRefresh(GuiSession session, Player viewer, StorageGuiService.ViewState state) {
         int perPage = guiService.slotsPerPage();
         int slotCount = state.slots().size();
-        int reachable = Math.max(1, (int) Math.ceil((double) slotCount / perPage));
+        int reachable = GuiPagination.totalPages(slotCount, perPage);
         int page = StorageGuiService.currentPage(session);
         int clamped = Math.min(page, reachable - 1);
         if (clamped != page) {

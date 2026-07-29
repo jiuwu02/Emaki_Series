@@ -60,7 +60,7 @@ public final class ItemRepairListener implements Listener {
         if (cursor.getAmount() < matched.amount()) {
             return;
         }
-        int consumed = repairService.repair(player, clicked, cursor, matched);
+        int consumed = repairService.repair(player, definition, clicked, cursor, matched);
         if (consumed <= 0) {
             return;
         }

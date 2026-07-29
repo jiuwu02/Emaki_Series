@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.attribute.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Function;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
@@ -36,8 +35,8 @@ public record RecoveryDefinition(DamageStageSource source,
             return null;
         }
         return new RecoveryDefinition(
-                parseEnum(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER),
-                parseEnum(ConfigNodes.string(raw, "resistance_source", "TARGET"), DamageStageSource.TARGET),
+                ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER),
+                ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "resistance_source", "TARGET"), DamageStageSource.TARGET),
                 normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "flat_attributes")), attributeNormalizer),
                 normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "percent_attributes")), attributeNormalizer),
                 normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "resistance_attributes")), attributeNormalizer),
@@ -63,16 +62,5 @@ public record RecoveryDefinition(DamageStageSource source,
             }
         }
         return List.copyOf(normalized);
-    }
-
-    private static <E extends Enum<E>> E parseEnum(String value, E defaultValue) {
-        if (Texts.isBlank(value)) {
-            return defaultValue;
-        }
-        try {
-            return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception _) {
-            return defaultValue;
-        }
     }
 }

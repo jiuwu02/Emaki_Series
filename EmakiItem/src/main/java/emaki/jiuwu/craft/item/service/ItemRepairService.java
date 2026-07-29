@@ -259,11 +259,20 @@ public final class ItemRepairService {
         return success;
     }
 
-    public int repair(Player player, ItemStack equipment, ItemStack repairItem, RepairMaterial matched) {
+    public int repair(Player player,
+            EmakiItemDefinition definition,
+            ItemStack equipment,
+            ItemStack repairItem,
+            RepairMaterial matched) {
         if (player == null || equipment == null || matched == null) {
             return 0;
         }
-        int restored = applyRepair(equipment, matched.resolveAmount(maxDamage(equipment)));
+        ItemRepairEventResult eventResult = fireRepairEvent(
+                player, definition, equipment, "material", matched.resolveAmount(maxDamage(equipment)));
+        if (eventResult.cancelled()) {
+            return 0;
+        }
+        int restored = applyRepair(equipment, eventResult.restoreAmount());
         return restored <= 0 ? 0 : matched.amount();
     }
 

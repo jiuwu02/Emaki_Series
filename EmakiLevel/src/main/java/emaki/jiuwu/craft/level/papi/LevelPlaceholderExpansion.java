@@ -5,7 +5,7 @@ import java.util.Locale;
 
 import org.bukkit.OfflinePlayer;
 
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
@@ -13,11 +13,12 @@ import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 import emaki.jiuwu.craft.level.service.LevelTopService;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
 
-public final class LevelPlaceholderExpansion extends PlaceholderExpansion {
+public final class LevelPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
     private final EmakiLevelPlugin plugin;
 
     public LevelPlaceholderExpansion(EmakiLevelPlugin plugin) {
+        super(plugin);
         this.plugin = plugin;
     }
 
@@ -29,16 +30,6 @@ public final class LevelPlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public String getAuthor() {
         return "JiuWu";
-    }
-
-    @Override
-    public String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

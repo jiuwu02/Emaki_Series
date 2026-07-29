@@ -10,8 +10,8 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
-import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
+import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.api.pdc.SkillPdcMutation;
 
 final class ForgePdcAttributeWriter {
 

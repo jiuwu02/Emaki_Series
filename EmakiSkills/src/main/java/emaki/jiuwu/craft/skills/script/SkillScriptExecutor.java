@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +19,7 @@ import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
 import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -243,7 +243,7 @@ public final class SkillScriptExecutor {
                         : result);
                 return;
             }
-            Throwable cause = unwrap(error);
+            Throwable cause = AsyncFailures.unwrap(error);
             if (cause instanceof CancellationException) {
                 cancellationToken.cancel();
                 guarded.complete(SkillActionResult.failure(SkillActionErrorType.CANCELLED,
@@ -340,22 +340,12 @@ public final class SkillScriptExecutor {
     }
 
     private static SkillActionResult failure(Throwable throwable) {
-        Throwable cause = unwrap(throwable);
+        Throwable cause = AsyncFailures.unwrap(throwable);
         return SkillActionResult.failure(
                 SkillActionErrorType.EXECUTION_EXCEPTION,
                 cause == null || Texts.isBlank(cause.getMessage())
                         ? "Skill action execution failed."
                         : cause.getMessage());
-    }
-
-    private static Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null && current.getCause() != null
-                && (current instanceof CompletionException
-                || current instanceof java.util.concurrent.ExecutionException)) {
-            current = current.getCause();
-        }
-        return current;
     }
 
     private static final class EntityDomain {
@@ -427,7 +417,7 @@ public final class SkillScriptExecutor {
                 }
                 stage.whenComplete((result, throwable) -> {
                     if (throwable != null) {
-                        future.completeExceptionally(unwrap(throwable));
+                        future.completeExceptionally(AsyncFailures.unwrap(throwable));
                     } else {
                         future.complete(result);
                     }

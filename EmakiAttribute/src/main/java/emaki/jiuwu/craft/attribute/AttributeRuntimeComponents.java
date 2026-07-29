@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
-import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;

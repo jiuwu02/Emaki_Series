@@ -7,13 +7,13 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
 /**
  * PlaceholderAPI expansion, registered only when PlaceholderAPI is present.
@@ -22,34 +22,20 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
  * disk: a placeholder resolves on whatever thread PAPI calls it from, so blocking IO is not an
  * option, and an unloaded storage simply reports zero.
  */
-public final class StoragePlaceholderExpansion extends PlaceholderExpansion {
+public final class StoragePlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
     private static final String COUNT_PREFIX = "count_";
 
     private final EmakiStoragePlugin plugin;
 
     public StoragePlaceholderExpansion(EmakiStoragePlugin plugin) {
+        super(plugin);
         this.plugin = plugin;
     }
 
     @Override
     public String getIdentifier() {
         return "emakistorage";
-    }
-
-    @Override
-    public String getAuthor() {
-        return "Emaki";
-    }
-
-    @Override
-    public String getVersion() {
-        return plugin.getPluginMeta().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

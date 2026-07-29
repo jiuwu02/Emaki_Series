@@ -30,8 +30,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenChanceRuleRegistry;
-import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenResultHookRegistry;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
@@ -186,9 +185,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 materials.requiredMaterials(),
                 materials.optionalMaterials()
         );
-        JavaScriptStrengthenChanceRuleRegistry chanceRuleRegistry = plugin.javaScriptChanceRuleRegistry();
-        return chanceRuleRegistry == null ? preview
-                : chanceRuleRegistry.apply(player, context, materials.requiredMaterials(), materials.optionalMaterials(), preview);
+        return preview;
     }
 
     @Override
@@ -249,7 +246,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         if (recipe != null && !recipe.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     toCoreConditionGroup(recipe.conditions()),
-                    text -> resolvePlaceholders(player, text),
+                    text -> PlaceholderRenderer.renderPapi(player, text, null, "strengthen_attempt"),
                     true,
                     ConditionContext.of(player, context.targetItem(),
                             java.util.Map.of(
@@ -325,15 +322,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     }
 
     private AttemptResult finishAttempt(Player player, AttemptResult result) {
-        try {
-            JavaScriptStrengthenResultHookRegistry resultHookRegistry = plugin.javaScriptResultHookRegistry();
-            if (resultHookRegistry != null) {
-                resultHookRegistry.fire(player, result);
-            }
-        } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("Strengthen result hook dispatch failed | operationId="
-                    + result.operationId() + " | error=" + exception.getMessage());
-        }
         if (isPlayerOwned(player)) {
             try {
                 Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
@@ -875,16 +863,5 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     }
 
     private record JournalEntry(int fingerprint, AttemptResult result) {
-    }
-
-    private String resolvePlaceholders(Player player, String text) {
-        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return text;
-        }
-        try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
-        } catch (Exception | NoClassDefFoundError _) {
-            return text;
-        }
     }
 }

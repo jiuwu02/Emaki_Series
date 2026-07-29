@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.forge.service;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -20,6 +19,7 @@ import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore.GuaranteeCounterUpdate;
 import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
@@ -27,8 +27,6 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.model.ValidationResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
-import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeResultHookRegistry;
-import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeRuleRegistry;
 
 final class ForgeExecutionService {
 
@@ -45,8 +43,6 @@ final class ForgeExecutionService {
     private final CraftRecorder craftRecorder;
     private final ResultItemPostProcessor resultItemPostProcessor;
     private final ForgeFailureResolver forgeFailureResolver;
-    private final JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry;
-    private final JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry;
 
     ForgeExecutionService(EmakiForgePlugin plugin,
                           ExecutionDispatcher executionDispatcher,
@@ -57,13 +53,10 @@ final class ForgeExecutionService {
                           ForgePlanResolver forgePlanResolver,
                           ResultItemGiver resultItemGiver,
                           CraftRecorder craftRecorder,
-                          ResultItemPostProcessor resultItemPostProcessor,
-                          JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry,
-                          JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry) {
+                          ResultItemPostProcessor resultItemPostProcessor) {
         this(plugin, executionDispatcher, threadOwnership, sessionValidator, actionCoordinator,
                 qualityCalculationService, forgePlanResolver, resultItemGiver,
-                craftRecorder, resultItemPostProcessor, new ForgeFailureResolver(),
-                javaScriptForgeRuleRegistry, javaScriptResultHookRegistry);
+                craftRecorder, resultItemPostProcessor, new ForgeFailureResolver());
     }
 
     ForgeExecutionService(EmakiForgePlugin plugin,
@@ -76,9 +69,7 @@ final class ForgeExecutionService {
                           ResultItemGiver resultItemGiver,
                           CraftRecorder craftRecorder,
                           ResultItemPostProcessor resultItemPostProcessor,
-                          ForgeFailureResolver forgeFailureResolver,
-                          JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry,
-                          JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry) {
+                          ForgeFailureResolver forgeFailureResolver) {
         this.plugin = plugin;
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
@@ -90,8 +81,6 @@ final class ForgeExecutionService {
         this.craftRecorder = craftRecorder;
         this.resultItemPostProcessor = resultItemPostProcessor;
         this.forgeFailureResolver = forgeFailureResolver;
-        this.javaScriptForgeRuleRegistry = javaScriptForgeRuleRegistry;
-        this.javaScriptResultHookRegistry = javaScriptResultHookRegistry;
     }
 
     CompletableFuture<ForgeResult> execute(Player player,
@@ -111,7 +100,7 @@ final class ForgeExecutionService {
         if (validation != null && !validation.success()) {
             result.setErrorKey(validation.errorKey());
             result.setReplacements(validation.replacements());
-            return finishAsync(player, recipe, result, runtimeGeneration).toCompletableFuture();
+            return finishAsync(result, runtimeGeneration).toCompletableFuture();
         }
         return actionCoordinator.executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
                 .thenCompose(preBatch -> callPlayerOwnerAsync(player, sessionGeneration, () -> prepareResultActions(
@@ -139,19 +128,11 @@ final class ForgeExecutionService {
                     result.actionFailureReason());
         }
         if (recipe.hasFailureMechanism()) {
-            JavaScriptForgeRuleRegistry.Decision decision = applyJavaScriptForgeRules(
-                    player, recipe, guiItems, recipe.successRate());
             if (!isRuntimeCurrent(runtimeGeneration)) {
                 return CompletableFuture.completedFuture(staleRuntimeResult());
             }
-            if (decision.cancelled()) {
-                result.setErrorKey("forge.craft.failed");
-                result.setReplacements(Map.of(
-                        "outcome_type", Texts.isBlank(decision.message()) ? "cancelled" : decision.message()));
-                return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration, "cancelled");
-            }
             double roll = ThreadLocalRandom.current().nextDouble(100D);
-            if (roll >= decision.successRate()) {
+            if (roll >= recipe.successRate()) {
                 ForgeFailureResolver.ForgeFailureResult failureResult = forgeFailureResolver.resolve(recipe, guiItems, player);
                 result.setErrorKey("forge.craft.failed");
                 result.setReplacements(Map.of("outcome_type", failureResult.outcomeType()));
@@ -267,7 +248,7 @@ final class ForgeExecutionService {
             );
             craftRecorder.record(player.getUniqueId(), sessionGeneration, recipe.id(), guaranteeUpdate);
         }
-        return finishAsync(player, recipe, result, runtimeGeneration);
+        return finishAsync(result, runtimeGeneration);
     }
 
     private CompletableFuture<ForgeResult> callPlayerOwnerAsync(Player player,
@@ -430,56 +411,17 @@ final class ForgeExecutionService {
         }
         return actionCoordinator.awaitPhase(player, recipe, guiItems, "failure", null, null,
                         result.quality(), result.multiplier(), result.errorKey(), failureReason)
-                .thenCompose(_ -> finishAsync(player, recipe, result, runtimeGeneration));
+                .thenCompose(_ -> finishAsync(result, runtimeGeneration));
     }
 
-    private CompletionStage<ForgeResult> finishAsync(Player player,
-            Recipe recipe,
-            ForgeResult result,
+    private CompletionStage<ForgeResult> finishAsync(ForgeResult result,
             long runtimeGeneration) {
         if (!isRuntimeCurrent(runtimeGeneration)) {
             return CompletableFuture.completedFuture(result != null && result.success()
                     ? result
                     : staleRuntimeResult());
         }
-        if (javaScriptResultHookRegistry == null) {
-            return CompletableFuture.completedFuture(result);
-        }
-        CompletionStage<Void> hookCompletion = javaScriptResultHookRegistry.fire(
-                player, recipe, result, runtimeGeneration);
-        if (hookCompletion == null) {
-            return CompletableFuture.completedFuture(result);
-        }
-        return hookCompletion.handle((ignored, throwable) -> {
-            if (throwable != null && plugin != null) {
-                plugin.getLogger().warning("[JavaScript] Forge result hook completion failed: "
-                        + Texts.toStringSafe(throwable.getMessage()));
-            }
-            if (isRuntimeCurrent(runtimeGeneration) || result.success()) {
-                return result;
-            }
-            return staleRuntimeResult();
-        });
-    }
-
-    private JavaScriptForgeRuleRegistry.Decision applyJavaScriptForgeRules(Player player, Recipe recipe, GuiItems guiItems, double successRate) {
-        if (javaScriptForgeRuleRegistry == null) {
-            return new JavaScriptForgeRuleRegistry.Decision(
-                    recipe == null ? "" : recipe.id(),
-                    recipe == null ? "" : recipe.displayName(),
-                    player == null ? "" : player.getUniqueId().toString(),
-                    player == null ? "" : player.getName(),
-                    successRate,
-                    successRate,
-                    false,
-                    "",
-                    java.util.Map.of(),
-                    List.of(),
-                    List.of(),
-                    List.of()
-            );
-        }
-        return javaScriptForgeRuleRegistry.apply(player, recipe, guiItems, successRate);
+        return CompletableFuture.completedFuture(result);
     }
 
     private void buildActionFailure(ForgeResult result, ActionBatchResult batch) {
@@ -521,8 +463,7 @@ final class ForgeExecutionService {
             if (player == null || itemStack == null || itemStack.getType().isAir()) {
                 return false;
             }
-            java.util.Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack.clone());
-            leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+            InventoryItemUtil.giveOrDrop(player, itemStack);
             return true;
         }
     }

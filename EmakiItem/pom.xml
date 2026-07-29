@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-item</artifactId>
-    <version>2.6.2</version>
+    <version>2.6.4</version>
     <name>EmakiItem</name>
     <packaging>jar</packaging>
 
@@ -34,8 +34,8 @@
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
-            <artifactId>emaki-skills-protocol</artifactId>
-            <version>${emaki.skills.protocol.version}</version>
+            <artifactId>emaki-skills-api</artifactId>
+            <version>${emaki.skills.version}</version>
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
@@ -87,12 +87,27 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-item-api</include>
-                                    <include>emaki.jiuwu.craft:emaki-skills-protocol</include>
+                                    <include>emaki.jiuwu.craft:emaki-skills-api</include>
                                 </includes>
                             </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/**/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>emaki.jiuwu.craft:emaki-skills-api</artifact>
+                                    <includes>
+                                        <include>emaki/jiuwu/craft/skills/api/pdc/**</include>
+                                    </includes>
+                                </filter>
+                            </filters>
                             <relocations>
                                 <relocation>
-                                    <pattern>emaki.jiuwu.craft.skills.protocol</pattern>
+                                    <pattern>emaki.jiuwu.craft.skills.api.pdc</pattern>
                                     <shadedPattern>emaki.jiuwu.craft.item.runtime.skillsprotocol</shadedPattern>
                                 </relocation>
                             </relocations>

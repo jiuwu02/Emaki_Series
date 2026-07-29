@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -112,6 +113,44 @@ public final class ConfigNodes {
             return defaultValue;
         }
         return Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    /**
+     * Lenient enum parsing for configuration: unknown or blank values fall back to
+     * {@code defaultValue}. Use for admin-authored config where a bad value should
+     * not break loading.
+     */
+    public static <E extends Enum<E>> E enumOrDefault(Object value, E defaultValue) {
+        if (defaultValue == null) {
+            return null;
+        }
+        String name = value == null ? "" : String.valueOf(value).trim();
+        if (name.isBlank()) {
+            return defaultValue;
+        }
+        try {
+            return Enum.valueOf(defaultValue.getDeclaringClass(), name.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException _) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Strict enum parsing for persisted data: blank or unknown values throw.
+     * Use when silently substituting a default would corrupt stored state.
+     *
+     * @throws IllegalArgumentException when the value is blank or not a member of {@code type}
+     */
+    public static <E extends Enum<E>> E enumOrThrow(Class<E> type, Object value) {
+        String name = value == null ? "" : String.valueOf(value).trim();
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("Missing enum value: " + type.getSimpleName());
+        }
+        try {
+            return Enum.valueOf(type, name.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Invalid " + type.getSimpleName() + ": " + name, exception);
+        }
     }
 
     public static YamlSection section(Object mapping, String key) {

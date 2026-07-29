@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.6.0"
+version: "4.6.2"
 
 general:
   prefix: "<gray>[ <gradient:#FACC15:#F97316>EmakiStrengthen</gradient> ]</gray>"
@@ -178,9 +178,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
     action:
       execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
       execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
@@ -311,9 +308,6 @@ debug:
     success: "Strengthen success | new_star=%star%"
     failed: "Strengthen failed | type=%type% | crack=%crack%"
     destroyed: "Strengthen destroyed | item=%item%"
-  script:
-    attempt_trace: "Strengthen script attempt trace | operation_id=%operation_id% | rule=%rule% | before=%before% | after=%after% | message=%message%"
-    chance_rule_failed_closed: "Strengthen chance rule failed closed | operation_id=%operation_id% | rule=%rule%"
   state:
     read: "Read strengthen state | item=%item% | star=%star% | crack=%crack% | recipe=%recipe%"
     write: "Write strengthen state | item=%item% | change=%change%"

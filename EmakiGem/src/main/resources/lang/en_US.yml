@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.6.1"
+version: "2.6.3"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -294,9 +294,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
     action:
       execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
       execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
@@ -433,8 +430,6 @@ debug:
     write: "Write gem state | Item=%item% | Change=%change%"
   refresh:
     complete: "Gem item refresh complete | duration=%duration_ms%ms | reason=%reason%"
-  script:
-    trace: "Gem script rule trace | rule=%rule% | before=%before% | after=%after% | message=%message%"
   gui:
     open: "GUI open | Player=%player% | Mode=%mode%"
     click: "GUI click | Player=%player% | Slot=%slot% | Action=%action%"

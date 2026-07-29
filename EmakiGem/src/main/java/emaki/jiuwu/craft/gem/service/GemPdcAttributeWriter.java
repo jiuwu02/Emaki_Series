@@ -7,8 +7,8 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
-import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
-import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
+import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.api.pdc.SkillPdcMutation;
 
 public final class GemPdcAttributeWriter {
 

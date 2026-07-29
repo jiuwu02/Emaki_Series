@@ -9,8 +9,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.api.PlayerAttributePointAllocateEvent;
+import emaki.jiuwu.craft.attribute.api.PlayerAttributePointResetEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -113,6 +116,10 @@ public final class ParentAttributeService {
         if (data.availablePoints() < safeAmount) {
             return AllocateResult.NOT_ENOUGH_POINTS;
         }
+        safeAmount = fireAllocateEvent(player, definition, data, safeAmount);
+        if (safeAmount <= 0 || data.availablePoints() < safeAmount) {
+            return AllocateResult.NOT_ENOUGH_POINTS;
+        }
         data.availablePoints(data.availablePoints() - safeAmount);
         data.allocations().merge(definition.id(), safeAmount, Integer::sum);
         data.markDirty();
@@ -131,6 +138,9 @@ public final class ParentAttributeService {
         }
         if (consumeResetPoint && data.resetPoints() <= 0) {
             return ResetResult.NOT_ENOUGH_RESET_POINTS;
+        }
+        if (!fireResetEvent(player, data, allocated, consumeResetPoint)) {
+            return ResetResult.CANCELLED;
         }
         if (consumeResetPoint) {
             data.resetPoints(data.resetPoints() - 1);
@@ -199,6 +209,54 @@ public final class ParentAttributeService {
         dataStore.saveAll();
     }
 
+    /**
+     * Fires the public allocation event when the caller owns the player's thread.
+     *
+     * @return the amount to allocate, or {@code 0} when cancelled. Off-thread
+     *         callers proceed with {@code requestedAmount} without firing.
+     */
+    private int fireAllocateEvent(Player player,
+            AttributeDefinition definition,
+            ParentAttributeData data,
+            int requestedAmount) {
+        ThreadOwnership threadOwnership = plugin.threadOwnership();
+        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
+            return requestedAmount;
+        }
+        PlayerAttributePointAllocateEvent event = new PlayerAttributePointAllocateEvent(
+                player,
+                definition.id(),
+                requestedAmount,
+                data.availablePoints(),
+                data.allocations().getOrDefault(definition.id(), 0));
+        Bukkit.getPluginManager().callEvent(event);
+        return event.isCancelled() ? 0 : event.getAmount();
+    }
+
+    /**
+     * Fires the public reset event when the caller owns the player's thread.
+     *
+     * @return {@code true} to proceed with the reset, {@code false} when
+     *         cancelled. Off-thread callers proceed without firing.
+     */
+    private boolean fireResetEvent(Player player,
+            ParentAttributeData data,
+            int refundedPoints,
+            boolean consumeResetPoint) {
+        ThreadOwnership threadOwnership = plugin.threadOwnership();
+        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
+            return true;
+        }
+        PlayerAttributePointResetEvent event = new PlayerAttributePointResetEvent(
+                player,
+                refundedPoints,
+                data.availablePoints(),
+                data.resetPoints(),
+                consumeResetPoint);
+        Bukkit.getPluginManager().callEvent(event);
+        return !event.isCancelled();
+    }
+
     private void afterMutation(Player player, ParentAttributeData data) {
         dataStore.save(data);
         if (player != null && plugin.attributeService() != null) {
@@ -222,6 +280,7 @@ public final class ParentAttributeService {
         SUCCESS,
         NOT_PLAYER,
         NO_ALLOCATIONS,
-        NOT_ENOUGH_RESET_POINTS
+        NOT_ENOUGH_RESET_POINTS,
+        CANCELLED
     }
 }

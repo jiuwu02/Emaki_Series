@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.Function;
@@ -56,9 +55,9 @@ public record DamageStageDefinition(String id,
             return null;
         }
         String id = ConfigNodes.string(raw, "id", "stage");
-        DamageStageKind kind = parseEnum(ConfigNodes.string(raw, "kind", "FLAT_PERCENT"), DamageStageKind.FLAT_PERCENT);
-        DamageStageSource source = parseEnum(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER);
-        DamageStageMode mode = parseEnum(ConfigNodes.string(raw, "mode", "ADD"), DamageStageMode.ADD);
+        DamageStageKind kind = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "kind", "FLAT_PERCENT"), DamageStageKind.FLAT_PERCENT);
+        DamageStageSource source = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER);
+        DamageStageMode mode = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "mode", "ADD"), DamageStageMode.ADD);
         return new DamageStageDefinition(
                 id,
                 kind,
@@ -136,17 +135,6 @@ private static Map<String, Object> normalizeVariables(Map<String, Object> variab
             }
         }
         return List.copyOf(normalized);
-    }
-
-    private static <E extends Enum<E>> E parseEnum(String value, E defaultValue) {
-        if (Texts.isBlank(value)) {
-            return defaultValue;
-        }
-        try {
-            return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception _) {
-            return defaultValue;
-        }
     }
 
     private record AttributeSignatureCache(String flatAttributesSignature,

@@ -284,9 +284,6 @@ debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
     action:
       execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
       execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
@@ -585,6 +582,3 @@ debug:
       open_requested: "调试事件：gui.fermentation barrel.open requested | coordinates=%coordinates% | station=%station%"
       save_completed: "调试事件：gui.fermentation barrel.save completed | coordinates=%coordinates% | station=%station%"
       save_started: "调试事件：gui.fermentation barrel.save started | coordinates=%coordinates% | inventory_size=%inventory_size% | station=%station%"
-  script:
-    execute_context: "执行 Cooking 脚本上下文 | 工位=%station_id% | 配方=%recipe_id% | 阶段=%stage%"
-    trace: "调试事件：script.trace | message=%message% | rule=%rule%"

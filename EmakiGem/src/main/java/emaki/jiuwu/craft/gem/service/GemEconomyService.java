@@ -653,8 +653,7 @@ public final class GemEconomyService {
         if (itemStack == null) {
             return false;
         }
-        Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack);
-        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+        InventoryItemUtil.giveOrDrop(player, itemStack);
         return true;
     }
 

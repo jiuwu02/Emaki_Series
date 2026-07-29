@@ -22,7 +22,6 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
-import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 
 public final class EmakiItemFactory {
 
@@ -38,49 +37,34 @@ public final class EmakiItemFactory {
     private final EmakiItemLoader loader;
     private final EmakiItemIdResolver idResolver;
     private final EmakiItemPdcWriter pdcWriter;
-    private final JavaScriptItemFactoryRegistry javaScriptFactories;
     private final ThreadOwnership threadOwnership;
     private final ItemOperationLedger itemOperationLedger;
     private final ConcurrentHashMap<String, ItemStack> prototypeCache = new ConcurrentHashMap<>();
 
     public EmakiItemFactory(EmakiItemLoader loader, EmakiItemIdResolver idResolver, EmakiItemPdcWriter pdcWriter) {
-        this(loader, idResolver, pdcWriter, null, null);
+        this(loader, idResolver, pdcWriter, null);
     }
 
     public EmakiItemFactory(EmakiItemLoader loader,
             EmakiItemIdResolver idResolver,
             EmakiItemPdcWriter pdcWriter,
-            JavaScriptItemFactoryRegistry javaScriptFactories) {
-        this(loader, idResolver, pdcWriter, javaScriptFactories, null);
-    }
-
-    public EmakiItemFactory(EmakiItemLoader loader,
-            EmakiItemIdResolver idResolver,
-            EmakiItemPdcWriter pdcWriter,
-            JavaScriptItemFactoryRegistry javaScriptFactories,
             ThreadOwnership threadOwnership) {
-        this(loader, idResolver, pdcWriter, javaScriptFactories, threadOwnership, null);
+        this(loader, idResolver, pdcWriter, threadOwnership, null);
     }
 
     public EmakiItemFactory(EmakiItemLoader loader,
             EmakiItemIdResolver idResolver,
             EmakiItemPdcWriter pdcWriter,
-            JavaScriptItemFactoryRegistry javaScriptFactories,
             ThreadOwnership threadOwnership,
             emaki.jiuwu.craft.corelib.debug.DebugLogger debugLogger) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
-        this.javaScriptFactories = javaScriptFactories;
         this.threadOwnership = threadOwnership;
         this.itemOperationLedger = new ItemOperationLedger(debugLogger);
     }
 
     public ItemStack create(String id, int amount) {
-        ItemStack scripted = javaScriptFactories == null ? null : javaScriptFactories.create(id, amount);
-        if (scripted != null) {
-            return fireCreateEvent(id, scripted.getAmount(), scripted);
-        }
         EmakiItemDefinition definition = idResolver == null ? loader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
             return null;

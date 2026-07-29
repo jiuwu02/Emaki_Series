@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-attribute</artifactId>
-    <version>4.6.5</version>
+    <version>4.6.7</version>
     <name>EmakiAttribute</name>
     <packaging>jar</packaging>
 
@@ -30,7 +30,7 @@
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-attribute-api</artifactId>
-            <version>4.6.3</version>
+            <version>${emaki.attribute.version}</version>
         </dependency>
         <dependency>
             <groupId>io.lumine</groupId>

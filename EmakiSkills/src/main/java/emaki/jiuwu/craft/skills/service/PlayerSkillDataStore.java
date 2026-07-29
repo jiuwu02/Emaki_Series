@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -20,6 +19,7 @@ import java.util.logging.Level;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -105,7 +105,7 @@ public final class PlayerSkillDataStore {
                             : cache.profile(playerId);
                 })
                 .exceptionally(throwable -> {
-                    logLoadFailure(playerId, unwrap(throwable));
+                    logLoadFailure(playerId, AsyncFailures.unwrapOnce(throwable));
                     cache.installLoadFailure(ticket, createDefault(playerId));
                     return null;
                 });
@@ -318,7 +318,7 @@ public final class PlayerSkillDataStore {
         return asyncYamlFiles.save(file, snapshot)
                 .thenApply(ignored -> true)
                 .exceptionally(throwable -> {
-                    logSaveFailure(playerId, unwrap(throwable));
+                    logSaveFailure(playerId, AsyncFailures.unwrapOnce(throwable));
                     return false;
                 });
     }
@@ -519,14 +519,6 @@ public final class PlayerSkillDataStore {
         plugin.getLogger().log(Level.WARNING,
                 "[SkillDataStore] Failed to save profile for " + playerId,
                 throwable);
-    }
-
-    private static Throwable unwrap(Throwable throwable) {
-        if (throwable instanceof CompletionException completionException
-                && completionException.getCause() != null) {
-            return completionException.getCause();
-        }
-        return throwable;
     }
 
     private static int toInt(Object value, int fallback) {

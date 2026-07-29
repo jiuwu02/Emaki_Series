@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -135,7 +136,7 @@ public final class CorePluginLifecycle {
                     ? new DrainResult(true, 0, List.of())
                     : fileService.closeAndDrain(remainingNanos(deadline), TimeUnit.NANOSECONDS);
         } catch (Throwable throwable) {
-            failures.add(unwrap(throwable));
+            failures.add(AsyncFailures.unwrap(throwable));
             fileResult = new DrainResult(false,
                     fileService == null ? 0 : fileService.pendingWriteCount(), List.of());
         }
@@ -146,7 +147,7 @@ public final class CorePluginLifecycle {
             schedulerTerminated = taskScheduler == null
                     || taskScheduler.shutdownGracefully(remainingNanos(deadline), TimeUnit.NANOSECONDS);
         } catch (Throwable throwable) {
-            failures.add(unwrap(throwable));
+            failures.add(AsyncFailures.unwrap(throwable));
             schedulerTerminated = false;
         }
 
@@ -182,10 +183,10 @@ public final class CorePluginLifecycle {
             failures.add(exception);
             return;
         } catch (ExecutionException exception) {
-            failures.add(unwrap(exception));
+            failures.add(AsyncFailures.unwrap(exception));
             return;
         } catch (Throwable throwable) {
-            failures.add(unwrap(throwable));
+            failures.add(AsyncFailures.unwrap(throwable));
             return;
         }
         if (stage != null) {
@@ -200,11 +201,11 @@ public final class CorePluginLifecycle {
                 if (throwable == null) {
                     completion.complete(null);
                 } else {
-                    completion.completeExceptionally(unwrap(throwable));
+                    completion.completeExceptionally(AsyncFailures.unwrap(throwable));
                 }
             });
         } catch (Throwable throwable) {
-            completion.completeExceptionally(unwrap(throwable));
+            completion.completeExceptionally(AsyncFailures.unwrap(throwable));
         }
         return completion;
     }
@@ -225,13 +226,13 @@ public final class CorePluginLifecycle {
             failures.add(exception);
             return false;
         } catch (ExecutionException exception) {
-            failures.add(unwrap(exception));
+            failures.add(AsyncFailures.unwrap(exception));
             return true;
         } catch (CancellationException exception) {
             failures.add(exception);
             return true;
         } catch (Throwable throwable) {
-            failures.add(unwrap(throwable));
+            failures.add(AsyncFailures.unwrap(throwable));
             return true;
         }
     }
@@ -264,15 +265,5 @@ public final class CorePluginLifecycle {
             return Long.MAX_VALUE;
         }
         return Math.max(1L, deadline - System.nanoTime());
-    }
-
-    private static Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof ExecutionException
-                || current instanceof java.util.concurrent.CompletionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
     }
 }

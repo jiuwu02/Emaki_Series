@@ -89,7 +89,9 @@ public final class EmakiCoreLibApi {
      *
      * @param itemSource item source shorthand such as {@code minecraft-apple},
      *                   {@code craftengine-namespace:id}, or another registered source
-     * @return the resolved display name, or an empty string when unavailable
+     * @return the resolved display name; when no resolver produces a name, the
+     *         given identifier is echoed back so callers always have renderable
+     *         text. Empty only when the API is unavailable or the input is blank.
      */
     public static @NotNull String itemDisplayName(@Nullable String itemSource) {
         Bridge resolved = bridge;
@@ -103,7 +105,10 @@ public final class EmakiCoreLibApi {
      * components so the client can render vanilla names in its active language.
      *
      * @param itemStack item stack to inspect
-     * @return the resolved display name, or an empty string when unavailable
+     * @return the resolved display name; when no resolver produces a name, the
+     *         stack's effective (vanilla or custom) name text is returned so
+     *         callers always have renderable text. Empty only when the API is
+     *         unavailable or the stack is null/air.
      */
     public static @NotNull String itemDisplayName(@Nullable ItemStack itemStack) {
         Bridge resolved = bridge;

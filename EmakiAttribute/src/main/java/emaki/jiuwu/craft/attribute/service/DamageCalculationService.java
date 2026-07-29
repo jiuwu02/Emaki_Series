@@ -35,9 +35,7 @@ import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
-import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -281,12 +279,6 @@ final class DamageCalculationService {
         if (plan == null) {
             return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.empty());
         }
-        DamageResult scripted = service.plugin() == null || service.plugin().javaScriptDamagePipelineRegistry() == null
-                ? null
-                : service.plugin().javaScriptDamagePipelineRegistry().resolve(plan.request().damageContext(), plan.seededRoll());
-        if (scripted != null) {
-            return scripted;
-        }
         return service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
     }
 
@@ -443,33 +435,11 @@ final class DamageCalculationService {
         if (plan == null) {
             return null;
         }
-        JavaScriptDamagePipelineRegistry pipelines = service.plugin() == null
-                ? null
-                : service.plugin().javaScriptDamagePipelineRegistry();
-        DamageResult scripted = pipelines == null ? null : pipelines.resolve(plan.request().damageContext(), plan.seededRoll());
-        return scripted == null
-                ? service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll())
-                : scripted;
+        return service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
     }
 
     private CompletableFuture<DamageResult> resolveCalculationAsync(DamageCalculationPlan plan) {
-        JavaScriptDamagePipelineRegistry pipelines = service.plugin() == null
-                ? null
-                : service.plugin().javaScriptDamagePipelineRegistry();
-        if (pipelines == null || !pipelines.handles(plan.damageContext().damageTypeId())) {
-            return service.asyncDamageEngine().resolveAsync(plan.request(), plan.damageType(), plan.seededRoll());
-        }
-        if (service.asyncTaskScheduler() == null) {
-            try {
-                return CompletableFuture.completedFuture(resolveCalculation(plan));
-            } catch (RuntimeException exception) {
-                return CompletableFuture.failedFuture(exception);
-            }
-        }
-        return service.asyncTaskScheduler().supplyAsync(
-                "attribute-damage-script-pipeline",
-                () -> resolveCalculation(plan)
-        );
+        return service.asyncDamageEngine().resolveAsync(plan.request(), plan.damageType(), plan.seededRoll());
     }
 
     private DamageContext detachForWorker(DamageContext context) {
@@ -680,8 +650,7 @@ final class DamageCalculationService {
                 resolvedDamage.damageType(),
                 resolvedDamage.damageResult(),
                 resolvedDamage.finalDamage()
-        ) + Math.max(0D, damageContext.variables().getDouble(
-                JavaScriptDamagePipelineRegistry.ATTACKER_HEAL_INTENT, 0D));
+        );
         int cooldownTicks = 0;
         if (sameOwner) {
             double sameOwnerRecovery = recoveryAmount;
@@ -702,10 +671,6 @@ final class DamageCalculationService {
         } else {
             runPostDamageEffect("target-message", () -> messageDispatcher.dispatch(targetPlayer, messages.target()));
         }
-        runPostDamageEffect(
-                "target-script-intents",
-                () -> replayTargetScriptIntents(target, targetPlayer, damageContext.variables())
-        );
         runPostDamageEffect("target-health-sync", () -> service.scheduleHealthSync(target));
 
         boolean applied = !applyDamage || remainingDamage > 0D || appliedDamage > 0D;
@@ -776,36 +741,6 @@ final class DamageCalculationService {
                 );
             }
             return fallback;
-        }
-    }
-
-    private void replayTargetScriptIntents(LivingEntity target,
-            Player targetPlayer,
-            DamageContextVariables variables) {
-        if (target == null || variables == null) {
-            return;
-        }
-        double healing = variables.getDouble(JavaScriptDamagePipelineRegistry.TARGET_HEAL_INTENT, 0D);
-        if (healing > 0D && target.isValid() && !target.isDead()) {
-            double healed = Math.min(target.getMaxHealth(), target.getHealth() + healing);
-            target.setHealth(Math.max(0D, healed));
-        }
-        if (targetPlayer == null) {
-            return;
-        }
-        for (Object raw : ConfigNodes.asObjectList(variables.get(JavaScriptDamagePipelineRegistry.TARGET_MESSAGES_INTENT))) {
-            Map<String, Object> entry = ConfigNodes.entries(raw);
-            String message = Texts.toStringSafe(entry.get("message"));
-            if (Texts.isBlank(message)) {
-                continue;
-            }
-            pluginMessage(targetPlayer, message, ConfigNodes.entries(entry.get("placeholders")));
-        }
-    }
-
-    private void pluginMessage(Player player, String message, Map<String, Object> placeholders) {
-        if (service.plugin() != null && service.plugin().messageService() != null) {
-            service.plugin().messageService().send(player, message, placeholders);
         }
     }
 

@@ -167,9 +167,7 @@ public final class ForgeService {
                 },
                 (playerId, generation, recipeId, guaranteeUpdate) -> plugin.playerDataStore()
                         .recordSuccessfulForgeIfCurrent(playerId, generation, recipeId, guaranteeUpdate),
-                resultPostProcessor::process,
-                plugin.javaScriptForgeRuleRegistry(),
-                plugin.javaScriptResultHookRegistry()
+                resultPostProcessor::process
         );
     }
 

@@ -11,7 +11,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.gem.script.ScriptGemModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
@@ -65,8 +64,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
-        registerScriptModule(coreLibPlugin);
-        releaseBundledScripts(coreLibPlugin, plugin);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -258,11 +255,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     public void shutdown(EmakiGemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("gem");
-        var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
-        if (javaScriptRegistrationTracker != null) {
-            javaScriptRegistrationTracker.unregisterOwner(plugin);
-        }
-        coreLibPlugin.scriptModuleRegistry().unregister("gem");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
         }
@@ -405,11 +397,4 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("gem", 300, "Gem"));
     }
 
-    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("gem", context -> new ScriptGemModuleApi(JavaPlugin.getPlugin(EmakiGemPlugin.class), context));
-    }
-
-    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiGemPlugin plugin) {
-        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("gem_status.js"));
-    }
 }

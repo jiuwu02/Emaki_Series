@@ -29,7 +29,6 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
         List<ConfigPrecheckIssue> issues = new ArrayList<>();
         checkLoopConfig(safeConfig.loopConfig(), issues);
         checkTemplates(safeConfig.loopConfig(), safeConfig.actionTemplates(), context, issues);
-        checkScriptSecurity(safeConfig, issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", ConfigPrecheckSeverity.INFO, "passed", issues);
         }
@@ -313,17 +312,6 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
         }
         long parsed = ActionParsers.parseTicks(raw);
         return parsed < 0L ? null : parsed;
-    }
-
-    private void checkScriptSecurity(CoreLibConfig config, List<ConfigPrecheckIssue> issues) {
-        if (config.scriptConfig() == null || config.scriptConfig().security() == null) {
-            return;
-        }
-        var script = config.scriptConfig();
-        var security = script.security();
-        if (security.allowActionDispatch() && security.maxActionDepth() > 5) {
-            addMessageIssue("script.security.max_action_depth", ConfigPrecheckSeverity.WARN, "script_action_depth_large", issues);
-        }
     }
 
 }

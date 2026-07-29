@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.action.ActionParameter;
 import emaki.jiuwu.craft.corelib.action.ActionParameterType;
 import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -121,7 +122,7 @@ public final class GemHeldItemAction implements Action {
         }
         player.getInventory().setItemInMainHand(result.updatedEquipment());
         if (result.returnedGem() != null) {
-            player.getInventory().addItem(result.returnedGem()).values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+            InventoryItemUtil.giveOrDrop(player, result.returnedGem());
         }
         result.commit();
         return ActionResult.ok(result.result().placeholders());

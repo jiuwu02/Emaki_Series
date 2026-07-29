@@ -14,15 +14,17 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
-import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
 
 final class ItemCommandRouter implements TabExecutor {
 
@@ -112,12 +114,12 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
-                case "give", "inspect", "update" -> completePlayers(result, args[1]);
+                case "give", "inspect", "update" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 case "components", "component" -> {
                     if ("yaml".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
                         result.add("yaml");
                     }
-                    completePlayers(result, args[1]);
+                    result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                     if (sender instanceof Player player) {
                         completeComponentIds(result, player, args[1]);
                     }
@@ -129,7 +131,7 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length == 3 && ("components".equalsIgnoreCase(args[0]) || "component".equalsIgnoreCase(args[0]))) {
             if ("yaml".equalsIgnoreCase(args[1])) {
-                completePlayers(result, args[2]);
+                result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
                 if (sender instanceof Player player) {
                     completeComponentIds(result, player, args[2]);
                 }
@@ -175,7 +177,7 @@ final class ItemCommandRouter implements TabExecutor {
         List<String> ids = new ArrayList<>(plugin.itemLoader().all().keySet());
         ids.sort(String::compareTo);
         int pageSize = 10;
-        int pages = Math.max(1, (int) Math.ceil(ids.size() / (double) pageSize));
+        int pages = GuiPagination.totalPages(ids.size(), pageSize);
         page = Math.min(page, pages);
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.header", Map.of(
                 "page", page,
@@ -600,13 +602,6 @@ final class ItemCommandRouter implements TabExecutor {
                 "owner", owner,
                 "thread", Thread.currentThread().getName()
         ));
-    }
-
-    private void completePlayers(List<String> result, String prefix) {
-        Bukkit.getOnlinePlayers().stream()
-                .map(Player::getName)
-                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
-                .forEach(result::add);
     }
 
     private void completeComponentIds(List<String> result, Player player, String prefix) {

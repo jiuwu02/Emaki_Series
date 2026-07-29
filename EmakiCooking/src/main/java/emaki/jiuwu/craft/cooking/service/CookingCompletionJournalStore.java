@@ -26,9 +26,11 @@ import java.util.stream.Stream;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
+import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -457,12 +459,7 @@ public final class CookingCompletionJournalStore {
     }
 
     private String rootCauseMessage(Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof CompletionException
-                || current instanceof java.util.concurrent.ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
+        Throwable current = AsyncFailures.unwrap(throwable);
         String message = current == null ? null : current.getMessage();
         return message == null || message.isBlank()
                 ? current == null ? "unknown error" : current.getClass().getSimpleName()
@@ -535,12 +532,12 @@ public final class CookingCompletionJournalStore {
         return new CookingCompletionOperation(
                 requiredString(root, "operation_id"),
                 requiredString(root, "completion_key"),
-                enumValue(Status.class, root.get("status")),
-                enumValue(StationType.class, root.get("station_type")),
+                ConfigNodes.enumOrThrow(Status.class, root.get("status")),
+                ConfigNodes.enumOrThrow(StationType.class, root.get("station_type")),
                 stationCoordinates,
                 mapValue(root.get("expected_state")),
                 requiredString(root, "expected_state_digest"),
-                enumValue(CommitMode.class, root.get("commit_mode")),
+                ConfigNodes.enumOrThrow(CommitMode.class, root.get("commit_mode")),
                 mapValue(root.get("committed_state")),
                 requiredString(root, "committed_state_digest"),
                 decodeUnits(root.get("input_units")),
@@ -563,9 +560,9 @@ public final class CookingCompletionJournalStore {
             Map<String, Object> serialized = mapValue(entry);
             units.add(new Unit(
                     requiredString(serialized, "unit_id"),
-                    enumValue(UnitKind.class, serialized.get("kind")),
-                    enumValue(UnitState.class, serialized.get("state")),
-                    enumValue(Semantics.class, serialized.get("semantics")),
+                    ConfigNodes.enumOrThrow(UnitKind.class, serialized.get("kind")),
+                    ConfigNodes.enumOrThrow(UnitState.class, serialized.get("state")),
+                    ConfigNodes.enumOrThrow(Semantics.class, serialized.get("semantics")),
                     mapValue(serialized.get("payload")),
                     intValue(serialized.get("attempts"), 0),
                     stringValue(serialized.get("last_error"))
@@ -624,18 +621,6 @@ public final class CookingCompletionJournalStore {
             return Long.parseLong(stringValue(value));
         } catch (NumberFormatException _) {
             return fallback;
-        }
-    }
-
-    private <E extends Enum<E>> E enumValue(Class<E> type, Object value) {
-        String name = stringValue(value).trim();
-        if (name.isBlank()) {
-            throw new IllegalArgumentException("Missing enum value: " + type.getSimpleName());
-        }
-        try {
-            return Enum.valueOf(type, name.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException("Invalid " + type.getSimpleName() + ": " + name, exception);
         }
     }
 

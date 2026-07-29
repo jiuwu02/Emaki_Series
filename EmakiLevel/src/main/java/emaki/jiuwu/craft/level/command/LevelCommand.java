@@ -12,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.LevelPermissions;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
@@ -318,9 +319,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         String sub = args[0].toLowerCase(Locale.ROOT);
         if (List.of("giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset").contains(sub)) {
             if (args.length == 2) {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    addIfStarts(result, player.getName(), args[1]);
-                }
+                result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             } else if (args.length == 3) {
                 completeTypes(result, args[2]);
             }
@@ -339,9 +338,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             } else if (args.length == 3 && "requirement".equalsIgnoreCase(args[1])) {
                 completeTypes(result, args[2]);
             } else if (args.length == 3 && "pdc".equalsIgnoreCase(args[1])) {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    addIfStarts(result, player.getName(), args[2]);
-                }
+                result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             } else if (args.length == 3) {
                 result.addAll(plugin.debugCommand().tabComplete(new String[]{args[1], args[2]}));
             }

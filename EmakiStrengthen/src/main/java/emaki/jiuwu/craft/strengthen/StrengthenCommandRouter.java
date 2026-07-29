@@ -13,6 +13,8 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -75,7 +77,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
-                case "inspect", "refresh" -> completePlayers(result, args[1]);
+                case "inspect", "refresh" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 case "setstar" -> {
                     int maxStar = plugin.recipeLoader().all().values().stream()
                             .mapToInt(recipe -> recipe == null ? 0 : recipe.limits().maxStar())
@@ -114,7 +116,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 4 && "givecatalyst".equalsIgnoreCase(args[0])) {
-            completePlayers(result, args[3]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[3]));
         }
         return result;
     }
@@ -313,8 +315,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "command.catalyst_create_failed");
             return true;
         }
-        Map<Integer, ItemStack> leftover = target.getInventory().addItem(itemStack);
-        leftover.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
+        InventoryItemUtil.giveOrDrop(target, itemStack);
         plugin.messageService().send(sender, "command.givecatalyst.success", Map.of(
                 "player", target.getName(),
                 "material", materialToken,
@@ -333,13 +334,6 @@ final class StrengthenCommandRouter implements TabExecutor {
 
     private ItemStack createMaterialItem(String materialToken, int amount) {
         return plugin.coreItemFactory().create(ItemSourceUtil.parse(materialToken), Math.max(1, amount));
-    }
-
-    private void completePlayers(List<String> result, String prefix) {
-        Bukkit.getOnlinePlayers().stream()
-                .map(Player::getName)
-                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
-                .forEach(result::add);
     }
 
     private void sendHelp(CommandSender sender) {

@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -68,8 +69,6 @@ import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRefreshMetrics;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
-import emaki.jiuwu.craft.item.script.js.JavaScriptItemDefinitionRegistry;
-import emaki.jiuwu.craft.item.script.JavaScriptItemFactoryRegistry;
 
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -133,8 +132,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemAttributeBridge pdcAttributeGateway;
     private ItemRepairService repairService;
     private ItemRepairGuiService repairGuiService;
-    private JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry;
-    private JavaScriptItemFactoryRegistry javaScriptFactoryRegistry;
     private final EmakiItemApi.Bridge itemApiBridge = new EmakiItemApi.Bridge() {
         @Override
         public boolean isReady() {
@@ -161,9 +158,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
             if (itemLoader != null) {
                 ids.addAll(itemLoader.all().keySet());
-            }
-            if (javaScriptDefinitionRegistry != null) {
-                ids.addAll(javaScriptDefinitionRegistry.ids());
             }
             return Set.copyOf(ids);
         }
@@ -240,15 +234,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
-        }
-        if (javaScriptDefinitionRegistry != null) {
-            javaScriptDefinitionRegistry.clear();
-        }
-        if (javaScriptFactoryRegistry != null) {
-            javaScriptFactoryRegistry.clear();
-        }
-        if (coreLib != null && coreLib.javaScriptRegistrationTracker() != null) {
-            coreLib.javaScriptRegistrationTracker().unregisterOwner(this);
         }
         EmakiItemApi.uninstall(itemApiBridge);
         lifecycleCoordinator.shutdown(this);
@@ -393,10 +378,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             if (failure == null) {
                 return;
             }
-            Throwable cause = failure instanceof java.util.concurrent.CompletionException completionException
-                    && completionException.getCause() != null
-                    ? completionException.getCause()
-                    : failure;
+            Throwable cause = AsyncFailures.unwrapOnce(failure);
             getLogger().warning("EmakiItem reload failed: " + cause.getClass().getSimpleName()
                     + (Texts.isBlank(cause.getMessage()) ? "" : ": " + cause.getMessage()));
         });
@@ -445,8 +427,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         pdcAttributeGateway = components.pdcAttributeGateway();
         repairService = components.repairService();
         repairGuiService = components.repairGuiService();
-        javaScriptDefinitionRegistry = components.javaScriptDefinitionRegistry();
-        javaScriptFactoryRegistry = components.javaScriptFactoryRegistry();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         commandRouter = new ItemCommandRouter(this, executionDispatcher, threadOwnership);
@@ -612,14 +592,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public ItemRepairGuiService repairGuiService() {
         return repairGuiService;
-    }
-
-    public JavaScriptItemDefinitionRegistry javaScriptDefinitionRegistry() {
-        return javaScriptDefinitionRegistry;
-    }
-
-    public JavaScriptItemFactoryRegistry javaScriptFactoryRegistry() {
-        return javaScriptFactoryRegistry;
     }
 
     public EmakiCoreLibPlugin coreLib() {

@@ -35,9 +35,6 @@ final class ExpressionRules {
                 .replace("min", "")
                 .replace("max", "")
                 .replace("pow", "");
-        for (String functionId : ExpressionEngine.registeredJavaScriptFunctionIds()) {
-            lowered = lowered.replace(Texts.lower(functionId), "");
-        }
         return !NON_NUMERIC_EXPRESSION_PATTERN.matcher(lowered).find();
     }
 }

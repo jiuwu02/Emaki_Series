@@ -9,6 +9,7 @@ import java.util.Set;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
@@ -21,11 +22,9 @@ import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
-public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
+public final class SkillsPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
-    private final EmakiSkillsPlugin plugin;
     private final PlayerSkillDataStore dataStore;
     private final SkillRegistryService registryService;
     private final LocalResourceDefinitionLoader resourceLoader;
@@ -34,7 +33,7 @@ public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
             PlayerSkillDataStore dataStore,
             SkillRegistryService registryService,
             LocalResourceDefinitionLoader resourceLoader) {
-        this.plugin = plugin;
+        super(plugin);
         this.dataStore = dataStore;
         this.registryService = registryService;
         this.resourceLoader = resourceLoader;
@@ -43,21 +42,6 @@ public final class SkillsPlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public String getIdentifier() {
         return "emakiskills";
-    }
-
-    @Override
-    public String getAuthor() {
-        return "Emaki";
-    }
-
-    @Override
-    public String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

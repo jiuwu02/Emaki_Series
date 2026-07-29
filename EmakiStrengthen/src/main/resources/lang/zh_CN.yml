@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.6.0"
+version: "4.6.2"
 
 general:
   prefix: "<gray>[ <gradient:#FACC15:#F97316>EmakiStrengthen</gradient> ]</gray>"
@@ -170,9 +170,6 @@ debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
     action:
       execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
       execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
@@ -303,9 +300,6 @@ debug:
     success: "强化成功 | 新星级=%star%"
     failed: "强化失败 | 类型=%type% | 裂纹=%crack%"
     destroyed: "强化破碎 | 物品=%item%"
-  script:
-    attempt_trace: "强化脚本尝试追踪 | 操作 ID=%operation_id% | 规则=%rule% | 修改前=%before% | 修改后=%after% | 消息=%message%"
-    chance_rule_failed_closed: "强化概率规则失败并关闭 | 操作 ID=%operation_id% | 规则=%rule%"
   state:
     read: "读取强化状态 | 物品=%item% | 星级=%star% | 裂纹=%crack% | 配方=%recipe%"
     write: "写入强化状态 | 物品=%item% | 变更=%change%"

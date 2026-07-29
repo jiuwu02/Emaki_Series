@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiDragContext;
+import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -192,7 +193,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
         List<UnlockedSkillEntry> unlocked = stateService.getUnlockedActiveSkills(player);
         List<String> poolSlotPositions = poolSlotPositions(session);
         int poolSize = Math.max(1, poolSlotPositions.size());
-        int totalPages = Math.max(1, (int) Math.ceil((double) unlocked.size() / poolSize));
+        int totalPages = GuiPagination.totalPages(unlocked.size(), poolSize);
         if (page < totalPages - 1) {
             session.putReplacement(KEY_CURRENT_PAGE, page + 1);
             skillsGuiService.renderSkillsGui(session);

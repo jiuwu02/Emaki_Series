@@ -12,7 +12,8 @@ import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.event.GemExtractEvent;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
@@ -125,8 +126,7 @@ public final class GemExtractService {
         operationJournal.advance(operationId, GemOperationJournal.Phase.STATE_COMMITTED);
         ItemStack returned = createReturnedGem(gemDefinition, instance);
         if (returned != null) {
-            Map<Integer, ItemStack> leftover = target.getInventory().addItem(returned);
-            leftover.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
+            InventoryItemUtil.giveOrDrop(target, returned);
         }
         Map<String, Object> placeholders = new LinkedHashMap<>();
         placeholders.put("player", target.getName());
@@ -169,20 +169,9 @@ public final class GemExtractService {
         }
         return ConditionEvaluator.evaluate(
                 config.conditions(),
-                text -> resolvePlaceholders(player, text),
+                text -> PlaceholderRenderer.renderPapi(player, text, null, "gem_extract"),
                 config.invalidAsFailure(),
                 ConditionContext.of(player)
         );
-    }
-
-    private String resolvePlaceholders(Player player, String text) {
-        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return text;
-        }
-        try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
-        } catch (Exception | NoClassDefFoundError _) {
-            return text;
-        }
     }
 }

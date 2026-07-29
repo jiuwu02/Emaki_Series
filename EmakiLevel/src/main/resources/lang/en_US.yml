@@ -108,9 +108,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
     action:
       execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
       execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
@@ -219,8 +216,6 @@ debug:
       packet_receive_click: "Packet GUI click received | click=%click_type% | raw_slot=%raw_slot% | button=%button% | incoming_state=%incoming_state_id% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
       packet_receive_click_state_absent: "Packet GUI click received without a state ID | click=%click_type% | raw_slot=%raw_slot% | button=%button% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
       packet_receive_close: "Packet GUI close packet received | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
-  script:
-    trace: "Level script rule trace | rule=%rule% | before=%before% | after=%after% | message=%message%"
   command:
     status_header: "<gold>========== EmakiLevel Debug Status ==========</gold>"
     status_enabled: "<green>Debug enabled</green>"

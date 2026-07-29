@@ -8,14 +8,15 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
-public final class ItemPlaceholderExpansion extends PlaceholderExpansion {
+public final class ItemPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
     private final EmakiItemPlugin plugin;
 
     public ItemPlaceholderExpansion(EmakiItemPlugin plugin) {
+        super(plugin);
         this.plugin = plugin;
     }
 
@@ -27,16 +28,6 @@ public final class ItemPlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public @NotNull String getAuthor() {
         return "JiuWu";
-    }
-
-    @Override
-    public @NotNull String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

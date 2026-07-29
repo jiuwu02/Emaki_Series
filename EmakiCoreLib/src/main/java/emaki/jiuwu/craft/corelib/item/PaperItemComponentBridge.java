@@ -9,6 +9,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
@@ -20,6 +21,8 @@ import io.papermc.paper.datacomponent.DataComponentType;
 
 
 final class PaperItemComponentBridge {
+
+    private static final Logger LOGGER = Logger.getLogger(PaperItemComponentBridge.class.getName());
 
     private static final String DATA_COMPONENT_TYPES_CLASS = "io.papermc.paper.datacomponent.DataComponentTypes";
     private static final String DATA_COMPONENT_REGISTRY_FIELD = "DATA_COMPONENT_TYPE";
@@ -116,8 +119,9 @@ final class PaperItemComponentBridge {
                 Object value = field.get(null);
                 addType(destination, value);
             }
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
-
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
+            LOGGER.warning("Static Paper data component discovery failed, falling back to registry discovery only: "
+                    + message(exception));
         }
     }
 
@@ -130,8 +134,9 @@ final class PaperItemComponentBridge {
                     addType(destination, value);
                 }
             }
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
-
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
+            LOGGER.warning("Registry-based Paper data component discovery failed, component support may be incomplete: "
+                    + message(exception));
         }
     }
 

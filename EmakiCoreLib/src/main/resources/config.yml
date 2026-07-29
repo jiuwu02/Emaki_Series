@@ -8,14 +8,14 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.6.5"
+version: "4.6.7"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
 language: "zh_CN"
 
 # 是否释放内置示例资源。
-# false 时不会自动生成 scripts/examples 下的示例脚本。
+# 保留此开关以兼容既有配置文件；随 JavaScript 子系统移除，当前已无示例资源受它控制。
 release_default_data: true
 
 # 统一 Debug 开关。
@@ -101,67 +101,3 @@ action:
     # reward_success_common:
     #   - 'sendmessage text="<green>成功获得 %result_item_name%</green>"'
     #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
-
-script:
-  # JavaScript 默认关闭；enabled 是唯一启动开关。
-  # 超时支持数字毫秒、ms、s、t；单次请求 <=0 时使用 default，并被夹在 1..max。
-  enabled: false
-  engine:
-    type: "graaljs"
-    # 默认脚本超时；单次 runjs/invoke 未指定或 <=0 时使用。
-    default_timeout_millis: 1000
-    # 单次请求超时上限；若配置小于 default，加载时会提升到 default。
-    # Watchdog 到期会 close(true) 中断 Graal context；同步调用最多额外等待约 500ms 收敛结果。
-    max_timeout_millis: 5000
-    cache_enabled: true
-    recompile_on_reload: true
-    allow_host_access: false
-    allow_host_class_lookup: false
-    allow_io: false
-    allow_threads: false
-    allow_native_access: false
-    allow_environment_access: false
-  paths:
-    root: "scripts"
-    create_directories:
-      - "global"
-      - "mythic"
-      - "extensions/global"
-      - "templates"
-      - "examples"
-  action:
-    id: "runjs"
-    aliases: []
-    default_function: "main"
-    stop_on_failure: true
-  context:
-    expose_context: true
-    expose_player: true
-    expose_item: true
-    expose_action: true
-    expose_logger: true
-    expose_random: true
-    expose_shared_state: true
-    expose_text: true
-  security:
-    denied_path_fragments:
-      - ".."
-      - ":"
-      - "\\"
-    denied_actions_from_script:
-      - "runjs"
-    allow_action_dispatch: true
-    max_action_depth: 3
-  server_api:
-    enabled: false
-    allow_type_access: false
-    allowed_type_prefixes:
-      - "org.bukkit."
-      - "io.papermc.paper."
-      - "net.kyori."
-    allow_console_command: false
-    allow_raw_event_access: false
-  debug:
-    log_script_load: true
-    log_script_execute: false
-    print_stacktrace: false

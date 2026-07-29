@@ -6,20 +6,21 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
-public final class StrengthenPlaceholderExpansion extends PlaceholderExpansion {
+public final class StrengthenPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
     private final EmakiStrengthenPlugin plugin;
     private final StrengthenAttemptService attemptService;
 
     public StrengthenPlaceholderExpansion(EmakiStrengthenPlugin plugin, StrengthenAttemptService attemptService) {
+        super(plugin);
         this.plugin = plugin;
         this.attemptService = attemptService;
     }
@@ -27,21 +28,6 @@ public final class StrengthenPlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public String getIdentifier() {
         return "emakistrengthen";
-    }
-
-    @Override
-    public String getAuthor() {
-        return "Emaki";
-    }
-
-    @Override
-    public String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

@@ -37,14 +37,13 @@ import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
-import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.service.MessageService;
-import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
@@ -164,9 +163,6 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (listener != null) {
                 plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             }
-        }
-        if (plugin.javaScriptDamageHookRegistry() != null) {
-            plugin.getServer().getPluginManager().registerEvents(new JavaScriptDamageHookListener(plugin.javaScriptDamageHookRegistry()), plugin);
         }
         if (plugin.mythicBridge() != null) {
             plugin.getServer().getPluginManager().registerEvents(plugin.mythicBridge(), plugin);

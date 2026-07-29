@@ -10,7 +10,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
-import emaki.jiuwu.craft.skills.script.ScriptSkillsModuleApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
@@ -53,7 +52,6 @@ import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptExecutor;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
-import emaki.jiuwu.craft.skills.script.js.JavaScriptSkillExtensionLoader;
 import emaki.jiuwu.craft.skills.trigger.DefaultTriggerDispatcher;
 import emaki.jiuwu.craft.skills.trigger.DropTriggerSource;
 import emaki.jiuwu.craft.skills.trigger.HotbarTriggerSource;
@@ -115,7 +113,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private SkillScriptActionRegistry skillScriptActionRegistry;
     private SkillScriptExecutor skillScriptExecutor;
     private SkillScriptCastService skillScriptCastService;
-    private JavaScriptSkillExtensionLoader javaScriptSkillExtensionLoader;
     private SkillUpgradeService skillUpgradeService;
     private CastModeService castModeService;
     private CastAttemptService castAttemptService;
@@ -150,7 +147,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         );
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
-        registerScriptModule();
         if (languageLoader != null) {
             languageLoader.load();
             languageLoader.setLanguage(appConfig().language());
@@ -174,14 +170,9 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     public void onDisable() {
         unregisterCoreLibActions();
         ConfigPrecheckLifecycleSupport.unregister("skills");
-        coreLib().scriptModuleRegistry().unregister("skills");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
-        }
-        if (javaScriptSkillExtensionLoader != null) {
-            javaScriptSkillExtensionLoader.close();
-            javaScriptSkillExtensionLoader = null;
         }
         if (skillScriptActionRegistry != null) {
             skillScriptActionRegistry.unregisterAll(this);
@@ -201,16 +192,12 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public void reloadPluginState(boolean closeOpenInventories) {
         lifecycleCoordinator.reload(this, closeOpenInventories);
-        reloadJavaScriptSkillExtensions();
         logConfigPrecheckReport();
     }
 
     public java.util.concurrent.CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories, java.util.function.Consumer<String> progressListener) {
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener)
-                .thenRun(() -> {
-                    reloadJavaScriptSkillExtensions();
-                    logConfigPrecheckReport();
-                });
+                .thenRun(() -> logConfigPrecheckReport());
     }
 
     private void logConfigPrecheckReport() {
@@ -301,32 +288,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         SkillsActionRegistrar.registerAll(coreLib().actionRegistry(), this, mythicSkillCastService,
                 playerSkillStateService, skillLevelService, skillUpgradeService, playerSkillDataStore,
                 manualSkillSourceService);
-    }
-
-    private void reloadJavaScriptSkillExtensions() {
-        if (javaScriptSkillExtensionLoader != null) {
-            javaScriptSkillExtensionLoader.close();
-        }
-        releaseBundledScripts();
-        if (skillScriptActionRegistry == null || coreLib().javaScriptService() == null) {
-            return;
-        }
-        javaScriptSkillExtensionLoader = new JavaScriptSkillExtensionLoader(
-                this,
-                skillScriptActionRegistry,
-                coreLib().javaScriptService(),
-                coreLib().configModel().scriptConfig(),
-                coreLib().javaScriptRegistrationTracker()
-        );
-        javaScriptSkillExtensionLoader.reload();
-    }
-
-    private void releaseBundledScripts() {
-        coreLib().releaseBundledScripts(this, "examples", false, java.util.List.of("skills_upgrade_success.js", "js_lightning_strike.js"));
-    }
-
-    private void registerScriptModule() {
-        coreLib().scriptModuleRegistry().register("skills", context -> new ScriptSkillsModuleApi());
     }
 
     private void registerPublicApi() {

@@ -5,6 +5,7 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
+import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
@@ -125,7 +126,7 @@ public final class LevelTopGuiService {
         }
         String resolvedType = Texts.isBlank(typeId) ? plugin.appConfig().primaryType() : typeId;
         int count = plugin.topService().top(resolvedType, Integer.MAX_VALUE).size();
-        return Math.max(1, (int) Math.ceil((double) count / pageSize));
+        return GuiPagination.totalPages(count, pageSize);
     }
 
     public int entryIndex(GuiSession session, GuiTemplate.ResolvedSlot resolved) {

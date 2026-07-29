@@ -103,16 +103,7 @@ public final class RuntimeLibraryLoader {
                 RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.8.0")),
                 RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7")),
                 RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
-                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4")),
-                RuntimeLibrary.maven("graal-polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", "25.0.3")),
-                RuntimeLibrary.maven("graal-collections", new LibraryCoordinate("org.graalvm.sdk", "collections", "25.0.3")),
-                RuntimeLibrary.maven("graal-nativeimage", new LibraryCoordinate("org.graalvm.sdk", "nativeimage", "25.0.3")),
-                RuntimeLibrary.maven("graal-word", new LibraryCoordinate("org.graalvm.sdk", "word", "25.0.3")),
-                RuntimeLibrary.maven("graal-js-language", new LibraryCoordinate("org.graalvm.js", "js-language", "25.0.3")),
-                RuntimeLibrary.maven("graal-regex", new LibraryCoordinate("org.graalvm.regex", "regex", "25.0.3")),
-                RuntimeLibrary.maven("graal-truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", "25.0.3")),
-                RuntimeLibrary.maven("graal-icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "25.0.3")),
-                RuntimeLibrary.maven("graal-xz", new LibraryCoordinate("org.graalvm.shadowed", "xz", "25.0.3"))
+                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4"))
         );
     }
 

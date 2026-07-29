@@ -538,7 +538,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                             "button", click.button()
                     )
             ));
-            authoritativeResync(viewer, expectedWindow, "unsupported-" + click.clickType().name().toLowerCase());
+            authoritativeResync(viewer, expectedWindow, "unsupported-" + click.clickType().name().toLowerCase(java.util.Locale.ROOT));
             return;
         }
 

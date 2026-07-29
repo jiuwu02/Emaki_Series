@@ -304,8 +304,12 @@ final class DamageMessageDispatcher {
                 Object placeholder = mythicMobGetDisplayNameMethod.invoke(mythicMob);
                 String configuredName = placeholder == null ? "" : Texts.toStringSafe(placeholderGetMethod.invoke(placeholder)).trim();
                 return Texts.isBlank(configuredName) ? "" : configuredName;
-            } catch (ReflectiveOperationException | LinkageError _) {
+            } catch (ReflectiveOperationException | LinkageError exception) {
+                // The unavailable flag keeps this warning to a single emission per server run.
                 unavailable = true;
+                Bukkit.getLogger().warning("[EmakiAttribute] MythicMobs display-name reflection failed;"
+                        + " damage messages will fall back to vanilla entity names: "
+                        + describe(exception));
                 return "";
             } catch (RuntimeException _) {
                 return "";
@@ -344,6 +348,11 @@ final class DamageMessageDispatcher {
                 mythicMobGetDisplayNameMethod = mythicMobClass.getMethod("getDisplayName");
                 placeholderGetMethod = placeholderStringClass.getMethod("get");
             }
+        }
+
+        private static String describe(Throwable throwable) {
+            String message = throwable == null ? null : throwable.getMessage();
+            return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
         }
     }
 }

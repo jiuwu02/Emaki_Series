@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.api.event.SkillPreUpgradeEvent;
 import emaki.jiuwu.craft.skills.api.event.SkillUpgradeEvent;
@@ -183,7 +184,7 @@ public final class SkillUpgradeService {
         if (!definition.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
-                    text -> resolvePlaceholders(player, text),
+                    text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_upgrade"),
                     true,
                     ConditionContext.of(player, null, java.util.Map.of(
                             "skillId", definition.id(),
@@ -801,16 +802,5 @@ public final class SkillUpgradeService {
 
     private EconomyManager economyManager() {
         return economyManagerSupplier == null ? null : economyManagerSupplier.get();
-    }
-
-    private String resolvePlaceholders(Player player, String text) {
-        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return text;
-        }
-        try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
-        } catch (Exception | NoClassDefFoundError _) {
-            return text;
-        }
     }
 }

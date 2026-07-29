@@ -72,9 +72,6 @@ import emaki.jiuwu.craft.level.service.LevelTypeRegistry;
 import emaki.jiuwu.craft.level.service.PlayerLevelDataStore;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
 import emaki.jiuwu.craft.level.service.RequirementService;
-import emaki.jiuwu.craft.level.script.ScriptLevelModuleApi;
-import emaki.jiuwu.craft.level.script.js.JavaScriptLevelExpRuleRegistry;
-import emaki.jiuwu.craft.level.script.js.JavaScriptLevelUpHookRegistry;
 
 public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
 
@@ -116,7 +113,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             "sources/mythicmobs.yml"
     );
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
-    private static final Set<String> DEBUG_MODULES = Set.of("script");
+    private static final Set<String> DEBUG_MODULES = Set.of("common");
 
     private EmakiCoreLibPlugin coreLib;
     private ExecutionDispatcher executionDispatcher;
@@ -138,8 +135,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private PlayerLevelDataStore dataStore;
     private LevelPdcService pdcService;
     private LevelExperienceRuleService experienceRuleService;
-    private JavaScriptLevelExpRuleRegistry javaScriptExpRuleRegistry;
-    private JavaScriptLevelUpHookRegistry javaScriptLevelUpHookRegistry;
     private LevelAntiAbuseService antiAbuseService;
     private PlayerLevelService levelService;
     private LevelTopService topService;
@@ -356,8 +351,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         registerCommand();
         registerListeners();
         registerApi();
-        registerScriptModule();
-        releaseBundledScripts();
         registerActions();
         registerCorePlaceholders();
         registerPlaceholderExpansion();
@@ -371,16 +364,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     public void onDisable() {
         if (coreLib != null) {
             ConfigPrecheckLifecycleSupport.unregister("level");
-            coreLib.scriptModuleRegistry().unregister("level");
-            if (coreLib.javaScriptRegistrationTracker() != null) {
-                coreLib.javaScriptRegistrationTracker().unregisterOwner(this);
-            }
-        }
-        if (javaScriptExpRuleRegistry != null) {
-            javaScriptExpRuleRegistry.clear();
-        }
-        if (javaScriptLevelUpHookRegistry != null) {
-            javaScriptLevelUpHookRegistry.clear();
         }
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -509,11 +492,8 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         var playerDataFiles = coreLib.asyncYamlFiles(this);
         dataStore = new PlayerLevelDataStore(this, () -> playerDataFiles);
         pdcService = new LevelPdcService(appConfig.pdcNamespace(), appConfig.pdcEnabled());
-        javaScriptExpRuleRegistry = new JavaScriptLevelExpRuleRegistry(this);
-        javaScriptLevelUpHookRegistry = new JavaScriptLevelUpHookRegistry(this);
         experienceRuleService = new LevelExperienceRuleService();
         experienceRuleService.config(appConfig);
-        experienceRuleService.javaScriptRules(javaScriptExpRuleRegistry);
         antiAbuseService = new LevelAntiAbuseService(appConfig);
         attributeBridge = new LevelAttributeBridge(this, typeRegistry, dataStore, appConfig);
         topService = new LevelTopService(dataStore, typeRegistry);
@@ -524,7 +504,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 dataStore,
                 pdcService,
                 experienceRuleService,
-                javaScriptLevelUpHookRegistry,
                 coreLib.itemSourceService(),
                 coreLib.economyManager(),
                 coreLib.actionExecutor(),
@@ -559,14 +538,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
     private void registerApi() {
         EmakiLevelApi.install(levelApiBridge);
-    }
-
-    private void registerScriptModule() {
-        coreLib.scriptModuleRegistry().register("level", context -> new ScriptLevelModuleApi(this, context));
-    }
-
-    private void releaseBundledScripts() {
-        coreLib.releaseBundledScripts(this, "examples", false, List.of("level_status.js", "level_exp_rule.js"));
     }
 
     private void registerActions() {
@@ -676,14 +647,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
     public PlayerLevelService levelService() {
         return levelService;
-    }
-
-    public JavaScriptLevelExpRuleRegistry javaScriptExpRuleRegistry() {
-        return javaScriptExpRuleRegistry;
-    }
-
-    public JavaScriptLevelUpHookRegistry javaScriptLevelUpHookRegistry() {
-        return javaScriptLevelUpHookRegistry;
     }
 
     public EmakiCoreLibPlugin coreLib() {

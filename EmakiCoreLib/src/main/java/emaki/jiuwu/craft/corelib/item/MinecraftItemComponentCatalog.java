@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 
@@ -16,6 +17,8 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 
 public final class MinecraftItemComponentCatalog {
+
+    private static final Logger LOGGER = Logger.getLogger(MinecraftItemComponentCatalog.class.getName());
 
     public record Entry(String componentId,
             String minimumMinecraftVersion,
@@ -157,7 +160,9 @@ public final class MinecraftItemComponentCatalog {
             if (value != null && !String.valueOf(value).isBlank()) {
                 return String.valueOf(value);
             }
-        } catch (ReflectiveOperationException | RuntimeException ignored) {
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            LOGGER.warning("Bukkit.getMinecraftVersion() is unavailable, deriving the component catalog version"
+                    + " from the Bukkit version string instead: " + describe(exception));
         }
         try {
             String bukkitVersion = Bukkit.getBukkitVersion();
@@ -166,6 +171,11 @@ public final class MinecraftItemComponentCatalog {
         } catch (RuntimeException ignored) {
             return "1.21.8";
         }
+    }
+
+    private String describe(Throwable throwable) {
+        String message = throwable == null ? null : throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 
     private record MinecraftVersion(int major, int minor, int patch, String text) implements Comparable<MinecraftVersion> {

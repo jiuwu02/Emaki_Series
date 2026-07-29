@@ -67,8 +67,6 @@ import emaki.jiuwu.craft.cooking.service.StationStateStore;
 import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
-import emaki.jiuwu.craft.cooking.script.JavaScriptCookingCompleteHookRegistry;
-import emaki.jiuwu.craft.cooking.script.JavaScriptCookingResultRuleRegistry;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
@@ -89,11 +87,12 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private BStatsRegistration metrics;
 
-    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "stir", "display", "station", "script", "pdc");
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "stir", "display", "station", "pdc");
 
     private final CookingLifecycleCoordinator lifecycleCoordinator = new CookingLifecycleCoordinator();
     private final CookingCommandRouter commandRouter = new CookingCommandRouter(this);
     private CookingStationListener stationListener;
+    private CookingPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
 
     private ExecutionDispatcher executionDispatcher;
@@ -138,8 +137,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private NutritionTypeRegistry nutritionTypeRegistry;
     private PlayerNutritionDataStore nutritionDataStore;
     private NutritionService nutritionService;
-    private JavaScriptCookingResultRuleRegistry javaScriptResultRuleRegistry;
-    private JavaScriptCookingCompleteHookRegistry javaScriptCompleteHookRegistry;
     private final EmakiCookingApi.Bridge cookingApiBridge = new EmakiCookingApi.Bridge() {
         @Override
         public String apiVersion() {
@@ -189,15 +186,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         ConfigPrecheckLifecycleSupport.unregister("cooking");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("cooking");
-        var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
-        if (javaScriptRegistrationTracker != null) {
-            javaScriptRegistrationTracker.unregisterOwner(this);
-        }
-        coreLibPlugin.scriptModuleRegistry().unregister("cooking");
         if (coreLibPlugin.actionRegistry() != null) {
             coreLibPlugin.actionRegistry().unregisterAll(this);
         }
         EmakiCookingApi.uninstall(cookingApiBridge);
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
+        }
         if (nutritionService != null) {
             nutritionService.shutdown();
         }
@@ -322,8 +318,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         nutritionTypeRegistry = components.nutritionTypeRegistry();
         nutritionDataStore = components.nutritionDataStore();
         nutritionService = components.nutritionService();
-        javaScriptResultRuleRegistry = new JavaScriptCookingResultRuleRegistry(this);
-        javaScriptCompleteHookRegistry = new JavaScriptCookingCompleteHookRegistry(this);
         stationTracker = new CookingStationTracker();
         stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService, blockMatcher, settingsService);
         stationLocator = new CookingStationLocator(this);
@@ -471,9 +465,11 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerPlaceholderExpansion() {
-        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            new CookingPlaceholderExpansion(this).register();
+        if (placeholderExpansion != null || !getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
         }
+        placeholderExpansion = new CookingPlaceholderExpansion(this);
+        placeholderExpansion.register();
     }
 
     @Override
@@ -644,14 +640,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public NutritionService nutritionService() {
         return nutritionService;
-    }
-
-    public JavaScriptCookingResultRuleRegistry javaScriptResultRuleRegistry() {
-        return javaScriptResultRuleRegistry;
-    }
-
-    public JavaScriptCookingCompleteHookRegistry javaScriptCompleteHookRegistry() {
-        return javaScriptCompleteHookRegistry;
     }
 
     public DebugCommand debugCommand() {

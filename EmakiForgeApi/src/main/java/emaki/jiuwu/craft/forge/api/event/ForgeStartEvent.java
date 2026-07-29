@@ -12,8 +12,7 @@ import org.bukkit.event.HandlerList;
  * <p>This is the only point in the forge flow that runs on the server thread
  * before the async chain starts, so it is the place to cancel a forge. A
  * cancelled event stops EmakiForge from running the attempt. The success rate
- * carried here is the configured recipe value; the actual roll may be adjusted
- * by JavaScript rules inside the async chain, so it is exposed read-only.
+ * carried here is the configured recipe value, so it is exposed read-only.
  *
  * <p>This event is fired on the server thread.
  */

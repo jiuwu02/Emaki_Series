@@ -9,6 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
@@ -215,12 +216,7 @@ final class ActionDispatchScheduler {
     }
 
     private ActionResult failure(Throwable throwable) {
-        Throwable cause = throwable;
-        while (cause != null && cause.getCause() != null
-                && (cause instanceof java.util.concurrent.CompletionException
-                || cause instanceof java.util.concurrent.ExecutionException)) {
-            cause = cause.getCause();
-        }
+        Throwable cause = AsyncFailures.unwrap(throwable);
         String message = cause == null ? "Unknown action execution failure." : cause.getMessage();
         return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, message);
     }

@@ -13,6 +13,7 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
@@ -78,7 +79,7 @@ final class GemCommandRouter implements TabExecutor {
                         }
                     }
                 }
-                case "inspect" -> completePlayers(result, args[1]);
+                case "inspect" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 default -> {
                 }
             }
@@ -200,13 +201,6 @@ final class GemCommandRouter implements TabExecutor {
         player.getInventory().setItemInMainHand(rebuilt);
         plugin.messageService().send(sender, "command.clearstate.success");
         return true;
-    }
-
-    private void completePlayers(List<String> result, String prefix) {
-        Bukkit.getOnlinePlayers().stream()
-                .map(Player::getName)
-                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
-                .forEach(result::add);
     }
 
     private void sendHelp(CommandSender sender) {

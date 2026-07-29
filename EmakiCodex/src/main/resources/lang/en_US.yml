@@ -55,9 +55,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
     action:
       execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
       execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"

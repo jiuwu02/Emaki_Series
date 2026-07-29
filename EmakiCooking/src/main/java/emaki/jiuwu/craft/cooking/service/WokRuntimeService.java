@@ -198,102 +198,11 @@ public final class WokRuntimeService {
                 StationType.WOK,
                 CookingSettingsService.INTERACTION_INSPECT,
                 interaction)) {
-            if (state == null || !state.hasIngredients()) {
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_item", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            showContents(player, state, heatLevel);
-            interaction.cancel();
-            return true;
+            return handleInspect(interaction, player, state, heatLevel);
         }
 
         if (isSpatula(hand)) {
-            if (!settingsService.matchesInteraction(
-                    StationType.WOK,
-                    CookingSettingsService.INTERACTION_STIR,
-                    interaction)) {
-                return false;
-            }
-            if (!player.hasPermission(CookingPermissions.WOK_STIR)
-                    && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
-                interaction.cancel();
-                return true;
-            }
-            if (state == null || !state.hasIngredients()) {
-                debugStir("stir.rejected", Map.of(
-                        "player", player.getName(),
-                        "station", coordinates.runtimeKey(),
-                        "reason", "no_state"
-                ));
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_item", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            long now = System.currentTimeMillis();
-            if (state.totalStirCount() > 0
-                    && settingsService.wokTimeoutMs() > 0L
-                    && now - state.lastStirTimeMs() > settingsService.wokTimeoutMs()) {
-                debugStir("stir.rejected", Map.of(
-                        "player", player.getName(),
-                        "station", coordinates.runtimeKey(),
-                        "reason", "burnt_timeout elapsed=" + (now - state.lastStirTimeMs()) + "ms limit=" + settingsService.wokTimeoutMs() + "ms"
-                ));
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.burnt_timeout", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            if (state.lastStirActionMs() > 0L
-                    && settingsService.wokStirDelayMs() > 0L
-                    && now - state.lastStirActionMs() < settingsService.wokStirDelayMs()) {
-                debugStir("stir.rejected", Map.of(
-                        "player", player.getName(),
-                        "station", coordinates.runtimeKey(),
-                        "reason", "too_fast elapsed=" + (now - state.lastStirActionMs()) + "ms required=" + settingsService.wokStirDelayMs() + "ms"
-                ));
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.too_fast", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            damageHeldTool(player, hand, 1);
-            List<WokIngredientState> updatedIngredients = new ArrayList<>();
-            for (WokIngredientState ingredient : state.ingredients()) {
-                updatedIngredients.add(new WokIngredientState(
-                        ingredient.source(),
-                        ingredient.amount(),
-                        ingredient.stirTimes() + 1,
-                        ingredient.itemData()
-                ));
-            }
-            WokState updated = new WokState(updatedIngredients, state.totalStirCount() + 1, now, now);
-            RecipeDocument stirPredicted = predictRecipe(updated, heatLevel);
-            debugStir("stir.trigger", Map.of(
-                    "player", player.getName(),
-                    "station", coordinates.runtimeKey(),
-                    "count", updated.totalStirCount(),
-                    "max", stirPredicted == null ? 0 : recipeService.wokStirTotalMax(stirPredicted)
-            ));
-            saveState(coordinates, updated);
-            refreshText(coordinates, updated);
-            Location particleLocation = block.getLocation().add(0.5D, 1.05D, 0.5D);
-            if (particleLocation.getWorld() != null) {
-                particleLocation.getWorld().spawnParticle(Particle.CLOUD, particleLocation, 4, 0.15D, 0.1D, 0.15D, 0.01D);
-            }
-            plugin.effectService().playActions(StationType.WOK, "stir", player);
-            if (settingsService.wokStirAnimationEnabled() && !displayService.isAnimating(StationType.WOK, coordinates)) {
-                displayService.playStirAnimation(
-                        StationType.WOK,
-                        coordinates,
-                        settingsService.wokStirAnimationHeight(),
-                        settingsService.wokStirAnimationAxis(),
-                        settingsService.wokStirAnimationRotation(),
-                        settingsService.wokStirAnimationDurationTicks()
-                );
-            }
-            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.stir_count", Map.of("count", updated.totalStirCount()));
-            interaction.cancel();
-            return true;
+            return handleStir(interaction, block, player, coordinates, state, heatLevel, hand);
         }
 
         boolean servingWithBowl = settingsService.wokNeedBowl() && isPlainBowl(hand);
@@ -301,136 +210,303 @@ public final class WokRuntimeService {
         if ((servingWithBowl || servingWithEmptyHand) && settingsService.matchesInteraction(
                 StationType.WOK,
                 CookingSettingsService.INTERACTION_SERVE,
-                interaction)) {
-            if (!player.hasPermission(CookingPermissions.WOK_SERVE)
-                    && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
-                interaction.cancel();
-                return true;
-            }
-            if (state == null || !state.hasIngredients()) {
-                debugStation("station.wok_serve", Map.of(
-                        "player", player.getName(),
-                        "station", coordinates.runtimeKey(),
-                        "result", "rejected_no_state",
-                        "with_bowl", servingWithBowl,
-                        "stir", 0,
-                        "recipe", ""
-                ));
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_item", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            if (tryServe(player, block, coordinates, state, heatLevel, servingWithBowl)) {
-                interaction.cancel();
-                return true;
-            }
-            debugStation("station.wok_serve", Map.of(
-                    "player", player.getName(),
-                    "station", coordinates.runtimeKey(),
-                    "result", state.totalStirCount() <= 0 ? "rejected_never_stirred" : "rejected_submit_failed",
-                    "with_bowl", servingWithBowl,
-                    "stir", state.totalStirCount(),
-                    "recipe", describeRecipe(findMatchingRecipe(state, player, heatLevel))
-            ));
-            if (servingWithBowl) {
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_recipe", Map.of());
-                interaction.cancel();
-                return true;
-            }
-        }
-
-        if (hand != null && !hand.getType().isAir()) {
-            if (!settingsService.matchesInteraction(
-                    StationType.WOK,
-                    CookingSettingsService.INTERACTION_ADD_INGREDIENT,
-                    interaction)) {
-                return false;
-            }
-            String source = identifySource(hand);
-            if (Texts.isBlank(source)) {
-                return false;
-            }
-            if (state == null || !state.hasIngredients()) {
-                if (heatLevel <= 0) {
-                    CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_heat", Map.of());
-                    interaction.cancel();
-                    return true;
-                }
-                if (settingsService.onlyRecipeItems(StationType.WOK)
-                        && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source), player, heatLevel)) {
-                    debugStation("station.ingredient_rejected", Map.of(
-                            "player", player.getName(),
-                            "station", coordinates.runtimeKey(),
-                            "item", source,
-                            "reason", "first_ingredient_not_in_any_recipe",
-                            "candidates", String.valueOf(candidateIngredients(state, source)),
-                            "heat", heatLevel
-                    ));
-                    CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
-                    interaction.cancel();
-                    return true;
-                }
-                ItemStack consumed = CookingRuntimeUtil.takeOneFromMainHand(player);
-                if (consumed == null || consumed.getType().isAir()) {
-                    return false;
-                }
-                WokState created = new WokState(List.of(new WokIngredientState(
-                        source,
-                        1,
-                        0,
-                        List.of(StoredItemCodec.serialize(consumed))
-                )), 0, 0L, 0L);
-                saveState(coordinates, created);
-                refreshDisplays(coordinates, created);
-                setWokHeatSourceLit(block, true);
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
-                plugin.effectService().playActions(StationType.WOK, "add_ingredient", player);
-                interaction.cancel();
-                return true;
-            }
-
-            if (settingsService.onlyRecipeItems(StationType.WOK)
-                    && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source), player, heatLevel)) {
-                debugStation("station.ingredient_rejected", Map.of(
-                        "player", player.getName(),
-                        "station", coordinates.runtimeKey(),
-                        "item", source,
-                        "reason", "prefix_not_in_any_recipe",
-                        "candidates", String.valueOf(candidateIngredients(state, source)),
-                        "heat", heatLevel
-                ));
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            ItemStack consumed = CookingRuntimeUtil.takeOneFromMainHand(player);
-            if (consumed == null || consumed.getType().isAir()) {
-                return false;
-            }
-            List<WokIngredientState> updatedIngredients = new ArrayList<>(state.ingredients());
-            int lastIndex = updatedIngredients.size() - 1;
-            if (lastIndex >= 0 && sourceMatches(updatedIngredients.get(lastIndex).source(), source)) {
-                WokIngredientState last = updatedIngredients.get(lastIndex);
-                updatedIngredients.set(lastIndex, new WokIngredientState(
-                        last.source(),
-                        last.amount() + 1,
-                        last.stirTimes(),
-                        appendItemData(last.itemData(), StoredItemCodec.serialize(consumed))
-                ));
-            } else {
-                updatedIngredients.add(new WokIngredientState(source, 1, 0, List.of(StoredItemCodec.serialize(consumed))));
-            }
-            WokState updated = new WokState(updatedIngredients, state.totalStirCount(), state.lastStirTimeMs(), state.lastStirActionMs());
-            saveState(coordinates, updated);
-            refreshDisplays(coordinates, updated);
-            setWokHeatSourceLit(block, true);
-            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
-            plugin.effectService().playActions(StationType.WOK, "add_ingredient", player);
-            interaction.cancel();
+                interaction)
+                && handleServe(interaction, block, player, coordinates, state, heatLevel, servingWithBowl)) {
             return true;
         }
 
+        if (hand != null && !hand.getType().isAir()) {
+            return handleAddIngredient(interaction, block, player, coordinates, state, heatLevel, hand);
+        }
+
+        return handleReturnIngredient(interaction, player, coordinates, state);
+    }
+
+    private boolean handleInspect(StationInteraction interaction,
+            Player player,
+            WokState state,
+            int heatLevel) {
+        if (state == null || !state.hasIngredients()) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_item", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        showContents(player, state, heatLevel);
+        interaction.cancel();
+        return true;
+    }
+
+    private boolean handleStir(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            WokState state,
+            int heatLevel,
+            ItemStack hand) {
+        if (!settingsService.matchesInteraction(
+                StationType.WOK,
+                CookingSettingsService.INTERACTION_STIR,
+                interaction)) {
+            return false;
+        }
+        if (!player.hasPermission(CookingPermissions.WOK_STIR)
+                && !player.hasPermission(CookingPermissions.ADMIN)) {
+            messageService.send(player, "general.no_permission");
+            interaction.cancel();
+            return true;
+        }
+        if (state == null || !state.hasIngredients()) {
+            debugStir("stir.rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "reason", "no_state"
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_item", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        long now = System.currentTimeMillis();
+        if (state.totalStirCount() > 0
+                && settingsService.wokTimeoutMs() > 0L
+                && now - state.lastStirTimeMs() > settingsService.wokTimeoutMs()) {
+            debugStir("stir.rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "reason", "burnt_timeout elapsed=" + (now - state.lastStirTimeMs()) + "ms limit=" + settingsService.wokTimeoutMs() + "ms"
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.burnt_timeout", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        if (state.lastStirActionMs() > 0L
+                && settingsService.wokStirDelayMs() > 0L
+                && now - state.lastStirActionMs() < settingsService.wokStirDelayMs()) {
+            debugStir("stir.rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "reason", "too_fast elapsed=" + (now - state.lastStirActionMs()) + "ms required=" + settingsService.wokStirDelayMs() + "ms"
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.too_fast", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        applyStir(interaction, block, player, coordinates, state, heatLevel, hand, now);
+        return true;
+    }
+
+    private void applyStir(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            WokState state,
+            int heatLevel,
+            ItemStack hand,
+            long now) {
+        damageHeldTool(player, hand, 1);
+        List<WokIngredientState> updatedIngredients = new ArrayList<>();
+        for (WokIngredientState ingredient : state.ingredients()) {
+            updatedIngredients.add(new WokIngredientState(
+                    ingredient.source(),
+                    ingredient.amount(),
+                    ingredient.stirTimes() + 1,
+                    ingredient.itemData()
+            ));
+        }
+        WokState updated = new WokState(updatedIngredients, state.totalStirCount() + 1, now, now);
+        RecipeDocument stirPredicted = predictRecipe(updated, heatLevel);
+        debugStir("stir.trigger", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "count", updated.totalStirCount(),
+                "max", stirPredicted == null ? 0 : recipeService.wokStirTotalMax(stirPredicted)
+        ));
+        saveState(coordinates, updated);
+        refreshText(coordinates, updated);
+        Location particleLocation = block.getLocation().add(0.5D, 1.05D, 0.5D);
+        if (particleLocation.getWorld() != null) {
+            particleLocation.getWorld().spawnParticle(Particle.CLOUD, particleLocation, 4, 0.15D, 0.1D, 0.15D, 0.01D);
+        }
+        plugin.effectService().playActions(StationType.WOK, "stir", player);
+        if (settingsService.wokStirAnimationEnabled() && !displayService.isAnimating(StationType.WOK, coordinates)) {
+            displayService.playStirAnimation(
+                    StationType.WOK,
+                    coordinates,
+                    settingsService.wokStirAnimationHeight(),
+                    settingsService.wokStirAnimationAxis(),
+                    settingsService.wokStirAnimationRotation(),
+                    settingsService.wokStirAnimationDurationTicks()
+            );
+        }
+        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.stir_count", Map.of("count", updated.totalStirCount()));
+        interaction.cancel();
+    }
+
+    private boolean handleServe(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            WokState state,
+            int heatLevel,
+            boolean servingWithBowl) {
+        if (!player.hasPermission(CookingPermissions.WOK_SERVE)
+                && !player.hasPermission(CookingPermissions.ADMIN)) {
+            messageService.send(player, "general.no_permission");
+            interaction.cancel();
+            return true;
+        }
+        if (state == null || !state.hasIngredients()) {
+            debugStation("station.wok_serve", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "result", "rejected_no_state",
+                    "with_bowl", servingWithBowl,
+                    "stir", 0,
+                    "recipe", ""
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_item", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        if (tryServe(player, block, coordinates, state, heatLevel, servingWithBowl)) {
+            interaction.cancel();
+            return true;
+        }
+        debugStation("station.wok_serve", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "result", state.totalStirCount() <= 0 ? "rejected_never_stirred" : "rejected_submit_failed",
+                "with_bowl", servingWithBowl,
+                "stir", state.totalStirCount(),
+                "recipe", describeRecipe(findMatchingRecipe(state, player, heatLevel))
+        ));
+        if (servingWithBowl) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_recipe", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleAddIngredient(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            WokState state,
+            int heatLevel,
+            ItemStack hand) {
+        if (!settingsService.matchesInteraction(
+                StationType.WOK,
+                CookingSettingsService.INTERACTION_ADD_INGREDIENT,
+                interaction)) {
+            return false;
+        }
+        String source = identifySource(hand);
+        if (Texts.isBlank(source)) {
+            return false;
+        }
+        if (state == null || !state.hasIngredients()) {
+            return addFirstIngredient(interaction, block, player, coordinates, state, heatLevel, source);
+        }
+        return appendIngredient(interaction, block, player, coordinates, state, heatLevel, source);
+    }
+
+    private boolean addFirstIngredient(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            WokState state,
+            int heatLevel,
+            String source) {
+        if (heatLevel <= 0) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_heat", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        if (settingsService.onlyRecipeItems(StationType.WOK)
+                && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source), player, heatLevel)) {
+            debugStation("station.ingredient_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "item", source,
+                    "reason", "first_ingredient_not_in_any_recipe",
+                    "candidates", String.valueOf(candidateIngredients(state, source)),
+                    "heat", heatLevel
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        ItemStack consumed = CookingRuntimeUtil.takeOneFromMainHand(player);
+        if (consumed == null || consumed.getType().isAir()) {
+            return false;
+        }
+        WokState created = new WokState(List.of(new WokIngredientState(
+                source,
+                1,
+                0,
+                List.of(StoredItemCodec.serialize(consumed))
+        )), 0, 0L, 0L);
+        saveState(coordinates, created);
+        refreshDisplays(coordinates, created);
+        setWokHeatSourceLit(block, true);
+        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
+        plugin.effectService().playActions(StationType.WOK, "add_ingredient", player);
+        interaction.cancel();
+        return true;
+    }
+
+    private boolean appendIngredient(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            WokState state,
+            int heatLevel,
+            String source) {
+        if (settingsService.onlyRecipeItems(StationType.WOK)
+                && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source), player, heatLevel)) {
+            debugStation("station.ingredient_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "item", source,
+                    "reason", "prefix_not_in_any_recipe",
+                    "candidates", String.valueOf(candidateIngredients(state, source)),
+                    "heat", heatLevel
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        ItemStack consumed = CookingRuntimeUtil.takeOneFromMainHand(player);
+        if (consumed == null || consumed.getType().isAir()) {
+            return false;
+        }
+        List<WokIngredientState> updatedIngredients = new ArrayList<>(state.ingredients());
+        int lastIndex = updatedIngredients.size() - 1;
+        if (lastIndex >= 0 && sourceMatches(updatedIngredients.get(lastIndex).source(), source)) {
+            WokIngredientState last = updatedIngredients.get(lastIndex);
+            updatedIngredients.set(lastIndex, new WokIngredientState(
+                    last.source(),
+                    last.amount() + 1,
+                    last.stirTimes(),
+                    appendItemData(last.itemData(), StoredItemCodec.serialize(consumed))
+            ));
+        } else {
+            updatedIngredients.add(new WokIngredientState(source, 1, 0, List.of(StoredItemCodec.serialize(consumed))));
+        }
+        WokState updated = new WokState(updatedIngredients, state.totalStirCount(), state.lastStirTimeMs(), state.lastStirActionMs());
+        saveState(coordinates, updated);
+        refreshDisplays(coordinates, updated);
+        setWokHeatSourceLit(block, true);
+        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.ingredient_added", Map.of("item", itemDisplayName(source)));
+        plugin.effectService().playActions(StationType.WOK, "add_ingredient", player);
+        interaction.cancel();
+        return true;
+    }
+
+    private boolean handleReturnIngredient(StationInteraction interaction,
+            Player player,
+            StationCoordinates coordinates,
+            WokState state) {
         if (state == null || !state.hasIngredients()) {
             return false;
         }

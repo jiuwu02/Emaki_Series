@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
@@ -20,9 +21,8 @@ import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemStateService;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
-public final class GemPlaceholderExpansion extends PlaceholderExpansion {
+public final class GemPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
     private static final String PREFIX = "mainhand_";
 
@@ -31,6 +31,7 @@ public final class GemPlaceholderExpansion extends PlaceholderExpansion {
     private final GemItemLoader gemItemLoader;
 
     public GemPlaceholderExpansion(EmakiGemPlugin plugin, GemStateService stateService, GemItemLoader gemItemLoader) {
+        super(plugin);
         this.plugin = plugin;
         this.stateService = stateService;
         this.gemItemLoader = gemItemLoader;
@@ -39,21 +40,6 @@ public final class GemPlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public String getIdentifier() {
         return "emakigem";
-    }
-
-    @Override
-    public String getAuthor() {
-        return "Emaki";
-    }
-
-    @Override
-    public String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

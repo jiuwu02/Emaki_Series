@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
+import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
@@ -136,18 +137,11 @@ public final class AttributePointsGuiService {
         if (pageSize <= 0) {
             return 1;
         }
-        return Math.max(1, (int) Math.ceil((double) attributes().size() / pageSize));
+        return GuiPagination.totalPages(attributes().size(), pageSize);
     }
 
     private int pageSize(GuiTemplate template) {
-        if (template == null) {
-            return 0;
-        }
-        int size = 0;
-        for (GuiSlot slot : template.slotsByType("parent_attribute")) {
-            size += slot.slots().size();
-        }
-        return size;
+        return GuiPagination.pageSize(template, "parent_attribute");
     }
 
     private int slotIndex(GuiSession session, GuiTemplate.ResolvedSlot resolved) {

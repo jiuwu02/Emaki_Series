@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
@@ -223,7 +224,7 @@ public final class CastAttemptService {
         if (!definition.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     definition.conditions(),
-                    text -> resolvePlaceholders(player, text),
+                    text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_cast"),
                     true,
                     ConditionContext.of(player, null, Map.of(
                             "skillId", definition.id(),
@@ -346,7 +347,7 @@ public final class CastAttemptService {
             };
             if (!sufficient) {
                 String message = Texts.isNotBlank(cost.failureMessage())
-                        ? resolvePlaceholders(player, cost.failureMessage())
+                        ? PlaceholderRenderer.renderPapi(player, cost.failureMessage(), null, "skill_cast")
                         : cost.targetId();
                 return CastAttemptResult.fail(
                         FailureReason.RESOURCE_INSUFFICIENT,
@@ -407,18 +408,6 @@ public final class CastAttemptService {
                     }
                 }
             }
-        }
-    }
-
-    private String resolvePlaceholders(Player player, String text) {
-        if (Texts.isBlank(text)
-                || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return text;
-        }
-        try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
-        } catch (Exception | NoClassDefFoundError _) {
-            return text;
         }
     }
 

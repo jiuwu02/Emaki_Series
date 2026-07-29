@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -20,6 +19,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -43,7 +43,6 @@ import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.loader.ForgeGuiTemplateLoader;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import emaki.jiuwu.craft.forge.script.ScriptForgeModuleApi;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeLookupIndex;
@@ -99,8 +98,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         reloadsAccepted.set(true);
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         registerAssemblyLayer(coreLibPlugin);
-        registerScriptModule(coreLibPlugin);
-        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -226,7 +223,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             if (throwable == null) {
                 return CompletableFuture.completedFuture(result);
             }
-            Throwable cause = unwrap(throwable);
+            Throwable cause = AsyncFailures.unwrap(throwable);
             if (cause instanceof StaleReloadException) {
                 return staleReload(plugin, generation, started, "superseded during reload");
             }
@@ -657,21 +654,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 plugin.getLogger().warning("[Shutdown] Namespace cleanup failed: "
                         + String.valueOf(throwable.getMessage()));
             }
-            try {
-                var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
-                if (javaScriptRegistrationTracker != null) {
-                    javaScriptRegistrationTracker.unregisterOwner(plugin);
-                }
-            } catch (Throwable throwable) {
-                plugin.getLogger().warning("[Shutdown] JavaScript registration cleanup failed: "
-                        + String.valueOf(throwable.getMessage()));
-            }
-            try {
-                coreLibPlugin.scriptModuleRegistry().unregister("forge");
-            } catch (Throwable throwable) {
-                plugin.getLogger().warning("[Shutdown] Script module cleanup failed: "
-                        + String.valueOf(throwable.getMessage()));
-            }
         }
         sendShutdownMessage(plugin, "console.plugin_stopping");
         if (plugin.pdcAttributeGateway() != null) {
@@ -698,7 +680,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         return flushFuture.handle((flushResult, throwable) -> {
             if (throwable != null) {
-                Throwable cause = unwrap(throwable);
+                Throwable cause = AsyncFailures.unwrap(throwable);
                 plugin.getLogger().warning("[Shutdown] Player data flush failed: "
                         + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
             } else if (flushResult != null) {
@@ -763,7 +745,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 .orTimeout(SHUTDOWN_RETIREMENT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        Throwable cause = unwrap(throwable);
+                        Throwable cause = AsyncFailures.unwrap(throwable);
                         plugin.runtimeMetrics().recordGuiSettlementFailure();
                         plugin.getLogger().warning("[Shutdown] Forge retirement did not complete cleanly: "
                                 + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
@@ -782,7 +764,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 })
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        Throwable cause = unwrap(throwable);
+                        Throwable cause = AsyncFailures.unwrap(throwable);
                         plugin.getLogger().warning("[Shutdown] Forge runtime cleanup failed: "
                                 + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
                         closeRuntimeForShutdown(plugin);
@@ -1020,15 +1002,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return CompletableFuture.allOf(closures.toArray(CompletableFuture[]::new));
     }
 
-    private Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof CompletionException || current instanceof java.util.concurrent.ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
-    }
-
     private AppConfig parseAppConfig(YamlSection configuration) {
         if (configuration == null || configuration.getKeys(false).isEmpty()) {
             return AppConfig.defaults();
@@ -1060,15 +1033,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {
         coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
-    }
-
-    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("forge",
-                context -> new ScriptForgeModuleApi(JavaPlugin.getPlugin(EmakiForgePlugin.class), context));
-    }
-
-    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiForgePlugin plugin) {
-        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("forge_success.js"));
     }
 
     private static final class StaleReloadException extends RuntimeException {

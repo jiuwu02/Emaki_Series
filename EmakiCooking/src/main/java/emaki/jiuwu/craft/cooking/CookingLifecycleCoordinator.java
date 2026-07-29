@@ -10,7 +10,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.ActionExecutor;
-import emaki.jiuwu.craft.cooking.script.ScriptCookingModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
@@ -83,8 +82,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
-        registerScriptModule(coreLibPlugin);
-        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -420,11 +417,4 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("cooking", 10000, "Cooking"));
     }
 
-    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("cooking", context -> new ScriptCookingModuleApi(JavaPlugin.getPlugin(EmakiCookingPlugin.class), context));
-    }
-
-    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiCookingPlugin plugin) {
-        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("cooking_reward.js"));
-    }
 }

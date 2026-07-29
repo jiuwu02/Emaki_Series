@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +19,7 @@ import java.util.logging.Logger;
 
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
@@ -366,7 +366,7 @@ public final class PlayerLevelDataStore {
                     .thenCompose(ignored -> asyncYamlFiles.load(file))
                     .thenApply(section -> installLoaded(ticket, readData(playerId, section, types), playerName))
                     .exceptionally(throwable -> {
-                        logLoadFailure(playerId, unwrap(throwable));
+                        logLoadFailure(playerId, AsyncFailures.unwrapOnce(throwable));
                         PlayerLevelData fallback = createDefault(playerId, types);
                         cache.installLoadFailure(ticket, fallback);
                         return null;
@@ -427,7 +427,7 @@ public final class PlayerLevelDataStore {
                 .thenCompose(ignored -> asyncYamlFiles.load(file))
                 .thenApply(section -> readData(playerId, section, types))
                 .exceptionally(throwable -> {
-                    logLoadFailure(playerId, unwrap(throwable));
+                    logLoadFailure(playerId, AsyncFailures.unwrapOnce(throwable));
                     return null;
                 });
     }
@@ -463,7 +463,7 @@ public final class PlayerLevelDataStore {
         return asyncYamlFiles.save(file, serialized)
                 .thenApply(ignored -> true)
                 .exceptionally(throwable -> {
-                    logSaveFailure(playerId, unwrap(throwable));
+                    logSaveFailure(playerId, AsyncFailures.unwrapOnce(throwable));
                     return false;
                 });
     }
@@ -588,14 +588,6 @@ public final class PlayerLevelDataStore {
 
     private static long toLong(Object value, long fallback) {
         return value instanceof Number number ? number.longValue() : fallback;
-    }
-
-    private static Throwable unwrap(Throwable throwable) {
-        if (throwable instanceof CompletionException completionException
-                && completionException.getCause() != null) {
-            return completionException.getCause();
-        }
-        return throwable;
     }
 
     private int defaultLevel(LevelTypeConfig type) {

@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.6.2"
+version: "4.6.7"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -69,7 +69,6 @@ console:
       loop_stop_if_offline_invalid: "%action% 的 stop_if_offline 必须是布尔值。"
       loop_stop_if_dead_invalid: "%action% 的 stop_if_dead 必须是布尔值。"
       loop_stop_on_failure_invalid: "%action% 的 stop_on_failure 必须是布尔值。"
-      script_action_depth_large: "脚本动作深度过大，可能导致动作链难以追踪。"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   economy_bridge_ready: "<gray>经济桥接已接入: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "<gray>已接入方块源: <aqua>%provider%</aqua></gray>"
@@ -79,32 +78,6 @@ console:
   bstats_close_failed: "<yellow>bStats 统计关闭失败: <aqua>%plugin%</aqua> <dark_gray>(%error%)</dark_gray></yellow>"
   bstats_config_directory_create_failed: "<yellow>无法创建 bStats 配置目录: %path%</yellow>"
   bstats_config_write_failed: "<yellow>无法写入 bStats 配置: %path% (%error%)</yellow>"
-  script_engine_disabled: "<gray>脚本引擎已禁用</gray>"
-  script_engine_ready: "<gray>脚本引擎已启用 (GraalJS)</gray>"
-  script_engine_failed: "<red>脚本引擎初始化失败: %error%</red>"
-  scripts_loaded: "<gray>已加载 <yellow>%count%</yellow> 个脚本</gray>"
-  mythic_js_bridge_ready: "<gray>MythicMobs JavaScript 技能桥接已就绪</gray>"
-  mythic_js_script_missing: "<yellow>MythicMobs JavaScript 技能 <aqua>%mechanic%</aqua> 缺少 script 参数</yellow>"
-  js_extension_no_result: "无返回结果"
-  js_extension_load_failed: "<red>加载 JavaScript 全局扩展失败: <gray>%script%</gray> (%error%)</red>"
-  js_extensions_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 JavaScript 全局扩展脚本，动作=<yellow>%actions%</yellow>，占位符=<yellow>%placeholders%</yellow>，事件=<yellow>%events%</yellow></gray>"
-  js_extension_directory_create_failed: "<red>无法创建 JavaScript 全局扩展目录: %error%</red>"
-  js_extension_scan_failed: "<red>扫描 JavaScript 全局扩展失败: %error%</red>"
-  js_action_blank_id: "<yellow>JavaScript 动作 ID 为空: <gray>%script%</gray></yellow>"
-  js_action_registered: "<gray>已注册 JavaScript 动作: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_action_register_failed: "<red>注册 JavaScript 动作失败: <aqua>%id%</aqua> (%error%)</red>"
-  js_placeholder_blank_id: "<yellow>JavaScript 占位符 ID 为空: <gray>%script%</gray></yellow>"
-  js_placeholder_registered: "<gray>已注册 JavaScript 占位符: <aqua>%placeholder%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_event_unsupported: "<yellow>不支持的 JavaScript 事件监听器: <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></yellow>"
-  js_event_registered: "<gray>已注册 JavaScript 事件监听器: <aqua>%id%</aqua> -> <aqua>%event%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_event_listener_failed: "<red>JavaScript 事件监听器执行失败: <aqua>%id%</aqua> (%error%)</red>"
-  js_event_listener_exception: "<red>JavaScript 事件监听器异常: <aqua>%id%</aqua> (%error%)</red>"
-  js_expression_blank_id: "<yellow>JavaScript 表达式函数 ID 为空: <gray>%script%</gray></yellow>"
-  js_expression_registered: "<gray>已注册 JavaScript 表达式函数: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_expression_register_failed: "<red>注册 JavaScript 表达式函数失败: <aqua>%id%</aqua></red>"
-  js_condition_blank_id: "<yellow>JavaScript 条件 ID 为空: <gray>%script%</gray></yellow>"
-  js_condition_registered: "<gray>已注册 JavaScript 条件: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_condition_register_failed: "<red>注册 JavaScript 条件失败: <aqua>%id%</aqua></red>"
   action_config_load_failed: "<red>加载动作配置失败: %error%</red>"
   item_source_bridge_ready: "<gray>已接入物品源: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "<gray>已检测到 <aqua>%library%</aqua>，等待物品注册完成: %detail%</gray>"
@@ -134,9 +107,6 @@ debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
     action:
       execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
       execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
@@ -286,10 +256,6 @@ debug:
     execute_start: "执行 Action | 类型=%type% | 玩家=%player% | 参数=%params%"
     execute_result: "Action 执行完成 | 类型=%type% | 结果=%result%"
     template_resolve: "模板解析 | 模板=%template% | 展开=%expanded%"
-  script:
-    load: "加载脚本 | 路径=%path% | 大小=%size%字节"
-    execute: "执行脚本 | 路径=%path% | 函数=%function% | 耗时=%duration%ms"
-    error: "脚本错误 | 路径=%path% | 错误=%error%"
   item_source:
     resolve: "解析物品来源 | 输入=%input% | 结果=%result%"
     create: "创建物品 | 来源=%source% | 数量=%amount% | 成功=%success%"
@@ -317,7 +283,6 @@ command:
   help_header: "<aqua>EmakiCoreLib 命令：</aqua>"
   help_reload: "<green>%root% reload</green><gray> - 重载 CoreLib 配置</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - 执行配置预检或查看最近报告</gray>"
-  help_script: "<green>%root% script [list|inspect|reload]</green><gray> - 查看或重载 JavaScript 扩展</gray>"
   help_action: "<green>%root% action [list|run <actionId> key=value ...]</green><gray> - 查看并直接执行已注册 Action</gray>"
   help_debug_all: "<green>%root% debug all [on|off|status]</green><gray> - 控制所有 Emaki 模块的全局 Debug（重载后以配置为准）</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消循环 Action 任务</gray>"

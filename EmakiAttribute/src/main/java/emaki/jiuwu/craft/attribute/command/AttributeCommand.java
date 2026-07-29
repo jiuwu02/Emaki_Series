@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -104,12 +105,12 @@ public final class AttributeCommand implements TabExecutor {
             return completePoints(sender, args);
         }
         if (args.length == 2 && "resync".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[1]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             result.add("all");
             return result;
         }
         if (args.length == 2 && "dump".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[1]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             return result;
         }
         if (args.length == 3 && "dump".equalsIgnoreCase(args[0])) {
@@ -126,7 +127,7 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         if (args.length == 2 && "source".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[1]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             return result;
         }
         if (args.length == 3 && "source".equalsIgnoreCase(args[0])) {
@@ -142,11 +143,11 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         if (args.length == 3 && "trace".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[2]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             return result;
         }
         if (args.length == 2 && "preview".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[1]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             for (String slot : previewSlots()) {
                 if (slot.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(slot);
@@ -823,13 +824,13 @@ public final class AttributeCommand implements TabExecutor {
         String sub = args[1].toLowerCase(Locale.ROOT);
         if (args.length == 3) {
             if (List.of("view", "open", "reset").contains(sub) || admin && List.of("grant", "set", "setreset").contains(sub)) {
-                completePlayerNames(result, args[2]);
+                result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
                 return result;
             }
             if ("add".equals(sub)) {
                 completeParentAttributeIds(result, args[2]);
                 if (admin) {
-                    completePlayerNames(result, args[2]);
+                    result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
                 }
                 return distinctMatching(result, args[2]);
             }
@@ -852,7 +853,7 @@ public final class AttributeCommand implements TabExecutor {
         String[] debugArgs = Arrays.copyOfRange(args, 1, args.length);
         if (debugArgs.length == 1) {
             result.addAll(plugin.debugCommand().tabComplete(debugArgs));
-            completePlayerNames(result, debugArgs[0]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(debugArgs[0]));
             return distinctMatching(result, debugArgs[0]);
         }
         if (debugArgs.length == 2) {
@@ -879,15 +880,6 @@ public final class AttributeCommand implements TabExecutor {
             }
         }
         return new ArrayList<>(distinct);
-    }
-
-    private void completePlayerNames(List<String> result, String prefix) {
-        String lowerPrefix = prefix.toLowerCase(Locale.ROOT);
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getName().toLowerCase(Locale.ROOT).startsWith(lowerPrefix)) {
-                result.add(player.getName());
-            }
-        }
     }
 
     private void completeAttributeIds(List<String> result, String prefix) {

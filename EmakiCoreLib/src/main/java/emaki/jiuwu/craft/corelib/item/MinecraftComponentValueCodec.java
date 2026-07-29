@@ -4,12 +4,18 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import net.kyori.adventure.text.Component;
 
 
 public final class MinecraftComponentValueCodec {
+
+    private static final Logger LOGGER = Logger.getLogger(MinecraftComponentValueCodec.class.getName());
+
+    private final AtomicBoolean gsonWarningLogged = new AtomicBoolean();
 
     private volatile Object gsonSerializer;
     private volatile Method gsonSerializeMethod;
@@ -128,8 +134,11 @@ public final class MinecraftComponentValueCodec {
             if (serialized instanceof String text && !text.isBlank()) {
                 return text;
             }
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
+            if (gsonWarningLogged.compareAndSet(false, true)) {
+                LOGGER.warning("Adventure GsonComponentSerializer is unavailable, falling back to plain-text"
+                        + " component encoding: " + describe(exception));
+            }
         }
         return "{\"text\":" + quote(MiniMessages.plain(component)) + "}";
     }
@@ -156,5 +165,10 @@ public final class MinecraftComponentValueCodec {
             }
         }
         return builder.append('"').toString();
+    }
+
+    private String describe(Throwable throwable) {
+        String message = throwable == null ? null : throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 }

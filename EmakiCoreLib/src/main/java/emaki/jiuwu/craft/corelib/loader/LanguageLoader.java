@@ -50,7 +50,7 @@ public final class LanguageLoader {
         }
     }
 
-    public int load() {
+    public synchronized int load() {
         languages.clear();
         if (bundledFallback != null) {
             languages.put(fallbackLanguage, bundledFallback);
@@ -144,7 +144,7 @@ public final class LanguageLoader {
         }
     }
 
-    public boolean setLanguage(String language) {
+    public synchronized boolean setLanguage(String language) {
         if (Texts.isBlank(language) || !languages.containsKey(language)) {
             return false;
         }
@@ -152,7 +152,7 @@ public final class LanguageLoader {
         return true;
     }
 
-    public Object getValue(String key) {
+    public synchronized Object getValue(String key) {
         Object value = getNestedValue(currentLanguage, key);
         if (value == null && !currentLanguage.equals(fallbackLanguage)) {
             value = getNestedValue(fallbackLanguage, key);
@@ -160,11 +160,11 @@ public final class LanguageLoader {
         return value;
     }
 
-    public String getMessage(String key) {
+    public synchronized String getMessage(String key) {
         return getMessage(key, Map.of());
     }
 
-    public String getMessage(String key, Map<String, ?> replacements) {
+    public synchronized String getMessage(String key, Map<String, ?> replacements) {
         Object value = getValue(key);
         if (value == null) {
             return key;
@@ -175,7 +175,7 @@ public final class LanguageLoader {
                 : ExpressionEngine.evaluateStringConfig(value, safeReplacements);
     }
 
-    public YamlSection getSection(String key) {
+    public synchronized YamlSection getSection(String key) {
         Object value = getValue(key);
         if (value instanceof Map<?, ?> map) {
             return new MapYamlSection(MapYamlSection.normalizeMap(map));
@@ -183,7 +183,7 @@ public final class LanguageLoader {
         return value instanceof YamlSection section ? section : null;
     }
 
-    public String currentLanguage() {
+    public synchronized String currentLanguage() {
         return currentLanguage;
     }
 

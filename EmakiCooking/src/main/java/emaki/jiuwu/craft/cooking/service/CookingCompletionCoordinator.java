@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -607,13 +608,7 @@ public final class CookingCompletionCoordinator {
     }
 
     private String rootCauseMessage(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null
-                && current.getCause() != null
-                && (current instanceof java.util.concurrent.CompletionException
-                || current instanceof java.util.concurrent.ExecutionException)) {
-            current = current.getCause();
-        }
+        Throwable current = AsyncFailures.unwrap(throwable);
         if (current == null) {
             return "unknown error";
         }

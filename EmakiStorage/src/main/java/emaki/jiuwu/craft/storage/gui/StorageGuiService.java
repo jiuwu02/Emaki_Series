@@ -16,6 +16,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
+import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
@@ -464,7 +465,7 @@ public final class StorageGuiService {
         // is what the player searched for.
         int slotCount = state.slots().size();
         int visibleCount = state.visible().size();
-        int reachable = Math.max(1, (int) Math.ceil((double) slotCount / perPage));
+        int reachable = GuiPagination.totalPages(slotCount, perPage);
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("current_page", page + 1);
         replacements.put("total_pages", Math.max(reachable, 1));

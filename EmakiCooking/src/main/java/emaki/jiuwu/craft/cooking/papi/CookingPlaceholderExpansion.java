@@ -10,35 +10,21 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
-public final class CookingPlaceholderExpansion extends PlaceholderExpansion {
+public final class CookingPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
     private final EmakiCookingPlugin plugin;
 
     public CookingPlaceholderExpansion(EmakiCookingPlugin plugin) {
+        super(plugin);
         this.plugin = plugin;
     }
 
     @Override
     public @NotNull String getIdentifier() {
         return "emakicooking";
-    }
-
-    @Override
-    public @NotNull String getAuthor() {
-        return "Emaki";
-    }
-
-    @Override
-    public @NotNull String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

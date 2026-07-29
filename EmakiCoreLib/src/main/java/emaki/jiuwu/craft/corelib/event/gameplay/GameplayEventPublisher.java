@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import org.bukkit.Location;
@@ -66,6 +67,8 @@ public final class GameplayEventPublisher implements Listener {
     private final ExecutionDispatcher executionDispatcher;
     private final EmakiEventBus eventBus;
     private final Supplier<CoreLibConfig.GameplayEventConfig> configSupplier;
+
+    private final AtomicBoolean mythicLookupWarningLogged = new AtomicBoolean();
 
     private final Map<UUID, DamageAttribution> lastDamagers = new ConcurrentHashMap<>();
     private final Map<String, BrewerUser> brewers = new ConcurrentHashMap<>();
@@ -310,7 +313,12 @@ public final class GameplayEventPublisher implements Listener {
                     return new MythicMobInfo(resolveMobId(activeMob), resolveMobLevel(activeMob));
                 }
             }
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
+            if (mythicLookupWarningLogged.compareAndSet(false, true)) {
+                plugin.getLogger().warning("MythicMobs is enabled but its active-mob lookup could not be resolved"
+                        + " reflectively; gameplay events will omit Mythic mob id and level: "
+                        + describeReflectionFailure(exception));
+            }
         }
         return null;
     }
@@ -345,6 +353,11 @@ public final class GameplayEventPublisher implements Listener {
             }
         }
         return 1D;
+    }
+
+    private String describeReflectionFailure(Throwable throwable) {
+        String message = throwable == null ? null : throwable.getMessage();
+        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
     }
 
     private record DamageAttribution(UUID playerId, long time) {

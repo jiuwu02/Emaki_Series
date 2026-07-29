@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-skills</artifactId>
-    <version>2.6.0</version>
+    <version>2.6.2</version>
     <name>EmakiSkills</name>
     <packaging>jar</packaging>
 
@@ -31,11 +31,6 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-skills-api</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>emaki.jiuwu.craft</groupId>
-            <artifactId>emaki-skills-protocol</artifactId>
-            <version>${emaki.skills.protocol.version}</version>
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
@@ -92,15 +87,8 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-skills-api</include>
-                                    <include>emaki.jiuwu.craft:emaki-skills-protocol</include>
                                 </includes>
                             </artifactSet>
-                            <relocations>
-                                <relocation>
-                                    <pattern>emaki.jiuwu.craft.skills.protocol</pattern>
-                                    <shadedPattern>emaki.jiuwu.craft.skills.runtime.skillsprotocol</shadedPattern>
-                                </relocation>
-                            </relocations>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>

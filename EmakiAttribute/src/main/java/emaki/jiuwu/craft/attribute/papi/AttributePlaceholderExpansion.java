@@ -12,37 +12,21 @@ import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
-public final class AttributePlaceholderExpansion extends PlaceholderExpansion {
+public final class AttributePlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
-    private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
 
     public AttributePlaceholderExpansion(EmakiAttributePlugin plugin, AttributeService attributeService) {
-        this.plugin = plugin;
+        super(plugin);
         this.attributeService = attributeService;
     }
 
     @Override
     public String getIdentifier() {
         return "emakiattribute";
-    }
-
-    @Override
-    public String getAuthor() {
-        return "Emaki";
-    }
-
-    @Override
-    public String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

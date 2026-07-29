@@ -11,6 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 final class CookingCommandRouter implements TabExecutor {
@@ -95,12 +96,7 @@ final class CookingCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 3) {
-            String prefix = args[2].toLowerCase(java.util.Locale.ROOT);
-            for (Player online : org.bukkit.Bukkit.getOnlinePlayers()) {
-                if (online.getName().toLowerCase(java.util.Locale.ROOT).startsWith(prefix)) {
-                    result.add(online.getName());
-                }
-            }
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             return result;
         }
         if (args.length == 4 && plugin.nutritionTypeRegistry() != null) {

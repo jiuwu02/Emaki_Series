@@ -15,6 +15,7 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -43,8 +44,6 @@ import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
-import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeResultHookRegistry;
-import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeRuleRegistry;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
@@ -92,8 +91,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
-    private final JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry = new JavaScriptForgeRuleRegistry(this);
-    private final JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry = new JavaScriptForgeResultHookRegistry(this);
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
@@ -114,7 +111,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
     };
 
-    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "script", "pdc");
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "pdc");
 
     public EmakiForgePlugin() {
         super(AppConfig::defaults);
@@ -187,10 +184,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         shutdownPipeline.whenComplete((ignored, throwable) -> {
             Throwable terminalFailure = throwable;
             if (throwable != null) {
-                Throwable cause = throwable instanceof java.util.concurrent.CompletionException
-                        && throwable.getCause() != null
-                        ? throwable.getCause()
-                        : throwable;
+                Throwable cause = AsyncFailures.unwrapOnce(throwable);
                 getLogger().warning("[Shutdown] Forge cleanup failed: "
                         + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
             }
@@ -259,18 +253,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             playerDataListener.clearSessionsForShutdown();
         } catch (Throwable throwable) {
             getLogger().warning("[Shutdown] Player session cleanup failed: " + String.valueOf(throwable.getMessage()));
-        }
-        try {
-            javaScriptResultHookRegistry.clear();
-        } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] JavaScript result hook cleanup failed: "
-                    + String.valueOf(throwable.getMessage()));
-        }
-        try {
-            javaScriptForgeRuleRegistry.clear();
-        } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] JavaScript rule cleanup failed: "
-                    + String.valueOf(throwable.getMessage()));
         }
         if (coreLibPlugin == null || coreLibPlugin.actionRegistry() == null) {
             return;
@@ -479,14 +461,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     public RecipeBookGuiService recipeBookGuiService() {
         ForgeRuntimeComponents components = runtimeSnapshot.get().components();
         return components == null ? recipeBookGuiService : components.recipeBookGuiService();
-    }
-
-    public JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry() {
-        return javaScriptForgeRuleRegistry;
-    }
-
-    public JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry() {
-        return javaScriptResultHookRegistry;
     }
 
     public DebugCommand debugCommand() {

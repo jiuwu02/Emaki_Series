@@ -39,8 +39,6 @@ import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
 import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
 import emaki.jiuwu.craft.gem.papi.GemPlaceholderExpansion;
-import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSetBonusRegistry;
-import emaki.jiuwu.craft.gem.script.JavaScriptGemSocketRuleRegistry;
 import emaki.jiuwu.craft.gem.service.GemActionCoordinator;
 import emaki.jiuwu.craft.gem.service.GemEconomyService;
 import emaki.jiuwu.craft.gem.service.GemExtractService;
@@ -58,7 +56,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private static final String ROOT_COMMAND = "emakigem";
 
-    private static final Set<String> DEBUG_MODULES = Set.of("inlay", "socket", "state", "gui", "script", "pdc");
+    private static final Set<String> DEBUG_MODULES = Set.of("inlay", "socket", "state", "gui", "pdc");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  __    __
@@ -102,8 +100,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemGuiService gemGuiService;
     private GemResonanceLoader resonanceLoader;
     private GemResonanceService resonanceService;
-    private JavaScriptGemSocketRuleRegistry javaScriptSocketRuleRegistry;
-    private JavaScriptGemSetBonusRegistry javaScriptSetBonusRegistry;
     private GemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
     private final EmakiGemApi.Bridge gemApiBridge = new EmakiGemApi.Bridge() {
@@ -217,8 +213,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         inlayService = components.inlayService();
         extractService = components.extractService();
         gemGuiService = components.gemGuiService();
-        javaScriptSocketRuleRegistry = new JavaScriptGemSocketRuleRegistry(this);
-        javaScriptSetBonusRegistry = new JavaScriptGemSetBonusRegistry(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -363,14 +357,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public GemResonanceService resonanceService() {
         return resonanceService;
-    }
-
-    public JavaScriptGemSocketRuleRegistry javaScriptSocketRuleRegistry() {
-        return javaScriptSocketRuleRegistry;
-    }
-
-    public JavaScriptGemSetBonusRegistry javaScriptSetBonusRegistry() {
-        return javaScriptSetBonusRegistry;
     }
 
     public void setResonanceLoader(GemResonanceLoader resonanceLoader) {

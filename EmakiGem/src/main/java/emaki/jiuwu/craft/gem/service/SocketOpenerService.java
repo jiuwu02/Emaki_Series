@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.event.GemSocketOpenEvent;
@@ -272,20 +273,9 @@ public final class SocketOpenerService {
         }
         return ConditionEvaluator.evaluate(
                 config.conditions(),
-                text -> resolvePlaceholders(player, text),
+                text -> PlaceholderRenderer.renderPapi(player, text, null, "gem_socket_open"),
                 config.invalidAsFailure(),
                 ConditionContext.of(player)
         );
-    }
-
-    private String resolvePlaceholders(Player player, String text) {
-        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return text;
-        }
-        try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
-        } catch (Exception | NoClassDefFoundError _) {
-            return text;
-        }
     }
 }

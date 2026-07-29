@@ -53,13 +53,11 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
-import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenChanceRuleRegistry;
-import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenResultHookRegistry;
 
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
-    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "script", "pdc");
+    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __    
@@ -102,8 +100,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenAttemptService attemptService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
-    private JavaScriptStrengthenChanceRuleRegistry javaScriptChanceRuleRegistry;
-    private JavaScriptStrengthenResultHookRegistry javaScriptResultHookRegistry;
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private final EmakiStrengthenApi.Bridge strengthenApiBridge = new EmakiStrengthenApi.Bridge() {
         @Override
@@ -219,8 +215,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         attemptService = components.attemptService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
-        javaScriptChanceRuleRegistry = new JavaScriptStrengthenChanceRuleRegistry(this);
-        javaScriptResultHookRegistry = new JavaScriptStrengthenResultHookRegistry(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -336,14 +330,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public StrengthenGuiService strengthenGuiService() {
         return strengthenGuiService;
-    }
-
-    public JavaScriptStrengthenChanceRuleRegistry javaScriptChanceRuleRegistry() {
-        return javaScriptChanceRuleRegistry;
-    }
-
-    public JavaScriptStrengthenResultHookRegistry javaScriptResultHookRegistry() {
-        return javaScriptResultHookRegistry;
     }
 
     public GuiItemBuilder.ItemFactory coreItemFactory() {

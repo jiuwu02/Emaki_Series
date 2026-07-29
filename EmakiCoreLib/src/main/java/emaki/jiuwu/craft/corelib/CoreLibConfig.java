@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.script.ScriptConfig;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record CoreLibConfig(
@@ -12,7 +11,6 @@ public record CoreLibConfig(
         boolean releaseDefaultData,
         Map<String, List<String>> actionTemplates,
         LoopConfig loopConfig,
-        ScriptConfig scriptConfig,
         GuiConfig guiConfig,
         GameplayEventConfig gameplayEventConfig,
         DebugConfig debugConfig,
@@ -22,7 +20,7 @@ public record CoreLibConfig(
 ) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
+        return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(),
                 GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults(),
                 MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults());
     }
@@ -45,7 +43,6 @@ public record CoreLibConfig(
                 configuration.getBoolean("release_default_data", defaults().releaseDefaultData()),
                 Map.copyOf(templates),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
-                ScriptConfig.fromConfig(configuration.getSection("script")),
                 GuiConfig.fromConfig(configuration.getSection("gui")),
                 GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events")),
                 DebugConfig.fromConfig(configuration.getSection("debug")),

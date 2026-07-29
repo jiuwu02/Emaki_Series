@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.event.GemExtractEvent;
@@ -26,8 +27,6 @@ import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.model.ResonanceEffects;
-import emaki.jiuwu.craft.gem.script.js.JavaScriptGemSetBonusRegistry;
-import emaki.jiuwu.craft.gem.script.JavaScriptGemSocketRuleRegistry;
 
 public final class GemInlayService {
 
@@ -152,11 +151,6 @@ public final class GemInlayService {
         placeholders.put("gem_id", gemDefinition.id());
         placeholders.put("level", instance.level());
         double successChance = resolveSuccessChance(gemDefinition);
-        JavaScriptGemSocketRuleRegistry.Decision socketDecision = applyJavaScriptSocketRules(actor, itemDefinition, slot, slotIndex, gemDefinition, instance, successChance, currentState);
-        if (!socketDecision.allowed()) {
-            return new InlayResult(Result.failure(Texts.isBlank(socketDecision.messageKey()) ? "gem.error.condition_not_met" : socketDecision.messageKey(), placeholders), equipment);
-        }
-        successChance = socketDecision.successRate();
         placeholders.put("success_rate", successChance);
 
         GemInlayEvent inlayEvent = new GemInlayEvent(actor, equipment, gemItem, slotIndex, gemDefinition.id(), instance.level(), successChance);
@@ -234,41 +228,6 @@ public final class GemInlayService {
             operationJournal.completeAfterActions(operationId,
                     actionCoordinator.executeAsync(actor, phase, safeActions, safePlaceholders));
         };
-    }
-
-    private JavaScriptGemSocketRuleRegistry.Decision applyJavaScriptSocketRules(Player actor,
-            GemItemDefinition itemDefinition,
-            GemItemDefinition.SocketSlot slot,
-            int slotIndex,
-            GemDefinition gemDefinition,
-            GemItemInstance instance,
-            double successChance,
-            GemState currentState) {
-        JavaScriptGemSocketRuleRegistry.Decision base = JavaScriptGemSocketRuleRegistry.Decision.from(
-                actor, itemDefinition, slot, slotIndex, gemDefinition, instance, successChance, inlaidGemSummaries(currentState));
-        JavaScriptGemSocketRuleRegistry registry = plugin.javaScriptSocketRuleRegistry();
-        return registry == null ? base : registry.apply(base);
-    }
-
-    private List<Map<String, Object>> inlaidGemSummaries(GemState state) {
-        if (state == null || state.socketAssignments().isEmpty()) {
-            return List.of();
-        }
-        List<Map<String, Object>> summaries = new ArrayList<>();
-        for (Map.Entry<Integer, GemItemInstance> entry : state.socketAssignments().entrySet()) {
-            GemItemInstance inst = entry.getValue();
-            if (inst == null) {
-                continue;
-            }
-            GemDefinition def = plugin.gemLoader().get(inst.gemId());
-            Map<String, Object> summary = new LinkedHashMap<>();
-            summary.put("slot", entry.getKey());
-            summary.put("gemId", inst.gemId());
-            summary.put("gemType", def == null ? "" : def.gemType());
-            summary.put("gemLevel", inst.level());
-            summaries.add(Map.copyOf(summary));
-        }
-        return List.copyOf(summaries);
     }
 
     public ExtractDirectResult extractDirect(Player actor,
@@ -492,13 +451,6 @@ public final class GemInlayService {
             String resOperationId = OPERATION_NAMESPACE + ".resonance:" + resonance.id();
             operationLedger.apply(itemStack, resOperationId, OPERATION_NAMESPACE + ".resonance", resNameActions, resLoreActions, Map.of());
         }
-        JavaScriptGemSetBonusRegistry setBonusRegistry = plugin.javaScriptSetBonusRegistry();
-        if (setBonusRegistry != null) {
-            for (JavaScriptGemSetBonusRegistry.AppliedBonus bonus : setBonusRegistry.evaluate(itemDefinition, state, inlaidGems)) {
-                String jsOperationId = OPERATION_NAMESPACE + ".resonance:js_" + bonus.id();
-                operationLedger.apply(itemStack, jsOperationId, OPERATION_NAMESPACE + ".resonance", bonus.nameActions(), bonus.loreActions(), Map.of());
-            }
-        }
     }
 
     private void revertGemOperations(ItemStack itemStack, int slotIndex) {
@@ -514,20 +466,9 @@ public final class GemInlayService {
         }
         return ConditionEvaluator.evaluate(
                 config.conditions(),
-                text -> resolvePlaceholders(player, text),
+                text -> PlaceholderRenderer.renderPapi(player, text, null, "gem_inlay"),
                 config.invalidAsFailure(),
                 ConditionContext.of(player)
         );
-    }
-
-    private String resolvePlaceholders(Player player, String text) {
-        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return text;
-        }
-        try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
-        } catch (Exception | NoClassDefFoundError _) {
-            return text;
-        }
     }
 }

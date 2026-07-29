@@ -5,9 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.plugin.Plugin;
@@ -15,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -417,20 +416,11 @@ public final class ActionExecutor {
     }
 
     private ActionResult failureResult(String actionId, Throwable throwable) {
-        Throwable cause = unwrap(throwable);
+        Throwable cause = AsyncFailures.unwrap(throwable);
         String message = cause == null ? "Unknown action execution failure." : cause.getMessage();
         return ActionResult.failure(
                 ActionErrorType.EXECUTION_EXCEPTION,
                 "Action '" + Texts.toStringSafe(actionId) + "' failed: " + Texts.toStringSafe(message));
-    }
-
-    private Throwable unwrap(Throwable throwable) {
-        Throwable cause = throwable;
-        while (cause != null && cause.getCause() != null
-                && (cause instanceof CompletionException || cause instanceof ExecutionException)) {
-            cause = cause.getCause();
-        }
-        return cause;
     }
 
     private void warnExecutionFailure(String actionId, String error) {

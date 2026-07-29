@@ -15,6 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -88,9 +89,9 @@ final class SkillsCommandRouter implements TabExecutor {
                     }
                 }
                 case "upgrade" -> completeUpgradeableSkills(sender, result, args[1]);
-                case "level" -> completeLiteral(result, args[1], "get", "set", "add");
-                case "inspect", "resync" -> completePlayers(result, args[1]);
-                case "clearslot" -> completePlayers(result, args[1]);
+                case "level" -> result.addAll(CommandTabHelper.completeLiterals(args[1], "get", "set", "add"));
+                case "inspect", "resync" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
+                case "clearslot" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 default -> {
                 }
             }
@@ -105,7 +106,7 @@ final class SkillsCommandRouter implements TabExecutor {
                     }
                 }
             } else if ("level".equalsIgnoreCase(args[0])) {
-                completePlayers(result, args[2]);
+                result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             }
             return result;
         }
@@ -115,7 +116,7 @@ final class SkillsCommandRouter implements TabExecutor {
         }
         if (args.length == 5 && "level".equalsIgnoreCase(args[0])
                 && ("set".equalsIgnoreCase(args[1]) || "add".equalsIgnoreCase(args[1]))) {
-            completeLiteral(result, args[4], "1", "2", "5", "10");
+            result.addAll(CommandTabHelper.completeLiterals(args[4], "1", "2", "5", "10"));
             return result;
         }
         return result;
@@ -443,13 +444,6 @@ final class SkillsCommandRouter implements TabExecutor {
         return true;
     }
 
-    private void completePlayers(List<String> result, String prefix) {
-        Bukkit.getOnlinePlayers().stream()
-                .map(Player::getName)
-                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
-                .forEach(result::add);
-    }
-
     private void completeUpgradeableSkills(CommandSender sender, List<String> result, String prefix) {
         if (sender instanceof Player player) {
             plugin.playerSkillStateService().getUnlockedSkills(player).stream()
@@ -469,19 +463,7 @@ final class SkillsCommandRouter implements TabExecutor {
     }
 
     private void completeSkillIds(List<String> result, String prefix) {
-        String lowered = prefix == null ? "" : prefix.toLowerCase(java.util.Locale.ROOT);
-        plugin.skillRegistryService().allDefinitions().keySet().stream()
-                .filter(skillId -> skillId.toLowerCase(java.util.Locale.ROOT).startsWith(lowered))
-                .forEach(result::add);
-    }
-
-    private void completeLiteral(List<String> result, String prefix, String... values) {
-        String lowered = prefix == null ? "" : prefix.toLowerCase(java.util.Locale.ROOT);
-        for (String value : values) {
-            if (value.toLowerCase(java.util.Locale.ROOT).startsWith(lowered)) {
-                result.add(value);
-            }
-        }
+        result.addAll(CommandTabHelper.filterByPrefix(plugin.skillRegistryService().allDefinitions().keySet(), prefix));
     }
 
     private void sendHelp(CommandSender sender) {

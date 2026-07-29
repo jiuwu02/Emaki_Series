@@ -14,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
+import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiRenderer;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -319,7 +320,7 @@ public final class SkillsGuiService {
             poolSize += poolSlot.slots().size();
         }
         poolSize = Math.max(1, poolSize);
-        int totalPages = Math.max(1, (int) Math.ceil((double) unlocked.size() / poolSize));
+        int totalPages = GuiPagination.totalPages(unlocked.size(), poolSize);
 
         Map<String, Object> replacements = Map.of(
                 "current_page", page + 1,

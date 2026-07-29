@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.skills.listener;
 
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -15,6 +14,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
@@ -127,10 +127,7 @@ public final class PlayerJoinQuitListener implements Listener {
         if (throwable == null) {
             return;
         }
-        Throwable cause = throwable instanceof CompletionException completionException
-                && completionException.getCause() != null
-                        ? completionException.getCause()
-                        : throwable;
+        Throwable cause = AsyncFailures.unwrapOnce(throwable);
         plugin.getLogger().log(Level.WARNING,
                 "[SkillDataStore] Async " + operation + " failed for " + playerId,
                 cause);

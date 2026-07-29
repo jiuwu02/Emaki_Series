@@ -11,6 +11,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
@@ -251,8 +252,7 @@ final class ForgeGuiStateSupport {
         if (player == null) {
             throw new IllegalStateException("Forge item return has no player owner.");
         }
-        Map<Integer, ItemStack> leftover = player.getInventory().addItem(clone);
-        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+        InventoryItemUtil.giveOrDrop(player, clone);
     }
 
     public String normalizedType(GuiSlot slot) {

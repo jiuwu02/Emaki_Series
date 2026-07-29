@@ -10,7 +10,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.strengthen.script.ScriptStrengthenModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
@@ -52,8 +51,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
-        registerScriptModule(coreLibPlugin);
-        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -210,11 +207,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     public void shutdown(EmakiStrengthenPlugin plugin) {
         freezeAndDrain(plugin, true, "shutdown");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
-        if (javaScriptRegistrationTracker != null) {
-            javaScriptRegistrationTracker.unregisterOwner(plugin);
-        }
-        coreLibPlugin.scriptModuleRegistry().unregister("strengthen");
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
@@ -228,21 +220,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         if (plugin.attemptService() != null) {
             plugin.attemptService().freezeAccepting();
         }
-        if (plugin.javaScriptResultHookRegistry() != null) {
-            plugin.javaScriptResultHookRegistry().freeze();
-        }
         boolean attemptsDrained = plugin.attemptService() == null
                 || plugin.attemptService().drain(5L, TimeUnit.SECONDS);
-        boolean hooksDrained = plugin.javaScriptResultHookRegistry() == null
-                || plugin.javaScriptResultHookRegistry().drain(5L, TimeUnit.SECONDS);
         if (closeInventories && plugin.strengthenGuiService() != null) {
             plugin.strengthenGuiService().clearAllSessions();
         }
-        if (!attemptsDrained || !hooksDrained) {
+        if (!attemptsDrained) {
             plugin.getLogger().severe("[Lifecycle] Strengthen drain incomplete | phase=" + phase
-                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
-                    + " | resultHooks=" + (plugin.javaScriptResultHookRegistry() == null
-                            ? 0 : plugin.javaScriptResultHookRegistry().inFlightCount()));
+                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot()));
             return false;
         }
         return true;
@@ -251,9 +236,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private void resumeAccepting(EmakiStrengthenPlugin plugin) {
         if (plugin == null) {
             return;
-        }
-        if (plugin.javaScriptResultHookRegistry() != null) {
-            plugin.javaScriptResultHookRegistry().resume();
         }
         if (plugin.attemptService() != null) {
             plugin.attemptService().resumeAccepting();
@@ -317,12 +299,5 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
     }
 
-    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("strengthen", context -> new ScriptStrengthenModuleApi(JavaPlugin.getPlugin(EmakiStrengthenPlugin.class), context));
-    }
-
-    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiStrengthenPlugin plugin) {
-        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("strengthen_success.js"));
-    }
 
 }
