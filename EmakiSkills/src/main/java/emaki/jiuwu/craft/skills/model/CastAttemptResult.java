@@ -28,6 +28,28 @@ public record CastAttemptResult(boolean success,
         return new CastAttemptResult(false, reason, message, replacements, "", "");
     }
 
+    /**
+     * Builds a failure that keeps the skill and trigger identity.
+     *
+     * <p>The other {@code fail} factories blank both ids, which makes a failed cast
+     * impossible to attribute afterwards. Use this variant whenever the failing
+     * skill is known.
+     *
+     * @param reason the coarse failure category
+     * @param message the message key to render
+     * @param replacements placeholders for the message
+     * @param skillId the skill that failed, may be {@code null}
+     * @param triggerId the trigger that started the cast, may be {@code null}
+     * @return a failure result carrying the origin of the failed cast
+     */
+    public static CastAttemptResult fail(FailureReason reason,
+            String message,
+            Map<String, ?> replacements,
+            String skillId,
+            String triggerId) {
+        return new CastAttemptResult(false, reason, message, replacements, skillId, triggerId);
+    }
+
     public enum FailureReason {
         NOT_IN_CAST_MODE,
         NO_BINDING,

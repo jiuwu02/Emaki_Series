@@ -111,6 +111,7 @@ public final class SkillScriptExecutor {
         try {
             parsed = lineParser.parse(lineNumber, resolveText(context, line));
         } catch (ActionSyntaxException exception) {
+            logConfigurationError(context, lineNumber, "syntax error: " + exception.getMessage());
             return CompletableFuture.completedFuture(SkillActionResult.failure(
                     SkillActionErrorType.SYNTAX_ERROR, exception.getMessage()));
         }
@@ -156,6 +157,11 @@ public final class SkillScriptExecutor {
         Map<String, String> arguments = resolveArguments(context, parsed.arguments());
         SkillScriptAction action = registry.get(parsed.actionId());
         if (action == null) {
+            // An unknown action id is always a configuration mistake and can only be
+            // fixed from the console side, so it is named in the log along with the
+            // ids that are actually available.
+            logConfigurationError(context, lineNumber,
+                    "unknown action '" + parsed.actionId() + "'; registered ids: " + registeredActionIds());
             return afterLineAsync(domain, context, SkillActionResult.failure(
                     SkillActionErrorType.ACTION_NOT_FOUND,
                     "Skill script action not found: " + parsed.actionId()));
@@ -333,6 +339,24 @@ public final class SkillScriptExecutor {
             resolved = context.plugin().coreLib().placeholderRegistry().resolve(actionContext, resolved);
         }
         return resolved;
+    }
+
+    /**
+     * Logs a script problem that the server owner has to fix in the skill YAML,
+     * naming the skill and the offending line so it can be located directly.
+     */
+    private void logConfigurationError(SkillScriptContext context, int lineNumber, String detail) {
+        if (context == null || context.plugin() == null) {
+            return;
+        }
+        String skillId = context.definition() == null ? "unknown" : context.definition().id();
+        context.plugin().getLogger().warning(
+                "Skill script error in '" + skillId + "' line " + lineNumber + ": " + detail);
+    }
+
+    private String registeredActionIds() {
+        Map<String, SkillScriptAction> all = registry.all();
+        return all == null || all.isEmpty() ? "<none>" : String.join(", ", new java.util.TreeSet<>(all.keySet()));
     }
 
     private static SkillActionResult normalize(SkillActionResult result) {

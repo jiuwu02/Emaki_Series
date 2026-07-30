@@ -34,7 +34,9 @@ slots:
         lore:
           - "<gray>ID: <white>%trigger_id%</white></gray>"
           - "<gray>%description%</gray>"
-          - "<dark_gray>冲突: %conflict%</dark_gray>"
+          - ""
+          # %status% 会渲染为「点击绑定」「当前已绑定」或冲突提示
+          - "%status%"
 
   back:
     type: back

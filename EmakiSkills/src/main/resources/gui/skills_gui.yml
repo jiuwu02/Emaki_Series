@@ -26,7 +26,12 @@ slots:
           - "<gray>触发器: <white>%trigger%</white></gray>"
           - "<gray>等级: <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow></gray>"
           - "<gray>冷却: <aqua>%cooldown%s</aqua></gray>"
-          - "<dark_gray>空槽位可从技能池中选择技能装备</dark_gray>"
+          - ""
+          - "<dark_gray>已装配技能时:</dark_gray>"
+          - "<yellow>左键</yellow> <gray>卸下技能</gray>"
+          - "<yellow>Shift+左键</yellow> <gray>设置触发器</gray>"
+          - "<dark_gray>技能必须绑定触发器后才能释放</dark_gray>"
+          - "<dark_gray>空槽位请从下方技能池点击装配</dark_gray>"
 
   # 施法模式按钮 (位置 4)
   cast_mode_toggle:

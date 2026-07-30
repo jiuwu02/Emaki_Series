@@ -140,10 +140,8 @@ public final class ActionBarService {
             if (binding == null || binding.isEmpty()) {
                 slotDisplay.append(messageService.message("gui.slot_empty_short"));
             } else {
-                String skillName = resolveSkillName(binding.skillId(), defs);
-                String triggerName = triggerRegistry.getDisplayName(
-                        binding.triggerId() != null ? binding.triggerId() : "");
-                slotDisplay.append(skillName).append(triggerName);
+                slotDisplay.append(resolveSkillName(binding.skillId(), defs))
+                        .append(resolveTriggerName(binding.triggerId()));
             }
 
             String percentSlotPlaceholder = "%slot_" + (i + 1) + "%";
@@ -168,10 +166,23 @@ public final class ActionBarService {
         if (binding == null || binding.isEmpty()) {
             return messageService.message("gui.slot_empty_short");
         }
-        String skillName = resolveSkillName(binding.skillId(), defs);
-        String triggerName = triggerRegistry.getDisplayName(
-                binding.triggerId() != null ? binding.triggerId() : "");
-        return skillName + triggerName;
+        return resolveSkillName(binding.skillId(), defs) + resolveTriggerName(binding.triggerId());
+    }
+
+    /**
+     * Renders a slot's trigger label.
+     *
+     * <p>A freshly equipped skill has no trigger bound yet. Looking that empty id
+     * up in the registry logs an "unregistered trigger" warning on every action bar
+     * refresh, so the unbound case is answered from the language file instead.
+     *
+     * @param triggerId the bound trigger id, may be {@code null} or blank
+     * @return the label to show for this slot's trigger
+     */
+    private String resolveTriggerName(String triggerId) {
+        return triggerId == null || triggerId.isBlank()
+                ? messageService.message("gui.trigger_unbound_short")
+                : triggerRegistry.getDisplayName(triggerId);
     }
 
     private String resolveSkillName(String skillId, Map<String, SkillDefinition> defs) {

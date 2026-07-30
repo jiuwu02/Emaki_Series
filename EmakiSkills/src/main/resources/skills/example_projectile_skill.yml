@@ -50,5 +50,5 @@ script:
       - "projectile speed=1.2 gravity=0 lifetime=80 hit_radius=0.8 pierce=0 homing=true homing_strength=0.15 particle=FLAME damage=15 direction=look"
       # 命中后的范围爆炸（projectile 命中时会设置 context target）
       - "aoe_damage amount=8 radius=3 center=target shape=sphere filter=hostile"
-      - "particle type=EXPLOSION_LARGE at=target count=3"
+      - "particle particle=explosion at=target count=3"
       - "sound sound=minecraft:entity.generic.explode at=target volume=0.8 pitch=1.2"

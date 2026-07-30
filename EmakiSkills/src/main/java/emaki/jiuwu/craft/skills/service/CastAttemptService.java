@@ -10,12 +10,15 @@ import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
+import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
+import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.api.event.SkillPostCastEvent;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
@@ -251,7 +254,7 @@ public final class CastAttemptService {
         }
 
         return castSkillAsync(player, definition, plan.triggerId(), plan.invocation(), parameters)
-                .handle((success, throwable) -> new CastOutcome(Boolean.TRUE.equals(success), throwable))
+                .handle((result, throwable) -> new CastOutcome(result, throwable))
                 .thenCompose(outcome -> onCaster(player, () -> CompletableFuture.completedFuture(
                         finalizeAttempt(player, session, definition, plan.triggerId(), outcome))));
     }
@@ -262,7 +265,7 @@ public final class CastAttemptService {
             String triggerId,
             CastOutcome outcome) {
         if (outcome.throwable() != null || !outcome.success()) {
-            return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed");
+            return describeCastFailure(definition, triggerId, outcome);
         }
         AppConfig config = configSupplier.get();
         long forcedDelayTicks = config != null ? config.castTiming().forcedGlobalCastDelayTicks() : 0L;
@@ -284,7 +287,7 @@ public final class CastAttemptService {
         return CastAttemptResult.ok(definition.id(), Texts.toStringSafe(triggerId));
     }
 
-    private CompletableFuture<Boolean> castSkillAsync(Player player,
+    private CompletableFuture<SkillActionResult> castSkillAsync(Player player,
             SkillDefinition definition,
             String triggerId,
             TriggerInvocation invocation,
@@ -295,36 +298,120 @@ public final class CastAttemptService {
         SkillScriptMode mode = hasScript ? definition.script().mode() : SkillScriptMode.MYTHIC;
         if (hasScript && mode == SkillScriptMode.NATIVE) {
             return skillScriptCastService == null
-                    ? CompletableFuture.completedFuture(false)
+                    ? CompletableFuture.completedFuture(scriptServiceUnavailable())
                     : skillScriptCastService.cast(player, definition, triggerId, invocation, parameters);
         }
         if (hasScript && mode == SkillScriptMode.HYBRID) {
             if (skillScriptCastService == null) {
-                return CompletableFuture.completedFuture(false);
+                return CompletableFuture.completedFuture(scriptServiceUnavailable());
             }
             return skillScriptCastService.cast(player, definition, triggerId, invocation, parameters)
-                    .thenCompose(nativeOk -> {
-                        if (!nativeOk) {
-                            return CompletableFuture.completedFuture(false);
+                    .thenCompose(nativeResult -> {
+                        if (nativeResult == null || !nativeResult.success()) {
+                            return CompletableFuture.completedFuture(
+                                    nativeResult == null ? scriptServiceUnavailable() : nativeResult);
                         }
                         if (!hasMythic) {
-                            return CompletableFuture.completedFuture(true);
+                            return CompletableFuture.completedFuture(nativeResult);
                         }
                         return onCaster(player, () -> CompletableFuture.completedFuture(
                                 castMythic(player, mythicSkillId, invocation, parameters)));
                     });
         }
-        return CompletableFuture.completedFuture(
-                hasMythic && castMythic(player, mythicSkillId, invocation, parameters));
+        if (!hasMythic) {
+            return CompletableFuture.completedFuture(SkillActionResult.failure(
+                    SkillActionErrorType.INVALID_STATE, "Skill has neither a script nor a Mythic mapping."));
+        }
+        return CompletableFuture.completedFuture(castMythic(player, mythicSkillId, invocation, parameters));
     }
 
-    private boolean castMythic(Player player,
+    private static SkillActionResult scriptServiceUnavailable() {
+        return SkillActionResult.failure(
+                SkillActionErrorType.PROVIDER_UNAVAILABLE, "Skill script cast service is unavailable.");
+    }
+
+    /**
+     * Casts the Mythic skill and reports which stage failed, so a missing skill id
+     * is no longer indistinguishable from a Mythic-side execution failure.
+     */
+    private SkillActionResult castMythic(Player player,
             String mythicSkillId,
             TriggerInvocation invocation,
             ResolvedSkillParameters parameters) {
-        return mythicCastService != null
-                && mythicCastService.skillExists(mythicSkillId)
-                && mythicCastService.cast(player, mythicSkillId, invocation, parameters);
+        if (mythicCastService == null) {
+            return SkillActionResult.failure(
+                    SkillActionErrorType.PROVIDER_UNAVAILABLE, "MythicMobs bridge is unavailable.");
+        }
+        if (!mythicCastService.skillExists(mythicSkillId)) {
+            return SkillActionResult.failure(
+                    SkillActionErrorType.TEMPLATE_NOT_FOUND, Texts.toStringSafe(mythicSkillId));
+        }
+        return mythicCastService.cast(player, mythicSkillId, invocation, parameters)
+                ? SkillActionResult.ok()
+                : SkillActionResult.failure(
+                        SkillActionErrorType.EXECUTION_EXCEPTION, "MythicMobs rejected the skill cast.");
+    }
+
+    /**
+     * Maps a failed script or Mythic cast onto a specific message key.
+     *
+     * <p>Every failure used to collapse into {@code cast.skill_execute_failed},
+     * which told neither the player nor the server owner what went wrong. The
+     * error type now selects a dedicated key, the failing skill id is preserved,
+     * and a configuration mistake is additionally logged once per occurrence
+     * because it can only be fixed from the console side.
+     */
+    private CastAttemptResult describeCastFailure(SkillDefinition definition,
+            String triggerId,
+            CastOutcome outcome) {
+        String skillId = definition == null ? "" : definition.id();
+        String detail = outcome.failureDetail();
+        SkillActionErrorType errorType = outcome.errorType();
+        FailureReason reason = switch (errorType) {
+            case TEMPLATE_NOT_FOUND -> FailureReason.MYTHIC_SKILL_NOT_FOUND;
+            case CANCELLED -> FailureReason.CANCELLED;
+            default -> FailureReason.MYTHIC_CAST_FAILED;
+        };
+        String messageKey = switch (errorType) {
+            case ACTION_NOT_FOUND -> "cast.script_action_not_found";
+            case SYNTAX_ERROR -> "cast.script_syntax_error";
+            case INVALID_ARGUMENT -> "cast.script_invalid_argument";
+            case TIMEOUT -> "cast.script_timeout";
+            case CANCELLED -> "cast.cancelled";
+            case TEMPLATE_NOT_FOUND -> "cast.mythic_not_found";
+            case PROVIDER_UNAVAILABLE -> "cast.script_provider_unavailable";
+            default -> "cast.skill_execute_failed";
+        };
+        if (isConfigurationError(errorType)) {
+            plugin.getLogger().warning("Skill '" + skillId + "' failed to cast via trigger '"
+                    + Texts.toStringSafe(triggerId) + "': " + errorType.name() + " - " + detail);
+        }
+        return CastAttemptResult.fail(
+                reason,
+                messageKey,
+                Map.of(
+                        "skill", definition == null || Texts.isBlank(definition.displayName())
+                                ? skillId : definition.displayName(),
+                        "skill_id", skillId,
+                        "trigger_id", Texts.toStringSafe(triggerId),
+                        "error_type", errorType.name(),
+                        "detail", detail,
+                        "mythic_skill", errorType == SkillActionErrorType.TEMPLATE_NOT_FOUND ? detail : ""),
+                skillId,
+                Texts.toStringSafe(triggerId));
+    }
+
+    /**
+     * Reports whether the failure is a server-side configuration mistake rather
+     * than an expected in-game outcome. Only these are logged, so a normal failed
+     * cast never floods the console.
+     */
+    private static boolean isConfigurationError(SkillActionErrorType errorType) {
+        return errorType == SkillActionErrorType.ACTION_NOT_FOUND
+                || errorType == SkillActionErrorType.SYNTAX_ERROR
+                || errorType == SkillActionErrorType.INVALID_ARGUMENT
+                || errorType == SkillActionErrorType.TEMPLATE_NOT_FOUND
+                || errorType == SkillActionErrorType.PROVIDER_UNAVAILABLE;
     }
 
     private SkillSlotBinding findBindingByTrigger(PlayerSkillProfile profile, String triggerId) {
@@ -505,6 +592,38 @@ public final class CastAttemptService {
         }
     }
 
-    private record CastOutcome(boolean success, Throwable throwable) {
+    /**
+     * Carries the script/Mythic outcome together with any scheduling failure, so
+     * the reason survives the hop back onto the caster's thread.
+     */
+    private record CastOutcome(SkillActionResult result, Throwable throwable) {
+
+        private boolean success() {
+            return throwable == null && result != null && result.success();
+        }
+
+        private SkillActionErrorType errorType() {
+            if (throwable != null) {
+                return SkillActionErrorType.EXECUTION_EXCEPTION;
+            }
+            if (result == null || result.errorType() == null) {
+                return SkillActionErrorType.EXECUTION_EXCEPTION;
+            }
+            return result.errorType();
+        }
+
+        private String failureDetail() {
+            if (throwable != null) {
+                Throwable cause = AsyncFailures.unwrap(throwable);
+                String message = cause == null ? null : cause.getMessage();
+                return Texts.isBlank(message)
+                        ? cause == null ? "unknown error" : cause.getClass().getSimpleName()
+                        : message;
+            }
+            if (result == null) {
+                return "no result";
+            }
+            return Texts.isBlank(result.errorMessage()) ? "no detail" : result.errorMessage();
+        }
     }
 }

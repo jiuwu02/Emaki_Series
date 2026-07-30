@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.6.4"
+version: "2.6.5"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -44,6 +44,9 @@ console:
       directory_not_readable: "Directory is not readable."
       skill_sources_disabled: "Both Lore and PDC skill sources are disabled, so equipment cannot unlock skills."
       skill_sources_match_requires_both: "Strict Lore/PDC matching requires both skill sources to be enabled."
+      script_action_unknown: "Skill %skill% line %line% uses unknown action '%action%'. Available actions: %available%"
+      script_syntax_error: "Skill %skill% line %line% has a script syntax error: %detail%"
+      script_argument_missing: "Skill %skill% line %line% action '%action%' is missing required argument '%argument%'. Provided: %provided%"
   reload_loading_files: "<gray>Loading configuration files...</gray>"
   reload_loading_configs: "<gray>Loading configs...</gray>"
   reload_applying: "<gray>Applying configuration...</gray>"
@@ -135,6 +138,13 @@ cast:
   condition_not_met: "<red>Skill conditions are not met.</red>"
   cancelled: "<yellow>Skill cast cancelled.</yellow>"
   skill_execute_failed: "<red>Skill execution failed.</red>"
+  # The four keys below cover skill script configuration mistakes; the console also
+  # logs a warning naming the skill id and the offending line.
+  script_action_not_found: "<red>Skill <white>%skill%</white> uses an unknown script action. Check its configuration.</red>"
+  script_syntax_error: "<red>Skill <white>%skill%</white> has a script syntax error. Check its configuration.</red>"
+  script_invalid_argument: "<red>Skill <white>%skill%</white> has invalid script arguments. Check its configuration.</red>"
+  script_provider_unavailable: "<red>A feature skill <white>%skill%</white> depends on is unavailable.</red>"
+  script_timeout: "<red>Skill <white>%skill%</white> timed out.</red>"
   mythic_not_configured: "<red>Skill has no Mythic mapping configured.</red>"
   mythic_not_found: "<red>Mythic skill %mythic_skill% not found.</red>"
   mythic_failed: "<red>Skill cast failed.</red>"
@@ -143,6 +153,19 @@ cast:
 gui:
   open_failed: "<red>Unable to open skill interface.</red>"
   skill_equip_failed: "<red>Failed to equip skill: dependency, conflict, slot visibility, or tag limit requirements were not met.</red>"
+  # Interface action feedback
+  skill_equipped: "<green>Equipped <white>%skill%</white> to slot %slot%.</green><yellow> Bind a trigger before casting: Shift+Left-click that skill slot.</yellow>"
+  skill_unequipped: "<yellow>Skill unequipped.</yellow>"
+  skill_already_equipped: "<red>That skill is already equipped in another slot.</red>"
+  slots_full: "<red>All skill slots are full. Unequip a skill first.</red>"
+  trigger_bound: "<green>Bound trigger <white>%trigger%</white>.</green>"
+  trigger_conflict: "<red>Trigger <white>%trigger%</white> conflicts with an existing binding: %reason%</red>"
+  trigger_bind_failed: "<red>Failed to bind trigger.</red>"
+  trigger_unbound: "<red>Unbound</red>"
+  trigger_unbound_short: "<red>[unbound]</red>"
+  cast_mode_enabled: "<green>Cast mode enabled.</green>"
+  cast_mode_disabled: "<yellow>Cast mode disabled.</yellow>"
+  refreshed: "<green>Skill pool refreshed.</green>"
   title: "Active Skills"
   slot_empty: "<gray>Empty Skill Slot</gray>"
   slot_empty_short: "<gray>[Empty]</gray>"
@@ -158,6 +181,7 @@ gui:
   trigger_occupied: "<red>Occupied</red>"
   trigger_available: "<green>Available</green>"
   trigger_conflict_hint: "<red>Conflicts with %trigger%</red>"
+  trigger_bound_current: "<yellow>Currently bound</yellow>"
   click_to_equip: "<yellow>Click to equip skill</yellow>"
   click_to_unequip: "<yellow>Click to unequip skill</yellow>"
   click_to_bind: "<yellow>Click to bind trigger</yellow>"

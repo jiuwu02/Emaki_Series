@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.6.9"
+version: "4.6.10"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -639,4 +639,5 @@ debug:
     state_unchanged: "Resource state unchanged | player=%player% | resource=%resource% | reason=%reason% | state_present=%state_present% | state_resource_id=%state_resource_id% | state_default_max=%state_default_max% | state_bonus_max=%state_bonus_max% | state_current_max=%state_current_max% | state_current_value=%state_current_value% | state_source_signature=%state_source_signature% | state_schema_version=%state_schema_version%"
     bukkit_before: "Before Bukkit write | player=%player% | reason=%reason% | resource_value=%resource_value% | resource_max=%resource_max% | bukkit_health=%bukkit_health% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value%"
     bukkit_after: "After Bukkit write | player=%player% | reason=%reason% | resource_value=%resource_value% | resource_max=%resource_max% | bukkit_health=%bukkit_health% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value%"
+    bukkit_skipped_dead: "Bukkit write skipped (player is dead) | player=%player% | reason=%reason% | resource_value=%resource_value% | resource_max=%resource_max% | bukkit_health=%bukkit_health%"
     regen: "Health regeneration | player=%player% | resource=%resource% | old_value=%old_value% | baseline_value=%baseline_value% | regen_per_second=%regen_per_second% | interval_seconds=%interval_seconds% | candidate_value=%candidate_value% | synced_present=%synced_present% | synced_resource_id=%synced_resource_id% | synced_default_max=%synced_default_max% | synced_bonus_max=%synced_bonus_max% | synced_current_max=%synced_current_max% | synced_current_value=%synced_current_value% | synced_source_signature=%synced_source_signature% | synced_schema_version=%synced_schema_version%"

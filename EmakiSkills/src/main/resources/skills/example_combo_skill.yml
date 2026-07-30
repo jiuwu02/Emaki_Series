@@ -49,6 +49,6 @@ script:
   actions:
     cast:
       - "aoe_damage amount=20 radius=4 center=target shape=sphere filter=hostile"
-      - "particle type=EXPLOSION_LARGE at=target count=5"
+      - "particle particle=explosion at=target count=5"
       - "sound sound=minecraft:entity.generic.explode volume=1 pitch=0.8"
       - "message text='<red>连击终结！命中 %aoe_hit_count% 个目标</red>'"

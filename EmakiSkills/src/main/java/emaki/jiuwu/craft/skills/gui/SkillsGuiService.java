@@ -215,40 +215,33 @@ public final class SkillsGuiService {
             return emptySlotItem(slot, slotIndex);
         }
 
-        String triggerDisplay = "<red>未绑定触发器";
-        String triggerPlain = "未绑定触发器";
-        if (binding.triggerId() != null && !binding.triggerId().isBlank()) {
-            String displayName = triggerRegistry.getDisplayName(binding.triggerId());
-            triggerDisplay = "<green>" + displayName;
-            triggerPlain = displayName;
-        }
-        List<String> lore = new ArrayList<>();
-        lore.add("<gray>槽位: <white>" + slotIndex);
-        lore.add("<gray>触发器: " + triggerDisplay);
-        appendLevelAndParameterLore(lore, player, definition);
-        if (definition.cooldownTicks() > 0) {
-            lore.add("<gray>冷却: <aqua>" + cooldownSeconds(definition.cooldownTicks()) + "s");
-        }
-        lore.add("");
-        lore.add("<yellow>点击 <gray>卸下技能");
-        lore.add("<yellow>Shift+点击 <gray>更换触发器");
+        String triggerPlain = binding.triggerId() == null || binding.triggerId().isBlank()
+                ? messageService.message("gui.trigger_unbound")
+                : triggerRegistry.getDisplayName(binding.triggerId());
+        // Slot presentation belongs to gui/skills_gui.yml. A Java-side fallback lore
+        // would be silently discarded whenever the template configures its own lore,
+        // so any hint written here could never be relied upon.
         Map<String, Object> replacements = activeSlotReplacements(player, slotIndex, definition, binding, triggerPlain);
-        return buildConfiguredItem(slot, definition.iconMaterial(), "<gold>" + definition.displayName(), lore, replacements);
+        return buildConfiguredItem(slot, definition.iconMaterial(), "<gold>" + definition.displayName(),
+                List.of(), replacements);
     }
 
     private ItemStack emptySlotItem(GuiSlot slot, int slotIndex) {
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("slot", slotIndex);
-        replacements.put("skill", "空技能槽");
+        replacements.put("skill", messageService.message("gui.slot_empty"));
         replacements.put("skill_id", "");
-        replacements.put("trigger", "未绑定触发器");
+        replacements.put("trigger", messageService.message("gui.trigger_unbound"));
         replacements.put("trigger_id", "");
         replacements.put("level", 0);
         replacements.put("max_level", 0);
         replacements.put("cooldown", "0.0");
         replacements.put("cooldown_ticks", 0);
-        return buildConfiguredItem(slot, "gray_stained_glass_pane", "<gray>空技能槽 <dark_gray>#" + slotIndex,
-                List.of("<dark_gray>从技能池中选择技能装备"), replacements);
+        // An empty slot deliberately reuses the configured active_slot presentation:
+        // its name and lore come from gui/skills_gui.yml, not from this class.
+        return buildConfiguredItem(slot, "gray_stained_glass_pane",
+                messageService.message("gui.slot_empty") + " <dark_gray>#" + slotIndex,
+                List.of(), replacements);
     }
 
     private ItemStack renderSkillPoolSlot(GuiSession session, Player player, GuiSlot slot, int slotIndex) {
@@ -389,19 +382,14 @@ public final class SkillsGuiService {
         }
 
         String nameColor = hasConflict ? "<red>" : (currentlyBound ? "<yellow>" : "<green>");
-        List<String> lore = new ArrayList<>();
-        if (Texts.isNotBlank(trigger.description())) {
-            lore.add("<gray>" + trigger.description());
-        }
-        lore.add("");
-        if (currentlyBound) {
-            lore.add("<yellow>当前已绑定");
-        } else if (hasConflict) {
-            lore.add("<red>存在冲突: " + conflict);
-        } else {
-            lore.add("<green>点击绑定此触发器");
-        }
-
+        // The %status% placeholder carries the bound/conflicting/available wording so
+        // gui/trigger_select_gui.yml owns the layout. A Java-side lore would be
+        // dropped whenever that template defines its own lore.
+        String status = currentlyBound
+                ? messageService.message("gui.trigger_bound_current")
+                : hasConflict
+                        ? messageService.message("gui.trigger_conflict_hint", Map.of("trigger", Texts.toStringSafe(conflict)))
+                        : messageService.message("gui.click_to_bind");
         Map<String, Object> replacements = Map.of(
                 "target_slot", targetSlot,
                 "trigger", trigger.displayName(),
@@ -409,9 +397,10 @@ public final class SkillsGuiService {
                 "description", Texts.toStringSafe(trigger.description()),
                 "conflict", Texts.toStringSafe(conflict),
                 "bound", currentlyBound,
-                "available", !currentlyBound && !hasConflict
+                "available", !currentlyBound && !hasConflict,
+                "status", status
         );
-        return buildConfiguredItem(slot, fallbackItem, nameColor + trigger.displayName(), lore, replacements);
+        return buildConfiguredItem(slot, fallbackItem, nameColor + trigger.displayName(), List.of(), replacements);
     }
 
 

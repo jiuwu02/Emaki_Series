@@ -86,7 +86,9 @@ final class StorageLifecycleCoordinator
                 coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
         ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
 
-        StorageTextIndexer textIndexer = new StorageTextIndexer(coreLib.itemSourceService());
+        StorageTextIndexer textIndexer = new StorageTextIndexer(
+                coreLib.itemSourceService(),
+                coreLib.vanillaTranslationService());
         var fileScope = coreLib.asyncFileScope(plugin);
         StorageOperationLog operationLog = new StorageOperationLog(
                 plugin.dataPath("logs"), plugin.getLogger(), fileScope, config.logging());

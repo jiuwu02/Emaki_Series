@@ -109,6 +109,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private ConfigPrecheckService configPrecheckService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
+    private final emaki.jiuwu.craft.corelib.text.VanillaTranslationService vanillaTranslationService =
+            new emaki.jiuwu.craft.corelib.text.VanillaTranslationService();
     private ConfiguredItemService configuredItemService;
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
@@ -464,6 +466,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 performanceMonitor);
         asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
         asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
+        loadVanillaLanguageTableAsync();
         corePluginLifecycle = new CorePluginLifecycle(this::finalizeCoreRuntimeAsync);
         corePluginLifecycle.start(asyncFileService, asyncTaskScheduler);
         languageLoader.load();
@@ -729,6 +732,55 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public PdcService pdcService() {
         return pdcService;
+    }
+
+    /**
+     * {@return the shared server-side vanilla translation table}
+     *
+     * <p>Never {@code null}. When the table is disabled or could not be downloaded
+     * it simply reports unavailable, so callers can query it unconditionally.
+     */
+    public emaki.jiuwu.craft.corelib.text.VanillaTranslationService vanillaTranslationService() {
+        return vanillaTranslationService;
+    }
+
+    /**
+     * Loads the vanilla language table off the server thread.
+     *
+     * <p>Opt-in through {@code vanilla_language.enabled}, because it performs
+     * outbound network access on first run. The download is cached on disk, so
+     * later starts do no network IO. Any failure is reported once and leaves the
+     * table unavailable rather than delaying or aborting startup.
+     */
+    private void loadVanillaLanguageTableAsync() {
+        CoreLibConfig currentConfig = configModel == null ? CoreLibConfig.defaults() : configModel;
+        CoreLibConfig.VanillaLanguageConfig languageConfig = currentConfig.vanillaLanguageConfig();
+        if (languageConfig == null || !languageConfig.enabled()) {
+            return;
+        }
+        String locale = languageConfig.locale();
+        String minecraftVersion = resolveMinecraftVersion();
+        java.nio.file.Path cacheDirectory = getDataFolder().toPath().resolve("lang-cache");
+        asyncTaskScheduler.runAsync("corelib-vanilla-language", () -> {
+            emaki.jiuwu.craft.corelib.text.VanillaLanguageDownloader downloader =
+                    new emaki.jiuwu.craft.corelib.text.VanillaLanguageDownloader(getLogger(), cacheDirectory);
+            java.util.Map<String, String> table = downloader.load(minecraftVersion, locale);
+            if (table.isEmpty()) {
+                getLogger().info("Vanilla language table for '" + locale
+                        + "' is unavailable; features that need localized vanilla names stay disabled.");
+                return;
+            }
+            vanillaTranslationService.install(table);
+            getLogger().info("Loaded " + table.size() + " vanilla translations for '" + locale + "'.");
+        });
+    }
+
+    private String resolveMinecraftVersion() {
+        try {
+            return java.util.Objects.requireNonNullElse(getServer().getMinecraftVersion(), "").trim();
+        } catch (RuntimeException | LinkageError _) {
+            return "";
+        }
     }
 
     public ItemSourceService itemSourceService() {

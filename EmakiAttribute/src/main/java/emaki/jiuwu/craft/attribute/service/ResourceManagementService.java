@@ -486,6 +486,21 @@ final class ResourceManagementService {
         if (player == null || state == null) {
             return;
         }
+        // A dead player still reports online and valid until the respawn packet is
+        // handled, so the generic usability check cannot guard this write. Writing a
+        // positive health value in that window revives the server-side entity while
+        // the client stays on the death screen, which strands the player. Respawn is
+        // handled separately by scheduleRespawnHealthSync.
+        if (player.isDead()) {
+            debugResource(player, "resource.bukkit_skipped_dead", debugReplacements(
+                    "player", player.getName(),
+                    "reason", describeReason(reason),
+                    "resource_value", describeNumber(state.currentValue()),
+                    "resource_max", describeNumber(state.currentMax()),
+                    "bukkit_health", describeNumber(player.getHealth())
+            ));
+            return;
+        }
         AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
         debugBukkitHealth(player, state, reason, "before", maxHealthAttribute);
         double ceiling = maxHealthAttribute == null

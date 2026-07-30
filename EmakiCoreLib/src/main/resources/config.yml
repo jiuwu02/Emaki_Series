@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.6.9"
+version: "4.6.10"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -60,6 +60,17 @@ minimessage:
   # (菜单物品名与 Lore、菜单标题、聊天消息、对话框)在未显式声明斜体时一律不倾斜。
   # 这是“默认值”而非强制值：文本中显式写出 <i> 或 <italic> 仍然生效。
   default_no_italic: true
+
+# 原版语言表(服务端侧)
+# 原版物品与方块名由客户端翻译，服务端只持有 block.minecraft.campfire 这样的翻译键。
+# 需要在服务端拿到本地化名称的功能(例如按中文名搜索仓库)必须自备一份语言表。
+vanilla_language:
+  # 总开关。默认关闭：首次启用会联网从 Mojang 官方资源索引下载语言文件。
+  # 下载结果缓存在 plugins/EmakiCoreLib/lang-cache/，之后启动不再联网。
+  # 下载失败不影响开服，仅相关功能保持不可用。
+  enabled: false
+  # 要获取的原版语言 id，与客户端语言文件同名(zh_cn / en_us / zh_tw 等)。
+  locale: "zh_cn"
 
 # 原版对话框(Dialog)
 # 基于服务端原生对话框能力，向玩家展示带说明文本、输入框与按钮的界面。

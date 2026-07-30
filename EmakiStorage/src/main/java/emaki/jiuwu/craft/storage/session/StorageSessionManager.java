@@ -78,7 +78,7 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         }
         PlayerStorage cached = plugin.dataStore().cached(target);
         if (cached != null) {
-            return CompletableFuture.completedFuture(open(admin, cached));
+            return plugin.runOwnerWriteAsync(admin, () -> open(admin, cached), () -> false);
         }
         return plugin.dataStore().beginSessionAsync(target, targetName)
                 .thenCompose(loaded -> {

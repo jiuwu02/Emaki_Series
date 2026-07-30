@@ -10,7 +10,9 @@ import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
+import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
 import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
@@ -30,13 +32,29 @@ public final class SkillScriptCastService {
         this.executor = executor;
     }
 
-    public CompletableFuture<Boolean> cast(Player caster,
+    /**
+     * Executes a skill's native script phases.
+     *
+     * <p>The returned result carries the failing action's error type and message so
+     * callers can tell a configuration mistake apart from a runtime failure. A
+     * previous revision collapsed this to a boolean, which made every script
+     * problem surface as one generic "execution failed" message with no log entry.
+     *
+     * @param caster the casting player
+     * @param definition the skill being cast
+     * @param triggerId the trigger that started this cast
+     * @param invocation the trigger invocation context, may be {@code null}
+     * @param parameters the resolved skill parameters
+     * @return the outcome of the script run, never {@code null}
+     */
+    public CompletableFuture<SkillActionResult> cast(Player caster,
             SkillDefinition definition,
             String triggerId,
             TriggerInvocation invocation,
             ResolvedSkillParameters parameters) {
         if (caster == null || definition == null || !definition.script().enabled()) {
-            return CompletableFuture.completedFuture(false);
+            return CompletableFuture.completedFuture(SkillActionResult.failure(
+                    SkillActionErrorType.INVALID_STATE, "Skill script is not available."));
         }
         return onCaster(caster, () -> {
             Map<String, String> variables = variableResolver.resolve(
@@ -51,14 +69,33 @@ public final class SkillScriptCastService {
                     if (completion.throwable() == null
                             && completion.result() != null
                             && completion.result().success()) {
-                        return CompletableFuture.completedFuture(true);
+                        return CompletableFuture.completedFuture(completion.result());
                     }
+                    SkillActionResult failure = resolveFailure(completion);
+                    // The FAIL phase is a scripted reaction to the failure, not a
+                    // second chance: its own outcome must not overwrite the original
+                    // cause, otherwise the reason is lost again.
                     return executor.executePhase(
                                     completion.state().context(),
                                     completion.state().script(),
                                     SkillScriptPhase.FAIL)
-                            .handle((_, _) -> false);
+                            .handle((_, _) -> failure);
                 });
+    }
+
+    private static SkillActionResult resolveFailure(CastCompletion completion) {
+        if (completion.throwable() != null) {
+            Throwable cause = AsyncFailures.unwrap(completion.throwable());
+            return SkillActionResult.failure(
+                    SkillActionErrorType.EXECUTION_EXCEPTION,
+                    cause == null || cause.getMessage() == null || cause.getMessage().isBlank()
+                            ? "Skill script execution failed."
+                            : cause.getMessage());
+        }
+        return completion.result() == null
+                ? SkillActionResult.failure(
+                        SkillActionErrorType.EXECUTION_EXCEPTION, "Skill script returned no result.")
+                : completion.result();
     }
 
     private CompletableFuture<SkillActionResult> executeMainPhases(CastState state) {

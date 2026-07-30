@@ -16,13 +16,15 @@ public record CoreLibConfig(
         DebugConfig debugConfig,
         MiniMessageConfig miniMessageConfig,
         DialogConfig dialogConfig,
-        DisplayConfig displayConfig
+        DisplayConfig displayConfig,
+        VanillaLanguageConfig vanillaLanguageConfig
 ) {
 
     public static CoreLibConfig defaults() {
         return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(),
                 GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults(),
-                MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults());
+                MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults(),
+                VanillaLanguageConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -48,8 +50,43 @@ public record CoreLibConfig(
                 DebugConfig.fromConfig(configuration.getSection("debug")),
                 MiniMessageConfig.fromConfig(configuration.getSection("minimessage")),
                 DialogConfig.fromConfig(configuration.getSection("dialog")),
-                DisplayConfig.fromConfig(configuration.getSection("display"))
+                DisplayConfig.fromConfig(configuration.getSection("display")),
+                VanillaLanguageConfig.fromConfig(configuration.getSection("vanilla_language"))
         );
+    }
+
+    /**
+     * Controls the server-side vanilla language table.
+     *
+     * <p>Vanilla item and block names are translated by the client, so a
+     * server-side feature that needs the localized name must download the language
+     * file itself. Disabled by default: it performs outbound network access, which
+     * a server owner has to opt into.
+     *
+     * @param enabled whether the table may be downloaded and used
+     * @param locale the vanilla locale id to fetch, such as {@code zh_cn}
+     */
+    public record VanillaLanguageConfig(boolean enabled, String locale) {
+
+        public VanillaLanguageConfig {
+            locale = locale == null || locale.isBlank()
+                    ? "zh_cn"
+                    : locale.trim().toLowerCase(java.util.Locale.ROOT);
+        }
+
+        public static VanillaLanguageConfig defaults() {
+            return new VanillaLanguageConfig(false, "zh_cn");
+        }
+
+        public static VanillaLanguageConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new VanillaLanguageConfig(
+                    section.getBoolean("enabled", defaults().enabled()),
+                    section.getString("locale", defaults().locale())
+            );
+        }
     }
 
 

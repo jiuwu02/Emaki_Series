@@ -11,6 +11,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.text.VanillaTranslationService;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 
@@ -24,13 +25,22 @@ import emaki.jiuwu.craft.storage.model.StorageKey;
  *
  * <p>Text is computed once per entry creation. Nothing is cached statically and no
  * {@code ThreadLocal} is used, because Folia region threads would each accumulate their own copy.
+ *
+ * <p>The localized vanilla name is read from the shared translation table at
+ * index time. That table is downloaded asynchronously on the very first start, so
+ * a storage loaded before the download finishes is indexed without localized
+ * names; reopening it after a rejoin or a reload picks them up. Every later start
+ * reads the table from the on-disk cache and is unaffected.
  */
 public final class StorageTextIndexer {
 
     private final ItemSourceService itemSourceService;
+    private final VanillaTranslationService translationService;
 
-    public StorageTextIndexer(ItemSourceService itemSourceService) {
+    public StorageTextIndexer(ItemSourceService itemSourceService,
+            VanillaTranslationService translationService) {
         this.itemSourceService = itemSourceService;
+        this.translationService = translationService;
     }
 
     /**
@@ -46,8 +56,33 @@ public final class StorageTextIndexer {
         String displayName = displayName(template);
         String lore = loreText(template);
         String identifier = identifier(key, template);
-        String searchText = buildSearchText(displayName, lore, identifier);
+        String searchText = buildSearchText(displayName, searchableName(template, displayName), lore, identifier);
         return new StorageEntry(key, amount, stackLimit, searchText, displayName);
+    }
+
+    /**
+     * {@return the name section to index, combining the shown name with the
+     * localized vanilla name when the two differ}
+     *
+     * <p>Without this, the name section holds only the shown name: a vanilla item
+     * indexes as its English material key (a campfire as {@code campfire}), so a
+     * player searching its localized name never matches. A renamed item indexes as
+     * its custom name only, so its type name stops matching too. Both variants are
+     * indexed, which keeps {@code @campfire} working while making the localized
+     * name searchable.
+     *
+     * <p>Returns the display name unchanged when no translation table is loaded, so
+     * a server that cannot download one behaves exactly as before.
+     */
+    private String searchableName(ItemStack template, String displayName) {
+        if (translationService == null || !translationService.isAvailable()) {
+            return displayName;
+        }
+        String localized = translationService.translateMaterial(template.getType());
+        if (localized == null || localized.isBlank() || localized.equalsIgnoreCase(displayName)) {
+            return displayName;
+        }
+        return displayName + ' ' + localized.trim();
     }
 
     /**
@@ -124,8 +159,9 @@ public final class StorageTextIndexer {
      * <p>Layout is {@code name \u0000 lore \u0000 identifier}; the scoped search modes slice this
      * back apart so only one string has to be stored per entry.
      */
-    private String buildSearchText(String displayName, String lore, String identifier) {
-        return (displayName + '\u0000' + lore + '\u0000' + identifier).toLowerCase(Locale.ROOT);
+    private String buildSearchText(String displayName, String searchableName, String lore, String identifier) {
+        String name = searchableName == null || searchableName.isBlank() ? displayName : searchableName;
+        return (name + '\u0000' + lore + '\u0000' + identifier).toLowerCase(Locale.ROOT);
     }
 
     /** {@return the name section of a composed search text} */

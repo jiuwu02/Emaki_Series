@@ -193,4 +193,42 @@ public final class ItemTextBridge {
         }
     }
 
+    /**
+     * {@return the {@code item.minecraft.*} translation key for a material, or an
+     * empty string when the material is not an item}
+     *
+     * <p>Exposed so a server-side translation table can be queried directly.
+     * A material that only exists as a block has no item key, so callers should
+     * fall back to {@link #blockTranslationKey(Material)}.
+     *
+     * @param material the material to describe, may be {@code null}
+     */
+    public static String itemTranslationKey(Material material) {
+        if (material == null) {
+            return "";
+        }
+        try {
+            return material.isItem() ? material.getItemTranslationKey() : "";
+        } catch (RuntimeException _) {
+            return "";
+        }
+    }
+
+    /**
+     * {@return the {@code block.minecraft.*} translation key for a material, or an
+     * empty string when the material is not a block}
+     *
+     * @param material the material to describe, may be {@code null}
+     */
+    public static String blockTranslationKey(Material material) {
+        if (material == null) {
+            return "";
+        }
+        try {
+            return material.isBlock() ? material.getBlockTranslationKey() : "";
+        } catch (RuntimeException _) {
+            return "";
+        }
+    }
+
 }

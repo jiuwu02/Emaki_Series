@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.6.4"
+version: "2.6.5"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -44,6 +44,9 @@ console:
       directory_not_readable: "目录不可读。"
       skill_sources_disabled: "Lore 与 PDC 技能来源均已关闭，装备不会解锁技能。"
       skill_sources_match_requires_both: "严格 Lore/PDC 匹配要求同时启用两个技能来源。"
+      script_action_unknown: "技能 %skill% 第 %line% 行使用了不存在的动作 '%action%'。当前可用动作: %available%"
+      script_syntax_error: "技能 %skill% 第 %line% 行脚本语法错误: %detail%"
+      script_argument_missing: "技能 %skill% 第 %line% 行动作 '%action%' 缺少必填参数 '%argument%'。已提供的参数: %provided%"
   reload_loading_files: "<gray>正在加载配置文件...</gray>"
   reload_loading_configs: "<gray>正在读取配置...</gray>"
   reload_applying: "<gray>正在应用配置...</gray>"
@@ -129,6 +132,12 @@ cast:
   condition_not_met: "<red>技能条件未满足。</red>"
   cancelled: "<yellow>技能释放已取消。</yellow>"
   skill_execute_failed: "<red>技能执行失败。</red>"
+  # 以下四条对应技能脚本的配置错误，控制台会同时输出带技能 ID 与行号的警告
+  script_action_not_found: "<red>技能 <white>%skill%</white> 的脚本使用了不存在的动作，请检查配置。</red>"
+  script_syntax_error: "<red>技能 <white>%skill%</white> 的脚本语法有误，请检查配置。</red>"
+  script_invalid_argument: "<red>技能 <white>%skill%</white> 的脚本参数有误，请检查配置。</red>"
+  script_provider_unavailable: "<red>技能 <white>%skill%</white> 依赖的功能当前不可用。</red>"
+  script_timeout: "<red>技能 <white>%skill%</white> 执行超时。</red>"
   mythic_not_configured: "<red>技能未配置 Mythic 映射。</red>"
   mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%。</red>"
   mythic_failed: "<red>技能释放失败。</red>"
@@ -137,6 +146,19 @@ cast:
 gui:
   open_failed: "<red>无法打开技能界面。</red>"
   skill_equip_failed: "<red>技能装配失败：依赖、冲突、槽位显示或标签数量限制未满足。</red>"
+  # 界面操作反馈
+  skill_equipped: "<green>已装配 <white>%skill%</white> 到槽位 %slot%。</green><yellow>还需绑定触发器才能释放：在该技能槽上 Shift+左键。</yellow>"
+  skill_unequipped: "<yellow>已卸下技能。</yellow>"
+  skill_already_equipped: "<red>该技能已装配在其他槽位。</red>"
+  slots_full: "<red>技能槽已满，请先卸下一个技能。</red>"
+  trigger_bound: "<green>已绑定触发器 <white>%trigger%</white>。</green>"
+  trigger_conflict: "<red>触发器 <white>%trigger%</white> 与已有绑定冲突：%reason%</red>"
+  trigger_bind_failed: "<red>触发器绑定失败。</red>"
+  trigger_unbound: "<red>未绑定</red>"
+  trigger_unbound_short: "<red>[未绑定]</red>"
+  cast_mode_enabled: "<green>已进入施法模式。</green>"
+  cast_mode_disabled: "<yellow>已退出施法模式。</yellow>"
+  refreshed: "<green>技能池已刷新。</green>"
   title: "主动技能"
   slot_empty: "<gray>空技能槽</gray>"
   slot_empty_short: "<gray>[空]</gray>"
@@ -152,6 +174,7 @@ gui:
   trigger_occupied: "<red>已被占用</red>"
   trigger_available: "<green>可用</green>"
   trigger_conflict_hint: "<red>与 %trigger% 冲突</red>"
+  trigger_bound_current: "<yellow>当前已绑定</yellow>"
   click_to_equip: "<yellow>点击装配技能</yellow>"
   click_to_unequip: "<yellow>点击卸下技能</yellow>"
   click_to_bind: "<yellow>点击绑定触发器</yellow>"
