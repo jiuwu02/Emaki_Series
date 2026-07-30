@@ -9,10 +9,12 @@ import java.util.function.Supplier;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.skills.api.SkillSourceEntry;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
+import emaki.jiuwu.craft.skills.model.SkillSourceType;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
-import emaki.jiuwu.craft.skills.provider.SkillSourceProvider;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 
 public final class SkillRegistryService {
@@ -35,7 +37,7 @@ public final class SkillRegistryService {
         if (skillId == null || skillId.isBlank()) {
             return null;
         }
-        return allDefinitions().get(skillId);
+        return allDefinitions().get(Texts.normalizeId(skillId));
     }
 
     public List<UnlockedSkillEntry> collectUnlockedSkills(Player player,
@@ -46,21 +48,26 @@ public final class SkillRegistryService {
         }
 
         List<UnlockedSkillEntry> raw = new ArrayList<>();
-
         if (equipmentCollector != null) {
             raw.addAll(equipmentCollector.collect(player));
         }
 
         if (sourceRegistry != null) {
-            for (SkillSourceProvider provider : sourceRegistry.all()) {
+            for (SkillSourceRegistry.RegisteredSource source : sourceRegistry.all()) {
                 try {
-                    var entries = provider.collect(player);
-                    if (entries != null) {
-                        raw.addAll(entries);
+                    var entries = source.provider().collect(player);
+                    if (entries == null) {
+                        continue;
                     }
-                } catch (Exception exception) {
-                    plugin.getLogger().warning("[SkillRegistry] Provider '"
-                            + provider.id() + "' threw exception: " + exception.getMessage());
+                    for (SkillSourceEntry entry : entries) {
+                        UnlockedSkillEntry mapped = mapSourceEntry(source, entry);
+                        if (mapped != null) {
+                            raw.add(mapped);
+                        }
+                    }
+                } catch (RuntimeException | LinkageError exception) {
+                    plugin.getLogger().warning("[SkillRegistry] Provider '" + source.id()
+                            + "' owned by '" + source.owner().getName() + "' failed: " + exception.getMessage());
                 }
             }
         }
@@ -70,5 +77,24 @@ public final class SkillRegistryService {
             seen.putIfAbsent(entry.skillId(), entry);
         }
         return List.copyOf(seen.values());
+    }
+
+    private UnlockedSkillEntry mapSourceEntry(SkillSourceRegistry.RegisteredSource source,
+            SkillSourceEntry entry) {
+        if (entry == null) {
+            return null;
+        }
+        String skillId = Texts.normalizeId(entry.skillId());
+        SkillDefinition definition = getDefinition(skillId);
+        if (Texts.isBlank(skillId) || definition == null || !definition.enabled()) {
+            return null;
+        }
+        SkillSourceType type = "manual".equals(source.id()) ? SkillSourceType.MANUAL : SkillSourceType.PROVIDER;
+        return new UnlockedSkillEntry(
+                skillId,
+                source.id(),
+                type,
+                Texts.isBlank(entry.sourceSlot()) ? null : entry.sourceSlot(),
+                Texts.isBlank(entry.displayHint()) ? null : entry.displayHint());
     }
 }

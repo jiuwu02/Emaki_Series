@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-level</artifactId>
-    <version>1.4.2</version>
+    <version>1.4.3</version>
     <name>EmakiLevel</name>
     <packaging>jar</packaging>
 
@@ -31,6 +31,14 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-level-api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <!-- provided：EmakiAttribute 自带这些类，不打进本模块产物。
+             用于 LevelAttributeBridge 直接实现 AttributeContributionProvider，取代原先的反射接入。 -->
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-attribute-api</artifactId>
+            <version>${emaki.attribute.api.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.lumine</groupId>

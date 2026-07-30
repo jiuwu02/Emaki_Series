@@ -6,102 +6,76 @@ import java.util.UUID;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.cooking.api.model.CookingRecipeView;
 import emaki.jiuwu.craft.cooking.api.model.CookingStationType;
 import emaki.jiuwu.craft.cooking.api.model.CookingStationView;
 
 /**
- * Read-only queries against EmakiCooking's recipes and placed stations.
+ * Read-only recipe and placed-station queries.
  *
- * <p>Reached through {@code EmakiCookingApi.catalog()}.
- *
- * <h2>Threading</h2>
- * {@link #wokRecipes()} and {@link #recentStation(UUID)} may be called from any thread.
- * {@link #findRecipe} evaluates permissions and conditions against a live player and must run on that
- * player's owner thread. {@link #stationAt} reads placed-station state and must run on the owner thread
- * of that location's region.
+ * <p>Reached through {@link EmakiCookingApi#catalog()}.
  */
 @ApiStatus.NonExtendable
 public interface CookingCatalog {
 
     /**
-     * Finds the recipe a station kind would run for a given input, as seen by one player.
-     *
-     * <p>Recipes can be gated by permission and by conditions, so the same input can resolve differently
-     * for different players. Pass the player who is actually operating the station.
-     *
-     * <p><strong>Thread:</strong> the player's owner thread.
-     *
-     * @param stationType the station kind to search
-     * @param inputSource item source shorthand of the input, such as {@code minecraft-potato}
-     * @param player      the player whose permissions and conditions apply; may be {@code null} to
-     *                    ignore player-specific gating
-     * @return the matching recipe, or an empty optional when nothing matches
+     * @param stationType station kind
+     * @return all loaded recipes for exactly that station kind
      */
     @NotNull
-    Optional<CookingRecipeView> findRecipe(@Nullable CookingStationType stationType,
-                                           @Nullable String inputSource,
-                                           @Nullable Player player);
+    List<CookingRecipeView> recipes(@Nullable CookingStationType stationType);
 
     /**
-     * {@return every wok recipe; the wok is the one station whose recipes are matched by ingredient
-     * combination rather than by a single input, so its table is exposed in full}
+     * @param stationType station kind
+     * @param recipeId   recipe id
+     * @return the recipe, or an empty optional when it does not exist in that station's loader
      */
     @NotNull
-    List<CookingRecipeView> wokRecipes();
+    Optional<CookingRecipeView> recipe(@Nullable CookingStationType stationType, @Nullable String recipeId);
 
     /**
-     * Reads the live state of a placed station.
+     * Matches a single-input recipe.
      *
-     * <p><strong>Thread:</strong> the owner thread of the location's region.
+     * <p><strong>Thread:</strong> the player entity-owner thread when {@code player} is non-null, because
+     * recipe availability can inspect permissions and conditions. Wok and fermentation recipes use
+     * multi-input state and therefore return {@code REJECTED} rather than pretending a single item can
+     * be matched.
      *
-     * @param location the block location of the station
-     * @return the station snapshot, or an empty optional when no station stands there
+     * @param stationType station kind
+     * @param input       input item
+     * @param player      optional player used by permission and condition checks
+     * @return the matching recipe
      */
     @NotNull
-    Optional<CookingStationView> stationAt(@Nullable Location location);
+    EmakiResult<CookingRecipeView> matchRecipe(@Nullable CookingStationType stationType,
+                                               @Nullable ItemStack input,
+                                               @Nullable Player player);
 
     /**
-     * Returns the station a player most recently interacted with.
+     * Reads any of the seven station snapshots at a block location.
      *
-     * <p>Backed by EmakiCooking's interaction tracker, which is populated from
-     * {@code CookingStationInteractEvent} and cleared when the player quits. A player who has not touched
-     * a station this session yields an empty optional.
+     * <p><strong>Thread:</strong> the location-owner thread. Unknown locations return
+     * {@code NOT_FOUND}; they are never reinterpreted as a wok.
      *
-     * <p><strong>Thread:</strong> any thread.
-     *
-     * @param playerId the player's unique id
-     * @return the station kind and its location, or an empty optional
+     * @param location block location to inspect
+     * @return the station snapshot
      */
     @NotNull
-    Optional<RecentStation> recentStation(@Nullable UUID playerId);
+    EmakiResult<CookingStationView> stationAt(@Nullable Location location);
 
     /**
-     * The station a player last interacted with.
+     * Returns the location most recently reported through
+     * {@link emaki.jiuwu.craft.cooking.api.event.CookingStationInteractEvent} for a player.
      *
-     * @param stationType the station kind
-     * @param location    the station's block location
+     * @param playerId player id
+     * @return recent station block centre, or empty when none is tracked
      */
-    record RecentStation(@NotNull CookingStationType stationType, @NotNull Location location) {
-
-        /**
-         * Requires both components.
-         *
-         * @param stationType station kind
-         * @param location    station location
-         * @throws NullPointerException when either component is {@code null}
-         */
-        public RecentStation {
-            if (stationType == null) {
-                throw new NullPointerException("stationType");
-            }
-            if (location == null) {
-                throw new NullPointerException("location");
-            }
-        }
-    }
+    @NotNull
+    Optional<Location> recentStation(@Nullable UUID playerId);
 }

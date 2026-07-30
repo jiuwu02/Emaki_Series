@@ -12,7 +12,10 @@ import emaki.jiuwu.craft.level.api.LevelUpCause;
  * <p>This event is informational: the level has already been applied, rewards
  * and success actions have run, and the new level cannot be reverted by
  * listeners. It is suitable for achievements, announcements, particle effects
- * and other downstream reactions. This event is fired on the server thread.
+ * and other downstream reactions.
+ *
+ * <p><strong>Thread:</strong> synchronously on the player's owner thread. Player data persistence may
+ * complete asynchronously after this event.
  */
 public final class PlayerLevelUpEvent extends Event {
 

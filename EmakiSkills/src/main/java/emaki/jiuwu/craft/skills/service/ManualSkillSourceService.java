@@ -10,9 +10,8 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
-import emaki.jiuwu.craft.skills.model.SkillSourceType;
-import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
-import emaki.jiuwu.craft.skills.provider.SkillSourceProvider;
+import emaki.jiuwu.craft.skills.api.SkillSourceEntry;
+import emaki.jiuwu.craft.skills.api.SkillSourceProvider;
 
 
 public final class ManualSkillSourceService implements SkillSourceProvider {
@@ -38,14 +37,14 @@ public final class ManualSkillSourceService implements SkillSourceProvider {
     }
 
     @Override
-    public Collection<UnlockedSkillEntry> collect(Player player) {
+    public Collection<SkillSourceEntry> collect(Player player) {
         PlayerSkillProfile profile = dataStore == null ? null : dataStore.get(player);
         if (profile == null || profile.manualSkillIds().isEmpty()) {
             return List.of();
         }
         return profile.manualSkillIds().stream()
                 .filter(this::isValidSkill)
-                .map(skillId -> new UnlockedSkillEntry(skillId, SOURCE_ID, SkillSourceType.MANUAL, null, null))
+                .map(SkillSourceEntry::new)
                 .toList();
     }
 

@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.codex.advancement.AdvancementService;
 import emaki.jiuwu.craft.codex.advancement.UnsafeAdvancementPlatform;
 import emaki.jiuwu.craft.codex.advancement.loader.AdvancementPageLoader;
 import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
+import emaki.jiuwu.craft.codex.advancement.trigger.AdvancementTriggerRegistry;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -63,19 +64,21 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         AdvancementPlatform platform = new UnsafeAdvancementPlatform(plugin.getLogger());
         AdvancementJsonBuilder jsonBuilder = new AdvancementJsonBuilder(coreLibPlugin.itemSourceService());
         AdvancementRegistrar registrar = new AdvancementRegistrar(plugin, advancementPageLoader, platform, jsonBuilder);
-        AdvancementService advancementService = new AdvancementService(registrar);
+        AdvancementService advancementService = new AdvancementService(plugin, registrar);
         var executionDispatcher = coreLibPlugin.executionDispatcher();
         var threadOwnership = coreLibPlugin.threadOwnership();
         AdvancementPacketGateway advancementPacketGateway =
                 new AdvancementPacketGateway(plugin, registrar, coreLibPlugin.itemSourceService(),
                         config.packetCoordinates(), executionDispatcher, threadOwnership);
-        CodexTriggerService triggerService =
-                new CodexTriggerService(plugin, advancementPageLoader, advancementService);
+        AdvancementTriggerRegistry advancementTriggerRegistry = new AdvancementTriggerRegistry(plugin);
+        CodexTriggerService triggerService = new CodexTriggerService(
+                plugin, advancementPageLoader, advancementService, advancementTriggerRegistry);
 
         return new CodexRuntimeComponents(
                 appConfigLoader, languageLoader, messageService, bootstrapService,
                 advancementPageLoader, platform, jsonBuilder, registrar, advancementService,
-                advancementPacketGateway, triggerService, executionDispatcher, threadOwnership);
+                advancementPacketGateway, advancementTriggerRegistry, triggerService,
+                executionDispatcher, threadOwnership);
     }
 
 
@@ -96,6 +99,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             int registered = plugin.advancementRegistrar().registerAll();
             plugin.messageService().info("console.advancements_registered", Map.of("count", registered));
             resyncAdvancements(plugin, registered);
+        } else {
+            plugin.advancementRegistrar().unregisterConfigured();
         }
     }
 
@@ -126,8 +131,12 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.actionRegistry().unregisterAll(plugin);
 
-        if (plugin.appConfig() != null && plugin.appConfig().removeOnDisable() && plugin.advancementRegistrar() != null) {
-            plugin.advancementRegistrar().unregisterAll();
+        if (plugin.advancementRegistrar() != null) {
+            boolean removeConfigured = plugin.appConfig() != null && plugin.appConfig().removeOnDisable();
+            plugin.advancementRegistrar().shutdown(removeConfigured);
+        }
+        if (plugin.advancementTriggerRegistry() != null) {
+            plugin.advancementTriggerRegistry().close();
         }
         if (plugin.advancementPacketGateway() != null) {
             plugin.advancementPacketGateway().shutdown();

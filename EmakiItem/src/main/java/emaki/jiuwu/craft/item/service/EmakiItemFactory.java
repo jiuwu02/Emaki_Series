@@ -25,6 +25,18 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
 public final class EmakiItemFactory {
 
+    /** Result of the pre-commit creation path. */
+    public record CreateResult(ItemStack itemStack, boolean cancelled) {
+
+        public static CreateResult created(ItemStack itemStack) {
+            return new CreateResult(itemStack, false);
+        }
+
+        public static CreateResult cancelledResult() {
+            return new CreateResult(null, true);
+        }
+    }
+
     private static final String DISPLAY_OPERATION_NAMESPACE = "emakiitem:item_display";
     private static final String SET_DISPLAY_OPERATION_NAMESPACE = "emakiitem:set_display";
     static final List<String> OWNED_DISPLAY_NAMESPACES = List.of(
@@ -65,9 +77,19 @@ public final class EmakiItemFactory {
     }
 
     public ItemStack create(String id, int amount) {
+        return createDetailed(id, amount).itemStack();
+    }
+
+    /**
+     * Builds an item and exposes whether the synchronous pre-commit event cancelled it.
+     *
+     * <p>Internal callers still use {@link #create(String, int)} and therefore receive {@code null} on
+     * cancellation; the public API uses this detailed result to map cancellation explicitly.
+     */
+    public CreateResult createDetailed(String id, int amount) {
         EmakiItemDefinition definition = idResolver == null ? loader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
-            return null;
+            return CreateResult.created(null);
         }
         ItemStack itemStack;
         if (definition.hasRandomElements()) {
@@ -83,21 +105,21 @@ public final class EmakiItemFactory {
             itemStack = prototype == null ? null : prototype.clone();
         }
         if (itemStack == null) {
-            return null;
+            return CreateResult.created(null);
         }
 
         int resolved = amount > 0 ? amount : definition.amount();
         itemStack.setAmount(Math.max(1, Math.min(resolved, itemStack.getMaxStackSize())));
-        return fireCreateEvent(id, itemStack.getAmount(), itemStack);
+        return fireCreateEvent(definition.id(), itemStack.getAmount(), itemStack);
     }
 
-    private ItemStack fireCreateEvent(String id, int amount, ItemStack itemStack) {
+    private CreateResult fireCreateEvent(String id, int amount, ItemStack itemStack) {
         if (threadOwnership == null || !threadOwnership.isGlobalOwned()) {
-            return itemStack;
+            return CreateResult.created(itemStack);
         }
         EmakiItemCreateEvent event = new EmakiItemCreateEvent(id, amount, null, itemStack);
         Bukkit.getPluginManager().callEvent(event);
-        return event.getResult() != null ? event.getResult() : itemStack;
+        return event.isCancelled() ? CreateResult.cancelledResult() : CreateResult.created(event.getResult());
     }
 
     public void clearCache() {

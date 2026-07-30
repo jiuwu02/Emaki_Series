@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
-import emaki.jiuwu.craft.storage.api.model.StorageResult;
+import emaki.jiuwu.craft.storage.model.StorageResult;
 import emaki.jiuwu.craft.storage.config.AppConfig;
 import emaki.jiuwu.craft.storage.log.StorageOperationSource;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;

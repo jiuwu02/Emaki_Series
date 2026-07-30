@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.gem.service;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -72,11 +73,22 @@ public final class SocketOpenerService {
 
     public OpenResult openDirect(Player actor,
             ItemStack equipment,
+            ItemStack openerItem) {
+        SocketOpenerConfig opener = itemMatcher.matchOpenerItem(openerItem);
+        if (opener == null) {
+            return new OpenResult(Result.failure("command.open.opener_not_found", Map.of()), equipment, openerItem);
+        }
+        return openDirect(actor, equipment, openerItem, opener.id(), null, false, true);
+    }
+
+    public OpenResult openDirect(Player actor,
+            ItemStack equipment,
             ItemStack openerItem,
             String openerId,
             int slotIndex,
             boolean bypassRequirement) {
-        return openDirect(actor, equipment, openerItem, openerId, slotIndex, bypassRequirement, true);
+        Integer preferredSlot = slotIndex < 0 ? null : slotIndex;
+        return openDirect(actor, equipment, openerItem, openerId, preferredSlot, bypassRequirement, true);
     }
 
     private OpenResult openDirect(Player actor,
@@ -115,8 +127,8 @@ public final class SocketOpenerService {
         }
 
         if (threadOwnership.isEntityOwned(actor)) {
-            GemSocketOpenEvent openEvent = new GemSocketOpenEvent(actor, equipment, openerItem,
-                    opener.id(), resolvedSlotIndex, itemDefinition.id());
+            GemSocketOpenEvent openEvent = new GemSocketOpenEvent(UUID.randomUUID().toString(), actor,
+                    equipment, openerItem, opener.id(), resolvedSlotIndex, itemDefinition.id());
             org.bukkit.Bukkit.getPluginManager().callEvent(openEvent);
             if (openEvent.isCancelled()) {
                 return new OpenResult(Result.failure("gem.error.condition_not_met", Map.of()), equipment, openerItem);
@@ -179,8 +191,8 @@ public final class SocketOpenerService {
         }
 
         if (threadOwnership.isEntityOwned(target)) {
-            GemSocketOpenEvent openEvent = new GemSocketOpenEvent(target, equipment, openerItem,
-                    opener.id(), slotIndex, itemDefinition.id());
+            GemSocketOpenEvent openEvent = new GemSocketOpenEvent(UUID.randomUUID().toString(), target,
+                    equipment, openerItem, opener.id(), slotIndex, itemDefinition.id());
             org.bukkit.Bukkit.getPluginManager().callEvent(openEvent);
             if (openEvent.isCancelled()) {
                 return Result.failure("gem.error.condition_not_met", Map.of());

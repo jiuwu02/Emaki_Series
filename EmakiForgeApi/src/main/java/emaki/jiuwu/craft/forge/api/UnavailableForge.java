@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.forge.api;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -10,6 +11,7 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.forge.api.model.ForgeInputs;
 import emaki.jiuwu.craft.forge.api.model.ForgeMaterialView;
+import emaki.jiuwu.craft.forge.api.model.ForgeOutcome;
 import emaki.jiuwu.craft.forge.api.model.ForgeRecipeView;
 import emaki.jiuwu.craft.forge.api.model.ForgeValidation;
 
@@ -20,10 +22,11 @@ import emaki.jiuwu.craft.forge.api.model.ForgeValidation;
  * {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#UNAVAILABLE}, so callers never need a
  * null check on {@code EmakiForgeApi.catalog()} or {@code operations()}.
  */
-final class UnavailableForge implements ForgeCatalog, ForgeOperations {
+final class UnavailableForge implements ForgeCatalog, ForgeOperations, ForgeExtensions {
 
     static final ForgeCatalog CATALOG = new UnavailableForge();
     static final ForgeOperations OPERATIONS = (ForgeOperations) CATALOG;
+    static final ForgeExtensions EXTENSIONS = (ForgeExtensions) CATALOG;
 
     private UnavailableForge() {
     }
@@ -59,8 +62,23 @@ final class UnavailableForge implements ForgeCatalog, ForgeOperations {
     }
 
     @Override
+    public EmakiResult<ItemStack> previewResult(Player player, String recipeId, ForgeInputs inputs) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
+    public EmakiResult<Integer> mastery(Player player, String recipeId) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
     public boolean accepting() {
         return false;
+    }
+
+    @Override
+    public CompletableFuture<EmakiResult<ForgeOutcome>> forgeAsync(Player player, String recipeId, ForgeInputs inputs) {
+        return CompletableFuture.completedFuture(EmakiResult.unavailable());
     }
 
     @Override
@@ -79,8 +97,8 @@ final class UnavailableForge implements ForgeCatalog, ForgeOperations {
     }
 
     @Override
-    public boolean viewingRecipeBook(Player player) {
-        return false;
+    public EmakiResult<Boolean> viewingRecipeBook(Player player) {
+        return EmakiResult.unavailable();
     }
 
     @Override

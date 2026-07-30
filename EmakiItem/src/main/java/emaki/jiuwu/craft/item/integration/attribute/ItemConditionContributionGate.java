@@ -4,8 +4,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
-import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGate;
-import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGate;
+import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGateRegistration;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
@@ -42,7 +42,9 @@ public final class ItemConditionContributionGate implements ItemContributionGate
      * @return the closeable registration handle
      */
     public static ItemContributionGateRegistration register(EmakiItemPlugin plugin) {
-        return EmakiAttributeApi.registerItemContributionGate(plugin, new ItemConditionContributionGate(plugin));
+        return EmakiAttributeApi.extensions().registerItemContributionGate(
+                plugin,
+                new ItemConditionContributionGate(plugin));
     }
 
     @Override

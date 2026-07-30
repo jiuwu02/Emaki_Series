@@ -9,7 +9,7 @@ import java.util.Set;
 
 import org.bukkit.attribute.Attribute;
 
-import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -125,7 +125,7 @@ final class AttributeRegistryService {
         refreshContributionProviderCache();
     }
 
-    void registerContributionProvider(AttributeContributionProvider provider) {
+    synchronized void registerContributionProvider(AttributeContributionProvider provider) {
         if (provider == null || Texts.isBlank(provider.id())) {
             return;
         }
@@ -133,12 +133,23 @@ final class AttributeRegistryService {
         refreshContributionProviderCache();
     }
 
-    void unregisterContributionProvider(String providerId) {
+    synchronized void unregisterContributionProvider(String providerId) {
         if (Texts.isBlank(providerId)) {
             return;
         }
         contributionProviders.remove(Texts.normalizeId(providerId));
         refreshContributionProviderCache();
+    }
+
+    synchronized boolean unregisterContributionProvider(String providerId, AttributeContributionProvider expectedProvider) {
+        if (Texts.isBlank(providerId) || expectedProvider == null) {
+            return false;
+        }
+        boolean removed = contributionProviders.remove(Texts.normalizeId(providerId), expectedProvider);
+        if (removed) {
+            refreshContributionProviderCache();
+        }
+        return removed;
     }
 
     List<AttributeDefinition> attributeDefinitions() {
@@ -249,7 +260,7 @@ final class AttributeRegistryService {
         return frozen.isEmpty() ? Map.of() : Map.copyOf(frozen);
     }
 
-    private void refreshContributionProviderCache() {
+    private synchronized void refreshContributionProviderCache() {
         List<AttributeContributionProvider> providers = new ArrayList<>(contributionProviders.values());
         providers.sort(Comparator.comparingInt(AttributeContributionProvider::priority).reversed()
                 .thenComparing(provider -> Texts.normalizeId(provider.id())));

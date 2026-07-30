@@ -42,6 +42,7 @@ import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
@@ -97,10 +98,14 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 executionDispatcher,
                 threadOwnership
         );
+        ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry =
+                new ContributionProviderRegistrationRegistry(attributeService);
         EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(
                 attributeService,
                 threadOwnership,
-                itemContributionGateRegistry);
+                itemContributionGateRegistry,
+                contributionProviderRegistrationRegistry,
+                pdcAttributeService);
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),
@@ -113,6 +118,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                         plugin::damageIndicatorService,
                         () -> plugin.configModel() == null ? null : plugin.configModel().damageIndicator()),
                 itemContributionGateRegistry,
+                contributionProviderRegistrationRegistry,
                 guiService
         );
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
@@ -130,6 +136,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 presetRegistry,
                 pdcReadRuleLoader,
                 itemContributionGateRegistry,
+                contributionProviderRegistrationRegistry,
                 languageLoader,
                 messageService,
                 emakiAttributeBridge,
@@ -335,6 +342,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         cancelRegenTask(currentTask);
         if (plugin.itemContributionGateRegistry() != null) {
             plugin.itemContributionGateRegistry().close();
+        }
+        if (plugin.contributionProviderRegistrationRegistry() != null) {
+            plugin.contributionProviderRegistrationRegistry().close();
         }
         if (plugin.attributeService() != null) {
             plugin.attributeService().shutdown();

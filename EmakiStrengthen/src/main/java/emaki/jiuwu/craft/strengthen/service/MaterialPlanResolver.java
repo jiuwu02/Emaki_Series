@@ -10,9 +10,9 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.strengthen.model.AttemptContext;
-import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 
 final class MaterialPlanResolver {
 

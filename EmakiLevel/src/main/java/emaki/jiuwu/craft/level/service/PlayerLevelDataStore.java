@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -84,10 +85,7 @@ public final class PlayerLevelDataStore {
     }
 
     public CompletableFuture<PlayerLevelData> getOrLoadAsync(UUID uuid, Map<String, LevelTypeConfig> types) {
-        if (uuid == null) {
-            return CompletableFuture.completedFuture(null);
-        }
-        return beginSession(uuid, null, types, false);
+        return beginSession(uuid, null, types, true, true);
     }
 
     public PlayerLevelData getOrLoad(UUID uuid, Map<String, LevelTypeConfig> types) {
@@ -318,6 +316,14 @@ public final class PlayerLevelDataStore {
             String playerName,
             Map<String, LevelTypeConfig> types,
             boolean retryFailed) {
+        return beginSession(playerId, playerName, types, retryFailed, false);
+    }
+
+    private CompletableFuture<PlayerLevelData> beginSession(UUID playerId,
+            String playerName,
+            Map<String, LevelTypeConfig> types,
+            boolean retryFailed,
+            boolean propagateLoadFailure) {
         if (cache.isSealed()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -360,18 +366,23 @@ public final class PlayerLevelDataStore {
         AsyncYamlFiles asyncYamlFiles = asyncYamlFiles();
         CompletableFuture<PlayerLevelData> physicalLoad;
         if (asyncYamlFiles == null) {
-            physicalLoad = CompletableFuture.completedFuture(loadSynchronously(ticket, file, playerName, types));
+            physicalLoad = CompletableFuture.failedFuture(
+                    new IllegalStateException("AsyncYamlFiles is unavailable"));
         } else {
             physicalLoad = cache.waitForIdle(playerId)
                     .thenCompose(ignored -> asyncYamlFiles.load(file))
-                    .thenApply(section -> installLoaded(ticket, readData(playerId, section, types), playerName))
-                    .exceptionally(throwable -> {
-                        logLoadFailure(playerId, AsyncFailures.unwrapOnce(throwable));
-                        PlayerLevelData fallback = createDefault(playerId, types);
-                        cache.installLoadFailure(ticket, fallback);
-                        return null;
-                    });
+                    .thenApply(section -> installLoaded(ticket, readData(playerId, section, types), playerName));
         }
+        physicalLoad = physicalLoad.exceptionally(throwable -> {
+            Throwable failure = AsyncFailures.unwrapOnce(throwable);
+            logLoadFailure(playerId, failure);
+            PlayerLevelData fallback = createDefault(playerId, types);
+            cache.installLoadFailure(ticket, fallback);
+            if (propagateLoadFailure) {
+                throw new CompletionException(failure);
+            }
+            return null;
+        });
         physicalLoad.whenComplete((data, throwable) -> {
             if (throwable == null) {
                 loadResult.complete(data);
@@ -395,20 +406,6 @@ public final class PlayerLevelDataStore {
             return cache.activeData(ticket.playerId());
         }
         return cache.activeData(ticket.playerId());
-    }
-
-    private PlayerLevelData loadSynchronously(PlayerLevelDataCache.SessionTicket ticket,
-            File file,
-            String playerName,
-            Map<String, LevelTypeConfig> types) {
-        try {
-            return installLoaded(ticket, readData(ticket.playerId(), YamlFiles.load(file), types), playerName);
-        } catch (RuntimeException exception) {
-            logLoadFailure(ticket.playerId(), exception);
-            PlayerLevelData fallback = createDefault(ticket.playerId(), types);
-            cache.installLoadFailure(ticket, fallback);
-            return null;
-        }
     }
 
     private CompletableFuture<PlayerLevelData> loadDetached(UUID playerId,

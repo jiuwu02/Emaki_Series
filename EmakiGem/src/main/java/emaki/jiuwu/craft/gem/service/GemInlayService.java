@@ -4,8 +4,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -19,7 +23,9 @@ import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.api.event.GemExtractCompletedEvent;
 import emaki.jiuwu.craft.gem.api.event.GemExtractEvent;
+import emaki.jiuwu.craft.gem.api.event.GemInlayCompletedEvent;
 import emaki.jiuwu.craft.gem.api.event.GemInlayEvent;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
@@ -49,27 +55,36 @@ public final class GemInlayService {
         }
     }
 
-    public record InlayResult(Result result, ItemStack updatedEquipment, Runnable commitAction) {
+    public record InlayResult(Result result,
+            ItemStack updatedEquipment,
+            String operationId,
+            Supplier<CompletionStage<Boolean>> commitAction) {
 
         public InlayResult(Result result, ItemStack updatedEquipment) {
-            this(result, updatedEquipment, () -> {
-            });
+            this(result, updatedEquipment, "", () -> CompletableFuture.completedFuture(false));
+        }
+
+        public InlayResult(Result result, ItemStack updatedEquipment, String operationId) {
+            this(result, updatedEquipment, operationId, () -> CompletableFuture.completedFuture(false));
         }
 
         public InlayResult {
             result = result == null ? Result.failure("general.unknown_error", Map.of()) : result;
-            commitAction = commitAction == null ? () -> {
-            } : commitAction;
+            operationId = operationId == null ? "" : operationId;
+            commitAction = commitAction == null
+                    ? () -> CompletableFuture.completedFuture(false)
+                    : commitAction;
         }
 
-        public void commit() {
-            commitAction.run();
+        public CompletionStage<Boolean> commit() {
+            return commitAction.get();
         }
     }
 
     private static final String OPERATION_NAMESPACE = "gem";
 
     private final EmakiGemPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
     private final GemItemMatcher itemMatcher;
     private final GemStateService stateService;
@@ -86,6 +101,7 @@ public final class GemInlayService {
             ExecutionDispatcher executionDispatcher,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
         this.itemMatcher = itemMatcher;
         this.stateService = stateService;
@@ -153,45 +169,65 @@ public final class GemInlayService {
         double successChance = resolveSuccessChance(gemDefinition);
         placeholders.put("success_rate", successChance);
 
-        GemInlayEvent inlayEvent = new GemInlayEvent(actor, equipment, gemItem, slotIndex, gemDefinition.id(), instance.level(), successChance);
+        String operationId = UUID.randomUUID().toString();
+        GemInlayEvent inlayEvent = new GemInlayEvent(operationId, actor, equipment, gemItem, slotIndex,
+                gemDefinition.id(), instance.level(), successChance);
 
         if (threadOwnership.isEntityOwned(actor)) {
             org.bukkit.Bukkit.getPluginManager().callEvent(inlayEvent);
             if (inlayEvent.isCancelled()) {
-                return new InlayResult(Result.failure("gem.error.condition_not_met", placeholders), equipment);
+                return new InlayResult(Result.failure("gem.operation.cancelled", placeholders), equipment, operationId);
             }
             successChance = inlayEvent.getSuccessChance();
             placeholders.put("success_rate", successChance);
         }
 
-        String operationId = operationJournal.begin("inlay", actor.getUniqueId());
+        operationJournal.begin(operationId, "inlay", actor.getUniqueId());
         String failureAction = Texts.lower(plugin.appConfig().inlaySuccess().failureAction());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost && shouldChargeBeforeRoll(failureAction)) {
             chargeResult = chargeInlayCost(actor, gemDefinition, instance, Map.of());
             if (!chargeResult.success()) {
                 operationJournal.failedCharge(operationId, chargeResult);
-                return new InlayResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment);
+                if (chargeResult.compensationComplete()) {
+                    fireInlayCompleted(operationId, actor, false, equipment, false, slotIndex,
+                            gemDefinition.id(), instance.level(), chargeResult.errorKey());
+                }
+                return new InlayResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()),
+                        equipment, operationId);
             }
             operationJournal.charged(operationId, chargeResult);
         } else if (bypassCost) {
             operationJournal.advance(operationId, GemOperationJournal.Phase.CHARGED);
         }
         if (!rollSuccess(successChance)) {
+            boolean transactionComplete;
             if (preserveInputOnFailure && chargeResult != null) {
-                operationJournal.completeAfterRefund(operationId, "inlay_chance_refund_failed",
-                        economyService.refundDetailed(actor, chargeResult));
+                GemEconomyService.RefundResult refundResult = economyService.refundDetailed(actor, chargeResult);
+                operationJournal.completeAfterRefund(operationId, "inlay_chance_refund_failed", refundResult);
+                transactionComplete = refundResult.success();
             } else {
                 operationJournal.advance(operationId, GemOperationJournal.Phase.COMPLETED);
+                transactionComplete = true;
             }
             boolean inputConsumed = !preserveInputOnFailure && shouldConsumeGemOnFailure(failureAction);
-            return new InlayResult(Result.failure("command.inlay.chance_failed", placeholders, inputConsumed), equipment);
+            if (transactionComplete) {
+                fireInlayCompleted(operationId, actor, false, equipment, inputConsumed, slotIndex,
+                        gemDefinition.id(), instance.level(), "gem.inlay.chance_failed");
+            }
+            return new InlayResult(Result.failure("command.inlay.chance_failed", placeholders, inputConsumed),
+                    equipment, operationId);
         }
         if (!bypassCost && chargeResult == null) {
             chargeResult = chargeInlayCost(actor, gemDefinition, instance, Map.of());
             if (!chargeResult.success()) {
                 operationJournal.failedCharge(operationId, chargeResult);
-                return new InlayResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment);
+                if (chargeResult.compensationComplete()) {
+                    fireInlayCompleted(operationId, actor, false, equipment, false, slotIndex,
+                            gemDefinition.id(), instance.level(), chargeResult.errorKey());
+                }
+                return new InlayResult(Result.failure(chargeResult.errorKey(), chargeResult.placeholders()),
+                        equipment, operationId);
             }
             operationJournal.charged(operationId, chargeResult);
         }
@@ -202,19 +238,27 @@ public final class GemInlayService {
                     ? GemEconomyService.RefundResult.complete()
                     : economyService.refundDetailed(actor, chargeResult);
             operationJournal.completeAfterRefund(operationId, "inlay_apply_refund_failed", refundResult);
-            return new InlayResult(Result.failure("command.inlay.apply_failed", Map.of("player", actor.getName())), equipment);
+            if (refundResult.success()) {
+                fireInlayCompleted(operationId, actor, false, equipment, false, slotIndex,
+                        gemDefinition.id(), instance.level(), "gem.inlay.apply_failed");
+            }
+            return new InlayResult(Result.failure("command.inlay.apply_failed", Map.of("player", actor.getName())),
+                    equipment, operationId);
         }
         applyGemOperations(rebuilt, gemDefinition, instance, slotIndex, placeholders);
-        return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt,
+        Runnable completedEvent = () -> fireInlayCompleted(operationId, actor, true, rebuilt, true, slotIndex,
+                gemDefinition.id(), instance.level(), "");
+        return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt, operationId,
                 commitAfterActions(operationId, actor, "gem_inlay_success",
-                        gemDefinition.inlaySuccessActions(), placeholders));
+                        gemDefinition.inlaySuccessActions(), placeholders, completedEvent));
     }
 
-    private Runnable commitAfterActions(String operationId,
+    private Supplier<CompletionStage<Boolean>> commitAfterActions(String operationId,
             Player actor,
             String phase,
             List<String> actions,
-            Map<String, Object> placeholders) {
+            Map<String, Object> placeholders,
+            Runnable completedEvent) {
         AtomicBoolean committed = new AtomicBoolean(false);
         List<String> safeActions = actions == null ? List.of() : List.copyOf(actions);
         Map<String, Object> safePlaceholders = placeholders == null
@@ -222,11 +266,17 @@ public final class GemInlayService {
                 : Map.copyOf(new LinkedHashMap<>(placeholders));
         return () -> {
             if (!committed.compareAndSet(false, true)) {
-                return;
+                return CompletableFuture.completedFuture(false);
             }
             operationJournal.advance(operationId, GemOperationJournal.Phase.STATE_COMMITTED);
-            operationJournal.completeAfterActions(operationId,
+            CompletionStage<Boolean> completion = operationJournal.completeAfterActions(operationId,
                     actionCoordinator.executeAsync(actor, phase, safeActions, safePlaceholders));
+            completion.thenAccept(completed -> {
+                if (Boolean.TRUE.equals(completed) && completedEvent != null) {
+                    completedEvent.run();
+                }
+            });
+            return completion;
         };
     }
 
@@ -260,23 +310,26 @@ public final class GemInlayService {
                     GemExtractService.Result.failure("gem.error.condition_not_met", Map.of()), equipment, null);
         }
 
+        String operationId = UUID.randomUUID().toString();
         if (threadOwnership.isEntityOwned(actor)) {
-            GemExtractEvent extractEvent = new GemExtractEvent(actor, equipment, slotIndex,
+            GemExtractEvent extractEvent = new GemExtractEvent(operationId, actor, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
             org.bukkit.Bukkit.getPluginManager().callEvent(extractEvent);
             if (extractEvent.isCancelled()) {
                 return new ExtractDirectResult(
-                        GemExtractService.Result.failure("gem.error.condition_not_met", Map.of()), equipment, null);
+                        GemExtractService.Result.failure("gem.operation.cancelled", Map.of()), equipment, null,
+                        operationId);
             }
         }
-        String operationId = operationJournal.begin("extract_direct", actor.getUniqueId());
+        operationJournal.begin(operationId, "extract_direct", actor.getUniqueId());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             chargeResult = economyService.charge(actor, gemDefinition.extractCost(), costVariables(gemDefinition, instance.level(), instance.level()));
             if (!chargeResult.success()) {
                 operationJournal.failedCharge(operationId, chargeResult);
                 return new ExtractDirectResult(
-                        GemExtractService.Result.failure(chargeResult.errorKey(), chargeResult.placeholders()), equipment, null);
+                        GemExtractService.Result.failure(chargeResult.errorKey(), chargeResult.placeholders()),
+                        equipment, null, operationId);
             }
             operationJournal.charged(operationId, chargeResult);
         } else {
@@ -290,7 +343,8 @@ public final class GemInlayService {
                     : economyService.refundDetailed(actor, chargeResult);
             operationJournal.completeAfterRefund(operationId, "extract_apply_refund_failed", refundResult);
             return new ExtractDirectResult(
-                    GemExtractService.Result.failure("command.extract.apply_failed", Map.of("player", actor.getName())), equipment, null);
+                    GemExtractService.Result.failure("command.extract.apply_failed", Map.of("player", actor.getName())),
+                    equipment, null, operationId);
         }
         revertGemOperations(rebuilt, slotIndex);
         ItemStack returned = createReturnedGem(gemDefinition, instance);
@@ -299,32 +353,90 @@ public final class GemInlayService {
         placeholders.put("slot", slotIndex);
         placeholders.put("gem", plugin.itemFactory().resolveGemDisplayName(gemDefinition, instance.level()));
         placeholders.put("gem_id", gemDefinition.id());
+        Runnable completedEvent = () -> fireExtractCompleted(operationId, actor, rebuilt, returned, slotIndex,
+                gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
         return new ExtractDirectResult(
                 GemExtractService.Result.success("command.extract.success", placeholders), rebuilt, returned,
+                operationId,
                 commitAfterActions(operationId, actor, "gem_extract_success",
-                        gemDefinition.extractSuccessActions(), placeholders));
+                        gemDefinition.extractSuccessActions(), placeholders, completedEvent));
     }
 
     public record ExtractDirectResult(GemExtractService.Result result,
             ItemStack updatedEquipment,
             ItemStack returnedGem,
-            Runnable commitAction) {
+            String operationId,
+            Supplier<CompletionStage<Boolean>> commitAction) {
 
         public ExtractDirectResult(GemExtractService.Result result,
                 ItemStack updatedEquipment,
                 ItemStack returnedGem) {
-            this(result, updatedEquipment, returnedGem, () -> {
-            });
+            this(result, updatedEquipment, returnedGem, "", () -> CompletableFuture.completedFuture(false));
+        }
+
+        public ExtractDirectResult(GemExtractService.Result result,
+                ItemStack updatedEquipment,
+                ItemStack returnedGem,
+                String operationId) {
+            this(result, updatedEquipment, returnedGem, operationId,
+                    () -> CompletableFuture.completedFuture(false));
         }
 
         public ExtractDirectResult {
-            commitAction = commitAction == null ? () -> {
-            } : commitAction;
+            operationId = operationId == null ? "" : operationId;
+            commitAction = commitAction == null
+                    ? () -> CompletableFuture.completedFuture(false)
+                    : commitAction;
         }
 
-        public void commit() {
-            commitAction.run();
+        public CompletionStage<Boolean> commit() {
+            return commitAction.get();
         }
+    }
+
+    private void fireInlayCompleted(String operationId,
+            Player actor,
+            boolean successful,
+            ItemStack finalEquipment,
+            boolean inputConsumed,
+            int slotIndex,
+            String gemId,
+            int gemLevel,
+            String reasonKey) {
+        fireCompletedEvent(actor, () -> org.bukkit.Bukkit.getPluginManager().callEvent(
+                new GemInlayCompletedEvent(operationId, actor, successful, finalEquipment, inputConsumed,
+                        slotIndex, gemId, gemLevel, reasonKey == null ? "" : reasonKey)));
+    }
+
+    private void fireExtractCompleted(String operationId,
+            Player actor,
+            ItemStack finalEquipment,
+            ItemStack returnedGem,
+            int slotIndex,
+            String gemId,
+            int gemLevel,
+            String returnMode) {
+        fireCompletedEvent(actor, () -> org.bukkit.Bukkit.getPluginManager().callEvent(
+                new GemExtractCompletedEvent(operationId, actor, finalEquipment, returnedGem,
+                        slotIndex, gemId, gemLevel, returnMode)));
+    }
+
+    private void fireCompletedEvent(Player actor, Runnable eventCall) {
+        if (actor == null || eventCall == null || plugin == null || !plugin.isEnabled()) {
+            return;
+        }
+        if (threadOwnership.isEntityOwned(actor)) {
+            eventCall.run();
+            return;
+        }
+        if (!actor.isOnline()) {
+            plugin.getLogger().warning("Skipped gem completed event because operation actor is offline: "
+                    + actor.getUniqueId());
+            return;
+        }
+        executionDispatcher.runEntity(plugin, actor, eventCall,
+                () -> plugin.getLogger().warning("Skipped gem completed event because actor scheduling retired: "
+                        + actor.getUniqueId()));
     }
 
     private ItemStack createReturnedGem(GemDefinition gemDefinition, GemItemInstance instance) {

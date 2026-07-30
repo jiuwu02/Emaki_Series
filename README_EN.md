@@ -2,23 +2,23 @@
 
 Emaki Series is a multi-module Maven project for Paper-based Minecraft RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment, combat, progression, skills, crafting, and collection systems.
 
-Current source versions: `EmakiCoreLib 4.6.0`, `EmakiAttribute 4.6.0`, `EmakiForge 4.6.0`, `EmakiStrengthen 4.6.0`, `EmakiCooking 4.1.0`, `EmakiGem 2.6.0`, `EmakiSkills 2.6.0`, `EmakiItem 2.6.0`, `EmakiLevel 1.4.0`, `EmakiCodex 1.0.0`, and `EmakiStorage 1.0.0`.
+Current source versions: `EmakiCoreLib 4.6.9`, `EmakiAttribute 4.6.9`, `EmakiForge 4.6.4`, `EmakiStrengthen 4.6.4`, `EmakiCooking 4.1.5`, `EmakiGem 2.6.5`, `EmakiSkills 2.6.4`, `EmakiItem 2.6.7`, `EmakiLevel 1.4.3`, `EmakiCodex 1.0.4`, and `EmakiStorage 1.0.6`.
 
 ## Modules
 
 | Module            | Version | Role                  | Description                                                                                                               |
 | ----------------- | ------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.6.0` | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
-| `EmakiAttribute`  | `4.6.0` | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
-| `EmakiForge`      | `4.6.0` | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
-| `EmakiStrengthen` | `4.6.0` | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
-| `EmakiCooking`    | `4.1.0` | Cooking               | World stations, recipe matching, input restrictions, displays, and persistent station state.                              |
-| `EmakiGem`        | `2.6.0` | Gems                  | Socket opening, inlay, extraction, upgrades, equipment templates, gem definitions, and optional attribute integration.    |
-| `EmakiSkills`     | `2.6.0` | Skills                | Active slots, passive triggers, cast modes, cooldowns, and MythicMobs / Attribute integration.                            |
-| `EmakiItem`       | `2.6.0` | Custom items          | Stable item definitions, vanilla components, repair, automatic refresh, sets, triggers, and safe legacy-config migration. |
-| `EmakiLevel`      | `1.4.0` | Progression           | Multiple level types, experience sources, requirements, PDC, placeholders, and cross-module progression bridges.          |
-| `EmakiCodex`      | `1.0.0` | Collections           | Codex entries, progress tracking, Gameplay Event conditions, rewards, and advancement-toast integration.                  |
-| `EmakiStorage`    | `1.0.0` | Storage               | Paged GUI warehouse, large per-slot quantities, capacity tiers and permissions, paid unlocks, and storage events.         |
+| `EmakiCoreLib`    | `4.6.9` | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
+| `EmakiAttribute`  | `4.6.9` | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
+| `EmakiForge`      | `4.6.4` | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
+| `EmakiStrengthen` | `4.6.4` | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
+| `EmakiCooking`    | `4.1.5` | Cooking               | World stations, recipe matching, input restrictions, displays, and persistent station state.                              |
+| `EmakiGem`        | `2.6.5` | Gems                  | Socket opening, inlay, extraction, upgrades, equipment templates, gem definitions, and optional attribute integration.    |
+| `EmakiSkills`     | `2.6.4` | Skills                | Active slots, passive triggers, cast modes, cooldowns, and MythicMobs / Attribute integration.                            |
+| `EmakiItem`       | `2.6.7` | Custom items          | Stable item definitions, vanilla components, repair, automatic refresh, sets, triggers, and safe legacy-config migration. |
+| `EmakiLevel`      | `1.4.3` | Progression           | Multiple level types, experience sources, requirements, PDC, placeholders, and cross-module progression bridges.          |
+| `EmakiCodex`      | `1.0.4` | Collections           | Codex entries, progress tracking, Gameplay Event conditions, rewards, and advancement-toast integration.                  |
+| `EmakiStorage`    | `1.0.6` | Storage               | Paged GUI warehouse, large per-slot quantities, capacity tiers and permissions, paid unlocks, and storage events.         |
 
 The repository also contains the compile-time `Emaki*Api` contract modules and the protocol-only module `EmakiSkillsProtocol` (artifact `emaki-skills-protocol`, version `2.6.0`). These are not server plugins and must not be placed in `plugins/`.
 

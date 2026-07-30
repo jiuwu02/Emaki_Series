@@ -33,21 +33,20 @@ import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
-import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.api.event.StrengthenAttemptEvent;
 import emaki.jiuwu.craft.strengthen.api.event.StrengthenPreAttemptEvent;
-import emaki.jiuwu.craft.strengthen.model.AttemptContext;
-import emaki.jiuwu.craft.strengthen.model.AttemptCost;
-import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
-import emaki.jiuwu.craft.strengthen.model.AttemptOutcome;
-import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
-import emaki.jiuwu.craft.strengthen.model.AttemptResult;
-import emaki.jiuwu.craft.strengthen.model.StrengthenConditionGroup;
-import emaki.jiuwu.craft.strengthen.model.StrengthenConditionNode;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptCost;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptOutcome;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionGroup;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 
-public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge {
+public final class StrengthenAttemptService {
 
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final String OPERATION_NAMESPACE = "strengthen";
@@ -90,12 +89,10 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
 
-    @Override
     public boolean canStrengthen(ItemStack itemStack) {
         return readState(itemStack).eligible();
     }
 
-    @Override
     public StrengthenState readState(ItemStack itemStack) {
         return resolveState(itemStack).state();
     }
@@ -135,7 +132,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         );
     }
 
-    @Override
     public AttemptPreview preview(Player player, AttemptContext context) {
         ItemStack targetItem = context == null ? null : context.targetItem();
         StrengthenState state = readState(targetItem);
@@ -188,7 +184,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         return preview;
     }
 
-    @Override
     public AttemptResult attempt(Player player, AttemptContext context) {
         String operationId = resolveOperationId(context);
         AttemptContext safeContext = context == null
@@ -461,7 +456,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         }
     }
 
-    @Override
     public ItemStack rebuild(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return itemStack;

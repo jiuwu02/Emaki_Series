@@ -5,22 +5,20 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 /**
- * Fired by EmakiGem after an inlay attempt has passed all validation and cost
- * pre-checks but before the success roll decides the outcome.
+ * Fired after inlay validation and immediately before the transaction begins charging or rolling.
  *
- * <p>Listeners may inspect the actor, the equipment, the gem item, the target
- * slot and the resolved gem id/level, override the success chance via
- * {@link #setSuccessChance(double)}, or cancel the inlay entirely. A cancelled
- * event stops EmakiGem from rolling and from assigning the gem. This event is
- * fired on the server thread.
+ * <p><strong>Thread:</strong> the player's entity-owner thread. The event is synchronous.
+ * Cancellation prevents the transaction. Listeners may also replace the success chance.
  */
 public final class GemInlayEvent extends Event implements Cancellable {
 
     private static final HandlerList HANDLERS = new HandlerList();
 
-    private final Player actor;
+    private final String operationId;
+    private final Player player;
     private final ItemStack equipment;
     private final ItemStack gemItem;
     private final int slotIndex;
@@ -29,75 +27,58 @@ public final class GemInlayEvent extends Event implements Cancellable {
     private double successChance;
     private boolean cancelled;
 
-    /**
-     * Creates an inlay event.
-     *
-     * @param actor         the player performing the inlay
-     * @param equipment     the equipment receiving the gem
-     * @param gemItem       the gem item being inlaid
-     * @param slotIndex     the target socket slot index
-     * @param gemId         the gem definition id
-     * @param gemLevel      the gem level
-     * @param successChance the resolved success chance in percent (0-100)
-     */
-    public GemInlayEvent(Player actor,
-            ItemStack equipment,
-            ItemStack gemItem,
-            int slotIndex,
-            String gemId,
-            int gemLevel,
-            double successChance) {
-        this.actor = actor;
+    public GemInlayEvent(@NotNull String operationId,
+                         @NotNull Player player,
+                         @NotNull ItemStack equipment,
+                         @NotNull ItemStack gemItem,
+                         int slotIndex,
+                         @NotNull String gemId,
+                         int gemLevel,
+                         double successChance) {
+        this.operationId = operationId;
+        this.player = player;
         this.equipment = equipment;
         this.gemItem = gemItem;
         this.slotIndex = slotIndex;
         this.gemId = gemId;
-        this.gemLevel = gemLevel;
-        this.successChance = successChance;
+        this.gemLevel = Math.max(1, gemLevel);
+        this.successChance = clamp(successChance);
     }
 
-    /** {@return the player performing the inlay} */
-    public Player getActor() {
-        return actor;
+    public @NotNull String getOperationId() {
+        return operationId;
     }
 
-    /** {@return the equipment receiving the gem} */
-    public ItemStack getEquipment() {
+    public @NotNull Player getPlayer() {
+        return player;
+    }
+
+    public @NotNull ItemStack getEquipment() {
         return equipment;
     }
 
-    /** {@return the gem item being inlaid} */
-    public ItemStack getGemItem() {
+    public @NotNull ItemStack getGemItem() {
         return gemItem;
     }
 
-    /** {@return the target socket slot index} */
     public int getSlotIndex() {
         return slotIndex;
     }
 
-    /** {@return the gem definition id} */
-    public String getGemId() {
+    public @NotNull String getGemId() {
         return gemId;
     }
 
-    /** {@return the gem level} */
     public int getGemLevel() {
         return gemLevel;
     }
 
-    /** {@return the success chance in percent (0-100) used for the roll} */
     public double getSuccessChance() {
         return successChance;
     }
 
-    /**
-     * Overrides the success chance used for the roll.
-     *
-     * @param successChance the new success chance in percent (0-100)
-     */
     public void setSuccessChance(double successChance) {
-        this.successChance = successChance;
+        this.successChance = clamp(successChance);
     }
 
     @Override
@@ -106,17 +87,20 @@ public final class GemInlayEvent extends Event implements Cancellable {
     }
 
     @Override
-    public void setCancelled(boolean cancel) {
-        this.cancelled = cancel;
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
     }
 
     @Override
-    public HandlerList getHandlers() {
+    public @NotNull HandlerList getHandlers() {
         return HANDLERS;
     }
 
-    /** {@return the shared handler list for this event type} */
-    public static HandlerList getHandlerList() {
+    public static @NotNull HandlerList getHandlerList() {
         return HANDLERS;
+    }
+
+    private static double clamp(double chance) {
+        return Math.max(0D, Math.min(100D, chance));
     }
 }

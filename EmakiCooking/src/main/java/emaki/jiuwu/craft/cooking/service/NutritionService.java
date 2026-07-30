@@ -43,6 +43,27 @@ import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
 public final class NutritionService {
 
+    public enum FoodApplyStatus {
+        APPLIED,
+        DISABLED,
+        INVALID_INPUT,
+        SOURCE_NOT_FOUND,
+        CANCELLED,
+        NO_RULE,
+        DATA_UNAVAILABLE
+    }
+
+    public record FoodApplyResult(FoodApplyStatus status) {
+
+        public FoodApplyResult {
+            status = status == null ? FoodApplyStatus.DATA_UNAVAILABLE : status;
+        }
+
+        public boolean applied() {
+            return status == FoodApplyStatus.APPLIED;
+        }
+    }
+
     private final EmakiCookingPlugin plugin;
     private final ActionExecutor actionExecutor;
     private final ItemSourceService itemSourceService;
@@ -176,26 +197,35 @@ public final class NutritionService {
 
 
     public boolean applyFood(Player player, ItemStack itemStack) {
-        if (!enabled || player == null || itemStack == null || itemStack.getType().isAir()) {
-            return false;
+        return applyFoodDetailed(player, itemStack).applied();
+    }
+
+    public FoodApplyResult applyFoodDetailed(Player player, ItemStack itemStack) {
+        if (!enabled) {
+            return new FoodApplyResult(FoodApplyStatus.DISABLED);
+        }
+        if (player == null || itemStack == null || itemStack.getType().isAir()) {
+            return new FoodApplyResult(FoodApplyStatus.INVALID_INPUT);
         }
         ItemSource source = itemSourceService.identifyItem(itemStack);
         if (source == null) {
-            return false;
+            return new FoodApplyResult(FoodApplyStatus.SOURCE_NOT_FOUND);
         }
         if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
             PlayerNutritionConsumeEvent consumeEvent =
                     new PlayerNutritionConsumeEvent(player, itemStack, ItemSourceUtil.toShorthand(source));
             Bukkit.getPluginManager().callEvent(consumeEvent);
             if (consumeEvent.isCancelled()) {
-                return false;
+                return new FoodApplyResult(FoodApplyStatus.CANCELLED);
             }
         }
-        boolean matched = false;
+        boolean ruleMatched = false;
+        boolean applied = false;
         for (NutritionFoodSource rule : foodSources) {
             if (!matchesAny(rule.itemSources(), source)) {
                 continue;
             }
+            ruleMatched = true;
             PlayerNutritionData updated = dataStore.mutateActive(player.getUniqueId(), typeRegistry.asMap(), data -> {
                 for (Map.Entry<String, Double> entry : rule.nutrition().entrySet()) {
                     NutritionTypeConfig type = typeRegistry.type(entry.getKey()).orElse(null);
@@ -213,7 +243,7 @@ public final class NutritionService {
             if (updated == null) {
                 continue;
             }
-            matched = true;
+            applied = true;
             if (!rule.actions().isEmpty()) {
                 ActionContext context = baseContext(player, "cooking.nutrition.food")
                         .withPlaceholders(nutritionPlaceholders(updated))
@@ -222,7 +252,10 @@ public final class NutritionService {
             }
             evaluateThresholds(player, updated);
         }
-        return matched;
+        if (applied) {
+            return new FoodApplyResult(FoodApplyStatus.APPLIED);
+        }
+        return new FoodApplyResult(ruleMatched ? FoodApplyStatus.DATA_UNAVAILABLE : FoodApplyStatus.NO_RULE);
     }
 
     private boolean matchesAny(List<ItemSource> sources, ItemSource target) {

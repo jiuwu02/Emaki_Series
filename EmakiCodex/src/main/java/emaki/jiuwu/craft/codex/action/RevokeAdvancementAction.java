@@ -78,8 +78,8 @@ public final class RevokeAdvancementAction implements Action {
         if (Texts.isBlank(advancementId)) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, id + " requires an 'advancement' argument.");
         }
-        boolean revoked = plugin.advancementService().revoke(player, advancementId.trim());
-        if (!revoked) {
+        var revokeResult = plugin.advancementService().revoke(player, advancementId.trim());
+        if (!revokeResult.isSuccess()) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT,
                     "Advancement '" + advancementId + "' is not registered or not completed.");
         }

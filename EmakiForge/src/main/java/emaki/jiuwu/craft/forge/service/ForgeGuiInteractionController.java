@@ -274,7 +274,7 @@ final class ForgeGuiInteractionController {
         debug(state.player(), "forge.gui.processing.started", replacements(
                 "recipe", finalRecipe.id(),
                 "first_craft", firstCraft,
-                "success_rate", finalRecipe.successRate()));
+                "success_rate", startEvent.getSuccessRate()));
         state.setProcessing(true);
         state.setRecipe(finalRecipe);
         state.setPreviewRecipe(finalRecipe);
@@ -298,6 +298,7 @@ final class ForgeGuiInteractionController {
                     snapshot,
                     preparedForge,
                     state.runtimeGeneration(),
+                    startEvent.getSuccessRate(),
                     state::claimResultDelivery,
                     state::releaseResultDelivery,
                     state::markResultCommitted

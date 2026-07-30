@@ -5,21 +5,20 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Fired by EmakiGem after a socket-open request has resolved a target slot but
- * before the slot is opened and the opener item is consumed.
+ * Fired immediately before a socket-open state change is applied.
  *
- * <p>Listeners may inspect the actor, the equipment, the opener item/id and the
- * resolved slot index, or cancel the open entirely. A cancelled event stops
- * EmakiGem from opening the socket and consuming the opener. This event is
- * fired on the server thread.
+ * <p><strong>Thread:</strong> the player's entity-owner thread. The event is synchronous.
  */
 public final class GemSocketOpenEvent extends Event implements Cancellable {
 
     private static final HandlerList HANDLERS = new HandlerList();
 
-    private final Player actor;
+    private final String operationId;
+    private final Player player;
     private final ItemStack equipment;
     private final ItemStack openerItem;
     private final String openerId;
@@ -27,23 +26,15 @@ public final class GemSocketOpenEvent extends Event implements Cancellable {
     private final String itemDefinitionId;
     private boolean cancelled;
 
-    /**
-     * Creates a socket-open event.
-     *
-     * @param actor            the player performing the open
-     * @param equipment        the equipment receiving the new socket
-     * @param openerItem       the opener item being used, may be {@code null}
-     * @param openerId         the opener config id
-     * @param slotIndex        the resolved socket slot index
-     * @param itemDefinitionId the gem item definition id of the equipment
-     */
-    public GemSocketOpenEvent(Player actor,
-            ItemStack equipment,
-            ItemStack openerItem,
-            String openerId,
-            int slotIndex,
-            String itemDefinitionId) {
-        this.actor = actor;
+    public GemSocketOpenEvent(@NotNull String operationId,
+                              @NotNull Player player,
+                              @NotNull ItemStack equipment,
+                              @Nullable ItemStack openerItem,
+                              @NotNull String openerId,
+                              int slotIndex,
+                              @NotNull String itemDefinitionId) {
+        this.operationId = operationId;
+        this.player = player;
         this.equipment = equipment;
         this.openerItem = openerItem;
         this.openerId = openerId;
@@ -51,33 +42,31 @@ public final class GemSocketOpenEvent extends Event implements Cancellable {
         this.itemDefinitionId = itemDefinitionId;
     }
 
-    /** {@return the player performing the open} */
-    public Player getActor() {
-        return actor;
+    public @NotNull String getOperationId() {
+        return operationId;
     }
 
-    /** {@return the equipment receiving the new socket} */
-    public ItemStack getEquipment() {
+    public @NotNull Player getPlayer() {
+        return player;
+    }
+
+    public @NotNull ItemStack getEquipment() {
         return equipment;
     }
 
-    /** {@return the opener item being used, or {@code null}} */
-    public ItemStack getOpenerItem() {
+    public @Nullable ItemStack getOpenerItem() {
         return openerItem;
     }
 
-    /** {@return the opener config id} */
-    public String getOpenerId() {
+    public @NotNull String getOpenerId() {
         return openerId;
     }
 
-    /** {@return the resolved socket slot index} */
     public int getSlotIndex() {
         return slotIndex;
     }
 
-    /** {@return the gem item definition id of the equipment} */
-    public String getItemDefinitionId() {
+    public @NotNull String getItemDefinitionId() {
         return itemDefinitionId;
     }
 
@@ -87,17 +76,16 @@ public final class GemSocketOpenEvent extends Event implements Cancellable {
     }
 
     @Override
-    public void setCancelled(boolean cancel) {
-        this.cancelled = cancel;
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
     }
 
     @Override
-    public HandlerList getHandlers() {
+    public @NotNull HandlerList getHandlers() {
         return HANDLERS;
     }
 
-    /** {@return the shared handler list for this event type} */
-    public static HandlerList getHandlerList() {
+    public static @NotNull HandlerList getHandlerList() {
         return HANDLERS;
     }
 }

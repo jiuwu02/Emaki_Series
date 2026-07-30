@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 
 public final class StrengthenRecipeResolver {
 
@@ -50,6 +50,14 @@ public final class StrengthenRecipeResolver {
         String slotGroup = resolveSlotGroup(itemStack, baseSource);
         String resolvedRecipeId = resolveRecipeId(explicitRecipeId, shorthand, baseSource, slotGroup, loreLines, stats);
         return new ResolvedItem(baseSource, shorthand, stats, loreLines, slotGroup, isEmaki, resolvedRecipeId);
+    }
+
+    public String resolveRecipeId(String recipeId) {
+        if (Texts.isBlank(recipeId) || plugin.recipeLoader() == null) {
+            return "";
+        }
+        StrengthenRecipe recipe = plugin.recipeLoader().get(recipeId);
+        return recipe == null ? "" : recipe.id();
     }
 
     public ItemSource resolveBaseSource(ItemStack itemStack) {

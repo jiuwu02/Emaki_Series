@@ -5,11 +5,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public final class DefaultSkillScriptActionRegistry implements SkillScriptActionRegistry {
+/** Owner-scoped runtime registry for skill script actions. */
+public final class DefaultSkillScriptActionRegistry implements SkillScriptActionRegistry, Listener, AutoCloseable {
 
     private final Map<String, Registration> registrations = new ConcurrentHashMap<>();
 
@@ -39,7 +45,7 @@ public final class DefaultSkillScriptActionRegistry implements SkillScriptAction
     @Override
     public void unregisterAll(Plugin owner) {
         if (owner != null) {
-            registrations.entrySet().removeIf(entry -> owner.equals(entry.getValue().owner()));
+            registrations.entrySet().removeIf(entry -> owner == entry.getValue().owner());
         }
     }
 
@@ -70,9 +76,20 @@ public final class DefaultSkillScriptActionRegistry implements SkillScriptAction
             return List.of();
         }
         return registrations.values().stream()
-                .filter(registration -> owner.equals(registration.owner()))
+                .filter(registration -> owner == registration.owner())
                 .map(Registration::action)
                 .toList();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPluginDisable(PluginDisableEvent event) {
+        unregisterAll(event.getPlugin());
+    }
+
+    @Override
+    public void close() {
+        HandlerList.unregisterAll(this);
+        registrations.clear();
     }
 
     private Registration activeRegistration(String actionId) {

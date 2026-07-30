@@ -3,9 +3,6 @@ package emaki.jiuwu.craft.corelib.apiimpl;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -114,47 +111,12 @@ final class CoreActionAdapter implements Action {
     }
 
     @Override
-    public CompletionStage<ActionResult> validateAsync(Map<String, String> arguments) {
-        ActionResult base = Action.super.validate(arguments);
-        if (!base.success()) {
-            return CompletableFuture.completedFuture(base);
-        }
-        try {
-            CompletionStage<CoreActionResult> stage = delegate.validateAsync(arguments == null ? Map.of() : arguments);
-            if (stage == null) {
-                return CompletableFuture.failedFuture(new IllegalStateException(
-                        "CoreAction returned a null validation completion stage."));
-            }
-            return stage.thenApply(CoreActionAdapter::toInternalResult);
-        } catch (RuntimeException exception) {
-            return CompletableFuture.completedFuture(
-                    ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage()));
-        }
-    }
-
-    @Override
     public ActionResult execute(ActionContext context, Map<String, String> arguments) {
         try {
             CoreActionContext apiContext = toApiContext(context);
             return toInternalResult(delegate.execute(apiContext, arguments == null ? Map.of() : arguments));
         } catch (RuntimeException exception) {
             return ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage());
-        }
-    }
-
-    @Override
-    public CompletionStage<ActionResult> executeAsync(ActionContext context, Map<String, String> arguments) {
-        try {
-            CompletionStage<CoreActionResult> stage = delegate.executeAsync(
-                    toApiContext(context), arguments == null ? Map.of() : arguments);
-            if (stage == null) {
-                return CompletableFuture.failedFuture(new IllegalStateException(
-                        "CoreAction returned a null execution completion stage."));
-            }
-            return stage.thenApply(CoreActionAdapter::toInternalResult);
-        } catch (RuntimeException exception) {
-            return CompletableFuture.completedFuture(
-                    ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, exception.getMessage()));
         }
     }
 

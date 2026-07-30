@@ -1,15 +1,9 @@
 package emaki.jiuwu.craft.level;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -17,12 +11,10 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
@@ -40,26 +32,19 @@ import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.level.action.LevelActionRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
-import emaki.jiuwu.craft.level.api.LevelOperationResult;
-import emaki.jiuwu.craft.level.api.LevelOperationType;
-import emaki.jiuwu.craft.level.api.LevelTypeView;
-import emaki.jiuwu.craft.level.api.LevelUpCause;
-import emaki.jiuwu.craft.level.api.PlayerLevelEntryView;
-import emaki.jiuwu.craft.level.api.PlayerLevelView;
+import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
 import emaki.jiuwu.craft.level.bridge.MythicLevelDropBridge;
 import emaki.jiuwu.craft.level.command.LevelCommand;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
-import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.listener.LevelGameplaySubscriber;
 import emaki.jiuwu.craft.level.listener.PlayerDataListener;
-import emaki.jiuwu.craft.level.model.PlayerLevelData;
-import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
 import emaki.jiuwu.craft.level.papi.LevelPlaceholderExpansion;
 import emaki.jiuwu.craft.level.placeholder.LevelCorePlaceholderResolver;
+import emaki.jiuwu.craft.level.service.ExpSourceProviderRegistry;
 import emaki.jiuwu.craft.level.service.LevelAntiAbuseService;
 import emaki.jiuwu.craft.level.service.LevelAttributeBridge;
 import emaki.jiuwu.craft.level.service.LevelExperienceRuleService;
@@ -140,197 +125,20 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private LevelTopService topService;
     private LevelGuiService levelGuiService;
     private LevelTopGuiService levelTopGuiService;
-    private LevelAttributeBridge attributeBridge;
     private MythicLevelDropBridge mythicDropBridge;
     private LevelGameplaySubscriber gameplaySubscriber;
     private PlayerDataListener playerDataListener;
     private LevelCorePlaceholderResolver corePlaceholderResolver;
     private LevelPlaceholderExpansion placeholderExpansion;
     private BStatsRegistration metrics;
-    private final EmakiLevelApi.Bridge levelApiBridge = new EmakiLevelApi.Bridge() {
-        @Override
-        public Optional<LevelTypeView> type(String typeId) {
-            return typeRegistry.type(typeId).map(EmakiLevelPlugin.this::view);
-        }
-
-        @Override
-        public Collection<LevelTypeView> types() {
-            return typeRegistry.all().stream().map(EmakiLevelPlugin.this::view).toList();
-        }
-
-        @Override
-        public CompletableFuture<PlayerLevelView> getPlayerData(UUID uuid) {
-            return dataStore.getOrLoadAsync(uuid, typeRegistry.asMap())
-                    .thenApply(data -> data == null
-                            ? new PlayerLevelView(uuid, "", Map.of())
-                            : playerView(data));
-        }
-
-        @Override
-        public int getLevel(UUID uuid, String typeId) {
-            PlayerLevelEntry entry = entry(uuid, typeId);
-            return entry == null ? 0 : entry.level();
-        }
-
-        @Override
-        public double getExp(UUID uuid, String typeId) {
-            PlayerLevelEntry entry = entry(uuid, typeId);
-            return entry == null ? 0D : entry.exp();
-        }
-
-        @Override
-        public double getTotalExp(UUID uuid, String typeId) {
-            PlayerLevelEntry entry = entry(uuid, typeId);
-            return entry == null ? 0D : entry.totalExp();
-        }
-
-        @Override
-        public double getRequiredExp(UUID uuid, String typeId, int targetLevel) {
-            LevelTypeConfig type = typeRegistry.type(typeId).orElse(null);
-            if (type == null) {
-                return 0D;
-            }
-            return requirementService.requiredExp(type, entry(uuid, typeId), targetLevel);
-        }
-
-        @Override
-        public LevelOperationResult addExp(UUID uuid, String typeId, double amount, String reason) {
-            return ownsWriteTarget(uuid)
-                    ? levelService.addExp(uuid, typeId, amount, reason)
-                    : ownerFailure(LevelOperationType.ADD_EXP, typeId);
-        }
-
-        @Override
-        public LevelOperationResult removeExp(UUID uuid, String typeId, double amount, String reason) {
-            return ownsWriteTarget(uuid)
-                    ? levelService.removeExp(uuid, typeId, amount, reason)
-                    : ownerFailure(LevelOperationType.REMOVE_EXP, typeId);
-        }
-
-        @Override
-        public LevelOperationResult setExp(UUID uuid, String typeId, double amount, String reason) {
-            return ownsWriteTarget(uuid)
-                    ? levelService.setExp(uuid, typeId, amount, reason)
-                    : ownerFailure(LevelOperationType.SET_EXP, typeId);
-        }
-
-        @Override
-        public LevelOperationResult addLevel(UUID uuid, String typeId, int amount, String reason) {
-            return ownsWriteTarget(uuid)
-                    ? levelService.addLevel(uuid, typeId, amount, reason)
-                    : ownerFailure(LevelOperationType.ADD_LEVEL, typeId);
-        }
-
-        @Override
-        public LevelOperationResult removeLevel(UUID uuid, String typeId, int amount, String reason) {
-            return ownsWriteTarget(uuid)
-                    ? levelService.removeLevel(uuid, typeId, amount, reason)
-                    : ownerFailure(LevelOperationType.REMOVE_LEVEL, typeId);
-        }
-
-        @Override
-        public LevelOperationResult setLevel(UUID uuid, String typeId, int level, String reason) {
-            return ownsWriteTarget(uuid)
-                    ? levelService.setLevel(uuid, typeId, level, reason)
-                    : ownerFailure(LevelOperationType.SET_LEVEL, typeId);
-        }
-
-        @Override
-        public LevelOperationResult levelUp(UUID uuid, String typeId, LevelUpCause cause) {
-            return ownsWriteTarget(uuid)
-                    ? levelService.levelUp(uuid, typeId, cause)
-                    : ownerFailure(LevelOperationType.LEVEL_UP, typeId);
-        }
-
-        @Override
-        public CompletableFuture<LevelOperationResult> addExpAsync(UUID uuid, String typeId, double amount, String reason) {
-            return runOwnerWriteAsync(uuid, LevelOperationType.ADD_EXP, typeId,
-                    () -> levelService.addExp(uuid, typeId, amount, reason));
-        }
-
-        @Override
-        public CompletableFuture<LevelOperationResult> removeExpAsync(UUID uuid, String typeId, double amount, String reason) {
-            return runOwnerWriteAsync(uuid, LevelOperationType.REMOVE_EXP, typeId,
-                    () -> levelService.removeExp(uuid, typeId, amount, reason));
-        }
-
-        @Override
-        public CompletableFuture<LevelOperationResult> setExpAsync(UUID uuid, String typeId, double amount, String reason) {
-            return runOwnerWriteAsync(uuid, LevelOperationType.SET_EXP, typeId,
-                    () -> levelService.setExp(uuid, typeId, amount, reason));
-        }
-
-        @Override
-        public CompletableFuture<LevelOperationResult> addLevelAsync(UUID uuid, String typeId, int amount, String reason) {
-            return runOwnerWriteAsync(uuid, LevelOperationType.ADD_LEVEL, typeId,
-                    () -> levelService.addLevel(uuid, typeId, amount, reason));
-        }
-
-        @Override
-        public CompletableFuture<LevelOperationResult> removeLevelAsync(UUID uuid, String typeId, int amount, String reason) {
-            return runOwnerWriteAsync(uuid, LevelOperationType.REMOVE_LEVEL, typeId,
-                    () -> levelService.removeLevel(uuid, typeId, amount, reason));
-        }
-
-        @Override
-        public CompletableFuture<LevelOperationResult> setLevelAsync(UUID uuid, String typeId, int level, String reason) {
-            return runOwnerWriteAsync(uuid, LevelOperationType.SET_LEVEL, typeId,
-                    () -> levelService.setLevel(uuid, typeId, level, reason));
-        }
-
-        @Override
-        public CompletableFuture<LevelOperationResult> levelUpAsync(UUID uuid, String typeId, LevelUpCause cause) {
-            return runOwnerWriteAsync(uuid, LevelOperationType.LEVEL_UP, typeId,
-                    () -> levelService.levelUp(uuid, typeId, cause));
-        }
+    private EmakiLevelApi.Bridge levelApiBridge;
+    private ExpSourceProviderRegistry expSourceRegistry;
+    private Runnable attributeBridgeClose = () -> {
     };
-
-    private boolean ownsWriteTarget(UUID uuid) {
-        Player target = uuid == null ? null : Bukkit.getPlayer(uuid);
-        if (target == null || !target.isOnline()) {
-            return false;
-        }
-        return threadOwnership != null && threadOwnership.isEntityOwned(target);
-    }
-
-    private LevelOperationResult ownerFailure(LevelOperationType operationType, String typeId) {
-        return LevelOperationResult.failure("not_entity_owner", operationType, typeId);
-    }
-
-    private CompletableFuture<LevelOperationResult> runOwnerWriteAsync(
-            UUID uuid,
-            LevelOperationType operationType,
-            String typeId,
-            Supplier<LevelOperationResult> operation) {
-        Player target = uuid == null ? null : Bukkit.getPlayer(uuid);
-        if (target == null || !target.isOnline()) {
-            return CompletableFuture.completedFuture(LevelOperationResult.failure("player_offline", operationType, typeId));
-        }
-        if (ownsWriteTarget(uuid)) {
-            return CompletableFuture.completedFuture(operation.get());
-        }
-        CompletableFuture<LevelOperationResult> future = new CompletableFuture<>();
-        try {
-            TaskHandle scheduled = executionDispatcher.runEntity(
-                    EmakiLevelPlugin.this,
-                    target,
-                    () -> {
-                        try {
-                            future.complete(operation.get());
-                        } catch (Throwable throwable) {
-                            future.completeExceptionally(throwable);
-                        }
-                    },
-                    () -> future.complete(LevelOperationResult.failure("owner_schedule_retired", operationType, typeId))
-            );
-            if (scheduled == null) {
-                future.complete(LevelOperationResult.failure("owner_schedule_rejected", operationType, typeId));
-            }
-        } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
-        }
-        return future;
-    }
+    private Runnable attributeRefreshAll = () -> {
+    };
+    private java.util.function.Consumer<Player> attributeRefreshPlayer = player -> {
+    };
 
     @Override
     public void onEnable() {
@@ -354,7 +162,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         registerActions();
         registerCorePlaceholders();
         registerPlaceholderExpansion();
-        registerAttributeBridge();
         registerMythicDrops();
         metrics = coreLib.registerBStats(this, BSTATS_PLUGIN_ID);
         messages.info("console.plugin_started");
@@ -373,8 +180,10 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             coreLib.placeholderRegistry().unregister(corePlaceholderResolver);
             corePlaceholderResolver = null;
         }
-        if (attributeBridge != null) {
-            attributeBridge.unregister();
+        closeAttributeBridge();
+        if (expSourceRegistry != null) {
+            expSourceRegistry.close();
+            expSourceRegistry = null;
         }
         if (mythicDropBridge != null) {
             HandlerList.unregisterAll(mythicDropBridge);
@@ -408,6 +217,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     }
 
     public void reloadPluginState() {
+        closeAttributeBridge();
         appConfig = AppConfig.parse(YamlFiles.load(getDataFolder().toPath().resolve("config.yml").toFile()));
         messages.load(appConfig.language());
         debugLanguageLoader.load();
@@ -423,10 +233,8 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         experienceRuleService.config(appConfig);
         experienceRuleService.clearExpired();
         levelService.config(appConfig);
-        if (attributeBridge != null) {
-            attributeBridge.config(appConfig);
-        }
         dataStore.ensureTypesForCached(typeRegistry.asMap());
+        registerAttributeBridge();
         for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
             playerDataListener.ensureSession(player);
         }
@@ -495,7 +303,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         experienceRuleService = new LevelExperienceRuleService();
         experienceRuleService.config(appConfig);
         antiAbuseService = new LevelAntiAbuseService(appConfig);
-        attributeBridge = new LevelAttributeBridge(this, typeRegistry, dataStore, appConfig);
+        expSourceRegistry = new ExpSourceProviderRegistry(this);
         topService = new LevelTopService(dataStore, typeRegistry);
         levelService = new PlayerLevelService(
                 this,
@@ -510,8 +318,8 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 executionDispatcher,
                 threadOwnership,
                 appConfig,
-                () -> attributeBridge.resyncAll(),
-                player -> attributeBridge.resync(player),
+                this::resyncAllAttributes,
+                this::resyncAttributes,
                 data -> topService.update(data)
         );
         playerDataListener = new PlayerDataListener(this, executionDispatcher);
@@ -532,11 +340,13 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(playerDataListener, this);
+        getServer().getPluginManager().registerEvents(expSourceRegistry, this);
         gameplaySubscriber = new LevelGameplaySubscriber(this);
         gameplaySubscriber.subscribe(coreLib.eventBus());
     }
 
     private void registerApi() {
+        levelApiBridge = new DefaultEmakiLevelApi(this);
         EmakiLevelApi.install(levelApiBridge);
     }
 
@@ -566,11 +376,53 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     }
 
     private void registerAttributeBridge() {
-        if (attributeBridge.register()) {
+        closeAttributeBridge();
+        if (!appConfig.attributeEnabled()) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("EmakiAttribute")) {
+            messages.info("console.attribute_bridge_unavailable");
+            return;
+        }
+        try {
+            LevelAttributeBridge bridge = new LevelAttributeBridge(
+                    this,
+                    typeRegistry,
+                    dataStore,
+                    executionDispatcher,
+                    threadOwnership,
+                    appConfig);
+            if (!bridge.register()) {
+                bridge.close();
+                messages.info("console.attribute_bridge_unavailable");
+                return;
+            }
+            attributeBridgeClose = bridge::close;
+            attributeRefreshAll = bridge::resyncAll;
+            attributeRefreshPlayer = bridge::resync;
             messages.info("console.attribute_bridge_ready");
-        } else if (appConfig.attributeEnabled()) {
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiAttribute bridge skipped: " + exception.getMessage());
             messages.info("console.attribute_bridge_unavailable");
         }
+    }
+
+    private void closeAttributeBridge() {
+        attributeBridgeClose.run();
+        attributeBridgeClose = () -> {
+        };
+        attributeRefreshAll = () -> {
+        };
+        attributeRefreshPlayer = player -> {
+        };
+    }
+
+    private void resyncAllAttributes() {
+        attributeRefreshAll.run();
+    }
+
+    private void resyncAttributes(Player player) {
+        attributeRefreshPlayer.accept(player);
     }
 
     private void registerMythicDrops() {
@@ -580,32 +432,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         mythicDropBridge = new MythicLevelDropBridge(this);
         getServer().getPluginManager().registerEvents(mythicDropBridge, this);
         messages.info("console.mythic_drops_registered");
-    }
-
-    private PlayerLevelEntry entry(UUID uuid, String typeId) {
-        if (uuid == null) {
-            return null;
-        }
-        PlayerLevelData data = dataStore.cached(uuid);
-        return data == null ? null : data.entry(emaki.jiuwu.craft.corelib.text.Texts.normalizeId(typeId));
-    }
-
-    private LevelTypeView view(LevelTypeConfig type) {
-        return new LevelTypeView(type.id(), type.displayName(), type.description(), type.primary(), type.enabled(), type.startLevel(), type.maxLevel(), type.upgrade().autoUpgrade(), type.upgrade().manualUpgrade(), type.attributes());
-    }
-
-    private PlayerLevelView playerView(PlayerLevelData data) {
-        Map<String, PlayerLevelEntryView> entries = new LinkedHashMap<>();
-        for (LevelTypeConfig type : typeRegistry.all()) {
-            PlayerLevelEntry entry = data.entry(type.id());
-            if (entry == null) {
-                continue;
-            }
-            double required = requirementService.requiredExp(type, entry, Math.min(type.maxLevel(), entry.level() + 1));
-            double progress = required <= 0D ? 1D : Math.min(1D, entry.exp() / required);
-            entries.put(type.id(), new PlayerLevelEntryView(type.id(), entry.level(), entry.exp(), entry.totalExp(), required, progress));
-        }
-        return new PlayerLevelView(data.uuid(), data.name(), entries);
     }
 
     public AppConfig appConfig() {
@@ -647,6 +473,14 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
     public PlayerLevelService levelService() {
         return levelService;
+    }
+
+    public LevelExperienceRuleService experienceRuleService() {
+        return experienceRuleService;
+    }
+
+    public ExpSourceProviderRegistry expSourceRegistry() {
+        return expSourceRegistry;
     }
 
     public EmakiCoreLibPlugin coreLib() {

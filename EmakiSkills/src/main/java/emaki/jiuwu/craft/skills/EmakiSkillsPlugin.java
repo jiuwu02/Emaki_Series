@@ -126,12 +126,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private DefaultTriggerDispatcher triggerDispatcher;
     private PassiveTriggerDispatcher passiveTriggerDispatcher;
     private PassiveTriggerSource passiveTriggerSource;
-    private final EmakiSkillsApi.Bridge skillsApiBridge = new EmakiSkillsApi.Bridge() {
-        @Override
-        public SkillScriptActionRegistry scriptActionRegistry() {
-            return skillScriptActionRegistry;
-        }
-    };
+    private final EmakiSkillsApi.Bridge skillsApiBridge =
+            new emaki.jiuwu.craft.skills.apiimpl.DefaultEmakiSkillsApi(this);
 
     public EmakiSkillsPlugin() {
         super(AppConfig::defaults);
@@ -257,6 +253,12 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     private void registerEventHandlers() {
+        if (skillSourceRegistry != null) {
+            getServer().getPluginManager().registerEvents(skillSourceRegistry, this);
+        }
+        if (skillScriptActionRegistry instanceof org.bukkit.event.Listener listener) {
+            getServer().getPluginManager().registerEvents(listener, this);
+        }
         if (guiService != null) {
             getServer().getPluginManager().registerEvents(guiService, this);
         }

@@ -35,27 +35,27 @@ public final class EmakiAttributeSkillsBridge implements SkillsAttributeBridge {
 
     @Override
     public boolean available() {
-        return EmakiAttributeApi.available();
+        return EmakiAttributeApi.status().usable();
     }
 
     @Override
     public double readResourceCurrent(Player player, String resourceId) {
-        return EmakiAttributeApi.readResourceCurrent(player, resourceId);
+        return EmakiAttributeApi.catalog().resourceCurrent(player, resourceId).orElse(-1D);
     }
 
     @Override
     public double readResourceMax(Player player, String resourceId) {
-        return EmakiAttributeApi.readResourceMax(player, resourceId);
+        return EmakiAttributeApi.catalog().resourceMax(player, resourceId).orElse(-1D);
     }
 
     @Override
     public boolean consumeResource(Player player, String resourceId, double amount) {
-        return EmakiAttributeApi.consumeResource(player, resourceId, amount);
+        return EmakiAttributeApi.operations().consumeResource(player, resourceId, amount).isSuccess();
     }
 
     @Override
     public double readAttributeValue(Player player, String attributeId) {
-        return EmakiAttributeApi.readAttributeValue(player, attributeId);
+        return EmakiAttributeApi.catalog().attributeValue(player, attributeId).orElse(0D);
     }
 
     @Override
@@ -64,11 +64,13 @@ public final class EmakiAttributeSkillsBridge implements SkillsAttributeBridge {
             String damageTypeId,
             double baseDamage,
             Map<String, Object> context) {
-        return EmakiAttributeApi.applyDamage(attacker, target, damageTypeId, baseDamage, context);
+        return EmakiAttributeApi.operations()
+                .applyDamage(attacker, target, damageTypeId, baseDamage, context)
+                .isSuccess();
     }
 
     @Override
     public boolean isItemContributionActive(Player player, ItemStack itemStack, String slotName) {
-        return EmakiAttributeApi.isItemContributionActive(player, itemStack, slotName);
+        return EmakiAttributeApi.catalog().isItemContributionActive(player, itemStack, slotName);
     }
 }

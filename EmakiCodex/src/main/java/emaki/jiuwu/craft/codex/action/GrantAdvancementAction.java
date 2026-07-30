@@ -78,8 +78,8 @@ public final class GrantAdvancementAction implements Action {
         if (Texts.isBlank(advancementId)) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, id + " requires an 'advancement' argument.");
         }
-        boolean granted = plugin.advancementService().grant(player, advancementId.trim());
-        if (!granted) {
+        var grantResult = plugin.advancementService().grant(player, advancementId.trim());
+        if (!grantResult.isSuccess()) {
             return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT,
                     "Advancement '" + advancementId + "' is not registered or already completed.");
         }

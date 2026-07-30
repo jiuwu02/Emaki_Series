@@ -8,9 +8,10 @@ import org.jetbrains.annotations.Nullable;
  * Static public API facade for the EmakiForge forging system.
  *
  * <h2>Layout</h2>
- * Capabilities are grouped behind two accessors rather than flattened onto this class:
- * {@link #catalog()} for read-only recipe and material queries, {@link #operations()} for GUI and
- * item-refresh actions. {@link #status()} reports availability.
+ * Capabilities are grouped behind three accessors rather than flattened onto this class:
+ * {@link #catalog()} for read-only recipe, preview, and mastery queries, {@link #operations()} for
+ * forging, GUI, and item-refresh actions, and {@link #extensions()} for third-party extension points.
+ * {@link #status()} reports availability.
  *
  * <h2>Availability</h2>
  * Check {@code status().usable()} before relying on results. The accessors never return {@code null};
@@ -74,12 +75,20 @@ public final class EmakiForgeApi {
     }
 
     /**
-     * {@return GUI and item-refresh operations; never {@code null}, and an implementation that
-     * reports unavailability when EmakiForge is absent}
+     * {@return forging, GUI, and item-refresh operations; never {@code null}, and an implementation
+     * that reports unavailability when EmakiForge is absent}
      */
     public static @NotNull ForgeOperations operations() {
         Bridge resolved = bridge;
         return resolved == null ? UnavailableForge.OPERATIONS : resolved.operations();
+    }
+
+    /**
+     * {@return Forge extension points; never {@code null}}
+     */
+    public static @NotNull ForgeExtensions extensions() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableForge.EXTENSIONS : resolved.extensions();
     }
 
     /**
@@ -99,5 +108,9 @@ public final class EmakiForgeApi {
         /** {@return the write operation layer} */
         @NotNull
         ForgeOperations operations();
+
+        /** {@return the extension layer} */
+        @NotNull
+        ForgeExtensions extensions();
     }
 }

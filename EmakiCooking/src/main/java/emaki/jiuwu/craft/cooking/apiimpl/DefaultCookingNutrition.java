@@ -1,13 +1,13 @@
 package emaki.jiuwu.craft.cooking.apiimpl;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
@@ -22,13 +22,7 @@ import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.service.NutritionService;
 import emaki.jiuwu.craft.cooking.service.NutritionTypeRegistry;
 
-/**
- * {@link CookingNutrition} 的运行时实现。
- *
- * <p>核心职责是拆开 runtime {@code value(...)} 的三态坍缩：runtime 对「未知类型」「玩家无数据」
- * 「真实值为 0」一律返回 {@code 0}，这里分别映射为 {@code NOT_FOUND} 失败、带默认值的
- * {@code Partial}、以及普通成功，使调用方能区分拼错类型与玩家真的没有该营养。
- */
+/** Runtime-backed nutrition API. */
 public final class DefaultCookingNutrition implements CookingNutrition {
 
     private final EmakiCookingPlugin plugin;
@@ -39,47 +33,31 @@ public final class DefaultCookingNutrition implements CookingNutrition {
 
     @Override
     public boolean enabled() {
-        NutritionService service = plugin.nutritionService();
+        NutritionService service = plugin == null || !plugin.publicApiReady()
+                ? null
+                : plugin.nutritionService();
         return service != null && service.enabled();
     }
 
     @Override
-    public @NotNull List<NutritionTypeView> types() {
-        NutritionTypeRegistry registry = plugin.nutritionTypeRegistry();
-        if (registry == null) {
-            return List.of();
-        }
-        return registry.all().stream().map(DefaultCookingNutrition::toTypeView).toList();
-    }
-
-    @Override
-    public @NotNull Optional<NutritionTypeView> type(@Nullable String typeId) {
-        NutritionTypeRegistry registry = plugin.nutritionTypeRegistry();
-        if (registry == null || Texts.isBlank(typeId)) {
-            return Optional.empty();
-        }
-        return registry.type(typeId).map(DefaultCookingNutrition::toTypeView);
-    }
-
-    @Override
-    public @NotNull EmakiResult<Double> value(@Nullable UUID playerId, @Nullable String typeId) {
+    public EmakiResult<Double> value(UUID playerId, String typeId) {
         if (playerId == null) {
-            return EmakiResult.invalidInput("cooking.error.no_player");
+            return EmakiResult.invalidInput("cooking.input.player_id_missing");
         }
         if (Texts.isBlank(typeId)) {
-            return EmakiResult.invalidInput("cooking.error.no_nutrition_type");
+            return EmakiResult.invalidInput("cooking.input.nutrition_type_missing");
         }
-        NutritionService service = plugin.nutritionService();
-        NutritionTypeRegistry registry = plugin.nutritionTypeRegistry();
+        NutritionService service = service();
+        NutritionTypeRegistry registry = registry();
         if (service == null || registry == null) {
             return EmakiResult.unavailable();
         }
         if (!service.enabled()) {
-            return EmakiResult.disabled("cooking.error.nutrition_disabled");
+            return EmakiResult.rejected("cooking.nutrition.disabled");
         }
         Optional<NutritionTypeConfig> type = registry.type(typeId);
         if (type.isEmpty()) {
-            return EmakiResult.notFound("cooking.error.unknown_nutrition_type");
+            return EmakiResult.notFound("cooking.nutrition.type_not_found");
         }
         NutritionTypeConfig config = type.get();
         double resolved = service.value(playerId, config.id());
@@ -89,89 +67,121 @@ public final class DefaultCookingNutrition implements CookingNutrition {
     }
 
     @Override
-    public @NotNull EmakiResult<NutritionChange> add(@Nullable UUID playerId,
-            @Nullable String typeId,
-            double amount) {
+    public EmakiResult<NutritionChange> add(UUID playerId, String typeId, double amount) {
+        if (!Double.isFinite(amount) || amount < 0D) {
+            return EmakiResult.invalidInput("cooking.input.amount_invalid");
+        }
         return applyChange(playerId, typeId, service -> service.add(playerId, typeId, amount));
     }
 
     @Override
-    public @NotNull EmakiResult<NutritionChange> set(@Nullable UUID playerId,
-            @Nullable String typeId,
-            double amount) {
+    public EmakiResult<NutritionChange> remove(UUID playerId, String typeId, double amount) {
+        if (!Double.isFinite(amount) || amount < 0D) {
+            return EmakiResult.invalidInput("cooking.input.amount_invalid");
+        }
+        return applyChange(playerId, typeId, service -> service.remove(playerId, typeId, amount));
+    }
+
+    @Override
+    public EmakiResult<NutritionChange> set(UUID playerId, String typeId, double amount) {
+        if (!Double.isFinite(amount)) {
+            return EmakiResult.invalidInput("cooking.input.amount_invalid");
+        }
         return applyChange(playerId, typeId, service -> service.set(playerId, typeId, amount));
     }
 
     @Override
-    public @NotNull EmakiResult<Unit> applyFood(@Nullable Player player, @Nullable ItemStack itemStack) {
-        if (player == null) {
-            return EmakiResult.invalidInput("cooking.error.no_player");
+    public EmakiResult<Unit> applyFood(Player player, ItemStack itemStack) {
+        EmakiResult<Unit> playerValidation = validateOwnedPlayer(player);
+        if (playerValidation != null) {
+            return playerValidation;
         }
         if (itemStack == null || itemStack.getType().isAir()) {
-            return EmakiResult.invalidInput("cooking.error.no_item");
+            return EmakiResult.invalidInput("cooking.input.item_missing");
         }
-        NutritionService service = plugin.nutritionService();
+        NutritionService service = service();
         if (service == null) {
             return EmakiResult.unavailable();
         }
-        if (!service.enabled()) {
-            return EmakiResult.disabled("cooking.error.nutrition_disabled");
-        }
-        if (!plugin.threadOwnership().isEntityOwned(player)) {
-            return EmakiResult.wrongThread();
-        }
-        return service.applyFood(player, itemStack)
-                ? EmakiResult.ok()
-                : EmakiResult.failure(FailureKind.REJECTED, "cooking.error.no_food_rule_matched");
+        NutritionService.FoodApplyResult result = service.applyFoodDetailed(player, itemStack);
+        return switch (result.status()) {
+            case APPLIED -> EmakiResult.ok();
+            case DISABLED -> EmakiResult.rejected("cooking.nutrition.disabled");
+            case INVALID_INPUT -> EmakiResult.invalidInput("cooking.input.item_invalid");
+            case SOURCE_NOT_FOUND -> EmakiResult.notFound("cooking.nutrition.food_source_not_found");
+            case CANCELLED -> EmakiResult.failure(FailureKind.CANCELLED, "cooking.nutrition.consume_cancelled");
+            case NO_RULE -> EmakiResult.rejected("cooking.nutrition.food_rule_not_found");
+            case DATA_UNAVAILABLE -> EmakiResult.failure(FailureKind.UNAVAILABLE,
+                    "cooking.nutrition.data_not_loaded");
+        };
     }
 
     @Override
-    public @NotNull EmakiResult<Unit> recheckThresholds(@Nullable Player player) {
-        if (player == null) {
-            return EmakiResult.invalidInput("cooking.error.no_player");
+    public EmakiResult<Unit> recheckThresholds(Player player) {
+        EmakiResult<Unit> playerValidation = validateOwnedPlayer(player);
+        if (playerValidation != null) {
+            return playerValidation;
         }
-        NutritionService service = plugin.nutritionService();
+        NutritionService service = service();
         if (service == null) {
             return EmakiResult.unavailable();
         }
         if (!service.enabled()) {
-            return EmakiResult.disabled("cooking.error.nutrition_disabled");
-        }
-        if (!plugin.threadOwnership().isEntityOwned(player)) {
-            return EmakiResult.wrongThread();
+            return EmakiResult.rejected("cooking.nutrition.disabled");
         }
         return service.recheckThresholds(player)
                 ? EmakiResult.ok()
-                : EmakiResult.failure(FailureKind.REJECTED, "cooking.error.nutrition_data_not_loaded");
+                : EmakiResult.failure(FailureKind.UNAVAILABLE, "cooking.nutrition.data_not_loaded");
     }
 
-    /**
-     * 执行一次营养值写入并把 runtime 结果映射为统一契约。
-     *
-     * @param playerId 玩家 id
-     * @param typeId   营养类型 id
-     * @param action   实际写入动作
-     * @return 统一结果
-     */
+    @Override
+    public List<NutritionTypeView> types() {
+        NutritionTypeRegistry registry = registry();
+        if (registry == null) {
+            return List.of();
+        }
+        return registry.all().stream()
+                .sorted(Comparator.comparing(NutritionTypeConfig::id))
+                .map(DefaultCookingNutrition::toTypeView)
+                .toList();
+    }
+
+    @Override
+    public Optional<NutritionTypeView> type(String typeId) {
+        NutritionTypeRegistry registry = registry();
+        if (registry == null || Texts.isBlank(typeId)) {
+            return Optional.empty();
+        }
+        return registry.type(typeId).map(DefaultCookingNutrition::toTypeView);
+    }
+
     private EmakiResult<NutritionChange> applyChange(UUID playerId,
             String typeId,
             java.util.function.Function<NutritionService, NutritionOperationResult> action) {
         if (playerId == null) {
-            return EmakiResult.invalidInput("cooking.error.no_player");
+            return EmakiResult.invalidInput("cooking.input.player_id_missing");
         }
         if (Texts.isBlank(typeId)) {
-            return EmakiResult.invalidInput("cooking.error.no_nutrition_type");
+            return EmakiResult.invalidInput("cooking.input.nutrition_type_missing");
         }
-        NutritionService service = plugin.nutritionService();
-        if (service == null) {
+        NutritionService service = service();
+        NutritionTypeRegistry registry = registry();
+        if (service == null || registry == null) {
             return EmakiResult.unavailable();
         }
         if (!service.enabled()) {
-            return EmakiResult.disabled("cooking.error.nutrition_disabled");
+            return EmakiResult.rejected("cooking.nutrition.disabled");
+        }
+        if (registry.type(typeId).isEmpty()) {
+            return EmakiResult.notFound("cooking.nutrition.type_not_found");
+        }
+        Player online = Bukkit.getPlayer(playerId);
+        if (online != null && online.isOnline() && !plugin.threadOwnership().isEntityOwned(online)) {
+            return EmakiResult.wrongThread();
         }
         NutritionOperationResult result = action.apply(service);
         if (result == null) {
-            return EmakiResult.internalError("cooking.error.nutrition_write_failed");
+            return EmakiResult.internalError("cooking.nutrition.write_failed");
         }
         if (!result.success()) {
             return EmakiResult.failure(toFailureKind(result.reason()), reasonKey(result.reason()));
@@ -179,46 +189,53 @@ public final class DefaultCookingNutrition implements CookingNutrition {
         return EmakiResult.success(new NutritionChange(result.typeId(), result.oldValue(), result.newValue()));
     }
 
-    /**
-     * 把 runtime 的失败原因映射为失败种类。
-     *
-     * @param reason runtime 原因串
-     * @return 失败种类
-     */
+    private EmakiResult<Unit> validateOwnedPlayer(Player player) {
+        if (player == null) {
+            return EmakiResult.invalidInput("cooking.input.player_missing");
+        }
+        if (!player.isOnline()) {
+            return EmakiResult.targetOffline();
+        }
+        if (plugin == null || plugin.threadOwnership() == null) {
+            return EmakiResult.unavailable();
+        }
+        if (!plugin.threadOwnership().isEntityOwned(player)) {
+            return EmakiResult.wrongThread();
+        }
+        return null;
+    }
+
+    private NutritionService service() {
+        return plugin == null || !plugin.isEnabled() || !plugin.publicApiReady()
+                ? null
+                : plugin.nutritionService();
+    }
+
+    private NutritionTypeRegistry registry() {
+        return plugin == null || !plugin.isEnabled() || !plugin.publicApiReady()
+                ? null
+                : plugin.nutritionTypeRegistry();
+    }
+
     private static FailureKind toFailureKind(String reason) {
         return switch (Texts.toStringSafe(reason)) {
             case "no_target" -> FailureKind.INVALID_INPUT;
             case "unknown_type" -> FailureKind.NOT_FOUND;
-            default -> FailureKind.UNAVAILABLE;
+            case "data_unavailable" -> FailureKind.UNAVAILABLE;
+            default -> FailureKind.INTERNAL_ERROR;
         };
     }
 
-    /**
-     * 把 runtime 的失败原因映射为稳定的 reason key。
-     *
-     * @param reason runtime 原因串
-     * @return reason key
-     */
     private static String reasonKey(String reason) {
         return switch (Texts.toStringSafe(reason)) {
-            case "no_target" -> "cooking.error.no_player";
-            case "unknown_type" -> "cooking.error.unknown_nutrition_type";
-            case "data_unavailable" -> "cooking.error.nutrition_data_not_loaded";
-            default -> "cooking.error.nutrition_write_failed";
+            case "no_target" -> "cooking.input.player_id_missing";
+            case "unknown_type" -> "cooking.nutrition.type_not_found";
+            case "data_unavailable" -> "cooking.nutrition.data_not_loaded";
+            default -> "cooking.nutrition.write_failed";
         };
     }
 
-    /**
-     * 把 runtime 的营养类型配置映射为只读视图。
-     *
-     * @param config runtime 配置
-     * @return 只读视图
-     */
     private static NutritionTypeView toTypeView(NutritionTypeConfig config) {
-        return new NutritionTypeView(config.id(),
-                config.displayName(),
-                config.min(),
-                config.max(),
-                config.defaultValue());
+        return new NutritionTypeView(config.id(), config.displayName(), config.min(), config.max(), config.defaultValue());
     }
 }

@@ -4,105 +4,88 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
- * Fired by EmakiGem after an extraction has been fully committed.
+ * Fired after an extraction transaction has reached its terminal journal state.
  *
- * <p>Informational only: the gem layer is written, costs are charged, success actions have run, and the
- * operation journal entry is closed.
+ * <p>The event follows all runtime entry points that commit an extraction, including the public API,
+ * held-item actions, and the gem GUI. It is not emitted while configured success actions are pending.
  *
- * <p>{@link #getReturnedGem()} may be {@code null}: the configured return mode can destroy the gem
- * outright, and a degraded return can hand back a lower level than was inlaid.
- *
- * <h2>Threading</h2>
- * Fired synchronously on the thread that owns the actor.
- *
- * <h2>Coverage</h2>
- * Fired only by {@code GemOperations.extract}. EmakiGem's GUI and held-item action paths do not fire it.
- *
- * @see GemExtractEvent
+ * <p><strong>Thread:</strong> the player's entity-owner thread. The event is synchronous and read-only.
  */
+@ApiStatus.Experimental
 public final class GemExtractCompletedEvent extends Event {
 
     private static final HandlerList HANDLERS = new HandlerList();
 
-    private final Player actor;
-    private final ItemStack equipment;
+    private final String operationId;
+    private final Player player;
+    private final ItemStack finalEquipment;
     private final ItemStack returnedGem;
     private final int slotIndex;
     private final String gemId;
     private final int gemLevel;
     private final String returnMode;
 
-    /**
-     * Creates an extraction completed event.
-     *
-     * @param actor       the player who performed the extraction
-     * @param equipment   the equipment after the gem was removed
-     * @param returnedGem the gem item handed back, or {@code null} when the return mode destroyed it
-     * @param slotIndex   the socket slot the gem was taken from
-     * @param gemId       the gem definition id
-     * @param gemLevel    the gem level before any degradation
-     * @param returnMode  the configured return mode that produced this outcome
-     */
-    public GemExtractCompletedEvent(Player actor,
-            ItemStack equipment,
-            ItemStack returnedGem,
-            int slotIndex,
-            String gemId,
-            int gemLevel,
-            String returnMode) {
-        this.actor = actor;
-        this.equipment = equipment;
+    public GemExtractCompletedEvent(@NotNull String operationId,
+                                    @NotNull Player player,
+                                    @NotNull ItemStack finalEquipment,
+                                    @Nullable ItemStack returnedGem,
+                                    int slotIndex,
+                                    @NotNull String gemId,
+                                    int gemLevel,
+                                    @NotNull String returnMode) {
+        this.operationId = operationId;
+        this.player = player;
+        this.finalEquipment = finalEquipment;
         this.returnedGem = returnedGem;
         this.slotIndex = slotIndex;
         this.gemId = gemId;
-        this.gemLevel = gemLevel;
+        this.gemLevel = Math.max(1, gemLevel);
         this.returnMode = returnMode;
     }
 
-    /** {@return the player who performed the extraction} */
-    public Player getActor() {
-        return actor;
+    public @NotNull String getOperationId() {
+        return operationId;
     }
 
-    /** {@return the equipment after the gem was removed} */
-    public ItemStack getEquipment() {
-        return equipment;
+    public @NotNull Player getPlayer() {
+        return player;
     }
 
-    /** {@return the gem item handed back, or {@code null} when the return mode destroyed it} */
-    public ItemStack getReturnedGem() {
+    public @NotNull ItemStack getFinalEquipment() {
+        return finalEquipment;
+    }
+
+    public @Nullable ItemStack getReturnedGem() {
         return returnedGem;
     }
 
-    /** {@return the socket slot the gem was taken from} */
     public int getSlotIndex() {
         return slotIndex;
     }
 
-    /** {@return the gem definition id} */
-    public String getGemId() {
+    public @NotNull String getGemId() {
         return gemId;
     }
 
-    /** {@return the gem level before any degradation} */
     public int getGemLevel() {
         return gemLevel;
     }
 
-    /** {@return the configured return mode that produced this outcome} */
-    public String getReturnMode() {
+    public @NotNull String getReturnMode() {
         return returnMode;
     }
 
     @Override
-    public HandlerList getHandlers() {
+    public @NotNull HandlerList getHandlers() {
         return HANDLERS;
     }
 
-    /** {@return the shared handler list for this event type} */
-    public static HandlerList getHandlerList() {
+    public static @NotNull HandlerList getHandlerList() {
         return HANDLERS;
     }
 }

@@ -1,24 +1,18 @@
 /**
- * Immutable value objects returned by the EmakiCooking API.
+ * Stable immutable value objects for EmakiCooking.
  *
- * <h2>Stability</h2>
- * Stable. Every type normalises its reference components in the canonical constructor, so no accessor
- * returns {@code null} except where explicitly annotated {@link org.jetbrains.annotations.Nullable}.
+ * <h2>Station semantics</h2>
+ * {@link emaki.jiuwu.craft.cooking.api.model.CookingStationType} contains exactly the seven runtime
+ * station kinds. Snapshot readings that a station does not track use {@code OptionalInt.empty()} rather
+ * than a fake zero. Unknown runtime station identifiers fail mapping; they never fall back to WOK.
  *
- * <h2>Sparse station readings</h2>
- * EmakiCooking stores all seven station kinds in one wide structure where each kind fills only the
- * fields it uses and leaves the rest at zero, which makes a raw {@code 0} ambiguous: an oven at zero
- * heat and a chopping board that has no concept of heat look identical.
- * {@link emaki.jiuwu.craft.cooking.api.model.CookingStationView} therefore exposes heat, moisture,
- * steam, and fluid volume as {@link java.util.OptionalInt}, present only when the station kind actually
- * tracks that reading.
- *
- * <h2>Station identity</h2>
- * Persist {@link emaki.jiuwu.craft.cooking.api.model.CookingStationType#configKey()} rather than
- * {@code name()}. The config key is what appears in configuration files and in the {@code stationType}
- * field of EmakiCooking's events.
+ * <h2>Result semantics</h2>
+ * Nutrition value zero and completion-condition false are legitimate payloads inside
+ * {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult}, distinct from unavailable/not-found
+ * failures. A partial output construction carries the items that were actually created.
  *
  * <h2>Threading</h2>
- * All types are safe to read from any thread.
+ * These immutable values are safe to read from any thread. Contained Bukkit objects remain subject to
+ * Bukkit/Paper/Folia ownership rules.
  */
 package emaki.jiuwu.craft.cooking.api.model;

@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.level.api.event.PlayerExpGainEvent;
 import emaki.jiuwu.craft.level.api.event.PlayerLevelChangeEvent;
 import emaki.jiuwu.craft.level.api.event.PlayerLevelUpEvent;
 import emaki.jiuwu.craft.level.api.event.PlayerMaxLevelReachedEvent;
+import emaki.jiuwu.craft.level.api.event.PlayerPreLevelUpEvent;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.LevelFailureReason;
@@ -107,29 +108,39 @@ public final class PlayerLevelService {
         if (!type.enabled()) {
             return failure(LevelFailureReason.TYPE_DISABLED, LevelOperationType.ADD_EXP, type.id());
         }
-        LevelExperienceRuleService.LevelExperienceAdjustment adjustment = experienceRuleService.adjust(uuid, type.id(), amount, reason);
-        if (adjustment.actualAmount() <= 0D) {
-            String failureReason = LevelFailureReason.DAILY_CAP_REACHED.equals(adjustment.reason())
+        LevelExperienceRuleService.LevelExperienceAdjustment preview = experienceRuleService.preview(
+                uuid, type.id(), amount, reason);
+        if (preview.actualAmount() <= 0D) {
+            String failureReason = LevelFailureReason.DAILY_CAP_REACHED.equals(preview.reason())
                     ? LevelFailureReason.DAILY_CAP_REACHED
                     : LevelFailureReason.INVALID_AMOUNT;
-            return failure(failureReason, LevelOperationType.ADD_EXP, type.id()).withData(adjustment.data());
+            return failure(failureReason, LevelOperationType.ADD_EXP, type.id()).withData(preview.data());
         }
-        double adjustedAmount = adjustment.actualAmount();
+        double previewAmount = preview.actualAmount();
         LevelOperationResult result = dataStore.mutate(uuid, typeRegistry.asMap(), data -> {
             PlayerLevelEntry entry = data.entry(type.id());
             int oldLevel = entry.level();
             double oldExp = entry.exp();
-            double appliedAmount = adjustedAmount;
+            double approvedAmount = previewAmount;
             Player player = Bukkit.getPlayer(uuid);
 
             if (ownsPlayer(player)) {
-                PlayerExpGainEvent gainEvent = new PlayerExpGainEvent(player, type.id(), oldLevel, oldExp, appliedAmount, reason);
+                PlayerExpGainEvent gainEvent = new PlayerExpGainEvent(
+                        player, type.id(), oldLevel, oldExp, approvedAmount, reason);
                 Bukkit.getPluginManager().callEvent(gainEvent);
                 if (gainEvent.isCancelled() || gainEvent.getAmount() <= 0D) {
-                    return failure(LevelFailureReason.INVALID_AMOUNT, LevelOperationType.ADD_EXP, type.id()).withData(adjustment.data());
+                    return failure(LevelFailureReason.EVENT_CANCELLED, LevelOperationType.ADD_EXP, type.id())
+                            .withData(preview.data());
                 }
-                appliedAmount = gainEvent.getAmount();
+                approvedAmount = gainEvent.getAmount();
             }
+            LevelExperienceRuleService.LevelExperienceAdjustment recorded = experienceRuleService.record(
+                    uuid, type.id(), approvedAmount, preview);
+            if (recorded.actualAmount() <= 0D) {
+                return failure(LevelFailureReason.DAILY_CAP_REACHED, LevelOperationType.ADD_EXP, type.id())
+                        .withData(recorded.data());
+            }
+            double appliedAmount = recorded.actualAmount();
             if (entry.level() >= type.maxLevel()) {
                 if (config.keepTotalExpAtMaxLevel()) {
                     entry.totalExp(entry.totalExp() + appliedAmount);
@@ -137,12 +148,24 @@ public final class PlayerLevelService {
                 }
                 sync(uuid, type, entry);
                 publishDataChange(data);
-                return LevelOperationResult.success(LevelOperationType.ADD_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), appliedAmount).withData(adjustment.data());
+                return LevelOperationResult.success(
+                        LevelOperationType.ADD_EXP,
+                        type.id(),
+                        oldLevel,
+                        entry.level(),
+                        oldExp,
+                        entry.exp(),
+                        appliedAmount).withData(recorded.data());
             }
             entry.exp(entry.exp() + appliedAmount);
             entry.totalExp(entry.totalExp() + appliedAmount);
             data.markDirty();
-            executeActions(player, type, "gain", placeholders(type, entry, oldLevel, oldExp, appliedAmount, reason));
+            executeActions(
+                    player,
+                    type,
+                    "gain",
+                    placeholders(type, entry, oldLevel, oldExp, appliedAmount, reason),
+                    silent);
             boolean auto = autoUpgradeOverride == null ? type.upgrade().autoUpgrade() : autoUpgradeOverride;
             if (auto) {
                 int steps = 0;
@@ -160,7 +183,14 @@ public final class PlayerLevelService {
             }
             sync(uuid, type, entry);
             publishDataChange(data);
-            return LevelOperationResult.success(LevelOperationType.ADD_EXP, type.id(), oldLevel, entry.level(), oldExp, entry.exp(), appliedAmount).withData(adjustment.data());
+            return LevelOperationResult.success(
+                    LevelOperationType.ADD_EXP,
+                    type.id(),
+                    oldLevel,
+                    entry.level(),
+                    oldExp,
+                    entry.exp(),
+                    appliedAmount).withData(recorded.data());
         });
         return dataResult(result, LevelOperationType.ADD_EXP, type.id());
     }
@@ -308,33 +338,41 @@ public final class PlayerLevelService {
             return failure(type == null ? LevelFailureReason.TYPE_NOT_FOUND : LevelFailureReason.PLAYER_NOT_FOUND, LevelOperationType.LEVEL_UP, typeId);
         }
         if (!type.upgrade().enabled()) {
-            return levelUpFailure(uuid, type, LevelFailureReason.UPGRADE_DISABLED);
+            return levelUpFailure(uuid, type, LevelFailureReason.UPGRADE_DISABLED, silent);
         }
         if (!fromAuto && !type.upgrade().manualUpgrade()) {
-            return levelUpFailure(uuid, type, LevelFailureReason.MANUAL_UPGRADE_DISABLED);
+            return levelUpFailure(uuid, type, LevelFailureReason.MANUAL_UPGRADE_DISABLED, silent);
         }
         LevelOperationResult result = dataStore.mutate(uuid, typeRegistry.asMap(), data -> {
             PlayerLevelEntry entry = data.entry(type.id());
             if (entry.level() >= type.maxLevel()) {
-                return levelUpFailure(uuid, type, LevelFailureReason.MAX_LEVEL);
+                return levelUpFailure(uuid, type, LevelFailureReason.MAX_LEVEL, silent);
             }
             int targetLevel = entry.level() + 1;
             double requiredExp = requirementService.requiredExp(type, entry, targetLevel);
             if (requiredExp <= 0D) {
-                return levelUpFailure(uuid, type, LevelFailureReason.INVALID_REQUIREMENT);
+                return levelUpFailure(uuid, type, LevelFailureReason.INVALID_REQUIREMENT, silent);
             }
             if (entry.exp() + 1.0E-9D < requiredExp) {
-                return levelUpFailure(uuid, type, LevelFailureReason.NOT_ENOUGH_EXP);
+                return levelUpFailure(uuid, type, LevelFailureReason.NOT_ENOUGH_EXP, silent);
             }
+            int oldLevel = entry.level();
+            double oldExp = entry.exp();
             Player player = Bukkit.getPlayer(uuid);
+            if (ownsPlayer(player)) {
+                PlayerPreLevelUpEvent preEvent = new PlayerPreLevelUpEvent(
+                        player, type.id(), oldLevel, targetLevel, requiredExp, cause);
+                Bukkit.getPluginManager().callEvent(preEvent);
+                if (preEvent.isCancelled()) {
+                    return failure(LevelFailureReason.EVENT_CANCELLED, LevelOperationType.LEVEL_UP, type.id());
+                }
+            }
             String operationId = operationJournal.begin("level_up:" + type.id(), uuid);
             LevelCostTransaction.Result costResult = chargeCost(player, type, targetLevel, operationId);
             if (!costResult.success()) {
                 operationJournal.failedCharge(operationId, costResult);
-                return levelUpFailure(uuid, type, costResult.failureReason());
+                return levelUpFailure(uuid, type, costResult.failureReason(), silent);
             }
-            int oldLevel = entry.level();
-            double oldExp = entry.exp();
             entry.exp(Math.max(0D, entry.exp() - requiredExp));
             entry.level(targetLevel);
             data.markDirty();
@@ -342,7 +380,7 @@ public final class PlayerLevelService {
             giveRewards(player, type, targetLevel);
             Map<String, Object> placeholders = placeholders(type, entry, oldLevel, oldExp, 1D, cause == null ? "levelup" : cause.name().toLowerCase(java.util.Locale.ROOT));
             operationJournal.completeAfterActions(operationId,
-                    executeActions(player, type, "success", placeholders));
+                    executeActions(player, type, "success", placeholders, silent));
             sync(uuid, type, entry);
             publishDataChange(data);
             refreshAttribute(uuid);
@@ -357,13 +395,21 @@ public final class PlayerLevelService {
         return dataResult(result, LevelOperationType.LEVEL_UP, type.id());
     }
 
-    private LevelOperationResult levelUpFailure(UUID uuid, LevelTypeConfig type, String reason) {
+    private LevelOperationResult levelUpFailure(UUID uuid,
+            LevelTypeConfig type,
+            String reason,
+            boolean silent) {
         if (type != null && uuid != null) {
             PlayerLevelData data = dataStore.cached(uuid);
             PlayerLevelEntry entry = data == null ? null : data.entry(type.id());
             if (entry != null) {
                 Player player = Bukkit.getPlayer(uuid);
-                executeActions(player, type, "failure", placeholders(type, entry, entry.level(), entry.exp(), 0D, reason));
+                executeActions(
+                        player,
+                        type,
+                        "failure",
+                        placeholders(type, entry, entry.level(), entry.exp(), 0D, reason),
+                        silent);
             }
         }
         return failure(reason, LevelOperationType.LEVEL_UP, type == null ? "" : type.id());
@@ -478,7 +524,8 @@ public final class PlayerLevelService {
     private CompletionStage<Boolean> executeActions(Player player,
             LevelTypeConfig type,
             String phase,
-            Map<String, Object> placeholders) {
+            Map<String, Object> placeholders,
+            boolean silent) {
         if (type == null) {
             return CompletableFuture.completedFuture(false);
         }
@@ -490,7 +537,7 @@ public final class PlayerLevelService {
             plugin.getLogger().warning("EmakiLevel action phase '" + phase + "' failed: action executor unavailable");
             return CompletableFuture.completedFuture(false);
         }
-        ActionContext context = ActionContext.create(plugin, player, phase, false).withPlaceholders(placeholders);
+        ActionContext context = ActionContext.create(plugin, player, phase, silent).withPlaceholders(placeholders);
         return actionExecutor.executeAll(context, lines, true).handle((result, throwable) -> {
             if (throwable != null) {
                 plugin.getLogger().warning("EmakiLevel action phase '" + phase + "' failed: " + throwable.getMessage());

@@ -9,11 +9,15 @@
  * player's region thread, so listeners may touch the player and nearby blocks directly.
  *
  * <h2>Coverage</h2>
- * Only the GUI forging path fires these events. Neither is an exhaustive audit trail:
- * {@link emaki.jiuwu.craft.forge.api.event.ForgeStartEvent} is skipped when the owner thread is
+ * Both GUI forging and public {@code forgeAsync} fire these events. Neither is an exhaustive audit
+ * trail: {@link emaki.jiuwu.craft.forge.api.event.ForgeStartEvent} is skipped when the owner thread is
  * unavailable or the runtime generation has changed, and
  * {@link emaki.jiuwu.craft.forge.api.event.ForgeCompletedEvent} is additionally skipped for stale
  * sessions, rejected completion tasks during shutdown, and unexpected execution errors.
+ *
+ * <h2>Degradation</h2>
+ * When EmakiForge is unavailable, neither event is emitted and facade operations return
+ * {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult#unavailable()}.
  *
  * <h2>Do not shade</h2>
  * Bukkit registers listeners by {@code Class} identity. If you shade

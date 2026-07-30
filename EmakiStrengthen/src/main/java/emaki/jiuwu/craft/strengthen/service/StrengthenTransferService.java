@@ -4,11 +4,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.api.event.StrengthenTransferCompletedEvent;
 import emaki.jiuwu.craft.strengthen.api.event.StrengthenTransferEvent;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
 
 public final class StrengthenTransferService {
 
@@ -43,6 +44,9 @@ public final class StrengthenTransferService {
         if (source == null || source.getType().isAir() || target == null || target.getType().isAir()) {
             return TransferResult.failure("strengthen.transfer.invalid_items");
         }
+        if (plugin.threadOwnership() == null || !plugin.threadOwnership().isEntityOwned(player)) {
+            return TransferResult.failure("strengthen.transfer.wrong_thread");
+        }
 
         StrengthenState sourceState = attemptService.readState(source);
         if (!sourceState.hasLayer() || sourceState.currentStar() <= 0) {
@@ -62,17 +66,14 @@ public final class StrengthenTransferService {
         int transferredStar = (int) Math.floor(sourceStar * request.decayRate());
         transferredStar = Numbers.clamp(transferredStar, 0, targetRecipe.limits().maxStar());
 
-
-        if (plugin.threadOwnership().isEntityOwned(player)) {
-            StrengthenTransferEvent transferEvent = new StrengthenTransferEvent(
-                    player, source, target, targetState.recipeId(), sourceStar, transferredStar, request.decayRate());
-            org.bukkit.Bukkit.getPluginManager().callEvent(transferEvent);
-            if (transferEvent.isCancelled()) {
-                return TransferResult.failure("strengthen.transfer.cancelled");
-            }
-
-            transferredStar = Numbers.clamp(transferEvent.getTransferredStar(), 0, targetRecipe.limits().maxStar());
+        StrengthenTransferEvent transferEvent = new StrengthenTransferEvent(
+                player, source, target, targetState.recipeId(), sourceStar, transferredStar, request.decayRate());
+        org.bukkit.Bukkit.getPluginManager().callEvent(transferEvent);
+        if (transferEvent.isCancelled()) {
+            return TransferResult.failure("strengthen.transfer.cancelled");
         }
+
+        transferredStar = Numbers.clamp(transferEvent.getTransferredStar(), 0, targetRecipe.limits().maxStar());
 
         if (transferredStar <= 0) {
             return TransferResult.failure("strengthen.transfer.star_too_low");
@@ -87,6 +88,19 @@ public final class StrengthenTransferService {
             return TransferResult.failure("strengthen.transfer.rebuild_failed");
         }
 
-        return new TransferResult(true, "", result, transferredStar);
+        StrengthenTransferOutcome outcome = new StrengthenTransferOutcome(result, transferredStar);
+        try {
+            org.bukkit.Bukkit.getPluginManager().callEvent(new StrengthenTransferCompletedEvent(
+                    player,
+                    source,
+                    target,
+                    targetState.recipeId(),
+                    sourceStar,
+                    request.decayRate(),
+                    outcome));
+        } catch (RuntimeException | LinkageError exception) {
+            plugin.getLogger().warning("Strengthen transfer result event dispatch failed: " + exception.getMessage());
+        }
+        return new TransferResult(true, "", outcome.resultItem(), outcome.transferredStar());
     }
 }

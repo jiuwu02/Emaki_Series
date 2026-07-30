@@ -4,7 +4,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
-import emaki.jiuwu.craft.attribute.api.EmakiAttributeDamageEvent;
+import emaki.jiuwu.craft.attribute.api.event.EmakiAttributeDamageEvent;
 import emaki.jiuwu.craft.attribute.config.DamageIndicatorConfig;
 import emaki.jiuwu.craft.attribute.service.DamageIndicatorService;
 

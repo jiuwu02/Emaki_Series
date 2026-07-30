@@ -33,7 +33,7 @@ public final class AppConfig extends BaseAppConfig {
             boolean mythicEnabled,
             boolean mythicDropsEnabled,
             List<String> mythicDropNames) {
-        super(language, configVersion, "2.5.19");
+        super(language, configVersion, "2.6.7");
         this.releaseDefaultData = releaseDefaultData;
         this.directories = directories == null ? ItemDirectoryConfig.defaults() : directories;
         this.setBonus = setBonus == null ? SetBonusConfig.defaults() : setBonus;
@@ -45,7 +45,7 @@ public final class AppConfig extends BaseAppConfig {
     }
 
     public static AppConfig defaults() {
-        return new AppConfig("zh_CN", "2.5.19", true, ItemDirectoryConfig.defaults(), SetBonusConfig.defaults(),
+        return new AppConfig("zh_CN", "2.6.7", true, ItemDirectoryConfig.defaults(), SetBonusConfig.defaults(),
                 true, true, DEFAULT_MYTHIC_DROP_NAMES);
     }
 

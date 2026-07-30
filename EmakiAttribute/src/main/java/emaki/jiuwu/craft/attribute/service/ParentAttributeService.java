@@ -9,8 +9,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.api.PlayerAttributePointAllocateEvent;
-import emaki.jiuwu.craft.attribute.api.PlayerAttributePointResetEvent;
+import emaki.jiuwu.craft.attribute.api.event.PlayerAttributePointAllocateEvent;
+import emaki.jiuwu.craft.attribute.api.event.PlayerAttributePointResetEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -212,8 +212,8 @@ public final class ParentAttributeService {
     /**
      * Fires the public allocation event when the caller owns the player's thread.
      *
-     * @return the amount to allocate, or {@code 0} when cancelled. Off-thread
-     *         callers proceed with {@code requestedAmount} without firing.
+     * @return the amount to allocate, or {@code 0} when cancelled or invoked
+     *         without ownership of the player's entity thread.
      */
     private int fireAllocateEvent(Player player,
             AttributeDefinition definition,
@@ -221,7 +221,7 @@ public final class ParentAttributeService {
             int requestedAmount) {
         ThreadOwnership threadOwnership = plugin.threadOwnership();
         if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
-            return requestedAmount;
+            return 0;
         }
         PlayerAttributePointAllocateEvent event = new PlayerAttributePointAllocateEvent(
                 player,
@@ -237,7 +237,7 @@ public final class ParentAttributeService {
      * Fires the public reset event when the caller owns the player's thread.
      *
      * @return {@code true} to proceed with the reset, {@code false} when
-     *         cancelled. Off-thread callers proceed without firing.
+     *         cancelled or invoked without ownership of the player's entity thread.
      */
     private boolean fireResetEvent(Player player,
             ParentAttributeData data,
@@ -245,7 +245,7 @@ public final class ParentAttributeService {
             boolean consumeResetPoint) {
         ThreadOwnership threadOwnership = plugin.threadOwnership();
         if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
-            return true;
+            return false;
         }
         PlayerAttributePointResetEvent event = new PlayerAttributePointResetEvent(
                 player,

@@ -7,8 +7,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
-import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
-import emaki.jiuwu.craft.attribute.model.PdcAttributePayload;
+import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
+import emaki.jiuwu.craft.attribute.api.model.PdcAttributePayload;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 
 /**
@@ -42,18 +42,19 @@ public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
 
     @Override
     public boolean available() {
-        return PdcAttributeApi.available();
+        return EmakiAttributeApi.status().usable();
     }
 
     @Override
     public void syncRegistration(String sourceId) {
         String next = normalize(sourceId);
         String previous = normalize(registeredSourceId);
+        PdcAttributeAccess pdc = pdc();
         if (!previous.isEmpty() && !previous.equals(next)) {
-            PdcAttributeApi.unregisterSource(previous);
+            pdc.unregisterSource(previous);
         }
         if (!next.isEmpty()) {
-            PdcAttributeApi.registerSource(next);
+            pdc.registerSource(next);
         }
         registeredSourceId = next.isEmpty() ? null : next;
     }
@@ -62,7 +63,7 @@ public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
     public void shutdown() {
         String sourceId = normalize(registeredSourceId);
         if (!sourceId.isEmpty()) {
-            PdcAttributeApi.unregisterSource(sourceId);
+            pdc().unregisterSource(sourceId);
         }
         registeredSourceId = null;
     }
@@ -76,10 +77,11 @@ public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
         if (itemStack == null || normalized.isEmpty() || attributes == null || attributes.isEmpty()) {
             return false;
         }
-        if (!PdcAttributeApi.isRegisteredSource(normalized) && !PdcAttributeApi.registerSource(normalized)) {
+        PdcAttributeAccess pdc = pdc();
+        if (!pdc.isRegisteredSource(normalized) && !pdc.registerSource(normalized).isSuccess()) {
             return false;
         }
-        return PdcAttributeApi.write(itemStack, normalized, attributes, meta == null ? Map.of() : meta);
+        return pdc.write(itemStack, normalized, attributes, meta == null ? Map.of() : meta).isSuccess();
     }
 
     @Override
@@ -88,8 +90,9 @@ public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
         if (itemStack == null || normalized.isEmpty()) {
             return false;
         }
-        return PdcAttributeApi.read(itemStack, normalized) != null
-                && PdcAttributeApi.clear(itemStack, normalized);
+        PdcAttributeAccess pdc = pdc();
+        return pdc.read(itemStack, normalized).hasValue()
+                && pdc.clear(itemStack, normalized).isSuccess();
     }
 
     @Override
@@ -111,12 +114,12 @@ public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
 
     @Override
     public void copyPayloads(ItemStack fromItem, ItemStack toItem, Set<String> excludedSourceIds) {
-        PdcAttributeApi.copy(fromItem, toItem, excludedSourceIds);
+        pdc().copy(fromItem, toItem, excludedSourceIds);
     }
 
     @Override
     public void scheduleEquipmentSync(Player player) {
-        EmakiAttributeApi.scheduleEquipmentSync(player);
+        EmakiAttributeApi.operations().scheduleEquipmentSync(player);
     }
 
     private PdcAttributePayload readPayload(ItemStack itemStack, String sourceId) {
@@ -124,7 +127,11 @@ public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
         if (itemStack == null || normalized.isEmpty()) {
             return null;
         }
-        return PdcAttributeApi.read(itemStack, normalized);
+        return pdc().read(itemStack, normalized).orElse(null);
+    }
+
+    private PdcAttributeAccess pdc() {
+        return EmakiAttributeApi.extensions().pdc();
     }
 
     private String normalize(String sourceId) {

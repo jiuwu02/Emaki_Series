@@ -11,7 +11,7 @@ import org.bukkit.event.HandlerList;
  * level change (or failure penalty such as a downgrade) has already been
  * applied, so the result cannot be changed by listeners. It is suitable for
  * statistics, announcements and downstream effects. This event is fired on the
- * server thread.
+ * player's owner thread.
  */
 public final class SkillUpgradeEvent extends Event {
 

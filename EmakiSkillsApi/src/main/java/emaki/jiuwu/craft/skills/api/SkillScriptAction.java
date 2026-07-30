@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.skills.api;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -103,42 +102,17 @@ public interface SkillScriptAction {
     CompletableFuture<SkillActionResult> execute(SkillScriptContext context, Map<String, String> arguments);
 
     /**
-     * Adapts the legacy {@link #execute(SkillScriptContext, Map)} contract to a
-     * general completion stage.
+     * Cancellation-aware execution hook used by the runtime.
      *
-     * <p>This default invokes {@code execute(...)} inline on the caller's current
-     * scheduler thread and returns the exact future supplied by the implementation;
-     * it does not create a worker task or add delay. A {@code null} future becomes
-     * an already-completed failure result and a thrown exception becomes a failed
-     * stage. The runtime chooses the invocation domain from {@link #executionMode()}
-     * and applies {@link #timeoutMillis()} while awaiting the returned stage.</p>
-     *
-     * @param context the skill-script execution context
-     * @param arguments the resolved argument map
-     * @return a non-null completion stage, which may already be complete
+     * <p>This is intentionally not named {@code executeAsync}: the method does not offload work. The runtime
+     * invokes it on the scheduler domain selected by {@link #executionMode()}, and the returned future only
+     * describes when that work finishes. Implementations with long-lived scheduled work should override this
+     * hook and observe the token before committing late effects.
      */
-    default CompletionStage<SkillActionResult> executeAsync(SkillScriptContext context,
-            Map<String, String> arguments) {
-        try {
-            CompletableFuture<SkillActionResult> future = execute(context, arguments);
-            return future == null
-                    ? CompletableFuture.completedFuture(SkillActionResult.failure(
-                            SkillActionErrorType.EXECUTION_EXCEPTION,
-                            "Skill action returned a null future."))
-                    : future;
-        } catch (Throwable throwable) {
-            return CompletableFuture.failedFuture(throwable);
-        }
-    }
-
-    /**
-     * Cancellation-aware execution hook used by the runtime. Existing actions remain
-     * source and binary compatible through the default delegation.
-     */
-    default CompletionStage<SkillActionResult> executeAsync(SkillScriptContext context,
+    default CompletableFuture<SkillActionResult> execute(SkillScriptContext context,
             Map<String, String> arguments,
             CancellationToken cancellationToken) {
-        return executeAsync(context, arguments);
+        return execute(context, arguments);
     }
 
     /** Cooperative token that is cancelled before a timed-out action may commit late work. */

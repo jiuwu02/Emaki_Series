@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
-import emaki.jiuwu.craft.attribute.model.DamageContext;
-import emaki.jiuwu.craft.attribute.model.DamageResult;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageTraceRecord;
 import emaki.jiuwu.craft.attribute.model.DamageTraceStageRecord;

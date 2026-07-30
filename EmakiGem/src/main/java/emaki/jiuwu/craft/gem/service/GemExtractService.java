@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.gem.service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.entity.Player;
@@ -15,6 +16,7 @@ import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.api.event.GemExtractCompletedEvent;
 import emaki.jiuwu.craft.gem.api.event.GemExtractEvent;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
@@ -41,6 +43,7 @@ public final class GemExtractService {
     private static final String OPERATION_NAMESPACE = "gem";
 
     private final EmakiGemPlugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
     private final GemItemMatcher itemMatcher;
     private final GemItemFactory itemFactory;
@@ -59,6 +62,7 @@ public final class GemExtractService {
             ExecutionDispatcher executionDispatcher,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
         this.itemMatcher = itemMatcher;
         this.itemFactory = itemFactory;
@@ -92,15 +96,16 @@ public final class GemExtractService {
             return Result.failure("gem.error.condition_not_met", Map.of());
         }
 
+        String operationId = UUID.randomUUID().toString();
         if (threadOwnership.isEntityOwned(target)) {
-            GemExtractEvent extractEvent = new GemExtractEvent(target, equipment, slotIndex,
+            GemExtractEvent extractEvent = new GemExtractEvent(operationId, target, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
             org.bukkit.Bukkit.getPluginManager().callEvent(extractEvent);
             if (extractEvent.isCancelled()) {
-                return Result.failure("gem.error.condition_not_met", Map.of());
+                return Result.failure("gem.operation.cancelled", Map.of());
             }
         }
-        String operationId = operationJournal.begin("extract", actor.getUniqueId());
+        operationJournal.begin(operationId, "extract", actor.getUniqueId());
         GemEconomyService.ChargeResult chargeResult = null;
         if (!bypassCost) {
             chargeResult = economyService.charge(actor, gemDefinition.extractCost(), costVariables(gemDefinition, instance.level()));
@@ -134,8 +139,33 @@ public final class GemExtractService {
         placeholders.put("gem", plugin.itemFactory().resolveGemDisplayName(gemDefinition, instance.level()));
         placeholders.put("gem_id", gemDefinition.id());
         operationJournal.completeAfterActions(operationId,
-                actionCoordinator.executeAsync(target, "gem_extract_success", gemDefinition.extractSuccessActions(), placeholders));
+                actionCoordinator.executeAsync(target, "gem_extract_success", gemDefinition.extractSuccessActions(), placeholders))
+                .thenAccept(completed -> {
+                    if (Boolean.TRUE.equals(completed)) {
+                        fireCompletedEvent(target, new GemExtractCompletedEvent(operationId, target, rebuilt, returned,
+                                slotIndex, gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode()));
+                    }
+                });
         return Result.success("command.extract.success", placeholders);
+    }
+
+    private void fireCompletedEvent(Player target, GemExtractCompletedEvent event) {
+        if (target == null || event == null || plugin == null || !plugin.isEnabled()) {
+            return;
+        }
+        Runnable eventCall = () -> org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        if (threadOwnership.isEntityOwned(target)) {
+            eventCall.run();
+            return;
+        }
+        if (!target.isOnline()) {
+            plugin.getLogger().warning("Skipped gem extraction completed event because target is offline: "
+                    + target.getUniqueId());
+            return;
+        }
+        executionDispatcher.runEntity(plugin, target, eventCall,
+                () -> plugin.getLogger().warning("Skipped gem extraction completed event because scheduling retired: "
+                        + target.getUniqueId()));
     }
 
     private ItemStack createReturnedGem(GemDefinition gemDefinition, GemItemInstance instance) {

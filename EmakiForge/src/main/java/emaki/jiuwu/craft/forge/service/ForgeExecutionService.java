@@ -88,6 +88,7 @@ final class ForgeExecutionService {
                                            GuiItems guiItems,
                                            ForgeService.PreparedForge preparedForge,
                                            ValidationResult validation,
+                                           double successRate,
                                            long sessionGeneration,
                                            long runtimeGeneration,
                                            BooleanSupplier deliveryClaim,
@@ -104,7 +105,7 @@ final class ForgeExecutionService {
         }
         return actionCoordinator.executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
                 .thenCompose(preBatch -> callPlayerOwnerAsync(player, sessionGeneration, () -> prepareResultActions(
-                        player, recipe, guiItems, preparedForge, sessionGeneration, runtimeGeneration, result, preBatch,
+                        player, recipe, guiItems, preparedForge, successRate, sessionGeneration, runtimeGeneration, result, preBatch,
                         deliveryClaim, deliveryRollback, deliveryCommit)));
     }
 
@@ -112,6 +113,7 @@ final class ForgeExecutionService {
                                                               Recipe recipe,
                                                               GuiItems guiItems,
                                                               ForgeService.PreparedForge preparedForge,
+                                                              double successRate,
                                                               long sessionGeneration,
                                                               long runtimeGeneration,
                                                               ForgeResult result,
@@ -127,12 +129,15 @@ final class ForgeExecutionService {
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
                     result.actionFailureReason());
         }
-        if (recipe.hasFailureMechanism()) {
+        double effectiveSuccessRate = Double.isFinite(successRate)
+                ? Math.max(0D, Math.min(100D, successRate))
+                : 0D;
+        if (effectiveSuccessRate < 100D) {
             if (!isRuntimeCurrent(runtimeGeneration)) {
                 return CompletableFuture.completedFuture(staleRuntimeResult());
             }
             double roll = ThreadLocalRandom.current().nextDouble(100D);
-            if (roll >= recipe.successRate()) {
+            if (roll >= effectiveSuccessRate) {
                 ForgeFailureResolver.ForgeFailureResult failureResult = forgeFailureResolver.resolve(recipe, guiItems, player);
                 result.setErrorKey("forge.craft.failed");
                 result.setReplacements(Map.of("outcome_type", failureResult.outcomeType()));

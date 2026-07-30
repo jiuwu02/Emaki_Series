@@ -1,135 +1,56 @@
 package emaki.jiuwu.craft.codex.api;
 
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Static public API facade for the EmakiCodex advancement system.
- *
- * <p>Third-party plugins depend on this API jar (never the implementation jar) and
- * call these static methods. EmakiCodex installs the backing {@link Bridge} during
- * its own lifecycle; when EmakiCodex is absent every method degrades gracefully.
- */
+/** Static public facade for EmakiCodex. Accessors never return {@code null}. */
 public final class EmakiCodexApi {
 
     private static volatile Bridge bridge;
 
-    private EmakiCodexApi() {
-    }
+    private EmakiCodexApi() { }
 
-    /**
-     * Installs the backing bridge. Intended for EmakiCodex's lifecycle only.
-     *
-     * @param bridge the active bridge implementation supplied by EmakiCodex
-     */
+    @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
         EmakiCodexApi.bridge = bridge;
     }
 
-    /**
-     * Removes the backing bridge when it is still the active bridge.
-     *
-     * @param bridge the bridge to remove; ignored when it is not the active bridge
-     */
+    @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
         if (EmakiCodexApi.bridge == bridge) {
             EmakiCodexApi.bridge = null;
         }
     }
 
-    /** {@return whether EmakiCodex has installed its API bridge} */
-    public static boolean available() {
-        return bridge != null;
-    }
-
-    /** {@return the semantic version string of this API, or an empty string when unavailable} */
-    public static @NotNull String apiVersion() {
-        Bridge resolved = bridge;
-        return resolved == null ? "" : resolved.apiVersion();
-    }
-
-    /** {@return the owning plugin's name, or an empty string when unavailable} */
-    public static @NotNull String pluginName() {
-        Bridge resolved = bridge;
-        return resolved == null ? "" : resolved.pluginName();
-    }
-
-    /** {@return whether the plugin has finished initializing and is usable} */
-    public static boolean isReady() {
-        Bridge resolved = bridge;
-        return resolved != null && resolved.isReady();
-    }
-
-    /**
-     * Grants an advancement to an online player by awarding its manual criterion.
-     *
-     * @param player        the target player uuid (must be online)
-     * @param advancementId the advancement id registered by EmakiCodex
-     * @return {@code true} when the criterion was awarded
-     */
-    public static boolean grantAdvancement(@NotNull UUID player, @NotNull String advancementId) {
-        Bridge resolved = bridge;
-        return resolved != null && resolved.grantAdvancement(player, advancementId);
-    }
-
-    /**
-     * Revokes an advancement from an online player.
-     *
-     * @param player        the target player uuid (must be online)
-     * @param advancementId the advancement id registered by EmakiCodex
-     * @return {@code true} when the criterion was revoked
-     */
-    public static boolean revokeAdvancement(@NotNull UUID player, @NotNull String advancementId) {
-        Bridge resolved = bridge;
-        return resolved != null && resolved.revokeAdvancement(player, advancementId);
-    }
-
-    public static @NotNull CompletableFuture<Boolean> grantAdvancementAsync(
-            @NotNull UUID player, @NotNull String advancementId) {
+    public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
         Bridge resolved = bridge;
         return resolved == null
-                ? CompletableFuture.completedFuture(false)
-                : resolved.grantAdvancementAsync(player, advancementId);
+                ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
+                : resolved.status();
     }
 
-    public static @NotNull CompletableFuture<Boolean> revokeAdvancementAsync(
-            @NotNull UUID player, @NotNull String advancementId) {
+    public static @NotNull CodexCatalog catalog() {
         Bridge resolved = bridge;
-        return resolved == null
-                ? CompletableFuture.completedFuture(false)
-                : resolved.revokeAdvancementAsync(player, advancementId);
+        return resolved == null ? UnavailableCodex.CATALOG : resolved.catalog();
     }
 
-    /** Internal bridge installed by EmakiCodex. */
+    public static @NotNull CodexOperations operations() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableCodex.OPERATIONS : resolved.operations();
+    }
+
+    public static @NotNull CodexExtensions extensions() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableCodex.EXTENSIONS : resolved.extensions();
+    }
+
+    /** Bridge contract implemented only by EmakiCodex. */
+    @ApiStatus.NonExtendable
     public interface Bridge {
-        /** {@return the semantic version string of the backing plugin} */
-        @NotNull
-        String apiVersion();
-
-        /** {@return the owning plugin's name} */
-        @NotNull
-        String pluginName();
-
-        /** {@return whether the backing plugin is initialized and usable} */
-        boolean isReady();
-
-        /** Grants an advancement to an online player. */
-        boolean grantAdvancement(@NotNull UUID player, @NotNull String advancementId);
-
-        /** Revokes an advancement from an online player. */
-        boolean revokeAdvancement(@NotNull UUID player, @NotNull String advancementId);
-
-        default @NotNull CompletableFuture<Boolean> grantAdvancementAsync(
-                @NotNull UUID player, @NotNull String advancementId) {
-            return CompletableFuture.completedFuture(grantAdvancement(player, advancementId));
-        }
-
-        default @NotNull CompletableFuture<Boolean> revokeAdvancementAsync(
-                @NotNull UUID player, @NotNull String advancementId) {
-            return CompletableFuture.completedFuture(revokeAdvancement(player, advancementId));
-        }
+        @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status();
+        @NotNull CodexCatalog catalog();
+        @NotNull CodexOperations operations();
+        @NotNull CodexExtensions extensions();
     }
 }

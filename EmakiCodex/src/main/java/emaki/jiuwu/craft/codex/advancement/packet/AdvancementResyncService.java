@@ -179,7 +179,7 @@ public final class AdvancementResyncService {
         AdvancementDefinition definition = node.definition();
         AdvancementPage page = node.page();
 
-        ResourceLocation background = definition.isRoot() && Texts.isNotBlank(page.background())
+        ResourceLocation background = definition.isRoot() && page != null && Texts.isNotBlank(page.background())
                 ? new ResourceLocation(page.background()) : null;
 
         AdvancementDisplay display = new AdvancementDisplay(

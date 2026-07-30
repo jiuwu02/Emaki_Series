@@ -207,7 +207,7 @@ public final class SkillScriptExecutor {
             SkillScriptAction.CancellationToken cancellationToken) {
         SkillActionExecutionMode mode = executionMode(action);
         if (mode != SkillActionExecutionMode.ASYNC_IO) {
-            return action.executeAsync(context, arguments, cancellationToken);
+            return action.execute(context, arguments, cancellationToken);
         }
         if (context == null || context.plugin() == null
                 || context.plugin().coreLib() == null
@@ -221,7 +221,7 @@ public final class SkillScriptExecutor {
                 "skill-action:" + safeActionId(action),
                 AsyncTaskScheduler.TaskPriority.LOW,
                 timeoutMillis(action),
-                () -> action.executeAsync(context, arguments, cancellationToken))
+                () -> action.execute(context, arguments, cancellationToken))
                 .thenCompose(stage -> stage == null
                         ? CompletableFuture.completedFuture(SkillActionResult.failure(
                                 SkillActionErrorType.EXECUTION_EXCEPTION,

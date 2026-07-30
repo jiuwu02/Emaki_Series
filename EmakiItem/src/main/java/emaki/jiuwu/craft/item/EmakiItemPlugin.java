@@ -132,61 +132,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemAttributeBridge pdcAttributeGateway;
     private ItemRepairService repairService;
     private ItemRepairGuiService repairGuiService;
-    private final EmakiItemApi.Bridge itemApiBridge = new EmakiItemApi.Bridge() {
-        @Override
-        public boolean isReady() {
-            return runtimeReady();
-        }
-
-        @Override
-        public boolean exists(String id) {
-            return idResolver != null && idResolver.resolveDefinition(id) != null;
-        }
-
-        @Override
-        public @Nullable ItemStack create(String id, int amount) {
-            return itemFactory == null ? null : itemFactory.create(id, amount);
-        }
-
-        @Override
-        public @Nullable String identify(@Nullable ItemStack itemStack) {
-            return identifier == null ? null : identifier.identify(itemStack);
-        }
-
-        @Override
-        public @NotNull Set<String> definitionIds() {
-            java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
-            if (itemLoader != null) {
-                ids.addAll(itemLoader.all().keySet());
-            }
-            return Set.copyOf(ids);
-        }
-
-        @Override
-        public @Nullable ConfiguredItemDefinition definition(String id) {
-            var definition = idResolver == null ? null : idResolver.resolveDefinition(id);
-            return definition == null ? null : definition.itemDefinition();
-        }
-
-        @Override
-        public @NotNull String displayName(String id) {
-            ItemStack itemStack = create(id, 1);
-            if (itemStack == null) {
-                return "";
-            }
-            String text = ItemTextBridge.effectiveNameText(itemStack);
-            return Texts.isBlank(text) ? MiniMessages.serialize(ItemTextBridge.effectiveName(itemStack)) : text;
-        }
-
-        @Override
-        public @NotNull ItemLayerPreviewRegistration registerLayerPreview(
-                @NotNull Plugin plugin,
-                @NotNull ItemLayerPreviewProvider provider) {
-            return layerPreviewRegistry == null
-                    ? ItemLayerPreviewRegistration.noop()
-                    : layerPreviewRegistry.register(plugin, provider);
-        }
-    };
+    private final EmakiItemApi.Bridge itemApiBridge =
+            new emaki.jiuwu.craft.item.apiimpl.DefaultEmakiItemApi(this);
 
     public EmakiItemPlugin() {
         super(AppConfig::defaults);
@@ -384,7 +331,13 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         });
     }
 
-    private boolean runtimeReady() {
+    /**
+     * {@return whether the item runtime has finished loading and is safe to query}
+     *
+     * <p>Public so the API bridge can report {@code loading} rather than {@code ready} during the window
+     * between plugin enable and definitions becoming available.
+     */
+    public boolean runtimeReady() {
         synchronized (readinessMonitor) {
             return runtimeReady;
         }

@@ -10,8 +10,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.ServicePriority;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -36,14 +34,11 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.action.StrengthenActionRegistrar;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
+import emaki.jiuwu.craft.strengthen.apiimpl.DefaultEmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenItemLayerPreviewLifecycle;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
-import emaki.jiuwu.craft.strengthen.model.AttemptContext;
-import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
-import emaki.jiuwu.craft.strengthen.model.AttemptResult;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.papi.StrengthenPlaceholderExpansion;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
@@ -53,6 +48,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
+import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
 
@@ -98,35 +94,11 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenSnapshotBuilder snapshotBuilder;
     private StrengthenActionCoordinator actionCoordinator;
     private StrengthenAttemptService attemptService;
+    private StrengthenTransferService transferService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
-    private final EmakiStrengthenApi.Bridge strengthenApiBridge = new EmakiStrengthenApi.Bridge() {
-        @Override
-        public boolean canStrengthen(@Nullable ItemStack itemStack) {
-            return attemptService != null && attemptService.canStrengthen(itemStack);
-        }
-
-        @Override
-        public @NotNull StrengthenState readState(@Nullable ItemStack itemStack) {
-            return attemptService.readState(itemStack);
-        }
-
-        @Override
-        public @NotNull AttemptPreview preview(@Nullable Player player, @Nullable AttemptContext context) {
-            return attemptService.preview(player, context);
-        }
-
-        @Override
-        public @NotNull AttemptResult attempt(@Nullable Player player, @Nullable AttemptContext context) {
-            return attemptService.attempt(player, context);
-        }
-
-        @Override
-        public @Nullable ItemStack rebuild(@Nullable ItemStack itemStack) {
-            return attemptService.rebuild(itemStack);
-        }
-    };
+    private EmakiStrengthenApi.Bridge strengthenApiBridge;
 
     public EmakiStrengthenPlugin() {
         super(AppConfig::defaults);
@@ -169,6 +141,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
             coreLib.actionRegistry().unregisterAll(this);
         }
         EmakiStrengthenApi.uninstall(strengthenApiBridge);
+        strengthenApiBridge = null;
         getServer().getServicesManager().unregisterAll(this);
         if (metrics != null) {
             metrics.close();
@@ -213,6 +186,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         snapshotBuilder = components.snapshotBuilder();
         actionCoordinator = components.actionCoordinator();
         attemptService = components.attemptService();
+        transferService = components.transferService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
@@ -221,6 +195,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void registerApi() {
+        strengthenApiBridge = new DefaultEmakiStrengthenApi(this);
         EmakiStrengthenApi.install(strengthenApiBridge);
     }
 
@@ -322,6 +297,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public StrengthenAttemptService attemptService() {
         return attemptService;
+    }
+
+    public StrengthenTransferService transferService() {
+        return transferService;
     }
 
     public StrengthenRefreshService refreshService() {

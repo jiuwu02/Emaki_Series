@@ -49,7 +49,7 @@ public final class EmakiItemSourceResolver implements ItemSourceResolver {
             );
         }
         try {
-            if (!api.isReady()) {
+            if (!api.status().usable()) {
                 return ItemSourceProbe.of(
                         ItemSourceProbeStatus.PROVIDER_NOT_READY,
                         source,
@@ -57,7 +57,7 @@ public final class EmakiItemSourceResolver implements ItemSourceResolver {
                         "EmakiItem is installed but its runtime is not ready."
                 );
             }
-            return api.exists(source.getIdentifier())
+            return api.catalog().exists(source.getIdentifier())
                     ? ItemSourceProbe.ready(source, id())
                     : ItemSourceProbe.of(
                     ItemSourceProbeStatus.SOURCE_NOT_FOUND,
@@ -77,23 +77,29 @@ public final class EmakiItemSourceResolver implements ItemSourceResolver {
         if (!readyForAccess()) {
             return null;
         }
-        String id = api.identify(itemStack);
-        return Texts.isBlank(id) ? null : new ItemSource(ItemSourceType.EMAKIITEM, id);
+        String definitionId = api.catalog().identify(itemStack).orElse(null);
+        return Texts.isBlank(definitionId) ? null : new ItemSource(ItemSourceType.EMAKIITEM, definitionId);
     }
 
     @Override
     public ItemStack create(ItemSource source, int amount) {
-        return supports(source) && readyForAccess() ? api.create(source.getIdentifier(), amount) : null;
+        if (!supports(source) || !readyForAccess()) {
+            return null;
+        }
+        return api.operations().create(source.getIdentifier(), amount).orElse(null);
     }
 
     @Override
     public String displayName(ItemSource source) {
-        return supports(source) && readyForAccess() ? api.displayName(source.getIdentifier()) : null;
+        if (!supports(source) || !readyForAccess()) {
+            return null;
+        }
+        return api.catalog().displayName(source.getIdentifier()).orElse(null);
     }
 
     private boolean readyForAccess() {
         try {
-            return api.isReady();
+            return api.status().usable();
         } catch (LinkageError | RuntimeException ignored) {
             return false;
         }

@@ -14,8 +14,8 @@ import org.bukkit.inventory.ItemStack;
  * {@code PlayerItemConsumeEvent}, MMOItems and NeigeItems). Listeners may
  * inspect the player, the consumed item and the resolved item source, and
  * cancel the event to prevent EmakiCooking from applying the matched nutrition
- * and running the food source actions. This event is fired on the server
- * thread.
+ * and running the food source actions. This synchronous event is fired on the consuming player's
+ * entity-owner thread.
  */
 public final class PlayerNutritionConsumeEvent extends Event implements Cancellable {
 

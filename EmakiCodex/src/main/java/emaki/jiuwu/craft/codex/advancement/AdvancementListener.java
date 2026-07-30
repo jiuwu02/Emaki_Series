@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
+import emaki.jiuwu.craft.codex.api.event.AdvancementCompletedEvent;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 
 
@@ -35,6 +36,8 @@ public final class AdvancementListener implements Listener {
         if (definition == null) {
             return;
         }
+        org.bukkit.Bukkit.getPluginManager().callEvent(
+                new AdvancementCompletedEvent(event.getPlayer(), definition.id(), key.toString()));
         List<String> lines = definition.completeActions();
         if (lines.isEmpty()) {
             return;

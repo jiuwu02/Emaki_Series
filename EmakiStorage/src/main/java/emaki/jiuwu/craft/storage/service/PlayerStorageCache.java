@@ -255,7 +255,7 @@ public final class PlayerStorageCache {
      * @param writer performs the actual IO and reports success
      * @return a future completing with whether the write succeeded
      */
-    public CompletableFuture<Boolean> enqueueSave(SaveTicket ticket,
+    public CompletableFuture<Boolean> enqueueSaveAsync(SaveTicket ticket,
             Function<SaveTicket, CompletableFuture<Boolean>> writer) {
         SaveLane lane = saveLanes.computeIfAbsent(ticket.playerId(), id -> new SaveLane());
         CompletableFuture<Boolean> save;
@@ -286,7 +286,7 @@ public final class PlayerStorageCache {
     }
 
     /** {@return a future settling once the player's lane is idle} */
-    public CompletableFuture<Void> waitForIdle(UUID playerId) {
+    public CompletableFuture<Void> waitForIdleAsync(UUID playerId) {
         SaveLane lane = saveLanes.get(playerId);
         if (lane == null) {
             return CompletableFuture.completedFuture(null);

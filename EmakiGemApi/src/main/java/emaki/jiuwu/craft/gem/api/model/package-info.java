@@ -1,29 +1,18 @@
 /**
- * Immutable value objects returned by the EmakiGem API.
+ * Stable immutable value objects returned by EmakiGem's catalog, operations, and events.
  *
- * <h2>Stability</h2>
- * Stable. Every type is a record whose reference components are normalised in the canonical
- * constructor, so no accessor returns {@code null} except where explicitly annotated
- * {@link org.jetbrains.annotations.Nullable} — an absent gem in a socket, and an absent returned gem
- * after an extraction whose return mode destroys it.
+ * <h2>Ownership</h2>
+ * Collections are immutable snapshots. {@code ItemStack} components are detached transaction outputs;
+ * callers own writing them back to the appropriate inventory or container on its owner thread.
  *
- * <h2>Levels are explicit</h2>
- * EmakiGem scales stats, attributes, and skills per gem level, so
- * {@link emaki.jiuwu.craft.gem.api.model.GemDefinitionView} records the level its values were resolved
- * for rather than presenting level-independent numbers.
- *
- * <h2>Socket state is complete</h2>
- * {@link emaki.jiuwu.craft.gem.api.model.GemStateView} lists every socket the equipment declares, not
- * only the occupied ones, so a caller can render the full socket strip without consulting the
- * definition table.
- *
- * <h2>Outcomes are already committed</h2>
- * {@link emaki.jiuwu.craft.gem.api.model.GemInlayOutcome} and
- * {@link emaki.jiuwu.craft.gem.api.model.GemExtractOutcome} are produced after EmakiGem has written the
- * gem layer, charged costs, run success actions, and closed its journal entry. The stacks they carry
- * are final; place them back where the originals came from.
+ * <h2>Result semantics</h2>
+ * A successful inlay returns {@code Success<GemInlayOutcome>}. A rolled failure that really consumed an
+ * input returns {@code Partial<GemInlayOutcome>} rather than a fake success or a payload-less failure.
+ * Extraction represents a destroyed return gem with nullable storage plus an Optional convenience
+ * accessor; it never invents an AIR item.
  *
  * <h2>Threading</h2>
- * All types are safe to read from any thread.
+ * These immutable values are safe to read from any thread. Bukkit objects contained inside them must
+ * still be used according to Bukkit/Paper/Folia ownership rules.
  */
 package emaki.jiuwu.craft.gem.api.model;

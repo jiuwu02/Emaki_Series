@@ -30,7 +30,7 @@ public final class StoragePlayerListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         long generation = plugin.dataStore().currentGeneration(player.getUniqueId()) + 1L;
-        plugin.dataStore().beginSession(player.getUniqueId(), player.getName())
+        plugin.dataStore().beginSessionAsync(player.getUniqueId(), player.getName())
                 .whenComplete((loaded, throwable) -> {
                     if (throwable != null) {
                         plugin.getLogger().warning("[storage] Failed to load storage for "

@@ -54,6 +54,8 @@ public final class ForgeService {
 
     private final EmakiForgePlugin plugin;
     private final ForgeResultItemFactory resultItemFactory;
+    private final EmakiItemAssemblyService itemAssemblyService;
+    private final ForgeMasteryService masteryService;
     private final ForgeLookupIndex lookupIndex;
     private final RecipeMatchingService recipeMatchingService;
     private final ForgeExecutionService forgeExecutionService;
@@ -79,6 +81,8 @@ public final class ForgeService {
                         ExecutionDispatcher executionDispatcher,
                         ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.itemAssemblyService = itemAssemblyService;
+        this.masteryService = new ForgeMasteryService(plugin == null ? null : plugin.playerDataStore());
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
         this.layerSnapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
@@ -284,7 +288,20 @@ public final class ForgeService {
                                        GuiItems guiItems,
                                        long previewSeed,
                                        long forgedAt) {
-        return null;
+        PreparedForge preparedForge = prepareForge(player, recipe, guiItems, previewSeed, forgedAt);
+        if (preparedForge == null || preparedForge.request() == null || itemAssemblyService == null) {
+            return null;
+        }
+        ItemStack preview = itemAssemblyService.preview(preparedForge.request());
+        if (preview == null) {
+            return null;
+        }
+        resultPostProcessor.process(player, recipe, guiItems, preparedForge, preview);
+        return preview;
+    }
+
+    public int mastery(UUID playerId, String recipeId) {
+        return masteryService.getMastery(playerId, recipeId);
     }
 
     public PreparedForge prepareForge(Player player,
@@ -376,7 +393,31 @@ public final class ForgeService {
                                                             Recipe recipe,
                                                             GuiItems guiItems,
                                                             PreparedForge preparedForge,
+                                                            double successRate) {
+        ForgeRuntimeSnapshot runtime = plugin.runtimeSnapshot();
+        long runtimeGeneration = runtime == null ? 0L : runtime.generation();
+        return executeForgeAsync(player, recipe, guiItems, preparedForge, runtimeGeneration,
+                successRate, null, null, null);
+    }
+
+    public CompletableFuture<ForgeResult> executeForgeAsync(Player player,
+                                                            Recipe recipe,
+                                                            GuiItems guiItems,
+                                                            PreparedForge preparedForge,
                                                             long runtimeGeneration,
+                                                            BooleanSupplier deliveryClaim,
+                                                            Runnable deliveryRollback,
+                                                            Runnable deliveryCommit) {
+        return executeForgeAsync(player, recipe, guiItems, preparedForge, runtimeGeneration,
+                recipe == null ? 0D : recipe.successRate(), deliveryClaim, deliveryRollback, deliveryCommit);
+    }
+
+    public CompletableFuture<ForgeResult> executeForgeAsync(Player player,
+                                                            Recipe recipe,
+                                                            GuiItems guiItems,
+                                                            PreparedForge preparedForge,
+                                                            long runtimeGeneration,
+                                                            double successRate,
                                                             BooleanSupplier deliveryClaim,
                                                             Runnable deliveryRollback,
                                                             Runnable deliveryCommit) {
@@ -401,6 +442,7 @@ public final class ForgeService {
                     guiItems,
                     preparedForge,
                     validation,
+                    successRate,
                     sessionGeneration,
                     runtimeGeneration,
                     deliveryClaim,

@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.6.8"
+version: "4.6.9"
 general:
   prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
 
@@ -56,7 +56,7 @@ console:
   attribute_registry_empty: "<yellow>未加载到任何属性</yellow>"
   attribute_registry_summary: "<gray>已加载 <yellow>%count%</yellow> 个属性</gray>"
   attribute_registry_entry: "<gray>[属性注册]</gray>
-    <aqua>%display_name%</aqua>
+    <white>%index%</white> <dark_gray>|</dark_gray> <aqua>%display_name%</aqua>
     <dark_gray>(</dark_gray><white>%id%</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>%default_value%</yellow>
     <dark_gray>|</dark_gray> <gray>战力系数</gray>

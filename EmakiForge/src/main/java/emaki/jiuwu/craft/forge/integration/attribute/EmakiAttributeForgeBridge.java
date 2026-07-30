@@ -4,13 +4,14 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
+import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
+import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 
 /**
  * {@link ForgeAttributeBridge} implementation backed by the canonical
- * {@link PdcAttributeApi} facade.
+ * {@link EmakiAttributeApi} facade.
  *
  * <p>This is the only class in EmakiForge that references EmakiAttributeApi
  * types; it is class-loaded exclusively by {@code ForgeAttributeIntegration}
@@ -36,18 +37,19 @@ public final class EmakiAttributeForgeBridge implements ForgeAttributeBridge {
 
     @Override
     public boolean available() {
-        return PdcAttributeApi.available();
+        return EmakiAttributeApi.status().usable();
     }
 
     @Override
     public void syncRegistration(String sourceId) {
         String next = Texts.normalizeId(sourceId);
         String previous = Texts.normalizeId(registeredSourceId);
+        PdcAttributeAccess pdc = pdc();
         if (Texts.isNotBlank(previous) && !previous.equals(next)) {
-            PdcAttributeApi.unregisterSource(previous);
+            pdc.unregisterSource(previous);
         }
         if (Texts.isNotBlank(next)) {
-            PdcAttributeApi.registerSource(next);
+            pdc.registerSource(next);
         }
         registeredSourceId = Texts.isNotBlank(next) ? next : null;
     }
@@ -56,7 +58,7 @@ public final class EmakiAttributeForgeBridge implements ForgeAttributeBridge {
     public void shutdown() {
         String sourceId = Texts.normalizeId(registeredSourceId);
         if (Texts.isNotBlank(sourceId)) {
-            PdcAttributeApi.unregisterSource(sourceId);
+            pdc().unregisterSource(sourceId);
         }
         registeredSourceId = null;
     }
@@ -70,10 +72,11 @@ public final class EmakiAttributeForgeBridge implements ForgeAttributeBridge {
         if (itemStack == null || Texts.isBlank(normalized) || attributes == null || attributes.isEmpty()) {
             return false;
         }
-        if (!PdcAttributeApi.isRegisteredSource(normalized) && !PdcAttributeApi.registerSource(normalized)) {
+        PdcAttributeAccess pdc = pdc();
+        if (!pdc.isRegisteredSource(normalized) && !pdc.registerSource(normalized).isSuccess()) {
             return false;
         }
-        return PdcAttributeApi.write(itemStack, normalized, attributes, meta == null ? Map.of() : meta);
+        return pdc.write(itemStack, normalized, attributes, meta == null ? Map.of() : meta).isSuccess();
     }
 
     @Override
@@ -82,7 +85,12 @@ public final class EmakiAttributeForgeBridge implements ForgeAttributeBridge {
         if (itemStack == null || Texts.isBlank(normalized)) {
             return false;
         }
-        return PdcAttributeApi.read(itemStack, normalized) != null
-                && PdcAttributeApi.clear(itemStack, normalized);
+        PdcAttributeAccess pdc = pdc();
+        return pdc.read(itemStack, normalized).hasValue()
+                && pdc.clear(itemStack, normalized).isSuccess();
+    }
+
+    private PdcAttributeAccess pdc() {
+        return EmakiAttributeApi.extensions().pdc();
     }
 }

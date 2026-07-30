@@ -139,6 +139,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private NutritionService nutritionService;
     private final EmakiCookingApi.Bridge cookingApiBridge =
             new emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi(this);
+    private volatile boolean publicApiReady;
 
     public EmakiCookingPlugin() {
         super(AppConfig::defaults);
@@ -169,6 +170,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     @Override
     public void onDisable() {
+        publicApiReady = false;
         ConfigPrecheckLifecycleSupport.unregister("cooking");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("cooking");
@@ -239,13 +241,19 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     public void reloadPluginState() {
+        publicApiReady = false;
         lifecycleCoordinator.reload(this);
         logConfigPrecheckReport();
+        publicApiReady = true;
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
+        publicApiReady = false;
         return lifecycleCoordinator.reloadAsync(this, null)
-                .thenRun(this::logConfigPrecheckReport);
+                .thenRun(() -> {
+                    logConfigPrecheckReport();
+                    publicApiReady = true;
+                });
     }
 
     private void recoverCookingCompletions() {
@@ -518,6 +526,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public ThreadOwnership threadOwnership() {
         return threadOwnership;
+    }
+
+    public boolean publicApiReady() {
+        return publicApiReady;
     }
 
     public ItemSourceService coreItemSourceService() {

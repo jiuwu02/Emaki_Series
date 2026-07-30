@@ -2,14 +2,10 @@ package emaki.jiuwu.craft.codex;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.codex.action.CodexActionRegistrar;
@@ -20,6 +16,7 @@ import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
 import emaki.jiuwu.craft.codex.advancement.AdvancementService;
 import emaki.jiuwu.craft.codex.advancement.loader.AdvancementPageLoader;
 import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
+import emaki.jiuwu.craft.codex.advancement.trigger.AdvancementTriggerRegistry;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexGameplaySubscriber;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
 import emaki.jiuwu.craft.codex.config.AppConfig;
@@ -72,6 +69,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private AdvancementRegistrar advancementRegistrar;
     private AdvancementService advancementService;
     private AdvancementPacketGateway advancementPacketGateway;
+    private AdvancementTriggerRegistry advancementTriggerRegistry;
     private CodexTriggerService triggerService;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
@@ -82,7 +80,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private DebugCommand debugCommand;
     private BStatsRegistration metrics;
 
-    private final EmakiCodexApi.Bridge apiBridge = new CodexApiBridge();
+    private final EmakiCodexApi.Bridge apiBridge =
+            new emaki.jiuwu.craft.codex.apiimpl.DefaultEmakiCodexApi(this);
 
     public EmakiCodexPlugin() {
         super(AppConfig::defaults);
@@ -137,6 +136,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         advancementRegistrar = components.advancementRegistrar();
         advancementService = components.advancementService();
         advancementPacketGateway = components.advancementPacketGateway();
+        advancementTriggerRegistry = components.advancementTriggerRegistry();
         triggerService = components.triggerService();
         executionDispatcher = components.executionDispatcher();
         threadOwnership = components.threadOwnership();
@@ -161,6 +161,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerEventHandlers() {
+        getServer().getPluginManager().registerEvents(advancementRegistrar, this);
+        getServer().getPluginManager().registerEvents(advancementTriggerRegistry, this);
         advancementListener = new AdvancementListener(this, advancementRegistrar);
         getServer().getPluginManager().registerEvents(advancementListener, this);
         gameplaySubscriber = new CodexGameplaySubscriber(this, triggerService);
@@ -219,6 +221,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return advancementPacketGateway;
     }
 
+    public AdvancementTriggerRegistry advancementTriggerRegistry() {
+        return advancementTriggerRegistry;
+    }
+
     public CodexTriggerService triggerService() {
         return triggerService;
     }
@@ -233,91 +239,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public ThreadOwnership threadOwnership() {
         return threadOwnership;
-    }
-
-
-    private final class CodexApiBridge implements EmakiCodexApi.Bridge {
-
-        @Override
-        public String apiVersion() {
-            return getDescription().getVersion();
-        }
-
-        @Override
-        public String pluginName() {
-            return getName();
-        }
-
-        @Override
-        public boolean isReady() {
-            return isEnabled() && advancementRegistrar != null;
-        }
-
-        @Override
-        public boolean grantAdvancement(UUID player, String advancementId) {
-            Player target = resolveOnline(player);
-            return target != null && ownsWriteTarget(target) && advancementService.grant(target, advancementId);
-        }
-
-        @Override
-        public boolean revokeAdvancement(UUID player, String advancementId) {
-            Player target = resolveOnline(player);
-            return target != null && ownsWriteTarget(target) && advancementService.revoke(target, advancementId);
-        }
-
-        @Override
-        public CompletableFuture<Boolean> grantAdvancementAsync(UUID player, String advancementId) {
-            Player target = resolveOnline(player);
-            return runOwnerWriteAsync(target, () -> advancementService.grant(target, advancementId));
-        }
-
-        @Override
-        public CompletableFuture<Boolean> revokeAdvancementAsync(UUID player, String advancementId) {
-            Player target = resolveOnline(player);
-            return runOwnerWriteAsync(target, () -> advancementService.revoke(target, advancementId));
-        }
-
-        private Player resolveOnline(UUID player) {
-            return player == null ? null : Bukkit.getPlayer(player);
-        }
-    }
-
-    private boolean ownsWriteTarget(Player target) {
-        return target != null
-                && target.isOnline()
-                && threadOwnership != null
-                && threadOwnership.isEntityOwned(target);
-    }
-
-    private CompletableFuture<Boolean> runOwnerWriteAsync(Player target, Supplier<Boolean> operation) {
-        if (target == null || !target.isOnline()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        if (ownsWriteTarget(target)) {
-            try {
-                return CompletableFuture.completedFuture(Boolean.TRUE.equals(operation.get()));
-            } catch (Throwable throwable) {
-                CompletableFuture<Boolean> failed = new CompletableFuture<>();
-                failed.completeExceptionally(throwable);
-                return failed;
-            }
-        }
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        try {
-            var scheduled = executionDispatcher.runEntity(this, target, () -> {
-                try {
-                    future.complete(Boolean.TRUE.equals(operation.get()));
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            }, () -> future.complete(false));
-            if (scheduled == null) {
-                future.complete(false);
-            }
-        } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
-        }
-        return future;
     }
 
     private static final class PaperCommandAdapter implements BasicCommand {

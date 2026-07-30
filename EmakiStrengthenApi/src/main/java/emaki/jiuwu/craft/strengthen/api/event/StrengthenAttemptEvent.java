@@ -4,7 +4,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-import emaki.jiuwu.craft.strengthen.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptOutcome;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
 
 /**
  * Fired by EmakiStrengthen after a strengthen attempt has been fully resolved.
@@ -13,8 +14,10 @@ import emaki.jiuwu.craft.strengthen.model.AttemptResult;
  * failed rolls, and early failures (ineligible, condition not met, rebuild or
  * charge failure). The item has already been rebuilt and any cost charged, so
  * the result cannot be changed by listeners. It is suitable for statistics,
- * announcements and downstream effects. This event is fired on the server
- * thread.
+ * announcements and downstream effects.
+ *
+ * <p><strong>Thread:</strong> fired synchronously on the player's entity-owner thread. On Paper
+ * this is the main server thread; on Folia it is the player's region thread.
  */
 public final class StrengthenAttemptEvent extends Event {
 
@@ -55,9 +58,9 @@ public final class StrengthenAttemptEvent extends Event {
     }
 
     /** {@return the transaction outcome, or {@code NOT_COMMITTED}} */
-    public emaki.jiuwu.craft.strengthen.model.AttemptOutcome getOutcome() {
+    public AttemptOutcome getOutcome() {
         return result == null
-                ? emaki.jiuwu.craft.strengthen.model.AttemptOutcome.NOT_COMMITTED
+                ? AttemptOutcome.NOT_COMMITTED
                 : result.outcome();
     }
 

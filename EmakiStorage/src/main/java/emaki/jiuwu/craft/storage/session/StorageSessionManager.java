@@ -15,7 +15,7 @@ import emaki.jiuwu.craft.corelib.dialog.DialogDefinition;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
-import emaki.jiuwu.craft.storage.api.model.StorageResult;
+import emaki.jiuwu.craft.storage.model.StorageResult;
 import emaki.jiuwu.craft.storage.config.AppConfig;
 import emaki.jiuwu.craft.storage.config.InputModeConfig;
 import emaki.jiuwu.craft.storage.gui.StorageGuiHandler;
@@ -72,7 +72,7 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
      * @param target the storage owner
      * @return a future completing with whether a window was opened
      */
-    public CompletableFuture<Boolean> openForAdmin(Player admin, UUID target, String targetName) {
+    public CompletableFuture<Boolean> openForAdminAsync(Player admin, UUID target, String targetName) {
         if (admin == null || target == null) {
             return CompletableFuture.completedFuture(false);
         }
@@ -80,7 +80,7 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         if (cached != null) {
             return CompletableFuture.completedFuture(open(admin, cached));
         }
-        return plugin.dataStore().beginSession(target, targetName)
+        return plugin.dataStore().beginSessionAsync(target, targetName)
                 .thenCompose(loaded -> {
                     if (loaded == null) {
                         return CompletableFuture.completedFuture(false);

@@ -14,9 +14,13 @@ import org.bukkit.event.HandlerList;
  * type and current progress, adjust the gained amount via
  * {@link #setAmount(double)}, or cancel the gain entirely.
  *
- * <p>Cancelling the event (or setting an amount {@code <= 0}) prevents
- * EmakiLevel from adding any experience for this call. This event is fired on
- * the server thread.
+ * <p>Cancelling the event (or setting an amount {@code <= 0}) prevents EmakiLevel from adding any
+ * experience or consuming daily quota for this call. A modified positive amount is checked against
+ * the remaining daily quota again before it is recorded.
+ *
+ * <p><strong>Thread:</strong> synchronously on the player's owner thread. Player data may be loaded or
+ * saved asynchronously, but this event is part of the synchronous mutation path and does not signal
+ * persistence completion.
  */
 public final class PlayerExpGainEvent extends Event implements Cancellable {
 

@@ -21,17 +21,6 @@ public enum FailureKind {
     UNAVAILABLE,
 
     /**
-     * The plugin is present and usable, but the server owner has switched this particular subsystem off
-     * in configuration.
-     *
-     * <p>Distinct from {@link #UNAVAILABLE}, which means the plugin itself is absent, and from
-     * {@link #REJECTED}, which means <em>this</em> call was refused. A {@code DISABLED} result is
-     * constant for every caller and every argument until the configuration changes, so retrying is
-     * pointless: hide the corresponding feature instead.
-     */
-    DISABLED,
-
-    /**
      * The requested identifier, definition, recipe, or stored player data does not exist. The call
      * itself was well formed.
      */
@@ -45,7 +34,8 @@ public enum FailureKind {
 
     /**
      * Business rules refused the operation. Conditions were unmet, resources were insufficient,
-     * slots were full, or a level requirement was not reached.
+     * slots were full, a level requirement was not reached, or the relevant subsystem is disabled
+     * by server configuration.
      */
     REJECTED,
 

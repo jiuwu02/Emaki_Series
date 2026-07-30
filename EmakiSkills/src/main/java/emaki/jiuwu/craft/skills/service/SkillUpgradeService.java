@@ -79,6 +79,8 @@ public final class SkillUpgradeService {
     public record UpgradeResult(
             boolean success,
             boolean levelChanged,
+            boolean successfulRoll,
+            boolean downgraded,
             String messageKey,
             Map<String, Object> placeholders,
             UpgradePreview preview) {
@@ -89,14 +91,17 @@ public final class SkillUpgradeService {
         }
 
         public static UpgradeResult fail(String messageKey, Map<String, Object> placeholders, UpgradePreview preview) {
-            return new UpgradeResult(false, false, messageKey, placeholders, preview);
+            return new UpgradeResult(false, false, false, false, messageKey, placeholders, preview);
         }
 
-        public static UpgradeResult ok(boolean levelChanged,
+        public static UpgradeResult ok(boolean successfulRoll,
+                boolean levelChanged,
+                boolean downgraded,
                 String messageKey,
                 Map<String, Object> placeholders,
                 UpgradePreview preview) {
-            return new UpgradeResult(true, levelChanged, messageKey, placeholders, preview);
+            return new UpgradeResult(true, levelChanged, successfulRoll, downgraded,
+                    messageKey, placeholders, preview);
         }
     }
 
@@ -257,7 +262,7 @@ public final class SkillUpgradeService {
                             : upgrade.levels().get(targetLevel).successActions(),
                     placeholders);
             fireUpgradeEvent(player, definition, currentLevel, targetLevel, successRate, true, false);
-            return UpgradeResult.ok(true, "upgrade.success", placeholders, preview);
+            return UpgradeResult.ok(true, true, false, "upgrade.success", placeholders, preview);
         }
 
         triggerActions(player, definition, "skill_upgrade_failure",
@@ -267,7 +272,8 @@ public final class SkillUpgradeService {
                 placeholders);
         fireUpgradeEvent(player, definition, currentLevel, downgraded ? Math.max(1, currentLevel - 1) : currentLevel,
                 successRate, false, downgraded);
-        return UpgradeResult.ok(false, "upgrade.failed", placeholders, preview);
+        return UpgradeResult.ok(false, downgraded, downgraded,
+                "upgrade.failed", placeholders, preview);
     }
 
     private void fireUpgradeEvent(Player player,

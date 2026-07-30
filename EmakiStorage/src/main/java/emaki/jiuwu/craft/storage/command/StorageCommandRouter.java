@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
+import emaki.jiuwu.craft.storage.api.model.StorageSnapshot;
 import emaki.jiuwu.craft.storage.log.StorageLogEntry;
 import emaki.jiuwu.craft.storage.log.StorageOperationSource;
 import emaki.jiuwu.craft.storage.log.StorageOperationType;
@@ -147,7 +148,7 @@ public final class StorageCommandRouter implements TabExecutor {
         if (target == null) {
             return true;
         }
-        plugin.sessionManager().openForAdmin(admin, target.uuid(), target.name())
+        plugin.sessionManager().openForAdminAsync(admin, target.uuid(), target.name())
                 .thenAccept(opened -> {
                     if (!Boolean.TRUE.equals(opened)) {
                         plugin.messageService().send(sender, "general.open_failed");
@@ -280,7 +281,12 @@ public final class StorageCommandRouter implements TabExecutor {
         if (target == null) {
             return true;
         }
-        plugin.getApiBridgeSnapshot(target.uuid()).thenAccept(snapshot -> {
+        plugin.getApiBridgeSnapshotAsync(target.uuid()).thenAccept(result -> {
+            StorageSnapshot snapshot = result.orElse(null);
+            if (snapshot == null) {
+                plugin.messageService().send(sender, "general.open_failed");
+                return;
+            }
             StorageCapacity capacity = snapshot.capacity();
             Map<String, Object> replacements = new LinkedHashMap<>();
             replacements.put("player", target.name());
@@ -323,7 +329,7 @@ public final class StorageCommandRouter implements TabExecutor {
         if (target == null) {
             return true;
         }
-        plugin.exportStorage(target.uuid(), target.name()).thenAccept(path -> {
+        plugin.exportStorageAsync(target.uuid(), target.name()).thenAccept(path -> {
             if (path == null) {
                 plugin.messageService().send(sender, "command.export.failed",
                         Map.of("player", target.name()));

@@ -106,7 +106,7 @@ public final class ResetAdvancementAction implements Action {
 
         int revoked = 0;
         for (AdvancementRegistrar.RegisteredNode node : nodes) {
-            if (plugin.advancementService().revoke(player, node.key().toString())) {
+            if (plugin.advancementService().revoke(player, node.key().toString()).isSuccess()) {
                 revoked++;
             }
         }
@@ -125,10 +125,11 @@ public final class ResetAdvancementAction implements Action {
         List<AdvancementRegistrar.RegisteredNode> result = new ArrayList<>();
         String normalizedPage = Texts.normalizeId(page);
         for (AdvancementRegistrar.RegisteredNode node : plugin.advancementRegistrar().registeredNodes()) {
-            if (node == null || node.page() == null) {
+            if (node == null) {
                 continue;
             }
-            if (mode == Mode.ALL || node.page().pageId().equalsIgnoreCase(normalizedPage)) {
+            if (mode == Mode.ALL || (node.page() != null
+                    && node.page().pageId().equalsIgnoreCase(normalizedPage))) {
                 result.add(node);
             }
         }

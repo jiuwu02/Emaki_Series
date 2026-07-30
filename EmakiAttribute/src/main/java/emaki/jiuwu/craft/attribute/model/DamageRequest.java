@@ -2,6 +2,10 @@ package emaki.jiuwu.craft.attribute.model;
 
 import java.util.Map;
 
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
+
 public record DamageRequest(DamageContext damageContext) {
 
     public DamageRequest {

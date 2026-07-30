@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
+import emaki.jiuwu.craft.skills.api.event.SkillPostCastEvent;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
@@ -252,12 +253,13 @@ public final class CastAttemptService {
         return castSkillAsync(player, definition, plan.triggerId(), plan.invocation(), parameters)
                 .handle((success, throwable) -> new CastOutcome(Boolean.TRUE.equals(success), throwable))
                 .thenCompose(outcome -> onCaster(player, () -> CompletableFuture.completedFuture(
-                        finalizeAttempt(player, session, definition, outcome))));
+                        finalizeAttempt(player, session, definition, plan.triggerId(), outcome))));
     }
 
     private CastAttemptResult finalizeAttempt(Player player,
             PlayerSkillDataStore.SessionTicket session,
             SkillDefinition definition,
+            String triggerId,
             CastOutcome outcome) {
         if (outcome.throwable() != null || !outcome.success()) {
             return CastAttemptResult.fail(FailureReason.MYTHIC_CAST_FAILED, "cast.skill_execute_failed");
@@ -274,9 +276,12 @@ public final class CastAttemptService {
             );
             profile.markDirty();
         });
-        return committed
-                ? CastAttemptResult.ok()
-                : CastAttemptResult.fail(FailureReason.SOURCE_LOST, "skill.source_lost");
+        if (!committed) {
+            return CastAttemptResult.fail(FailureReason.SOURCE_LOST, "skill.source_lost");
+        }
+        plugin.getServer().getPluginManager().callEvent(
+                new SkillPostCastEvent(player, definition.id(), Texts.toStringSafe(triggerId)));
+        return CastAttemptResult.ok(definition.id(), Texts.toStringSafe(triggerId));
     }
 
     private CompletableFuture<Boolean> castSkillAsync(Player player,

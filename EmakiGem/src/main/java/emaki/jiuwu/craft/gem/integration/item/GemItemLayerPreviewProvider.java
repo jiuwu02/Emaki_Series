@@ -29,7 +29,7 @@ public final class GemItemLayerPreviewProvider implements ItemLayerPreviewProvid
     private final EmakiGemPlugin plugin;
 
     public static AutoCloseable register(EmakiGemPlugin plugin) {
-        return EmakiItemApi.registerLayerPreview(plugin, new GemItemLayerPreviewProvider(plugin));
+        return EmakiItemApi.extensions().registerLayerPreview(plugin, new GemItemLayerPreviewProvider(plugin));
     }
 
     public GemItemLayerPreviewProvider(EmakiGemPlugin plugin) {

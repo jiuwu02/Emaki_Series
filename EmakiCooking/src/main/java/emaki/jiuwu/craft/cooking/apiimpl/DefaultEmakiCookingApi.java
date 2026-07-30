@@ -37,7 +37,26 @@ public final class DefaultEmakiCookingApi implements EmakiCookingApi.Bridge {
         }
         String pluginName = plugin.getName();
         String version = plugin.getDescription().getVersion();
-        boolean ready = plugin.recipeService() != null && plugin.nutritionTypeRegistry() != null;
+        boolean ready = plugin.publicApiReady()
+                && plugin.recipeService() != null
+                && plugin.rewardService() != null
+                && plugin.stationTracker() != null
+                && plugin.nutritionService() != null
+                && plugin.nutritionTypeRegistry() != null
+                && plugin.choppingBoardRecipeLoader() != null
+                && plugin.wokRecipeLoader() != null
+                && plugin.grinderRecipeLoader() != null
+                && plugin.steamerRecipeLoader() != null
+                && plugin.ovenRecipeLoader() != null
+                && plugin.juicerRecipeLoader() != null
+                && plugin.fermentationBarrelRecipeLoader() != null
+                && plugin.choppingBoardRuntimeService() != null
+                && plugin.wokRuntimeService() != null
+                && plugin.grinderRuntimeService() != null
+                && plugin.steamerRuntimeService() != null
+                && plugin.ovenRuntimeService() != null
+                && plugin.juicerRuntimeService() != null
+                && plugin.fermentationBarrelRuntimeService() != null;
         return ready
                 ? ApiStatus.ready(pluginName, version, version)
                 : ApiStatus.loading(pluginName, version, version);

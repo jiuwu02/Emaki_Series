@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.forge.api;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
@@ -8,28 +10,47 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
+import emaki.jiuwu.craft.forge.api.model.ForgeInputs;
+import emaki.jiuwu.craft.forge.api.model.ForgeOutcome;
 
 /**
  * State-changing forging operations.
  *
  * <p>Reached through {@code EmakiForgeApi.operations()}.
  *
- * <p><strong>Thread:</strong> every method here touches a player, an inventory, or an item and must be
- * called on the owner thread of that object. On Folia that is the entity's region thread. Calls from
- * the wrong thread report {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#WRONG_THREAD}
- * rather than corrupting state; use
- * {@link emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling#runForEntity} to hop.
+ * <p><strong>Thread:</strong> synchronous GUI and inventory methods must be called on the player's
+ * owner thread. {@link #forgeAsync(Player, String, ForgeInputs)} is the exception: it accepts calls
+ * from any thread and dispatches every player/Bukkit phase onto the player's owner thread, including
+ * on Folia.
  *
- * <h2>No programmatic forge entry point</h2>
- * EmakiForge's forge execution requires a prepared attempt, a runtime generation token, and delivery
- * claim callbacks that only its GUI session layer can supply; its two events
- * ({@code ForgeStartEvent}, {@code ForgeCompletedEvent}) are fired exclusively from that GUI path.
- * Exposing a raw execution call would therefore produce attempts that bypass both the session
- * lifecycle and the event contract. Drive forging through {@link #openForgeGui(Player, String)}
- * instead.
+ * <h2>Programmatic forging uses detached escrow</h2>
+ * {@code ForgeInputs} is a detached snapshot of items the caller has already reserved outside the
+ * player's inventory. EmakiForge validates that snapshot through the same runtime execution path as
+ * the GUI, but it does not search for or remove matching stacks from arbitrary inventory slots. The
+ * caller remains responsible for committing its physical escrow on success or releasing it on
+ * failure; do not leave the same physical items available to the player while the future is running.
  */
 @ApiStatus.NonExtendable
 public interface ForgeOperations {
+
+    /**
+     * Executes one forge attempt through EmakiForge's real preparation, validation, action, quality,
+     * delivery, history, and event pipeline.
+     *
+     * <p>The method may be called from any thread. Completion is asynchronous; Bukkit event delivery
+     * and result mapping happen on the player's owner thread. Cancelling the returned future does not
+     * roll back an attempt that has already crossed the runtime delivery commit boundary.
+     *
+     * @param player   online player receiving the result
+     * @param recipeId recipe to execute
+     * @param inputs   detached input escrow snapshot
+     * @return a future carrying the committed outcome or a classified failure
+     */
+    @ApiStatus.Experimental
+    @NotNull
+    CompletableFuture<EmakiResult<ForgeOutcome>> forgeAsync(@Nullable Player player,
+                                                             @Nullable String recipeId,
+                                                             @Nullable ForgeInputs inputs);
 
     /**
      * Opens the forging GUI focused on one recipe.
@@ -67,10 +88,14 @@ public interface ForgeOperations {
     EmakiResult<Unit> openRecipeBook(@Nullable Player player, int page);
 
     /**
+     * <p><strong>Thread:</strong> the player's owner thread.
+     *
      * @param player the player to test
-     * @return whether the player currently has the recipe book open
+     * @return whether the player currently has the recipe book open, without collapsing unavailable
+     *         into the legitimate business value {@code false}
      */
-    boolean viewingRecipeBook(@Nullable Player player);
+    @NotNull
+    EmakiResult<Boolean> viewingRecipeBook(@Nullable Player player);
 
     /**
      * Rebuilds a forged item against the current recipe and material definitions.

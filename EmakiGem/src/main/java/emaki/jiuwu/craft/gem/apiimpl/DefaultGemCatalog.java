@@ -1,12 +1,14 @@
 package emaki.jiuwu.craft.gem.apiimpl;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -19,16 +21,12 @@ import emaki.jiuwu.craft.gem.api.model.GemStateView;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
+import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 
-/**
- * {@link GemCatalog} 的运行时实现。
- *
- * <p>只读委托，不写状态、不触发事件。runtime 侧「找不到返回 null / 空集合」的约定在这里被翻译为
- * {@code Optional.empty()} 或 {@link EmakiResult} 失败，使不可用与「确实没有」可区分。
- */
+/** Runtime-backed gem catalog. */
 public final class DefaultGemCatalog implements GemCatalog {
 
     private final EmakiGemPlugin plugin;
@@ -38,181 +36,203 @@ public final class DefaultGemCatalog implements GemCatalog {
     }
 
     @Override
-    public @NotNull List<String> gemIds() {
-        if (plugin.gemLoader() == null) {
-            return List.of();
+    public Optional<GemStateView> readState(ItemStack equipment) {
+        if (!ready() || empty(equipment)) {
+            return Optional.empty();
         }
-        return plugin.gemLoader().all().keySet().stream().sorted().toList();
+        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(equipment);
+        if (itemDefinition == null) {
+            return Optional.empty();
+        }
+        GemState state = plugin.stateService().resolveState(equipment, itemDefinition);
+        return Optional.of(GemApiMapper.stateView(itemDefinition, state));
     }
 
     @Override
-    public @NotNull Optional<GemDefinitionView> gem(@Nullable String gemId, int level) {
-        if (Texts.isBlank(gemId) || plugin.gemLoader() == null) {
+    public boolean isGemItem(ItemStack itemStack) {
+        return ready() && !empty(itemStack) && plugin.itemMatcher().readGemInstance(itemStack) != null;
+    }
+
+    @Override
+    public boolean isOpenerItem(ItemStack itemStack) {
+        return ready() && !empty(itemStack) && plugin.itemMatcher().isOpenerItem(itemStack);
+    }
+
+    @Override
+    public Optional<GemDefinitionView> definition(String gemId) {
+        if (!ready() || Texts.isBlank(gemId)) {
             return Optional.empty();
         }
         GemDefinition definition = plugin.gemLoader().get(Texts.lower(gemId));
-        return definition == null
-                ? Optional.empty()
-                : Optional.of(GemApiMapper.toDefinitionView(definition, level));
+        return definition == null ? Optional.empty() : Optional.of(GemApiMapper.definitionView(definition, definition.level()));
     }
 
     @Override
-    public @NotNull Optional<GemDefinitionView> identifyGem(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir() || plugin.itemMatcher() == null) {
-            return Optional.empty();
-        }
-        GemItemInstance instance = plugin.itemMatcher().readGemInstance(itemStack);
-        if (instance == null || plugin.gemLoader() == null) {
-            return Optional.empty();
-        }
-        GemDefinition definition = plugin.gemLoader().get(Texts.lower(instance.gemId()));
-        return definition == null
-                ? Optional.empty()
-                : Optional.of(GemApiMapper.toDefinitionView(definition, instance.level()));
-    }
-
-    @Override
-    public boolean isOpenerItem(@Nullable ItemStack itemStack) {
-        return itemStack != null
-                && plugin.itemMatcher() != null
-                && plugin.itemMatcher().isOpenerItem(itemStack);
-    }
-
-    @Override
-    public @NotNull EmakiResult<GemStateView> state(@Nullable ItemStack equipment) {
-        if (equipment == null || equipment.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_equipment");
-        }
-        GemStateService stateService = plugin.stateService();
-        if (stateService == null) {
-            return EmakiResult.unavailable();
-        }
-        GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
-        if (itemDefinition == null) {
-            return EmakiResult.notFound("gem.error.not_socketable");
-        }
-        GemState state = stateService.resolveState(equipment, itemDefinition);
-        return EmakiResult.success(GemApiMapper.toStateView(itemDefinition, state));
-    }
-
-    @Override
-    public @NotNull Map<String, Double> aggregatedAttributes(@Nullable ItemStack equipment) {
-        GemState state = resolveStateOrNull(equipment);
-        if (state == null || plugin.snapshotBuilder() == null) {
-            return Map.of();
-        }
-        return plugin.snapshotBuilder().aggregateAttributes(state);
-    }
-
-    @Override
-    public @NotNull List<String> aggregatedSkillIds(@Nullable ItemStack equipment) {
-        GemState state = resolveStateOrNull(equipment);
-        if (state == null || plugin.snapshotBuilder() == null) {
+    public List<GemDefinitionView> definitions() {
+        if (!ready()) {
             return List.of();
         }
-        return plugin.snapshotBuilder().aggregateSkillIds(state);
-    }
-
-    @Override
-    public @NotNull List<GemResonanceView> resonances(@Nullable ItemStack equipment) {
-        GemState state = resolveStateOrNull(equipment);
-        GemResonanceService resonanceService = plugin.resonanceService();
-        if (state == null || resonanceService == null || plugin.gemLoader() == null) {
-            return List.of();
-        }
-        List<GemResonanceService.GemEntry> entries = new java.util.ArrayList<>();
-        for (GemItemInstance instance : state.socketAssignments().values()) {
-            GemDefinition definition = plugin.gemLoader().get(Texts.lower(instance.gemId()));
-            if (definition != null) {
-                entries.add(new GemResonanceService.GemEntry(definition, instance.level()));
-            }
-        }
-        if (entries.isEmpty()) {
-            return List.of();
-        }
-        return resonanceService.evaluateWithLevels(entries).stream()
-                .map(GemApiMapper::toResonanceView)
+        return plugin.gemLoader().all().values().stream()
+                .filter(definition -> definition != null && Texts.isNotBlank(definition.id()))
+                .sorted(Comparator.comparing(GemDefinition::id))
+                .map(definition -> GemApiMapper.definitionView(definition, definition.level()))
                 .toList();
     }
 
     @Override
-    public @NotNull EmakiResult<GemRelationshipCheck> canInlay(@Nullable ItemStack equipment,
-            @Nullable String gemId,
-            int slotIndex) {
-        if (equipment == null || equipment.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_equipment");
-        }
-        if (Texts.isBlank(gemId)) {
-            return EmakiResult.invalidInput("gem.error.no_gem_id");
-        }
-        GemStateService stateService = plugin.stateService();
-        if (stateService == null || plugin.gemLoader() == null) {
+    public EmakiResult<GemRelationshipCheck> canInlay(ItemStack equipment, ItemStack gemItem) {
+        if (!ready()) {
             return EmakiResult.unavailable();
         }
-        GemDefinition candidate = plugin.gemLoader().get(Texts.lower(gemId));
-        if (candidate == null) {
-            return EmakiResult.notFound("gem.error.unknown_gem");
+        if (empty(equipment)) {
+            return EmakiResult.invalidInput("gem.input.equipment_missing");
         }
-        GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
+        if (empty(gemItem)) {
+            return EmakiResult.invalidInput("gem.input.gem_missing");
+        }
+        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(equipment);
         if (itemDefinition == null) {
-            return EmakiResult.notFound("gem.error.not_socketable");
+            return EmakiResult.notFound("gem.equipment_definition_not_found");
         }
-        GemState state = stateService.resolveState(equipment, itemDefinition);
-        if (state == null) {
-            return EmakiResult.notFound("gem.error.no_state");
+        GemItemInstance instance = plugin.itemMatcher().readGemInstance(gemItem);
+        if (instance == null) {
+            return EmakiResult.notFound("gem.item_not_recognized");
         }
-        GemItemDefinition.SocketSlot slot = itemDefinition.slot(slotIndex);
-        if (slot == null) {
-            return EmakiResult.success(GemRelationshipCheck.deny("gem.error.invalid_slot", Map.of()));
+        GemDefinition gemDefinition = plugin.gemLoader().get(instance.gemId());
+        if (gemDefinition == null) {
+            return EmakiResult.notFound("gem.definition_not_found");
         }
-        if (!state.isOpened(slotIndex)) {
-            return EmakiResult.success(GemRelationshipCheck.deny("gem.error.slot_not_opened", Map.of()));
+        GemState state = plugin.stateService().resolveState(equipment, itemDefinition);
+        GemRelationshipCheck compatibility = firstAvailableSlotCheck(itemDefinition, state, gemDefinition);
+        if (!compatibility.allowed()) {
+            return EmakiResult.success(compatibility);
         }
-        if (state.assignment(slotIndex) != null) {
-            return EmakiResult.success(GemRelationshipCheck.deny("gem.error.slot_occupied", Map.of()));
-        }
-        if (!candidate.supportsSocketType(slot.type())) {
-            return EmakiResult.success(GemRelationshipCheck.deny("gem.error.socket_type_mismatch", Map.of()));
-        }
-        return EmakiResult.success(
-                GemApiMapper.toRelationshipCheck(stateService.validateInlayRelationships(state, candidate)));
+        GemStateService.RelationshipCheck runtimeCheck =
+                plugin.stateService().validateInlayRelationships(state, gemDefinition);
+        return EmakiResult.success(GemApiMapper.relationshipCheck(runtimeCheck));
     }
 
     @Override
-    public @NotNull EmakiResult<GemRelationshipCheck> canExtract(@Nullable ItemStack equipment, int slotIndex) {
-        if (equipment == null || equipment.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_equipment");
-        }
-        GemStateService stateService = plugin.stateService();
-        if (stateService == null) {
+    public EmakiResult<GemRelationshipCheck> canExtract(ItemStack equipment, int slotIndex) {
+        if (!ready()) {
             return EmakiResult.unavailable();
         }
-        GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
+        if (empty(equipment)) {
+            return EmakiResult.invalidInput("gem.input.equipment_missing");
+        }
+        if (slotIndex < 0) {
+            return EmakiResult.invalidInput("gem.input.slot_invalid");
+        }
+        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(equipment);
         if (itemDefinition == null) {
-            return EmakiResult.notFound("gem.error.not_socketable");
+            return EmakiResult.notFound("gem.equipment_definition_not_found");
         }
-        GemState state = stateService.resolveState(equipment, itemDefinition);
-        if (state == null) {
-            return EmakiResult.notFound("gem.error.no_state");
+        if (itemDefinition.slot(slotIndex) == null) {
+            return EmakiResult.notFound("gem.slot_not_found");
         }
+        GemState state = plugin.stateService().resolveState(equipment, itemDefinition);
         if (state.assignment(slotIndex) == null) {
-            return EmakiResult.success(GemRelationshipCheck.deny("gem.error.slot_empty", Map.of()));
+            return EmakiResult.success(new GemRelationshipCheck(false,
+                    "gem.extract.slot_empty", Map.of("slot", slotIndex)));
         }
-        return EmakiResult.success(
-                GemApiMapper.toRelationshipCheck(stateService.validateExtractionRelationships(state, slotIndex)));
+        GemStateService.RelationshipCheck runtimeCheck =
+                plugin.stateService().validateExtractionRelationships(state, slotIndex);
+        return EmakiResult.success(GemApiMapper.relationshipCheck(runtimeCheck));
     }
 
-    /**
-     * 解析装备上的宝石状态，非可镶嵌装备或状态缺失时返回 {@code null}。
-     *
-     * @param equipment 装备物品
-     * @return 宝石状态或 {@code null}
-     */
-    private GemState resolveStateOrNull(ItemStack equipment) {
-        if (equipment == null || equipment.getType().isAir()) {
-            return null;
+    @Override
+    public EmakiResult<GemResonanceView> resonance(ItemStack equipment) {
+        if (!ready()) {
+            return EmakiResult.unavailable();
         }
-        GemStateService stateService = plugin.stateService();
-        return stateService == null ? null : stateService.resolveState(equipment);
+        if (empty(equipment)) {
+            return EmakiResult.invalidInput("gem.input.equipment_missing");
+        }
+        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(equipment);
+        if (itemDefinition == null) {
+            return EmakiResult.notFound("gem.equipment_definition_not_found");
+        }
+        GemResonanceService resonanceService = plugin.resonanceService();
+        if (resonanceService == null) {
+            return EmakiResult.unavailable();
+        }
+        GemState state = plugin.stateService().resolveState(equipment, itemDefinition);
+        List<GemResonanceService.GemEntry> entries = new ArrayList<>();
+        for (GemItemInstance instance : state.socketAssignments().values()) {
+            GemDefinition definition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
+            if (definition != null) {
+                entries.add(new GemResonanceService.GemEntry(definition, instance.level()));
+            }
+        }
+        List<GemResonanceDefinition> active = resonanceService.evaluateWithLevels(entries);
+        if (active.isEmpty()) {
+            return EmakiResult.notFound("gem.resonance_not_active");
+        }
+        return EmakiResult.success(GemApiMapper.resonanceView(active.getFirst()));
+    }
+
+    @Override
+    public Map<String, Double> aggregatedAttributes(ItemStack equipment) {
+        if (!ready() || empty(equipment)) {
+            return Map.of();
+        }
+        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(equipment);
+        if (itemDefinition == null) {
+            return Map.of();
+        }
+        return plugin.snapshotBuilder().aggregateAttributes(plugin.stateService().resolveState(equipment, itemDefinition));
+    }
+
+    @Override
+    public Set<String> aggregatedSkillIds(ItemStack equipment) {
+        if (!ready() || empty(equipment)) {
+            return Set.of();
+        }
+        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(equipment);
+        if (itemDefinition == null) {
+            return Set.of();
+        }
+        return Set.copyOf(new LinkedHashSet<>(
+                plugin.snapshotBuilder().aggregateSkillIds(plugin.stateService().resolveState(equipment, itemDefinition))));
+    }
+
+    private GemRelationshipCheck firstAvailableSlotCheck(GemItemDefinition itemDefinition,
+            GemState state,
+            GemDefinition gemDefinition) {
+        if (!itemDefinition.allowsGemType(gemDefinition.gemType())) {
+            return new GemRelationshipCheck(false, "gem.inlay.gem_type_blocked",
+                    Map.of("type", gemDefinition.gemType()));
+        }
+        if (itemDefinition.maxSameType() > 0
+                && plugin.stateService().countAssignmentsByType(itemDefinition, state)
+                        .getOrDefault(gemDefinition.gemType(), 0) >= itemDefinition.maxSameType()) {
+            return new GemRelationshipCheck(false, "gem.inlay.max_same_type",
+                    Map.of("type", gemDefinition.gemType()));
+        }
+        if (plugin.stateService().countAssignmentsByGemId(state, gemDefinition.id()) >= itemDefinition.maxSameId()) {
+            return new GemRelationshipCheck(false, "gem.inlay.max_same_id",
+                    Map.of("gem", gemDefinition.id()));
+        }
+        boolean compatible = itemDefinition.slots().stream()
+                .filter(slot -> state.isOpened(slot.index()))
+                .filter(slot -> state.assignment(slot.index()) == null)
+                .anyMatch(slot -> gemDefinition.supportsSocketType(slot.type()));
+        return compatible
+                ? GemRelationshipCheck.pass()
+                : new GemRelationshipCheck(false, "gem.inlay.no_compatible_slot", Map.of());
+    }
+
+    private boolean ready() {
+        return plugin != null
+                && plugin.isEnabled()
+                && plugin.publicApiReady()
+                && plugin.gemLoader() != null
+                && plugin.itemMatcher() != null
+                && plugin.stateService() != null
+                && plugin.snapshotBuilder() != null;
+    }
+
+    private static boolean empty(ItemStack itemStack) {
+        return itemStack == null || itemStack.getType().isAir();
     }
 }

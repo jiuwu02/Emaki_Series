@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.forge.apiimpl;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -109,11 +110,14 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
             return EmakiResult.invalidInput("forge.error.no_inputs");
         }
         ForgeService service = plugin.forgeService();
-        if (service == null) {
+        if (service == null || !plugin.isRuntimeReady()) {
             return EmakiResult.unavailable();
         }
         if (!plugin.threadOwnership().isEntityOwned(player)) {
             return EmakiResult.wrongThread();
+        }
+        if (!player.isOnline()) {
+            return EmakiResult.targetOffline();
         }
         RecipeMatch match = service.findMatchingRecipe(player, toGuiItems(inputs));
         if (match == null) {
@@ -140,11 +144,14 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
             return EmakiResult.invalidInput("forge.error.no_inputs");
         }
         ForgeService service = plugin.forgeService();
-        if (service == null) {
+        if (service == null || !plugin.isRuntimeReady()) {
             return EmakiResult.unavailable();
         }
         if (!plugin.threadOwnership().isEntityOwned(player)) {
             return EmakiResult.wrongThread();
+        }
+        if (!player.isOnline()) {
+            return EmakiResult.targetOffline();
         }
         Recipe recipe = findRecipe(service, recipeId);
         if (recipe == null) {
@@ -162,6 +169,88 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
     }
 
     @Override
+    public @NotNull EmakiResult<ItemStack> previewResult(@Nullable Player player,
+            @Nullable String recipeId,
+            @Nullable ForgeInputs inputs) {
+        if (player == null) {
+            return EmakiResult.invalidInput("forge.error.no_player");
+        }
+        if (Texts.isBlank(recipeId)) {
+            return EmakiResult.invalidInput("forge.error.no_recipe_id");
+        }
+        if (inputs == null) {
+            return EmakiResult.invalidInput("forge.error.no_inputs");
+        }
+        ForgeService service = plugin.forgeService();
+        if (service == null || !plugin.isRuntimeReady()) {
+            return EmakiResult.unavailable();
+        }
+        if (!plugin.threadOwnership().isEntityOwned(player)) {
+            return EmakiResult.wrongThread();
+        }
+        if (!player.isOnline()) {
+            return EmakiResult.targetOffline();
+        }
+        Recipe recipe = findRecipe(service, recipeId);
+        if (recipe == null) {
+            return EmakiResult.notFound("forge.error.recipe_not_found");
+        }
+        if (plugin.playerDataStore() == null
+                || !plugin.playerDataStore().isSessionWritable(player.getUniqueId())) {
+            return EmakiResult.failure(FailureKind.UNAVAILABLE, "forge.error.player_data_not_ready");
+        }
+        GuiItems guiItems = toGuiItems(inputs);
+        ValidationResult validation = service.canForge(player, recipe, guiItems);
+        if (validation == null) {
+            return EmakiResult.internalError("forge.error.validate_failed");
+        }
+        if (!validation.success()) {
+            String reasonKey = Texts.isBlank(validation.errorKey())
+                    ? "forge.error.validation_failed"
+                    : validation.errorKey();
+            return EmakiResult.failure(FailureKind.REJECTED, reasonKey,
+                    safePlaceholders(validation.replacements()));
+        }
+        ItemStack preview = service.previewResultItem(
+                player,
+                recipe,
+                guiItems,
+                ThreadLocalRandom.current().nextLong(),
+                System.currentTimeMillis());
+        return preview == null
+                ? EmakiResult.internalError("forge.error.item_create")
+                : EmakiResult.success(preview);
+    }
+
+    @Override
+    public @NotNull EmakiResult<Integer> mastery(@Nullable Player player, @Nullable String recipeId) {
+        if (player == null) {
+            return EmakiResult.invalidInput("forge.error.no_player");
+        }
+        if (Texts.isBlank(recipeId)) {
+            return EmakiResult.invalidInput("forge.error.no_recipe_id");
+        }
+        ForgeService service = plugin.forgeService();
+        if (service == null || plugin.playerDataStore() == null || !plugin.isRuntimeReady()) {
+            return EmakiResult.unavailable();
+        }
+        if (!plugin.threadOwnership().isEntityOwned(player)) {
+            return EmakiResult.wrongThread();
+        }
+        if (!player.isOnline()) {
+            return EmakiResult.targetOffline();
+        }
+        Recipe recipe = findRecipe(service, recipeId);
+        if (recipe == null) {
+            return EmakiResult.notFound("forge.error.recipe_not_found");
+        }
+        if (!plugin.playerDataStore().isSessionWritable(player.getUniqueId())) {
+            return EmakiResult.failure(FailureKind.UNAVAILABLE, "forge.error.player_data_not_ready");
+        }
+        return EmakiResult.success(service.mastery(player.getUniqueId(), recipe.id()));
+    }
+
+    @Override
     public boolean accepting() {
         ForgeService service = plugin.forgeService();
         return service != null && plugin.isRuntimeReady() && service.isAccepting();
@@ -174,7 +263,7 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
      * @param recipeId 配方 id
      * @return 命中的配方或 {@code null}
      */
-    private static Recipe findRecipe(ForgeService service, String recipeId) {
+    static Recipe findRecipe(ForgeService service, String recipeId) {
         String normalized = Texts.lower(recipeId);
         for (Recipe recipe : service.sortedRecipes()) {
             if (normalized.equals(Texts.lower(recipe.id()))) {

@@ -43,7 +43,7 @@ public final class ProjectileSkillAction extends AbstractSkillScriptAction {
     }
 
     @Override
-    public CompletableFuture<SkillActionResult> executeAsync(SkillScriptContext context,
+    public CompletableFuture<SkillActionResult> execute(SkillScriptContext context,
             Map<String, String> arguments,
             SkillScriptAction.CancellationToken cancellationToken) {
         return executeFlight(context, arguments,

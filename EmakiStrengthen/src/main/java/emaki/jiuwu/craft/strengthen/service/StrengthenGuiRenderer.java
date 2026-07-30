@@ -16,10 +16,10 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
-import emaki.jiuwu.craft.strengthen.model.AttemptCost;
-import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
-import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptCost;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 
 final class StrengthenGuiRenderer {
 

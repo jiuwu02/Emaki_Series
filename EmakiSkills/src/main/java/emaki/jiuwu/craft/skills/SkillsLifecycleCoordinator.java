@@ -115,7 +115,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 () -> asyncYamlFiles
         );
         ManualSkillSourceService manualSkillSourceService = new ManualSkillSourceService(playerSkillDataStore, skillRegistryService);
-        skillSourceRegistry.register(manualSkillSourceService);
+        skillSourceRegistry.register(plugin, manualSkillSourceService);
         EaBridge eaBridge = new EaBridge(plugin, messageService);
         eaBridge.init();
         ExternalManaBridge externalManaBridge = new ExternalManaBridge(plugin, messageService);
@@ -333,6 +333,17 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
         if (plugin.skillsGuiService() != null) {
             plugin.skillsGuiService().clearAllSessions();
+        }
+        if (plugin.skillSourceRegistry() != null) {
+            plugin.skillSourceRegistry().close();
+        }
+        if (plugin.skillScriptActionRegistry() instanceof AutoCloseable closeable) {
+            try {
+                closeable.close();
+            } catch (Exception exception) {
+                plugin.getLogger().warning("[Shutdown] Failed to close skill script action registry: "
+                        + exception.getMessage());
+            }
         }
     }
 

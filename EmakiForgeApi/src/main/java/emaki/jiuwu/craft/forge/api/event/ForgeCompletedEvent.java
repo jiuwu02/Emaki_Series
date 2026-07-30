@@ -23,7 +23,8 @@ import org.bukkit.inventory.ItemStack;
  * unexpected exception. Do not use it as an exhaustive audit trail; treat a missing event as
  * "outcome unknown" rather than "no attempt happened".
  *
- * <p>Only the GUI forging path fires this event.
+ * <p>Both the GUI forging path and
+ * {@link emaki.jiuwu.craft.forge.api.ForgeOperations#forgeAsync} fire this event.
  *
  * @see ForgeStartEvent
  */

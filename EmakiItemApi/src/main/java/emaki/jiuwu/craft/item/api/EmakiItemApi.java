@@ -1,22 +1,17 @@
 package emaki.jiuwu.craft.item.api;
 
-import java.util.Set;
-
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
-import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
-import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
+import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 
 /**
- * Static public API facade for creating and identifying EmakiItem custom items.
+ * Static public facade for EmakiItem.
  *
- * <p>Third-party plugins should call these static methods directly. EmakiItem
- * installs the backing bridge during its enable lifecycle and removes it on
- * disable.
+ * <p>Accessors never return {@code null}. With no installed bridge, catalog queries degrade to documented
+ * empty values, result-bearing calls return {@code UNAVAILABLE}, and extension registration returns an
+ * inactive closeable handle. Depend on this artifact with {@code provided} or {@code compileOnly}; never
+ * shade it into a third-party plugin because Bukkit event delivery uses class identity.
  */
 public final class EmakiItemApi {
 
@@ -25,180 +20,70 @@ public final class EmakiItemApi {
     private EmakiItemApi() {
     }
 
-    /**
-     * Installs the backing bridge. Intended for EmakiItem's lifecycle only.
-     *
-     * @param bridge the active bridge implementation supplied by EmakiItem
-     */
+    /** Installs the runtime bridge. Runtime use only. */
+    @org.jetbrains.annotations.ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
         EmakiItemApi.bridge = bridge;
     }
 
-    /**
-     * Removes the backing bridge when it is still the active bridge.
-     *
-     * @param bridge the bridge to remove; ignored when it is not the active bridge
-     */
+    /** Removes the runtime bridge when it is still the active instance. Runtime use only. */
+    @org.jetbrains.annotations.ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
         if (EmakiItemApi.bridge == bridge) {
             EmakiItemApi.bridge = null;
         }
     }
 
-    /** {@return whether EmakiItem has installed its API bridge} */
-    public static boolean available() {
-        return bridge != null;
-    }
-
-    /** {@return whether EmakiItem has finished initializing and can resolve item definitions} */
-    public static boolean isReady() {
+    /** {@return runtime availability and identity metadata} */
+    public static @NotNull ApiStatus status() {
         Bridge resolved = bridge;
-        return resolved != null && resolved.isReady();
+        return resolved == null ? ApiStatus.notInstalled() : resolved.status();
     }
 
-    /**
-     * Checks whether an item definition is loaded.
-     *
-     * @param id the item definition id
-     * @return {@code true} when the definition exists
-     */
-    public static boolean exists(@NotNull String id) {
+    /** {@return the read-only catalog layer or its unavailable implementation} */
+    public static @NotNull ItemCatalog catalog() {
         Bridge resolved = bridge;
-        return resolved != null && resolved.exists(id);
+        return resolved == null ? UnavailableItem.CATALOG : resolved.catalog();
     }
 
-    /**
-     * Builds a fresh item stack from a definition.
-     *
-     * @param id the item definition id
-     * @param amount the desired stack size
-     * @return the created item stack, or {@code null} when unavailable or unknown
-     */
-    public static @Nullable ItemStack create(@NotNull String id, int amount) {
+    /** {@return the item operation layer or its unavailable implementation} */
+    public static @NotNull ItemOperations operations() {
         Bridge resolved = bridge;
-        return resolved == null ? null : resolved.create(id, amount);
+        return resolved == null ? UnavailableItem.OPERATIONS : resolved.operations();
     }
 
-    /**
-     * Identifies the EmakiItem definition behind an existing stack.
-     *
-     * @param itemStack the stack to inspect; may be {@code null}
-     * @return the definition id, or {@code null} when the stack is not an EmakiItem item
-     */
-    public static @Nullable String identify(@Nullable ItemStack itemStack) {
+    /** {@return the repair layer or its unavailable implementation} */
+    public static @NotNull ItemRepair repair() {
         Bridge resolved = bridge;
-        return resolved == null ? null : resolved.identify(itemStack);
+        return resolved == null ? UnavailableItem.REPAIR : resolved.repair();
     }
 
-    /** {@return an immutable view of all loaded item definition ids} */
-    public static @NotNull Set<String> definitionIds() {
+    /** {@return the administrative migration layer or its unavailable implementation} */
+    public static @NotNull ItemMigration migration() {
         Bridge resolved = bridge;
-        return resolved == null ? Set.of() : resolved.definitionIds();
+        return resolved == null ? UnavailableItem.MIGRATION : resolved.migration();
     }
 
-    /**
-     * Returns the normalized shared item definition.
-     *
-     * @param id the item definition id
-     * @return the shared definition, or {@code null} when unavailable or unknown
-     */
-    public static @Nullable ConfiguredItemDefinition definition(@NotNull String id) {
+    /** {@return the extension registration layer or its unavailable implementation} */
+    public static @NotNull ItemExtensions extensions() {
         Bridge resolved = bridge;
-        return resolved == null ? null : resolved.definition(id);
+        return resolved == null ? UnavailableItem.EXTENSIONS : resolved.extensions();
     }
 
-    /**
-     * Returns the configured display name for a definition.
-     *
-     * @param id the item definition id
-     * @return the display name, or an empty string when unavailable or unknown
-     */
-    public static @NotNull String displayName(@NotNull String id) {
-        Bridge resolved = bridge;
-        return resolved == null ? "" : resolved.displayName(id);
-    }
-
-    /**
-     * Registers an item layer preview provider with the active EmakiItem runtime.
-     *
-     * <p>When EmakiItem is unavailable, this method returns a no-op handle so
-     * callers can always close the result safely.
-     *
-     * @param plugin the plugin that owns the provider
-     * @param provider the provider to register
-     * @return a closeable registration handle
-     */
-    public static @NotNull ItemLayerPreviewRegistration registerLayerPreview(
-            @NotNull Plugin plugin,
-            @NotNull ItemLayerPreviewProvider provider) {
-        Bridge resolved = bridge;
-        return resolved == null
-                ? ItemLayerPreviewRegistration.noop()
-                : resolved.registerLayerPreview(plugin, provider);
-    }
-
-    /** Internal bridge installed by EmakiItem. */
+    /** Runtime bridge contract. Third-party plugins must not implement it. */
+    @org.jetbrains.annotations.ApiStatus.NonExtendable
     public interface Bridge {
-        /** {@return whether the owning EmakiItem runtime is ready for item resolution} */
-        default boolean isReady() {
-            return true;
-        }
 
-        /**
-         * Checks whether an item definition is loaded.
-         *
-         * @param id the item definition id
-         * @return {@code true} when the definition exists
-         */
-        boolean exists(@NotNull String id);
+        @NotNull ApiStatus status();
 
-        /**
-         * Builds a fresh item stack from a definition.
-         *
-         * @param id the item definition id
-         * @param amount the desired stack size
-         * @return the created item stack, or {@code null} when the id is unknown
-         */
-        @Nullable
-        ItemStack create(@NotNull String id, int amount);
+        @NotNull ItemCatalog catalog();
 
-        /**
-         * Identifies the EmakiItem definition behind an existing stack.
-         *
-         * @param itemStack the stack to inspect; may be {@code null}
-         * @return the definition id, or {@code null} when absent
-         */
-        @Nullable
-        String identify(@Nullable ItemStack itemStack);
+        @NotNull ItemOperations operations();
 
-        /** {@return an immutable view of all loaded item definition ids} */
-        @NotNull
-        Set<String> definitionIds();
+        @NotNull ItemRepair repair();
 
-        /** {@return the normalized shared definition, or null when unknown} */
-        default @Nullable ConfiguredItemDefinition definition(@NotNull String id) {
-            return null;
-        }
+        @NotNull ItemMigration migration();
 
-        /**
-         * Returns the configured display name for a definition.
-         *
-         * @param id the item definition id
-         * @return the display name, or an empty string when unknown
-         */
-        @NotNull
-        String displayName(@NotNull String id);
-
-        /**
-         * Registers a layer preview provider in the owning EmakiItem runtime.
-         *
-         * @param plugin the provider owner
-         * @param provider the provider implementation
-         * @return a closeable registration handle
-         */
-        @NotNull
-        ItemLayerPreviewRegistration registerLayerPreview(
-                @NotNull Plugin plugin,
-                @NotNull ItemLayerPreviewProvider provider);
+        @NotNull ItemExtensions extensions();
     }
 }

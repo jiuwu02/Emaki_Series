@@ -79,6 +79,34 @@ public final class EmakiItemMigrationService {
         this.plugin = plugin;
     }
 
+    /** Actual result of a synchronous online-player batch on the current owner thread. */
+    public record OnlineMigrationResult(int changedItems, int skippedPlayers) {
+
+        public OnlineMigrationResult {
+            changedItems = Math.max(0, changedItems);
+            skippedPlayers = Math.max(0, skippedPlayers);
+        }
+    }
+
+    /**
+     * Signals that apply committed some files before a later checked operation failed.
+     *
+     * <p>The attached outcome contains only successfully committed files and alias state.
+     */
+    public static final class PartialMigrationException extends IOException {
+
+        private final Map<String, Object> outcome;
+
+        public PartialMigrationException(String message, Throwable cause, Map<String, Object> outcome) {
+            super(message, cause);
+            this.outcome = outcome == null ? Map.of() : Map.copyOf(outcome);
+        }
+
+        public Map<String, Object> outcome() {
+            return outcome;
+        }
+    }
+
     public Map<String, Object> preview(String oldId, String newId) throws IOException {
         String oldNormalized = Texts.normalizeId(oldId);
         String newNormalized = Texts.normalizeId(newId);
@@ -157,30 +185,90 @@ public final class EmakiItemMigrationService {
         }
 
         List<Map<String, Object>> changed = new ArrayList<>();
-        for (PlannedWrite planned : plannedWrites) {
-            long nextRevision = saveDirect(planned.target(), planned.content(), planned.expectedRevision());
-            changed.add(Map.of(
-                    "moduleId", planned.target().moduleId(),
-                    "path", planned.target().relativePath(),
-                    "kind", planned.target().kind(),
-                    "replacements", planned.replacements(),
-                    "revision", nextRevision
-            ));
+        int appliedReplacements = 0;
+        try {
+            for (PlannedWrite planned : plannedWrites) {
+                long nextRevision = saveDirect(planned.target(), planned.content(), planned.expectedRevision());
+                changed.add(Map.of(
+                        "moduleId", planned.target().moduleId(),
+                        "path", planned.target().relativePath(),
+                        "kind", planned.target().kind(),
+                        "replacements", planned.replacements(),
+                        "revision", nextRevision
+                ));
+                appliedReplacements += planned.replacements();
+            }
+        } catch (IOException exception) {
+            if (changed.isEmpty()) {
+                throw exception;
+            }
+            throw partialFailure(oldNormalized, newNormalized, changed, appliedReplacements,
+                    false, currentAliasRevision(), exception);
         }
 
         Long aliasRevision = null;
         if (aliasWrite != null) {
             TargetFile aliasTarget = new TargetFile(plugin.getName(), ALIAS_FILE, "ALIAS", aliasPath());
-            aliasRevision = saveDirect(aliasTarget, aliasWrite.content(), aliasWrite.expectedRevision());
-            plugin.aliasLoader().load();
+            try {
+                aliasRevision = saveDirect(aliasTarget, aliasWrite.content(), aliasWrite.expectedRevision());
+            } catch (IOException exception) {
+                if (changed.isEmpty()) {
+                    throw exception;
+                }
+                throw partialFailure(oldNormalized, newNormalized, changed, appliedReplacements,
+                        false, currentAliasRevision(), exception);
+            }
+            try {
+                plugin.aliasLoader().load();
+            } catch (RuntimeException exception) {
+                throw partialFailure(oldNormalized, newNormalized, changed, appliedReplacements,
+                        true, aliasRevision, exception);
+            }
         }
+        return applyOutcome(
+                oldNormalized,
+                newNormalized,
+                changed,
+                appliedReplacements,
+                aliasWrite != null,
+                aliasRevision == null ? currentAliasRevision() : aliasRevision
+        );
+    }
+
+    private PartialMigrationException partialFailure(String oldId,
+            String newId,
+            List<Map<String, Object>> changed,
+            int replacementCount,
+            boolean aliasKept,
+            long aliasRevision,
+            Throwable cause) {
+        return new PartialMigrationException(
+                "迁移仅部分完成：" + oldId + " -> " + newId,
+                cause,
+                applyOutcome(oldId, newId, changed, replacementCount, aliasKept, aliasRevision));
+    }
+
+    private long currentAliasRevision() {
+        try {
+            return FileRevisions.revision(aliasPath());
+        } catch (IOException ignored) {
+            return 0L;
+        }
+    }
+
+    private Map<String, Object> applyOutcome(String oldId,
+            String newId,
+            List<Map<String, Object>> changed,
+            int replacementCount,
+            boolean aliasKept,
+            long aliasRevision) {
         return Map.of(
-                "oldId", oldNormalized,
-                "newId", newNormalized,
-                "changedFiles", changed,
-                "replacementCount", replacements,
-                "aliasKept", keepAlias,
-                "aliasRevision", aliasRevision == null ? FileRevisions.revision(aliasPath()) : aliasRevision
+                "oldId", oldId,
+                "newId", newId,
+                "changedFiles", changed == null ? List.of() : List.copyOf(changed),
+                "replacementCount", Math.max(0, replacementCount),
+                "aliasKept", aliasKept,
+                "aliasRevision", Math.max(0L, aliasRevision)
         );
     }
 
@@ -197,21 +285,30 @@ public final class EmakiItemMigrationService {
                 changed++;
             }
         }
-        ItemStack offhand = player.getInventory().getItemInOffHand();
-        ItemStack updatedOffhand = plugin.updateService().forceUpdate(offhand);
-        if (updatedOffhand != offhand) {
-            player.getInventory().setItemInOffHand(updatedOffhand);
-            changed++;
-        }
         return changed;
     }
 
     public int migrateAllOnlineInventories() {
+        return migrateOwnedOnlineInventories().changedItems();
+    }
+
+    /**
+     * Migrates only online inventories owned by the current thread.
+     *
+     * <p>On Paper's main thread this covers every player. On Folia a synchronous caller generally owns
+     * only one entity, so skipped players are reported instead of being accessed from the wrong region.
+     */
+    public OnlineMigrationResult migrateOwnedOnlineInventories() {
         int changed = 0;
+        int skipped = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (plugin.threadOwnership() == null || !plugin.threadOwnership().isEntityOwned(player)) {
+                skipped++;
+                continue;
+            }
             changed += migrateInventory(player);
         }
-        return changed;
+        return new OnlineMigrationResult(changed, skipped);
     }
 
     private List<TargetFile> targetFiles() throws IOException {

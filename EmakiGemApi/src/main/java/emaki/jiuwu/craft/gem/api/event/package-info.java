@@ -1,32 +1,25 @@
 /**
- * Bukkit events fired by EmakiGem.
+ * Stable Bukkit event contracts emitted by EmakiGem.
  *
- * <h2>Pre and post pairs</h2>
- * Three cancellable pre-events fire before an operation commits:
- * {@link emaki.jiuwu.craft.gem.api.event.GemInlayEvent},
- * {@link emaki.jiuwu.craft.gem.api.event.GemExtractEvent}, and
- * {@link emaki.jiuwu.craft.gem.api.event.GemSocketOpenEvent}. Two informational post-events fire after
- * a committed transaction: {@link emaki.jiuwu.craft.gem.api.event.GemInlayCompletedEvent} and
- * {@link emaki.jiuwu.craft.gem.api.event.GemExtractCompletedEvent}.
+ * <h2>Pairing</h2>
+ * {@link emaki.jiuwu.craft.gem.api.event.GemInlayEvent} and
+ * {@link emaki.jiuwu.craft.gem.api.event.GemExtractEvent} carry an operation id shared with their
+ * completed event. {@link emaki.jiuwu.craft.gem.api.event.GemSocketOpenEvent} also carries a unique
+ * invocation id. Pre-events are cancellable; inlay listeners may replace the success chance.
+ *
+ * <h2>Completion</h2>
+ * Completed events cover the public API, GUI, held-item action, and direct extraction service paths.
+ * They do not fire merely after a pending commit starts. They fire after configured success actions and
+ * persistent journal completion. Inlay completion may report a terminal rolled failure and its input
+ * consumption result.
  *
  * <h2>Threading</h2>
- * All five are synchronous and fire on the thread that owns the acting player. On Folia that is the
- * player's region thread, so listeners may touch the player and their inventory directly.
+ * Events are synchronous and are fired on the affected player's entity-owner thread. If an asynchronous
+ * completion finishes after the player has gone offline, the runtime logs and skips the event rather than
+ * violating Bukkit/Folia thread ownership.
  *
- * <h2>Coverage — read this before building an audit trail</h2>
- * EmakiGem guards every pre-event fire point with an ownership check and <em>silently skips the
- * event</em> when the calling thread does not own the actor: the operation still proceeds. The public
- * API refuses off-thread calls for exactly this reason, but EmakiGem's own GUI, command, and held-item
- * action paths are not similarly constrained.
- *
- * <p>The two post-events are fired only by
- * {@link emaki.jiuwu.craft.gem.api.GemOperations}; EmakiGem's GUI and held-item paths do not fire them.
- * Treat them as "this API performed an operation", not "an operation happened somewhere".
- *
- * <h2>Do not shade</h2>
- * Bukkit matches listeners by {@code Class} identity. If you shade {@code emaki-gem-api} into your jar,
- * your listener will reference a different {@code Class} object than the one EmakiGem fires, and your
- * handlers will never run — silently, with nothing logged. Always depend on this artifact with
- * {@code provided} or {@code compileOnly}.
+ * <h2>Availability</h2>
+ * No synthetic event is emitted while EmakiGem is unavailable; facade calls return
+ * {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult#unavailable()}.
  */
 package emaki.jiuwu.craft.gem.api.event;

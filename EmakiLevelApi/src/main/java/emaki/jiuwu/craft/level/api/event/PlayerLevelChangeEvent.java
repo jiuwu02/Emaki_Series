@@ -14,7 +14,9 @@ import emaki.jiuwu.craft.level.api.LevelOperationType;
  * level ups, this event covers direct level changes from commands and the API.
  * The change has already been applied and cannot be reverted by listeners. It
  * carries both the old and new level so listeners can determine the direction.
- * This event is fired on the server thread.
+ *
+ * <p><strong>Thread:</strong> synchronously on the player's owner thread. Player data persistence may
+ * complete asynchronously after this event.
  */
 public final class PlayerLevelChangeEvent extends Event {
 

@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.storage.model.SortMode;
 public final class AppConfig extends BaseAppConfig {
 
     /** Structure version of {@code config.yml}, independent of the plugin version. */
-    public static final String CURRENT_VERSION = "1.1.0";
+    public static final String CURRENT_VERSION = "1.0.6";
 
     /** Feedback style after a successful deposit. */
     public enum DepositFeedback {

@@ -18,12 +18,12 @@ import emaki.jiuwu.craft.forge.api.model.ForgeValidation;
 /**
  * Read-only queries against EmakiForge's recipe and material tables.
  *
- * <p>Reached through {@code EmakiForgeApi.catalog()}. Every method is cheap and side-effect free.
+ * <p>Reached through {@code EmakiForgeApi.catalog()}. Queries do not mutate gameplay state; preview
+ * allocates a detached item and may populate internal preparation caches.
  *
  * <p><strong>Thread:</strong> {@link #recipes()}, {@link #recipe(String)}, {@link #materialById(String)},
- * and {@link #materialByItem(ItemStack)} may be called from any thread. The player-scoped methods
- * {@link #matchRecipe} and {@link #validate} evaluate permissions and conditions against a live
- * player and must be called on that player's owner thread; they report
+ * and {@link #materialByItem(ItemStack)} may be called from any thread. Player-scoped matching,
+ * validation, preview, and mastery methods must be called on that player's owner thread; they report
  * {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#WRONG_THREAD} otherwise.
  */
 @ApiStatus.NonExtendable
@@ -91,6 +91,38 @@ public interface ForgeCatalog {
     EmakiResult<ForgeValidation> validate(@Nullable Player player,
                                           @Nullable String recipeId,
                                           @Nullable ForgeInputs inputs);
+
+    /**
+     * Builds the current runtime preview for a recipe and input escrow without executing configured
+     * actions, consuming inputs, updating player history, or delivering an item.
+     *
+     * <p><strong>Thread:</strong> the player's owner thread.
+     *
+     * @param player   player whose permissions, conditions, and quality guarantee state are read
+     * @param recipeId recipe to preview
+     * @param inputs   detached input escrow snapshot
+     * @return the preview item, or a classified failure
+     */
+    @ApiStatus.Experimental
+    @NotNull
+    EmakiResult<ItemStack> previewResult(@Nullable Player player,
+                                         @Nullable String recipeId,
+                                         @Nullable ForgeInputs inputs);
+
+    /**
+     * Returns the player's persisted successful craft count for one recipe. This is the current
+     * runtime's mastery value; no separate synthetic mastery table is exposed.
+     *
+     * <p><strong>Thread:</strong> the player's owner thread. Player data must already be loaded for the
+     * current session; otherwise the result is {@code UNAVAILABLE}, not a fabricated zero.
+     *
+     * @param player   player whose mastery is queried
+     * @param recipeId recipe id
+     * @return the persisted mastery value
+     */
+    @ApiStatus.Experimental
+    @NotNull
+    EmakiResult<Integer> mastery(@Nullable Player player, @Nullable String recipeId);
 
     /**
      * {@return whether the forging subsystem is currently accepting new attempts; {@code false}

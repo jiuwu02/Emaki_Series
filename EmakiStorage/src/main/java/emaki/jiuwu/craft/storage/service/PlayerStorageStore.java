@@ -139,7 +139,7 @@ public final class PlayerStorageStore {
      * @param playerName the last known name, recorded for troubleshooting only
      * @return a future completing with the loaded storage, or {@code null} when superseded
      */
-    public CompletableFuture<PlayerStorage> beginSession(UUID playerId, String playerName) {
+    public CompletableFuture<PlayerStorage> beginSessionAsync(UUID playerId, String playerName) {
         PlayerStorage placeholder = new PlayerStorage(playerId);
         placeholder.playerName(playerName);
         placeholder.sortMode(defaultSortMode);
@@ -149,7 +149,7 @@ public final class PlayerStorageStore {
         }
         CompletableFuture<PlayerStorage> future = new CompletableFuture<>();
         pendingLoads.put(playerId, new PendingLoad(ticket.generation(), future));
-        cache.waitForIdle(playerId)
+        cache.waitForIdleAsync(playerId)
                 .thenCompose(ignored -> fileScope.read(dataFile.dataFile(playerId),
                         "storage-load", () -> readStorage(playerId, playerName)))
                 .whenComplete((loaded, throwable) -> {
@@ -243,7 +243,7 @@ public final class PlayerStorageStore {
         if (ticket == null) {
             return CompletableFuture.completedFuture(false);
         }
-        return cache.enqueueSave(ticket, this::writeTicket);
+        return cache.enqueueSaveAsync(ticket, this::writeTicket);
     }
 
     /**
@@ -257,7 +257,7 @@ public final class PlayerStorageStore {
         if (ticket == null) {
             return CompletableFuture.completedFuture(false);
         }
-        return cache.enqueueSave(ticket, this::writeTicket);
+        return cache.enqueueSaveAsync(ticket, this::writeTicket);
     }
 
     /** Saves every dirty storage without unloading. */
@@ -268,7 +268,7 @@ public final class PlayerStorageStore {
         }
         List<CompletableFuture<Boolean>> saves = new ArrayList<>(tickets.size());
         for (PlayerStorageCache.SaveTicket ticket : tickets) {
-            saves.add(cache.enqueueSave(ticket, this::writeTicket));
+            saves.add(cache.enqueueSaveAsync(ticket, this::writeTicket));
         }
         return CompletableFuture.allOf(saves.toArray(CompletableFuture[]::new))
                 .thenApply(ignored -> {
@@ -331,7 +331,7 @@ public final class PlayerStorageStore {
         List<PlayerStorageCache.SaveTicket> tickets = cache.snapshotDirtyEntries();
         List<CompletableFuture<Boolean>> saves = new ArrayList<>(tickets.size());
         for (PlayerStorageCache.SaveTicket ticket : tickets) {
-            saves.add(cache.enqueueSave(ticket, this::writeTicket));
+            saves.add(cache.enqueueSaveAsync(ticket, this::writeTicket));
         }
         CompletableFuture<Void> all = saves.isEmpty()
                 ? CompletableFuture.completedFuture(null)

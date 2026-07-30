@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.corelib.api.integration;
 
 import org.bukkit.block.Block;
+import org.jetbrains.annotations.ApiStatus;
 
+@ApiStatus.Experimental
 public interface CustomBlockBridge {
 
     boolean available();

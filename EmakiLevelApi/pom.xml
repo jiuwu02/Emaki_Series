@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-level-api</artifactId>
-    <version>1.4.2</version>
+    <version>1.4.3</version>
     <name>EmakiLevelApi</name>
     <packaging>jar</packaging>
 
@@ -34,4 +34,17 @@
             <scope>provided</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

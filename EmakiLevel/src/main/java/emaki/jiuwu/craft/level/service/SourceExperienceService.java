@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
+import emaki.jiuwu.craft.level.api.ExpSourceContext;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.config.SourceRuleConfig;
 
@@ -41,6 +42,29 @@ public final class SourceExperienceService {
         if (result.success()) {
             plugin.antiAbuseService().markCooldown(player, source);
         }
+    }
+
+    /** Invokes every external provider once for one gameplay trigger and applies its returned grants. */
+    public void awardExtensions(Player player, String trigger, Map<String, ?> variables) {
+        if (player == null || plugin.expSourceRegistry() == null) {
+            return;
+        }
+        Map<String, Object> contextVariables = new LinkedHashMap<>();
+        if (variables != null) {
+            contextVariables.putAll(variables);
+        }
+        ExpSourceContext context = new ExpSourceContext(player, Texts.normalizeId(trigger), contextVariables);
+        plugin.expSourceRegistry().dispatch(context, grant -> {
+            if (grant == null
+                    || Texts.isBlank(grant.typeId())
+                    || !Double.isFinite(grant.amount())
+                    || grant.amount() <= 0D) {
+                return;
+            }
+            String reason = Texts.isBlank(grant.reason()) ? context.trigger() : grant.reason();
+            plugin.levelService().addExp(
+                    player.getUniqueId(), grant.typeId(), grant.amount(), reason, null, grant.silent());
+        });
     }
 
     public SourceRuleConfig.Rule matchEntity(SourceRuleConfig source, EntityType type) {

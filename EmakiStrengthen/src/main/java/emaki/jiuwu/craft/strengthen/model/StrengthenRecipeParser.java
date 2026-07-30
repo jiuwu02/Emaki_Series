@@ -15,14 +15,18 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.CurrencyEntry;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.EconomyConfig;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.EconomyOverride;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.Limits;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.MatchRule;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StarStage;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StarStageMaterial;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StatLineDefinition;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenBranchNode;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionGroup;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.CurrencyEntry;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.EconomyConfig;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.EconomyOverride;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.Limits;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.MatchRule;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StarStage;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StarStageMaterial;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StatLineDefinition;
 
 public final class StrengthenRecipeParser {
 

@@ -16,7 +16,8 @@ import org.bukkit.event.HandlerList;
  * type and the output count, toggle whether the result is dropped via
  * {@link #setDropResult(boolean)}, or cancel the delivery entirely. A cancelled
  * event stops EmakiCooking from delivering the outputs and running the
- * completion actions. This event is fired on the server thread.
+ * completion actions. This synchronous event is fired only while EmakiCooking owns the global
+ * transaction boundary used to prepare delivery.
  */
 public final class CookingRecipeCompleteEvent extends Event implements Cancellable {
 

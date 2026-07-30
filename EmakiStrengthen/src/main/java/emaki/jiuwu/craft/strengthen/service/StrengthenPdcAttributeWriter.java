@@ -10,8 +10,8 @@ import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
 import emaki.jiuwu.craft.skills.api.pdc.SkillPdcMutation;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 
 final class StrengthenPdcAttributeWriter {
 

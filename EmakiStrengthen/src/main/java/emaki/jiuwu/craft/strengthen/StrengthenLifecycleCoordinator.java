@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
+import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 
 final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiStrengthenPlugin, StrengthenRuntimeComponents> {
 
@@ -102,6 +103,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 coreLibPlugin.itemAssemblyService(),
                 threadOwnership
         );
+        StrengthenTransferService transferService = new StrengthenTransferService(plugin, attemptService);
         StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService, executionDispatcher);
         StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService, threadOwnership);
         return new StrengthenRuntimeComponents(
@@ -122,6 +124,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 snapshotBuilder,
                 actionCoordinator,
                 attemptService,
+                transferService,
                 refreshService,
                 strengthenGuiService
         );

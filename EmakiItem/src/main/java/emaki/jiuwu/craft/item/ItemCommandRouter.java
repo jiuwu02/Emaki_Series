@@ -189,7 +189,7 @@ final class ItemCommandRouter implements TabExecutor {
             String id = ids.get(index);
             plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.line", Map.of(
                     "id", id,
-                    "name", plugin.itemApi().displayName(id)
+                    "name", plugin.itemApi().catalog().displayName(id).orElse(id)
             )));
         }
         return true;

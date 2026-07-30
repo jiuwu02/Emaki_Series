@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
@@ -66,9 +68,15 @@ public final class GemOperationJournal {
     }
 
     public String begin(String kind, UUID playerId) {
-        String operationId = UUID.randomUUID().toString();
-        save(new Entry(operationId, kind, playerId, Phase.PREPARED, List.of(), List.of(), ""));
-        return operationId;
+        return begin(UUID.randomUUID().toString(), kind, playerId);
+    }
+
+    public String begin(String operationId, String kind, UUID playerId) {
+        String resolvedOperationId = operationId == null || operationId.isBlank()
+                ? UUID.randomUUID().toString()
+                : operationId;
+        save(new Entry(resolvedOperationId, kind, playerId, Phase.PREPARED, List.of(), List.of(), ""));
+        return resolvedOperationId;
     }
 
     public void charged(String operationId, GemEconomyService.ChargeResult result) {
@@ -137,25 +145,34 @@ public final class GemOperationJournal {
         compensationPending(operationId, result.errorKey());
     }
 
-    public void completeAfterActions(String operationId,
-            java.util.concurrent.CompletionStage<GemActionCoordinator.ExecutionResult> actions) {
+    public CompletionStage<Boolean> completeAfterActions(String operationId,
+            CompletionStage<GemActionCoordinator.ExecutionResult> actions) {
         advance(operationId, Phase.REWARD_PENDING);
         if (actions == null) {
             rewardPending(operationId, "action_stage_missing");
-            return;
+            return CompletableFuture.completedFuture(false);
         }
+        CompletableFuture<Boolean> completion = new CompletableFuture<>();
         actions.whenComplete((result, throwable) -> {
             if (throwable != null) {
                 rewardPending(operationId, throwable.getMessage());
+                completion.complete(false);
                 return;
             }
             if (result == null || !result.success()) {
                 rewardPending(operationId, result == null ? "action_result_missing" : result.message());
+                completion.complete(false);
                 return;
             }
-            advance(operationId, Phase.REWARDED);
-            advance(operationId, Phase.COMPLETED);
+            try {
+                advance(operationId, Phase.REWARDED);
+                advance(operationId, Phase.COMPLETED);
+                completion.complete(true);
+            } catch (Throwable failure) {
+                completion.completeExceptionally(failure);
+            }
         });
+        return completion;
     }
 
     public void rewardPending(String operationId, String error) {

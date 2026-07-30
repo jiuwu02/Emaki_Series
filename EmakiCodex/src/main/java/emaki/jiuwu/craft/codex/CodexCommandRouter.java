@@ -89,8 +89,8 @@ final class CodexCommandRouter implements TabExecutor {
         }
         String advancementId = args[2];
         runOnTargetOwner(target, () -> grant
-                ? plugin.advancementService().grant(target, advancementId)
-                : plugin.advancementService().revoke(target, advancementId))
+                ? plugin.advancementService().grant(target, advancementId).isSuccess()
+                : plugin.advancementService().revoke(target, advancementId).isSuccess())
                 .whenComplete((ok, throwable) -> {
                     if (throwable != null || !Boolean.TRUE.equals(ok)) {
                         sendToSender(sender, () -> plugin.messageService().send(sender,

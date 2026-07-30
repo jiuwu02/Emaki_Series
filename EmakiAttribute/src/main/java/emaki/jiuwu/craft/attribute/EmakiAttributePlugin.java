@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 
 import emaki.jiuwu.craft.attribute.action.AttributeActions;
 import emaki.jiuwu.craft.attribute.action.AttributeDamageSkillAction;
-import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
@@ -35,6 +34,7 @@ import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
+import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.attribute.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
@@ -87,11 +87,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private AttributePresetRegistry presetRegistry;
     private PdcReadRuleLoader pdcReadRuleLoader;
     private ItemContributionGateRegistry itemContributionGateRegistry;
+    private ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry;
     private LanguageLoader languageLoader;
     private MessageService messageService;
     private emaki.jiuwu.craft.attribute.service.DamageIndicatorService damageIndicatorService;
     private EmakiAttributeApi.Bridge emakiAttributeBridge;
-    private PdcAttributeApi.Bridge pdcAttributeApi;
     private ParentAttributeDataStore parentAttributeDataStore;
     private ParentAttributeService parentAttributeService;
     private GuiTemplateLoader guiTemplateLoader;
@@ -111,7 +111,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         applyRuntimeComponents(lifecycleCoordinator.initialize(this));
         registerConfigPrecheckContributor();
         registerAttributeBridgeService();
-        registerPdcAttributeApi();
         registerAttributeServiceFacade();
         ConsoleOutputs.sendGradientAscii(
                 this,
@@ -133,7 +132,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     public void onDisable() {
         unregisterCoreLibActions();
         ConfigPrecheckLifecycleSupport.unregister("attribute");
-        PdcAttributeApi.uninstall(pdcAttributeApi);
         EmakiAttributeApi.uninstall(emakiAttributeBridge);
         Bukkit.getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this, regenTask);
@@ -225,6 +223,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         presetRegistry = components.presetRegistry();
         pdcReadRuleLoader = components.pdcReadRuleLoader();
         itemContributionGateRegistry = components.itemContributionGateRegistry();
+        contributionProviderRegistrationRegistry = components.contributionProviderRegistrationRegistry();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
         // 飘字服务用 Supplier 取依赖，这样 reload 后自动读到新配置，无需重建实例。
@@ -237,7 +236,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
                 () -> configModel() == null ? null : configModel().damageIndicator(),
                 this::messageService);
         emakiAttributeBridge = components.emakiAttributeBridge();
-        pdcAttributeApi = components.pdcAttributeApi();
         parentAttributeDataStore = components.parentAttributeDataStore();
         parentAttributeService = components.parentAttributeService();
         guiTemplateLoader = components.guiTemplateLoader();
@@ -256,13 +254,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         coreLanguageLoader.load();
         setDebugLogger(new DebugLogger(this, coreLanguageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
-    }
-
-    private void registerPdcAttributeApi() {
-        if (pdcAttributeApi == null) {
-            return;
-        }
-        PdcAttributeApi.install(pdcAttributeApi);
     }
 
     private void registerAttributeBridgeService() {
@@ -332,6 +323,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return itemContributionGateRegistry;
     }
 
+    public ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry() {
+        return contributionProviderRegistrationRegistry;
+    }
+
     public LanguageLoader languageLoader() {
         return languageLoader;
     }
@@ -343,10 +338,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     public MessageService messageService() {
         return messageService;
-    }
-
-    public PdcAttributeApi.Bridge pdcAttributeApi() {
-        return pdcAttributeApi;
     }
 
     public ParentAttributeDataStore parentAttributeDataStore() {

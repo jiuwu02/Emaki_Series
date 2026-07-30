@@ -1,16 +1,19 @@
 package emaki.jiuwu.craft.cooking.apiimpl;
 
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
 
 import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.api.CookingCatalog;
@@ -21,17 +24,10 @@ import emaki.jiuwu.craft.cooking.api.model.CookingStationView;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationSnapshot;
-import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingStationTracker;
 
-/**
- * {@link CookingCatalog} 的运行时实现。
- *
- * <p>站点快照的映射是本类的重点：runtime 用同一个宽结构承载 7 种站点，各站点只填自己关心的字段，
- * 其余留 0。这里按站点类型判定哪些读数真正有意义，只把有意义的包成 {@link OptionalInt}，
- * 避免第三方把「砧板的热度 0」当成真实读数。
- */
+/** Runtime-backed cooking catalog. */
 public final class DefaultCookingCatalog implements CookingCatalog {
 
     private final EmakiCookingPlugin plugin;
@@ -41,174 +37,218 @@ public final class DefaultCookingCatalog implements CookingCatalog {
     }
 
     @Override
-    public @NotNull Optional<CookingRecipeView> findRecipe(@Nullable CookingStationType stationType,
-            @Nullable String inputSource,
-            @Nullable Player player) {
-        CookingRecipeService recipeService = plugin.recipeService();
-        if (stationType == null || Texts.isBlank(inputSource) || recipeService == null) {
-            return Optional.empty();
-        }
-        RecipeDocument document = switch (stationType) {
-            case CHOPPING_BOARD -> recipeService.findChoppingBoardRecipe(inputSource, player);
-            case GRINDER -> recipeService.findGrinderRecipe(inputSource, player);
-            case STEAMER -> recipeService.findSteamerRecipe(inputSource, player);
-            case OVEN -> recipeService.findOvenRecipe(inputSource, player);
-            case JUICER -> recipeService.findJuicerRecipe(inputSource, player);
-            case WOK, FERMENTATION_BARREL -> null;
-        };
-        return Optional.ofNullable(document).map(DefaultCookingCatalog::toRecipeView);
-    }
-
-    @Override
-    public @NotNull List<CookingRecipeView> wokRecipes() {
-        CookingRecipeService recipeService = plugin.recipeService();
-        if (recipeService == null) {
+    public List<CookingRecipeView> recipes(CookingStationType stationType) {
+        if (!ready() || stationType == null) {
             return List.of();
         }
-        return recipeService.wokRecipes().stream().map(DefaultCookingCatalog::toRecipeView).toList();
+        return documents(stationType).stream()
+                .filter(document -> document != null && Texts.isNotBlank(document.id()))
+                .sorted(Comparator.comparing(RecipeDocument::id))
+                .map(DefaultCookingCatalog::toRecipeView)
+                .flatMap(Optional::stream)
+                .toList();
     }
 
     @Override
-    public @NotNull Optional<CookingStationView> stationAt(@Nullable Location location) {
-        if (location == null || location.getWorld() == null) {
+    public Optional<CookingRecipeView> recipe(CookingStationType stationType, String recipeId) {
+        if (!ready() || stationType == null || Texts.isBlank(recipeId)) {
             return Optional.empty();
+        }
+        RecipeDocument document = document(stationType, Texts.lower(recipeId));
+        return document == null ? Optional.empty() : toRecipeView(document);
+    }
+
+    @Override
+    public EmakiResult<CookingRecipeView> matchRecipe(CookingStationType stationType,
+            ItemStack input,
+            Player player) {
+        if (!ready()) {
+            return EmakiResult.unavailable();
+        }
+        if (stationType == null) {
+            return EmakiResult.invalidInput("cooking.input.station_type_missing");
+        }
+        if (input == null || input.getType().isAir()) {
+            return EmakiResult.invalidInput("cooking.input.item_missing");
+        }
+        if (player != null && !plugin.threadOwnership().isEntityOwned(player)) {
+            return EmakiResult.wrongThread();
+        }
+        if (stationType == CookingStationType.WOK
+                || stationType == CookingStationType.FERMENTATION_BARREL) {
+            return EmakiResult.rejected("cooking.recipe.single_input_match_unsupported");
+        }
+        ItemSource source = plugin.coreItemSourceService().identifyItem(input);
+        if (source == null) {
+            return EmakiResult.notFound("cooking.input.source_not_found");
+        }
+        String shorthand = ItemSourceUtil.toShorthand(source);
+        CookingRecipeService service = plugin.recipeService();
+        RecipeDocument matched = switch (stationType) {
+            case CHOPPING_BOARD -> service.findChoppingBoardRecipe(shorthand, player);
+            case GRINDER -> service.findGrinderRecipe(shorthand, player);
+            case STEAMER -> service.findSteamerRecipe(shorthand, player);
+            case OVEN -> service.findOvenRecipe(shorthand, player);
+            case JUICER -> service.findJuicerRecipe(shorthand, player);
+            case WOK, FERMENTATION_BARREL -> null;
+        };
+        if (matched == null) {
+            return EmakiResult.notFound("cooking.recipe.match_not_found");
+        }
+        return toRecipeView(matched)
+                .<EmakiResult<CookingRecipeView>>map(EmakiResult::success)
+                .orElseGet(() -> EmakiResult.internalError("cooking.recipe.station_type_invalid"));
+    }
+
+    @Override
+    public EmakiResult<CookingStationView> stationAt(Location location) {
+        if (!ready()) {
+            return EmakiResult.unavailable();
+        }
+        if (location == null || location.getWorld() == null) {
+            return EmakiResult.invalidInput("cooking.input.location_missing");
+        }
+        if (!plugin.threadOwnership().isLocationOwned(location)) {
+            return EmakiResult.wrongThread();
         }
         StationCoordinates coordinates = StationCoordinates.fromBlock(location.getBlock());
         if (coordinates == null) {
-            return Optional.empty();
+            return EmakiResult.invalidInput("cooking.input.location_invalid");
         }
-        return firstSnapshot(coordinates).map(DefaultCookingCatalog::toStationView);
+        Optional<StationSnapshot> snapshot = firstSnapshot(coordinates);
+        if (snapshot.isEmpty()) {
+            return EmakiResult.notFound("cooking.station_not_found");
+        }
+        return toStationView(snapshot.get())
+                .<EmakiResult<CookingStationView>>map(EmakiResult::success)
+                .orElseGet(() -> EmakiResult.internalError("cooking.station_type_invalid"));
     }
 
     @Override
-    public @NotNull Optional<RecentStation> recentStation(@Nullable UUID playerId) {
-        CookingStationTracker tracker = plugin.stationTracker();
+    public Optional<Location> recentStation(UUID playerId) {
+        CookingStationTracker tracker = plugin == null || !plugin.publicApiReady()
+                ? null
+                : plugin.stationTracker();
         if (tracker == null || playerId == null) {
             return Optional.empty();
         }
-        return tracker.recent(playerId).flatMap(recent -> {
-            Optional<CookingStationType> type = CookingStationType.fromConfigKey(recent.type().folderName());
-            Block block = recent.coordinates().block();
-            return type.isEmpty() || block == null
-                    ? Optional.empty()
-                    : Optional.of(new RecentStation(type.get(), block.getLocation()));
-        });
+        return tracker.recent(playerId)
+                .map(CookingStationTracker.RecentStation::coordinates)
+                .map(coordinates -> coordinates.location(0.5D, 0.5D, 0.5D))
+                .filter(location -> location != null && location.getWorld() != null);
     }
 
-    /**
-     * 依次向 7 个站点服务询问该坐标的快照，返回第一个命中的。
-     *
-     * <p>runtime 没有「按坐标查任意站点」的统一入口，只有每类站点各自的 {@code snapshotAt}，
-     * 因此这里逐个探测。各服务对不属于自己的坐标返回空 Optional，代价只是一次 map 查找。
-     *
-     * @param coordinates 站点坐标
-     * @return 命中的快照
-     */
+    private Collection<RecipeDocument> documents(CookingStationType type) {
+        return switch (type) {
+            case CHOPPING_BOARD -> plugin.choppingBoardRecipeLoader().all().values();
+            case WOK -> plugin.wokRecipeLoader().all().values();
+            case GRINDER -> plugin.grinderRecipeLoader().all().values();
+            case STEAMER -> plugin.steamerRecipeLoader().all().values();
+            case OVEN -> plugin.ovenRecipeLoader().all().values();
+            case JUICER -> plugin.juicerRecipeLoader().all().values();
+            case FERMENTATION_BARREL -> plugin.fermentationBarrelRecipeLoader().all().values();
+        };
+    }
+
+    private RecipeDocument document(CookingStationType type, String recipeId) {
+        return switch (type) {
+            case CHOPPING_BOARD -> plugin.choppingBoardRecipeLoader().get(recipeId);
+            case WOK -> plugin.wokRecipeLoader().get(recipeId);
+            case GRINDER -> plugin.grinderRecipeLoader().get(recipeId);
+            case STEAMER -> plugin.steamerRecipeLoader().get(recipeId);
+            case OVEN -> plugin.ovenRecipeLoader().get(recipeId);
+            case JUICER -> plugin.juicerRecipeLoader().get(recipeId);
+            case FERMENTATION_BARREL -> plugin.fermentationBarrelRecipeLoader().get(recipeId);
+        };
+    }
+
     private Optional<StationSnapshot> firstSnapshot(StationCoordinates coordinates) {
-        if (plugin.choppingBoardRuntimeService() != null) {
-            Optional<StationSnapshot> found = plugin.choppingBoardRuntimeService().snapshotAt(coordinates);
-            if (found.isPresent()) {
-                return found;
-            }
+        Optional<StationSnapshot> found;
+        if (plugin.choppingBoardRuntimeService() != null
+                && (found = plugin.choppingBoardRuntimeService().snapshotAt(coordinates)).isPresent()) {
+            return found;
         }
-        if (plugin.wokRuntimeService() != null) {
-            Optional<StationSnapshot> found = plugin.wokRuntimeService().snapshotAt(coordinates);
-            if (found.isPresent()) {
-                return found;
-            }
+        if (plugin.wokRuntimeService() != null
+                && (found = plugin.wokRuntimeService().snapshotAt(coordinates)).isPresent()) {
+            return found;
         }
-        if (plugin.grinderRuntimeService() != null) {
-            Optional<StationSnapshot> found = plugin.grinderRuntimeService().snapshotAt(coordinates);
-            if (found.isPresent()) {
-                return found;
-            }
+        if (plugin.grinderRuntimeService() != null
+                && (found = plugin.grinderRuntimeService().snapshotAt(coordinates)).isPresent()) {
+            return found;
         }
-        if (plugin.steamerRuntimeService() != null) {
-            Optional<StationSnapshot> found = plugin.steamerRuntimeService().snapshotAt(coordinates);
-            if (found.isPresent()) {
-                return found;
-            }
+        if (plugin.steamerRuntimeService() != null
+                && (found = plugin.steamerRuntimeService().snapshotAt(coordinates)).isPresent()) {
+            return found;
         }
-        if (plugin.ovenRuntimeService() != null) {
-            Optional<StationSnapshot> found = plugin.ovenRuntimeService().snapshotAt(coordinates);
-            if (found.isPresent()) {
-                return found;
-            }
+        if (plugin.ovenRuntimeService() != null
+                && (found = plugin.ovenRuntimeService().snapshotAt(coordinates)).isPresent()) {
+            return found;
         }
-        if (plugin.juicerRuntimeService() != null) {
-            Optional<StationSnapshot> found = plugin.juicerRuntimeService().snapshotAt(coordinates);
-            if (found.isPresent()) {
-                return found;
-            }
+        if (plugin.juicerRuntimeService() != null
+                && (found = plugin.juicerRuntimeService().snapshotAt(coordinates)).isPresent()) {
+            return found;
         }
-        if (plugin.fermentationBarrelRuntimeService() != null) {
-            Optional<StationSnapshot> found = plugin.fermentationBarrelRuntimeService().snapshotAt(coordinates);
-            if (found.isPresent()) {
-                return found;
-            }
+        if (plugin.fermentationBarrelRuntimeService() != null
+                && (found = plugin.fermentationBarrelRuntimeService().snapshotAt(coordinates)).isPresent()) {
+            return found;
         }
         return Optional.empty();
     }
 
-    /**
-     * 把 runtime 配方文档映射为只读视图，丢弃其携带的 YAML 句柄。
-     *
-     * @param document runtime 配方文档
-     * @return 只读视图
-     */
-    static CookingRecipeView toRecipeView(RecipeDocument document) {
-        CookingStationType type = CookingStationType.fromConfigKey(document.stationType().folderName())
-                .orElse(CookingStationType.WOK);
-        return new CookingRecipeView(Texts.lower(document.id()), document.displayName(), type);
+    static Optional<CookingRecipeView> toRecipeView(RecipeDocument document) {
+        if (document == null || document.stationType() == null) {
+            return Optional.empty();
+        }
+        return CookingStationType.fromConfigKey(document.stationType().folderName())
+                .map(type -> new CookingRecipeView(Texts.lower(document.id()), document.displayName(), type));
     }
 
-    /**
-     * 把 runtime 站点快照映射为按站点类型裁剪过的只读视图。
-     *
-     * @param snapshot runtime 快照
-     * @return 只读视图
-     */
-    static CookingStationView toStationView(StationSnapshot snapshot) {
-        StationType runtimeType = snapshot.stationType();
-        CookingStationType type = CookingStationType.fromConfigKey(runtimeType.folderName())
-                .orElse(CookingStationType.WOK);
-        CookingProgress progress = new CookingProgress(snapshot.progressCurrent(),
-                snapshot.progressTarget(),
-                snapshot.completed());
-        String fluidName = Texts.isBlank(snapshot.fluidName()) ? null : snapshot.fluidName();
-        return new CookingStationView(type,
-                Texts.isBlank(snapshot.recipeId()) ? null : Texts.lower(snapshot.recipeId()),
-                Texts.isBlank(snapshot.recipeName()) ? null : snapshot.recipeName(),
-                progress,
-                snapshot.burning(),
-                tracksHeat(type) ? OptionalInt.of(snapshot.heat()) : OptionalInt.empty(),
-                tracksMoisture(type) ? OptionalInt.of(snapshot.moisture()) : OptionalInt.empty(),
-                tracksSteam(type) ? OptionalInt.of(snapshot.steam()) : OptionalInt.empty(),
-                snapshot.ingredientCount(),
-                fluidName,
-                fluidName == null ? OptionalInt.empty() : OptionalInt.of(snapshot.fluidAmountMl()));
+    static Optional<CookingStationView> toStationView(StationSnapshot snapshot) {
+        if (snapshot == null || snapshot.stationType() == null) {
+            return Optional.empty();
+        }
+        return CookingStationType.fromConfigKey(snapshot.stationType().folderName()).map(type -> {
+            CookingProgress progress = new CookingProgress(snapshot.progressCurrent(),
+                    snapshot.progressTarget(), snapshot.completed());
+            String fluidName = Texts.isBlank(snapshot.fluidName()) ? null : snapshot.fluidName();
+            return new CookingStationView(type,
+                    Texts.isBlank(snapshot.recipeId()) ? null : Texts.lower(snapshot.recipeId()),
+                    Texts.isBlank(snapshot.recipeName()) ? null : snapshot.recipeName(),
+                    progress,
+                    snapshot.burning(),
+                    tracksHeat(type) ? OptionalInt.of(snapshot.heat()) : OptionalInt.empty(),
+                    tracksMoisture(type) ? OptionalInt.of(snapshot.moisture()) : OptionalInt.empty(),
+                    tracksSteam(type) ? OptionalInt.of(snapshot.steam()) : OptionalInt.empty(),
+                    snapshot.ingredientCount(),
+                    fluidName,
+                    fluidName == null ? OptionalInt.empty() : OptionalInt.of(snapshot.fluidAmountMl()));
+        });
     }
 
-    /**
-     * @param type 站点类型
-     * @return 该站点是否跟踪热度
-     */
+    private boolean ready() {
+        return plugin != null
+                && plugin.isEnabled()
+                && plugin.publicApiReady()
+                && plugin.threadOwnership() != null
+                && plugin.coreItemSourceService() != null
+                && plugin.recipeService() != null
+                && plugin.choppingBoardRecipeLoader() != null
+                && plugin.wokRecipeLoader() != null
+                && plugin.grinderRecipeLoader() != null
+                && plugin.steamerRecipeLoader() != null
+                && plugin.ovenRecipeLoader() != null
+                && plugin.juicerRecipeLoader() != null
+                && plugin.fermentationBarrelRecipeLoader() != null;
+    }
+
     private static boolean tracksHeat(CookingStationType type) {
         return type == CookingStationType.WOK || type == CookingStationType.OVEN;
     }
 
-    /**
-     * @param type 站点类型
-     * @return 该站点是否跟踪湿度
-     */
     private static boolean tracksMoisture(CookingStationType type) {
         return type == CookingStationType.OVEN || type == CookingStationType.FERMENTATION_BARREL;
     }
 
-    /**
-     * @param type 站点类型
-     * @return 该站点是否跟踪蒸汽
-     */
     private static boolean tracksSteam(CookingStationType type) {
         return type == CookingStationType.STEAMER;
     }

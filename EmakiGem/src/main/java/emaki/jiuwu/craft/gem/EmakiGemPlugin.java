@@ -104,6 +104,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private DebugCommand debugCommand;
     private final EmakiGemApi.Bridge gemApiBridge =
             new emaki.jiuwu.craft.gem.apiimpl.DefaultEmakiGemApi(this);
+    private volatile boolean publicApiReady;
 
     public EmakiGemPlugin() {
         super(AppConfig::defaults);
@@ -138,6 +139,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     @Override
     public void onDisable() {
+        publicApiReady = false;
         ConfigPrecheckLifecycleSupport.unregister("gem");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -158,13 +160,19 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {
+        publicApiReady = false;
         lifecycleCoordinator.reload(this, closeOpenInventories);
         logConfigPrecheckReport();
+        publicApiReady = true;
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
+        publicApiReady = false;
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
-                .thenRun(this::logConfigPrecheckReport);
+                .thenRun(() -> {
+                    logConfigPrecheckReport();
+                    publicApiReady = true;
+                });
     }
 
     private void logConfigPrecheckReport() {
@@ -275,6 +283,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public ThreadOwnership threadOwnership() {
         return threadOwnership;
+    }
+
+    public boolean publicApiReady() {
+        return publicApiReady;
     }
 
     public GuiService guiService() {

@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
+import emaki.jiuwu.craft.codex.api.AdvancementSpec;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -75,6 +76,34 @@ public final class AdvancementJsonBuilder {
         requirements.add(requirementGroup);
         root.add("requirements", requirements);
 
+        return root.toString();
+    }
+
+    /** Builds the platform JSON for a narrow external advancement specification. */
+    public String build(AdvancementSpec spec, String parentKey) {
+        JsonObject root = new JsonObject();
+        JsonObject display = new JsonObject();
+        display.add("icon", buildIcon(spec.icon()));
+        display.add("title", textComponent(spec.title()));
+        display.add("description", textComponent(spec.description()));
+        display.addProperty("frame", spec.frame().name().toLowerCase(java.util.Locale.ROOT));
+        display.addProperty("show_toast", spec.showToast());
+        display.addProperty("announce_to_chat", spec.announce());
+        display.addProperty("hidden", spec.hidden());
+        root.add("display", display);
+        if (Texts.isNotBlank(parentKey)) {
+            root.addProperty("parent", parentKey);
+        }
+        JsonObject criteria = new JsonObject();
+        JsonObject manual = new JsonObject();
+        manual.addProperty("trigger", "minecraft:impossible");
+        criteria.add(AdvancementDefinition.CRITERION, manual);
+        root.add("criteria", criteria);
+        JsonArray requirements = new JsonArray();
+        JsonArray requirementGroup = new JsonArray();
+        requirementGroup.add(AdvancementDefinition.CRITERION);
+        requirements.add(requirementGroup);
+        root.add("requirements", requirements);
         return root.toString();
     }
 

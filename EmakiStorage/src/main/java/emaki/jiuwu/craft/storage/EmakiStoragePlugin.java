@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -410,15 +411,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (target == null || !target.isOnline()) {
             return CompletableFuture.completedFuture(onReject.get());
         }
-        if (ownsWriteTarget(target)) {
-            try {
-                return CompletableFuture.completedFuture(operation.get());
-            } catch (Throwable failure) {
-                CompletableFuture<R> failed = new CompletableFuture<>();
-                failed.completeExceptionally(failure);
-                return failed;
-            }
-        }
         CompletableFuture<R> future = new CompletableFuture<>();
         try {
             TaskHandle scheduled = executionDispatcher.runEntity(this, target, () -> {
@@ -442,9 +434,9 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return playerId == null ? null : Bukkit.getPlayer(playerId);
     }
 
-    /** {@return a read-only snapshot, loading the player's data when necessary} */
-    public CompletableFuture<StorageSnapshot> getApiBridgeSnapshot(UUID playerId) {
-        return apiBridge.readSnapshot(playerId);
+    /** {@return a read-only snapshot result, loading the player's data when necessary} */
+    public CompletableFuture<EmakiResult<StorageSnapshot>> getApiBridgeSnapshotAsync(UUID playerId) {
+        return apiBridge.operations().readSnapshotAsync(playerId);
     }
 
     /**
@@ -454,8 +446,12 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
      * @param playerName the name recorded in the dump
      * @return a future completing with the written file name, or {@code null} on failure
      */
-    public CompletableFuture<String> exportStorage(UUID playerId, String playerName) {
-        return apiBridge.readSnapshot(playerId).thenApply(snapshot -> {
+    public CompletableFuture<String> exportStorageAsync(UUID playerId, String playerName) {
+        return apiBridge.operations().readSnapshotAsync(playerId).thenApply(result -> {
+            StorageSnapshot snapshot = result.orElse(null);
+            if (snapshot == null) {
+                return null;
+            }
             Map<String, Object> dump = new LinkedHashMap<>();
             dump.put("player_uuid", playerId.toString());
             dump.put("player_name", playerName);

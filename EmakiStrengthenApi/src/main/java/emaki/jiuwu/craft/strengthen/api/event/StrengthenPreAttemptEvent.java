@@ -15,7 +15,10 @@ import org.bukkit.inventory.ItemStack;
  * current/target stars, override the success rate via
  * {@link #setSuccessRate(double)}, or cancel the attempt entirely. A cancelled
  * event stops EmakiStrengthen from rolling, rebuilding the item or charging any
- * cost. This event is fired on the server thread.
+ * cost.
+ *
+ * <p><strong>Thread:</strong> fired synchronously on the player's entity-owner thread. On Paper
+ * this is the main server thread; on Folia it is the player's region thread.
  */
 public final class StrengthenPreAttemptEvent extends Event implements Cancellable {
 

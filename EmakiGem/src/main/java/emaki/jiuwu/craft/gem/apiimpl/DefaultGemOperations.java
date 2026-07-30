@@ -1,45 +1,23 @@
 package emaki.jiuwu.craft.gem.apiimpl;
 
-import java.util.Map;
-
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
-import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.GemOperations;
-import emaki.jiuwu.craft.gem.api.event.GemExtractCompletedEvent;
-import emaki.jiuwu.craft.gem.api.event.GemInlayCompletedEvent;
 import emaki.jiuwu.craft.gem.api.model.GemExtractOutcome;
 import emaki.jiuwu.craft.gem.api.model.GemInlayOutcome;
-import emaki.jiuwu.craft.gem.api.model.GemSocketOpenOutcome;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
-import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
-import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemExtractService;
+import emaki.jiuwu.craft.gem.service.GemGuiMode;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
-import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
-/**
- * {@link GemOperations} 的运行时实现。
- *
- * <p>两处关键责任：
- * <ul>
- * <li><strong>先校验线程归属。</strong>runtime 的事件 fire 点自带 {@code isEntityOwned} 守卫，
- * 非归属线程调用会静默跳过事件，导致监听器失去取消机会。这里提前拒绝，保证事件契约不被绕过。</li>
- * <li><strong>内部完成 commit。</strong>runtime 的 {@code inlayDirect}/{@code extractDirect} 返回待提交
- * 动作，漏提交会让操作日志停留在「已扣费未完成」，下次启动被恢复逻辑误判并重复退款。这里在返回前
- * 统一提交，且不把 Runnable 外泄。</li>
- * </ul>
- */
+/** Runtime-backed gem operations. */
 public final class DefaultGemOperations implements GemOperations {
 
     private final EmakiGemPlugin plugin;
@@ -49,288 +27,240 @@ public final class DefaultGemOperations implements GemOperations {
     }
 
     @Override
-    public @NotNull EmakiResult<GemInlayOutcome> inlay(@Nullable Player actor,
-            @Nullable ItemStack equipment,
-            @Nullable ItemStack gemItem,
-            int slotIndex,
-            boolean bypassCost) {
-        if (actor == null) {
-            return EmakiResult.invalidInput("gem.error.no_actor");
-        }
-        if (equipment == null || equipment.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_equipment");
-        }
-        if (gemItem == null || gemItem.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_gem_item");
-        }
-        GemInlayService inlayService = plugin.inlayService();
-        if (inlayService == null || plugin.itemMatcher() == null) {
+    public EmakiResult<GemInlayOutcome> inlay(Player actor,
+            ItemStack equipment,
+            ItemStack gemItem,
+            int slotIndex) {
+        if (!ready()) {
             return EmakiResult.unavailable();
         }
-        if (!plugin.threadOwnership().isEntityOwned(actor)) {
-            return EmakiResult.wrongThread();
+        EmakiResult<GemInlayOutcome> validation = validatePlayerItemCall(actor, equipment, "gem.input.equipment_missing");
+        if (validation != null) {
+            return validation;
+        }
+        if (empty(gemItem)) {
+            return EmakiResult.invalidInput("gem.input.gem_missing");
+        }
+        if (slotIndex < 0) {
+            return EmakiResult.invalidInput("gem.input.slot_invalid");
         }
         GemItemInstance instance = plugin.itemMatcher().readGemInstance(gemItem);
         GemInlayService.InlayResult result =
-                inlayService.inlayDirect(actor, equipment, gemItem, slotIndex, bypassCost, false);
+                plugin.inlayService().inlayDirect(actor, equipment, gemItem, slotIndex, false, false);
         if (result == null || result.result() == null) {
-            return EmakiResult.internalError("gem.error.inlay_failed");
+            return EmakiResult.internalError("gem.inlay.result_missing");
         }
-        if (!result.result().success()) {
-            return EmakiResult.failure(rejectionKind(result.result().messageKey()),
-                    result.result().messageKey(),
-                    result.result().placeholders());
-        }
-        if (result.updatedEquipment() == null) {
-            return EmakiResult.internalError("gem.error.inlay_no_equipment");
-        }
-        result.commit();
         String gemId = instance == null ? "" : Texts.lower(instance.gemId());
         int gemLevel = instance == null ? 1 : instance.level();
-        GemInlayOutcome outcome = new GemInlayOutcome(result.updatedEquipment(),
+        if (!result.result().success()) {
+            if (result.result().inputConsumed() && result.updatedEquipment() != null
+                    && Texts.isNotBlank(result.operationId())) {
+                GemInlayOutcome partialOutcome = new GemInlayOutcome(
+                        result.operationId(),
+                        result.updatedEquipment(),
+                        true,
+                        slotIndex,
+                        gemId,
+                        gemLevel);
+                return EmakiResult.partial(partialOutcome, "gem.inlay.chance_failed");
+            }
+            return GemApiMapper.failure(result.result().messageKey(), result.result().placeholders());
+        }
+        if (result.updatedEquipment() == null || Texts.isBlank(result.operationId())) {
+            return EmakiResult.internalError("gem.inlay.commit_missing");
+        }
+        result.commit();
+        return EmakiResult.success(new GemInlayOutcome(
+                result.operationId(),
+                result.updatedEquipment(),
                 result.result().inputConsumed(),
                 slotIndex,
                 gemId,
-                gemLevel);
-        Bukkit.getPluginManager().callEvent(new GemInlayCompletedEvent(actor,
-                outcome.updatedEquipment(),
-                slotIndex,
-                gemId,
-                gemLevel,
-                outcome.inputConsumed()));
-        return EmakiResult.success(outcome);
+                gemLevel));
     }
 
     @Override
-    public @NotNull EmakiResult<GemExtractOutcome> extract(@Nullable Player actor,
-            @Nullable ItemStack equipment,
+    public EmakiResult<GemExtractOutcome> extract(Player actor,
+            ItemStack equipment,
             int slotIndex,
             boolean bypassCost) {
-        if (actor == null) {
-            return EmakiResult.invalidInput("gem.error.no_actor");
-        }
-        if (equipment == null || equipment.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_equipment");
-        }
-        GemInlayService inlayService = plugin.inlayService();
-        GemStateService stateService = plugin.stateService();
-        if (inlayService == null || stateService == null) {
+        if (!ready()) {
             return EmakiResult.unavailable();
         }
-        if (!plugin.threadOwnership().isEntityOwned(actor)) {
-            return EmakiResult.wrongThread();
+        EmakiResult<GemExtractOutcome> validation = validatePlayerItemCall(actor, equipment, "gem.input.equipment_missing");
+        if (validation != null) {
+            return validation;
         }
-        GemItemInstance existing = readAssignment(stateService, equipment, slotIndex);
+        if (slotIndex < 0) {
+            return EmakiResult.invalidInput("gem.input.slot_invalid");
+        }
+        GemItemInstance existing = GemApiMapper.readAssignment(plugin.stateService(), equipment, slotIndex);
         GemInlayService.ExtractDirectResult result =
-                inlayService.extractDirect(actor, equipment, slotIndex, bypassCost);
+                plugin.inlayService().extractDirect(actor, equipment, slotIndex, bypassCost);
         if (result == null || result.result() == null) {
-            return EmakiResult.internalError("gem.error.extract_failed");
+            return EmakiResult.internalError("gem.extract.result_missing");
         }
-        GemExtractService.Result inner = result.result();
-        if (!inner.success()) {
-            return EmakiResult.failure(rejectionKind(inner.messageKey()), inner.messageKey(), inner.placeholders());
+        if (!result.result().success()) {
+            return GemApiMapper.failure(result.result().messageKey(), result.result().placeholders());
         }
-        if (result.updatedEquipment() == null) {
-            return EmakiResult.internalError("gem.error.extract_no_equipment");
+        if (result.updatedEquipment() == null || Texts.isBlank(result.operationId())) {
+            return EmakiResult.internalError("gem.extract.commit_missing");
         }
         result.commit();
         String gemId = existing == null ? "" : Texts.lower(existing.gemId());
         int gemLevel = existing == null ? 1 : existing.level();
-        String returnMode = resolveReturnMode(gemId);
-        GemExtractOutcome outcome = new GemExtractOutcome(result.updatedEquipment(),
+        GemDefinition definition = Texts.isBlank(gemId) ? null : plugin.gemLoader().get(gemId);
+        String returnMode = definition == null || definition.extractReturn() == null
+                ? ""
+                : definition.extractReturn().mode();
+        return EmakiResult.success(new GemExtractOutcome(
+                result.operationId(),
+                result.updatedEquipment(),
                 result.returnedGem(),
                 slotIndex,
                 gemId,
                 gemLevel,
-                returnMode);
-        Bukkit.getPluginManager().callEvent(new GemExtractCompletedEvent(actor,
-                outcome.updatedEquipment(),
-                outcome.returnedGem(),
-                slotIndex,
-                gemId,
-                gemLevel,
                 returnMode));
-        return EmakiResult.success(outcome);
     }
 
     @Override
-    public @NotNull EmakiResult<GemSocketOpenOutcome> openSocket(@Nullable Player actor,
-            @Nullable ItemStack equipment,
-            @Nullable ItemStack openerItem,
-            int slotIndex,
-            boolean bypassRequirement) {
-        if (actor == null) {
-            return EmakiResult.invalidInput("gem.error.no_actor");
-        }
-        if (equipment == null || equipment.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_equipment");
-        }
-        if (openerItem == null || openerItem.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_opener");
-        }
-        SocketOpenerService openerService = plugin.socketOpenerService();
-        if (openerService == null || plugin.itemMatcher() == null) {
+    public EmakiResult<ItemStack> openSocket(Player actor, ItemStack equipment, ItemStack openerItem) {
+        if (!ready()) {
             return EmakiResult.unavailable();
         }
-        if (!plugin.threadOwnership().isEntityOwned(actor)) {
-            return EmakiResult.wrongThread();
+        EmakiResult<ItemStack> validation = validatePlayerItemCall(actor, equipment, "gem.input.equipment_missing");
+        if (validation != null) {
+            return validation;
         }
-        String openerId = resolveOpenerId(equipment, openerItem, slotIndex);
-        SocketOpenerService.OpenResult result =
-                openerService.openDirect(actor, equipment, openerItem, openerId, slotIndex, bypassRequirement);
+        if (empty(openerItem)) {
+            return EmakiResult.invalidInput("gem.input.opener_missing");
+        }
+        SocketOpenerService.OpenResult result = plugin.socketOpenerService().openDirect(actor, equipment, openerItem);
         if (result == null || result.result() == null) {
-            return EmakiResult.internalError("gem.error.open_failed");
+            return EmakiResult.internalError("gem.socket_open.result_missing");
         }
         if (!result.result().success()) {
-            return EmakiResult.failure(rejectionKind(result.result().messageKey()),
-                    result.result().messageKey(),
-                    result.result().placeholders());
+            return GemApiMapper.failure(result.result().messageKey(), result.result().placeholders());
         }
         if (result.updatedEquipment() == null) {
-            return EmakiResult.internalError("gem.error.open_no_equipment");
+            return EmakiResult.internalError("gem.socket_open.equipment_missing");
         }
-        return EmakiResult.success(
-                new GemSocketOpenOutcome(result.updatedEquipment(), result.updatedOpener(), slotIndex));
+        applyUpdatedStackAmount(openerItem, result.updatedOpener());
+        return EmakiResult.success(result.updatedEquipment());
     }
 
     @Override
-    public @NotNull EmakiResult<ItemStack> createGemItem(@Nullable String gemId, int level, int amount) {
-        if (Texts.isBlank(gemId)) {
-            return EmakiResult.invalidInput("gem.error.no_gem_id");
-        }
-        if (plugin.itemFactory() == null || plugin.gemLoader() == null) {
+    public EmakiResult<ItemStack> createGemItem(String gemId, int level, int amount) {
+        if (!ready()) {
             return EmakiResult.unavailable();
+        }
+        if (Texts.isBlank(gemId)) {
+            return EmakiResult.invalidInput("gem.input.gem_id_missing");
+        }
+        if (level < 1) {
+            return EmakiResult.invalidInput("gem.input.level_invalid");
+        }
+        if (amount < 1) {
+            return EmakiResult.invalidInput("gem.input.amount_invalid");
         }
         GemDefinition definition = plugin.gemLoader().get(Texts.lower(gemId));
         if (definition == null) {
-            return EmakiResult.notFound("gem.error.unknown_gem");
+            return EmakiResult.notFound("gem.definition_not_found");
         }
-        ItemStack created = plugin.itemFactory()
-                .createGemItem(definition, Math.max(1, level), Math.max(1, amount));
+        ItemStack created = plugin.itemFactory().createGemItem(definition, level, amount);
         return created == null
-                ? EmakiResult.internalError("gem.error.item_source_unresolved")
+                ? EmakiResult.internalError("gem.create.failed")
                 : EmakiResult.success(created);
     }
 
     @Override
-    public @NotNull EmakiResult<ItemStack> clearGems(@Nullable ItemStack equipment) {
-        if (equipment == null || equipment.getType().isAir()) {
-            return EmakiResult.invalidInput("gem.error.no_equipment");
-        }
-        GemStateService stateService = plugin.stateService();
-        if (stateService == null) {
+    public EmakiResult<ItemStack> clearGems(ItemStack equipment) {
+        if (!ready()) {
             return EmakiResult.unavailable();
         }
-        ItemStack cleared = stateService.clearGemLayer(equipment);
+        if (empty(equipment)) {
+            return EmakiResult.invalidInput("gem.input.equipment_missing");
+        }
+        if (!plugin.stateService().hasStoredLayer(equipment)) {
+            return EmakiResult.notFound("gem.layer_not_found");
+        }
+        ItemStack cleared = plugin.stateService().clearGemLayer(equipment);
         return cleared == null
-                ? EmakiResult.notFound("gem.error.no_gem_layer")
+                ? EmakiResult.internalError("gem.clear.failed")
                 : EmakiResult.success(cleared);
     }
 
     @Override
-    public @NotNull EmakiResult<Unit> openGui(@Nullable Player player) {
-        if (player == null) {
-            return EmakiResult.invalidInput("gem.error.no_actor");
-        }
-        if (plugin.gemGuiService() == null) {
+    public EmakiResult<Unit> openGui(Player player) {
+        if (!ready()) {
             return EmakiResult.unavailable();
         }
-        if (!plugin.threadOwnership().isEntityOwned(player)) {
-            return EmakiResult.wrongThread();
+        EmakiResult<Unit> validation = validateOwnedPlayer(player);
+        if (validation != null) {
+            return validation;
         }
-        return plugin.gemGuiService().open(player)
+        return plugin.gemGuiService().open(player, GemGuiMode.INLAY)
                 ? EmakiResult.ok()
-                : EmakiResult.failure(FailureKind.REJECTED, "gem.error.gui_open_failed");
+                : EmakiResult.rejected("gem.gui.open_rejected");
     }
 
     @Override
-    public @NotNull EmakiResult<Unit> openSocketGui(@Nullable Player player, @Nullable ItemStack target) {
-        if (player == null) {
-            return EmakiResult.invalidInput("gem.error.no_actor");
-        }
-        if (plugin.gemGuiService() == null) {
+    public EmakiResult<Unit> openSocketGui(Player player, ItemStack target) {
+        if (!ready()) {
             return EmakiResult.unavailable();
+        }
+        EmakiResult<Unit> validation = validateOwnedPlayer(player);
+        if (validation != null) {
+            return validation;
+        }
+        return plugin.gemGuiService().openSocket(player, target)
+                ? EmakiResult.ok()
+                : EmakiResult.rejected("gem.gui.socket_open_rejected");
+    }
+
+    private <T> EmakiResult<T> validatePlayerItemCall(Player player, ItemStack itemStack, String itemReason) {
+        EmakiResult<T> playerValidation = validateOwnedPlayer(player);
+        if (playerValidation != null) {
+            return playerValidation;
+        }
+        return empty(itemStack) ? EmakiResult.invalidInput(itemReason) : null;
+    }
+
+    private <T> EmakiResult<T> validateOwnedPlayer(Player player) {
+        if (player == null) {
+            return EmakiResult.invalidInput("gem.input.player_missing");
+        }
+        if (!player.isOnline()) {
+            return EmakiResult.targetOffline();
         }
         if (!plugin.threadOwnership().isEntityOwned(player)) {
             return EmakiResult.wrongThread();
         }
-        boolean opened = target == null
-                ? plugin.gemGuiService().openSocket(player)
-                : plugin.gemGuiService().openSocket(player, target);
-        return opened
-                ? EmakiResult.ok()
-                : EmakiResult.failure(FailureKind.REJECTED, "gem.error.gui_open_failed");
+        return null;
     }
 
-    /**
-     * 读取指定槽位当前的宝石实例，用于在拆卸前留存身份信息。
-     *
-     * @param stateService 状态服务
-     * @param equipment    装备物品
-     * @param slotIndex    槽位索引
-     * @return 宝石实例或 {@code null}
-     */
-    private static GemItemInstance readAssignment(GemStateService stateService, ItemStack equipment, int slotIndex) {
-        GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
-        if (itemDefinition == null) {
-            return null;
-        }
-        GemState state = stateService.resolveState(equipment, itemDefinition);
-        return state == null ? null : state.assignment(slotIndex);
+    private boolean ready() {
+        return plugin != null
+                && plugin.isEnabled()
+                && plugin.publicApiReady()
+                && plugin.threadOwnership() != null
+                && plugin.gemLoader() != null
+                && plugin.itemMatcher() != null
+                && plugin.itemFactory() != null
+                && plugin.stateService() != null
+                && plugin.inlayService() != null
+                && plugin.socketOpenerService() != null
+                && plugin.gemGuiService() != null;
     }
 
-    /**
-     * 查询宝石定义配置的返还模式。
-     *
-     * @param gemId 宝石 id
-     * @return 返还模式；无法解析时返回空串
-     */
-    private String resolveReturnMode(String gemId) {
-        if (Texts.isBlank(gemId) || plugin.gemLoader() == null) {
-            return "";
+    private static void applyUpdatedStackAmount(ItemStack original, ItemStack updated) {
+        if (original == null) {
+            return;
         }
-        GemDefinition definition = plugin.gemLoader().get(gemId);
-        if (definition == null || definition.extractReturn() == null) {
-            return "";
-        }
-        return Texts.toStringSafe(definition.extractReturn().mode());
+        original.setAmount(updated == null ? 0 : updated.getAmount());
     }
 
-    /**
-     * 解析开孔器 id：优先按目标槽位类型匹配，退化为通用匹配。
-     *
-     * @param equipment  装备物品
-     * @param openerItem 开孔器物品
-     * @param slotIndex  目标槽位
-     * @return 开孔器 id；无法解析时返回空串
-     */
-    private String resolveOpenerId(ItemStack equipment, ItemStack openerItem, int slotIndex) {
-        GemStateService stateService = plugin.stateService();
-        String socketType = "";
-        if (stateService != null) {
-            GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
-            if (itemDefinition != null) {
-                GemItemDefinition.SocketSlot slot = itemDefinition.slot(slotIndex);
-                if (slot != null) {
-                    socketType = Texts.toStringSafe(slot.type());
-                }
-            }
-        }
-        var config = plugin.itemMatcher().matchOpenerForType(openerItem, socketType);
-        return config == null ? "" : Texts.toStringSafe(config.id());
-    }
-
-    /**
-     * 把 runtime 的失败统一归类为业务拒绝。
-     *
-     * <p>runtime 对「监听器取消」与「前置条件不满足」使用同一个 message key
-     * {@code gem.error.condition_not_met}，无法据此区分二者，因此不推断
-     * {@link FailureKind#CANCELLED}——错报比不报更有害。调用方若需要区分，应自行监听 pre 事件。
-     *
-     * @param messageKey runtime message key
-     * @return 失败种类，恒为 {@link FailureKind#REJECTED}
-     */
-    private static FailureKind rejectionKind(String messageKey) {
-        return FailureKind.REJECTED;
+    private static boolean empty(ItemStack itemStack) {
+        return itemStack == null || itemStack.getType().isAir();
     }
 }

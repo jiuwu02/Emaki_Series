@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.attribute.model;
+package emaki.jiuwu.craft.attribute.api.model;
 
 import java.util.ArrayList;
 import java.util.Collection;

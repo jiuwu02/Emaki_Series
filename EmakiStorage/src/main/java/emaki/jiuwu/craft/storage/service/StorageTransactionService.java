@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.storage.api.event.StorageDepositEvent;
 import emaki.jiuwu.craft.storage.api.event.StorageWithdrawEvent;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
-import emaki.jiuwu.craft.storage.api.model.StorageResult;
+import emaki.jiuwu.craft.storage.model.StorageResult;
 import emaki.jiuwu.craft.storage.config.AppConfig;
 import emaki.jiuwu.craft.storage.log.StorageLogEntry;
 import emaki.jiuwu.craft.storage.log.StorageOperationLog;

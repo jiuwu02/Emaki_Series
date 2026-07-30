@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.gem.api;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
@@ -16,113 +17,97 @@ import emaki.jiuwu.craft.gem.api.model.GemResonanceView;
 import emaki.jiuwu.craft.gem.api.model.GemStateView;
 
 /**
- * Read-only queries against EmakiGem's gem definitions and the gem layer stored on equipment.
+ * Read-only queries against EmakiGem's loaded definitions and item gem layers.
  *
- * <p>Reached through {@code EmakiGemApi.catalog()}.
+ * <p>Reached through {@link EmakiGemApi#catalog()}.
  *
- * <p><strong>Thread:</strong> every method here reads a definition table or an item's persistent data
- * and may be called from any thread, provided the caller is not mutating the same stack concurrently.
- * None of these methods fire events or write state.
+ * <p><strong>Thread:</strong> any thread, provided the caller does not mutate an inspected
+ * {@link ItemStack} concurrently.
  */
 @ApiStatus.NonExtendable
 public interface GemCatalog {
 
-    /** {@return every loaded gem id, sorted; empty when EmakiGem is unavailable} */
-    @NotNull
-    List<String> gemIds();
-
     /**
-     * Resolves a gem definition at a specific level.
+     * Reads the gem layer resolved for an equipment item.
      *
-     * <p>EmakiGem scales stats, attributes, and skills per level, so the level must be supplied rather
-     * than defaulted.
-     *
-     * @param gemId the gem id
-     * @param level the level to resolve values for; values below one are treated as one
-     * @return the definition when the gem exists, otherwise an empty optional
+     * @param equipment the equipment to inspect
+     * @return the resolved state, or an empty optional when the item is not socketable
      */
     @NotNull
-    Optional<GemDefinitionView> gem(@Nullable String gemId, int level);
+    Optional<GemStateView> readState(@Nullable ItemStack equipment);
 
     /**
-     * Identifies a loose gem item.
-     *
-     * @param itemStack the stack to identify
-     * @return the gem definition at the item's own level, or an empty optional when the stack is not a
-     *         gem
+     * @param itemStack the item to identify
+     * @return whether the item is a loose gem item
      */
-    @NotNull
-    Optional<GemDefinitionView> identifyGem(@Nullable ItemStack itemStack);
+    boolean isGemItem(@Nullable ItemStack itemStack);
 
     /**
-     * @param itemStack the stack to test
-     * @return whether the stack is a socket opener item
+     * @param itemStack the item to identify
+     * @return whether the item is a configured socket opener
      */
     boolean isOpenerItem(@Nullable ItemStack itemStack);
 
     /**
-     * Reads the gem layer stored on a piece of equipment.
+     * Resolves one gem definition at its configured base level.
      *
-     * @param equipment the equipment to inspect
-     * @return the socket state, or a failure when the stack carries no EmakiGem equipment definition
+     * @param gemId the gem id
+     * @return the definition, or an empty optional when it is unknown
      */
     @NotNull
-    EmakiResult<GemStateView> state(@Nullable ItemStack equipment);
+    Optional<GemDefinitionView> definition(@Nullable String gemId);
+
+    /** {@return all loaded gem definitions in id order, resolved at their configured base levels} */
+    @NotNull
+    List<GemDefinitionView> definitions();
 
     /**
-     * Sums the attribute contributions of every gem inlaid in a piece of equipment.
+     * Checks whether the supplied loose gem can be inlaid into at least one currently available socket.
+     *
+     * <p>A rule rejection is returned as a successful result whose
+     * {@link GemRelationshipCheck#allowed()} is {@code false}. Invalid items, unavailable services, and
+     * unknown gem definitions are failures rather than false successes.
+     *
+     * @param equipment the target equipment
+     * @param gemItem   the loose gem item
+     * @return the relationship outcome
+     */
+    @NotNull
+    EmakiResult<GemRelationshipCheck> canInlay(@Nullable ItemStack equipment, @Nullable ItemStack gemItem);
+
+    /**
+     * Checks whether the gem in one socket can be extracted.
+     *
+     * @param equipment the target equipment
+     * @param slotIndex the socket index
+     * @return the relationship outcome
+     */
+    @NotNull
+    EmakiResult<GemRelationshipCheck> canExtract(@Nullable ItemStack equipment, int slotIndex);
+
+    /**
+     * Resolves the highest-priority active resonance on an equipment item.
+     *
+     * <p>The runtime may activate more than one non-exclusive resonance. This method follows the
+     * runtime's resolution order and returns the first one, which is the highest-priority active entry.
      *
      * @param equipment the equipment to inspect
-     * @return attribute id to summed value; empty when the equipment holds no gems
+     * @return the active resonance, or {@code NOT_FOUND} when none is active
+     */
+    @NotNull
+    EmakiResult<GemResonanceView> resonance(@Nullable ItemStack equipment);
+
+    /**
+     * @param equipment the equipment to inspect
+     * @return summed attribute contributions; empty when no inlaid gem contributes attributes
      */
     @NotNull
     Map<String, Double> aggregatedAttributes(@Nullable ItemStack equipment);
 
     /**
-     * Collects the skill ids granted by every gem inlaid in a piece of equipment.
-     *
-     * <p>Duplicates are preserved: two copies of the same gem grant the same skill twice, which is how
-     * EmakiGem stacks skill effects.
-     *
      * @param equipment the equipment to inspect
-     * @return granted skill ids, possibly containing duplicates
+     * @return distinct skill ids granted by inlaid gems
      */
     @NotNull
-    List<String> aggregatedSkillIds(@Nullable ItemStack equipment);
-
-    /**
-     * Evaluates which resonances the gems inlaid in a piece of equipment currently satisfy.
-     *
-     * @param equipment the equipment to inspect
-     * @return active resonances in resolution order; empty when none apply
-     */
-    @NotNull
-    List<GemResonanceView> resonances(@Nullable ItemStack equipment);
-
-    /**
-     * Checks whether a gem may be inlaid into a specific slot, evaluating socket compatibility,
-     * dependencies, conflicts, and per-type or per-id limits.
-     *
-     * <p>A business rejection is returned as a <em>successful</em> result whose
-     * {@link GemRelationshipCheck#allowed()} is {@code false}.
-     *
-     * @param equipment the target equipment
-     * @param gemId     the gem to test
-     * @param slotIndex the slot to test
-     * @return the relationship outcome
-     */
-    @NotNull
-    EmakiResult<GemRelationshipCheck> canInlay(@Nullable ItemStack equipment,
-                                               @Nullable String gemId,
-                                               int slotIndex);
-
-    /**
-     * Checks whether the gem in a specific slot may be extracted.
-     *
-     * @param equipment the target equipment
-     * @param slotIndex the slot to test
-     * @return the relationship outcome
-     */
-    @NotNull
-    EmakiResult<GemRelationshipCheck> canExtract(@Nullable ItemStack equipment, int slotIndex);
+    Set<String> aggregatedSkillIds(@Nullable ItemStack equipment);
 }
