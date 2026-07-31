@@ -43,20 +43,36 @@ final class FakeStageInvoker implements StageInvoker {
             List<CoreStageParameter> parameters,
             CoreTargetRequirement requirement,
             ExecutionDomain domain,
+            boolean foldable,
             SourceBody source,
             GateBody gate,
             ActionBody action) {
     }
 
     FakeStageInvoker source(String id, SourceBody body, CoreStageParameter... parameters) {
+        return source(id, ExecutionDomain.SERVER_GLOBAL, body, parameters);
+    }
+
+    FakeStageInvoker source(String id,
+            ExecutionDomain domain,
+            SourceBody body,
+            CoreStageParameter... parameters) {
         entries.put(id, new Entry(CoreStageKind.SOURCE, List.of(parameters), CoreTargetRequirement.NONE,
-                ExecutionDomain.SERVER_GLOBAL, body, null, null));
+                domain, false, body, null, null));
         return this;
     }
 
     FakeStageInvoker gate(String id, GateBody body, CoreStageParameter... parameters) {
+        return gate(id, ExecutionDomain.SERVER_GLOBAL, false, body, parameters);
+    }
+
+    FakeStageInvoker gate(String id,
+            ExecutionDomain domain,
+            boolean foldable,
+            GateBody body,
+            CoreStageParameter... parameters) {
         entries.put(id, new Entry(CoreStageKind.GATE, List.of(parameters), CoreTargetRequirement.NONE,
-                ExecutionDomain.SERVER_GLOBAL, null, body, null));
+                domain, foldable, null, body, null));
         return this;
     }
 
@@ -64,8 +80,16 @@ final class FakeStageInvoker implements StageInvoker {
             CoreTargetRequirement requirement,
             ActionBody body,
             CoreStageParameter... parameters) {
+        return action(id, requirement, ExecutionDomain.SERVER_GLOBAL, body, parameters);
+    }
+
+    FakeStageInvoker action(String id,
+            CoreTargetRequirement requirement,
+            ExecutionDomain domain,
+            ActionBody body,
+            CoreStageParameter... parameters) {
         entries.put(id, new Entry(CoreStageKind.ACTION, List.of(parameters), requirement,
-                ExecutionDomain.SERVER_GLOBAL, null, null, body));
+                domain, false, null, null, body));
         return this;
     }
 
@@ -78,7 +102,8 @@ final class FakeStageInvoker implements StageInvoker {
         Entry entry = id == null ? null : entries.get(id);
         return entry == null
                 ? null
-                : new Handle(id, entry.kind(), entry.parameters(), entry.requirement(), 30_000L);
+                : new Handle(id, entry.kind(), entry.parameters(), entry.requirement(), 30_000L,
+                        entry.foldable());
     }
 
     @Override

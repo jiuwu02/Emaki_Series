@@ -41,12 +41,16 @@ public interface StageInvoker {
      * @param parameters declared parameters, used to apply defaults
      * @param targetRequirement what it needs from the flow
      * @param timeoutMillis its declared per-invocation timeout
+     * @param foldable whether this stage touches no Bukkit state and may therefore be merged into
+     *        either neighbouring domain without a dispatch of its own. True only for
+     *        {@code CoreGateThread#PURE} gates.
      */
     record Handle(@NotNull String id,
             @NotNull CoreStageKind kind,
             @NotNull List<CoreStageParameter> parameters,
             @NotNull CoreTargetRequirement targetRequirement,
-            long timeoutMillis) {
+            long timeoutMillis,
+            boolean foldable) {
 
         public Handle {
             id = id == null ? "" : id;
@@ -54,6 +58,20 @@ public interface StageInvoker {
             parameters = parameters == null ? List.of() : List.copyOf(parameters);
             targetRequirement = targetRequirement == null ? CoreTargetRequirement.OPTIONAL : targetRequirement;
             timeoutMillis = timeoutMillis <= 0L ? 30_000L : timeoutMillis;
+        }
+
+        /** Creates a handle that needs its own dispatch. */
+        public Handle(@NotNull String id,
+                @NotNull CoreStageKind kind,
+                @NotNull List<CoreStageParameter> parameters,
+                @NotNull CoreTargetRequirement targetRequirement,
+                long timeoutMillis) {
+            this(id, kind, parameters, targetRequirement, timeoutMillis, false);
+        }
+
+        /** {@return whether this stage acts once per target rather than once per flow} */
+        public boolean perTarget() {
+            return kind == CoreStageKind.ACTION && targetRequirement != CoreTargetRequirement.NONE;
         }
     }
 

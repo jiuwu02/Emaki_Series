@@ -41,6 +41,9 @@ public final class StaticValidator {
     /** Time stage whose repeat count is bounded by decision D4. */
     public static final String EVERY_STAGE = "every";
 
+    /** Time stage that delays every following stage. */
+    public static final String AFTER_STAGE = "after";
+
     private final StageResolver stages;
     private final SequenceCatalog sequences;
     private final PipelineLimits limits;
@@ -149,6 +152,18 @@ public final class StaticValidator {
                 }
                 explicitSourceSeen = true;
                 flowAvailable = true;
+            } else if (kind == CoreStageKind.GATE) {
+                // A gate transforms the target flow, so running one after an action has already consumed
+                // that flow is a configuration error. Timing stages are registered as gates but do not
+                // touch the flow: they defer the stages that follow them, so `damage | after 10t | heal`
+                // is legitimate and must not be rejected here.
+                if (actionSeen && !timingStage(stage.id())) {
+                    state.diagnostics.add(CompileDiagnostic.at("action.v2.validate.gate_after_action",
+                            stageToken, Map.of("stage", stage.id())));
+                }
+                if (!flowAvailable) {
+                    flowAvailable = true;
+                }
             } else if (!flowAvailable) {
                 // At root level this becomes decision Q4's implicit self. Branch bodies and sequence
                 // bodies receive their caller's flow and therefore never need this path.
@@ -456,6 +471,16 @@ public final class StaticValidator {
         } catch (IllegalArgumentException exception) {
             return false;
         }
+    }
+
+    /**
+     * Tests whether a stage id is a timing stage.
+     *
+     * @param id stage id
+     * @return whether the stage defers the stages after it rather than transforming the flow
+     */
+    public static boolean timingStage(@Nullable String id) {
+        return AFTER_STAGE.equals(id) || EVERY_STAGE.equals(id);
     }
 
     private static boolean containsPlaceholder(String value) {

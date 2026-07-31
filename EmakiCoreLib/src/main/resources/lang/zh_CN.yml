@@ -122,6 +122,7 @@ action:
       stage_owner_disabled: "<red>[管道] 段 %stage% 由插件 %owner% 提供，该插件当前未启用</red>"
       multiple_sources: "<red>[管道] 一条管道只能有一个源段</red>"
       source_after_action: "<red>[管道] 源段不能出现在动作段之后</red>"
+      gate_after_action: "<red>[管道] 闸门段 %stage% 不能出现在动作段之后，此时目标流已被消耗</red>"
       missing_required_argument: "<red>[管道] 缺少必填参数 %argument%</red>"
       unknown_argument: "<red>[管道] 未知参数 %token%</red>"
       invalid_argument_type: "<red>[管道] 参数 %argument% 的值 %value% 不是合法的 %expected%</red>"
@@ -152,6 +153,7 @@ action:
       cancelled: "<gray>[管道] 执行已取消</gray>"
       owner_disabled: "<red>[管道] 所属插件已停用：%error%</red>"
       target_retired: "<gray>[管道] 目标在延迟执行前已失效：%error%</gray>"
+      timing_without_body: "<gray>[管道] 时序段之后没有可执行的段</gray>"
       exception: "<red>[管道] 段执行抛出异常：%error%</red>"
 
 # Debug 模式消息

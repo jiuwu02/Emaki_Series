@@ -36,6 +36,7 @@ public final class StageDispatcher implements AutoCloseable {
     private final boolean inline;
     private final Map<Plugin, Set<TaskHandle>> handlesByOwner = new ConcurrentHashMap<>();
     private final Map<Plugin, Set<CancellationSignal>> signalsByOwner = new ConcurrentHashMap<>();
+    private final java.util.function.Consumer<String> dispatchObserver;
 
     /**
      * Creates the production dispatcher.
@@ -48,12 +49,14 @@ public final class StageDispatcher implements AutoCloseable {
         this.dispatcher = java.util.Objects.requireNonNull(dispatcher, "dispatcher");
         this.capabilities = java.util.Objects.requireNonNull(capabilities, "capabilities");
         this.inline = false;
+        this.dispatchObserver = null;
     }
 
-    private StageDispatcher() {
+    private StageDispatcher(java.util.function.Consumer<String> dispatchObserver) {
         this.dispatcher = null;
         this.capabilities = null;
         this.inline = true;
+        this.dispatchObserver = dispatchObserver;
     }
 
     /**
@@ -65,7 +68,20 @@ public final class StageDispatcher implements AutoCloseable {
      * @return the inline dispatcher
      */
     public static @NotNull StageDispatcher inline() {
-        return new StageDispatcher();
+        return new StageDispatcher(null);
+    }
+
+    /**
+     * Creates an inline dispatcher that reports each dispatch to {@code observer}.
+     *
+     * <p>Exists so tests can assert the same-domain merging rule, which is a statement about how many
+     * dispatches a pipeline costs rather than about its result.</p>
+     *
+     * @param observer receives the task name of every dispatch
+     * @return the observing dispatcher
+     */
+    public static @NotNull StageDispatcher counting(@NotNull java.util.function.Consumer<String> observer) {
+        return new StageDispatcher(java.util.Objects.requireNonNull(observer, "observer"));
     }
 
     /**
@@ -102,6 +118,13 @@ public final class StageDispatcher implements AutoCloseable {
                     "Invalid execution target for " + target.domain() + "."));
         }
         if (inline) {
+            if (dispatchObserver != null) {
+                // Delay is reported rather than slept through: the tests need to assert that `after 10t`
+                // asks for 10 ticks, without making the suite wait for real time to pass.
+                dispatchObserver.accept(delayTicks > 0L
+                        ? safeName(taskName) + "@" + delayTicks
+                        : safeName(taskName));
+            }
             return invokeInline(cancellation, task);
         }
         if (!capabilities.supports(target.domain())) {

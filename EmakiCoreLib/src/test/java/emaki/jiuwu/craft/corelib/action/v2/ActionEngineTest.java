@@ -194,6 +194,120 @@ class ActionEngineTest {
     }
 
     @Test
+    @DisplayName("a timing stage compiled through the engine still delays, using named arguments")
+    void compiledTimingStageDelays() {
+        // The other timing tests build the AST directly and therefore exercise the positional fallback.
+        // This one goes through compile(), where the validator has already named the bare value, so the
+        // named-argument path is covered too.
+        CoreStageParameter delay = CoreStageParameter.positional("delay",
+                CoreStageParameterType.TIME, "delay before the following stages");
+        List<String> dispatched = new java.util.ArrayList<>();
+        StageResolver timingResolver = new StageResolver() {
+
+            @Override
+            public Resolution resolve(String id) {
+                return switch (id == null ? "" : id) {
+                    // Omitting the source implies self, so the validator requires it to exist.
+                    case "self" -> Resolution.found(CoreStageKind.SOURCE, List.of(), Set.of(),
+                            CoreTargetRequirement.NONE, ExecutionDomain.SERVER_GLOBAL);
+                    case "after" -> Resolution.found(CoreStageKind.GATE, List.of(delay), Set.of(),
+                            CoreTargetRequirement.NONE, ExecutionDomain.ASYNC_COMPUTE);
+                    case "broadcast" -> Resolution.found(CoreStageKind.ACTION, List.of(), Set.of(),
+                            CoreTargetRequirement.NONE, ExecutionDomain.SERVER_GLOBAL);
+                    default -> Resolution.unknown();
+                };
+            }
+
+            @Override
+            public List<String> knownIds(CoreStageKind kind) {
+                return switch (kind) {
+                    case SOURCE -> List.of("self");
+                    case GATE -> List.of("after");
+                    case ACTION -> List.of("broadcast");
+                };
+            }
+        };
+        StageInvoker timingInvoker = new StageInvoker() {
+
+            @Override
+            public Handle resolve(String id) {
+                return switch (id == null ? "" : id) {
+                    case "self" -> new Handle("self", CoreStageKind.SOURCE, List.of(),
+                            CoreTargetRequirement.NONE, 30_000L);
+                    case "after" -> new Handle("after", CoreStageKind.GATE, List.of(delay),
+                            CoreTargetRequirement.NONE, 30_000L, true);
+                    case "broadcast" -> new Handle("broadcast", CoreStageKind.ACTION, List.of(),
+                            CoreTargetRequirement.NONE, 30_000L);
+                    default -> null;
+                };
+            }
+
+            @Override
+            public ExecutionDomain domainOf(Handle handle,
+                    CoreStageContext context,
+                    CoreActionSubject target,
+                    java.util.Map<String, String> rawArguments) {
+                return ExecutionDomain.SERVER_GLOBAL;
+            }
+
+            @Override
+            public CoreSourceResult invokeSource(Handle handle,
+                    CoreStageContext context,
+                    CoreResolvedArguments arguments) {
+                return CoreSourceResult.selected(List.of());
+            }
+
+            @Override
+            public CoreGateResult invokeGate(Handle handle,
+                    CoreStageContext context,
+                    List<CoreActionSubject> inbound,
+                    CoreResolvedArguments arguments) {
+                return CoreGateResult.passed(inbound);
+            }
+
+            @Override
+            public CoreActionOutcome invokeAction(Handle handle,
+                    CoreStageContext context,
+                    CoreResolvedArguments arguments) {
+                dispatched.add(handle.id());
+                return CoreActionOutcome.success();
+            }
+        };
+
+        List<String> observed = new java.util.ArrayList<>();
+        ActionEngine timingEngine = new ActionEngine(timingResolver, timingInvoker,
+                StageDispatcher.counting(observed::add), null, null);
+        ActionEngine.Result compiled = timingEngine.compile("after 10t | broadcast",
+                PhaseContract.permissive("test"));
+        assertTrue(compiled.successful(), () -> "unexpected diagnostics: " + compiled.diagnostics());
+
+        org.bukkit.plugin.Plugin owner = TimingOwner.enabled();
+        timingEngine.run(owner, compiled.pipeline(),
+                PipelineContext.root(owner, CoreActionSubject.absent(), null, "test", false, null)).join();
+
+        assertTrue(observed.contains("delay@10"),
+                "the compiled form names the bare value, and the delay must survive that: " + observed);
+        assertEquals(List.of("broadcast"), dispatched);
+    }
+
+    /** Minimal enabled-plugin stand-in, kept local so this test needs no server. */
+    private static final class TimingOwner {
+
+        private static org.bukkit.plugin.Plugin enabled() {
+            return (org.bukkit.plugin.Plugin) java.lang.reflect.Proxy.newProxyInstance(
+                    ActionEngineTest.class.getClassLoader(),
+                    new Class<?>[] {org.bukkit.plugin.Plugin.class},
+                    (proxy, method, args) -> switch (method.getName()) {
+                        case "isEnabled" -> true;
+                        case "getName", "toString" -> "TimingOwner";
+                        case "equals" -> proxy == (args == null ? null : args[0]);
+                        case "hashCode" -> 1;
+                        default -> throw new UnsupportedOperationException(method.getName());
+                    });
+        }
+    }
+
+    @Test
     @DisplayName("the engine accepts an empty sequence catalog without treating run as valid")
     void emptyCatalogRejectsRun() {
         ActionEngine engineWithNoSequences = new ActionEngine(resolver(), invoker(),

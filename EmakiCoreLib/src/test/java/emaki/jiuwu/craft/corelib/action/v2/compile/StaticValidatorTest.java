@@ -106,6 +106,35 @@ class StaticValidatorTest {
     }
 
     @Test
+    @DisplayName("check 2: a flow-transforming gate after an action is rejected")
+    void gateAfterActionRejected() {
+        FakeStageResolver resolver = new FakeStageResolver()
+                .source("self")
+                .gate("limit", CoreStageParameter.positional("count", CoreStageParameterType.INTEGER, ""))
+                .action("damage");
+
+        StaticValidator.Result result = validate("self | damage | limit 3", resolver);
+
+        assertFalse(result.successful(), "the action already consumed the flow this gate would filter");
+        assertTrue(keys(result).contains("action.v2.validate.gate_after_action"));
+    }
+
+    @Test
+    @DisplayName("check 2: a timing gate after an action is allowed")
+    void timingGateAfterActionAllowed() {
+        FakeStageResolver resolver = new FakeStageResolver()
+                .source("self")
+                .gate("after", CoreStageParameter.positional("delay", CoreStageParameterType.TIME, ""))
+                .action("damage")
+                .action("heal");
+
+        StaticValidator.Result result = validate("self | damage | after 10t | heal", resolver);
+
+        assertTrue(result.successful(), () -> "a timing stage defers later stages rather than "
+                + "transforming the flow, so it must be allowed here: " + keys(result));
+    }
+
+    @Test
     @DisplayName("check 3: a missing required argument is rejected")
     void missingRequiredArgumentRejected() {
         FakeStageResolver resolver = new FakeStageResolver()

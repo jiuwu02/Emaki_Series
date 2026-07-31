@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.action.ActionParsers;
 import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
 import emaki.jiuwu.craft.corelib.action.v2.ResolvedArguments;
 import emaki.jiuwu.craft.corelib.action.v2.compile.ActionAst;
@@ -19,6 +20,7 @@ import emaki.jiuwu.craft.corelib.action.v2.compile.StaticValidator;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
@@ -93,12 +95,198 @@ public final class ActionInterpreter {
         CompletableFuture<State> chain = implicitSelf
                 ? applySource(run, StaticValidator.SELF_SOURCE, Map.of(), State.start(context))
                 : CompletableFuture.completedFuture(State.start(context));
-        for (ActionAst node : nodes) {
-            chain = chain.thenCompose(state -> state.terminal()
+        return walk(run, chain, nodes, sequenceDepth);
+    }
+
+    /**
+     * Walks a node list, batching stages and handing control nodes their own step.
+     *
+     * <p>A timing stage takes everything after it as its body, because {@code after 10t | self | msg}
+     * means "run {@code self | msg} 10 ticks later" rather than "transform the flow". The walk
+     * therefore stops at the first timing stage and nests the remainder.</p>
+     */
+    private CompletableFuture<State> walk(Run run,
+            CompletableFuture<State> chain,
+            List<ActionAst> nodes,
+            int sequenceDepth) {
+        CompletableFuture<State> current = chain;
+        // Consecutive plain stages are collected into runs so same-domain stages can share one
+        // dispatch. Branches and sequence calls break a run because their bodies are separate
+        // pipelines whose domains are only known once their own stages resolve.
+        List<ActionAst> pending = new ArrayList<>();
+        for (int index = 0; index < nodes.size(); index++) {
+            ActionAst node = nodes.get(index);
+            if (node instanceof ActionAst.Stage stage && StaticValidator.timingStage(stage.id())) {
+                current = flush(run, current, pending);
+                List<ActionAst> body = List.copyOf(nodes.subList(index + 1, nodes.size()));
+                return current.thenCompose(state -> state.terminal()
+                        ? CompletableFuture.completedFuture(state)
+                        : timed(run, stage, body, state, sequenceDepth));
+            }
+            if (node instanceof ActionAst.Stage) {
+                pending.add(node);
+                continue;
+            }
+            current = flush(run, current, pending);
+            pending = new ArrayList<>();
+            ActionAst control = node;
+            current = current.thenCompose(state -> state.terminal()
                     ? CompletableFuture.completedFuture(state)
-                    : step(run, node, state, sequenceDepth));
+                    : step(run, control, state, sequenceDepth));
+        }
+        return flush(run, current, pending);
+    }
+
+    private CompletableFuture<State> flush(Run run,
+            CompletableFuture<State> chain,
+            List<ActionAst> pending) {
+        if (pending.isEmpty()) {
+            return chain;
+        }
+        List<ActionAst> batch = List.copyOf(pending);
+        return chain.thenCompose(state -> state.terminal()
+                ? CompletableFuture.completedFuture(state)
+                : runStageRun(run, batch, state));
+    }
+
+    private CompletableFuture<State> timed(Run run,
+            ActionAst.Stage stage,
+            List<ActionAst> body,
+            State state,
+            int sequenceDepth) {
+        StageInvoker.Handle handle = invoker.resolve(stage.id());
+        if (handle == null) {
+            run.record(stage.id(), PipelineOutcome.Status.FAILURE, "action.v2.run.stage_unavailable", 0);
+            return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.OWNER_DISABLED,
+                    "action.v2.run.stage_unavailable", Map.of("stage", stage.id())));
+        }
+        ResolvedArguments arguments = arguments(handle, render(state.context(), stage.arguments()));
+        boolean isAfter = StaticValidator.AFTER_STAGE.equals(stage.id());
+        long intervalTicks = isAfter
+                ? arguments.getDurationTicks("delay", 0L)
+                : arguments.getDurationTicks("interval", 0L);
+        if (intervalTicks <= 0L && !stage.positional().isEmpty()) {
+            // The compiler names positional values before execution, but the interpreter must not depend
+            // on that having happened: reading the bare value keeps a hand-built AST behaving the same.
+            intervalTicks = Math.max(0L, ActionParsers.parseTicks(
+                    state.context().render(stage.positional().get(0))));
+        }
+        if (body.isEmpty()) {
+            run.record(stage.id(), PipelineOutcome.Status.SKIPPED, "action.v2.run.timing_without_body", 0);
+            return CompletableFuture.completedFuture(state.stopped("action.v2.run.timing_without_body"));
+        }
+        // times counts extra runs on top of the first one (decision D4 makes 0 the default), so a plain
+        // `after` and `every ... times 0` both run the body exactly once.
+        int extraRuns = 0;
+        if (!isAfter) {
+            extraRuns = Math.max(0, arguments.getInt("times", 0));
+            if (extraRuns == 0) {
+                // Written form is `every <interval> times <count>`, so the count follows the literal
+                // `times` keyword rather than sitting at a fixed index.
+                List<String> positional = stage.positional();
+                for (int index = 0; index + 1 < positional.size(); index++) {
+                    if ("times".equalsIgnoreCase(positional.get(index))) {
+                        extraRuns = Math.max(0, ActionParsers.parseInt(
+                                state.context().render(positional.get(index + 1)), 0));
+                        break;
+                    }
+                }
+            }
+        }
+        run.record(stage.id(), PipelineOutcome.Status.SUCCESS, "", state.flow().size());
+        return repeatBody(run, body, state, sequenceDepth, intervalTicks, extraRuns, 0);
+    }
+
+    private CompletableFuture<State> repeatBody(Run run,
+            List<ActionAst> body,
+            State state,
+            int sequenceDepth,
+            long intervalTicks,
+            int extraRuns,
+            int iteration) {
+        return delayed(run, state, intervalTicks)
+                .thenCompose(ready -> ready.terminal()
+                        ? CompletableFuture.completedFuture(ready)
+                        : walk(run, CompletableFuture.completedFuture(ready), body, sequenceDepth))
+                .thenCompose(after -> iteration >= extraRuns || after.terminal()
+                        ? CompletableFuture.completedFuture(after)
+                        : repeatBody(run, body, after, sequenceDepth, intervalTicks, extraRuns,
+                                iteration + 1));
+    }
+
+    /**
+     * Waits {@code delayTicks} and then revalidates the pipeline before letting the body run.
+     *
+     * <p>The design requires caster, targets and owner all be rechecked after a delay, and requires the
+     * result be {@code Skipped} rather than {@code Failure}: "the player logged off during the delay"
+     * is not a configuration error.</p>
+     */
+    private CompletableFuture<State> delayed(Run run, State state, long delayTicks) {
+        if (delayTicks <= 0L) {
+            return CompletableFuture.completedFuture(state);
+        }
+        StageDispatcher.DispatchTarget target = dispatchTarget(ExecutionDomain.SERVER_GLOBAL,
+                state.context(), probeSubject(state));
+        return dispatcher.dispatch(run.owner(), target, delayTicks, "delay",
+                        CoreActionStage.DEFAULT_TIMEOUT_MILLIS, run.cancellation(), () -> state)
+                .handle((resumed, throwable) -> {
+                    if (throwable != null) {
+                        CoreActionOutcome outcome = throwableOutcome(throwable);
+                        // A retired target or a disabled owner during the wait is a skip, not a failure.
+                        if (outcome instanceof CoreActionOutcome.Failure failure
+                                && (failure.kind() == CoreActionFailureKind.MISSING_CONTEXT
+                                        || failure.kind() == CoreActionFailureKind.OWNER_DISABLED)) {
+                            run.record("delay", PipelineOutcome.Status.SKIPPED, failure.reasonKey(), 0);
+                            return state.stopped(failure.reasonKey());
+                        }
+                        return dispatchFailure(run, "delay", state, throwable);
+                    }
+                    return revalidate(run, resumed);
+                });
+    }
+
+    private State revalidate(Run run, State state) {
+        if (!run.owner().isEnabled()) {
+            run.record("delay", PipelineOutcome.Status.SKIPPED, "action.v2.run.owner_disabled", 0);
+            return state.stopped("action.v2.run.owner_disabled");
+        }
+        PipelineContext revalidated = state.context().revalidated();
+        List<CoreActionSubject> survivors = revalidated.targets();
+        if (!state.flow().isEmpty() && survivors.isEmpty()) {
+            run.record("delay", PipelineOutcome.Status.SKIPPED, "action.v2.run.all_targets_invalid", 0);
+            return state.stopped("action.v2.run.all_targets_invalid");
+        }
+        return state.withContext(revalidated).withFlow(survivors);
+    }
+
+    private CompletableFuture<State> runStageRun(Run run, List<ActionAst> batch, State state) {
+        List<StageGroup.Plan> plans = new ArrayList<>(batch.size());
+        for (ActionAst node : batch) {
+            ActionAst.Stage stage = (ActionAst.Stage) node;
+            StageInvoker.Handle handle = invoker.resolve(stage.id());
+            if (handle == null) {
+                run.record(stage.id(), PipelineOutcome.Status.FAILURE, "action.v2.run.stage_unavailable", 0);
+                return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.OWNER_DISABLED,
+                        "action.v2.run.stage_unavailable", Map.of("stage", stage.id())));
+            }
+            CoreActionSubject probe = probeSubject(state);
+            ExecutionDomain domain = handle.foldable()
+                    ? null
+                    : invoker.domainOf(handle, state.context(), probe, stage.arguments());
+            plans.add(new StageGroup.Plan(stage, handle, domain));
+        }
+
+        CompletableFuture<State> chain = CompletableFuture.completedFuture(state);
+        for (StageGroup group : StageGroup.group(plans)) {
+            chain = chain.thenCompose(current -> current.terminal()
+                    ? CompletableFuture.completedFuture(current)
+                    : runGroup(run, group, current));
         }
         return chain;
+    }
+
+    private static CoreActionSubject probeSubject(State state) {
+        return state.flow().isEmpty() ? state.context().caster() : state.flow().get(0);
     }
 
     private CompletableFuture<State> step(Run run, ActionAst node, State state, int sequenceDepth) {
@@ -108,22 +296,99 @@ public final class ActionInterpreter {
         return switch (node) {
             case ActionAst.Branch branch -> branch(run, branch, state, sequenceDepth);
             case ActionAst.SequenceCall call -> sequence(run, call, state, sequenceDepth);
-            case ActionAst.Stage stage -> stage(run, stage, state);
+            // Reached only for a lone stage inside a branch or sequence body; the top-level walk batches
+            // stages before they get here.
+            case ActionAst.Stage stage -> runStageRun(run, List.of(stage), state);
         };
     }
 
-    private CompletableFuture<State> stage(Run run, ActionAst.Stage node, State state) {
-        StageInvoker.Handle handle = invoker.resolve(node.id());
-        if (handle == null) {
-            run.record(node.id(), PipelineOutcome.Status.FAILURE, "action.v2.run.stage_unavailable", 0);
-            return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.OWNER_DISABLED,
-                    "action.v2.run.stage_unavailable", Map.of("stage", node.id())));
+    private CompletableFuture<State> runGroup(Run run, StageGroup group, State state) {
+        if (group.perTarget()) {
+            // A per-target group keeps one dispatch per target: the target owns the thread the stage
+            // must run on, so these cannot be collapsed into a single dispatch.
+            return runPerTargetGroup(run, group, state);
         }
+        StageDispatcher.DispatchTarget target = dispatchTarget(
+                group.domain() == null ? ExecutionDomain.SERVER_GLOBAL : group.domain(),
+                state.context(), probeSubject(state));
+        long timeout = groupTimeout(group);
+        String name = groupName(group);
+        return dispatcher.dispatch(run.owner(), target, 0L, name, timeout, run.cancellation(),
+                        () -> runMembersInline(run, group, state))
+                .handle((result, throwable) -> throwable != null
+                        ? dispatchFailure(run, name, state, throwable)
+                        : result);
+    }
+
+    /**
+     * Runs every member of a group on the thread the group was dispatched to.
+     *
+     * <p>This is the point of grouping: the stages inside one group are already on the right thread, so
+     * they run in sequence without going back to the scheduler.</p>
+     */
+    private State runMembersInline(Run run, StageGroup group, State state) {
+        State current = state;
+        for (StageGroup.Member member : group.members()) {
+            if (current.terminal() || run.cancellation().cancelled()) {
+                return current.terminal() ? current : current.cancelled();
+            }
+            StageInvoker.Handle handle = member.handle();
+            Map<String, String> rendered = render(current.context(), member.node().arguments());
+            current = switch (handle.kind()) {
+                case SOURCE -> sourceResult(run, handle.id(), current,
+                        invoker.invokeSource(handle, current.context(), arguments(handle, rendered)));
+                case GATE -> gateResult(run, handle.id(), current,
+                        invoker.invokeGate(handle, current.context(), current.flow(),
+                                arguments(handle, rendered)));
+                case ACTION -> actionResult(run, handle.id(), current, List.of(
+                        invoker.invokeAction(handle, current.context().withTargets(List.of()),
+                                arguments(handle, rendered))), 0);
+            };
+        }
+        return current;
+    }
+
+    private CompletableFuture<State> runPerTargetGroup(Run run, StageGroup group, State state) {
+        CompletableFuture<State> chain = CompletableFuture.completedFuture(state);
+        for (StageGroup.Member member : group.members()) {
+            StageGroup.Member current = member;
+            chain = chain.thenCompose(inner -> inner.terminal()
+                    ? CompletableFuture.completedFuture(inner)
+                    : applyStageMember(run, current, inner));
+        }
+        return chain;
+    }
+
+    private CompletableFuture<State> applyStageMember(Run run, StageGroup.Member member, State state) {
+        StageInvoker.Handle handle = member.handle();
+        Map<String, String> raw = member.node().arguments();
         return switch (handle.kind()) {
-            case SOURCE -> applySource(run, node.id(), node.arguments(), state);
-            case GATE -> applyGate(run, handle, node.arguments(), state);
-            case ACTION -> applyAction(run, handle, node.arguments(), state);
+            case SOURCE -> applySource(run, handle.id(), raw, state);
+            case GATE -> applyGate(run, handle, raw, state);
+            case ACTION -> applyAction(run, handle, raw, state);
         };
+    }
+
+    private static long groupTimeout(StageGroup group) {
+        // The group shares one dispatch, so it needs one timeout. Taking the maximum keeps a slow stage
+        // from being cut short by a faster neighbour; the design requires timeout be applied in exactly
+        // one place, which is this dispatch.
+        long timeout = 0L;
+        for (StageGroup.Member member : group.members()) {
+            timeout = Math.max(timeout, member.handle().timeoutMillis());
+        }
+        return timeout <= 0L ? 30_000L : timeout;
+    }
+
+    private static String groupName(StageGroup group) {
+        StringBuilder builder = new StringBuilder();
+        for (StageGroup.Member member : group.members()) {
+            if (!builder.isEmpty()) {
+                builder.append('+');
+            }
+            builder.append(member.handle().id());
+        }
+        return builder.toString();
     }
 
     private CompletableFuture<State> applySource(Run run,
@@ -352,13 +617,10 @@ public final class ActionInterpreter {
             List<ActionAst> nodes,
             State state,
             int sequenceDepth) {
-        CompletableFuture<State> chain = CompletableFuture.completedFuture(state);
-        for (ActionAst node : nodes) {
-            chain = chain.thenCompose(current -> current.terminal()
-                    ? CompletableFuture.completedFuture(current)
-                    : step(run, node, current, sequenceDepth));
-        }
-        return chain;
+        // A branch body is a pipeline too, so it gets the same batching, grouping and timing handling.
+        // Dispatching each of its stages separately would reintroduce per-stage scheduling inside every
+        // branch.
+        return walk(run, CompletableFuture.completedFuture(state), nodes, sequenceDepth);
     }
 
     private State mergeSequence(State caller, State callee) {

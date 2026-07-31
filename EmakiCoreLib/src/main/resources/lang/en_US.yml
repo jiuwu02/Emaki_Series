@@ -126,6 +126,8 @@ action:
         which is currently disabled</red>"
       multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage</red>"
       source_after_action: "<red>[Pipeline] A source stage cannot follow an action stage</red>"
+      gate_after_action: "<red>[Pipeline] Gate stage %stage% cannot follow an action stage; the target
+        flow has already been consumed</red>"
       missing_required_argument: "<red>[Pipeline] Missing required argument %argument%</red>"
       unknown_argument: "<red>[Pipeline] Unknown argument %token%</red>"
       invalid_argument_type: "<red>[Pipeline] Argument %argument% value %value% is not a valid
@@ -166,6 +168,7 @@ action:
       cancelled: "<gray>[Pipeline] Execution was cancelled</gray>"
       owner_disabled: "<red>[Pipeline] The owning plugin is disabled: %error%</red>"
       target_retired: "<gray>[Pipeline] The target became invalid before the delayed run: %error%</gray>"
+      timing_without_body: "<gray>[Pipeline] A timing stage has no stages after it</gray>"
       exception: "<red>[Pipeline] Stage threw an exception: %error%</red>"
 
 # Debug mode messages

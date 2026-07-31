@@ -69,4 +69,32 @@ final class TestSubjects {
     static Plugin enabledPlugin() {
         return plugin("TestPlugin", new AtomicBoolean(true));
     }
+
+    /**
+     * A location backed by a proxied world.
+     *
+     * <p>Needed because the region domain legitimately refuses a target with no world: only a stage
+     * that really has a position may be scheduled onto a region thread.</p>
+     *
+     * @param name world name, for diagnostics
+     * @return a location at the origin of that world
+     */
+    static org.bukkit.Location location(String name) {
+        InvocationHandler handler = (proxy, method, args) -> switch (method.getName()) {
+            case "getName", "toString" -> name;
+            case "getUID" -> UUID.nameUUIDFromBytes(name.getBytes());
+            case "equals" -> proxy == (args == null ? null : args[0]);
+            case "hashCode" -> name.hashCode();
+            default -> throw new UnsupportedOperationException(
+                    "test world does not implement " + method.getName());
+        };
+        org.bukkit.World world = (org.bukkit.World) Proxy.newProxyInstance(
+                TestSubjects.class.getClassLoader(), new Class<?>[] {org.bukkit.World.class}, handler);
+        return new org.bukkit.Location(world, 0D, 64D, 0D);
+    }
+
+    /** {@return a caster subject that has a position, so region-domain stages can be scheduled} */
+    static CoreActionSubject locatedCaster() {
+        return CoreActionSubject.of(location("test_world"));
+    }
 }

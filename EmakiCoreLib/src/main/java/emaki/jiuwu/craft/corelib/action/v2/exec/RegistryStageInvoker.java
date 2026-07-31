@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateThread;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
@@ -52,7 +53,8 @@ public final class RegistryStageInvoker implements StageInvoker {
             case GATE -> {
                 CoreActionGate gate = (CoreActionGate) entry.stage();
                 yield new Handle(entry.id(), CoreStageKind.GATE, gate.parameters(),
-                        CoreTargetRequirement.NONE, CoreActionStage.DEFAULT_TIMEOUT_MILLIS);
+                        CoreTargetRequirement.NONE, CoreActionStage.DEFAULT_TIMEOUT_MILLIS,
+                        gate.threadNeed() == CoreGateThread.PURE);
             }
             case ACTION -> {
                 CoreActionStage action = (CoreActionStage) entry.stage();
@@ -76,6 +78,8 @@ public final class RegistryStageInvoker implements StageInvoker {
         return switch (entry.kind()) {
             case SOURCE -> toDomain(((CoreActionSource) entry.stage()).executionTarget(planning));
             case GATE -> switch (((CoreActionGate) entry.stage()).threadNeed()) {
+                // A PURE gate reports the global domain only as a standalone fallback. The interpreter
+                // folds it into whichever domain its neighbours use, so this value is rarely consulted.
                 case PURE -> ExecutionDomain.SERVER_GLOBAL;
                 case NEEDS_ENTITY_READ -> ExecutionDomain.ENTITY;
                 case NEEDS_REGION_READ -> ExecutionDomain.LOCATION_REGION;
