@@ -173,7 +173,6 @@ public final class GemGuiService {
                 player,
                 template,
                 Map.of(),
-                (source, amount) -> plugin.coreItemSourceService() == null ? null : plugin.coreItemSourceService().createItem(source, amount),
                 renderer,
                 handler
         ));

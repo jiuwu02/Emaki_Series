@@ -68,7 +68,6 @@ public final class LevelTopGuiService {
                         "total_pages", totalPages(template, normalizedType),
                         "entry_count", plugin.topService().top(normalizedType, Integer.MAX_VALUE).size()
                 ),
-                (source, amount) -> plugin.coreLib().itemSourceService().createItem(source, amount),
                 renderer::render,
                 interactionController
         ));

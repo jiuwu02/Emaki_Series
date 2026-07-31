@@ -55,7 +55,6 @@ public final class StrengthenGuiService implements Listener {
                 player,
                 template,
                 java.util.Map.of(),
-                (source, amount) -> plugin.coreItemFactory().create(source, amount),
                 (guiSession, slot) -> renderer.renderSlot(state, slot),
                 interactionController.createSessionHandler(state)
         ));

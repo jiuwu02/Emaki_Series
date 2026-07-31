@@ -21,7 +21,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -224,7 +223,7 @@ public final class StorageGuiService {
         replacements.put(KEY_CURRENT_PAGE, 0);
 
         GuiOpenRequest request = new GuiOpenRequest(handler.plugin(), player, active.template(),
-                replacements, null, this::renderSlot, handler);
+                replacements, this::renderSlot, handler);
         return guiService.open(request);
     }
 
@@ -447,12 +446,13 @@ public final class StorageGuiService {
     private ItemStack renderLockedSlot(GuiTemplate.ResolvedSlot resolved) {
         GuiSlot definition = resolved.definition();
         String item = Texts.isBlank(definition.item()) ? "gray_stained_glass_pane" : definition.item();
-        ItemComponentParser.ItemComponents components = new ItemComponentParser.ItemComponents(
+        return GuiItemBuilder.build(
+                null,
+                item,
                 messageService.message("gui.locked.name"),
-                true,
                 List.of(messageService.message("gui.locked.lore")),
-                null, null, Map.of(), List.of());
-        return GuiItemBuilder.build(item, components, 1, Map.of(), null);
+                Map.of(),
+                guiService.configuredItemService());
     }
 
     private ItemStack renderPageInfo(GuiSession session,
@@ -538,28 +538,14 @@ public final class StorageGuiService {
             List<String> fallbackLore,
             Map<String, Object> replacements) {
         GuiSlot definition = resolved.definition();
-        ItemComponentParser.ItemComponents components = hasConfiguredComponents(definition)
-                ? definition.components()
-                : new ItemComponentParser.ItemComponents(fallbackName, true,
-                        fallbackLore == null ? List.of() : fallbackLore,
-                        null, null, Map.of(), List.of());
         String item = Texts.isBlank(definition.item()) ? fallbackItem : definition.item();
-        return GuiItemBuilder.build(item, components, 1,
-                replacements == null ? Map.of() : replacements, null);
-    }
-
-    private boolean hasConfiguredComponents(GuiSlot slot) {
-        if (slot == null || slot.components() == null) {
-            return false;
-        }
-        ItemComponentParser.ItemComponents components = slot.components();
-        return Texts.isNotBlank(components.displayName())
-                || components.displayNameConfig() != null
-                || components.loreConfigured()
-                || Texts.isNotBlank(components.itemModel())
-                || components.customModelData() != null
-                || !components.enchantments().isEmpty()
-                || !components.hiddenComponents().isEmpty();
+        return GuiItemBuilder.build(
+                definition,
+                item,
+                fallbackName,
+                fallbackLore == null ? List.of() : fallbackLore,
+                replacements == null ? Map.of() : replacements,
+                guiService.configuredItemService());
     }
 
     private Component render(String key, Map<String, Object> replacements) {

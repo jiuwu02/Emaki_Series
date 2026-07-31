@@ -12,6 +12,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
@@ -106,7 +108,6 @@ public final class RecipeBookGuiService {
                 player,
                 template,
                 Map.of("page", currentPage + 1, "pages", totalPages),
-                runtime.itemIdentifierService()::createItem,
                 (session, slot) -> renderSlot(state, slot),
                 new BookSessionHandler(state)
         ));
@@ -186,26 +187,22 @@ public final class RecipeBookGuiService {
                 "recipe_list",
                 defaultRecipeSlots(),
                 "recipe_list",
-                "BOOK",
-                new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents(
-                        "<gray>暂无配方</gray>",
-                        true,
-                        List.of("<gray>这一页没有更多配方</gray>"),
-                        null,
-                        null,
-                        Map.of(),
-                        List.of()
-                ),
+                new ConfiguredItemDefinition("BOOK", 1, Map.of(
+                        "minecraft:custom_name", ItemComponentPatch.set("<gray>暂无配方</gray>"),
+                        "minecraft:lore", ItemComponentPatch.set(List.of("<gray>这一页没有更多配方</gray>"))
+                )),
                 Map.of()
         ));
-        slots.put("prev_page", new GuiSlot("prev_page", List.of(45), "prev_page", "ARROW",
-                emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
-        slots.put("next_page", new GuiSlot("next_page", List.of(53), "next_page", "ARROW",
-                emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
-        slots.put("close", new GuiSlot("close", List.of(49), "close", "BARRIER",
-                emaki.jiuwu.craft.corelib.gui.ItemComponentParser.empty(), Map.of()));
-        slots.put("footer_fill", new GuiSlot("footer_fill", List.of(46, 47, 48, 50, 51, 52), null, "GRAY_STAINED_GLASS_PANE",
-                new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents("<gray>", false, List.of(), null, null, Map.of(), List.of()), Map.of()));
+        slots.put("prev_page", new GuiSlot("prev_page", List.of(45), "prev_page",
+                new ConfiguredItemDefinition("ARROW", 1, Map.of()), Map.of()));
+        slots.put("next_page", new GuiSlot("next_page", List.of(53), "next_page",
+                new ConfiguredItemDefinition("ARROW", 1, Map.of()), Map.of()));
+        slots.put("close", new GuiSlot("close", List.of(49), "close",
+                new ConfiguredItemDefinition("BARRIER", 1, Map.of()), Map.of()));
+        slots.put("footer_fill", new GuiSlot("footer_fill", List.of(46, 47, 48, 50, 51, 52), null,
+                new ConfiguredItemDefinition("GRAY_STAINED_GLASS_PANE", 1, Map.of(
+                        "minecraft:custom_name", ItemComponentPatch.set("<gray>")
+                )), Map.of()));
         return new GuiTemplate("recipe_book", "<dark_gray>配方图鉴</dark_gray>", 6, slots);
     }
 
@@ -216,11 +213,9 @@ public final class RecipeBookGuiService {
         String type = normalizedType(slot.definition());
         if (!"recipe_list".equals(type)) {
             return GuiItemBuilder.build(
-                    slot.definition().item(),
-                    slot.definition().components(),
-                    1,
+                    slot.definition().itemDefinition(),
                     Map.of("page", state.page + 1, "pages", state.totalPages),
-                    state.runtimeSnapshot.itemIdentifierService()::createItem
+                    plugin.coreLib().configuredItemService()
             );
         }
         if (slot.slotIndex() >= state.visibleRecipes.size()) {
@@ -254,20 +249,15 @@ public final class RecipeBookGuiService {
                 "virtual_items.recipe_entry",
                 itemStack,
                 replacements,
-                new emaki.jiuwu.craft.corelib.gui.ItemComponentParser.ItemComponents(
-                        "%recipe_name%",
-                        true,
-                        List.of(
+                new ConfiguredItemDefinition(null, 1, Map.of(
+                        "minecraft:custom_name", ItemComponentPatch.set("%recipe_name%"),
+                        "minecraft:lore", ItemComponentPatch.set(List.of(
                                 "%unlock_state%",
                                 "<gray>配方ID: %recipe_id%</gray>",
                                 "%crafted_state%",
                                 "%click_hint%"
-                        ),
-                        null,
-                        null,
-                        Map.of(),
-                        List.of()
-                )
+                        ))
+                ))
         );
     }
 

@@ -163,7 +163,7 @@ public final class StorageLayoutResolver {
                 GuiSlot prototype = parsed.slots().get(key);
                 String type = resolveFunctionType(key, function.getValue());
                 slots.put(key, prototype == null
-                        ? new GuiSlot(key, List.of(functionBase + offset), type, null, null, Map.of())
+                        ? new GuiSlot(key, List.of(functionBase + offset), type, null, Map.of())
                         : withSlots(prototype, type, List.of(functionBase + offset)));
             }
         }
@@ -179,12 +179,8 @@ public final class StorageLayoutResolver {
 
     private GuiSlot withSlots(GuiSlot prototype, String type, List<Integer> slots) {
         String resolvedType = type == null || type.isBlank() ? prototype.type() : type;
-        if (prototype.itemDefinition() != null) {
-            return new GuiSlot(prototype.key(), slots, resolvedType,
-                    prototype.itemDefinition(), prototype.sounds());
-        }
         return new GuiSlot(prototype.key(), slots, resolvedType,
-                prototype.item(), prototype.components(), prototype.sounds());
+                prototype.itemDefinition(), prototype.sounds());
     }
 
     /**

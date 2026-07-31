@@ -20,10 +20,10 @@ import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -74,9 +74,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenItemRefreshListener itemRefreshListener;
     private ItemSourceService coreItemSourceService;
     private DebugCommand debugCommand;
-    private final GuiItemBuilder.ItemFactory coreItemFactory = (source, amount) -> {
-        return coreItemSourceService == null ? null : coreItemSourceService.createItem(source, amount);
-    };
+    private final CoreItemFactory coreItemFactory = (source, amount) ->
+            coreItemSourceService == null ? null : coreItemSourceService.createItem(source, amount);
 
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
@@ -311,8 +310,15 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return strengthenGuiService;
     }
 
-    public GuiItemBuilder.ItemFactory coreItemFactory() {
+    public CoreItemFactory coreItemFactory() {
         return coreItemFactory;
+    }
+
+    /** Creates a stack from a parsed item source; used by economy payouts and command item resolution. */
+    @FunctionalInterface
+    public interface CoreItemFactory {
+
+        ItemStack create(ItemSource source, int amount);
     }
 
     public ItemSourceService coreItemSourceService() {

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.gem.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -8,10 +9,11 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -52,8 +54,8 @@ final class GemGuiRenderer {
                     text("mode_extract_desc", "Click an inlaid gem slot"),
                     Material.YELLOW_STAINED_GLASS_PANE);
             case "confirm" -> renderConfirm(state, slot);
-            default -> GuiItemBuilder.build(slot.item(), slot.components(), 1, Map.of(),
-                    (source, amount) -> plugin.coreItemSourceService() == null ? null : plugin.coreItemSourceService().createItem(source, amount));
+            default -> GuiItemBuilder.build(slot.itemDefinition(), Map.of(),
+                    plugin.coreLib().configuredItemService());
         };
     }
 
@@ -255,34 +257,26 @@ final class GemGuiRenderer {
     private ItemStack buildConfiguredItem(GuiSlot slot, Material material, String name, List<String> lore) {
         String item = Texts.isBlank(slot == null ? null : slot.item()) ? material.name() : slot.item();
         return GuiItemBuilder.build(
-                item,
-                configuredComponents(slot, name, lore),
-                1,
+                configuredDefinition(slot, item, name, lore),
                 Map.of(),
-                (source, amount) -> plugin.coreItemSourceService() == null ? null : plugin.coreItemSourceService().createItem(source, amount)
+                plugin.coreLib().configuredItemService()
         );
     }
 
-    private ItemComponentParser.ItemComponents configuredComponents(GuiSlot slot, String name, List<String> lore) {
-        ItemComponentParser.ItemComponents configured = slot == null ? null : slot.components();
-        if (configured == null) {
-            return new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of());
+    /**
+     * Merges the slot's configured components with the code-side fallback per field, so a template that
+     * styles only the lore still gets the fallback display name.
+     */
+    private ConfiguredItemDefinition configuredDefinition(GuiSlot slot, String item, String name, List<String> lore) {
+        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>(
+                slot == null ? Map.of() : slot.itemDefinition().components());
+        if (Texts.isNotBlank(name)) {
+            patches.putIfAbsent("minecraft:custom_name", ItemComponentPatch.set(name));
         }
-        boolean hasDisplayNameConfig = configured.displayNameConfig() != null;
-        boolean hasLoreConfig = configured.loreConfig() != null;
-        String displayName = Texts.isBlank(configured.displayName()) && !hasDisplayNameConfig ? name : configured.displayName();
-        boolean loreConfigured = configured.loreConfigured();
-        return new ItemComponentParser.ItemComponents(
-                displayName,
-                true,
-                loreConfigured ? configured.lore() : lore,
-                configured.itemModel(),
-                configured.customModelData(),
-                configured.enchantments(),
-                configured.hiddenComponents(),
-                hasDisplayNameConfig ? configured.displayNameConfig() : null,
-                hasLoreConfig && loreConfigured ? configured.loreConfig() : null
-        );
+        if (lore != null) {
+            patches.putIfAbsent("minecraft:lore", ItemComponentPatch.set(List.copyOf(lore)));
+        }
+        return new ConfiguredItemDefinition(item, 1, patches);
     }
 
     private ItemStack appendLore(ItemStack baseItem, List<String> extraLore) {

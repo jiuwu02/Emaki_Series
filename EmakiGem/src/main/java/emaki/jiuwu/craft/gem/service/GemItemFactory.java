@@ -7,8 +7,9 @@ import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -77,16 +78,21 @@ public final class GemItemFactory {
             return itemStack;
         }
         Map<String, Object> placeholders = gemPlaceholders(definition, level, null);
-        ItemComponentParser.ItemComponents components = new ItemComponentParser.ItemComponents(
-                resolveGemDisplayName(definition, level),
-                !definition.lore().isEmpty(),
-                definition.lore(),
-                null,
-                definition.customModelData(),
-                Map.of(),
-                List.of()
-        );
-        return GuiItemBuilder.apply(itemStack, components, placeholders);
+        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
+        String displayName = resolveGemDisplayName(definition, level);
+        if (Texts.isNotBlank(displayName)) {
+            patches.put("minecraft:custom_name", ItemComponentPatch.set(displayName));
+        }
+        if (!definition.lore().isEmpty()) {
+            patches.put("minecraft:lore", ItemComponentPatch.set(List.copyOf(definition.lore())));
+        }
+        if (definition.customModelData() != null) {
+            patches.put("minecraft:custom_model_data", ItemComponentPatch.set(Map.of(
+                    "floats", List.of(definition.customModelData().floatValue())
+            )));
+        }
+        return GuiItemBuilder.apply(itemStack, new ConfiguredItemDefinition(null, patches), placeholders,
+                plugin.coreLib().configuredItemService());
     }
 
     public String resolveGemDisplayName(GemDefinition definition, int level) {

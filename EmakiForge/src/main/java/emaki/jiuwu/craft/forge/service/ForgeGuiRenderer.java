@@ -6,10 +6,11 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 
@@ -48,8 +49,8 @@ final class ForgeGuiRenderer {
         if (dynamic != null) {
             return dynamic;
         }
-        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state),
-                state.runtimeSnapshot().itemIdentifierService()::createItem);
+        return GuiItemBuilder.build(slot.itemDefinition(), slotReplacements(state),
+                plugin.coreLib().configuredItemService());
     }
 
     public Map<String, Object> titleReplacements(ForgeGuiSession state) {
@@ -65,8 +66,8 @@ final class ForgeGuiRenderer {
     }
 
     private ItemStack buildCapacityDisplayItem(GuiSlot slot, ForgeGuiSession state) {
-        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state),
-                state.runtimeSnapshot().itemIdentifierService()::createItem);
+        return GuiItemBuilder.build(slot.itemDefinition(), slotReplacements(state),
+                plugin.coreLib().configuredItemService());
     }
 
     private ItemStack buildConfirmItem(GuiSlot slot, ForgeGuiSession state) {
@@ -77,23 +78,18 @@ final class ForgeGuiRenderer {
                     "virtual_items.confirm_blocked",
                     slotReplacements(state),
                     "BARRIER",
-                    new ItemComponentParser.ItemComponents(
-                            "<red>无法锻造</red>",
-                            true,
-                            List.of(
+                    new ConfiguredItemDefinition("BARRIER", 1, Map.of(
+                            "minecraft:custom_name", ItemComponentPatch.set("<red>无法锻造</red>"),
+                            "minecraft:lore", ItemComponentPatch.set(List.of(
                                     "<gray>当前容量: <yellow>%current%/%max%</yellow></gray>",
                                     "<red>可选材料容量已超出上限</red>",
                                     "<gray>减少材料后再试一次</gray>"
-                            ),
-                            null,
-                            null,
-                            Map.of(),
-                            List.of()
-                    )
+                            ))
+                    ))
             );
         }
-        return GuiItemBuilder.build(slot.item(), slot.components(), 1, slotReplacements(state),
-                state.runtimeSnapshot().itemIdentifierService()::createItem);
+        return GuiItemBuilder.build(slot.itemDefinition(), slotReplacements(state),
+                plugin.coreLib().configuredItemService());
     }
 
     private Map<String, Object> slotReplacements(ForgeGuiSession state) {

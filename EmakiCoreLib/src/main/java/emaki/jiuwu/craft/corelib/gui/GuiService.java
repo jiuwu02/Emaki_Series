@@ -55,6 +55,11 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         this.configuredItemService = this.backend.configuredItemService();
     }
 
+    /** {@return the configured item service backing this GUI service's slot rendering} */
+    public ConfiguredItemService configuredItemService() {
+        return configuredItemService;
+    }
+
     public GuiSession open(GuiOpenRequest request) {
         if (request == null || request.viewer() == null || request.template() == null) {
             debug(request == null ? null : request.viewer(), "common.gui.sync_open_rejected_invalid_request");
@@ -164,7 +169,6 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                 request.viewer(),
                 request.template(),
                 request.replacements(),
-                request.itemFactory(),
                 configuredItemService,
                 request.renderer(),
                 request.handler(),

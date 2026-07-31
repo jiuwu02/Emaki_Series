@@ -37,7 +37,6 @@ public final class ItemRepairGuiService {
                 player,
                 template,
                 java.util.Map.of(),
-                (source, amount) -> plugin.itemSourceService().createItem(source, amount),
                 (guiSession, slot) -> renderer.renderSlot(state, slot),
                 interactionController.createSessionHandler(state)
         ));

@@ -5,7 +5,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.6"
+version: "1.0.8"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"

@@ -75,7 +75,6 @@ public final class LevelGuiService {
                         "total_pages", totalPages(template),
                         "type_count", types().size()
                 ),
-                (source, amount) -> plugin.coreLib().itemSourceService().createItem(source, amount),
                 renderer::render,
                 interactionController
         ));

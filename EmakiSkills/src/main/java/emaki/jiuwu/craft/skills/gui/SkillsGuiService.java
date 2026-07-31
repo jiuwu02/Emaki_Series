@@ -21,7 +21,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -104,7 +103,7 @@ public final class SkillsGuiService {
         GuiRenderer renderer = (session, slot) -> renderSkillsSlot(session, slot);
 
         GuiOpenRequest request = new GuiOpenRequest(
-                plugin, player, template, replacements, null, renderer, handler);
+                plugin, player, template, replacements, renderer, handler);
         GuiSession session = guiService.open(request);
         return session != null;
     }
@@ -131,7 +130,7 @@ public final class SkillsGuiService {
         GuiRenderer renderer = (session, slot) -> renderTriggerSelectSlot(session, slot, targetSlot, player);
 
         GuiOpenRequest request = new GuiOpenRequest(
-                plugin, player, template, replacements, null, renderer, handler);
+                plugin, player, template, replacements, renderer, handler);
         GuiSession session = guiService.open(request);
         return session != null;
     }
@@ -461,42 +460,18 @@ public final class SkillsGuiService {
             String fallbackName,
             List<String> fallbackLore,
             Map<String, ?> replacements) {
-        ItemComponentParser.ItemComponents fallbackComponents = new ItemComponentParser.ItemComponents(
-                fallbackName,
-                true,
-                fallbackLore == null ? List.of() : fallbackLore,
-                null,
-                null,
-                Map.of(),
-                List.of()
-        );
-        ItemComponentParser.ItemComponents components = hasConfiguredComponents(slot)
-                ? slot.components()
-                : fallbackComponents;
         String configuredItem = slot == null ? null : slot.item();
         String item = Texts.isBlank(configuredItem) ? fallbackItem : configuredItem;
         return GuiItemBuilder.build(
+                slot,
                 Texts.isBlank(item) ? "nether_star" : item,
-                components,
-                1,
+                fallbackName,
+                fallbackLore == null ? List.of() : fallbackLore,
                 replacements == null ? Map.of() : replacements,
-                null
+                plugin.coreLib().configuredItemService()
         );
     }
 
-    private boolean hasConfiguredComponents(GuiSlot slot) {
-        if (slot == null || slot.components() == null) {
-            return false;
-        }
-        ItemComponentParser.ItemComponents components = slot.components();
-        return Texts.isNotBlank(components.displayName())
-                || components.displayNameConfig() != null
-                || components.loreConfigured()
-                || Texts.isNotBlank(components.itemModel())
-                || components.customModelData() != null
-                || !components.enchantments().isEmpty()
-                || !components.hiddenComponents().isEmpty();
-    }
 
     private Map<String, Object> activeSlotReplacements(Player player,
             int slotIndex,

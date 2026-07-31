@@ -9,7 +9,6 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -177,33 +176,18 @@ final class ItemRepairGuiRenderer {
     }
 
     private ItemStack buildStatic(GuiSlot slot) {
-        return GuiItemBuilder.build(slot.item(), slot.components(), 1, Map.of(), (source, amount) -> plugin.itemSourceService().createItem(source, amount));
+        return GuiItemBuilder.build(slot.itemDefinition(), Map.of(), plugin.coreLib().configuredItemService());
     }
 
     private ItemStack buildItem(GuiSlot slot, String item, String name, List<String> lore) {
-        ItemComponentParser.ItemComponents fallbackComponents = new ItemComponentParser.ItemComponents(name, true, lore, null, null, Map.of(), List.of());
-        ItemComponentParser.ItemComponents components = hasConfiguredComponents(slot) ? slot.components() : fallbackComponents;
         return GuiItemBuilder.build(
+                slot,
                 Texts.isBlank(slot == null ? null : slot.item()) ? item : slot.item(),
-                components,
-                1,
+                name,
+                lore,
                 Map.of(),
-                (source, amount) -> plugin.itemSourceService().createItem(source, amount)
+                plugin.coreLib().configuredItemService()
         );
-    }
-
-    private boolean hasConfiguredComponents(GuiSlot slot) {
-        if (slot == null || slot.components() == null) {
-            return false;
-        }
-        ItemComponentParser.ItemComponents components = slot.components();
-        return Texts.isNotBlank(components.displayName())
-                || components.displayNameConfig() != null
-                || components.loreConfigured()
-                || Texts.isNotBlank(components.itemModel())
-                || components.customModelData() != null
-                || !components.enchantments().isEmpty()
-                || !components.hiddenComponents().isEmpty();
     }
 
     private String msg(String key) {

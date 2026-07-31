@@ -22,7 +22,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -55,7 +54,6 @@ public final class AttributePointsGuiService {
                 player,
                 template,
                 replacements(player, template, 0),
-                (source, amount) -> plugin.coreLib().itemSourceService().createItem(source, amount),
                 this::render,
                 handler
         ));
@@ -210,38 +208,15 @@ public final class AttributePointsGuiService {
     }
 
     private ItemStack buildConfiguredItem(GuiSlot slot, String fallbackItem, String fallbackName, List<String> fallbackLore, Map<String, ?> replacements) {
-        ItemComponentParser.ItemComponents fallbackComponents = new ItemComponentParser.ItemComponents(
-                fallbackName,
-                true,
-                fallbackLore == null ? List.of() : fallbackLore,
-                null,
-                null,
-                Map.of(),
-                List.of()
-        );
-        ItemComponentParser.ItemComponents components = hasConfiguredComponents(slot) ? slot.components() : fallbackComponents;
         String item = Texts.isBlank(slot == null ? null : slot.item()) ? fallbackItem : slot.item();
         return GuiItemBuilder.build(
+                slot,
                 Texts.isBlank(item) ? "barrier" : item,
-                components,
-                1,
+                fallbackName,
+                fallbackLore == null ? List.of() : fallbackLore,
                 replacements == null ? Map.of() : replacements,
-                (source, amount) -> plugin.coreLib().itemSourceService().createItem(source, amount)
+                plugin.coreLib().configuredItemService()
         );
-    }
-
-    private boolean hasConfiguredComponents(GuiSlot slot) {
-        if (slot == null || slot.components() == null) {
-            return false;
-        }
-        ItemComponentParser.ItemComponents components = slot.components();
-        return Texts.isNotBlank(components.displayName())
-                || components.displayNameConfig() != null
-                || components.loreConfigured()
-                || Texts.isNotBlank(components.itemModel())
-                || components.customModelData() != null
-                || !components.enchantments().isEmpty()
-                || !components.hiddenComponents().isEmpty();
     }
 
     private final class Handler implements GuiSessionHandler {

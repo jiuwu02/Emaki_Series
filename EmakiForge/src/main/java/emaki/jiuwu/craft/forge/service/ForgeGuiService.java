@@ -77,7 +77,6 @@ public final class ForgeGuiService {
                 player,
                 template,
                 renderer.titleReplacements(state),
-                runtime.itemIdentifierService()::createItem,
                 (guiSession, slot) -> renderer.renderSlot(state, slot),
                 interactionController.createSessionHandler(state)
         ));

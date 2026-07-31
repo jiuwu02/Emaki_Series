@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.6.11"
+version: "4.6.12"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
