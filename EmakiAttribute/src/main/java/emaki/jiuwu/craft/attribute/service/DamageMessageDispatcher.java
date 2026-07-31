@@ -1,22 +1,22 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import java.lang.reflect.Method;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import net.kyori.adventure.text.Component;
 
 import emaki.jiuwu.craft.attribute.api.model.DamageContext;
 import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -108,7 +108,7 @@ final class DamageMessageDispatcher {
         if (entity instanceof Player player) {
             return player.getName();
         }
-        String mythicName = MythicMobNames.displayName(entity);
+        String mythicName = mythicDisplayName(entity);
         if (Texts.isNotBlank(mythicName)) {
             return mythicName;
         }
@@ -270,89 +270,18 @@ final class DamageMessageDispatcher {
                 : Numbers.formatNumber(damageContext.variables().getDouble("distance", 0D), "0.##");
     }
 
-    private static final class MythicMobNames {
-
-        private static volatile boolean unavailable;
-        private static volatile Method instMethod;
-        private static volatile Method getMobManagerMethod;
-        private static volatile Method getActiveMobMethod;
-        private static volatile Method getDisplayNameMethod;
-        private static volatile Method activeMobGetTypeMethod;
-        private static volatile Method mythicMobGetDisplayNameMethod;
-        private static volatile Method placeholderGetMethod;
-
-        private MythicMobNames() {
+    /**
+     * 取 Mythic 怪物显示名，未配置或实体非 Mythic 怪物时返回空串，由调用方回落 vanilla 实体名。
+     *
+     * <p>查询统一走 CoreLib 的 {@code MythicMobBridge}：门禁、一次性告警与 {@code LinkageError}
+     * 兜底都由该桥承担，这里不再自行反射 MythicMobs。
+     */
+    private String mythicDisplayName(LivingEntity entity) {
+        if (entity == null) {
+            return "";
         }
-
-        static String displayName(LivingEntity entity) {
-            if (entity == null || unavailable || !Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
-                return "";
-            }
-            try {
-                Object activeMob = activeMob(entity);
-                if (activeMob == null) {
-                    return "";
-                }
-                String activeName = Texts.toStringSafe(getDisplayNameMethod.invoke(activeMob)).trim();
-                if (Texts.isNotBlank(activeName)) {
-                    return activeName;
-                }
-                Object mythicMob = activeMobGetTypeMethod.invoke(activeMob);
-                if (mythicMob == null) {
-                    return "";
-                }
-                Object placeholder = mythicMobGetDisplayNameMethod.invoke(mythicMob);
-                String configuredName = placeholder == null ? "" : Texts.toStringSafe(placeholderGetMethod.invoke(placeholder)).trim();
-                return Texts.isBlank(configuredName) ? "" : configuredName;
-            } catch (ReflectiveOperationException | LinkageError exception) {
-                // The unavailable flag keeps this warning to a single emission per server run.
-                unavailable = true;
-                Bukkit.getLogger().warning("[EmakiAttribute] MythicMobs display-name reflection failed;"
-                        + " damage messages will fall back to vanilla entity names: "
-                        + describe(exception));
-                return "";
-            } catch (RuntimeException _) {
-                return "";
-            }
-        }
-
-        private static Object activeMob(LivingEntity entity) throws ReflectiveOperationException {
-            ensureResolved();
-            Object mythicBukkit = instMethod.invoke(null);
-            Object mobManager = getMobManagerMethod.invoke(mythicBukkit);
-            Object activeMob = getActiveMobMethod.invoke(mobManager, entity.getUniqueId());
-            if (activeMob instanceof Optional<?> optional) {
-                return optional.orElse(null);
-            }
-            return activeMob;
-        }
-
-        private static void ensureResolved() throws ReflectiveOperationException {
-            if (instMethod != null) {
-                return;
-            }
-            synchronized (MythicMobNames.class) {
-                if (instMethod != null) {
-                    return;
-                }
-                Class<?> mythicBukkitClass = Class.forName("io.lumine.mythic.bukkit.MythicBukkit");
-                Class<?> mobExecutorClass = Class.forName("io.lumine.mythic.core.mobs.MobExecutor");
-                Class<?> activeMobClass = Class.forName("io.lumine.mythic.core.mobs.ActiveMob");
-                Class<?> mythicMobClass = Class.forName("io.lumine.mythic.api.mobs.MythicMob");
-                Class<?> placeholderStringClass = Class.forName("io.lumine.mythic.api.skills.placeholders.PlaceholderString");
-                instMethod = mythicBukkitClass.getMethod("inst");
-                getMobManagerMethod = mythicBukkitClass.getMethod("getMobManager");
-                getActiveMobMethod = mobExecutorClass.getMethod("getActiveMob", java.util.UUID.class);
-                getDisplayNameMethod = activeMobClass.getMethod("getDisplayName");
-                activeMobGetTypeMethod = activeMobClass.getMethod("getType");
-                mythicMobGetDisplayNameMethod = mythicMobClass.getMethod("getDisplayName");
-                placeholderGetMethod = placeholderStringClass.getMethod("get");
-            }
-        }
-
-        private static String describe(Throwable throwable) {
-            String message = throwable == null ? null : throwable.getMessage();
-            return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
-        }
+        MythicMobBridge.MythicMobSnapshot snapshot =
+                JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).mythicMobBridge().snapshot(entity);
+        return snapshot == null ? "" : Texts.toStringSafe(snapshot.displayName());
     }
 }

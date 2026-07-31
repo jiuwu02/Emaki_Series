@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.6.9"
+version: "4.6.11"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -82,6 +82,16 @@ console:
   item_source_bridge_ready: "<gray>已接入物品源: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "<gray>已检测到 <aqua>%library%</aqua>，等待物品注册完成: %detail%</gray>"
   item_source_bridge_incompatible: "<yellow><aqua>%library%</aqua> 物品源未接入: %detail%</yellow>"
+  item_source:
+    waiting_detail:
+      itemsadder: "插件已启用，但物品注册尚未完成，请等待其加载流程结束。"
+      craftengine: "插件已启用，但物品表尚未完成重载，请等待其重载事件结束。"
+      neigeitems: "插件已启用，但物品库尚未完成刷新，请等待其重载完成。"
+      nexo: "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。"
+      oraxen: "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。"
+      ecoitems: "插件已启用，但物品注册表尚未就绪，请等待其加载完成。"
+      default: "外部物品注册尚未完成，请等待依赖插件完成加载。"
+    incompatible_detail: "%library% 已检测到，但当前 API 结构与 CoreLib 适配器不兼容。"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"

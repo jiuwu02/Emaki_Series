@@ -43,6 +43,8 @@ import emaki.jiuwu.craft.corelib.apiimpl.DefaultEmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
+import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
+import emaki.jiuwu.craft.corelib.integration.MythicMobBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.OraxenBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
@@ -119,6 +121,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final CustomBlockBridge itemsAdderBlockBridge = new ItemsAdderBlockBridgeProvider(this);
     private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
     private final CustomBlockBridge oraxenBlockBridge = new OraxenBlockBridgeProvider(this);
+    private final MythicMobBridge mythicMobBridge = new MythicMobBridgeProvider(this);
     private EmakiItemAssemblyService itemAssemblyService;
     private final emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry layerMigrationRegistry
             = new emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry();
@@ -498,7 +501,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         dialogService.setEnabled(config.dialogConfig().enabled());
         dialogService.load();
         gameplayEventPublisher = new emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher(
-                this, executionDispatcher, eventBus, () -> configModel == null ? null : configModel.gameplayEventConfig());
+                this, executionDispatcher, eventBus,
+                () -> configModel == null ? null : configModel.gameplayEventConfig(),
+                mythicMobBridge);
         getServer().getPluginManager().registerEvents(gameplayEventPublisher, this);
         refreshServiceRegistry();
     }
@@ -815,6 +820,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return nexoBlockBridge;
     }
 
+    public MythicMobBridge mythicMobBridge() {
+        return mythicMobBridge;
+    }
+
     public CustomBlockBridge oraxenBlockBridge() {
         return oraxenBlockBridge;
     }
@@ -853,6 +862,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(ItemsAdderBlockBridgeProvider.class, (ItemsAdderBlockBridgeProvider) itemsAdderBlockBridge);
         registerService(NexoBlockBridgeProvider.class, (NexoBlockBridgeProvider) nexoBlockBridge);
         registerService(OraxenBlockBridgeProvider.class, (OraxenBlockBridgeProvider) oraxenBlockBridge);
+        registerService(MythicMobBridge.class, mythicMobBridge);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
         registerService(emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry.class, layerMigrationRegistry);
         registerService(emaki.jiuwu.craft.corelib.event.EmakiEventBus.class, eventBus);

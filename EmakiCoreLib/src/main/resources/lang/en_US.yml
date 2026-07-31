@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.6.9"
+version: "4.6.11"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -82,6 +82,16 @@ console:
   item_source_bridge_ready: "<gray>Item source connected: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "<gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"
   item_source_bridge_incompatible: "<yellow><aqua>%library%</aqua> item source not connected: %detail%</yellow>"
+  item_source:
+    waiting_detail:
+      itemsadder: "The plugin is enabled, but item registration has not finished. Wait for its loading flow to complete."
+      craftengine: "The plugin is enabled, but its item table has not finished reloading. Wait for its reload event to complete."
+      neigeitems: "The plugin is enabled, but its item library has not finished refreshing. Wait for its reload to complete."
+      nexo: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete."
+      oraxen: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete."
+      ecoitems: "The plugin is enabled, but its item registry is not ready yet. Wait for its loading to complete."
+      default: "External item registration has not finished. Wait for the dependency plugin to finish loading."
+    incompatible_detail: "%library% was detected, but its current API shape is incompatible with the CoreLib adapter."
 
 loader:
   lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"

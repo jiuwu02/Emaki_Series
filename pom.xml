@@ -60,14 +60,14 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.6.10</emaki.corelib.version>
-        <emaki.attribute.version>4.6.10</emaki.attribute.version>
+        <emaki.corelib.version>4.6.11</emaki.corelib.version>
+        <emaki.attribute.version>4.6.12</emaki.attribute.version>
         <emaki.item.version>2.6.7</emaki.item.version>
-        <emaki.skills.version>2.6.5</emaki.skills.version>
-        <emaki.corelib.api.version>4.6.10</emaki.corelib.api.version>
-        <emaki.attribute.api.version>4.6.10</emaki.attribute.api.version>
+        <emaki.skills.version>2.6.6</emaki.skills.version>
+        <emaki.corelib.api.version>4.6.11</emaki.corelib.api.version>
+        <emaki.attribute.api.version>4.6.12</emaki.attribute.api.version>
         <emaki.item.api.version>2.6.7</emaki.item.api.version>
-        <emaki.skills.api.version>2.6.5</emaki.skills.api.version>
+        <emaki.skills.api.version>2.6.6</emaki.skills.api.version>
         <emaki.forge.api.version>4.6.4</emaki.forge.api.version>
         <emaki.strengthen.api.version>4.6.4</emaki.strengthen.api.version>
         <emaki.cooking.api.version>4.1.5</emaki.cooking.api.version>

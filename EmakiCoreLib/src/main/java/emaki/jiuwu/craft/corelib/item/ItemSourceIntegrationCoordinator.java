@@ -235,30 +235,32 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
     }
 
     private String defaultWaitingDetail(String library, String detail) {
-        return defaultDetail(detail, switch (Texts.lower(library)) {
-            case "itemsadder" ->
-                "插件已启用，但物品注册尚未完成，请等待其加载流程结束。";
-            case "craftengine" ->
-                "插件已启用，但物品表尚未完成重载，请等待其重载事件结束。";
-            case "neigeitems" ->
-                "插件已启用，但物品库尚未完成刷新，请等待其重载完成。";
-            case "nexo" ->
-                "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。";
-            case "oraxen" ->
-                "插件已启用，但物品表尚未完成初始化，请等待其加载事件结束。";
-            case "ecoitems" ->
-                "插件已启用，但物品注册表尚未就绪，请等待其加载完成。";
-            default ->
-                "外部物品注册尚未完成，请等待依赖插件完成加载。";
-        });
+        if (Texts.isNotBlank(detail)) {
+            return detail;
+        }
+        // %detail% 会填进双语模板 console.item_source_bridge_waiting，因此填充值本身也必须走 lang，
+        // 否则英文服会得到英文模板 + 中文详情的混排输出。
+        String specific = localizedDetail("console.item_source.waiting_detail." + Texts.lower(library));
+        return Texts.isNotBlank(specific)
+                ? specific
+                : localizedDetail("console.item_source.waiting_detail.default");
     }
 
     private String defaultIncompatibleDetail(String library, String detail) {
-        return defaultDetail(detail, library + " 已检测到，但当前 API 结构与 CoreLib 适配器不兼容。");
+        if (Texts.isNotBlank(detail)) {
+            return detail;
+        }
+        return localizedDetail("console.item_source.incompatible_detail", Map.of("library", Texts.toStringSafe(library)));
     }
 
-    private String defaultDetail(String detail, String fallback) {
-        return Texts.isBlank(detail) ? fallback : detail;
+    private String localizedDetail(String key) {
+        return localizedDetail(key, Map.of());
+    }
+
+    private String localizedDetail(String key, Map<String, ?> replacements) {
+        String resolved = messageService.message(key, replacements);
+        // MessageService 在缺键时回显 key 本身，这里不把 key 当作可展示文案输出。
+        return Texts.isBlank(resolved) || key.equals(resolved) ? "" : resolved;
     }
 
     private boolean equalsPluginName(String left, String right) {
