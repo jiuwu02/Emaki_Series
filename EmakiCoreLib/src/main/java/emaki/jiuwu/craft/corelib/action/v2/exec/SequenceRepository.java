@@ -1,0 +1,51 @@
+package emaki.jiuwu.craft.corelib.action.v2.exec;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.action.v2.compile.SequenceCatalog;
+
+/** Named, compiled pipelines available to {@code run}. */
+public interface SequenceRepository extends SequenceCatalog {
+
+    /**
+     * Resolves a compiled sequence.
+     *
+     * @param name sequence name
+     * @return compiled sequence, or {@code null} if it disappeared after validation
+     */
+    @Nullable
+    CompiledPipeline find(@Nullable String name);
+
+    /** {@return an empty repository} */
+    static @NotNull SequenceRepository empty() {
+        return new SequenceRepository() {
+
+            @Override
+            public @Nullable CompiledPipeline find(@Nullable String name) {
+                return null;
+            }
+
+            @Override
+            public boolean contains(@Nullable String name) {
+                return false;
+            }
+
+            @Override
+            public @NotNull java.util.Set<String> requiredParameters(@Nullable String name) {
+                return java.util.Set.of();
+            }
+
+            @Override
+            public @NotNull java.util.Set<String> calls(@Nullable String name) {
+                return java.util.Set.of();
+            }
+
+            @Override
+            public @NotNull java.util.List<String> names() {
+                return java.util.List.of();
+            }
+        };
+    }
+}

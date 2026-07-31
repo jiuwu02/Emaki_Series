@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.6.12</version>
+    <version>4.6.13</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -180,6 +180,14 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
+        <!-- 临时测试资产（用户决策 D5）：仅用于 Action v2 编译器与解释器的回归验证，
+             阶段 6 验收后连同 src/test 与 surefire 配置一并删除。不进入任何发布 Jar。 -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -216,6 +224,12 @@
                 <configuration>
                     <forceCreation>true</forceCreation>
                 </configuration>
+            </plugin>
+            <!-- 临时测试资产（用户决策 D5）：随 src/test 一起在阶段 6 删除。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.version}</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

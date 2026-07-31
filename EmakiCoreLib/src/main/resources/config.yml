@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.6.12"
+version: "4.6.13"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -97,6 +97,14 @@ gameplay_events:
   brew_attribution_expire_ticks: 6000
 
 action:
+  # 管道(v2)的加载期编译上限。超限直接拒绝该条配置并保留上一份有效配置，不静默截断。
+  pipeline:
+    # `every <间隔> times <次数>` 的次数上限。默认 100；写成 100000 会在加载期报错而不是被悄悄改小。
+    max_repeat_times: 100
+    # 序列(`run`)的最大嵌套深度。同时用于加载期环检测的兜底。
+    max_sequence_depth: 8
+    # 分支(`if ... [ ... ]`)的最大嵌套深度。
+    max_branch_depth: 16
   loop:
     enabled: true
     min_sync_interval: 5t

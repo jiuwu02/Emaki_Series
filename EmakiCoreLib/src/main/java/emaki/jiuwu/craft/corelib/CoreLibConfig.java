@@ -11,6 +11,7 @@ public record CoreLibConfig(
         boolean releaseDefaultData,
         Map<String, List<String>> actionTemplates,
         LoopConfig loopConfig,
+        PipelineConfig pipelineConfig,
         GuiConfig guiConfig,
         GameplayEventConfig gameplayEventConfig,
         DebugConfig debugConfig,
@@ -21,8 +22,9 @@ public record CoreLibConfig(
 ) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(),
-                GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults(),
+                return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(),
+                PipelineConfig.defaults(), GuiConfig.defaults(),
+ GameplayEventConfig.defaults(), DebugConfig.defaults(),
                 MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults(),
                 VanillaLanguageConfig.defaults());
     }
@@ -45,6 +47,7 @@ public record CoreLibConfig(
                 configuration.getBoolean("release_default_data", defaults().releaseDefaultData()),
                 Map.copyOf(templates),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
+                PipelineConfig.fromConfig(actionSection == null ? null : actionSection.getSection("pipeline")),
                 GuiConfig.fromConfig(configuration.getSection("gui")),
                 GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events")),
                 DebugConfig.fromConfig(configuration.getSection("debug")),
@@ -260,6 +263,38 @@ public record CoreLibConfig(
                     lastDamager == null ? defaults.lastDamagerExpireTicks() : Math.max(0, lastDamager),
                     brew == null ? defaults.brewAttributionExpireTicks() : Math.max(0L, brew.longValue())
             );
+        }
+    }
+
+    /**
+     * Load-time compile limits for v2 pipelines.
+     *
+     * @param maxRepeatTimes cap for {@code every ... times N}; exceeding it rejects the configuration
+     * @param maxSequenceDepth cap for nested {@code run} calls
+     * @param maxBranchDepth cap for nested {@code if} branches
+     */
+    public record PipelineConfig(int maxRepeatTimes, int maxSequenceDepth, int maxBranchDepth) {
+
+        public static PipelineConfig defaults() {
+            return new PipelineConfig(100, 8, 16);
+        }
+
+        public static PipelineConfig fromConfig(YamlSection section) {
+            PipelineConfig defaults = defaults();
+            if (section == null) {
+                return defaults;
+            }
+            return new PipelineConfig(
+                    section.getInt("max_repeat_times", defaults.maxRepeatTimes()),
+                    section.getInt("max_sequence_depth", defaults.maxSequenceDepth()),
+                    section.getInt("max_branch_depth", defaults.maxBranchDepth())
+            );
+        }
+
+        /** {@return these limits as the compiler's own type} */
+        public emaki.jiuwu.craft.corelib.action.v2.compile.PipelineLimits toLimits() {
+            return new emaki.jiuwu.craft.corelib.action.v2.compile.PipelineLimits(
+                    maxRepeatTimes, maxSequenceDepth, maxBranchDepth);
         }
     }
 

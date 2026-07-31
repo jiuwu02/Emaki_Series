@@ -60,11 +60,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.6.12</emaki.corelib.version>
+        <emaki.corelib.version>4.6.13</emaki.corelib.version>
         <emaki.attribute.version>4.6.13</emaki.attribute.version>
         <emaki.item.version>2.6.8</emaki.item.version>
         <emaki.skills.version>2.6.7</emaki.skills.version>
-        <emaki.corelib.api.version>4.6.12</emaki.corelib.api.version>
+        <emaki.corelib.api.version>4.6.13</emaki.corelib.api.version>
         <emaki.attribute.api.version>4.6.13</emaki.attribute.api.version>
         <emaki.item.api.version>2.6.8</emaki.item.api.version>
         <emaki.skills.api.version>2.6.7</emaki.skills.api.version>
@@ -99,6 +99,10 @@
         <packetevents.version>2.13.0</packetevents.version>
         <bstats.version>3.2.1</bstats.version>
         <caffeine.version>3.2.4</caffeine.version>
+        <!-- 临时测试工具链（用户决策 D5）：仅供 Action v2 重构期回归验证，
+             阶段 6 验收后与 src/test、surefire 配置一并移除。 -->
+        <junit.jupiter.version>5.11.4</junit.jupiter.version>
+        <maven.surefire.version>3.5.2</maven.surefire.version>
     </properties>
 
     <dependencyManagement>
