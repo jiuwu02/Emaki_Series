@@ -115,6 +115,12 @@ skill:
     valid, automatically unequipped.</red>"
   not_found: "<red>Skill not found: %skill_id%</red>"
   not_unlocked: "<red>You have not unlocked this skill yet.</red>"
+  # The five keys below are internal pipeline reason keys, surfaced to players through cast.*
+  script_unavailable: "<red>The skill script is currently unavailable.</red>"
+  script_phase_condition_failed: "<gray>The script phase condition did not pass.</gray>"
+  mythic_not_configured: "<red>Skill has no Mythic mapping configured.</red>"
+  mythic_not_found: "<red>Mythic skill %mythic_skill% was not found.</red>"
+  mythic_rejected: "<red>MythicMobs rejected the skill cast.</red>"
 
 trigger:
   bound: "<green>Bound trigger <white>%trigger%</white> to slot %slot%.</green>"

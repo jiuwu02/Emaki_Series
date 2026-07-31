@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
 
 /**
  * Result of running one pipeline.
@@ -17,18 +18,21 @@ import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
  * @param reasonKey language key describing the outcome
  * @param args diagnostic arguments for {@code reasonKey}
  * @param stageResults per-stage summary in execution order
+ * @param keptFlow the target flow the {@code keep} gate saw, empty when the pipeline has no {@code keep}
  */
 public record PipelineOutcome(@NotNull Status status,
         @Nullable CoreActionFailureKind failureKind,
         @NotNull String reasonKey,
         @NotNull Map<String, Object> args,
-        @NotNull List<StageResult> stageResults) {
+        @NotNull List<StageResult> stageResults,
+        @NotNull List<CoreActionSubject> keptFlow) {
 
     public PipelineOutcome {
         status = status == null ? Status.SUCCESS : status;
         reasonKey = reasonKey == null ? "" : reasonKey;
         args = args == null ? Map.of() : Map.copyOf(args);
         stageResults = stageResults == null ? List.of() : List.copyOf(stageResults);
+        keptFlow = keptFlow == null ? List.of() : List.copyOf(keptFlow);
     }
 
     /** Overall pipeline status. */
@@ -80,7 +84,19 @@ public record PipelineOutcome(@NotNull Status status,
      * @return the outcome
      */
     public static @NotNull PipelineOutcome success(@Nullable List<StageResult> stageResults) {
-        return new PipelineOutcome(Status.SUCCESS, null, "", Map.of(), stageResults);
+        return success(stageResults, List.of());
+    }
+
+    /**
+     * Creates a success outcome that carries a kept flow.
+     *
+     * @param stageResults per-stage summary
+     * @param keptFlow the flow the {@code keep} gate saw
+     * @return the outcome
+     */
+    public static @NotNull PipelineOutcome success(@Nullable List<StageResult> stageResults,
+            @Nullable List<CoreActionSubject> keptFlow) {
+        return new PipelineOutcome(Status.SUCCESS, null, "", Map.of(), stageResults, keptFlow);
     }
 
     /**
@@ -92,7 +108,21 @@ public record PipelineOutcome(@NotNull Status status,
      */
     public static @NotNull PipelineOutcome skipped(@Nullable String reasonKey,
             @Nullable List<StageResult> stageResults) {
-        return new PipelineOutcome(Status.SKIPPED, null, reasonKey, Map.of(), stageResults);
+        return skipped(reasonKey, stageResults, List.of());
+    }
+
+    /**
+     * Creates a skipped outcome that carries a kept flow.
+     *
+     * @param reasonKey language key
+     * @param stageResults per-stage summary
+     * @param keptFlow the flow the {@code keep} gate saw
+     * @return the outcome
+     */
+    public static @NotNull PipelineOutcome skipped(@Nullable String reasonKey,
+            @Nullable List<StageResult> stageResults,
+            @Nullable List<CoreActionSubject> keptFlow) {
+        return new PipelineOutcome(Status.SKIPPED, null, reasonKey, Map.of(), stageResults, keptFlow);
     }
 
     /**
@@ -106,7 +136,23 @@ public record PipelineOutcome(@NotNull Status status,
     public static @NotNull PipelineOutcome partial(@Nullable String reasonKey,
             @Nullable Map<String, Object> args,
             @Nullable List<StageResult> stageResults) {
-        return new PipelineOutcome(Status.PARTIAL, null, reasonKey, args, stageResults);
+        return partial(reasonKey, args, stageResults, List.of());
+    }
+
+    /**
+     * Creates a partial outcome that carries a kept flow.
+     *
+     * @param reasonKey language key
+     * @param args diagnostic arguments
+     * @param stageResults per-stage summary
+     * @param keptFlow the flow the {@code keep} gate saw
+     * @return the outcome
+     */
+    public static @NotNull PipelineOutcome partial(@Nullable String reasonKey,
+            @Nullable Map<String, Object> args,
+            @Nullable List<StageResult> stageResults,
+            @Nullable List<CoreActionSubject> keptFlow) {
+        return new PipelineOutcome(Status.PARTIAL, null, reasonKey, args, stageResults, keptFlow);
     }
 
     /**
@@ -122,8 +168,26 @@ public record PipelineOutcome(@NotNull Status status,
             @Nullable String reasonKey,
             @Nullable Map<String, Object> args,
             @Nullable List<StageResult> stageResults) {
+        return failure(failureKind, reasonKey, args, stageResults, List.of());
+    }
+
+    /**
+     * Creates a failure outcome that carries a kept flow.
+     *
+     * @param failureKind failure classification
+     * @param reasonKey language key
+     * @param args diagnostic arguments
+     * @param stageResults per-stage summary
+     * @param keptFlow the flow the {@code keep} gate saw
+     * @return the outcome
+     */
+    public static @NotNull PipelineOutcome failure(@Nullable CoreActionFailureKind failureKind,
+            @Nullable String reasonKey,
+            @Nullable Map<String, Object> args,
+            @Nullable List<StageResult> stageResults,
+            @Nullable List<CoreActionSubject> keptFlow) {
         return new PipelineOutcome(Status.FAILURE,
                 failureKind == null ? CoreActionFailureKind.INTERNAL_ERROR : failureKind,
-                reasonKey, args, stageResults);
+                reasonKey, args, stageResults, keptFlow);
     }
 }

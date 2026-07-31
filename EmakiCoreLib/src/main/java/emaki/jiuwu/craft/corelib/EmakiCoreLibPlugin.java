@@ -291,6 +291,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         BuiltinStages.Report stageReport = BuiltinStages.registerAll(
                 candidateStageRegistry,
                 this,
+                executionDispatcher,
                 candidateEconomyManager,
                 itemSourceService,
                 craftEngineBlockBridge,

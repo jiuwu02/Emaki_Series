@@ -282,6 +282,10 @@ action:
         not_broken: "<gray>[Pipeline] The block was not broken</gray>"
       explosion:
         zero_power: "<gray>[Pipeline] The explosion power must be greater than zero</gray>"
+      projectile:
+        no_caster_entity: "<gray>[Pipeline] projectile requires a living caster</gray>"
+        no_world: "<gray>[Pipeline] The projectile caster is not in any world</gray>"
+        no_scheduler: "<red>[Pipeline] projectile has no scheduler available</red>"
       spawn_entity:
         unknown_entity_type: "<red>[Pipeline] Unknown entity type %type%</red>"
         not_spawnable: "<gray>[Pipeline] That entity type is not spawnable</gray>"

@@ -24,7 +24,7 @@ final class BuiltinStageFixtures {
 
     private static StageRegistry registry() {
         StageRegistry registry = new StageRegistry();
-        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null);
+        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null, null);
         return registry;
     }
 

@@ -45,6 +45,16 @@ public final class StaticValidator {
     public static final String AFTER_STAGE = "after";
 
     /**
+     * Gate stage that marks the target flow for the next phase.
+     *
+     * <p>The interpreter records the flow this gate saw into {@link
+     * emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome#keptFlow()}, which is how a caller can hand one
+     * phase's targets to the next one. Named here next to the other special stage ids so the interpreter does
+     * not repeat the literal.</p>
+     */
+    public static final String KEEP_GATE = "keep";
+
+    /**
      * Gate stage whose argument names are chosen by the configuration author.
      *
      * <p>{@code set damage=%skill.level%*4+18} names a variable CoreLib cannot know in advance, so this stage is

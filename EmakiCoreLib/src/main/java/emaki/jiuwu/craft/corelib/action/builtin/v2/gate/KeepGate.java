@@ -19,11 +19,15 @@ import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
  * <p>Replaces the {@code save=target} argument of the old {@code ray} action, which wrote to the shared
  * context as a side effect of selecting a target.</p>
  *
- * <p><strong>Scope in this phase is the pipeline, not the phase boundary.</strong> Inside a pipeline the
- * flow already passes from stage to stage, so this gate passes it through unchanged and records
- * {@code keep_count} for diagnostics. Persisting a flow so that a <em>later</em> phase can pick it up with
- * {@code inherited} needs a place to store it, which arrives with the Skills script context; this stage is
- * the syntax that will bind to it, registered now so pipeline text does not have to change later.</p>
+ * <p>Inside a pipeline the flow already passes from stage to stage, so this gate passes it through unchanged.
+ * What makes it more than a no-op is that the interpreter records the flow it saw into
+ * {@code PipelineOutcome.keptFlow()}, which is how a caller hands one phase's targets to the next one; a
+ * Skills script writes {@code looking_at | keep} in {@code cast} and reads it back with {@code inherited} in
+ * {@code hit}.</p>
+ *
+ * <p>It records the flow at the point it runs, not the pipeline's final flow, so where the line sits within
+ * its phase does not matter. A later gate that narrows the flow does not change what was recorded, and a
+ * second {@code keep} replaces the first.</p>
  *
  * <p>Thread need {@code PURE}: passes a list along.</p>
  */

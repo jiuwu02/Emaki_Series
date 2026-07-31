@@ -27,7 +27,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.skills.action.SkillsActionRegistrar;
 import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
-import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
@@ -50,7 +49,7 @@ import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
-import emaki.jiuwu.craft.skills.script.SkillScriptExecutor;
+import emaki.jiuwu.craft.skills.script.SkillPipelineRuntime;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.skills.trigger.DefaultTriggerDispatcher;
 import emaki.jiuwu.craft.skills.trigger.DropTriggerSource;
@@ -110,8 +109,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private SkillLevelService skillLevelService;
     private SkillParameterResolver skillParameterResolver;
     private SkillVariableResolver skillVariableResolver;
-    private SkillScriptActionRegistry skillScriptActionRegistry;
-    private SkillScriptExecutor skillScriptExecutor;
+    private SkillPipelineRuntime skillPipelineRuntime;
     private SkillScriptCastService skillScriptCastService;
     private SkillUpgradeService skillUpgradeService;
     private CastModeService castModeService;
@@ -170,8 +168,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        if (skillScriptActionRegistry != null) {
-            skillScriptActionRegistry.unregisterAll(this);
+        if (skillPipelineRuntime != null) {
+            skillPipelineRuntime.invalidateAll();
         }
         if (metrics != null) {
             metrics.close();
@@ -226,8 +224,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         skillLevelService = components.skillLevelService();
         skillParameterResolver = components.skillParameterResolver();
         skillVariableResolver = components.skillVariableResolver();
-        skillScriptActionRegistry = components.skillScriptActionRegistry();
-        skillScriptExecutor = components.skillScriptExecutor();
+        skillPipelineRuntime = components.skillPipelineRuntime();
         skillScriptCastService = components.skillScriptCastService();
         skillUpgradeService = components.skillUpgradeService();
         castModeService = components.castModeService();
@@ -255,9 +252,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private void registerEventHandlers() {
         if (skillSourceRegistry != null) {
             getServer().getPluginManager().registerEvents(skillSourceRegistry, this);
-        }
-        if (skillScriptActionRegistry instanceof org.bukkit.event.Listener listener) {
-            getServer().getPluginManager().registerEvents(listener, this);
         }
         if (guiService != null) {
             getServer().getPluginManager().registerEvents(guiService, this);
@@ -294,10 +288,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void registerPublicApi() {
         EmakiSkillsApi.install(skillsApiBridge);
-        if (skillScriptActionRegistry != null) {
-            getServer().getServicesManager().register(SkillScriptActionRegistry.class, skillScriptActionRegistry, this,
-                    org.bukkit.plugin.ServicePriority.Normal);
-        }
     }
 
     private void unregisterCoreLibActions() {
@@ -406,12 +396,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return skillVariableResolver;
     }
 
-    public SkillScriptActionRegistry skillScriptActionRegistry() {
-        return skillScriptActionRegistry;
-    }
-
-    public SkillScriptExecutor skillScriptExecutor() {
-        return skillScriptExecutor;
+    public SkillPipelineRuntime skillPipelineRuntime() {
+        return skillPipelineRuntime;
     }
 
     public SkillScriptCastService skillScriptCastService() {

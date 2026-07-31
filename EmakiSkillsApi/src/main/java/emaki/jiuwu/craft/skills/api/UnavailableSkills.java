@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.skills.api.model.SkillUpgradePreview;
 final class UnavailableSkills implements SkillCatalog, SkillOperations, SkillExtensions {
 
     private static final UnavailableSkills INSTANCE = new UnavailableSkills();
-    private static final SkillScriptActionRegistry EMPTY_REGISTRY = SkillScriptActionRegistry.empty();
 
     static final SkillCatalog CATALOG = INSTANCE;
     static final SkillOperations OPERATIONS = INSTANCE;
@@ -54,11 +53,6 @@ final class UnavailableSkills implements SkillCatalog, SkillOperations, SkillExt
     @Override public EmakiResult<Integer> addLevel(Player player, String skillId, int delta) { return EmakiResult.unavailable(); }
     @Override public EmakiResult<Unit> setCastMode(Player player, boolean enabled) { return EmakiResult.unavailable(); }
 
-    @Override public SkillScriptActionRegistry scriptActions() { return EMPTY_REGISTRY; }
-    @Override public SkillActionResult registerScriptAction(Plugin owner, SkillScriptAction action) {
-        return SkillActionResult.failure(SkillActionErrorType.PROVIDER_UNAVAILABLE, "EmakiSkills is unavailable.");
-    }
-    @Override public void unregisterScriptActions(Plugin owner) { }
     @Override public SkillSourceRegistration registerSkillSource(Plugin owner, SkillSourceProvider provider) {
         return SkillSourceRegistration.noop();
     }

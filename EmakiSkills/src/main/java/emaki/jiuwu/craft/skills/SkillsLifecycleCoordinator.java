@@ -29,8 +29,6 @@ import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.skills.api.DefaultSkillScriptActionRegistry;
-import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
@@ -51,10 +49,9 @@ import emaki.jiuwu.craft.skills.service.SkillLevelService;
 import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
+import emaki.jiuwu.craft.skills.script.SkillPipelineRuntime;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
-import emaki.jiuwu.craft.skills.script.SkillScriptExecutor;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
-import emaki.jiuwu.craft.skills.script.builtin.BuiltinSkillScriptActions;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
@@ -137,10 +134,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         CastModeService castModeService = new CastModeService(playerSkillDataStore);
         MythicSkillCastService mythicSkillCastService = new MythicSkillCastService(mythicBridge);
         SkillVariableResolver skillVariableResolver = new SkillVariableResolver(skillLevelService, skillParameterResolver);
-        SkillScriptActionRegistry skillScriptActionRegistry = new DefaultSkillScriptActionRegistry();
-        SkillScriptExecutor skillScriptExecutor = new SkillScriptExecutor(skillScriptActionRegistry);
-        SkillScriptCastService skillScriptCastService = new SkillScriptCastService(plugin, skillVariableResolver, skillScriptExecutor);
-        BuiltinSkillScriptActions.registerAll(skillScriptActionRegistry, plugin, mythicSkillCastService);
+        SkillPipelineRuntime skillPipelineRuntime = new SkillPipelineRuntime(plugin);
+        SkillScriptCastService skillScriptCastService = new SkillScriptCastService(plugin, skillVariableResolver, skillPipelineRuntime);
         CastAttemptService castAttemptService = new CastAttemptService(
                 plugin,
                 playerSkillStateService,
@@ -201,8 +196,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillLevelService,
                 skillParameterResolver,
                 skillVariableResolver,
-                skillScriptActionRegistry,
-                skillScriptExecutor,
+                skillPipelineRuntime,
                 skillScriptCastService,
                 skillUpgradeService,
                 castModeService,
@@ -226,6 +220,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         plugin.skillDefinitionLoader().load();
         plugin.localResourceDefinitionLoader().load();
         plugin.guiTemplateLoader().load();
+        // The skill YAML was just reread, so every compiled pipeline was built from text that may no longer be
+        // configured. Dropping the cache here is what makes the next cast compile the current lines.
+        plugin.skillPipelineRuntime().invalidateAll();
         loadTriggersIntoRegistry(plugin);
         plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
         forEachOnlinePlayer(plugin, plugin.playerSkillStateService()::validateBindings).join();
@@ -266,6 +263,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                     notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
                     return plugin.executionDispatcher().submitGlobal(plugin, () -> {
                         plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                        plugin.skillPipelineRuntime().invalidateAll();
                         loadTriggersIntoRegistry(plugin);
                         plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
                         return null;
@@ -337,13 +335,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         if (plugin.skillSourceRegistry() != null) {
             plugin.skillSourceRegistry().close();
         }
-        if (plugin.skillScriptActionRegistry() instanceof AutoCloseable closeable) {
-            try {
-                closeable.close();
-            } catch (Exception exception) {
-                plugin.getLogger().warning("[Shutdown] Failed to close skill script action registry: "
-                        + exception.getMessage());
-            }
+        if (plugin.skillPipelineRuntime() != null) {
+            plugin.skillPipelineRuntime().invalidateAll();
         }
     }
 

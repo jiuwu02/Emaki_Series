@@ -132,18 +132,31 @@ skill_parameters:
 # 注意：技能的 variables 是脚本内部使用的，不同于其他插件的 effects 变量。
 variables:
   ignite_ticks: "40 + (%level% - 1) * 6"
-  element: "fire"
   empowered: "%level% >= 5 && %has_target% == 1"
   impact_message: "<gold>火球术命中 %target_name%，造成 %damage% 点火焰伤害。</gold>"
 
 # ============================================================
 # 技能脚本
 # ============================================================
-# 定义技能的具体执行逻辑。
-# mode: 脚本模式（"native" = 内置动作系统）
-# stop_on_failure: 某个动作失败时是否停止后续动作
+# 定义技能的具体执行逻辑，每行是一条 EmakiCoreLib 动作管道。
+#
+# 管道语法: 源段 | 闸门段 | 动作段
+#   - 源段决定「作用于谁」: self / looking_at / nearby / inherited ...
+#   - 闸门段筛选或标记目标流: limit / where / chance / keep ...
+#   - 动作段真正产生效果: damage / ignite / spawn_particle ...
+#   省略源段时默认为 self。一条管道只能有一个源段。
+#
+# 跨阶段传目标只有一个手段: keep 闸门段。
+#   cast 阶段某行写了 keep，该行执行到 keep 时的目标流会传给 hit 阶段，
+#   hit 阶段用 inherited 读取。keep 写在第几行都一样，与行顺序无关。
+#   cast 阶段没有 keep 时，跨阶段目标停留在触发器提供的目标上。
+#
+# hit / miss 的判定只看上面这个跨阶段目标流：非空走 hit，空走 miss。
+#
+# mode: 脚本模式（"native" = 动作管道）
+# stop_on_failure: 某一行失败时是否停止后续行
 # actions: 动作阶段
-#   cast: 释放阶段（粒子、音效、射线检测等）
+#   cast: 释放阶段（粒子、音效、选取目标等）
 #   hit: 命中阶段（伤害、点燃、特效等）
 #   miss: 未命中阶段（提示、粒子等）
 script:
@@ -153,19 +166,22 @@ script:
 
   actions:
     cast:
-      - "sound sound=entity.blaze.shoot volume=1 pitch=1.05"
-      - "particle particle=flame at=caster count=24 speed=0.02"
-      - "ray range=18 width=%radius% save=target"
+      - "self | play_sound sound=entity.blaze.shoot volume=1 pitch=1.05"
+      - "self | spawn_particle particle=flame count=24 extra=0.02"
+      # looking_at 取代旧的 ray；旧写法的 save=target 现在是显式的 keep
+      - "looking_at range=18 width=%radius% | keep"
 
     hit:
-      - "damage target=target amount=%damage% damage_type=spell element=%element%"
-      - "@if='%level% >= 3' ignite target=target ticks=%ignite_ticks%"
-      - "@if='%empowered% == true' particle particle=explosion at=target count=1"
-      - 'message target=caster text="%impact_message%"'
+      # inherited 读取 cast 阶段 keep 记录的目标
+      - "inherited | damage amount=%damage%"
+      # if 条件分支代替旧的 @if 行首标记，方括号内是分支体
+      - "if %level%>=3 [ inherited | ignite duration=%ignite_ticks%t ]"
+      - "if %empowered%==true [ inherited | spawn_particle particle=explosion count=1 ]"
+      - 'send_message text="%impact_message%"'
 
     miss:
-      - "particle particle=smoke at=look count=8 speed=0.01"
-      - 'message target=caster text="<gray>火球术没有命中目标。</gray>"'
+      - "looking_at | spawn_particle particle=smoke count=8 extra=0.01"
+      - 'send_message text="<gray>火球术没有命中目标。</gray>"'
 
 # ============================================================
 # 技能升级配置

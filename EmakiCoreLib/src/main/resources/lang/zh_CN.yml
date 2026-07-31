@@ -262,6 +262,10 @@ action:
         not_broken: "<gray>[管道] 方块未被破坏</gray>"
       explosion:
         zero_power: "<gray>[管道] 爆炸威力必须大于零</gray>"
+      projectile:
+        no_caster_entity: "<gray>[管道] projectile 需要生物施法者</gray>"
+        no_world: "<gray>[管道] projectile 的施法者不在任何世界中</gray>"
+        no_scheduler: "<red>[管道] projectile 当前没有可用的调度器</red>"
       spawn_entity:
         unknown_entity_type: "<red>[管道] 未知实体类型 %type%</red>"
         not_spawnable: "<gray>[管道] 该实体类型不可生成</gray>"

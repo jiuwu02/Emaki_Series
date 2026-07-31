@@ -82,7 +82,7 @@ public final class ActionInterpreter {
         }
         CancellationSignal cancellation = new CancellationSignal();
         PipelineContext rooted = context.with(CoreActionKeys.CANCELLATION, cancellation);
-        Run run = new Run(owner, cancellation, new ArrayList<>());
+        Run run = Run.start(owner, cancellation);
         return execute(run, pipeline.nodes(), rooted, pipeline.implicitSelfSource(), 0)
                 .thenApply(state -> summarise(run, state));
     }
@@ -450,6 +450,11 @@ public final class ActionInterpreter {
         return switch (result) {
             case CoreGateResult.Passed passed -> {
                 run.record(stageId, PipelineOutcome.Status.SUCCESS, "", passed.outbound().size());
+                // The one place every gate result converges, so recording `keep` here catches it wherever
+                // it sits: inside a batched group, on its own dispatch, or inside a branch body.
+                if (StaticValidator.KEEP_GATE.equals(stageId)) {
+                    run.recordKept(passed.outbound());
+                }
                 PipelineContext derived = state.context()
                         .withVariables(passed.variables())
                         .withData(passed.data());
@@ -634,16 +639,18 @@ public final class ActionInterpreter {
 
     private PipelineOutcome summarise(Run run, State state) {
         List<PipelineOutcome.StageResult> stageResults = run.stageResults();
+        List<CoreActionSubject> kept = run.kept();
         if (state.failureKind() != null) {
-            return PipelineOutcome.failure(state.failureKind(), state.reasonKey(), state.args(), stageResults);
+            return PipelineOutcome.failure(state.failureKind(), state.reasonKey(), state.args(),
+                    stageResults, kept);
         }
         if (state.partialSeen()) {
-            return PipelineOutcome.partial("action.v2.run.partial_targets", Map.of(), stageResults);
+            return PipelineOutcome.partial("action.v2.run.partial_targets", Map.of(), stageResults, kept);
         }
         if (state.stoppedReason() != null) {
-            return PipelineOutcome.skipped(state.stoppedReason(), stageResults);
+            return PipelineOutcome.skipped(state.stoppedReason(), stageResults, kept);
         }
-        return PipelineOutcome.success(stageResults);
+        return PipelineOutcome.success(stageResults, kept);
     }
 
     private State dispatchFailure(Run run, String stageId, State state, Throwable throwable) {
@@ -715,13 +722,39 @@ public final class ActionInterpreter {
         };
     }
 
-    /** One invocation's mutable bookkeeping: owner, cancellation and the per-stage log. */
+    /**
+     * One invocation's mutable bookkeeping: owner, cancellation, the per-stage log and the kept flow.
+     *
+     * <p>{@code keptFlow} is a single-element holder rather than a field because {@code Run} is a record: the
+     * flow recorded by {@code keep} has to be replaceable while the record itself stays shallowly immutable,
+     * the same shape {@code stageResults} already uses.</p>
+     */
     private record Run(Plugin owner,
             CancellationSignal cancellation,
-            List<PipelineOutcome.StageResult> stageResults) {
+            List<PipelineOutcome.StageResult> stageResults,
+            List<List<CoreActionSubject>> keptFlow) {
+
+        private static Run start(Plugin owner, CancellationSignal cancellation) {
+            return new Run(owner, cancellation, new ArrayList<>(), new ArrayList<>(1));
+        }
 
         private void record(String stageId, PipelineOutcome.Status status, String reasonKey, int targetCount) {
             stageResults.add(new PipelineOutcome.StageResult(stageId, status, reasonKey, targetCount));
+        }
+
+        /**
+         * Records the flow a {@code keep} gate saw.
+         *
+         * <p>Last write wins. {@code keep} means "the flow at this point", so a later {@code keep} replaces an
+         * earlier one and a gate that narrows the flow after {@code keep} does not change what was recorded.</p>
+         */
+        private void recordKept(List<CoreActionSubject> flow) {
+            keptFlow.clear();
+            keptFlow.add(flow == null ? List.of() : List.copyOf(flow));
+        }
+
+        private List<CoreActionSubject> kept() {
+            return keptFlow.isEmpty() ? List.of() : keptFlow.get(0);
         }
     }
 

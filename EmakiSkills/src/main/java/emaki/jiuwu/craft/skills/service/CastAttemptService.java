@@ -10,6 +10,8 @@ import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
@@ -17,8 +19,6 @@ import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
-import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
-import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.api.event.SkillPostCastEvent;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
@@ -42,6 +42,9 @@ import emaki.jiuwu.craft.skills.script.SkillScriptMode;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 public final class CastAttemptService {
+
+    /** Reason key {@link #castMythic} reports for an absent Mythic skill. */
+    static final String MYTHIC_MISSING_REASON = "skill.mythic_not_found";
 
     private final EmakiSkillsPlugin plugin;
     private final PlayerSkillStateService stateService;
@@ -287,7 +290,7 @@ public final class CastAttemptService {
         return CastAttemptResult.ok(definition.id(), Texts.toStringSafe(triggerId));
     }
 
-    private CompletableFuture<SkillActionResult> castSkillAsync(Player player,
+    private CompletableFuture<PipelineOutcome> castSkillAsync(Player player,
             SkillDefinition definition,
             String triggerId,
             TriggerInvocation invocation,
@@ -306,50 +309,60 @@ public final class CastAttemptService {
                 return CompletableFuture.completedFuture(scriptServiceUnavailable());
             }
             return skillScriptCastService.cast(player, definition, triggerId, invocation, parameters)
-                    .thenCompose(nativeResult -> {
-                        if (nativeResult == null || !nativeResult.success()) {
-                            return CompletableFuture.completedFuture(
-                                    nativeResult == null ? scriptServiceUnavailable() : nativeResult);
+                    .thenCompose(nativeOutcome -> {
+                        if (nativeOutcome == null) {
+                            return CompletableFuture.completedFuture(scriptServiceUnavailable());
+                        }
+                        if (nativeOutcome.status() == PipelineOutcome.Status.FAILURE) {
+                            return CompletableFuture.completedFuture(nativeOutcome);
                         }
                         if (!hasMythic) {
-                            return CompletableFuture.completedFuture(nativeResult);
+                            return CompletableFuture.completedFuture(nativeOutcome);
                         }
                         return onCaster(player, () -> CompletableFuture.completedFuture(
                                 castMythic(player, mythicSkillId, invocation, parameters)));
                     });
         }
         if (!hasMythic) {
-            return CompletableFuture.completedFuture(SkillActionResult.failure(
-                    SkillActionErrorType.INVALID_STATE, "Skill has neither a script nor a Mythic mapping."));
+            // REJECTED rather than INVALID_CONFIG so this keeps landing on `cast.skill_execute_failed`, which
+            // is the message v1's INVALID_STATE produced for the same "not castable at all" case.
+            return CompletableFuture.completedFuture(PipelineOutcome.failure(
+                    CoreActionFailureKind.REJECTED, "skill.mythic_not_configured",
+                    Map.of(), List.of()));
         }
         return CompletableFuture.completedFuture(castMythic(player, mythicSkillId, invocation, parameters));
     }
 
-    private static SkillActionResult scriptServiceUnavailable() {
-        return SkillActionResult.failure(
-                SkillActionErrorType.PROVIDER_UNAVAILABLE, "Skill script cast service is unavailable.");
+    private static PipelineOutcome scriptServiceUnavailable() {
+        return PipelineOutcome.failure(CoreActionFailureKind.OWNER_DISABLED,
+                "skill.script_unavailable", Map.of(), List.of());
     }
 
     /**
      * Casts the Mythic skill and reports which stage failed, so a missing skill id
      * is no longer indistinguishable from a Mythic-side execution failure.
+     *
+     * <p>Mythic does not go through the pipeline, so the outcome is constructed directly. The failure kinds are
+     * chosen to land on the same message keys the v1 error types did: a missing skill is a configuration
+     * mistake, a refusal is not.</p>
      */
-    private SkillActionResult castMythic(Player player,
+    private PipelineOutcome castMythic(Player player,
             String mythicSkillId,
             TriggerInvocation invocation,
             ResolvedSkillParameters parameters) {
         if (mythicCastService == null) {
-            return SkillActionResult.failure(
-                    SkillActionErrorType.PROVIDER_UNAVAILABLE, "MythicMobs bridge is unavailable.");
+            return PipelineOutcome.failure(CoreActionFailureKind.OWNER_DISABLED,
+                    "skill.script_unavailable", Map.of(), List.of());
         }
         if (!mythicCastService.skillExists(mythicSkillId)) {
-            return SkillActionResult.failure(
-                    SkillActionErrorType.TEMPLATE_NOT_FOUND, Texts.toStringSafe(mythicSkillId));
+            return PipelineOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    MYTHIC_MISSING_REASON,
+                    Map.of("mythic_skill", Texts.toStringSafe(mythicSkillId)), List.of());
         }
         return mythicCastService.cast(player, mythicSkillId, invocation, parameters)
-                ? SkillActionResult.ok()
-                : SkillActionResult.failure(
-                        SkillActionErrorType.EXECUTION_EXCEPTION, "MythicMobs rejected the skill cast.");
+                ? PipelineOutcome.success(List.of())
+                : PipelineOutcome.failure(CoreActionFailureKind.REJECTED,
+                        "skill.mythic_rejected", Map.of(), List.of());
     }
 
     /**
@@ -366,25 +379,12 @@ public final class CastAttemptService {
             CastOutcome outcome) {
         String skillId = definition == null ? "" : definition.id();
         String detail = outcome.failureDetail();
-        SkillActionErrorType errorType = outcome.errorType();
-        FailureReason reason = switch (errorType) {
-            case TEMPLATE_NOT_FOUND -> FailureReason.MYTHIC_SKILL_NOT_FOUND;
-            case CANCELLED -> FailureReason.CANCELLED;
-            default -> FailureReason.MYTHIC_CAST_FAILED;
-        };
-        String messageKey = switch (errorType) {
-            case ACTION_NOT_FOUND -> "cast.script_action_not_found";
-            case SYNTAX_ERROR -> "cast.script_syntax_error";
-            case INVALID_ARGUMENT -> "cast.script_invalid_argument";
-            case TIMEOUT -> "cast.script_timeout";
-            case CANCELLED -> "cast.cancelled";
-            case TEMPLATE_NOT_FOUND -> "cast.mythic_not_found";
-            case PROVIDER_UNAVAILABLE -> "cast.script_provider_unavailable";
-            default -> "cast.skill_execute_failed";
-        };
-        if (isConfigurationError(errorType)) {
+        CoreActionFailureKind kind = outcome.failureKind();
+        FailureReason reason = failureReasonFor(kind, outcome.reasonKey());
+        String messageKey = messageKeyFor(kind, outcome.reasonKey());
+        if (isConfigurationError(kind)) {
             plugin.getLogger().warning("Skill '" + skillId + "' failed to cast via trigger '"
-                    + Texts.toStringSafe(triggerId) + "': " + errorType.name() + " - " + detail);
+                    + Texts.toStringSafe(triggerId) + "': " + kind.name() + " - " + detail);
         }
         return CastAttemptResult.fail(
                 reason,
@@ -394,24 +394,70 @@ public final class CastAttemptService {
                                 ? skillId : definition.displayName(),
                         "skill_id", skillId,
                         "trigger_id", Texts.toStringSafe(triggerId),
-                        "error_type", errorType.name(),
+                        "error_type", kind.name(),
                         "detail", detail,
-                        "mythic_skill", errorType == SkillActionErrorType.TEMPLATE_NOT_FOUND ? detail : ""),
+                        "mythic_skill", Texts.toStringSafe(outcome.arg("mythic_skill"))),
                 skillId,
                 Texts.toStringSafe(triggerId));
+    }
+
+    /**
+     * Classifies a pipeline failure for {@link CastAttemptResult}.
+     *
+     * <p>A missing Mythic skill is recognised by its reason key rather than its kind, because it shares
+     * {@code INVALID_CONFIG} with every other configuration mistake while needing its own reason so the GUI can
+     * name the skill that is absent.</p>
+     *
+     * @param kind the pipeline failure classification
+     * @param reasonKey the failing stage's reason key
+     * @return the cast failure reason
+     */
+    static FailureReason failureReasonFor(CoreActionFailureKind kind, String reasonKey) {
+        if (MYTHIC_MISSING_REASON.equals(reasonKey)) {
+            return FailureReason.MYTHIC_SKILL_NOT_FOUND;
+        }
+        return kind == CoreActionFailureKind.OWNER_DISABLED
+                ? FailureReason.CANCELLED
+                : FailureReason.MYTHIC_CAST_FAILED;
+    }
+
+    /**
+     * Selects the player-facing message key for a pipeline failure.
+     *
+     * @param kind the pipeline failure classification
+     * @param reasonKey the failing stage's reason key
+     * @return one of the {@code cast.*} language keys
+     */
+    static String messageKeyFor(CoreActionFailureKind kind, String reasonKey) {
+        if (MYTHIC_MISSING_REASON.equals(reasonKey)) {
+            return "cast.mythic_not_found";
+        }
+        return switch (kind) {
+            // MISSING_CONTEXT means a stage asked for something the phase does not provide, which reads the
+            // same way to a server owner as the v1 "action not found": the line names something that is not
+            // there.
+            case MISSING_CONTEXT -> "cast.script_action_not_found";
+            case INVALID_CONFIG -> "cast.script_invalid_argument";
+            case TIMEOUT -> "cast.script_timeout";
+            case OWNER_DISABLED -> "cast.cancelled";
+            // WRONG_THREAD and REJECTED have no dedicated key; they are runtime conditions rather than
+            // configuration mistakes, so they land on the generic message.
+            case WRONG_THREAD, REJECTED, INTERNAL_ERROR -> "cast.skill_execute_failed";
+        };
     }
 
     /**
      * Reports whether the failure is a server-side configuration mistake rather
      * than an expected in-game outcome. Only these are logged, so a normal failed
      * cast never floods the console.
+     *
+     * <p>{@code SYNTAX_ERROR} has no v2 counterpart at run time: a malformed line now fails to compile at load
+     * time, where {@code SkillPipelineRuntime} already logs it.</p>
      */
-    private static boolean isConfigurationError(SkillActionErrorType errorType) {
-        return errorType == SkillActionErrorType.ACTION_NOT_FOUND
-                || errorType == SkillActionErrorType.SYNTAX_ERROR
-                || errorType == SkillActionErrorType.INVALID_ARGUMENT
-                || errorType == SkillActionErrorType.TEMPLATE_NOT_FOUND
-                || errorType == SkillActionErrorType.PROVIDER_UNAVAILABLE;
+    static boolean isConfigurationError(CoreActionFailureKind kind) {
+        return kind == CoreActionFailureKind.INVALID_CONFIG
+                || kind == CoreActionFailureKind.MISSING_CONTEXT
+                || kind == CoreActionFailureKind.TIMEOUT;
     }
 
     private SkillSlotBinding findBindingByTrigger(PlayerSkillProfile profile, String triggerId) {
@@ -593,23 +639,33 @@ public final class CastAttemptService {
     }
 
     /**
-     * Carries the script/Mythic outcome together with any scheduling failure, so
-     * the reason survives the hop back onto the caster's thread.
+     * Carries the pipeline outcome together with any scheduling failure, so the reason survives the hop back
+     * onto the caster's thread.
+     *
+     * <p>{@code SKIPPED} and {@code PARTIAL} both count as success. "No enemy was in range" and "three of five
+     * targets resisted" are gameplay results, not cast failures, and treating them as failures would consume no
+     * resources and show an error message for a cast that visibly happened.</p>
      */
-    private record CastOutcome(SkillActionResult result, Throwable throwable) {
+    private record CastOutcome(PipelineOutcome result, Throwable throwable) {
 
         private boolean success() {
-            return throwable == null && result != null && result.success();
+            return throwable == null && result != null
+                    && result.status() != PipelineOutcome.Status.FAILURE;
         }
 
-        private SkillActionErrorType errorType() {
-            if (throwable != null) {
-                return SkillActionErrorType.EXECUTION_EXCEPTION;
+        private CoreActionFailureKind failureKind() {
+            if (throwable != null || result == null || result.failureKind() == null) {
+                return CoreActionFailureKind.INTERNAL_ERROR;
             }
-            if (result == null || result.errorType() == null) {
-                return SkillActionErrorType.EXECUTION_EXCEPTION;
-            }
-            return result.errorType();
+            return result.failureKind();
+        }
+
+        private String reasonKey() {
+            return throwable != null || result == null ? "" : result.reasonKey();
+        }
+
+        private Object arg(String name) {
+            return throwable != null || result == null ? "" : result.args().getOrDefault(name, "");
         }
 
         private String failureDetail() {
@@ -623,7 +679,7 @@ public final class CastAttemptService {
             if (result == null) {
                 return "no result";
             }
-            return Texts.isBlank(result.errorMessage()) ? "no detail" : result.errorMessage();
+            return Texts.isBlank(result.reasonKey()) ? "no detail" : result.reasonKey();
         }
     }
 }

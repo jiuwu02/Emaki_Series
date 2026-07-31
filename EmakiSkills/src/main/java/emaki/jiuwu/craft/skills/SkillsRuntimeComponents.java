@@ -11,7 +11,6 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
@@ -32,8 +31,8 @@ import emaki.jiuwu.craft.skills.service.SkillLevelService;
 import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
+import emaki.jiuwu.craft.skills.script.SkillPipelineRuntime;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
-import emaki.jiuwu.craft.skills.script.SkillScriptExecutor;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
@@ -60,8 +59,7 @@ record SkillsRuntimeComponents(
         SkillLevelService skillLevelService,
         SkillParameterResolver skillParameterResolver,
         SkillVariableResolver skillVariableResolver,
-        SkillScriptActionRegistry skillScriptActionRegistry,
-        SkillScriptExecutor skillScriptExecutor,
+        SkillPipelineRuntime skillPipelineRuntime,
         SkillScriptCastService skillScriptCastService,
         SkillUpgradeService skillUpgradeService,
         CastModeService castModeService,
@@ -98,8 +96,7 @@ record SkillsRuntimeComponents(
                 RuntimeComponents.component(SkillLevelService.class, skillLevelService),
                 RuntimeComponents.component(SkillParameterResolver.class, skillParameterResolver),
                 RuntimeComponents.component(SkillVariableResolver.class, skillVariableResolver),
-                RuntimeComponents.component(SkillScriptActionRegistry.class, skillScriptActionRegistry),
-                RuntimeComponents.component(SkillScriptExecutor.class, skillScriptExecutor),
+                RuntimeComponents.component(SkillPipelineRuntime.class, skillPipelineRuntime),
                 RuntimeComponents.component(SkillScriptCastService.class, skillScriptCastService),
                 RuntimeComponents.component(SkillUpgradeService.class, skillUpgradeService),
                 RuntimeComponents.component(CastModeService.class, castModeService),

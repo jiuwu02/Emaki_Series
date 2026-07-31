@@ -112,6 +112,12 @@ skill:
   source_lost: "<red>技能 <white>%skill%</white> 的来源已失效，已自动卸下。</red>"
   not_found: "<red>找不到技能: %skill_id%</red>"
   not_unlocked: "<red>你尚未解锁该技能。</red>"
+  # 以下五条是脚本管道的内部原因键，由 cast.* 消息面向玩家呈现
+  script_unavailable: "<red>技能脚本当前不可用。</red>"
+  script_phase_condition_failed: "<gray>脚本阶段条件未通过。</gray>"
+  mythic_not_configured: "<red>技能未配置 Mythic 映射。</red>"
+  mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%。</red>"
+  mythic_rejected: "<red>MythicMobs 拒绝了该技能释放。</red>"
 
 trigger:
   bound: "<green>已将触发器 <white>%trigger%</white> 绑定到槽位 %slot%。</green>"

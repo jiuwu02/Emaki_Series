@@ -39,7 +39,7 @@ public final class DefaultEmakiSkillsApi implements EmakiSkillsApi.Bridge {
                 && plugin.castAttemptService() != null
                 && plugin.skillUpgradeService() != null
                 && plugin.skillSourceRegistry() != null
-                && plugin.skillScriptActionRegistry() != null;
+                && plugin.skillPipelineRuntime() != null;
         return ready
                 ? ApiStatus.ready(pluginName, version, version)
                 : ApiStatus.loading(pluginName, version, version);

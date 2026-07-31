@@ -33,7 +33,7 @@ class BuiltinStageContractTest {
     @Test
     void registersEveryBuiltinStageWithoutFailure() {
         StageRegistry registry = new StageRegistry();
-        BuiltinStages.Report report = BuiltinStages.registerAll(registry, null, null, null,
+        BuiltinStages.Report report = BuiltinStages.registerAll(registry, null, null, null, null,
                 null, null, null, null);
 
         assertTrue(report.successful(), () -> "registration failures: " + report.failures());
@@ -46,7 +46,7 @@ class BuiltinStageContractTest {
     @Test
     void stageIdsAreUniqueAcrossAllThreeKinds() {
         StageRegistry registry = new StageRegistry();
-        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null);
+        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null, null);
 
         List<String> allIds = new ArrayList<>();
         registry.allIds().values().forEach(allIds::addAll);
@@ -60,7 +60,7 @@ class BuiltinStageContractTest {
     @Test
     void everyStageIdUsesLowerSnakeCase() {
         StageRegistry registry = new StageRegistry();
-        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null);
+        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null, null);
 
         registry.allIds().forEach((kind, ids) -> ids.forEach(id ->
                 assertTrue(id.matches("[a-z][a-z0-9_]*"),
@@ -136,9 +136,9 @@ class BuiltinStageContractTest {
     @Test
     void reportNamesTheStageThatFailed() {
         StageRegistry registry = new StageRegistry();
-        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null);
+        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null, null);
         // Registering the same table twice must fail on every id rather than silently replacing entries.
-        BuiltinStages.Report second = BuiltinStages.registerAll(registry, null, null, null,
+        BuiltinStages.Report second = BuiltinStages.registerAll(registry, null, null, null, null,
                 null, null, null, null);
 
         assertFalse(second.successful());

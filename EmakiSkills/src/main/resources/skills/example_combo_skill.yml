@@ -44,11 +44,23 @@ condition:
 # 冷却时间（tick，20 tick = 1 秒）
 cooldown_ticks: 100
 
+# ============================================================
 # 技能脚本
+# ============================================================
+# 被动技能的目标由触发器提供：combo_attack 传入的是「刚被打的那个实体」，
+# 与玩家视线无关。范围段的中心点也被设为该实体的位置。
+#
+# 因此这里的 nearby 就是「以被攻击者为中心找周围 4 格内的敌人」，
+# 而 inherited 读到的就是被攻击的那个实体本身。
+#
+# nearby 默认不含玩家，等价于旧写法的 filter=hostile。
+# nearby 只做球形范围，旧的 shape=cylinder 无对应写法。
 script:
   actions:
     cast:
-      - "aoe_damage amount=20 radius=4 center=target shape=sphere filter=hostile"
-      - "particle particle=explosion at=target count=5"
-      - "sound sound=minecraft:entity.generic.explode volume=1 pitch=0.8"
-      - "message text='<red>连击终结！命中 %aoe_hit_count% 个目标</red>'"
+      # 旧写法 aoe_damage 拆成「nearby 选目标 + damage 造成伤害」
+      - "nearby radius=4 limit=20 | damage amount=20"
+      - "inherited | spawn_particle particle=explosion count=5"
+      - "self | play_sound sound=minecraft:entity.generic.explode volume=1 pitch=0.8"
+      # 旧的 %aoe_hit_count% 在管道里没有对应变量，消息去掉计数
+      - "send_message text='<red>连击终结！</red>'"

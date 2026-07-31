@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 /**
@@ -53,7 +54,7 @@ public final class BuiltinStages {
     public static final int GATE_COUNT = 10;
 
     /** Number of action stages this class registers. */
-    public static final int ACTION_COUNT = 42;
+    public static final int ACTION_COUNT = 43;
 
     private BuiltinStages() {
     }
@@ -63,6 +64,7 @@ public final class BuiltinStages {
      *
      * @param registry the target registry
      * @param owner the owning plugin, recorded so a reload can revoke exactly these stages
+     * @param executionDispatcher scheduler bridge for the stages that drive their own tasks
      * @param economyManager economy access for the money stages
      * @param itemSourceService item construction for the item and block stages
      * @param craftEngineBlockBridge CraftEngine block bridge, may be {@code null}
@@ -73,6 +75,7 @@ public final class BuiltinStages {
      */
     public static @NotNull Report registerAll(@NotNull StageRegistry registry,
             @Nullable Plugin owner,
+            @Nullable ExecutionDispatcher executionDispatcher,
             @Nullable EconomyManager economyManager,
             @Nullable ItemSourceService itemSourceService,
             @Nullable CraftEngineBlockBridge craftEngineBlockBridge,
@@ -83,7 +86,7 @@ public final class BuiltinStages {
         List<String> failures = new ArrayList<>();
         registerSources(registry, owner, failures);
         registerGates(registry, owner, itemSourceService, failures);
-        registerActions(registry, owner, economyManager, itemSourceService,
+        registerActions(registry, owner, executionDispatcher, economyManager, itemSourceService,
                 craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge, failures);
         return new Report(List.copyOf(failures));
     }
@@ -125,6 +128,7 @@ public final class BuiltinStages {
 
     private static void registerActions(StageRegistry registry,
             Plugin owner,
+            ExecutionDispatcher executionDispatcher,
             EconomyManager economyManager,
             ItemSourceService itemSourceService,
             CraftEngineBlockBridge craftEngineBlockBridge,
@@ -132,13 +136,15 @@ public final class BuiltinStages {
             CustomBlockBridge nexoBlockBridge,
             CustomBlockBridge oraxenBlockBridge,
             List<String> failures) {
-        for (CoreActionStage stage : actions(economyManager, itemSourceService,
+        for (CoreActionStage stage : actions(owner, executionDispatcher, economyManager, itemSourceService,
                 craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge)) {
             record(failures, stage.id(), registry.registerAction(owner, stage));
         }
     }
 
-    private static List<CoreActionStage> actions(EconomyManager economyManager,
+    private static List<CoreActionStage> actions(Plugin owner,
+            ExecutionDispatcher executionDispatcher,
+            EconomyManager economyManager,
             ItemSourceService itemSourceService,
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
@@ -162,6 +168,8 @@ public final class BuiltinStages {
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.IgniteStage());
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.ExtinguishStage());
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.KillEntityStage());
+        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.ProjectileStage(
+                executionDispatcher, owner));
         // Potion effects.
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.GivePotionEffectStage());
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.RemovePotionEffectStage());

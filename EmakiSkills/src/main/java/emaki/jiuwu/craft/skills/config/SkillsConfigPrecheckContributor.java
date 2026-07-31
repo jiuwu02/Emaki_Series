@@ -7,24 +7,18 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
-import emaki.jiuwu.craft.corelib.action.ActionLineParser;
-import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
-import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
+import emaki.jiuwu.craft.corelib.action.v2.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckContributor;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
-import emaki.jiuwu.craft.skills.api.SkillActionParameter;
-import emaki.jiuwu.craft.skills.api.SkillScriptAction;
-import emaki.jiuwu.craft.skills.api.SkillScriptActionRegistry;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
-import emaki.jiuwu.craft.skills.script.SkillScriptPhase;
+import emaki.jiuwu.craft.skills.script.SkillPipelineRuntime;
 
 public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
 
@@ -59,108 +53,61 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
     }
 
     /**
-     * Validates every loaded skill's script lines against the registered actions.
+     * Reports every skill script line that failed to compile.
      *
-     * <p>The loader stores script lines verbatim, so an unknown action id, a broken
-     * line or a missing required argument used to stay invisible until a player
-     * cast the skill and received a generic failure message. Checking here reports
-     * the mistake with its skill id and line number while the server is starting.
+     * <p>The check itself moved into {@link SkillPipelineRuntime}: compilation already happens at load time and
+     * already knows what is wrong with a line, so this method compiles each script once and translates the
+     * diagnostics rather than re-implementing a parser and an argument check.</p>
      *
-     * <p>Runs against the action registry, so it only covers actions registered by
-     * the time the precheck executes. Actions contributed later by other plugins
-     * are reported as unknown and are therefore skipped rather than flagged.
+     * <p>Diagnostics are grouped onto the three keys this module's language files define. Anything CoreLib
+     * reports that is not an unknown stage or a missing argument lands on {@code script_syntax_error}, which is
+     * accurate: every remaining case is a line the author has to rewrite.</p>
      */
     private void checkSkillScripts(List<ConfigPrecheckIssue> issues) {
         SkillDefinitionLoader loader = plugin.skillDefinitionLoader();
-        SkillScriptActionRegistry registry = plugin.skillScriptActionRegistry();
-        if (loader == null || registry == null) {
+        SkillPipelineRuntime runtime = plugin.skillPipelineRuntime();
+        if (loader == null || runtime == null) {
             return;
         }
-        Map<String, SkillScriptAction> actions = registry.all();
-        if (actions == null || actions.isEmpty()) {
-            return;
-        }
-        ActionLineParser lineParser = new ActionLineParser();
         for (SkillDefinition definition : loader.all().values()) {
             if (definition == null || definition.script() == null || !definition.script().enabled()) {
                 continue;
             }
-            for (SkillScriptPhase phase : SkillScriptPhase.values()) {
-                checkScriptPhase(definition, phase, actions, lineParser, issues);
-            }
+            runtime.precompile(definition.id(), definition.script());
+        }
+        for (SkillPipelineRuntime.PhaseDiagnostic entry : runtime.diagnostics()) {
+            addDiagnosticIssue(entry, issues);
         }
     }
 
-    private void checkScriptPhase(SkillDefinition definition,
-            SkillScriptPhase phase,
-            Map<String, SkillScriptAction> actions,
-            ActionLineParser lineParser,
+    private void addDiagnosticIssue(SkillPipelineRuntime.PhaseDiagnostic entry,
             List<ConfigPrecheckIssue> issues) {
-        List<String> lines = definition.script().lines(phase);
-        if (lines == null || lines.isEmpty()) {
+        CompileDiagnostic diagnostic = entry.diagnostic();
+        String path = "skills/" + entry.skillId() + ".yml:script.actions."
+                + entry.phase().configKey();
+        String reasonKey = diagnostic.reasonKey();
+        if ("action.v2.validate.unknown_stage".equals(reasonKey)) {
+            addMessageIssue(path, WARN, "script_action_unknown", Map.of(
+                    "skill", entry.skillId(),
+                    "line", entry.lineNumber(),
+                    "action", diagnostic.token(),
+                    "available", diagnostic.candidates().isEmpty()
+                            ? "-" : String.join(", ", diagnostic.candidates())), issues);
             return;
         }
-        String path = "skills/" + definition.id() + ".yml:script.actions." + Texts.lower(phase.name());
-        for (int index = 0; index < lines.size(); index++) {
-            String line = lines.get(index);
-            if (Texts.isBlank(line)) {
-                continue;
-            }
-            int lineNumber = index + 1;
-            ParsedActionLine parsed;
-            try {
-                parsed = lineParser.parse(lineNumber, line);
-            } catch (ActionSyntaxException exception) {
-                addMessageIssue(path, WARN, "script_syntax_error", Map.of(
-                        "skill", definition.id(),
-                        "line", lineNumber,
-                        "detail", Texts.toStringSafe(exception.getMessage())), issues);
-                continue;
-            }
-            if (parsed == null) {
-                continue;
-            }
-            SkillScriptAction action = actions.get(Texts.normalizeId(parsed.actionId()));
-            if (action == null) {
-                addMessageIssue(path, WARN, "script_action_unknown", Map.of(
-                        "skill", definition.id(),
-                        "line", lineNumber,
-                        "action", Texts.toStringSafe(parsed.actionId()),
-                        "available", String.join(", ", new TreeSet<>(actions.keySet()))), issues);
-                continue;
-            }
-            checkRequiredArguments(definition, action, parsed, path, lineNumber, issues);
-        }
-    }
-
-    /**
-     * Reports required arguments that the script line never supplies. A missing
-     * required argument otherwise surfaces only as a runtime failure with no hint
-     * about which argument was expected.
-     */
-    private void checkRequiredArguments(SkillDefinition definition,
-            SkillScriptAction action,
-            ParsedActionLine parsed,
-            String path,
-            int lineNumber,
-            List<ConfigPrecheckIssue> issues) {
-        List<SkillActionParameter> parameters = action.parameters();
-        if (parameters == null || parameters.isEmpty()) {
+        if ("action.v2.validate.missing_required_argument".equals(reasonKey)) {
+            addMessageIssue(path, WARN, "script_argument_missing", Map.of(
+                    "skill", entry.skillId(),
+                    "line", entry.lineNumber(),
+                    "action", diagnostic.token(),
+                    "argument", Texts.toStringSafe(diagnostic.detail().get("argument")),
+                    "provided", diagnostic.candidates().isEmpty()
+                            ? "-" : String.join(", ", diagnostic.candidates())), issues);
             return;
         }
-        Map<String, String> arguments = parsed.arguments() == null ? Map.of() : parsed.arguments();
-        for (SkillActionParameter parameter : parameters) {
-            if (parameter == null || !parameter.required() || Texts.isBlank(parameter.name())) {
-                continue;
-            }
-            if (!arguments.containsKey(parameter.name())) {
-                addMessageIssue(path, WARN, "script_argument_missing", Map.of(
-                        "skill", definition.id(),
-                        "line", lineNumber,
-                        "action", Texts.toStringSafe(action.id()),
-                        "argument", parameter.name(),
-                        "provided", arguments.isEmpty() ? "-" : String.join(", ", new TreeSet<>(arguments.keySet()))), issues);
-            }
-        }
+        addMessageIssue(path, WARN, "script_syntax_error", Map.of(
+                "skill", entry.skillId(),
+                "line", entry.lineNumber(),
+                "detail", diagnostic.toString()), issues);
     }
 }

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.skills.script;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -8,37 +9,47 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
-import emaki.jiuwu.craft.skills.api.SkillActionErrorType;
-import emaki.jiuwu.craft.skills.api.SkillActionResult;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
+/**
+ * Runs a skill's script phases as v2 pipelines.
+ *
+ * <p>Phase ordering is unchanged: {@code cast}, then {@code hit} or {@code miss}, then {@code fail} when
+ * something went wrong. What changed is how targets cross a phase boundary. v1 relied on an action writing
+ * back into a mutable context ({@code ray save=target}); v2 contexts are read-only, so the only channel is the
+ * explicit {@code keep} gate, whose flow CoreLib reports as {@link PipelineOutcome#keptFlow()}.</p>
+ */
 public final class SkillScriptCastService {
 
     private final EmakiSkillsPlugin plugin;
     private final SkillVariableResolver variableResolver;
-    private final SkillScriptExecutor executor;
+    private final SkillPipelineRuntime runtime;
 
     public SkillScriptCastService(EmakiSkillsPlugin plugin,
             SkillVariableResolver variableResolver,
-            SkillScriptExecutor executor) {
+            SkillPipelineRuntime runtime) {
         this.plugin = plugin;
         this.variableResolver = variableResolver;
-        this.executor = executor;
+        this.runtime = runtime;
     }
 
     /**
      * Executes a skill's native script phases.
      *
-     * <p>The returned result carries the failing action's error type and message so
-     * callers can tell a configuration mistake apart from a runtime failure. A
-     * previous revision collapsed this to a boolean, which made every script
-     * problem surface as one generic "execution failed" message with no log entry.
+     * <p>The returned outcome carries the failure classification and reason key of the failing line, so callers
+     * can tell a configuration mistake apart from a runtime failure.</p>
      *
      * @param caster the casting player
      * @param definition the skill being cast
@@ -47,61 +58,116 @@ public final class SkillScriptCastService {
      * @param parameters the resolved skill parameters
      * @return the outcome of the script run, never {@code null}
      */
-    public CompletableFuture<SkillActionResult> cast(Player caster,
+    public CompletableFuture<PipelineOutcome> cast(Player caster,
             SkillDefinition definition,
             String triggerId,
             TriggerInvocation invocation,
             ResolvedSkillParameters parameters) {
         if (caster == null || definition == null || !definition.script().enabled()) {
-            return CompletableFuture.completedFuture(SkillActionResult.failure(
-                    SkillActionErrorType.INVALID_STATE, "Skill script is not available."));
+            return CompletableFuture.completedFuture(PipelineOutcome.failure(
+                    CoreActionFailureKind.REJECTED, "skill.script_unavailable", Map.of(), List.of()));
         }
-        return onCaster(caster, () -> {
-            Map<String, String> variables = variableResolver.resolve(
-                    caster, definition, triggerId, invocation, parameters);
-            SkillScriptContext context = new SkillScriptContext(
-                    plugin, caster, definition, triggerId, invocation, variables);
-            context.refreshTargetVariables();
-            return CompletableFuture.completedFuture(new CastState(context, definition.script()));
-        }).thenCompose(state -> executeMainPhases(state)
-                .handle((result, throwable) -> new CastCompletion(state, result, throwable)))
-                .thenCompose(completion -> {
-                    if (completion.throwable() == null
-                            && completion.result() != null
-                            && completion.result().success()) {
-                        return CompletableFuture.completedFuture(completion.result());
+        // Still hops to the caster's thread first: building the root context reads the caster's location, and
+        // the variable resolver reads live player state. Everything inside a phase is dispatched by CoreLib.
+        return onCaster(caster, () -> CompletableFuture.completedFuture(
+                        newSession(caster, definition, triggerId, invocation, parameters)))
+                .thenCompose(session -> executeMainPhases(session)
+                        .handle((outcome, throwable) -> new Completion(session, outcome, throwable)))
+                .thenCompose(this::finish);
+    }
+
+    private CastSession newSession(Player caster,
+            SkillDefinition definition,
+            String triggerId,
+            TriggerInvocation invocation,
+            ResolvedSkillParameters parameters) {
+        Map<String, String> variables = variableResolver.resolve(
+                caster, definition, triggerId, invocation, parameters);
+        return new CastSession(caster, definition, variables, triggerTargets(invocation),
+                invocation == null ? null : invocation.targetLocation());
+    }
+
+    /**
+     * The targets the trigger supplied.
+     *
+     * <p>A passive trigger names what the skill reacted to: {@code combo_attack} passes the entity that was
+     * just hit, not whatever the caster happens to be looking at. Reading it here is what lets an
+     * {@code inherited} source in the {@code cast} phase see it.</p>
+     */
+    private static List<CoreActionSubject> triggerTargets(TriggerInvocation invocation) {
+        if (invocation == null) {
+            return List.of();
+        }
+        if (invocation.targetEntity() != null) {
+            return List.of(CoreActionSubject.of(invocation.targetEntity()));
+        }
+        Location location = invocation.targetLocation();
+        return location == null ? List.of() : List.of(CoreActionSubject.of(location));
+    }
+
+    private CompletableFuture<PipelineOutcome> executeMainPhases(CastSession session) {
+        return runPhase(session, SkillScriptPhase.CAST)
+                .thenCompose(castOutcome -> {
+                    if (castOutcome.status() == PipelineOutcome.Status.FAILURE
+                            && session.script().stopOnFailure()) {
+                        return CompletableFuture.completedFuture(castOutcome);
                     }
-                    SkillActionResult failure = resolveFailure(completion);
-                    // The FAIL phase is a scripted reaction to the failure, not a
-                    // second chance: its own outcome must not overwrite the original
-                    // cause, otherwise the reason is lost again.
-                    return executor.executePhase(
-                                    completion.state().context(),
-                                    completion.state().script(),
-                                    SkillScriptPhase.FAIL)
-                            .handle((_, _) -> failure);
+                    // HIT/MISS reads only the session flow, never the pipeline's final flow. The final flow
+                    // depends on which line came last, so a `send_message` after `keep` would make its implicit
+                    // `self` source look like a hit.
+                    return runPhase(session, session.hasTargets()
+                            ? SkillScriptPhase.HIT
+                            : SkillScriptPhase.MISS);
                 });
     }
 
-    private static SkillActionResult resolveFailure(CastCompletion completion) {
-        if (completion.throwable() != null) {
-            Throwable cause = AsyncFailures.unwrap(completion.throwable());
-            return SkillActionResult.failure(
-                    SkillActionErrorType.EXECUTION_EXCEPTION,
-                    cause == null || cause.getMessage() == null || cause.getMessage().isBlank()
-                            ? "Skill script execution failed."
-                            : cause.getMessage());
+    private CompletableFuture<PipelineOutcome> finish(Completion completion) {
+        if (completion.throwable() == null
+                && completion.outcome() != null
+                && completion.outcome().status() != PipelineOutcome.Status.FAILURE) {
+            return CompletableFuture.completedFuture(completion.outcome());
         }
-        return completion.result() == null
-                ? SkillActionResult.failure(
-                        SkillActionErrorType.EXECUTION_EXCEPTION, "Skill script returned no result.")
-                : completion.result();
+        PipelineOutcome failure = resolveFailure(completion);
+        // The FAIL phase is a scripted reaction to the failure, not a second chance: its own outcome must not
+        // overwrite the original cause, otherwise the reason is lost again.
+        return runPhase(completion.session(), SkillScriptPhase.FAIL).handle((_, _) -> failure);
     }
 
-    private CompletableFuture<SkillActionResult> executeMainPhases(CastState state) {
-        return executor.executePhase(state.context(), state.script(), SkillScriptPhase.CAST)
-                .thenCompose(result -> executor.executeHitOrMissPhase(
-                        state.context(), state.script(), result));
+    private static PipelineOutcome resolveFailure(Completion completion) {
+        if (completion.throwable() != null) {
+            Throwable cause = AsyncFailures.unwrap(completion.throwable());
+            return PipelineOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
+                    "action.v2.run.exception",
+                    Map.of("error", cause == null || cause.getMessage() == null
+                            ? "Skill script execution failed."
+                            : cause.getMessage()),
+                    List.of());
+        }
+        return completion.outcome() == null
+                ? PipelineOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
+                        "action.v2.run.exception", Map.of("error", "no result"), List.of())
+                : completion.outcome();
+    }
+
+    /**
+     * Runs one phase and folds its kept flow back into the session.
+     *
+     * <p>The phase-level {@code conditions:} list is still evaluated here rather than by the pipeline: it
+     * guards the whole phase, which has no per-line equivalent.</p>
+     */
+    private CompletableFuture<PipelineOutcome> runPhase(CastSession session, SkillScriptPhase phase) {
+        PipelineContext context = session.context(phase);
+        List<String> conditions = session.script().conditions(phase);
+        if (!conditions.isEmpty() && !ConditionEvaluator.evaluate(conditions, "all_of", null,
+                text -> runtime.placeholders().render(context, text), true)) {
+            return CompletableFuture.completedFuture(
+                    PipelineOutcome.skipped("skill.script_phase_condition_failed", List.of()));
+        }
+        return runtime.runPhase(session.definition().id(), session.script(), phase, context)
+                .thenApply(outcome -> {
+                    session.absorb(outcome);
+                    return outcome;
+                });
     }
 
     private <T> CompletableFuture<T> onCaster(Player caster,
@@ -152,9 +218,81 @@ public final class SkillScriptCastService {
         return future;
     }
 
-    private record CastState(SkillScriptContext context, SkillScriptDefinition script) {
+    /**
+     * One cast's cross-phase state: the target flow and origin every phase starts from.
+     *
+     * <p>Starts at whatever the trigger supplied, so a passive skill that defines a {@code hit} phase reaches
+     * it the same way v1's {@code targetPresent} did. Only a {@code keep} gate replaces it, which is why the
+     * handoff no longer depends on where a line sits within its phase.</p>
+     */
+    private final class CastSession {
+
+        private final Player caster;
+        private final SkillDefinition definition;
+        private final Map<String, String> variables;
+        private List<CoreActionSubject> targets;
+        private Location origin;
+
+        private CastSession(Player caster,
+                SkillDefinition definition,
+                Map<String, String> variables,
+                List<CoreActionSubject> targets,
+                Location origin) {
+            this.caster = caster;
+            this.definition = definition;
+            this.variables = variables == null ? Map.of() : Map.copyOf(variables);
+            this.targets = targets == null ? List.of() : List.copyOf(targets);
+            this.origin = origin;
+        }
+
+        private SkillDefinition definition() {
+            return definition;
+        }
+
+        private SkillScriptDefinition script() {
+            return definition.script();
+        }
+
+        private boolean hasTargets() {
+            return !targets.isEmpty();
+        }
+
+        /**
+         * Takes over the flow a {@code keep} gate recorded.
+         *
+         * <p>An outcome with no kept flow leaves the session untouched: a phase without {@code keep} is a phase
+         * that did not ask to change what the next one sees.</p>
+         */
+        private void absorb(PipelineOutcome outcome) {
+            if (outcome == null || outcome.keptFlow().isEmpty()) {
+                return;
+            }
+            targets = List.copyOf(outcome.keptFlow());
+            origin = targets.get(0).location();
+        }
+
+        /**
+         * Builds the root context for one phase.
+         *
+         * <p>{@code origin} is the session's target position rather than the caster's, because {@code nearby}
+         * centres on {@code origin} and no stage can move it. That is what makes "area damage around what this
+         * skill hit" expressible.</p>
+         */
+        private PipelineContext context(SkillScriptPhase phase) {
+            return PipelineContext.root(plugin, CoreActionSubject.of(caster), origin,
+                            phase.configKey(), false, runtime.placeholders())
+                    .withVariables(variables)
+                    .withTargets(targets);
+        }
     }
 
-    private record CastCompletion(CastState state, SkillActionResult result, Throwable throwable) {
+    /**
+     * Carries a phase run's outcome together with any scheduling failure.
+     *
+     * @param session the cast this belongs to
+     * @param outcome the pipeline outcome, {@code null} when the run threw
+     * @param throwable the scheduling or execution failure, {@code null} on success
+     */
+    private record Completion(CastSession session, PipelineOutcome outcome, Throwable throwable) {
     }
 }
