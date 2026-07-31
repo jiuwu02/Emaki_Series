@@ -1,0 +1,92 @@
+package emaki.jiuwu.craft.corelib.action.builtin.v2.gate;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+
+import org.bukkit.Location;
+import org.bukkit.entity.LivingEntity;
+import org.jetbrains.annotations.NotNull;
+
+import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseGate;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateThread;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
+/**
+ * Orders the target flow by distance or health.
+ *
+ * <p>Thread need {@code NEEDS_ENTITY_READ}: {@code distance} reads each subject's position and
+ * {@code health} reads a living entity's health, both of which are owner-thread reads.</p>
+ */
+public final class SortByGate extends BaseGate {
+
+    private static final String DISTANCE = "distance";
+    private static final String HEALTH = "health";
+
+    public SortByGate() {
+        super("sort_by", "Orders the target flow by distance or health.",
+                CoreGateThread.NEEDS_ENTITY_READ,
+                CoreStageParameter.positional("key", CoreStageParameterType.STRING,
+                        "distance or health"),
+                CoreStageParameter.optional("order", CoreStageParameterType.STRING, "asc",
+                        "asc or desc"));
+    }
+
+    @Override
+    public @NotNull CoreGateResult apply(@NotNull CoreStageContext context,
+            @NotNull List<CoreActionSubject> inbound,
+            @NotNull CoreResolvedArguments arguments) {
+        String key = Texts.lower(arguments.getString("key"));
+        if (!DISTANCE.equals(key) && !HEALTH.equals(key)) {
+            return CoreGateResult.invalid("action.v2.gate.sort_by.unknown_key", Map.of("key", key));
+        }
+        String order = Texts.lower(arguments.getString("order", "asc"));
+        if (!"asc".equals(order) && !"desc".equals(order)) {
+            return CoreGateResult.invalid("action.v2.gate.sort_by.unknown_order", Map.of("order", order));
+        }
+        if (inbound.size() <= 1) {
+            return CoreGateResult.passed(new ArrayList<>(inbound));
+        }
+        Location origin = origin(context);
+        Comparator<CoreActionSubject> comparator = DISTANCE.equals(key)
+                ? Comparator.comparingDouble(subject -> distance(subject, origin))
+                : Comparator.comparingDouble(SortByGate::health);
+        if ("desc".equals(order)) {
+            comparator = comparator.reversed();
+        }
+        List<CoreActionSubject> sorted = new ArrayList<>(inbound);
+        sorted.sort(comparator);
+        return CoreGateResult.passed(sorted);
+    }
+
+    private static Location origin(CoreStageContext context) {
+        try {
+            return context.origin();
+        } catch (IllegalStateException exception) {
+            return null;
+        }
+    }
+
+    private static double distance(CoreActionSubject subject, Location origin) {
+        Location location = subject == null ? null : subject.location();
+        if (location == null || origin == null || location.getWorld() == null
+                || origin.getWorld() == null || !location.getWorld().equals(origin.getWorld())) {
+            // Keep the comparator total: an unmeasurable subject sorts last instead of throwing.
+            return Double.MAX_VALUE;
+        }
+        return location.distanceSquared(origin);
+    }
+
+    private static double health(CoreActionSubject subject) {
+        return subject != null && subject.entityOrNull() instanceof LivingEntity living
+                ? living.getHealth()
+                : Double.MAX_VALUE;
+    }
+}

@@ -1,0 +1,76 @@
+package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+
+import java.util.Map;
+
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
+
+import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.text.Texts;
+
+/**
+ * Empties one of the target's inventory slots, optionally only when it holds a given item source.
+ *
+ * <p>With {@code item_source} set, a slot holding something else is {@code Skipped} rather than cleared. That
+ * makes {@code clear_item slot=mainhand item_source=...} safe to run unconditionally.</p>
+ *
+ * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's inventory.</p>
+ */
+public final class ClearItemStage extends BaseStage {
+
+    private final ItemSourceService itemSourceService;
+
+    public ClearItemStage(ItemSourceService itemSourceService) {
+        super("clear_item", "item", "Empties one of the target's inventory slots.",
+                CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
+                CoreStageParameter.required("slot", CoreStageParameterType.STRING, "Inventory slot"),
+                CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "",
+                        "Only clear when the slot holds this source"));
+        this.itemSourceService = itemSourceService;
+    }
+
+    @Override
+    public @NotNull CoreActionOutcome execute(@NotNull CoreStageContext context,
+            @NotNull CoreResolvedArguments arguments) {
+        Player target = StageSupport.player(context.currentTarget());
+        if (target == null) {
+            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+        }
+        StageSupport.Slot slot = StageSupport.slot(arguments.getString("slot"), "");
+        if (slot == null) {
+            return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    "action.v2.stage.item.unknown_slot", Map.of("slot", arguments.getString("slot")));
+        }
+        ItemStack current = slot.get(target.getInventory());
+        if (StageSupport.isEmpty(current)) {
+            return CoreActionOutcome.skipped("action.v2.stage.item.slot_empty");
+        }
+        String requested = arguments.getString("item_source");
+        if (Texts.isNotBlank(requested)) {
+            ItemSource expected = StageSupport.itemSource(requested);
+            if (expected == null) {
+                return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                        "action.v2.stage.item.invalid_item_source", Map.of("item_source", requested));
+            }
+            ItemSource actual = itemSourceService == null ? null : itemSourceService.identifyItem(current);
+            if (!ItemSourceUtil.matches(expected, actual)) {
+                return CoreActionOutcome.skipped("action.v2.stage.item.source_mismatch");
+            }
+        }
+        slot.clear(target.getInventory());
+        return CoreActionOutcome.success(Map.of("slot", slot.id()));
+    }
+}

@@ -170,6 +170,142 @@ action:
       target_retired: "<gray>[Pipeline] The target became invalid before the delayed run: %error%</gray>"
       timing_without_body: "<gray>[Pipeline] A timing stage has no stages after it</gray>"
       exception: "<red>[Pipeline] Stage threw an exception: %error%</red>"
+    # Builtin source stage diagnostics
+    source:
+      self:
+        no_caster: "<gray>[Pipeline] The self source has no caster</gray>"
+      inherited:
+        no_targets: "<gray>[Pipeline] The inherited source has no targets to inherit</gray>"
+      trigger:
+        no_trigger: "<gray>[Pipeline] The trigger source has no trigger information</gray>"
+        not_online: "<gray>[Pipeline] The player named by trigger is not online</gray>"
+      origin:
+        no_origin: "<gray>[Pipeline] The origin source has no usable origin</gray>"
+      looking_at:
+        no_living_caster: "<gray>[Pipeline] looking_at requires a living caster</gray>"
+        no_hit: "<gray>[Pipeline] looking_at hit no entity</gray>"
+        invalid_ray: "<red>[Pipeline] The range or width of looking_at is invalid</red>"
+      nearby:
+        no_origin: "<gray>[Pipeline] The nearby source has no usable origin</gray>"
+        no_match: "<gray>[Pipeline] nearby found no matching entity</gray>"
+        unknown_entity_type: "<red>[Pipeline] Unknown entity type %type% for nearby</red>"
+      nearby_players:
+        no_origin: "<gray>[Pipeline] The nearby_players source has no usable origin</gray>"
+        no_match: "<gray>[Pipeline] nearby_players found no player</gray>"
+      offset:
+        no_origin: "<gray>[Pipeline] The offset source has no usable origin</gray>"
+      at:
+        world_required: "<red>[Pipeline] The at source requires world when there is no origin</red>"
+        world_not_found: "<red>[Pipeline] World %world% for the at source does not exist</red>"
+        relative_without_origin: "<red>[Pipeline] The at source cannot use ~ coordinates without an
+          origin</red>"
+      player_by_name:
+        name_required: "<red>[Pipeline] player_by_name requires name</red>"
+        not_online: "<gray>[Pipeline] The player named by player_by_name is not online</gray>"
+    # Builtin gate stage diagnostics
+    gate:
+      where:
+        condition_required: "<red>[Pipeline] where requires a condition</red>"
+        invalid_condition: "<red>[Pipeline] The where condition %condition% cannot be evaluated</red>"
+      chance:
+        chance_required: "<red>[Pipeline] chance requires a probability</red>"
+        invalid_chance: "<red>[Pipeline] The chance probability must be between 0 and 1</red>"
+        not_rolled: "<gray>[Pipeline] The chance roll did not pass</gray>"
+      limit:
+        invalid_count: "<red>[Pipeline] The limit count must be a non-negative integer</red>"
+      sort_by:
+        unknown_key: "<red>[Pipeline] Unknown sort_by key %key%; expected distance or health</red>"
+        unknown_order: "<red>[Pipeline] Unknown sort_by order %order%; expected asc or desc</red>"
+      set:
+        no_assignment: "<red>[Pipeline] set requires at least one assignment</red>"
+      stop:
+        stopped: "<gray>[Pipeline] Ended by the stop stage</gray>"
+    # Builtin action stage diagnostics
+    stage:
+      common:
+        not_entity: "<gray>[Pipeline] This stage requires an entity target</gray>"
+        not_living_entity: "<gray>[Pipeline] This stage requires a living entity target</gray>"
+        not_player: "<gray>[Pipeline] This stage requires a player target</gray>"
+        no_location: "<gray>[Pipeline] This stage requires a target with a position</gray>"
+      play_sound:
+        unknown_sound: "<red>[Pipeline] Unknown sound %sound%</red>"
+      spawn_particle:
+        unknown_particle: "<red>[Pipeline] Unknown particle %particle%</red>"
+      boss_bar:
+        id_required: "<red>[Pipeline] Boss bar stages require id</red>"
+        unknown_color: "<red>[Pipeline] Unknown boss bar color %color%</red>"
+        unknown_style: "<red>[Pipeline] Unknown boss bar style %style%</red>"
+        unknown_flag: "<red>[Pipeline] Unknown boss bar flag %flag%</red>"
+        show_failed: "<red>[Pipeline] Unable to show a boss bar for id %id%</red>"
+        none_active: "<gray>[Pipeline] The target has no active boss bar</gray>"
+        not_found: "<gray>[Pipeline] No boss bar found for that id</gray>"
+      kill_entity:
+        player_target: "<gray>[Pipeline] kill_entity does not act on players; use set_health
+          amount=0</gray>"
+        already_dead: "<gray>[Pipeline] The target entity is already dead</gray>"
+      potion:
+        unknown_effect: "<red>[Pipeline] Unknown potion effect %type%</red>"
+        effect_absent: "<gray>[Pipeline] The target does not have that potion effect</gray>"
+        none_active: "<gray>[Pipeline] The target has no active potion effect</gray>"
+      item:
+        invalid_item_source: "<red>[Pipeline] Item source %item_source% is invalid</red>"
+        service_unavailable: "<red>[Pipeline] The item source service is currently unavailable</red>"
+        create_failed: "<red>[Pipeline] Unable to create an item from source %item_source%</red>"
+        created_air: "<gray>[Pipeline] The item created from that source was air</gray>"
+        no_pipeline_item: "<gray>[Pipeline] The pipeline holds no item; use create_item first</gray>"
+        unknown_slot: "<red>[Pipeline] Unsupported slot %slot%</red>"
+        slot_empty: "<gray>[Pipeline] That slot holds no item</gray>"
+        source_mismatch: "<gray>[Pipeline] The item in that slot did not match the requested
+          source</gray>"
+        not_enough: "<gray>[Pipeline] Not enough matching items</gray>"
+        remove_failed: "<red>[Pipeline] Failed to remove the matching items</red>"
+        not_damageable: "<gray>[Pipeline] That item is not damageable</gray>"
+        no_durability: "<gray>[Pipeline] That item has no durability</gray>"
+        already_repaired: "<gray>[Pipeline] That item is already fully repaired</gray>"
+        zero_damage: "<gray>[Pipeline] The damage amount must be greater than zero</gray>"
+      place_block:
+        not_placeable: "<gray>[Pipeline] That source is not a placeable block</gray>"
+        provider_unavailable: "<gray>[Pipeline] The custom block provider is currently
+          unavailable</gray>"
+        provider_refused: "<gray>[Pipeline] The custom block provider did not place that block</gray>"
+        not_replaceable: "<gray>[Pipeline] The target block is not replaceable</gray>"
+        cannot_place: "<gray>[Pipeline] A block cannot be placed at that position</gray>"
+        build_denied: "<gray>[Pipeline] Building was denied at that position</gray>"
+        place_cancelled: "<gray>[Pipeline] The block placement was cancelled</gray>"
+      set_block:
+        invalid_material: "<red>[Pipeline] The set_block material %material% or block_data
+          %block_data% is invalid</red>"
+        not_a_block: "<gray>[Pipeline] The set_block material must be a non-air block</gray>"
+      break_block:
+        already_air: "<gray>[Pipeline] The target block is already air</gray>"
+        cancelled: "<gray>[Pipeline] The block break was cancelled</gray>"
+        not_broken: "<gray>[Pipeline] The block was not broken</gray>"
+      explosion:
+        zero_power: "<gray>[Pipeline] The explosion power must be greater than zero</gray>"
+      spawn_entity:
+        unknown_entity_type: "<red>[Pipeline] Unknown entity type %type%</red>"
+        not_spawnable: "<gray>[Pipeline] That entity type is not spawnable</gray>"
+      teleport:
+        world_not_found: "<red>[Pipeline] Teleport destination world %world% does not exist</red>"
+        rejected: "<red>[Pipeline] The teleport was rejected</red>"
+      money:
+        service_unavailable: "<red>[Pipeline] The economy service is currently unavailable</red>"
+        provider_unavailable: "<red>[Pipeline] The economy provider is unavailable: %error%</red>"
+        currency_not_found: "<red>[Pipeline] The currency does not exist: %error%</red>"
+        insufficient_balance: "<red>[Pipeline] Insufficient balance: %error%</red>"
+        unsupported: "<red>[Pipeline] The economy provider does not support that operation:
+          %error%</red>"
+        invalid_argument: "<red>[Pipeline] Invalid economy argument: %error%</red>"
+        failed: "<red>[Pipeline] The economy operation failed: %error%</red>"
+        skipped: "<gray>[Pipeline] The economy operation was skipped</gray>"
+        no_result: "<red>[Pipeline] The economy operation returned no result</red>"
+      command:
+        dispatch_failed: "<red>[Pipeline] Command dispatch failed</red>"
+      cast_mythic_skill:
+        skill_required: "<red>[Pipeline] cast_mythic_skill requires skill</red>"
+        unavailable: "<red>[Pipeline] MythicMobs is currently unavailable</red>"
+        cast_failed: "<red>[Pipeline] MythicMobs skill %skill% failed to cast</red>"
+        cast_error: "<red>[Pipeline] MythicMobs skill %skill% raised an error: %error%</red>"
 
 # Debug mode messages
 debug:

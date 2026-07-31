@@ -1,0 +1,74 @@
+package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+
+import java.util.Map;
+
+import org.bukkit.Location;
+import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
+
+import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+
+/**
+ * Drops an item at the target's position.
+ *
+ * <p>v1 required {@code x}, {@code y} and {@code z}; all four coordinate arguments are gone because the drop
+ * position is the target. {@code at x=.. y=.. z=.. | drop_item ...} is the direct replacement.</p>
+ *
+ * <p>Domain {@code LOCATION_REGION}: spawns an item entity in a region.</p>
+ */
+public final class DropItemStage extends BaseStage {
+
+    private final ItemSourceService itemSourceService;
+
+    public DropItemStage(ItemSourceService itemSourceService) {
+        super("drop_item", "item", "Drops an item at the target position.",
+                CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
+                CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "Item source"),
+                CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "Item amount"));
+        this.itemSourceService = itemSourceService;
+    }
+
+    @Override
+    public @NotNull CoreActionOutcome execute(@NotNull CoreStageContext context,
+            @NotNull CoreResolvedArguments arguments) {
+        ItemSource source = StageSupport.itemSource(arguments.getString("item_source"));
+        if (source == null) {
+            return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    "action.v2.stage.item.invalid_item_source",
+                    Map.of("item_source", arguments.getString("item_source")));
+        }
+        if (itemSourceService == null) {
+            return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
+                    "action.v2.stage.item.service_unavailable");
+        }
+        Location location = context.currentTarget().location();
+        if (location == null || location.getWorld() == null) {
+            return CoreActionOutcome.skipped("action.v2.stage.common.no_location");
+        }
+        int amount = Math.max(1, arguments.getInt("amount", 1));
+        ItemStack itemStack = itemSourceService.createItem(source, amount);
+        if (itemStack == null) {
+            return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    "action.v2.stage.item.create_failed",
+                    Map.of("item_source", StageSupport.shorthand(source)));
+        }
+        if (itemStack.getType().isAir()) {
+            return CoreActionOutcome.skipped("action.v2.stage.item.created_air");
+        }
+        location.getWorld().dropItem(location, itemStack);
+        return CoreActionOutcome.success(Map.of(
+                "item_source", StageSupport.shorthand(source),
+                "amount", itemStack.getAmount()));
+    }
+}

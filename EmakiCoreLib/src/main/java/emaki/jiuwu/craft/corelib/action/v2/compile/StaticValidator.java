@@ -44,6 +44,15 @@ public final class StaticValidator {
     /** Time stage that delays every following stage. */
     public static final String AFTER_STAGE = "after";
 
+    /**
+     * Gate stage whose argument names are chosen by the configuration author.
+     *
+     * <p>{@code set damage=%skill.level%*4+18} names a variable CoreLib cannot know in advance, so this stage is
+     * exempt from the unknown-argument check. Every other stage keeps it, which is what makes a misspelled
+     * argument a load-time error.</p>
+     */
+    public static final String SET_STAGE = "set";
+
     private final StageResolver stages;
     private final SequenceCatalog sequences;
     private final PipelineLimits limits;
@@ -237,10 +246,12 @@ public final class StaticValidator {
             }
         }
 
-        for (String supplied : arguments.keySet()) {
-            if (!byName.containsKey(supplied)) {
-                diagnostics.add(CompileDiagnostic.suggesting("action.v2.validate.unknown_argument",
-                        token(supplied, stage.column()), List.copyOf(byName.keySet())));
+        if (!SET_STAGE.equals(stage.id())) {
+            for (String supplied : arguments.keySet()) {
+                if (!byName.containsKey(supplied)) {
+                    diagnostics.add(CompileDiagnostic.suggesting("action.v2.validate.unknown_argument",
+                            token(supplied, stage.column()), List.copyOf(byName.keySet())));
+                }
             }
         }
         for (CoreStageParameter parameter : declared) {

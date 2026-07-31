@@ -155,6 +155,136 @@ action:
       target_retired: "<gray>[管道] 目标在延迟执行前已失效：%error%</gray>"
       timing_without_body: "<gray>[管道] 时序段之后没有可执行的段</gray>"
       exception: "<red>[管道] 段执行抛出异常：%error%</red>"
+    # 内置源段诊断
+    source:
+      self:
+        no_caster: "<gray>[管道] self 源段没有施法者</gray>"
+      inherited:
+        no_targets: "<gray>[管道] inherited 源段没有可继承的目标</gray>"
+      trigger:
+        no_trigger: "<gray>[管道] trigger 源段没有触发者信息</gray>"
+        not_online: "<gray>[管道] trigger 指向的玩家不在线</gray>"
+      origin:
+        no_origin: "<gray>[管道] origin 源段没有可用的原点</gray>"
+      looking_at:
+        no_living_caster: "<gray>[管道] looking_at 需要生物施法者</gray>"
+        no_hit: "<gray>[管道] looking_at 视线未命中实体</gray>"
+        invalid_ray: "<red>[管道] looking_at 的 range 或 width 不合法</red>"
+      nearby:
+        no_origin: "<gray>[管道] nearby 源段没有可用的原点</gray>"
+        no_match: "<gray>[管道] nearby 未找到符合条件的实体</gray>"
+        unknown_entity_type: "<red>[管道] nearby 的实体类型 %type% 未知</red>"
+      nearby_players:
+        no_origin: "<gray>[管道] nearby_players 源段没有可用的原点</gray>"
+        no_match: "<gray>[管道] nearby_players 未找到玩家</gray>"
+      offset:
+        no_origin: "<gray>[管道] offset 源段没有可用的原点</gray>"
+      at:
+        world_required: "<red>[管道] at 源段无原点时必须指定 world</red>"
+        world_not_found: "<red>[管道] at 源段的世界 %world% 不存在</red>"
+        relative_without_origin: "<red>[管道] at 源段无原点时不能使用 ~ 相对坐标</red>"
+      player_by_name:
+        name_required: "<red>[管道] player_by_name 必须指定 name</red>"
+        not_online: "<gray>[管道] player_by_name 指向的玩家不在线</gray>"
+    # 内置闸门段诊断
+    gate:
+      where:
+        condition_required: "<red>[管道] where 必须给出条件</red>"
+        invalid_condition: "<red>[管道] where 的条件 %condition% 无法求值</red>"
+      chance:
+        chance_required: "<red>[管道] chance 必须给出概率</red>"
+        invalid_chance: "<red>[管道] chance 的概率不合法，应在 0 到 1 之间</red>"
+        not_rolled: "<gray>[管道] chance 判定未通过</gray>"
+      limit:
+        invalid_count: "<red>[管道] limit 的数量必须是非负整数</red>"
+      sort_by:
+        unknown_key: "<red>[管道] sort_by 的排序键 %key% 未知，应为 distance 或 health</red>"
+        unknown_order: "<red>[管道] sort_by 的顺序 %order% 未知，应为 asc 或 desc</red>"
+      set:
+        no_assignment: "<red>[管道] set 必须给出至少一个赋值</red>"
+      stop:
+        stopped: "<gray>[管道] 已由 stop 段终止</gray>"
+    # 内置动作段诊断
+    stage:
+      common:
+        not_entity: "<gray>[管道] 该段需要实体目标</gray>"
+        not_living_entity: "<gray>[管道] 该段需要生物目标</gray>"
+        not_player: "<gray>[管道] 该段需要玩家目标</gray>"
+        no_location: "<gray>[管道] 该段需要有位置的目标</gray>"
+      play_sound:
+        unknown_sound: "<red>[管道] 未知音效 %sound%</red>"
+      spawn_particle:
+        unknown_particle: "<red>[管道] 未知粒子 %particle%</red>"
+      boss_bar:
+        id_required: "<red>[管道] boss bar 段必须指定 id</red>"
+        unknown_color: "<red>[管道] 未知 boss bar 颜色 %color%</red>"
+        unknown_style: "<red>[管道] 未知 boss bar 样式 %style%</red>"
+        unknown_flag: "<red>[管道] 未知 boss bar 标记 %flag%</red>"
+        show_failed: "<red>[管道] 无法为 id %id% 显示 boss bar</red>"
+        none_active: "<gray>[管道] 目标没有活动的 boss bar</gray>"
+        not_found: "<gray>[管道] 未找到该 id 的 boss bar</gray>"
+      kill_entity:
+        player_target: "<gray>[管道] kill_entity 不作用于玩家，请改用 set_health amount=0</gray>"
+        already_dead: "<gray>[管道] 目标实体已死亡</gray>"
+      potion:
+        unknown_effect: "<red>[管道] 未知药水效果 %type%</red>"
+        effect_absent: "<gray>[管道] 目标没有该药水效果</gray>"
+        none_active: "<gray>[管道] 目标没有活动的药水效果</gray>"
+      item:
+        invalid_item_source: "<red>[管道] 物品来源 %item_source% 不合法</red>"
+        service_unavailable: "<red>[管道] 物品来源服务当前不可用</red>"
+        create_failed: "<red>[管道] 无法根据来源 %item_source% 创建物品</red>"
+        created_air: "<gray>[管道] 该来源创建出的物品为空气</gray>"
+        no_pipeline_item: "<gray>[管道] 管道中没有物品，请先用 create_item</gray>"
+        unknown_slot: "<red>[管道] 不支持的槽位 %slot%</red>"
+        slot_empty: "<gray>[管道] 该槽位没有物品</gray>"
+        source_mismatch: "<gray>[管道] 槽位中的物品与指定来源不匹配</gray>"
+        not_enough: "<gray>[管道] 匹配的物品数量不足</gray>"
+        remove_failed: "<red>[管道] 移除匹配物品失败</red>"
+        not_damageable: "<gray>[管道] 该物品不支持耐久</gray>"
+        no_durability: "<gray>[管道] 该物品没有耐久度</gray>"
+        already_repaired: "<gray>[管道] 该物品耐久已满</gray>"
+        zero_damage: "<gray>[管道] 耐久损耗量必须大于零</gray>"
+      place_block:
+        not_placeable: "<gray>[管道] 该来源不是可放置的方块</gray>"
+        provider_unavailable: "<gray>[管道] 自定义方块提供者当前不可用</gray>"
+        provider_refused: "<gray>[管道] 自定义方块提供者未放置该方块</gray>"
+        not_replaceable: "<gray>[管道] 目标方块不可替换</gray>"
+        cannot_place: "<gray>[管道] 该位置无法放置方块</gray>"
+        build_denied: "<gray>[管道] 该位置的建造被拒绝</gray>"
+        place_cancelled: "<gray>[管道] 方块放置被取消</gray>"
+      set_block:
+        invalid_material: "<red>[管道] set_block 的 material %material% 或 block_data %block_data% 不合法</red>"
+        not_a_block: "<gray>[管道] set_block 的材质必须是非空气方块</gray>"
+      break_block:
+        already_air: "<gray>[管道] 目标方块已是空气</gray>"
+        cancelled: "<gray>[管道] 方块破坏被取消</gray>"
+        not_broken: "<gray>[管道] 方块未被破坏</gray>"
+      explosion:
+        zero_power: "<gray>[管道] 爆炸威力必须大于零</gray>"
+      spawn_entity:
+        unknown_entity_type: "<red>[管道] 未知实体类型 %type%</red>"
+        not_spawnable: "<gray>[管道] 该实体类型不可生成</gray>"
+      teleport:
+        world_not_found: "<red>[管道] 传送目标世界 %world% 不存在</red>"
+        rejected: "<red>[管道] 传送被拒绝</red>"
+      money:
+        service_unavailable: "<red>[管道] 经济服务当前不可用</red>"
+        provider_unavailable: "<red>[管道] 经济提供者不可用：%error%</red>"
+        currency_not_found: "<red>[管道] 货币不存在：%error%</red>"
+        insufficient_balance: "<red>[管道] 余额不足：%error%</red>"
+        unsupported: "<red>[管道] 经济提供者不支持该操作：%error%</red>"
+        invalid_argument: "<red>[管道] 经济操作参数不合法：%error%</red>"
+        failed: "<red>[管道] 经济操作失败：%error%</red>"
+        skipped: "<gray>[管道] 经济操作被跳过</gray>"
+        no_result: "<red>[管道] 经济操作没有返回结果</red>"
+      command:
+        dispatch_failed: "<red>[管道] 命令分派失败</red>"
+      cast_mythic_skill:
+        skill_required: "<red>[管道] cast_mythic_skill 必须指定 skill</red>"
+        unavailable: "<red>[管道] MythicMobs 当前不可用</red>"
+        cast_failed: "<red>[管道] MythicMobs 技能 %skill% 施放失败</red>"
+        cast_error: "<red>[管道] MythicMobs 技能 %skill% 施放异常：%error%</red>"
 
 # Debug 模式消息
 debug:

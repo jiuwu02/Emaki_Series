@@ -20,6 +20,12 @@ import emaki.jiuwu.craft.corelib.action.ActionLineParser;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
+import emaki.jiuwu.craft.corelib.action.builtin.v2.BuiltinStages;
+import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
+import emaki.jiuwu.craft.corelib.action.v2.exec.RegistryStageInvoker;
+import emaki.jiuwu.craft.corelib.action.v2.exec.StageDispatcher;
+import emaki.jiuwu.craft.corelib.action.v2.registry.RegistryStageResolver;
+import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.action.loop.LoopActionService;
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
@@ -108,6 +114,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private EconomyManager economyManager;
     private ActionExecutor actionExecutor;
     private LoopActionService loopActionService;
+    private StageRegistry stageRegistry;
+    private StageDispatcher stageDispatcher;
+    private ActionEngine actionEngine;
     private ConfigPrecheckService configPrecheckService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
@@ -193,6 +202,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (loopActionService != null) {
             loopActionService.cancelAll();
         }
+        // Pipeline cleanup happens here rather than in the async shutdown step: cancelling scheduler handles and
+        // detaching boss bars both touch Bukkit state, so they need the server thread the disable callback holds.
+        if (stageDispatcher != null) {
+            stageDispatcher.close();
+        }
+        if (stageRegistry != null) {
+            stageRegistry.clear();
+        }
+        BuiltinStages.shutdown();
 
         // Bukkit registrations must be retired while the disable callback still owns the server thread.
         HandlerList.unregisterAll(this);
@@ -269,10 +287,30 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 oraxenBlockBridge,
                 effectiveLoopService
         );
+        StageRegistry candidateStageRegistry = new StageRegistry();
+        BuiltinStages.Report stageReport = BuiltinStages.registerAll(
+                candidateStageRegistry,
+                this,
+                candidateEconomyManager,
+                itemSourceService,
+                craftEngineBlockBridge,
+                itemsAdderBlockBridge,
+                nexoBlockBridge,
+                oraxenBlockBridge
+        );
         configPrecheckService.configure(candidateActionRegistry, candidateTemplateRegistry);
         ConfigPrecheckReport report = configPrecheckService.checkModule(candidateConfig, "corelib");
         logPrecheckReport(report);
         if (!report.success()) {
+            return false;
+        }
+        if (!stageReport.successful()) {
+            // Fail closed. A stage that could not register means a duplicate id or an undeclared thread domain,
+            // which is a coding error rather than a configuration one; starting anyway would hide it until a
+            // server owner hit the missing stage at runtime.
+            for (String failure : stageReport.failures()) {
+                getLogger().severe("CoreLib pipeline stage registration failed: " + failure);
+            }
             return false;
         }
         if (loopActionService != null) {
@@ -312,8 +350,40 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 performanceMonitor
         );
         loopActionService.configure(configModel.loopConfig(), actionTemplateRegistry, actionRegistry, () -> actionExecutor);
+        installStageRuntime(candidateStageRegistry);
         refreshServiceRegistry();
         return true;
+    }
+
+    /**
+     * Swaps in a freshly built stage registry and rebuilds the engine around it.
+     *
+     * <p>The previous registry is revoked and this plugin's pending dispatches cancelled first, so a delayed
+     * {@code after 20t} body compiled against the old stage table cannot run against the new one.</p>
+     *
+     * @param candidate the registry to install
+     */
+    private void installStageRuntime(StageRegistry candidate) {
+        if (stageRegistry != null) {
+            stageRegistry.revokeAll(this);
+            stageRegistry.clear();
+        }
+        if (stageDispatcher != null) {
+            stageDispatcher.cancelOwner(this);
+        }
+        stageRegistry = candidate;
+        if (stageDispatcher == null) {
+            stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
+        }
+        actionEngine = new ActionEngine(
+                new RegistryStageResolver(stageRegistry),
+                new RegistryStageInvoker(stageRegistry),
+                stageDispatcher,
+                // Named sequences arrive with the per-module registration of phase 5; until then `run` has
+                // nothing to resolve and reports unknown_sequence rather than pretending to succeed.
+                null,
+                configModel.pipelineConfig().toLimits()
+        );
     }
 
     private void logPrecheckReport(ConfigPrecheckReport report) {
@@ -463,6 +533,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         configPrecheckService = new ConfigPrecheckService(messageService);
         loopActionService = new LoopActionService(this, executionDispatcher);
         getServer().getPluginManager().registerEvents(loopActionService, this);
+        // The v2 dispatcher outlives a reload: it owns pending scheduler handles per plugin, so rebuilding it
+        // would strand them. reloadActionSystem cancels this plugin's handles instead.
+        stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
         performanceMonitor = new PerformanceMonitor();
         asyncTaskScheduler = AsyncTaskScheduler.forPlugin(
                 "emaki-corelib-async",
@@ -626,6 +699,16 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public ActionExecutor actionExecutor() {
         return actionExecutor;
+    }
+
+    /** {@return the live pipeline stage registry, or {@code null} before the first successful reload} */
+    public StageRegistry stageRegistry() {
+        return stageRegistry;
+    }
+
+    /** {@return the live pipeline engine, or {@code null} before the first successful reload} */
+    public ActionEngine actionEngine() {
+        return actionEngine;
     }
 
     public LoopActionService loopActionService() {
@@ -847,6 +930,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(ThreadOwnership.class, threadOwnership);
         registerService(CorePluginLifecycle.class, corePluginLifecycle);
         registerService(ActionRegistry.class, actionRegistry);
+        registerService(StageRegistry.class, stageRegistry);
+        registerService(ActionEngine.class, actionEngine);
         registerService(ActionTemplateRegistry.class, actionTemplateRegistry);
         registerService(PlaceholderRegistry.class, placeholderRegistry);
         registerService(EconomyManager.class, economyManager);
