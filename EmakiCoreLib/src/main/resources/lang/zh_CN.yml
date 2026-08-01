@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.6.13"
+version: "4.6.15"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -129,6 +129,9 @@ action:
     too_many_positional_arguments: "<red>[管道] 无名参数过多：最多 %maximum% 个，实际 %actual% 个</red>"
     argument_both_named_and_positional: "<red>[管道] 参数 %token% 同时以具名和无名形式给出</red>"
     missing_context_key: "<red>[管道] 段 %stage% 需要上下文 %key%(%type%)，但阶段 %phase% 不提供</red>"
+    missing_variable: "<red>[管道] 变量 %variable% 未由阶段 %phase% 或前序段提供</red>"
+    bare_variable_reference: "<red>[管道] 变量 %variable% 必须写成 %expected%，不能使用裸占位符</red>"
+    missing_inherited_targets: "<red>[管道] 段 inherited 需要继承目标流，但阶段 %phase% 未声明提供</red>"
     invalid_every_syntax: "<red>[管道] every 语法错误，应为 %expected%</red>"
     invalid_repeat_times: "<red>[管道] 重复次数 %value% 不是合法的非负整数</red>"
     repeat_must_be_literal: "<red>[管道] 重复次数必须是字面量，不能是占位符 %value%</red>"

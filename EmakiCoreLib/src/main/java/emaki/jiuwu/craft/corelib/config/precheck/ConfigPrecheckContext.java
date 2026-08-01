@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineParser;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.SequenceCatalog;
@@ -85,6 +86,18 @@ public final class ConfigPrecheckContext {
      * @return every problem found, empty when the line compiles or when {@link #canCompile()} is false
      */
     public @NotNull List<CompileDiagnostic> compileDiagnostics(@Nullable String line) {
+        return compileDiagnostics(line, null);
+    }
+
+    /**
+     * Compiles one pipeline line against an explicit phase contract.
+     *
+     * @param line the pipeline text as written in configuration
+     * @param phase what the triggering phase provides; {@code null} keeps the legacy permissive check
+     * @return every problem found, empty when the line compiles or when {@link #canCompile()} is false
+     */
+    public @NotNull List<CompileDiagnostic> compileDiagnostics(@Nullable String line,
+            @Nullable PhaseContract phase) {
         if (!compilable) {
             return List.of();
         }
@@ -95,8 +108,8 @@ public final class ConfigPrecheckContext {
         if (parsed.diagnostic() != null) {
             return List.of(parsed.diagnostic());
         }
-        // A permissive phase contract on purpose: a configured sequence has no single trigger, so the
-        // context keys available to it are only known where it is called from.
-        return validator.validate(line, parsed.nodes(), null).diagnostics();
+        // A permissive phase contract is still the default: a configured sequence has no single
+        // trigger, so context keys available to it are only known where it is called from.
+        return validator.validate(line, parsed.nodes(), phase).diagnostics();
     }
 }

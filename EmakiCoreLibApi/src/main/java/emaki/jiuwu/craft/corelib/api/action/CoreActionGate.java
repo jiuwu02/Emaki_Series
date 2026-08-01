@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.api.action;
 
 import java.util.List;
+import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -31,6 +32,34 @@ public interface CoreActionGate {
     @NotNull
     default List<CoreStageParameter> parameters() {
         return List.of();
+    }
+
+    /**
+     * Typed context keys this gate publishes when it passes.
+     *
+     * <p>CoreLib uses this at compile time to make a later action's {@code requiredContext()} check
+     * understand producer gates such as {@code create_item}. Dynamic failures are still reported at
+     * runtime by the gate itself.</p>
+     *
+     * @return the keys this gate can add to the pipeline context
+     */
+    @NotNull
+    default Set<CoreActionKey<?>> providedContext() {
+        return Set.of();
+    }
+
+    /**
+     * Pipeline variable names this gate publishes when it passes.
+     *
+     * <p>Names are declared without the {@code var.} prefix; callers read them as {@code %var.name%}.
+     * Gates with author-chosen names, such as {@code set}, can return an empty set and let the compiler
+     * derive written assignments from the current invocation.</p>
+     *
+     * @return the variables this gate can add to the pipeline context
+     */
+    @NotNull
+    default Set<String> providedVariables() {
+        return Set.of();
     }
 
     /**

@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.action.builtin.gate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -44,6 +45,16 @@ public final class CreateItemGate extends BaseGate {
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "Item source"),
                 CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "Item amount"));
         this.itemSourceService = itemSourceService;
+    }
+
+    @Override
+    public @NotNull Set<CoreActionKey<?>> providedContext() {
+        return Set.of(CoreActionKeys.ITEM);
+    }
+
+    @Override
+    public @NotNull Set<String> providedVariables() {
+        return Set.of("item_source", "item_amount");
     }
 
     @Override

@@ -59,7 +59,7 @@ public final class PipelineBatchRunner {
                 continue;
             }
             CacheKey key = new CacheKey(System.identityHashCode(engine), line,
-                    phase == null ? "" : phase.phaseId());
+                    phase == null ? PhaseContract.permissive("default").cacheKey() : phase.cacheKey());
             Object cached = cache.get(key);
             if (cached instanceof CompiledPipeline hit) {
                 compiled.add(hit);
@@ -124,7 +124,29 @@ public final class PipelineBatchRunner {
             @NotNull PipelineContext context,
             boolean stopOnFailure,
             @Nullable Consumer<CompileDiagnostic> onDiagnostic) {
-        List<CompiledPipeline> body = compile(engine, lines, null, onDiagnostic);
+        return compileAndRun(owner, engine, lines, context, null, stopOnFailure, onDiagnostic);
+    }
+
+    /**
+     * Compiles and runs in one call with an explicit phase contract.
+     *
+     * @param owner plugin owning the invocation
+     * @param engine the live engine
+     * @param lines configured pipeline lines
+     * @param context the root context
+     * @param phase what this invocation promises to provide, may be {@code null}
+     * @param stopOnFailure whether the first failure ends the batch
+     * @param onDiagnostic receives every compile problem, may be {@code null}
+     * @return whether every executed line succeeded
+     */
+    public @NotNull CompletableFuture<Boolean> compileAndRun(@NotNull Plugin owner,
+            @Nullable ActionEngine engine,
+            @Nullable List<String> lines,
+            @NotNull PipelineContext context,
+            @Nullable PhaseContract phase,
+            boolean stopOnFailure,
+            @Nullable Consumer<CompileDiagnostic> onDiagnostic) {
+        List<CompiledPipeline> body = compile(engine, lines, phase, onDiagnostic);
         return run(owner, engine, body, context, stopOnFailure);
     }
 

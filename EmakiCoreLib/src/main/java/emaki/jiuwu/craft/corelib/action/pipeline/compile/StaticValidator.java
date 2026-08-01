@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -62,6 +64,11 @@ public final class StaticValidator {
      * argument a load-time error.</p>
      */
     public static final String SET_STAGE = "set";
+
+    /** Source stage that reads a caller- or previous-phase-provided target flow. */
+    public static final String INHERITED_SOURCE = "inherited";
+
+    private static final Pattern PERCENT_PLACEHOLDER = Pattern.compile("%([^%\\s]+)%");
 
     private final StageResolver stages;
     private final SequenceCatalog sequences;
@@ -128,18 +135,23 @@ public final class StaticValidator {
 
         for (ActionAst node : nodes) {
             if (node instanceof ActionAst.Branch branch) {
+                validateVariableReferences(branch.condition(), token("if", branch.column()), state, state.diagnostics);
                 if (branchDepth >= limits.maxBranchDepth()) {
                     state.diagnostics.add(CompileDiagnostic.at("action.validate.branch_depth_exceeded",
                             token("if", branch.column()),
                             Map.of("maximum", limits.maxBranchDepth(), "depth", branchDepth + 1)));
                     continue;
                 }
-                List<ActionAst> thenBranch = validateNodes(branch.thenBranch(), state, true, branchDepth + 1);
-                List<ActionAst> elseBranch = validateNodes(branch.elseBranch(), state, true, branchDepth + 1);
+                List<ActionAst> thenBranch = validateNodes(branch.thenBranch(), state.fork(), true, branchDepth + 1);
+                List<ActionAst> elseBranch = validateNodes(branch.elseBranch(), state.fork(), true, branchDepth + 1);
                 resolved.add(new ActionAst.Branch(branch.condition(), thenBranch, elseBranch, branch.column()));
                 continue;
             }
             if (node instanceof ActionAst.SequenceCall call) {
+                for (Map.Entry<String, String> parameter : call.parameters().entrySet()) {
+                    validateVariableReferences(parameter.getValue(), token(parameter.getKey(), call.column()),
+                            state, state.diagnostics);
+                }
                 validateSequenceCall(call, state);
                 resolved.add(call);
                 actionSeen = true;
@@ -169,6 +181,7 @@ public final class StaticValidator {
                 if (actionSeen) {
                     state.diagnostics.add(CompileDiagnostic.at("action.validate.source_after_action", stageToken));
                 }
+                validateInheritedTargets(stage, state, state.diagnostics);
                 explicitSourceSeen = true;
                 flowAvailable = true;
             } else if (kind == CoreStageKind.GATE) {
@@ -192,11 +205,19 @@ public final class StaticValidator {
                 actionSeen = true;
             }
 
+            validateVariableReferences(stage.arguments().values(), stageToken, state, state.diagnostics);
+            validateVariableReferences(stage.positional(), stageToken, state, state.diagnostics);
             ActionAst.Stage normalized = normalizeArguments(stage, resolution.parameters(), state.diagnostics);
-            validateRequiredContext(normalized, resolution.requiredContext(), state.contract, state.diagnostics);
+            validateRequiredContext(normalized, resolution.requiredContext(), state, state.diagnostics);
             validateParameterValues(normalized, resolution.parameters(), state.diagnostics);
             validateEvery(normalized, state.diagnostics);
             resolved.add(normalized.withKind(kind));
+            if (kind == CoreStageKind.GATE) {
+                state.provide(resolution.providedContext(), resolution.providedVariables());
+                if (SET_STAGE.equals(normalized.id())) {
+                    state.provideVariables(normalized.arguments().keySet());
+                }
+            }
         }
         return List.copyOf(resolved);
     }
@@ -321,16 +342,64 @@ public final class StaticValidator {
         }
     }
 
+    private void validateInheritedTargets(ActionAst.Stage stage,
+            ValidationState state,
+            List<CompileDiagnostic> diagnostics) {
+        if (!INHERITED_SOURCE.equals(stage.id()) || state.contract.providesInheritedTargets()) {
+            return;
+        }
+        diagnostics.add(CompileDiagnostic.at("action.validate.missing_inherited_targets",
+                token(stage.id(), stage.column()), Map.of("phase", state.contract.phaseId())));
+    }
+
     private void validateRequiredContext(ActionAst.Stage stage,
             Set<CoreActionKey<?>> required,
-            PhaseContract contract,
+            ValidationState state,
             List<CompileDiagnostic> diagnostics) {
         for (CoreActionKey<?> key : required) {
-            if (!contract.provides(key)) {
+            if (!state.provides(key)) {
                 diagnostics.add(CompileDiagnostic.at("action.validate.missing_context_key",
                         token(stage.id(), stage.column()),
                         Map.of("key", key.name(), "type", key.type().getSimpleName(),
-                                "phase", contract.phaseId())));
+                                "phase", state.contract.phaseId())));
+            }
+        }
+    }
+
+    private void validateVariableReferences(Iterable<String> values,
+            PipelineToken token,
+            ValidationState state,
+            List<CompileDiagnostic> diagnostics) {
+        if (values == null) {
+            return;
+        }
+        for (String value : values) {
+            validateVariableReferences(value, token, state, diagnostics);
+        }
+    }
+
+    private void validateVariableReferences(String value,
+            PipelineToken token,
+            ValidationState state,
+            List<CompileDiagnostic> diagnostics) {
+        if (Texts.isBlank(value) || value.indexOf('%') < 0) {
+            return;
+        }
+        Matcher matcher = PERCENT_PLACEHOLDER.matcher(value);
+        while (matcher.find()) {
+            String raw = matcher.group(1);
+            if (raw.regionMatches(true, 0, "var.", 0, 4)) {
+                String variable = PhaseContract.normalizeVariableName(raw);
+                if (!state.providesVariable(variable)) {
+                    diagnostics.add(CompileDiagnostic.at("action.validate.missing_variable",
+                            token, Map.of("variable", variable, "phase", state.contract.phaseId())));
+                }
+                continue;
+            }
+            String normalized = PhaseContract.normalizeVariableName(raw);
+            if (state.hasDeclaredVariable(normalized)) {
+                diagnostics.add(CompileDiagnostic.at("action.validate.bare_variable_reference",
+                        token, Map.of("variable", normalized, "expected", "%var." + normalized + "%")));
             }
         }
     }
@@ -517,10 +586,64 @@ public final class StaticValidator {
 
         private final PhaseContract contract;
         private final List<CompileDiagnostic> diagnostics;
+        private final Set<CoreActionKey<?>> availableKeys;
+        private final Set<String> availableVariables;
 
         private ValidationState(PhaseContract contract, List<CompileDiagnostic> diagnostics) {
+            this(contract, diagnostics, contract.providedKeys(), contract.providedVariables());
+        }
+
+        private ValidationState(PhaseContract contract,
+                List<CompileDiagnostic> diagnostics,
+                Set<CoreActionKey<?>> availableKeys,
+                Set<String> availableVariables) {
             this.contract = contract;
             this.diagnostics = diagnostics;
+            this.availableKeys = availableKeys == null ? new LinkedHashSet<>() : new LinkedHashSet<>(availableKeys);
+            this.availableVariables = availableVariables == null
+                    ? new LinkedHashSet<>()
+                    : new LinkedHashSet<>(availableVariables);
+        }
+
+        private ValidationState fork() {
+            return new ValidationState(contract, diagnostics, availableKeys, availableVariables);
+        }
+
+        private boolean provides(CoreActionKey<?> key) {
+            return contract.permissive() || (key != null && availableKeys.contains(key));
+        }
+
+        private boolean providesVariable(String variable) {
+            String normalized = PhaseContract.normalizeVariableName(variable);
+            return contract.permissive() || (!normalized.isEmpty() && availableVariables.contains(normalized));
+        }
+
+        private boolean hasDeclaredVariable(String variable) {
+            String normalized = PhaseContract.normalizeVariableName(variable);
+            return !normalized.isEmpty() && availableVariables.contains(normalized);
+        }
+
+        private void provide(Set<CoreActionKey<?>> keys, Set<String> variables) {
+            if (keys != null) {
+                for (CoreActionKey<?> key : keys) {
+                    if (key != null) {
+                        availableKeys.add(key);
+                    }
+                }
+            }
+            provideVariables(variables);
+        }
+
+        private void provideVariables(Iterable<String> variables) {
+            if (variables == null) {
+                return;
+            }
+            for (String variable : variables) {
+                String normalized = PhaseContract.normalizeVariableName(variable);
+                if (!normalized.isEmpty()) {
+                    availableVariables.add(normalized);
+                }
+            }
         }
     }
 

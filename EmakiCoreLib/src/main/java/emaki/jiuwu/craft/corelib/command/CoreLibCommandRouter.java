@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -14,6 +15,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
@@ -162,7 +164,16 @@ public final class CoreLibCommandRouter implements TabExecutor {
      */
     private void runPipelineLine(CommandSender sender, String rawLine) {
         ActionEngine engine = plugin.actionEngine();
-        ActionEngine.Result compiled = engine.compile(rawLine, null);
+        Player player = sender instanceof Player resolvedPlayer ? resolvedPlayer : null;
+        PipelineContext context = plugin.actionLineRunner(plugin)
+                .context(player, "command.action", false, Map.of(
+                        "sender", sender.getName(),
+                        "player", player == null ? "" : player.getName(),
+                        "action_line", rawLine
+                ));
+        PhaseContract phase = PhaseContract.declared(context.phase(), Set.copyOf(context.presentKeys()),
+                context.variables().keySet(), !context.targets().isEmpty());
+        ActionEngine.Result compiled = engine.compile(rawLine, phase);
         if (!compiled.successful() || compiled.pipeline() == null) {
             sendLang(sender, "command.action_compile_failed", Map.of(
                     "line", rawLine,
@@ -172,13 +183,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
             ));
             return;
         }
-        Player player = sender instanceof Player resolvedPlayer ? resolvedPlayer : null;
-        PipelineContext context = plugin.actionLineRunner(plugin)
-                .context(player, "command.action", false, Map.of(
-                        "sender", sender.getName(),
-                        "player", player == null ? "" : player.getName(),
-                        "action_line", rawLine
-                ));
         sendLang(sender, "command.action_execute_started", Map.of("line", rawLine));
         engine.run(plugin, compiled.pipeline(), context).whenComplete((outcome, throwable) ->
                 dispatchSender(sender, () -> sendPipelineOutcome(sender, outcome, throwable))

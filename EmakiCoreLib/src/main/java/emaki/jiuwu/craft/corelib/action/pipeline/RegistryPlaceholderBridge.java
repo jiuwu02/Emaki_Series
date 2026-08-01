@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.action.pipeline;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -52,7 +53,7 @@ public final class RegistryPlaceholderBridge implements PlaceholderBridge {
         if (template.indexOf('%') < 0) {
             return template;
         }
-        Map<String, String> variables = context.variables();
+        Map<String, String> variables = variablePlaceholders(context.variables());
         String resolved = Texts.formatTemplate(template, variables);
         PlaceholderRegistry registry = registrySupplier.get();
         if (registry == null) {
@@ -62,6 +63,21 @@ public final class RegistryPlaceholderBridge implements PlaceholderBridge {
                 .create(owner, playerOf(context), context.phase(), context.silent())
                 .withPlaceholders(variables);
         return Texts.toStringSafe(registry.resolve(adapter, resolved));
+    }
+
+    private static Map<String, String> variablePlaceholders(Map<String, String> variables) {
+        if (variables == null || variables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> placeholders = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : variables.entrySet()) {
+            if (Texts.isBlank(entry.getKey())) {
+                continue;
+            }
+            String key = Texts.lower(entry.getKey());
+            placeholders.put(key.startsWith("var.") ? key : "var." + key, entry.getValue());
+        }
+        return Map.copyOf(placeholders);
     }
 
     private static Player playerOf(PipelineContext context) {

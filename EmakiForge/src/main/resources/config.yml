@@ -8,7 +8,7 @@
 
 # 锻造系统主配置
 # version 由资源同步维护
-version: "4.6.5"
+version: "4.6.7"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -81,14 +81,14 @@ quality:
             value: "<color:#4B64C8>[无暇] </color>"
         lore_actions: []
         action:
-          - 'broadcast_message text="<color:#4B64C8>%player_name%锻造出了一个无暇品质的<show_item></color>"'
+          - 'broadcast_message text="<color:#4B64C8>%player_name%锻造出了一个无暇品质的%var.show_item%</color>"'
       完美:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#FFD700>[完美] </color>"
         lore_actions: []
         action:
-          - 'broadcast_message text="<color:#FFD700>%player_name%锻造出了一个完美品质的<show_item></color>"'
+          - 'broadcast_message text="<color:#FFD700>%player_name%锻造出了一个完美品质的%var.show_item%</color>"'
 
 number_format:
   default: "0.##"

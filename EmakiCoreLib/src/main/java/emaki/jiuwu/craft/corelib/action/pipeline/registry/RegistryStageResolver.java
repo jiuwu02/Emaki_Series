@@ -47,7 +47,8 @@ public final class RegistryStageResolver implements StageResolver {
                 ? action.targetRequirement()
                 : CoreTargetRequirement.NONE;
         return Resolution.found(registered.kind(), parameters(registered), requiredContext(registered),
-                targetRequirement, probeDomain(registered));
+                providedContext(registered), providedVariables(registered), targetRequirement,
+                probeDomain(registered));
     }
 
     @Override
@@ -82,6 +83,18 @@ public final class RegistryStageResolver implements StageResolver {
     private Set<CoreActionKey<?>> requiredContext(RegisteredStage registered) {
         return registered.stage() instanceof CoreActionStage action
                 ? action.requiredContext()
+                : Set.of();
+    }
+
+    private Set<CoreActionKey<?>> providedContext(RegisteredStage registered) {
+        return registered.stage() instanceof CoreActionGate gate
+                ? gate.providedContext()
+                : Set.of();
+    }
+
+    private Set<String> providedVariables(RegisteredStage registered) {
+        return registered.stage() instanceof CoreActionGate gate
+                ? gate.providedVariables()
                 : Set.of();
     }
 

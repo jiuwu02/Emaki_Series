@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.skills.script;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
@@ -14,10 +15,8 @@ import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 /**
  * Renders skill placeholders for a pipeline.
  *
- * <p>Replaces {@code SkillScriptExecutor.resolveText}. The substitution order is unchanged, so the variable
- * names a skill YAML already uses keep working: pipeline variables first, then CoreLib's placeholder registry
- * (which is where PlaceholderAPI is reached). Renaming those variables into the {@code %var.*%} /
- * {@code %skill.*%} namespaces belongs to the phase 6 converter, not here.</p>
+ * <p>Pipeline variables are exposed only through the {@code %var.name%} namespace, then CoreLib's placeholder
+ * registry runs for non-pipeline placeholders such as PlaceholderAPI expansions.</p>
  */
 public final class SkillPlaceholderBridge implements PlaceholderBridge {
 
@@ -40,7 +39,7 @@ public final class SkillPlaceholderBridge implements PlaceholderBridge {
         if (Texts.isBlank(template) || template.indexOf('%') < 0) {
             return template;
         }
-        Map<String, String> variables = context == null ? Map.of() : context.variables();
+        Map<String, String> variables = context == null ? Map.of() : variablePlaceholders(context.variables());
         String resolved = Texts.formatTemplate(template, variables);
         PlaceholderRegistry registry = plugin == null || plugin.coreLib() == null
                 ? null
@@ -53,6 +52,21 @@ public final class SkillPlaceholderBridge implements PlaceholderBridge {
                 .create(plugin, caster, context == null ? "skill_script" : context.phase(), false)
                 .withPlaceholders(variables);
         return Texts.toStringSafe(registry.resolve(actionContext, resolved));
+    }
+
+    private static Map<String, String> variablePlaceholders(Map<String, String> variables) {
+        if (variables == null || variables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> placeholders = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : variables.entrySet()) {
+            if (Texts.isBlank(entry.getKey())) {
+                continue;
+            }
+            String key = Texts.lower(entry.getKey());
+            placeholders.put(key.startsWith("var.") ? key : "var." + key, entry.getValue());
+        }
+        return Map.copyOf(placeholders);
     }
 
     private static Player casterOf(PipelineContext context) {

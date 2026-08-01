@@ -8,7 +8,7 @@
 
 # CoreLib 主配置
 # version 由资源同步维护
-version: "4.6.13"
+version: "4.6.15"
 
 # 语言文件 ID，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
@@ -115,8 +115,8 @@ action:
     max_active_loops_per_plugin: 1000
     cancel_player_loops_on_quit: true
     cancel_plugin_loops_on_disable: true
-  # 在配方或动作列表中通过 @template=名称 引用
+  # 命名序列。在管道中通过 `run 名称` 调用，可附带 key=value 参数。
   templates:
     # reward_success_common:
-    #   - 'sendmessage text="<green>成功获得 %result_item_name%</green>"'
-    #   - '@delay=10t playsound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'
+    #   - 'self | send_message text="<green>成功获得 %var.result_item_name%</green>"'
+    #   - 'self | after 10t | play_sound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'

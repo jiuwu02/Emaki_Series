@@ -71,11 +71,13 @@ public final class EmakiItemActionService {
     }
 
     /**
-     * Builds the v1 context the placeholder and condition subsystems still consume.
+     * Builds the context CoreLib's placeholder registry consumes.
      *
      * <p>Retained after the pipeline migration because {@code PlaceholderResolver} and
-     * {@code ConditionEvaluator} are declared in terms of {@code ActionContext}; those subsystems keep it
-     * as their own context type, so this is not a leftover action-executor dependency.</p>
+     * {@code PlaceholderRegistry} are declared in terms of {@code ActionContext}; that subsystem keeps it
+     * as its own context type, so this is not a leftover action-executor dependency. The condition path
+     * only reaches it indirectly: {@code ConditionEvaluator} takes a text resolver, and the resolver it is
+     * handed renders through this context.</p>
      */
     ActionContext context(Player player,
             EmakiItemDefinition definition,

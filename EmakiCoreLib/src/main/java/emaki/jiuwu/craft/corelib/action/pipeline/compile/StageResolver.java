@@ -44,6 +44,8 @@ public interface StageResolver {
      * @param kind which table held it, or {@code null} when unresolved
      * @param parameters its declared parameters
      * @param requiredContext context keys it reads
+     * @param providedContext context keys it can publish after it runs
+     * @param providedVariables pipeline variables it can publish after it runs
      * @param ownerName owning plugin name, used when the owner is disabled
      * @param ownerDisabled whether the id is known but its owner is currently disabled
      * @param targetRequirement target contract for action stages
@@ -53,6 +55,8 @@ public interface StageResolver {
     record Resolution(@Nullable CoreStageKind kind,
             @NotNull List<CoreStageParameter> parameters,
             @NotNull Set<CoreActionKey<?>> requiredContext,
+            @NotNull Set<CoreActionKey<?>> providedContext,
+            @NotNull Set<String> providedVariables,
             @NotNull String ownerName,
             boolean ownerDisabled,
             @NotNull CoreTargetRequirement targetRequirement,
@@ -61,13 +65,15 @@ public interface StageResolver {
         public Resolution {
             parameters = parameters == null ? List.of() : List.copyOf(parameters);
             requiredContext = requiredContext == null ? Set.of() : Set.copyOf(requiredContext);
+            providedContext = providedContext == null ? Set.of() : Set.copyOf(providedContext);
+            providedVariables = providedVariables == null ? Set.of() : Set.copyOf(providedVariables);
             ownerName = ownerName == null ? "" : ownerName;
             targetRequirement = targetRequirement == null ? CoreTargetRequirement.NONE : targetRequirement;
         }
 
         /** {@return an unresolved result} */
         public static @NotNull Resolution unknown() {
-            return new Resolution(null, List.of(), Set.of(), "", false,
+            return new Resolution(null, List.of(), Set.of(), Set.of(), Set.of(), "", false,
                     CoreTargetRequirement.NONE, null);
         }
 
@@ -79,7 +85,7 @@ public interface StageResolver {
          * @return the resolution
          */
         public static @NotNull Resolution disabled(@NotNull CoreStageKind kind, @NotNull String ownerName) {
-            return new Resolution(kind, List.of(), Set.of(), ownerName, true,
+            return new Resolution(kind, List.of(), Set.of(), Set.of(), Set.of(), ownerName, true,
                     CoreTargetRequirement.NONE, null);
         }
 
@@ -89,15 +95,19 @@ public interface StageResolver {
          * @param kind which table held it
          * @param parameters declared parameters
          * @param requiredContext context keys it reads
+         * @param providedContext context keys it can publish
+         * @param providedVariables pipeline variables it can publish
          * @return the resolution
          */
         public static @NotNull Resolution found(@NotNull CoreStageKind kind,
                 @Nullable List<CoreStageParameter> parameters,
                 @Nullable Set<CoreActionKey<?>> requiredContext,
+                @Nullable Set<CoreActionKey<?>> providedContext,
+                @Nullable Set<String> providedVariables,
                 @Nullable CoreTargetRequirement targetRequirement,
                 @Nullable ExecutionDomain probeDomain) {
-            return new Resolution(kind, parameters, requiredContext, "", false,
-                    targetRequirement, probeDomain);
+            return new Resolution(kind, parameters, requiredContext, providedContext, providedVariables,
+                    "", false, targetRequirement, probeDomain);
         }
 
         /** {@return whether the stage exists in some table} */

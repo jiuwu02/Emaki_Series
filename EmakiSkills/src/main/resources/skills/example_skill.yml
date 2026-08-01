@@ -169,15 +169,15 @@ script:
       - "self | play_sound sound=entity.blaze.shoot volume=1 pitch=1.05"
       - "self | spawn_particle particle=flame count=24 extra=0.02"
       # looking_at 取代旧的 ray；旧写法的 save=target 现在是显式的 keep
-      - "looking_at range=18 width=%radius% | keep"
+      - "looking_at range=18 width=%var.radius% | keep"
 
     hit:
       # inherited 读取 cast 阶段 keep 记录的目标
-      - "inherited | damage amount=%damage%"
+      - "inherited | damage amount=%var.damage%"
       # if 条件分支代替旧的 @if 行首标记，方括号内是分支体
-      - "if %level%>=3 [ inherited | ignite duration=%ignite_ticks%t ]"
-      - "if %empowered%==true [ inherited | spawn_particle particle=explosion count=1 ]"
-      - 'send_message text="%impact_message%"'
+      - "if %var.level%>=3 [ inherited | ignite duration=%var.ignite_ticks%t ]"
+      - "if %var.empowered%==true [ inherited | spawn_particle particle=explosion count=1 ]"
+      - 'send_message text="%var.impact_message%"'
 
     miss:
       - "looking_at | spawn_particle particle=smoke count=8 extra=0.01"

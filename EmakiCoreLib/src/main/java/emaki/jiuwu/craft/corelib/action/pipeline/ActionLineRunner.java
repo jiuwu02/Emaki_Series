@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.action.pipeline;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
@@ -13,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.TriggerContract;
 
 /**
  * What business modules use to run a list of configured pipeline lines.
@@ -88,13 +91,47 @@ public final class ActionLineRunner {
     public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
             @NotNull PipelineContext context,
             boolean stopOnFailure) {
+        return run(lines, context, phaseContract(context), stopOnFailure);
+    }
+
+    /**
+     * Compiles and runs with an explicit phase contract.
+     *
+     * @param lines the configured pipeline lines
+     * @param context the root context
+     * @param phase what this invocation provides
+     * @param stopOnFailure whether the first failing line ends the batch
+     * @return whether every executed line succeeded; {@code true} when there is nothing to run
+     */
+    public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
+            @NotNull PipelineContext context,
+            @Nullable PhaseContract phase,
+            boolean stopOnFailure) {
         ActionEngine engine = engineSupplier.get();
         if (engine == null) {
             logger().warning("Pipeline lines skipped: the action engine is not available yet.");
             return CompletableFuture.completedFuture(false);
         }
-        return batchRunner.compileAndRun(owner, engine, lines, context, stopOnFailure,
+        PhaseContract resolved = phase == null ? phaseContract(context) : phase;
+        return batchRunner.compileAndRun(owner, engine, lines, context, resolved, stopOnFailure,
                 diagnostic -> logger().warning("Pipeline line rejected: " + diagnostic.reasonKey()));
+    }
+
+    /**
+     * Compiles and runs with a trigger contract resolved by the context phase.
+     *
+     * @param lines the configured pipeline lines
+     * @param context the root context
+     * @param trigger trigger contract containing phase contracts
+     * @param stopOnFailure whether the first failing line ends the batch
+     * @return whether every executed line succeeded; {@code true} when there is nothing to run
+     */
+    public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
+            @NotNull PipelineContext context,
+            @Nullable TriggerContract trigger,
+            boolean stopOnFailure) {
+        PhaseContract phase = trigger == null ? phaseContract(context) : trigger.phase(context.phase());
+        return run(lines, context, phase, stopOnFailure);
     }
 
     /**
@@ -120,6 +157,11 @@ public final class ActionLineRunner {
     /** {@return whether an engine is currently available} */
     public boolean available() {
         return engineSupplier.get() != null;
+    }
+
+    private PhaseContract phaseContract(PipelineContext context) {
+        return PhaseContract.declared(context.phase(), Set.copyOf(context.presentKeys()),
+                context.variables().keySet(), !context.targets().isEmpty());
     }
 
     private PlaceholderBridge bridge() {
