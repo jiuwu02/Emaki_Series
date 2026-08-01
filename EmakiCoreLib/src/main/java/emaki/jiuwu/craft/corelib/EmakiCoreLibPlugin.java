@@ -24,7 +24,11 @@ import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BuiltinStages;
 import emaki.jiuwu.craft.corelib.action.legacy.LegacyActionMigrator;
 import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
+import emaki.jiuwu.craft.corelib.action.v2.PipelineBatchRunner;
+import emaki.jiuwu.craft.corelib.action.v2.exec.ConfiguredSequenceRepository;
+import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.action.v2.exec.RegistryStageInvoker;
+import emaki.jiuwu.craft.corelib.action.v2.exec.SequenceRepository;
 import emaki.jiuwu.craft.corelib.action.v2.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.action.v2.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.v2.registry.StageRebuildListeners;
@@ -120,6 +124,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private StageRegistry stageRegistry;
     private StageDispatcher stageDispatcher;
     private ActionEngine actionEngine;
+    private final PipelineBatchRunner pipelineBatchRunner = new PipelineBatchRunner();
+    private PipelineTaskService pipelineTaskService;
+    private volatile ConfiguredSequenceRepository sequenceRepository = ConfiguredSequenceRepository.empty();
     // Outlives every reload: it holds the business modules' re-registration routines, which is exactly what
     // rebuilding the stage table needs to replay.
     private final StageRebuildListeners stageRebuildListeners = new StageRebuildListeners();
@@ -209,6 +216,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (loopActionService != null) {
             loopActionService.cancelAll();
         }
+        if (pipelineTaskService != null) {
+            pipelineTaskService.stopAll();
+        }
         // Pipeline cleanup happens here rather than in the async shutdown step: cancelling scheduler handles and
         // detaching boss bars both touch Bukkit state, so they need the server thread the disable callback holds.
         if (stageDispatcher != null) {
@@ -295,6 +305,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 oraxenBlockBridge,
                 effectiveLoopService
         );
+        if (pipelineTaskService == null) {
+            pipelineTaskService = new PipelineTaskService(this, executionDispatcher,
+                    // Late-bound on purpose: the runner needs the engine, the engine needs the stage
+                    // registry, and the registry needs these stages. Reading the fields at call time is
+                    // what breaks that cycle without leaving a half-built engine visible.
+                    (owner, body, context, stopOnFailure) ->
+                            pipelineBatchRunner.run(owner, actionEngine, body, context, stopOnFailure));
+            getServer().getPluginManager().registerEvents(pipelineTaskService, this);
+        }
         StageRegistry candidateStageRegistry = new StageRegistry();
         BuiltinStages.Report stageReport = BuiltinStages.registerAll(
                 candidateStageRegistry,
@@ -305,7 +324,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 craftEngineBlockBridge,
                 itemsAdderBlockBridge,
                 nexoBlockBridge,
-                oraxenBlockBridge
+                oraxenBlockBridge,
+                pipelineTaskService,
+                // Same reason: sequences are compiled by the engine that this registry is about to build,
+                // so the stage resolves a body when it runs rather than when it registers.
+                name -> sequenceRepository == null ? null : sequenceRepository.bodyOf(name)
         );
         configPrecheckService.configure(candidateActionRegistry, candidateTemplateRegistry);
         ConfigPrecheckReport report = configPrecheckService.checkModule(candidateConfig, "corelib");
@@ -360,6 +383,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         );
         loopActionService.configure(configModel.loopConfig(), actionTemplateRegistry, actionRegistry, () -> actionExecutor);
         installStageRuntime(candidateStageRegistry);
+        buildSequenceRepository();
         refreshServiceRegistry();
         return true;
     }
@@ -391,9 +415,40 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 new RegistryStageResolver(stageRegistry),
                 new RegistryStageInvoker(stageRegistry),
                 stageDispatcher,
-                // Named sequences arrive with the per-module registration of phase 5; until then `run` has
-                // nothing to resolve and reports unknown_sequence rather than pretending to succeed.
-                null,
+                // Reads through the field rather than capturing it: the repository is compiled by this very
+                // engine right after the registry is installed, so it does not exist yet at this point.
+                new SequenceRepository() {
+
+                    @Override
+                    public emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline find(String name) {
+                        ConfiguredSequenceRepository live = sequenceRepository;
+                        return live == null ? null : live.find(name);
+                    }
+
+                    @Override
+                    public boolean contains(String name) {
+                        ConfiguredSequenceRepository live = sequenceRepository;
+                        return live != null && live.contains(name);
+                    }
+
+                    @Override
+                    public java.util.Set<String> requiredParameters(String name) {
+                        ConfiguredSequenceRepository live = sequenceRepository;
+                        return live == null ? java.util.Set.of() : live.requiredParameters(name);
+                    }
+
+                    @Override
+                    public java.util.Set<String> calls(String name) {
+                        ConfiguredSequenceRepository live = sequenceRepository;
+                        return live == null ? java.util.Set.of() : live.calls(name);
+                    }
+
+                    @Override
+                    public List<String> names() {
+                        ConfiguredSequenceRepository live = sequenceRepository;
+                        return live == null ? List.of() : live.names();
+                    }
+                },
                 configModel.pipelineConfig().toLimits()
         );
         replayStageRegistrations();
@@ -743,6 +798,64 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /** {@return the live pipeline engine, or {@code null} before the first successful reload} */
     public ActionEngine actionEngine() {
         return actionEngine;
+    }
+
+    /** {@return the shared batch runner for configured pipeline lines} */
+    public PipelineBatchRunner pipelineBatchRunner() {
+        return pipelineBatchRunner;
+    }
+
+    /** {@return the long-running task service, or {@code null} before the first reload} */
+    public PipelineTaskService pipelineTaskService() {
+        return pipelineTaskService;
+    }
+
+    /** {@return the compiled named sequences} */
+    public ConfiguredSequenceRepository sequenceRepository() {
+        return sequenceRepository;
+    }
+
+    /**
+     * Compiles the configured sequences against the freshly installed engine.
+     *
+     * <p>Runs after {@code installStageRuntime} because compiling a sequence body needs the stage table it
+     * references. Cached compilations are dropped first: they were produced by the previous engine and its
+     * stage table, so keeping them would let a reload silently run against retired stages.</p>
+     */
+    private void buildSequenceRepository() {
+        pipelineBatchRunner.invalidate();
+        ActionEngine engine = actionEngine;
+        if (engine == null) {
+            sequenceRepository = ConfiguredSequenceRepository.empty();
+            return;
+        }
+        sequenceRepository = ConfiguredSequenceRepository.build(configModel.actionTemplates(),
+                (sequence, line, catalog) -> {
+                    ActionEngine.Result result = engine.compile(line, null);
+                    if (result.successful()) {
+                        return result.pipeline();
+                    }
+                    String reason = result.diagnostics().isEmpty()
+                            ? "did not compile"
+                            : result.diagnostics().get(0).reasonKey();
+                    getLogger().warning("Sequence '" + sequence + "' line rejected: " + reason
+                            + " <- " + line);
+                    return null;
+                });
+        List<String> failed = sequenceRepository.failed();
+        if (!failed.isEmpty()) {
+            getLogger().warning("Sequences unavailable because a line did not compile: " + failed);
+        }
+        if (pipelineTaskService != null) {
+            CoreLibConfig.LoopConfig loop = configModel.loopConfig();
+            pipelineTaskService.configure(new PipelineTaskService.Limits(
+                    configModel.pipelineConfig().maxRepeatTimes(),
+                    loop == null ? 1L : Math.max(1L, loop.minSyncIntervalTicks()),
+                    loop == null ? 200 : loop.maxActiveLoopsTotal(),
+                    loop == null ? 10 : loop.maxActiveLoopsPerPlayer(),
+                    loop == null ? 100 : loop.maxActiveLoopsPerPlugin(),
+                    loop == null || loop.cancelPlayerLoopsOnQuit()));
+        }
     }
 
     /**

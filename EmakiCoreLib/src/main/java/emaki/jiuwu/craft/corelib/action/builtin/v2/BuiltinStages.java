@@ -27,6 +27,8 @@ import emaki.jiuwu.craft.corelib.action.builtin.v2.source.OriginSource;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.source.PlayerByNameSource;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.source.SelfSource;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.source.TriggerSource;
+import emaki.jiuwu.craft.corelib.action.builtin.v2.stage.StartTaskStage;
+import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
@@ -54,7 +56,7 @@ public final class BuiltinStages {
     public static final int GATE_COUNT = 10;
 
     /** Number of action stages this class registers. */
-    public static final int ACTION_COUNT = 43;
+    public static final int ACTION_COUNT = 45;
 
     private BuiltinStages() {
     }
@@ -81,13 +83,16 @@ public final class BuiltinStages {
             @Nullable CraftEngineBlockBridge craftEngineBlockBridge,
             @Nullable CustomBlockBridge itemsAdderBlockBridge,
             @Nullable CustomBlockBridge nexoBlockBridge,
-            @Nullable CustomBlockBridge oraxenBlockBridge) {
+            @Nullable CustomBlockBridge oraxenBlockBridge,
+            @Nullable PipelineTaskService taskService,
+            @Nullable StartTaskStage.SequenceSource sequences) {
         java.util.Objects.requireNonNull(registry, "registry");
         List<String> failures = new ArrayList<>();
         registerSources(registry, owner, failures);
         registerGates(registry, owner, itemSourceService, failures);
         registerActions(registry, owner, executionDispatcher, economyManager, itemSourceService,
-                craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge, failures);
+                craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge,
+                taskService, sequences, failures);
         return new Report(List.copyOf(failures));
     }
 
@@ -135,9 +140,12 @@ public final class BuiltinStages {
             CustomBlockBridge itemsAdderBlockBridge,
             CustomBlockBridge nexoBlockBridge,
             CustomBlockBridge oraxenBlockBridge,
+            PipelineTaskService taskService,
+            StartTaskStage.SequenceSource sequences,
             List<String> failures) {
         for (CoreActionStage stage : actions(owner, executionDispatcher, economyManager, itemSourceService,
-                craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge)) {
+                craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge,
+                taskService, sequences)) {
             record(failures, stage.id(), registry.registerAction(owner, stage));
         }
     }
@@ -149,7 +157,9 @@ public final class BuiltinStages {
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
             CustomBlockBridge nexoBlockBridge,
-            CustomBlockBridge oraxenBlockBridge) {
+            CustomBlockBridge oraxenBlockBridge,
+            PipelineTaskService taskService,
+            StartTaskStage.SequenceSource sequences) {
         List<CoreActionStage> stages = new ArrayList<>(ACTION_COUNT);
         // Messaging and feedback.
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.SendMessageStage());
@@ -203,6 +213,10 @@ public final class BuiltinStages {
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.RunCommandAsOpStage());
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.RunCommandAsConsoleStage());
         stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.CastMythicSkillStage());
+        // Long-running tasks, replacing the v1 loop actions.
+        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.StartTaskStage(
+                taskService, sequences));
+        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.v2.stage.StopTaskStage(taskService));
         return List.copyOf(stages);
     }
 

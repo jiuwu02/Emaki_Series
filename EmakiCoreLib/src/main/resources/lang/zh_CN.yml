@@ -155,6 +155,13 @@ action:
       owner_disabled: "<red>[管道] 所属插件已停用：%error%</red>"
       target_retired: "<gray>[管道] 目标在延迟执行前已失效：%error%</gray>"
       timing_without_body: "<gray>[管道] 时序段之后没有可执行的段</gray>"
+    task:
+      empty_body: "<red>[管道] 该序列没有可执行的行</red>"
+      times_out_of_range: "<red>[管道] times 超出允许范围，请调整 action.pipeline.max_repeat_times</red>"
+      interval_too_small: "<red>[管道] interval 小于配置允许的最小间隔</red>"
+      total_limit_reached: "<red>[管道] 已达到全服活动任务上限</red>"
+      player_limit_reached: "<red>[管道] 已达到该玩家的活动任务上限</red>"
+      plugin_limit_reached: "<red>[管道] 已达到该插件的活动任务上限</red>"
       exception: "<red>[管道] 段执行抛出异常：%error%</red>"
     # 内置源段诊断
     source:
@@ -231,6 +238,13 @@ action:
         unknown_effect: "<red>[管道] 未知药水效果 %type%</red>"
         effect_absent: "<gray>[管道] 目标没有该药水效果</gray>"
         none_active: "<gray>[管道] 目标没有活动的药水效果</gray>"
+      task:
+        service_unavailable: "<red>[管道] 长期任务服务当前不可用</red>"
+        context_unavailable: "<red>[管道] 长期任务需要完整的管道上下文</red>"
+        sequence_required: "<red>[管道] start_task 必须指定 sequence</red>"
+        unknown_sequence: "<red>[管道] 未定义的序列 %sequence%</red>"
+        key_required: "<red>[管道] stop_task 必须指定 key</red>"
+        none_matched: "<gray>[管道] 没有匹配该 key 的任务</gray>"
       item:
         invalid_item_source: "<red>[管道] 物品来源 %item_source% 不合法</red>"
         service_unavailable: "<red>[管道] 物品来源服务当前不可用</red>"

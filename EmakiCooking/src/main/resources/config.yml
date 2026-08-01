@@ -414,20 +414,20 @@ stations:
 #   %emakicooking_nutrition_<type>_min%   营养下限
 #   %emakicooking_nutrition_combo_count_<规则id>%  组合规则当前达标的营养类型数量
 #
-# 反胃 / 持续 BUFF / 衰减都由下方阈值动作 + CoreLib 循环动作（loopsync/cancelloop）拼装。
-# loopsync 的 template 必须在 CoreLib 的 config.yml -> action.loop.templates 中定义。
-# 下面 thresholds 示例引用了 nutrition_decay / nutrition_well_fed 两个模板，
+# 反胃 / 持续 BUFF / 衰减都由下方阈值动作 + CoreLib 长期任务段（start_task/stop_task）拼装。
+# start_task 的 sequence 必须在 CoreLib 的 config.yml -> action.loop.templates 中定义。
+# 下面 thresholds 示例引用了 nutrition_decay / nutrition_well_fed 两个序列，
 # 请将以下内容粘贴到 plugins/EmakiCoreLib/config.yml 的 action.loop.templates 下：
 #
 #   nutrition_decay:
-#     - 'emakicookingremovenutrition type=fruit amount=5'
-#     - 'emakicookingremovenutrition type=vegetable amount=5'
-#     - 'emakicookingremovenutrition type=protein amount=5'
-#     - 'emakicookingremovenutrition type=sugar amount=5'
-#     - 'emakicookingremovenutrition type=grain amount=5'
-#     - '@if=%emakicooking_nutrition_fruit% <= 0 cancelloop key=nutrition_overeat:%player_name%'
+#     - 'cooking_remove_nutrition type=fruit amount=5'
+#     - 'cooking_remove_nutrition type=vegetable amount=5'
+#     - 'cooking_remove_nutrition type=protein amount=5'
+#     - 'cooking_remove_nutrition type=sugar amount=5'
+#     - 'cooking_remove_nutrition type=grain amount=5'
+#     - 'where %emakicooking_nutrition_fruit%<=0 | stop_task key=nutrition_overeat:%caster.uuid%'
 #   nutrition_well_fed:
-#     - 'givepotioneffect type=SATURATION level=1 duration=60'
+#     - 'give_potion_effect type=SATURATION level=1 duration=60'
 nutrition:
   # 是否启用营养系统
   enabled: true
@@ -487,10 +487,13 @@ nutrition:
         value: 80
         compare: ">="
         actions:
-          # 用循环动作持续给 BUFF；key 绑定玩家与营养类型，避免重复
-          - 'loopsync template=nutrition_well_fed times=999999 interval=40t key=nutrition_wellfed:%player_name%:%nutrition_type% mode=replace stop_if_offline=true'
+          # 用长期任务持续给 BUFF；key 绑定玩家与营养类型，避免重复
+          # times 受 CoreLib config.yml 的 action.pipeline.max_repeat_times 限制（默认 100）；
+          # 需要更久就调高该值。BUFF 会在营养跌回阈值下方时由 on_recover 取消，
+          # 或在玩家离线时由 stop_when_offline 自动停止。
+          - 'start_task sequence=nutrition_well_fed times=100 interval=40t key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type% on_conflict=replace stop_when_offline=true'
         on_recover:
-          - 'cancelloop key=nutrition_wellfed:%player_name%:%nutrition_type%'
+          - 'stop_task key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type%'
 
     # 组合阈值：当满足条件的营养类型数量达到 required_count 时触发（还原膳食均衡"5 大营养满了反胃"）。
     # required_count 默认 5，可自配，不强制等于营养类型总数。
@@ -508,8 +511,9 @@ nutrition:
           - "send_message text=<red>你吃得太撑了，开始反胃……"
           - "play_sound sound=entity.player.burp volume=1.0 pitch=0.8"
           - "give_potion_effect type=NAUSEA level=1 duration=200"
-          # 启动循环：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0；
-          # stop_if_condition 在所有营养都 <=0 时停止循环（这里以 5 大营养为例）
-          - 'loopsync template=nutrition_decay times=999999 interval=40t key=nutrition_overeat:%player_name% mode=replace stop_if_offline=true'
+          # 启动长期任务：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0；
+          # 序列内的 stop_task 会在水果营养 <=0 时结束该任务。
+          # times 受 action.pipeline.max_repeat_times 限制（默认 100），需要更久请调高该值。
+          - 'start_task sequence=nutrition_decay times=100 interval=40t key=nutrition_overeat:%caster.uuid% on_conflict=replace stop_when_offline=true'
         on_recover:
-          - 'cancelloop key=nutrition_overeat:%player_name%'
+          - 'stop_task key=nutrition_overeat:%caster.uuid%'

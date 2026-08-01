@@ -62,9 +62,9 @@ class LegacyMigratedConfigsValidTest {
         }
         remaining.forEach(System.out::println);
         assertEquals(List.of(), remaining, "no convertible legacy line may remain");
-        // The four loop lines stay legacy by decision: start_task/stop_task do not exist, so there is
-        // nothing to convert them into.
-        assertEquals(4, unconverted, "expected exactly the four known loop lines to remain");
+        // Now zero: the four nutrition loop lines were migrated by hand to start_task / stop_task once
+        // those stages existed, so no legacy action id is left anywhere in the shipped configs.
+        assertEquals(0, unconverted, "no unconvertible legacy line may remain either");
     }
 
     private List<Path> resourceYaml() throws IOException {

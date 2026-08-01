@@ -170,6 +170,13 @@ action:
       owner_disabled: "<red>[Pipeline] The owning plugin is disabled: %error%</red>"
       target_retired: "<gray>[Pipeline] The target became invalid before the delayed run: %error%</gray>"
       timing_without_body: "<gray>[Pipeline] A timing stage has no stages after it</gray>"
+    task:
+      empty_body: "<red>[Pipeline] That sequence has no runnable lines</red>"
+      times_out_of_range: "<red>[Pipeline] times is out of range; adjust action.pipeline.max_repeat_times</red>"
+      interval_too_small: "<red>[Pipeline] interval is below the configured minimum</red>"
+      total_limit_reached: "<red>[Pipeline] The server-wide active task limit has been reached</red>"
+      player_limit_reached: "<red>[Pipeline] That player's active task limit has been reached</red>"
+      plugin_limit_reached: "<red>[Pipeline] That plugin's active task limit has been reached</red>"
       exception: "<red>[Pipeline] Stage threw an exception: %error%</red>"
     # Builtin source stage diagnostics
     source:
@@ -248,6 +255,13 @@ action:
         unknown_effect: "<red>[Pipeline] Unknown potion effect %type%</red>"
         effect_absent: "<gray>[Pipeline] The target does not have that potion effect</gray>"
         none_active: "<gray>[Pipeline] The target has no active potion effect</gray>"
+      task:
+        service_unavailable: "<red>[Pipeline] The long-running task service is unavailable</red>"
+        context_unavailable: "<red>[Pipeline] Long-running tasks need a full pipeline context</red>"
+        sequence_required: "<red>[Pipeline] start_task requires a sequence</red>"
+        unknown_sequence: "<red>[Pipeline] Undefined sequence %sequence%</red>"
+        key_required: "<red>[Pipeline] stop_task requires a key</red>"
+        none_matched: "<gray>[Pipeline] No task matched that key</gray>"
       item:
         invalid_item_source: "<red>[Pipeline] Item source %item_source% is invalid</red>"
         service_unavailable: "<red>[Pipeline] The item source service is currently unavailable</red>"

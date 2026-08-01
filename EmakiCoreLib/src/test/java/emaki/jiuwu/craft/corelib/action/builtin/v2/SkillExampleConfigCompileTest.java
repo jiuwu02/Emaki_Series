@@ -27,7 +27,7 @@ class SkillExampleConfigCompileTest {
 
     private static ActionEngine engine() {
         StageRegistry registry = new StageRegistry();
-        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null, null);
+        BuiltinStages.registerAll(registry, null, null, null, null, null, null, null, null, null, null);
         return new ActionEngine(
                 new RegistryStageResolver(registry),
                 new RegistryStageInvoker(registry),

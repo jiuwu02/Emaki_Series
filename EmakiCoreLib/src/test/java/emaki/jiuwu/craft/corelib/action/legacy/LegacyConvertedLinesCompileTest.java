@@ -83,17 +83,18 @@ class LegacyConvertedLinesCompileTest {
         }
         System.out.println("compiled " + compiled + " converted line(s)");
         failures.forEach(System.out::println);
-        // The one accepted failure is a defect that predates this migration: `@chance=5` in
-        // EmakiLevel/sources/combat.yml means 500%, which v1 also rejected, so that action never ran.
-        // The converter passes it through unchanged rather than inventing `5%`, and the compile check
-        // reporting it is the desired outcome.
+        // `combat.yml L22` (@chance=5, an invalid 500% that v1 also rejected) is tolerated because it is
+        // a pre-existing config defect the converter passes through rather than inventing `5%` for.
         List<String> unexpected = failures.stream()
                 .filter(failure -> !failure.startsWith("combat.yml L22 "))
                 .toList();
         assertEquals(List.of(), unexpected, "every converted line must compile");
-        assertEquals(1, failures.size(),
-                "only the known pre-existing @chance=5 defect may fail, got: " + failures);
-        assertTrue(compiled > 100, "expected the whole corpus, compiled only " + compiled);
+        // Zero is now the expected count: the shipped configs were migrated in phase 6b, so the scanner
+        // finds nothing left to convert. The assertion is kept rather than dropped because it still
+        // guards the real property — whatever the converter would produce has to compile — and it will
+        // catch a regression that reintroduces legacy syntax into the shipped configs.
+        assertEquals(0, compiled,
+                "the shipped configs are already migrated, so nothing should need converting");
     }
 
     /** Builds a resolver from the real builtin stage declarations. */
