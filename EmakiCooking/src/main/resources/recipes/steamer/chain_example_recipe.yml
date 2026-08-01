@@ -65,5 +65,5 @@ result:
           - "minecraft-pumpkin_pie"
         amount: 1
     actions:
-      - 'sendmessage text="<green>蒸制完成！获得了胡萝卜糕。</green>"'
-      - "playsound sound=minecraft:block.brewing_stand.brew volume=0.8 pitch=1.2"
+      - 'send_message text="<green>蒸制完成！获得了胡萝卜糕。</green>"'
+      - "play_sound sound=minecraft:block.brewing_stand.brew volume=0.8 pitch=1.2"

@@ -196,11 +196,11 @@ condition:
     - "%player_class% == 'warrior'"
   on_pass:
     actions:
-      - 'sendmessage text="<green>装备条件满足，属性已生效。</green>"'
+      - 'send_message text="<green>装备条件满足，属性已生效。</green>"'
   on_fail:
     message: "<red>你不满足装备条件！</red>"
     actions:
-      - 'sendmessage text="<red>需要等级 10 以上的战士才能装备此武器。</red>"'
+      - 'send_message text="<red>需要等级 10 以上的战士才能装备此武器。</red>"'
 
 # ============================================================
 # 修复配置
@@ -239,10 +239,10 @@ repair:
       - ""
       - "<red>此物品已损坏，属性不生效</red>"
   on_disabled:
-    - 'sendmessage text="<red>你的武器已损坏！</red>"'
+    - 'send_message text="<red>你的武器已损坏！</red>"'
   on_repaired:
-    - 'sendmessage text="<green>武器已修复！</green>"'
-    - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1.2"
+    - 'send_message text="<green>武器已修复！</green>"'
+    - "play_sound sound=minecraft:block.anvil.use volume=1 pitch=1.2"
 
 # ============================================================
 # 触发动作
@@ -252,7 +252,7 @@ repair:
 # interact: 玩家使用物品交互时
 actions:
   give:
-    - "playsound sound=entity.player.levelup volume=1.0 pitch=1.2"
-    - 'sendmessage text="<green>你获得了 <gold>%item_name%</gold>！</green>"'
+    - "play_sound sound=entity.player.levelup volume=1.0 pitch=1.2"
+    - 'send_message text="<green>你获得了 <gold>%item_name%</gold>！</green>"'
   interact:
-    - 'sendactionbar text="<gray>你挥舞了示例之刃</gray>"'
+    - 'send_action_bar text="<gray>你挥舞了示例之刃</gray>"'

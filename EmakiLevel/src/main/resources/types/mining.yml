@@ -20,9 +20,9 @@ upgrade:
     items: []
   actions:
     success:
-      - 'sendmessage text="<gray>挖掘等级提升到了 <yellow>%new_level%</yellow> 级。</gray>"'
+      - 'send_message text="<gray>挖掘等级提升到了 <yellow>%new_level%</yellow> 级。</gray>"'
     failure:
-      - 'sendmessage text="<red>挖掘升级失败: %failure_reason%</red>"'
+      - 'send_message text="<red>挖掘升级失败: %failure_reason%</red>"'
 pdc:
   enabled: true
 attributes:

@@ -63,10 +63,10 @@ condition:
     - "%player_level% >= 1"
   on_pass:
     actions:
-      - 'sendmessage text="<aqua>榨汁条件满足。</aqua>"'
+      - 'send_message text="<aqua>榨汁条件满足。</aqua>"'
   on_fail:
     actions:
-      - 'sendmessage text="<red>榨汁条件不满足。</red>"'
+      - 'send_message text="<red>榨汁条件不满足。</red>"'
     block_output: false
 
 # ============================================================
@@ -82,4 +82,4 @@ result:
           - "minecraft-honey_bottle"
         amount: 1
     actions:
-      - 'sendmessage text="<aqua>榨汁完成。</aqua>"'
+      - 'send_message text="<aqua>榨汁完成。</aqua>"'

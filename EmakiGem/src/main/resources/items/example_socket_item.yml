@@ -94,4 +94,4 @@ obtain:
         - '<dark_gray>─────────────</dark_gray>'
         - '<gray>宝石槽: <yellow>□□□</yellow> <dark_gray>(%opened_slots%/%total_slots%)</dark_gray></gray>'
   actions:
-    - 'sendmessage text="<gray>已识别可镶嵌装备：<yellow>%item_definition_id%</yellow></gray>"'
+    - 'send_message text="<gray>已识别可镶嵌装备：<yellow>%item_definition_id%</yellow></gray>"'

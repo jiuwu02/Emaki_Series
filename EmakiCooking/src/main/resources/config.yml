@@ -147,13 +147,13 @@ stations:
       value: 2
     actions:
       cut:
-        - 'playsound sound=entity.player.attack.strong volume=0.7 pitch=1.3'
-        - 'spawnparticle particle=BLOCK_CRACK count=4 offset_x=0.1 offset_y=0.1 offset_z=0.1'
+        - "play_sound sound=entity.player.attack.strong volume=0.7 pitch=1.3"
+        - "spawn_particle particle=BLOCK_CRACK count=4 offset_x=0.1 offset_y=0.1 offset_z=0.1"
       complete:
-        - 'playsound sound=entity.player.levelup volume=0.8 pitch=1.5'
-        - 'spawnparticle particle=HAPPY_VILLAGER count=6 offset_x=0.3 offset_y=0.2 offset_z=0.3'
+        - "play_sound sound=entity.player.levelup volume=0.8 pitch=1.5"
+        - "spawn_particle particle=HAPPY_VILLAGER count=6 offset_x=0.3 offset_y=0.2 offset_z=0.3"
       place:
-        - 'playsound sound=block.wood.place volume=0.6 pitch=1.0'
+        - "play_sound sound=block.wood.place volume=0.6 pitch=1.0"
 
   wok:
     # 炒锅方块来源
@@ -214,14 +214,14 @@ stations:
         - minecraft-bone_meal
     actions:
       stir:
-        - 'playsound sound=entity.player.attack.sweep volume=0.8 pitch=1.2'
-        - 'spawnparticle particle=FLAME count=6 offset_x=0.2 offset_y=0.1 offset_z=0.2'
+        - "play_sound sound=entity.player.attack.sweep volume=0.8 pitch=1.2"
+        - "spawn_particle particle=FLAME count=6 offset_x=0.2 offset_y=0.1 offset_z=0.2"
       add_ingredient:
-        - 'playsound sound=entity.item.pickup volume=0.6 pitch=1.0'
-        - 'spawnparticle particle=SMOKE count=3 offset_x=0.15 offset_y=0.1 offset_z=0.15'
+        - "play_sound sound=entity.item.pickup volume=0.6 pitch=1.0"
+        - "spawn_particle particle=SMOKE count=3 offset_x=0.15 offset_y=0.1 offset_z=0.15"
       serve:
-        - 'playsound sound=entity.experience_orb.pickup volume=1.0 pitch=1.2'
-        - 'spawnparticle particle=HAPPY_VILLAGER count=8 offset_x=0.3 offset_y=0.2 offset_z=0.3'
+        - "play_sound sound=entity.experience_orb.pickup volume=1.0 pitch=1.2"
+        - "spawn_particle particle=HAPPY_VILLAGER count=8 offset_x=0.3 offset_y=0.2 offset_z=0.3"
 
   grinder:
     # 研磨机方块来源
@@ -235,13 +235,13 @@ stations:
     check_delay_ticks: 20
     actions:
       start:
-        - 'playsound sound=block.grindstone.use volume=0.7 pitch=1.0'
-        - 'spawnparticle particle=SMOKE count=3 offset_x=0.15 offset_y=0.15 offset_z=0.15'
+        - "play_sound sound=block.grindstone.use volume=0.7 pitch=1.0"
+        - "spawn_particle particle=SMOKE count=3 offset_x=0.15 offset_y=0.15 offset_z=0.15"
       running:
-        - 'spawnparticle particle=SMOKE count=2 offset_x=0.15 offset_y=0.15 offset_z=0.15'
+        - "spawn_particle particle=SMOKE count=2 offset_x=0.15 offset_y=0.15 offset_z=0.15"
       complete:
-        - 'playsound sound=entity.experience_orb.pickup volume=0.8 pitch=1.2'
-        - 'spawnparticle particle=HAPPY_VILLAGER count=5 offset_x=0.3 offset_y=0.2 offset_z=0.3'
+        - "play_sound sound=entity.experience_orb.pickup volume=0.8 pitch=1.2"
+        - "spawn_particle particle=HAPPY_VILLAGER count=5 offset_x=0.3 offset_y=0.2 offset_z=0.3"
 
   steamer:
     # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
@@ -301,11 +301,11 @@ stations:
     steam_consumption_efficiency: 1
     actions:
       fuel:
-        - 'playsound sound=item.bucket.empty volume=0.6 pitch=1.0'
-        - 'spawnparticle particle=FLAME count=3 offset_x=0.1 offset_y=0.1 offset_z=0.1'
+        - "play_sound sound=item.bucket.empty volume=0.6 pitch=1.0"
+        - "spawn_particle particle=FLAME count=3 offset_x=0.1 offset_y=0.1 offset_z=0.1"
       moisture:
-        - 'playsound sound=ambient.underwater.enter volume=0.6 pitch=1.2'
-        - 'spawnparticle particle=SPLASH count=5 offset_x=0.2 offset_y=0.1 offset_z=0.2'
+        - "play_sound sound=ambient.underwater.enter volume=0.6 pitch=1.2"
+        - "spawn_particle particle=SPLASH count=5 offset_x=0.2 offset_y=0.1 offset_z=0.2"
 
   oven:
     # 烤炉主体方块来源；GUI 细节在 gui/oven.yml
@@ -338,8 +338,8 @@ stations:
         heat: 35
     actions:
       fuel:
-        - 'playsound sound=item.bucket.empty volume=0.6 pitch=1.0'
-        - 'spawnparticle particle=FLAME count=3 offset_x=0.1 offset_y=0.1 offset_z=0.1'
+        - "play_sound sound=item.bucket.empty volume=0.6 pitch=1.0"
+        - "spawn_particle particle=FLAME count=3 offset_x=0.1 offset_y=0.1 offset_z=0.1"
 
   juicer:
     # 榨汁机方块来源；GUI 细节在 gui/juicer.yml
@@ -363,14 +363,14 @@ stations:
     drop_completed_result_on_break: false
     actions:
       press:
-        - 'playsound sound=block.piston.extend volume=0.6 pitch=1.2'
-        - 'spawnparticle particle=DRIPPING_WATER count=3 offset_x=0.1 offset_y=0.1 offset_z=0.1'
+        - "play_sound sound=block.piston.extend volume=0.6 pitch=1.2"
+        - "spawn_particle particle=DRIPPING_WATER count=3 offset_x=0.1 offset_y=0.1 offset_z=0.1"
       complete:
-        - 'playsound sound=entity.experience_orb.pickup volume=0.8 pitch=1.2'
-        - 'spawnparticle particle=HAPPY_VILLAGER count=5 offset_x=0.3 offset_y=0.2 offset_z=0.3'
+        - "play_sound sound=entity.experience_orb.pickup volume=0.8 pitch=1.2"
+        - "spawn_particle particle=HAPPY_VILLAGER count=5 offset_x=0.3 offset_y=0.2 offset_z=0.3"
       serve:
-        - 'playsound sound=item.bucket.fill volume=0.7 pitch=1.0'
-        - 'spawnparticle particle=SPLASH count=4 offset_x=0.2 offset_y=0.1 offset_z=0.2'
+        - "play_sound sound=item.bucket.fill volume=0.7 pitch=1.0"
+        - "spawn_particle particle=SPLASH count=4 offset_x=0.2 offset_y=0.1 offset_z=0.2"
 
   fermentation_barrel:
     # 发酵桶方块来源；GUI 细节在 gui/fermentation_barrel.yml
@@ -388,11 +388,11 @@ stations:
     only_recipe_items: true
     actions:
       start:
-        - 'playsound sound=block.barrel.close volume=0.7 pitch=1.0'
-        - 'spawnparticle particle=SMOKE count=3 offset_x=0.15 offset_y=0.1 offset_z=0.15'
+        - "play_sound sound=block.barrel.close volume=0.7 pitch=1.0"
+        - "spawn_particle particle=SMOKE count=3 offset_x=0.15 offset_y=0.1 offset_z=0.15"
       collect:
-        - 'playsound sound=block.barrel.open volume=0.7 pitch=1.0'
-        - 'spawnparticle particle=HAPPY_VILLAGER count=6 offset_x=0.3 offset_y=0.2 offset_z=0.3'
+        - "play_sound sound=block.barrel.open volume=0.7 pitch=1.0"
+        - "spawn_particle particle=HAPPY_VILLAGER count=6 offset_x=0.3 offset_y=0.2 offset_z=0.3"
 
 # ============================================================
 # 营养系统（类膳食均衡 Diet）
@@ -470,7 +470,7 @@ nutrition:
         sugar: 30
       # 命中后可额外执行 CoreLib 动作（可选）
       actions:
-        - 'playsound sound=entity.player.burp volume=1.0 pitch=1.0'
+        - "play_sound sound=entity.player.burp volume=1.0 pitch=1.0"
     - item_sources:
         - minecraft-bread
         - minecraft-baked_potato
@@ -505,9 +505,9 @@ nutrition:
         required_count: 5
         actions:
           # 反胃提示 + 催吐效果
-          - 'sendmessage text=<red>你吃得太撑了，开始反胃……'
-          - 'playsound sound=entity.player.burp volume=1.0 pitch=0.8'
-          - 'givepotioneffect type=NAUSEA level=1 duration=200'
+          - "send_message text=<red>你吃得太撑了，开始反胃……"
+          - "play_sound sound=entity.player.burp volume=1.0 pitch=0.8"
+          - "give_potion_effect type=NAUSEA level=1 duration=200"
           # 启动循环：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0；
           # stop_if_condition 在所有营养都 <=0 时停止循环（这里以 5 大营养为例）
           - 'loopsync template=nutrition_decay times=999999 interval=40t key=nutrition_overeat:%player_name% mode=replace stop_if_offline=true'

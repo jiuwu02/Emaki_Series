@@ -54,8 +54,8 @@ chain:
 effects:
   # 共鸣触发动作（音效、消息等）
   actions:
-    - 'sendmessage text="<gold>火焰共鸣已激活！</gold>"'
-    - "playsound sound=minecraft:item.firecharge.use volume=0.5 pitch=1.2"
+    - 'send_message text="<gold>火焰共鸣已激活！</gold>"'
+    - "play_sound sound=minecraft:item.firecharge.use volume=0.5 pitch=1.2"
   # 额外属性加成
   ea_attributes:
     physical_attack: 5

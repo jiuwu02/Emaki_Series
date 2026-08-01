@@ -28,7 +28,7 @@ upgrade:
         amount: 1
   actions:
     success:
-      - 'sendmessage text="<green>你的 <gold>主等级</gold> 提升到了 <yellow>%new_level%</yellow> 级！</green>"'
+      - 'send_message text="<green>你的 <gold>主等级</gold> 提升到了 <yellow>%new_level%</yellow> 级！</green>"'
     failure: []
 pdc:
   enabled: true

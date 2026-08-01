@@ -243,8 +243,8 @@ stars:
         protection: true
     actions:
       success:
-        - 'sendmessage text="<gold>强化达到 +5，解锁额外物理暴击率。</gold>"'
-        - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1.15"
+        - 'send_message text="<gold>强化达到 +5，解锁额外物理暴击率。</gold>"'
+        - "play_sound sound=minecraft:block.anvil.use volume=1 pitch=1.15"
 
   6:
     effects:
@@ -329,8 +329,8 @@ stars:
         protection: true
     actions:
       success:
-        - 'sendtitle title="<gold><bold>+8 物理伤害提升</bold></gold>" subtitle="<yellow>额外增伤已解锁</yellow>"'
-        - "playsound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
+        - 'send_title title="<gold><bold>+8 物理伤害提升</bold></gold>" subtitle="<yellow>额外增伤已解锁</yellow>"'
+        - "play_sound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
 
   9:
     effects:
@@ -394,8 +394,8 @@ stars:
         protection: true
     actions:
       success:
-        - 'sendtitle title="<gold><bold>+10 物理暴伤提升</bold></gold>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
-        - "playsound sound=minecraft:entity.firework_rocket.twinkle_far volume=1 pitch=1"
+        - 'send_title title="<gold><bold>+10 物理暴伤提升</bold></gold>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
+        - "play_sound sound=minecraft:entity.firework_rocket.twinkle_far volume=1 pitch=1"
 
   11:
     effects:
@@ -470,5 +470,5 @@ stars:
         temper_boost: 1
     actions:
       success:
-        - 'sendtitle title="<gold><bold>+12 物理穿透提升</bold></gold>" subtitle="<yellow>额外穿透已解锁</yellow>"'
-        - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+        - 'send_title title="<gold><bold>+12 物理穿透提升</bold></gold>" subtitle="<yellow>额外穿透已解锁</yellow>"'
+        - "play_sound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"

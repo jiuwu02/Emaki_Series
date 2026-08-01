@@ -242,7 +242,7 @@ upgrade:
           decimals: 2
       actions:
         success:
-          - 'sendmessage text="<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>"'
+          - 'send_message text="<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>"'
         failure: []
 
     # 满级
@@ -263,5 +263,5 @@ upgrade:
       success_rate: 40.0
       actions:
         success:
-          - 'broadcastmessage text="<gold>%player%</gold> <yellow>将火球术提升至满级！</yellow>"'
+          - 'broadcast_message text="<gold>%caster.name%</gold> <yellow>将火球术提升至满级！</yellow>"'
         failure: []

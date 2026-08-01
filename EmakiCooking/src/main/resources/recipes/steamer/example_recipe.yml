@@ -42,10 +42,10 @@ condition:
     - "%player_level% >= 2"
   on_pass:
     actions:
-      - 'sendmessage text="<aqua>蒸制条件满足。</aqua>"'
+      - 'send_message text="<aqua>蒸制条件满足。</aqua>"'
   on_fail:
     actions:
-      - 'sendmessage text="<red>蒸制条件不满足。</red>"'
+      - 'send_message text="<red>蒸制条件不满足。</red>"'
     block_output: false
 
 # ============================================================
@@ -61,4 +61,4 @@ result:
           - "minecraft-cooked_cod"
         amount: 1
     actions:
-      - 'sendmessage text="<aqua>蒸制完成。</aqua>"'
+      - 'send_message text="<aqua>蒸制完成。</aqua>"'

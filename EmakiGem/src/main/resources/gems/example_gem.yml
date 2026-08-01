@@ -225,7 +225,7 @@ upgrade:
 # 镶嵌/拆卸成功时执行的动作列表。
 actions:
   inlay_success:
-    - 'sendmessage text="<green>红宝石镶嵌成功！</green>"'
-    - "playsound sound=minecraft:block.enchantment_table.use volume=1 pitch=1.2"
+    - 'send_message text="<green>红宝石镶嵌成功！</green>"'
+    - "play_sound sound=minecraft:block.enchantment_table.use volume=1 pitch=1.2"
   extract_success:
-    - 'sendmessage text="<yellow>红宝石已拆卸。</yellow>"'
+    - 'send_message text="<yellow>红宝石已拆卸。</yellow>"'

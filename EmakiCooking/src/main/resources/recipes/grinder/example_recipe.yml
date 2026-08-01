@@ -43,10 +43,10 @@ condition:
     - "%player_level% >= 1"
   on_pass:
     actions:
-      - 'sendmessage text="<gray>研磨条件满足。</gray>"'
+      - 'send_message text="<gray>研磨条件满足。</gray>"'
   on_fail:
     actions:
-      - 'sendmessage text="<red>研磨条件不满足。</red>"'
+      - 'send_message text="<red>研磨条件不满足。</red>"'
     block_output: false
 
 # ============================================================
@@ -62,4 +62,4 @@ result:
           - "minecraft-bone_meal"
         amount: 3
     actions:
-      - 'sendmessage text="<gray>研磨结束。</gray>"'
+      - 'send_message text="<gray>研磨结束。</gray>"'
