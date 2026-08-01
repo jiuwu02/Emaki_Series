@@ -14,6 +14,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -30,7 +31,6 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.level.action.LevelActionRegistrar;
 import emaki.jiuwu.craft.level.action.v2.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
@@ -210,9 +210,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             stageRegistrar.unregister();
             stageRegistrar = null;
         }
-        if (coreLib != null && coreLib.actionRegistry() != null) {
-            coreLib.actionRegistry().unregisterAll(this);
-        }
         if (metrics != null) {
             metrics.close();
             metrics = null;
@@ -320,7 +317,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 experienceRuleService,
                 coreLib.itemSourceService(),
                 coreLib.economyManager(),
-                coreLib.actionExecutor(),
+                actionLines(),
                 executionDispatcher,
                 threadOwnership,
                 appConfig,
@@ -357,7 +354,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     }
 
     private void registerActions() {
-        new LevelActionRegistrar(this).register(coreLib.actionRegistry());
         stageRegistrar = new LevelStageRegistrar(this);
         stageRegistrar.register();
         messages.info("console.actions_registered");
@@ -493,6 +489,16 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
     public EmakiCoreLibPlugin coreLib() {
         return coreLib;
+    }
+
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
     }
 
     public ExecutionDispatcher executionDispatcher() {

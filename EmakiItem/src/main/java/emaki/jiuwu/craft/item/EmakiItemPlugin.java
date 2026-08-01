@@ -15,6 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
@@ -36,7 +37,6 @@ import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.item.action.ItemActionRegistrar;
 import emaki.jiuwu.craft.item.action.v2.ItemStageRegistrar;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
@@ -183,10 +183,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         if (stageRegistrar != null) {
             stageRegistrar.unregister();
             stageRegistrar = null;
-        }
-        EmakiCoreLibPlugin coreLib = coreLib();
-        if (coreLib != null && coreLib.actionRegistry() != null) {
-            coreLib.actionRegistry().unregisterAll(this);
         }
         EmakiItemApi.uninstall(itemApiBridge);
         lifecycleCoordinator.shutdown(this);
@@ -402,7 +398,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void registerActions() {
-        new ItemActionRegistrar(this).register(coreLib().actionRegistry());
         stageRegistrar = new ItemStageRegistrar(this);
         stageRegistrar.register();
     }
@@ -557,6 +552,16 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
     }
 
     public void scheduleAttributeEquipmentSync(Player player) {

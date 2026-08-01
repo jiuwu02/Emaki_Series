@@ -15,6 +15,7 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
@@ -34,7 +35,6 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.forge.action.ForgeActionRegistrar;
 import emaki.jiuwu.craft.forge.action.v2.ForgeStageRegistrar;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
@@ -163,7 +163,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             shutdownPipeline = lifecycleCoordinator
                     .quiesceAndCloseForShutdown(this, coreLibPlugin)
                     .thenCompose(ignored -> {
-                        clearRuntimeRegistrationsForShutdown(coreLibPlugin);
+                        clearRuntimeRegistrationsForShutdown();
                         return lifecycleCoordinator.shutdownAsync(this, coreLibPlugin);
                     });
         } catch (Throwable startupFailure) {
@@ -236,7 +236,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
     }
 
-    private void clearRuntimeRegistrationsForShutdown(EmakiCoreLibPlugin coreLibPlugin) {
+    private void clearRuntimeRegistrationsForShutdown() {
         try {
             playerDataListener.clearSessionsForShutdown();
         } catch (Throwable throwable) {
@@ -250,14 +250,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                         + String.valueOf(throwable.getMessage()));
             }
             stageRegistrar = null;
-        }
-        if (coreLibPlugin == null || coreLibPlugin.actionRegistry() == null) {
-            return;
-        }
-        try {
-            coreLibPlugin.actionRegistry().unregisterAll(this);
-        } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] Forge action cleanup failed: " + String.valueOf(throwable.getMessage()));
         }
     }
 
@@ -324,7 +316,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerActions() {
-        new ForgeActionRegistrar(this).register(coreLib().actionRegistry());
         stageRegistrar = new ForgeStageRegistrar(this);
         stageRegistrar.register();
     }
@@ -415,6 +406,16 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
     }
 
     public ExecutionDispatcher executionDispatcher() {
@@ -540,7 +541,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 coreLibPlugin.asyncTaskScheduler(),
                 coreLibPlugin.performanceMonitor(),
                 coreLibPlugin.itemAssemblyService(),
-                coreLibPlugin::actionExecutor,
+                actionLines(),
                 previousComponents.executionDispatcher(),
                 previousComponents.threadOwnership()
         );

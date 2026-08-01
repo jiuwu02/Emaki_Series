@@ -13,6 +13,7 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -32,7 +33,6 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.strengthen.action.StrengthenActionRegistrar;
 import emaki.jiuwu.craft.strengthen.action.v2.StrengthenStageRegistrar;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.apiimpl.DefaultEmakiStrengthenApi;
@@ -141,10 +141,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
             stageRegistrar.unregister();
             stageRegistrar = null;
         }
-        EmakiCoreLibPlugin coreLib = coreLib();
-        if (coreLib != null && coreLib.actionRegistry() != null) {
-            coreLib.actionRegistry().unregisterAll(this);
-        }
         EmakiStrengthenApi.uninstall(strengthenApiBridge);
         strengthenApiBridge = null;
         getServer().getServicesManager().unregisterAll(this);
@@ -205,7 +201,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     private void registerActions() {
-        new StrengthenActionRegistrar(this).register(coreLib().actionRegistry());
         stageRegistrar = new StrengthenStageRegistrar(this);
         stageRegistrar.register();
     }
@@ -264,6 +259,16 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
     }
 
     public ExecutionDispatcher executionDispatcher() {

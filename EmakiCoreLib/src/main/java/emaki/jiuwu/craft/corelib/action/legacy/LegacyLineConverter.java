@@ -7,15 +7,13 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.ActionLineParser;
-import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
-import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
+
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Converts one old action line into one v2 pipeline line.
  *
- * <p>Reuses the old {@link ActionLineParser} rather than re-tokenising: the old tokeniser owns quoting
+ * <p>Reuses the old {@link LegacyLineParser} rather than re-tokenising: the old tokeniser owns quoting
  * and escaping rules that a second implementation would drift from, and a line the old parser cannot
  * read is by definition not an old action line.</p>
  *
@@ -24,7 +22,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
  */
 final class LegacyLineConverter {
 
-    private final ActionLineParser parser = new ActionLineParser();
+    private final LegacyLineParser parser = new LegacyLineParser();
 
     /**
      * Converts one line.
@@ -36,10 +34,10 @@ final class LegacyLineConverter {
         if (Texts.isBlank(line)) {
             return Result.notAnAction();
         }
-        ParsedActionLine parsed;
+        LegacyParsedActionLine parsed;
         try {
             parsed = parser.parse(1, line);
-        } catch (ActionSyntaxException exception) {
+        } catch (LegacySyntaxException exception) {
             return Result.notAnAction();
         }
         if (parsed == null) {
@@ -70,7 +68,7 @@ final class LegacyLineConverter {
      * exactly what the old lines meant, so adding {@code self |} everywhere would be noise that also
      * enlarges the diff a server owner has to review.</p>
      */
-    private String render(String stageId, ParsedActionLine parsed) {
+    private String render(String stageId, LegacyParsedActionLine parsed) {
         StringBuilder pipeline = new StringBuilder();
         appendControlGates(pipeline, parsed);
         pipeline.append(stageId);
@@ -89,12 +87,12 @@ final class LegacyLineConverter {
     /**
      * Recovers the argument order the author wrote.
      *
-     * <p>{@link ParsedActionLine} carries an unordered {@code Map.copyOf} map, so iterating it directly
+     * <p>{@link LegacyParsedActionLine} carries an unordered {@code Map.copyOf} map, so iterating it directly
      * reorders arguments arbitrarily. That would turn every converted line into a reordered diff and
      * defeat the line-by-line review this migration depends on, so the order is read back off the raw
      * line. Any key not found there is appended afterwards so nothing is silently dropped.</p>
      */
-    private List<String> orderedKeys(ParsedActionLine parsed) {
+    private List<String> orderedKeys(LegacyParsedActionLine parsed) {
         List<String> ordered = new ArrayList<>(parsed.arguments().size());
         String raw = parsed.rawLine() == null ? "" : parsed.rawLine();
         char quote = 0;
@@ -134,7 +132,7 @@ final class LegacyLineConverter {
     }
 
     /** {@return whether the line carried any {@code @} control prefix} */
-    private boolean hasControl(ParsedActionLine parsed) {
+    private boolean hasControl(LegacyParsedActionLine parsed) {
         return parsed.control() != null
                 && (Texts.isNotBlank(parsed.control().condition())
                         || Texts.isNotBlank(parsed.control().chance())
@@ -152,7 +150,7 @@ final class LegacyLineConverter {
      * <p>{@code @ignore_failure} has no counterpart and needs none: continuing past a failed stage is
      * already the default, and the old flag only suppressed an abort.</p>
      */
-    private void appendControlGates(StringBuilder pipeline, ParsedActionLine parsed) {
+    private void appendControlGates(StringBuilder pipeline, LegacyParsedActionLine parsed) {
         if (parsed.control() == null) {
             return;
         }

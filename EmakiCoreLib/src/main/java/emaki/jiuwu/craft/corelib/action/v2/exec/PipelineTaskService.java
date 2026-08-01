@@ -174,6 +174,55 @@ public final class PipelineTaskService implements Listener {
         return tasks.size();
     }
 
+    /** {@return a point-in-time view of every active task, ordered by key} */
+    public @NotNull List<TaskSnapshot> snapshots() {
+        return snapshotsMatching(_ -> true);
+    }
+
+    /**
+     * Lists the tasks a given player owns.
+     *
+     * @param playerUuid the player
+     * @return matching snapshots, empty when {@code playerUuid} is {@code null}
+     */
+    public @NotNull List<TaskSnapshot> snapshotsByPlayer(@Nullable UUID playerUuid) {
+        if (playerUuid == null) {
+            return List.of();
+        }
+        return snapshotsMatching(task -> {
+            Player player = task.player();
+            return player != null && playerUuid.equals(player.getUniqueId());
+        });
+    }
+
+    /**
+     * Lists the tasks whose key starts with a prefix.
+     *
+     * <p>Prefix rather than exact match because keys are namespaced by their producer, so a prefix is
+     * what lets an operator see one subsystem's tasks without knowing the generated suffixes.</p>
+     *
+     * @param keyPrefix the prefix
+     * @return matching snapshots, empty when {@code keyPrefix} is blank
+     */
+    public @NotNull List<TaskSnapshot> snapshotsByKey(@Nullable String keyPrefix) {
+        if (Texts.isBlank(keyPrefix)) {
+            return List.of();
+        }
+        String target = keyPrefix.trim();
+        return snapshotsMatching(task -> task.key.startsWith(target));
+    }
+
+    private List<TaskSnapshot> snapshotsMatching(java.util.function.Predicate<Task> filter) {
+        List<TaskSnapshot> matches = new java.util.ArrayList<>();
+        for (Task task : tasks.values()) {
+            if (filter.test(task)) {
+                matches.add(task.snapshot());
+            }
+        }
+        matches.sort(java.util.Comparator.comparing(TaskSnapshot::key));
+        return List.copyOf(matches);
+    }
+
     /**
      * Cancels a leaving player's tasks.
      *
@@ -434,6 +483,29 @@ public final class PipelineTaskService implements Listener {
         }
     }
 
+    /**
+     * A read-only view of one active task.
+     *
+     * <p>Copied out rather than exposing {@code Task}, so an operator command cannot cancel or reschedule
+     * a task by reaching through a listing.</p>
+     *
+     * @param id internal sequence id
+     * @param key the de-duplication key the task runs under
+     * @param pluginName the plugin the invocation belongs to
+     * @param playerUuid the owning player, {@code null} for server-side tasks
+     * @param index how many iterations have completed
+     * @param times how many iterations were requested
+     * @param intervalTicks ticks between iterations
+     */
+    public record TaskSnapshot(@NotNull String id,
+            @NotNull String key,
+            @NotNull String pluginName,
+            @Nullable UUID playerUuid,
+            int index,
+            int times,
+            long intervalTicks) {
+    }
+
     /** One running task. */
     private final class Task {
 
@@ -452,6 +524,15 @@ public final class PipelineTaskService implements Listener {
 
         private Player player() {
             return playerOf(request.context());
+        }
+
+        private TaskSnapshot snapshot() {
+            Player player = player();
+            Plugin source = request.context().sourcePlugin();
+            return new TaskSnapshot(id, key,
+                    source == null ? owner.getName() : source.getName(),
+                    player == null ? null : player.getUniqueId(),
+                    index, request.times(), request.intervalTicks());
         }
 
         private void cancel() {

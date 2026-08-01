@@ -12,7 +12,7 @@ import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.api.event.AdvancementCompletedEvent;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
+
 
 
 
@@ -43,13 +43,11 @@ public final class AdvancementListener implements Listener {
             return;
         }
         String pageId = registrar.pageByKey(key);
-        ActionContext context = ActionContext.create(plugin, event.getPlayer(), "advancement.complete", false)
-                .withPlaceholders(Map.of(
-                        "advancement_id", key.toString(),
-                        "advancement_node", definition.id(),
-                        "advancement_title", definition.title(),
-                        "advancement_page", pageId == null ? "" : pageId
-                ));
-        plugin.coreLib().actionExecutor().executeAll(context, lines, true);
+        plugin.actionLines().run(lines, event.getPlayer(), "advancement.complete", false, Map.of(
+                "advancement_id", key.toString(),
+                "advancement_node", definition.id(),
+                "advancement_title", definition.title(),
+                "advancement_page", pageId == null ? "" : pageId
+        ), true);
     }
 }

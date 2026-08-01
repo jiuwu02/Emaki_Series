@@ -22,8 +22,7 @@
             <artifactId>paper-api</artifactId>
             <scope>provided</scope>
         </dependency>
-        <!-- 临时测试资产（用户决策 D5）：仅用于阶段 4 技能管道收敛的回归验证，
-             阶段 6 验收后连同 src/test 与 surefire 配置一并删除。不进入任何发布 Jar。 -->
+        <!-- emaki-corelib is a compile-time dependency for accessing ActionLineRunner and the v2 engine. -->
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib</artifactId>
@@ -33,12 +32,6 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-skills-api</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit.jupiter.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
@@ -82,11 +75,6 @@
             </resource>
         </resources>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven.surefire.version}</version>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

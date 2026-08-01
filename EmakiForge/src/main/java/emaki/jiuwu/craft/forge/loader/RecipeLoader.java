@@ -13,14 +13,7 @@ import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.Action;
-import emaki.jiuwu.craft.corelib.action.ActionLineParser;
-import emaki.jiuwu.craft.corelib.action.ActionRegistry;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
-import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
-import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
-import emaki.jiuwu.craft.corelib.action.builtin.UseTemplateAction;
+import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -169,8 +162,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     }
 
     private final EmakiForgePlugin forgePlugin;
-    private final Supplier<ActionRegistry> actionRegistrySupplier;
-    private final Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier;
+    private final Supplier<ActionEngine> actionEngineSupplier;
     private final ItemIdentifierService itemIdentifierService;
     private final boolean deferRuntimeValidation;
     private final List<RecipeLoadIssue> structuredIssues = new ArrayList<>();
@@ -190,28 +182,34 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     private volatile RecipeLoadReport report = RecipeLoadReport.empty(0L);
 
     public RecipeLoader(EmakiForgePlugin plugin,
-                        Supplier<ActionRegistry> actionRegistrySupplier,
-                        Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier) {
-        this(plugin, actionRegistrySupplier, actionTemplateRegistrySupplier,
-                plugin == null ? null : plugin.itemIdentifierService(), false);
+                        Supplier<ActionEngine> actionEngineSupplier) {
+        this(plugin, actionEngineSupplier, plugin == null ? null : plugin.itemIdentifierService(), false);
     }
 
     public RecipeLoader(EmakiForgePlugin plugin,
-                        Supplier<ActionRegistry> actionRegistrySupplier,
-                        Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier,
-        ItemIdentifierService itemIdentifierService) {
-        this(plugin, actionRegistrySupplier, actionTemplateRegistrySupplier, itemIdentifierService, false);
+                        Supplier<ActionEngine> actionEngineSupplier,
+                        ItemIdentifierService itemIdentifierService) {
+        this(plugin, actionEngineSupplier, itemIdentifierService, false);
     }
 
+    /**
+     * Creates a loader.
+     *
+     * <p>The engine arrives as a supplier rather than a value because a CoreLib reload replaces it; reading
+     * it per validation pass is what keeps this loader from checking recipes against a retired stage table.</p>
+     *
+     * @param plugin the owning plugin
+     * @param actionEngineSupplier reads the live pipeline engine, may yield {@code null} before first load
+     * @param itemIdentifierService resolves configured item ids
+     * @param deferRuntimeValidation whether runtime-only checks are postponed to a later pass
+     */
     public RecipeLoader(EmakiForgePlugin plugin,
-                        Supplier<ActionRegistry> actionRegistrySupplier,
-                        Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier,
+                        Supplier<ActionEngine> actionEngineSupplier,
                         ItemIdentifierService itemIdentifierService,
                         boolean deferRuntimeValidation) {
         super(plugin);
         this.forgePlugin = plugin;
-        this.actionRegistrySupplier = actionRegistrySupplier;
-        this.actionTemplateRegistrySupplier = actionTemplateRegistrySupplier;
+        this.actionEngineSupplier = actionEngineSupplier;
         this.itemIdentifierService = itemIdentifierService;
         this.deferRuntimeValidation = deferRuntimeValidation;
     }
@@ -502,66 +500,53 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         if (recipe == null || recipe.action() == null) {
             return recipe != null;
         }
-        ActionRegistry actionRegistry = actionRegistrySupplier == null ? null : actionRegistrySupplier.get();
-        ActionTemplateRegistry actionTemplateRegistry = actionTemplateRegistrySupplier == null
-                ? null
-                : actionTemplateRegistrySupplier.get();
-        if (actionRegistry == null || actionTemplateRegistry == null) {
+        ActionEngine engine = actionEngineSupplier == null ? null : actionEngineSupplier.get();
+        if (engine == null) {
             recordIssue(file, recipe.id(), "actions", IssueSeverity.WARNING, "ACTION_VALIDATION_SKIPPED",
-                    "Action validation was skipped because the CoreLib action registries are unavailable.",
+                    "Action validation was skipped because the CoreLib action pipeline is unavailable.",
                     false, null, null);
             return true;
         }
-        ActionLineParser parser = new ActionLineParser();
-        return validatePhase(file, recipe, "pre", recipe.action().pre(), parser, actionRegistry, actionTemplateRegistry)
-                && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), parser, actionRegistry, actionTemplateRegistry)
-                && validatePhase(file, recipe, "success", recipe.action().success(), parser, actionRegistry, actionTemplateRegistry)
-                && validatePhase(file, recipe, "failure", recipe.action().failure(), parser, actionRegistry, actionTemplateRegistry);
+        return validatePhase(file, recipe, "pre", recipe.action().pre(), engine)
+                && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), engine)
+                && validatePhase(file, recipe, "success", recipe.action().success(), engine)
+                && validatePhase(file, recipe, "failure", recipe.action().failure(), engine);
     }
 
+    /**
+     * Rejects a recipe whose action lines do not compile.
+     *
+     * <p>Compilation replaces what used to be three separate checks against the v1 registries: parse the
+     * line, look the action up, then validate its arguments. The v2 compiler does all three and additionally
+     * verifies stage position and referenced sequences, so a recipe that compiles here cannot fail at forge
+     * time for a configuration reason.</p>
+     *
+     * <p>Only the first diagnostic per line is reported. The compiler emits every problem it finds, and the
+     * later ones are usually consequences of the first, so surfacing them all would bury the real cause.</p>
+     */
     private boolean validatePhase(File file,
                                   Recipe recipe,
                                   String phase,
                                   List<String> lines,
-                                  ActionLineParser parser,
-                                  ActionRegistry actionRegistry,
-                                  ActionTemplateRegistry actionTemplateRegistry) {
+                                  ActionEngine engine) {
         if (lines == null || lines.isEmpty()) {
             return true;
         }
         for (int index = 0; index < lines.size(); index++) {
-            ParsedActionLine parsedLine;
-            try {
-                parsedLine = parser.parse(index + 1, lines.get(index));
-            } catch (ActionSyntaxException exception) {
-                recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                        "INVALID_ACTION_SYNTAX", exceptionSummary(exception), true, null, null);
-                return false;
-            }
-            if (parsedLine == null) {
+            String line = lines.get(index);
+            if (Texts.isBlank(line)) {
                 continue;
             }
-            Action action = actionRegistry.get(parsedLine.actionId());
-            if (action == null) {
-                recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                        "UNKNOWN_ACTION", "Unknown action '" + parsedLine.actionId() + "'.", true, null, null);
-                return false;
+            ActionEngine.Result compiled = engine.compile(line, null);
+            if (compiled.successful()) {
+                continue;
             }
-            ActionResult validation = action.validate(parsedLine.arguments());
-            if (!validation.success()) {
-                recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                        "INVALID_ACTION_ARGUMENTS", Texts.toStringSafe(validation.errorMessage()), true, null, null);
-                return false;
-            }
-            if (UseTemplateAction.ID.equals(parsedLine.actionId())) {
-                String templateName = parsedLine.arguments().get("name");
-                if (Texts.isBlank(templateName) || actionTemplateRegistry.get(templateName) == null) {
-                    recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                            "UNKNOWN_ACTION_TEMPLATE", "Unknown action template '" + templateName + "'.",
-                            true, null, null);
-                    return false;
-                }
-            }
+            String reason = compiled.diagnostics().isEmpty()
+                    ? "did not compile"
+                    : Texts.toStringSafe(compiled.diagnostics().get(0).reasonKey());
+            recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
+                    "INVALID_ACTION_LINE", "Action line did not compile: " + reason, true, null, null);
+            return false;
         }
         return true;
     }

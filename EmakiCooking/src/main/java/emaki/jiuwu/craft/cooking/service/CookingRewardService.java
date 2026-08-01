@@ -15,9 +15,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -41,7 +40,7 @@ public final class CookingRewardService {
     @SuppressWarnings("unused")
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
-    private final ActionExecutor actionExecutor;
+    private final ActionLineRunner actionLines;
     private final EmakiItemAssemblyService itemAssemblyService;
     private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
@@ -51,14 +50,14 @@ public final class CookingRewardService {
     public CookingRewardService(JavaPlugin plugin,
             MessageService messageService,
             ItemSourceService itemSourceService,
-            ActionExecutor actionExecutor,
+            ActionLineRunner actionLines,
             EmakiItemAssemblyService itemAssemblyService,
             ExecutionDispatcher executionDispatcher,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.itemSourceService = itemSourceService;
-        this.actionExecutor = actionExecutor;
+        this.actionLines = actionLines;
         this.itemAssemblyService = itemAssemblyService;
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
@@ -281,19 +280,18 @@ public final class CookingRewardService {
         if (actions.isEmpty()) {
             return CompletableFuture.completedFuture(true);
         }
-        if (actionExecutor == null) {
+        if (actionLines == null) {
             return CompletableFuture.completedFuture(false);
         }
         Player player = resolvePlayer(payload == null ? null : payload.get("player_uuid"));
         Location location = resolveLocation(mapValue(payload == null ? null : payload.get("location")));
         String phase = Texts.toStringSafe(payload == null ? null : payload.get("phase"));
         Map<String, Object> placeholders = mapValue(payload == null ? null : payload.get("placeholders"));
-        ActionContext context = ActionContext.create(plugin, player, phase, false)
-                .withPlaceholders(placeholders)
-                .withAttribute("phase", phase)
-                .withAttribute("location", location);
-        return actionExecutor.executeAll(context, actions, true)
-                .thenApply(ActionBatchResult::success);
+        // The frozen station location, not the player, is the spatial reference: the reward may be replayed
+        // from the journal long after the player moved away. v1 carried this as a "location" attribute.
+        PipelineContext context = actionLines.context(player, phase, false, placeholders)
+                .withOrigin(location);
+        return actionLines.run(actions, context, true);
     }
 
     public boolean completionConditionPasses(RecipeDocument recipe, Player player) {

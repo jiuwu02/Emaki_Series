@@ -9,7 +9,6 @@ import java.util.function.Consumer;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
@@ -124,12 +123,11 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         StationStateStore stationStateStore = new StationStateStore(
                 plugin, cookingFileScope, executionDispatcher, threadOwnership);
         CookingRecipeService recipeService = new CookingRecipeService(plugin, settingsService);
-        ActionExecutor coreActionExecutor = coreLibPlugin.actionExecutor();
         CookingRewardService rewardService = new CookingRewardService(
                 plugin,
                 messageService,
                 coreLibPlugin.itemSourceService(),
-                coreActionExecutor,
+                plugin.actionLines(),
                 coreLibPlugin.itemAssemblyService(),
                 executionDispatcher,
                 threadOwnership
@@ -240,7 +238,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         PlayerNutritionDataStore nutritionDataStore = new PlayerNutritionDataStore(plugin, () -> nutritionDataFiles);
         NutritionService nutritionService = new NutritionService(
                 plugin,
-                coreActionExecutor,
                 coreLibPlugin.itemSourceService(),
                 settingsService,
                 nutritionTypeRegistry,
@@ -262,7 +259,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 fermentationBarrelRecipeLoader,
                 messageService,
                 bootstrapService,
-                coreActionExecutor,
                 coreLibPlugin.itemSourceService(),
                 craftEngineBlockBridge,
                 itemsAdderBlockBridge,

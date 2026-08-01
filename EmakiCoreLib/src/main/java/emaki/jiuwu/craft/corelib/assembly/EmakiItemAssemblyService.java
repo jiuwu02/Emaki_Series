@@ -19,7 +19,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import emaki.jiuwu.craft.corelib.action.Action;
+
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -38,7 +38,10 @@ public final class EmakiItemAssemblyService {
 
     private static final int CURRENT_SCHEMA_VERSION = 2;
     private static final int PREVIEW_CACHE_SIZE = 128;
-    private static final long PREVIEW_CACHE_TTL_MILLIS = Action.DEFAULT_TIMEOUT_MILLIS;
+    // Was Action.DEFAULT_TIMEOUT_MILLIS before the v1 action system was removed. The value is inlined
+    // rather than re-pointed at a v2 constant: a preview cache TTL has nothing to do with how long a
+    // pipeline stage may run, and borrowing that number again would recreate the same false coupling.
+    private static final long PREVIEW_CACHE_TTL_MILLIS = 30_000L;
 
     private final ItemSourceService itemSourceService;
     private final AssemblyDataManager dataManager;

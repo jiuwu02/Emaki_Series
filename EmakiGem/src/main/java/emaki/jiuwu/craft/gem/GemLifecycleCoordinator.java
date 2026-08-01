@@ -110,7 +110,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 coreLibPlugin::economyManager,
                 coreLibPlugin.itemSourceService()
         );
-        GemActionCoordinator actionCoordinator = new GemActionCoordinator(plugin, coreLibPlugin::actionExecutor);
+        GemActionCoordinator actionCoordinator = new GemActionCoordinator(plugin, plugin.actionLines());
         SocketOpenerService socketOpenerService = new SocketOpenerService(
                 plugin,
                 itemMatcher,

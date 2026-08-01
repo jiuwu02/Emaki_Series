@@ -12,8 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -47,7 +46,7 @@ public final class PlayerLevelService {
     private final LevelExperienceRuleService experienceRuleService;
     private final ItemSourceService itemSourceService;
     private final EconomyManager economyManager;
-    private final ActionExecutor actionExecutor;
+    private final ActionLineRunner actionLines;
     private final ThreadOwnership threadOwnership;
     private final LevelOperationJournal operationJournal;
     private final Runnable attributeRefreshAll;
@@ -63,7 +62,7 @@ public final class PlayerLevelService {
             LevelExperienceRuleService experienceRuleService,
             ItemSourceService itemSourceService,
             EconomyManager economyManager,
-            ActionExecutor actionExecutor,
+            ActionLineRunner actionLines,
             ExecutionDispatcher executionDispatcher,
             ThreadOwnership threadOwnership,
             AppConfig config,
@@ -78,7 +77,7 @@ public final class PlayerLevelService {
         this.experienceRuleService = experienceRuleService == null ? new LevelExperienceRuleService() : experienceRuleService;
         this.itemSourceService = itemSourceService;
         this.economyManager = economyManager;
-        this.actionExecutor = actionExecutor;
+        this.actionLines = actionLines;
         this.threadOwnership = threadOwnership;
         this.operationJournal = new LevelOperationJournal(plugin, executionDispatcher, threadOwnership);
         this.config = config;
@@ -533,17 +532,16 @@ public final class PlayerLevelService {
         if (lines.isEmpty()) {
             return CompletableFuture.completedFuture(true);
         }
-        if (actionExecutor == null) {
-            plugin.getLogger().warning("EmakiLevel action phase '" + phase + "' failed: action executor unavailable");
+        if (actionLines == null) {
+            plugin.getLogger().warning("EmakiLevel action phase '" + phase + "' failed: action runner unavailable");
             return CompletableFuture.completedFuture(false);
         }
-        ActionContext context = ActionContext.create(plugin, player, phase, silent).withPlaceholders(placeholders);
-        return actionExecutor.executeAll(context, lines, true).handle((result, throwable) -> {
+        return actionLines.run(lines, player, phase, silent, placeholders, true).handle((success, throwable) -> {
             if (throwable != null) {
                 plugin.getLogger().warning("EmakiLevel action phase '" + phase + "' failed: " + throwable.getMessage());
                 return false;
             }
-            if (result == null || !result.success()) {
+            if (success == null || !success) {
                 plugin.getLogger().warning("EmakiLevel action phase '" + phase + "' failed: action batch unsuccessful");
                 return false;
             }

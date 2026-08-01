@@ -8,7 +8,6 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.codex.action.CodexActionRegistrar;
 import emaki.jiuwu.craft.codex.action.v2.CodexStageRegistrar;
 import emaki.jiuwu.craft.codex.advancement.AdvancementJsonBuilder;
 import emaki.jiuwu.craft.codex.advancement.AdvancementListener;
@@ -24,6 +23,7 @@ import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
 import emaki.jiuwu.craft.codex.listener.PlayerConnectionListener;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -149,9 +149,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerActions() {
-        EmakiCoreLibPlugin coreLib = coreLib();
-        new CodexActionRegistrar(this).register(coreLib.actionRegistry(), coreLib.itemSourceService());
-        stageRegistrar = new CodexStageRegistrar(this, coreLib.itemSourceService());
+        stageRegistrar = new CodexStageRegistrar(this, coreLib().itemSourceService());
         stageRegistrar.register();
     }
 
@@ -212,6 +210,16 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
     }
 
     public AdvancementPageLoader advancementPageLoader() {

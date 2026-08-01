@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.corelib.command;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,13 +12,12 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.Action;
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionParameter;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.action.ActionStepResult;
-import emaki.jiuwu.craft.corelib.action.loop.LoopTaskSnapshot;
+import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
+import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineTaskService;
+import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
@@ -82,9 +80,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
             complete(args[1], plugin.configPrecheckService().registry().moduleIds(), result);
         } else if (args.length == 2 && isActionCommand(args[0])) {
             complete(args[1], ACTION_MODES, result);
-            complete(args[1], actionIds(), result);
+            complete(args[1], stageIds(), result);
         } else if (args.length == 3 && isActionCommand(args[0]) && "run".equalsIgnoreCase(args[1])) {
-            complete(args[2], actionIds(), result);
+            complete(args[2], stageIds(), result);
         } else if (args.length == 2 && "debug".equalsIgnoreCase(args[0])) {
             complete(args[1], DEBUG_MODES, result);
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "all".equalsIgnoreCase(args[1])) {
@@ -136,12 +134,13 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendLang(sender, "command.no_permission_admin");
             return true;
         }
-        if (plugin.actionRegistry() == null || plugin.actionExecutor() == null) {
+        StageRegistry registry = plugin.stageRegistry();
+        if (registry == null || plugin.actionEngine() == null) {
             sendLang(sender, "command.action_unavailable");
             return true;
         }
         if (args.length < 2 || "list".equalsIgnoreCase(args[1])) {
-            sendActionList(sender);
+            sendStageList(sender, registry);
             return true;
         }
         int lineStart = "run".equalsIgnoreCase(args[1]) ? 2 : 1;
@@ -150,42 +149,74 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendLang(sender, "command.action_usage");
             return true;
         }
-        Player player = sender instanceof Player resolvedPlayer ? resolvedPlayer : null;
-        ActionContext context = ActionContext.create(plugin, player, "command.action", false)
-                .withPlaceholders(Map.of(
-                        "sender", sender.getName(),
-                        "player", player == null ? "" : player.getName(),
-                        "action_line", rawLine
-                ))
-                .withAttribute("command_sender", sender);
-        sendLang(sender, "command.action_execute_started", Map.of("line", rawLine));
-        plugin.actionExecutor().executeAll(context, List.of(rawLine), true).whenComplete((batch, throwable) ->
-                dispatchSender(sender, () -> sendActionExecutionResult(sender, batch, throwable))
-        );
+        runPipelineLine(sender, rawLine);
         return true;
     }
 
-    private void sendActionList(CommandSender sender) {
-        Map<String, Action> actions = new LinkedHashMap<>(plugin.actionRegistry().all());
-        sendLang(sender, "command.action_list_header", Map.of("count", String.valueOf(actions.size())));
-        if (actions.isEmpty()) {
+    /**
+     * Compiles and runs one pipeline line typed at the console or in chat.
+     *
+     * <p>Compiled first so a syntax or unknown-stage problem is reported with its own diagnostic instead of
+     * surfacing as a generic run failure. Only the first diagnostic is shown: the compiler reports every
+     * problem it finds on a line, and the rest are usually consequences of the first.</p>
+     */
+    private void runPipelineLine(CommandSender sender, String rawLine) {
+        ActionEngine engine = plugin.actionEngine();
+        ActionEngine.Result compiled = engine.compile(rawLine, null);
+        if (!compiled.successful() || compiled.pipeline() == null) {
+            sendLang(sender, "command.action_compile_failed", Map.of(
+                    "line", rawLine,
+                    "reason", compiled.diagnostics().isEmpty()
+                            ? "unknown"
+                            : Texts.toStringSafe(compiled.diagnostics().get(0).reasonKey())
+            ));
+            return;
+        }
+        Player player = sender instanceof Player resolvedPlayer ? resolvedPlayer : null;
+        PipelineContext context = plugin.actionLineRunner(plugin)
+                .context(player, "command.action", false, Map.of(
+                        "sender", sender.getName(),
+                        "player", player == null ? "" : player.getName(),
+                        "action_line", rawLine
+                ));
+        sendLang(sender, "command.action_execute_started", Map.of("line", rawLine));
+        engine.run(plugin, compiled.pipeline(), context).whenComplete((outcome, throwable) ->
+                dispatchSender(sender, () -> sendPipelineOutcome(sender, outcome, throwable))
+        );
+    }
+
+    /**
+     * Lists the registered pipeline stages, grouped by role.
+     *
+     * <p>Grouped because a stage id is only valid in one position of a line, so a flat list would not tell
+     * an operator where the id they are looking at can actually be used.</p>
+     */
+    private void sendStageList(CommandSender sender, StageRegistry registry) {
+        Map<CoreStageKind, List<String>> byKind = registry.allIds();
+        int total = byKind.values().stream().mapToInt(List::size).sum();
+        sendLang(sender, "command.action_list_header", Map.of("count", String.valueOf(total)));
+        if (total == 0) {
             sendLang(sender, "command.action_list_empty");
             return;
         }
-        actions.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> {
-                    String id = entry.getKey();
-                    Action action = entry.getValue();
-                    plugin.messageService().sendRaw(sender, plugin.messageService().message("command.action_list_item", Map.of(
-                            "id", id,
-                            "category", Texts.toStringSafe(action.category()),
-                            "source", emptyAsDash(plugin.actionRegistry().sourceOf(id)),
-                            "owner", emptyAsDash(plugin.actionRegistry().ownerKeyOf(id)),
-                            "mode", Texts.toStringSafe(action.executionMode()),
-                            "params", actionParameters(action)
-                    )));
-                });
+        for (CoreStageKind kind : CoreStageKind.values()) {
+            List<String> ids = byKind.getOrDefault(kind, List.of());
+            for (String id : ids) {
+                plugin.messageService().sendRaw(sender, plugin.messageService().message("command.action_list_item", Map.of(
+                        "id", id,
+                        "kind", Texts.lower(kind.name()),
+                        "owner", emptyAsDash(ownerNameOf(registry, kind, id))
+                )));
+            }
+        }
+    }
+
+    private String ownerNameOf(StageRegistry registry, CoreStageKind kind, String id) {
+        return switch (kind) {
+            case SOURCE -> registry.sources().ownerNameOf(id);
+            case GATE -> registry.gates().ownerNameOf(id);
+            case ACTION -> registry.actions().ownerNameOf(id);
+        };
     }
 
     private void dispatchSender(CommandSender sender, Runnable task) {
@@ -196,64 +227,56 @@ public final class CoreLibCommandRouter implements TabExecutor {
         }
     }
 
-    private void sendActionExecutionResult(CommandSender sender, ActionBatchResult batch, Throwable throwable) {
+    /**
+     * Reports how a manually run pipeline ended.
+     *
+     * <p>Names the stage that failed rather than only the overall status, because a line typed by hand is
+     * usually being debugged and the failing stage is the whole answer.</p>
+     */
+    private void sendPipelineOutcome(CommandSender sender, PipelineOutcome outcome, Throwable throwable) {
         if (throwable != null) {
             sendLang(sender, "command.action_execute_failed", Map.of(
-                    "action", "-",
+                    "stage", "-",
                     "error", Texts.toStringSafe(throwable.getMessage())
             ));
             return;
         }
-        if (batch == null || batch.steps() == null) {
-            sendLang(sender, "command.action_execute_failed", Map.of("action", "-", "error", "No result returned."));
+        if (outcome == null) {
+            sendLang(sender, "command.action_execute_failed", Map.of("stage", "-", "error", "No result returned."));
             return;
         }
-        int success = 0;
-        int skipped = 0;
-        int failed = 0;
-        for (ActionStepResult step : batch.steps()) {
-            ActionResult result = step == null ? null : step.result();
-            if (result == null || !result.success()) {
-                failed++;
-            } else if (result.skipped()) {
-                skipped++;
-            } else {
-                success++;
-            }
-        }
-        if (failed > 0 || !batch.success()) {
-            ActionStepResult failure = batch.firstFailure();
-            ActionResult result = failure == null ? null : failure.result();
+        if (outcome.status() == PipelineOutcome.Status.FAILURE) {
+            PipelineOutcome.StageResult failure = firstFailedStage(outcome);
             sendLang(sender, "command.action_execute_failed", Map.of(
-                    "action", failure == null ? "-" : Texts.toStringSafe(failure.actionId()),
-                    "error", result == null ? "Unknown failure." : Texts.toStringSafe(result.errorMessage())
+                    "stage", failure == null ? "-" : Texts.toStringSafe(failure.stageId()),
+                    "error", Texts.toStringSafe(outcome.reasonKey())
             ));
             return;
         }
         sendLang(sender, "command.action_execute_success", Map.of(
-                "success", String.valueOf(success),
-                "skipped", String.valueOf(skipped)
+                "status", Texts.lower(outcome.status().name()),
+                "stages", String.valueOf(outcome.stageResults().size())
         ));
     }
 
-    private List<String> actionIds() {
-        if (plugin.actionRegistry() == null) {
-            return List.of();
+    private PipelineOutcome.StageResult firstFailedStage(PipelineOutcome outcome) {
+        for (PipelineOutcome.StageResult stage : outcome.stageResults()) {
+            if (stage != null && stage.status() == PipelineOutcome.Status.FAILURE) {
+                return stage;
+            }
         }
-        List<String> ids = new ArrayList<>(plugin.actionRegistry().all().keySet());
-        ids.sort(Comparator.naturalOrder());
-        return ids;
+        return null;
     }
 
-    private String actionParameters(Action action) {
-        if (action == null || action.parameters().isEmpty()) {
-            return "-";
+    private List<String> stageIds() {
+        StageRegistry registry = plugin.stageRegistry();
+        if (registry == null) {
+            return List.of();
         }
-        List<String> parts = new ArrayList<>();
-        for (ActionParameter parameter : action.parameters()) {
-            parts.add(parameter.name() + (parameter.required() ? "*" : ""));
-        }
-        return String.join(", ", parts);
+        List<String> ids = new ArrayList<>();
+        registry.allIds().values().forEach(ids::addAll);
+        ids.sort(Comparator.naturalOrder());
+        return ids;
     }
 
     private String joinArguments(String[] args, int startIndex) {
@@ -290,25 +313,31 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendHelp(sender, "corelib");
             return true;
         }
+        PipelineTaskService tasks = plugin.pipelineTaskService();
+        if (tasks == null) {
+            sendLang(sender, "command.action_unavailable");
+            return true;
+        }
         String mode = args.length >= 3 ? args[2].toLowerCase(java.util.Locale.ROOT) : "list";
         switch (mode) {
-            case "list" -> sendLoopSnapshots(sender, plugin.loopActionService().snapshots());
             case "player" -> {
                 Player player = args.length >= 4 ? Bukkit.getPlayerExact(args[3]) : null;
                 if (player == null) {
                     sendLang(sender, "debug.command.player_not_found", Map.of("player", args.length >= 4 ? args[3] : ""));
                 } else {
-                    sendLoopSnapshots(sender, plugin.loopActionService().snapshotsByPlayer(player.getUniqueId()));
+                    sendTaskSnapshots(sender, tasks.snapshotsByPlayer(player.getUniqueId()));
                 }
             }
-            case "key" -> sendLoopSnapshots(sender, plugin.loopActionService().snapshotsByKey(args.length >= 4 ? args[3] : ""));
+            case "key" -> sendTaskSnapshots(sender, tasks.snapshotsByKey(args.length >= 4 ? args[3] : ""));
             case "cancel" -> {
                 String key = args.length >= 4 ? args[3] : "";
-                ActionResult result = plugin.loopActionService().cancel(key, "exact", false);
-                if (result.success()) {
+                // Exact match, matching what this command did under v1: an operator cancelling by a key
+                // they typed should not also take out everything that happens to share its prefix.
+                int cancelled = tasks.stop(key, false);
+                if (cancelled > 0) {
                     sendLang(sender, "command.loop_cancelled", Map.of("key", key));
                 } else {
-                    plugin.messageService().sendRaw(sender, "<red>" + result.errorMessage() + "</red>");
+                    sendLang(sender, "command.loop_not_found", Map.of("key", key));
                 }
             }
             case "cancel-player" -> {
@@ -316,11 +345,11 @@ public final class CoreLibCommandRouter implements TabExecutor {
                 if (player == null) {
                     sendLang(sender, "debug.command.player_not_found", Map.of("player", args.length >= 4 ? args[3] : ""));
                 } else {
-                    int count = plugin.loopActionService().cancelByPlayer(player.getUniqueId());
+                    int count = tasks.stopByPlayer(player.getUniqueId());
                     sendLang(sender, "command.loop_player_cancelled", Map.of("player", player.getName(), "count", String.valueOf(count)));
                 }
             }
-            default -> sendLoopSnapshots(sender, plugin.loopActionService().snapshots());
+            default -> sendTaskSnapshots(sender, tasks.snapshots());
         }
         return true;
     }
@@ -351,18 +380,18 @@ public final class CoreLibCommandRouter implements TabExecutor {
         ConfigPrecheckMessages.sendReport(plugin.messageService(), sender, "corelib", report);
     }
 
-    private void sendLoopSnapshots(CommandSender sender, List<LoopTaskSnapshot> snapshots) {
+    private void sendTaskSnapshots(CommandSender sender, List<PipelineTaskService.TaskSnapshot> snapshots) {
         if (snapshots == null || snapshots.isEmpty()) {
             sendLang(sender, "command.loop_empty");
             return;
         }
         sendLang(sender, "command.loop_header", Map.of("count", String.valueOf(snapshots.size())));
-        for (LoopTaskSnapshot snapshot : snapshots) {
+        for (PipelineTaskService.TaskSnapshot snapshot : snapshots) {
             String player = snapshot.playerUuid() == null ? "-" : snapshot.playerUuid().toString();
             plugin.messageService().sendRaw(sender, "<gray>- key=<aqua>" + snapshot.key()
-                    + "</aqua> template=<yellow>" + snapshot.template()
+                    + "</aqua> plugin=<yellow>" + snapshot.pluginName()
                     + "</yellow> index=<white>" + snapshot.index() + "/" + snapshot.times()
-                    + "</white> async=<white>" + snapshot.async()
+                    + "</white> interval=<white>" + snapshot.intervalTicks() + "t"
                     + "</white> player=<gray>" + player + "</gray></gray>");
         }
     }

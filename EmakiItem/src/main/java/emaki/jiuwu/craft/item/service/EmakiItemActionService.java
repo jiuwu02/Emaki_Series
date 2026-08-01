@@ -8,7 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -16,11 +17,9 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 public final class EmakiItemActionService {
 
     private final EmakiItemPlugin plugin;
-    private final ActionExecutor actionExecutor;
 
-    public EmakiItemActionService(EmakiItemPlugin plugin, ActionExecutor actionExecutor) {
+    public EmakiItemActionService(EmakiItemPlugin plugin) {
         this.plugin = plugin;
-        this.actionExecutor = actionExecutor;
     }
 
     public void execute(Player player, EmakiItemDefinition definition, String trigger, Map<String, ?> extraPlaceholders) {
@@ -55,7 +54,13 @@ public final class EmakiItemActionService {
         if (player == null || definition == null || lines == null || lines.isEmpty()) {
             return;
         }
-        actionExecutor.executeAll(context(player, definition, trigger, extraPlaceholders, itemStack), lines, true);
+        // The item travels as the typed ITEM key, which is what v2 stages read in place of v1's
+        // weakly-typed "item_stack" attribute. The trigger stays the phase, as it was in v1.
+        PipelineContext context = plugin.actionLines()
+                .context(player, trigger, false, placeholders(player, definition, trigger, extraPlaceholders));
+        plugin.actionLines().run(lines, itemStack == null
+                ? context
+                : context.with(CoreActionKeys.ITEM, itemStack), true);
     }
 
     ActionContext context(Player player,
@@ -65,11 +70,30 @@ public final class EmakiItemActionService {
         return context(player, definition, trigger, extraPlaceholders, null);
     }
 
+    /**
+     * Builds the v1 context the placeholder and condition subsystems still consume.
+     *
+     * <p>Retained after the pipeline migration because {@code PlaceholderResolver} and
+     * {@code ConditionEvaluator} are declared in terms of {@code ActionContext}; those subsystems keep it
+     * as their own context type, so this is not a leftover action-executor dependency.</p>
+     */
     ActionContext context(Player player,
             EmakiItemDefinition definition,
             String trigger,
             Map<String, ?> extraPlaceholders,
             ItemStack itemStack) {
+        ActionContext context = ActionContext.create(plugin, player, trigger, false)
+                .withPlaceholders(placeholders(player, definition, trigger, extraPlaceholders))
+                .withAttribute("item_definition", definition)
+                .withAttribute("item_id", definition.id())
+                .withAttribute("trigger", trigger == null ? "" : trigger);
+        return itemStack == null ? context : context.withAttribute("item_stack", itemStack);
+    }
+
+    private Map<String, Object> placeholders(Player player,
+            EmakiItemDefinition definition,
+            String trigger,
+            Map<String, ?> extraPlaceholders) {
         Map<String, Object> placeholders = new LinkedHashMap<>();
         placeholders.put("player", player == null ? "" : player.getName());
         placeholders.put("item_id", definition.id());
@@ -78,11 +102,6 @@ public final class EmakiItemActionService {
         if (extraPlaceholders != null) {
             placeholders.putAll(extraPlaceholders);
         }
-        ActionContext context = ActionContext.create(plugin, player, trigger, false)
-                .withPlaceholders(placeholders)
-                .withAttribute("item_definition", definition)
-                .withAttribute("item_id", definition.id())
-                .withAttribute("trigger", trigger == null ? "" : trigger);
-        return itemStack == null ? context : context.withAttribute("item_stack", itemStack);
+        return placeholders;
     }
 }

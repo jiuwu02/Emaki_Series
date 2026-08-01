@@ -160,10 +160,6 @@ final class StorageLifecycleCoordinator
         if (plugin.stageRegistrar() != null) {
             plugin.stageRegistrar().unregister();
         }
-        EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        if (coreLib.actionRegistry() != null) {
-            coreLib.actionRegistry().unregisterAll(plugin);
-        }
     }
 
     private AppConfig parseAppConfig(YamlSection configuration, EmakiStoragePlugin plugin) {

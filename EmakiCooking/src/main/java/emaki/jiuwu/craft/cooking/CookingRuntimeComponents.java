@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.cooking;
 
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
@@ -55,7 +54,6 @@ record CookingRuntimeComponents(ExecutionDispatcher executionDispatcher,
         FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader,
         MessageService messageService,
         BootstrapService bootstrapService,
-        ActionExecutor coreActionExecutor,
         ItemSourceService coreItemSourceService,
         CraftEngineBlockBridge craftEngineBlockBridge,
         CustomBlockBridge itemsAdderBlockBridge,
@@ -98,7 +96,6 @@ record CookingRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(FermentationBarrelRecipeLoader.class, fermentationBarrelRecipeLoader),
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
-                RuntimeComponents.component(ActionExecutor.class, coreActionExecutor),
                 RuntimeComponents.component(ItemSourceService.class, coreItemSourceService),
                 RuntimeComponents.component(CraftEngineBlockBridge.class, craftEngineBlockBridge),
                 RuntimeComponents.component(CustomBlockBridge.class, itemsAdderBlockBridge),

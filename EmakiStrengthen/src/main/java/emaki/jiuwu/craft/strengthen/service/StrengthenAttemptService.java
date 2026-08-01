@@ -16,7 +16,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
@@ -516,7 +515,7 @@ public final class StrengthenAttemptService {
         return rebuilt;
     }
 
-    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
+    public CompletableFuture<Boolean> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -525,7 +524,7 @@ public final class StrengthenAttemptService {
         return triggerSuccessActions(player, recipe, resultSlotId, itemTarget, star, temper, "");
     }
 
-    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
+    public CompletableFuture<Boolean> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -536,7 +535,7 @@ public final class StrengthenAttemptService {
                 player, recipe, resultSlotId, itemTarget, star, temper, operationId);
     }
 
-    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+    public CompletableFuture<Boolean> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -549,7 +548,7 @@ public final class StrengthenAttemptService {
                 dropped, protectionApplied, "");
     }
 
-    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+    public CompletableFuture<Boolean> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,

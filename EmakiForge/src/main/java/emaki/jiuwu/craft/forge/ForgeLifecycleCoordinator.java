@@ -106,8 +106,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
         appConfigLoader.load();
         LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
-        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLibPlugin::actionRegistry,
-                coreLibPlugin::actionTemplateRegistry);
+        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLibPlugin::actionEngine);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         AsyncYamlFiles playerDataFiles = coreLibPlugin.asyncYamlFiles(plugin);
         PlayerDataStore playerDataStore = new PlayerDataStore(plugin, () -> playerDataFiles);
@@ -126,7 +125,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 coreLibPlugin.asyncTaskScheduler(),
                 coreLibPlugin.performanceMonitor(),
                 coreLibPlugin.itemAssemblyService(),
-                coreLibPlugin::actionExecutor,
+                plugin.actionLines(),
                 executionDispatcher,
                 threadOwnership
         );
@@ -305,8 +304,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         validateCandidateLanguagesReadOnly(new File(plugin.getDataFolder(), "lang"));
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         BootstrapService bootstrapService = createBootstrapService(plugin, messageService);
-        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLib::actionRegistry,
-                coreLib::actionTemplateRegistry, plugin.itemIdentifierService(), true);
+        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLib::actionEngine,
+                plugin.itemIdentifierService(), true);
         ForgeGuiTemplateLoader guiTemplateLoader = new ForgeGuiTemplateLoader(
                 plugin, plugin.itemIdentifierService(), true);
         recipeLoader.prepareLoad(generation);

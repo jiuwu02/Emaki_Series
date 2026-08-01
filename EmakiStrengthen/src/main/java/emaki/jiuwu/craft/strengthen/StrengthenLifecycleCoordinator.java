@@ -92,7 +92,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 coreLibPlugin.itemSourceService()
         );
         StrengthenSnapshotBuilder snapshotBuilder = new StrengthenSnapshotBuilder();
-        StrengthenActionCoordinator actionCoordinator = new StrengthenActionCoordinator(plugin, coreLibPlugin::actionExecutor);
+        StrengthenActionCoordinator actionCoordinator = new StrengthenActionCoordinator(plugin);
         StrengthenAttemptService attemptService = new StrengthenAttemptService(
                 plugin,
                 recipeResolver,

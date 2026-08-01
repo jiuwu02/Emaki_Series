@@ -14,7 +14,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 
-import emaki.jiuwu.craft.attribute.action.AttributeActions;
 import emaki.jiuwu.craft.attribute.action.v2.AttributeStageRegistrar;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -419,13 +418,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     private void registerCoreLibActions() {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        if (coreLibPlugin.actionRegistry() == null || attributeService == null) {
+        if (attributeService == null) {
             return;
         }
-        AttributeActions.registerAll(coreLibPlugin.actionRegistry(), this, attributeService);
-        // Rebuilt on every module reload for the same reason the v1 registration is: the stages capture the
-        // service facade, and a reload may have replaced it.
+        // Rebuilt on every module reload: the stages capture the service facade, and a reload may have
+        // replaced it.
         stageRegistrar = new AttributeStageRegistrar(this, attributeService);
         stageRegistrar.register();
     }
@@ -435,11 +432,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
             stageRegistrar.unregister();
             stageRegistrar = null;
         }
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        if (coreLibPlugin.actionRegistry() == null) {
-            return;
-        }
-        AttributeActions.unregisterAll(coreLibPlugin.actionRegistry(), this);
     }
 
 }

@@ -333,7 +333,7 @@ public record CoreLibConfig(
         }
 
         private static long parseTicks(String raw, long fallback) {
-            long parsed = emaki.jiuwu.craft.corelib.action.ActionParsers.parseTicks(raw);
+            long parsed = emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers.parseTicks(raw);
             return parsed < 0L ? fallback : parsed;
         }
     }

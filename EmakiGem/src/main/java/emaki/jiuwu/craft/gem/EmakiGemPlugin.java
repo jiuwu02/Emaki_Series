@@ -11,6 +11,7 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
@@ -29,7 +30,6 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.gem.action.GemActionRegistrar;
 import emaki.jiuwu.craft.gem.action.v2.GemStageRegistrar;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
@@ -152,10 +152,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             stageRegistrar.unregister();
             stageRegistrar = null;
         }
-        EmakiCoreLibPlugin coreLib = coreLib();
-        if (coreLib != null && coreLib.actionRegistry() != null) {
-            coreLib.actionRegistry().unregisterAll(this);
-        }
         EmakiGemApi.uninstall(gemApiBridge);
         if (metrics != null) {
             metrics.close();
@@ -228,7 +224,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     private void registerActions() {
-        new GemActionRegistrar(this).register(coreLib().actionRegistry());
         stageRegistrar = new GemStageRegistrar(this);
         stageRegistrar.register();
     }
@@ -303,6 +298,16 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
     }
 
     public ItemSourceService coreItemSourceService() {

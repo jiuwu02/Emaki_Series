@@ -1,26 +1,20 @@
 /**
- * Action extension point: register your own actions into EmakiCoreLib's shared action registry.
+ * Types shared by the pipeline extension point in {@link emaki.jiuwu.craft.corelib.api.action.v2}.
  *
- * <h2>Stability</h2>
- * Stable. {@link emaki.jiuwu.craft.corelib.api.action.CoreAction} is the one interface third-party
- * plugins are expected to implement; every other type here is a value object produced by
- * EmakiCoreLib.
+ * <h2>Scope</h2>
+ * These three types sit outside the {@code v2} package because they are not tied to one stage role:
+ * {@link emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain} and
+ * {@link emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget} are declared by sources, gates
+ * and actions alike, and {@link emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget} is a plain
+ * holder a caller passes through a pipeline and reads back afterwards.
+ *
+ * <h2>Where to start</h2>
+ * Implement {@link emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage} and register it with
+ * {@code EmakiCoreLibApi.registerActionStage}. Nothing in this package is meant to be implemented.
  *
  * <h2>Threading</h2>
- * Registration and every descriptor query may be called from any thread. Action execution itself
- * happens on the thread implied by the action's declared
- * {@link emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionMode} and
- * {@link emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain}; declare these honestly,
- * because EmakiCoreLib routes based on them.
- *
- * <h2>Lifecycle</h2>
- * Keep the {@link emaki.jiuwu.craft.corelib.api.action.CoreActionRegistration} handle and close it in
- * your {@code onDisable}, or call {@code EmakiCoreLibApi.unregisterActions(Plugin)}. Registrations
- * that outlive their owner leak across reloads.
- *
- * <h2>Degradation</h2>
- * When EmakiCoreLib is absent, registration returns an unavailable
- * {@link emaki.jiuwu.craft.corelib.api.action.CoreActionRegistration} and every query returns an
- * empty list or optional.
+ * Declare {@link emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget} honestly: EmakiCoreLib
+ * routes a stage to a thread or region based on it, and on Folia a wrong declaration is refused rather
+ * than silently tolerated.
  */
 package emaki.jiuwu.craft.corelib.api.action;

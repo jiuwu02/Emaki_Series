@@ -147,7 +147,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         ItemComponentInspector componentInspector = new ItemComponentInspector();
         ItemComponentPlaceholderResolver componentPlaceholderResolver = new ItemComponentPlaceholderResolver(componentInspector);
         coreLibPlugin.placeholderRegistry().register(componentPlaceholderResolver);
-        EmakiItemActionService actionService = new EmakiItemActionService(plugin, coreLibPlugin.actionExecutor());
+        EmakiItemActionService actionService = new EmakiItemActionService(plugin);
         EmakiItemConditionChecker conditionChecker = new EmakiItemConditionChecker(plugin, coreLibPlugin.placeholderRegistry(), actionService);
         ItemRepairService repairService = new ItemRepairService(
                 plugin,

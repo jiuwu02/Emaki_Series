@@ -11,12 +11,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
@@ -77,7 +76,7 @@ public final class ForgeService {
                         AsyncTaskScheduler asyncTaskScheduler,
                         PerformanceMonitor performanceMonitor,
                         EmakiItemAssemblyService itemAssemblyService,
-                        Supplier<ActionExecutor> actionExecutorSupplier,
+                        ActionLineRunner actionLines,
                         ExecutionDispatcher executionDispatcher,
                         ThreadOwnership threadOwnership) {
         this.plugin = plugin;
@@ -88,7 +87,7 @@ public final class ForgeService {
         this.layerSnapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.resultItemFactory = new ForgeResultItemFactory(plugin);
         ForgePdcAttributeWriter pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
-        ForgeActionCoordinator actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory, actionExecutorSupplier);
+        ForgeActionCoordinator actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory, actionLines);
         this.lookupIndex = new ForgeLookupIndex();
         MaterialValidationService materialValidationService = new MaterialValidationService(plugin, lookupIndex);
         QualityCalculationService qualityCalculationService = new QualityCalculationService(

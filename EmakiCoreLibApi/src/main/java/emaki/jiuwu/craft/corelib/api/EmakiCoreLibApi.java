@@ -11,11 +11,6 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.action.CoreAction;
-import emaki.jiuwu.craft.corelib.api.action.CoreActionDescriptor;
-import emaki.jiuwu.craft.corelib.api.action.CoreActionErrorType;
-import emaki.jiuwu.craft.corelib.api.action.CoreActionRegistration;
-import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
@@ -242,110 +237,11 @@ public final class EmakiCoreLibApi {
     }
 
     /**
-     * Registers an action owned by another plugin.
-     *
-     * <p>Use a stable lowercase source id such as your plugin id. The returned handle may be stored
-     * and closed on plugin disable; {@link #unregisterActions(Plugin)} is an alternative.
-     *
-     * @param owner  plugin that owns the action lifecycle
-     * @param source stable source id for grouping actions
-     * @param action action implementation
-     * @return registration handle and result
-     */
-    public static @NotNull CoreActionRegistration registerAction(@Nullable Plugin owner,
-            @Nullable String source,
-            @Nullable CoreAction action) {
-        Bridge resolved = bridge;
-        return resolved == null
-                ? CoreActionRegistration.unavailable(CoreActionResult.failure(CoreActionErrorType.INVALID_STATE,
-                        "EmakiCoreLib is unavailable."))
-                : resolved.registerAction(owner, source, action);
-    }
-
-    /**
-     * Unregisters one action by id.
-     *
-     * @param actionId the action id
-     */
-    public static void unregisterAction(@Nullable String actionId) {
-        Bridge resolved = bridge;
-        if (resolved != null) {
-            resolved.unregisterAction(actionId);
-        }
-    }
-
-    /**
-     * Unregisters all actions owned by a plugin.
-     *
-     * @param owner the owning plugin
-     */
-    public static void unregisterActions(@Nullable Plugin owner) {
-        Bridge resolved = bridge;
-        if (resolved != null) {
-            resolved.unregisterActions(owner);
-        }
-    }
-
-    /**
-     * Unregisters all actions registered with the given source id.
-     *
-     * @param source the source id
-     */
-    public static void unregisterActionsBySource(@Nullable String source) {
-        Bridge resolved = bridge;
-        if (resolved != null) {
-            resolved.unregisterActionsBySource(source);
-        }
-    }
-
-    /**
-     * @param actionId the action id
-     * @return whether that action id is currently registered
-     */
-    public static boolean actionRegistered(@Nullable String actionId) {
-        Bridge resolved = bridge;
-        return resolved != null && resolved.actionRegistered(actionId);
-    }
-
-    /**
-     * @param actionId the action id
-     * @return the descriptor when registered, otherwise an empty optional
-     */
-    public static @NotNull Optional<CoreActionDescriptor> action(@Nullable String actionId) {
-        Bridge resolved = bridge;
-        return resolved == null ? Optional.empty() : Optional.ofNullable(resolved.action(actionId));
-    }
-
-    /** {@return descriptors for all currently registered actions; empty when unavailable} */
-    public static @NotNull List<CoreActionDescriptor> actions() {
-        Bridge resolved = bridge;
-        return resolved == null ? List.of() : resolved.actions();
-    }
-
-    /**
-     * @param owner the owning plugin
-     * @return descriptors for actions owned by that plugin; empty when unavailable
-     */
-    public static @NotNull List<CoreActionDescriptor> actionsByOwner(@Nullable Plugin owner) {
-        Bridge resolved = bridge;
-        return resolved == null ? List.of() : resolved.actionsByOwner(owner);
-    }
-
-    /**
-     * @param source the source id
-     * @return descriptors for actions registered with that source id; empty when unavailable
-     */
-    public static @NotNull List<CoreActionDescriptor> actionsBySource(@Nullable String source) {
-        Bridge resolved = bridge;
-        return resolved == null ? List.of() : resolved.actionsBySource(source);
-    }
-
-    /**
      * Registers an action stage into EmakiCoreLib's single stage registry.
      *
-     * <p>This is the v2 counterpart of {@link #registerAction}. There is no {@code source} parameter and no
-     * unregister-by-id method: a stage is revoked only through the returned handle or by its owner being
-     * disabled, so one plugin can no longer retire another plugin's stage.</p>
+     * <p>There is no {@code source} parameter and no unregister-by-id method: a stage is revoked only
+     * through the returned handle or by its owner being disabled, so one plugin can no longer retire
+     * another plugin's stage.</p>
      *
      * <p>Keep the handle and close it in {@code onDisable}. Because a EmakiCoreLib reload rebuilds the stage
      * table, also register a rebuild callback through {@link #onStageRegistryRebuilt} or the stage will be
@@ -472,61 +368,6 @@ public final class EmakiCoreLibApi {
         /** {@return the current runtime and catalog component capabilities} */
         @NotNull
         List<ItemComponentCapability> itemComponentCapabilities();
-
-        /**
-         * @param owner  plugin that owns the action lifecycle
-         * @param source stable source id
-         * @param action action implementation
-         * @return registration handle and result
-         */
-        @NotNull
-        CoreActionRegistration registerAction(@Nullable Plugin owner, @Nullable String source, @Nullable CoreAction action);
-
-        /**
-         * @param actionId the action id
-         */
-        void unregisterAction(@Nullable String actionId);
-
-        /**
-         * @param owner the owning plugin
-         */
-        void unregisterActions(@Nullable Plugin owner);
-
-        /**
-         * @param source the source id
-         */
-        void unregisterActionsBySource(@Nullable String source);
-
-        /**
-         * @param actionId the action id
-         * @return whether it is registered
-         */
-        boolean actionRegistered(@Nullable String actionId);
-
-        /**
-         * @param actionId the action id
-         * @return the descriptor, or {@code null} when not found
-         */
-        @Nullable
-        CoreActionDescriptor action(@Nullable String actionId);
-
-        /** {@return descriptors for all registered actions} */
-        @NotNull
-        List<CoreActionDescriptor> actions();
-
-        /**
-         * @param owner the owning plugin
-         * @return descriptors for actions owned by that plugin
-         */
-        @NotNull
-        List<CoreActionDescriptor> actionsByOwner(@Nullable Plugin owner);
-
-        /**
-         * @param source the source id
-         * @return descriptors for actions with that source id
-         */
-        @NotNull
-        List<CoreActionDescriptor> actionsBySource(@Nullable String source);
 
         /**
          * @param owner plugin that owns the stage lifecycle

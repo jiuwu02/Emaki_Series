@@ -11,13 +11,11 @@ import java.util.logging.Level;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -112,7 +110,7 @@ public final class SkillUpgradeService {
     private final SkillParameterResolver parameterResolver;
     private final Supplier<EconomyManager> economyManagerSupplier;
     private final ItemSourceService itemSourceService;
-    private final Supplier<ActionExecutor> actionExecutorSupplier;
+    private final ActionLineRunner actionLines;
 
     public SkillUpgradeService(JavaPlugin plugin,
             PlayerSkillStateService stateService,
@@ -121,7 +119,7 @@ public final class SkillUpgradeService {
             SkillParameterResolver parameterResolver,
             Supplier<EconomyManager> economyManagerSupplier,
             ItemSourceService itemSourceService,
-            Supplier<ActionExecutor> actionExecutorSupplier) {
+            ActionLineRunner actionLines) {
         this.plugin = plugin;
         this.stateService = stateService;
         this.dataStore = dataStore;
@@ -129,7 +127,7 @@ public final class SkillUpgradeService {
         this.parameterResolver = parameterResolver;
         this.economyManagerSupplier = economyManagerSupplier;
         this.itemSourceService = itemSourceService;
-        this.actionExecutorSupplier = actionExecutorSupplier;
+        this.actionLines = actionLines;
     }
 
     public UpgradePreview preview(Player player, String skillId) {
@@ -620,8 +618,7 @@ public final class SkillUpgradeService {
         if (actions == null || actions.isEmpty()) {
             return;
         }
-        ActionExecutor executor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
-        if (executor == null) {
+        if (actionLines == null) {
             return;
         }
         Map<String, String> stringPlaceholders = new LinkedHashMap<>();
@@ -630,18 +627,19 @@ public final class SkillUpgradeService {
         }
         stringPlaceholders.putIfAbsent("skills_skill_id", definition.id());
         stringPlaceholders.putIfAbsent("skills_phase", phase);
-        ActionContext context = ActionContext.create(plugin, player, phase, false)
-                .withPlaceholders(stringPlaceholders)
-                .withAttribute("skill_definition", definition)
-                .withAttribute("skill_id", definition.id())
-                .withAttribute("phase", phase);
-        executor.executeAll(context, actions, true)
-                .whenComplete((result, throwable) -> logActionResult(definition, phase, result, throwable));
+        actionLines.run(actions, player, phase, false, stringPlaceholders, true)
+                .whenComplete((success, throwable) -> logActionResult(definition, phase, success, throwable));
     }
 
+    /**
+     * Reports a failed action phase.
+     *
+     * <p>The pipeline reports one aggregate boolean instead of v1's per-line failure list, so the reason a
+     * line failed is only in the CoreLib pipeline log; this message just names the phase that failed.</p>
+     */
     private void logActionResult(SkillDefinition definition,
             String phase,
-            ActionBatchResult result,
+            Boolean success,
             Throwable throwable) {
         if (throwable != null) {
             plugin.getLogger().log(Level.WARNING,
@@ -650,15 +648,10 @@ public final class SkillUpgradeService {
                     throwable);
             return;
         }
-        if (result == null || result.success()) {
-            return;
+        if (success == null || !success) {
+            plugin.getLogger().warning("[SkillUpgrade] Action phase '" + phase + "' failed for "
+                    + (definition == null ? "-" : definition.id()));
         }
-        var firstFailure = result.firstFailure();
-        String error = firstFailure == null || firstFailure.result() == null
-                ? "unknown"
-                : Texts.toStringSafe(firstFailure.result().errorMessage());
-        plugin.getLogger().warning("[SkillUpgrade] Action phase '" + phase + "' failed for "
-                + (definition == null ? "-" : definition.id()) + ": " + error);
     }
 
     private boolean isUnlocked(Player player, String skillId) {

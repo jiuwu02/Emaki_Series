@@ -16,15 +16,13 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
-import emaki.jiuwu.craft.corelib.action.ActionLineParser;
-import emaki.jiuwu.craft.corelib.action.ActionRegistry;
-import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
-import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
+
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BuiltinStages;
 import emaki.jiuwu.craft.corelib.action.legacy.LegacyActionMigrator;
 import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.action.v2.PipelineBatchRunner;
+import emaki.jiuwu.craft.corelib.action.v2.RegistryPlaceholderBridge;
 import emaki.jiuwu.craft.corelib.action.v2.exec.ConfiguredSequenceRepository;
 import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.action.v2.exec.RegistryStageInvoker;
@@ -33,7 +31,7 @@ import emaki.jiuwu.craft.corelib.action.v2.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.action.v2.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.v2.registry.StageRebuildListeners;
 import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
-import emaki.jiuwu.craft.corelib.action.loop.LoopActionService;
+
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
@@ -115,12 +113,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
     private CorePluginLifecycle corePluginLifecycle;
-    private ActionRegistry actionRegistry;
-    private ActionTemplateRegistry actionTemplateRegistry;
     private PlaceholderRegistry placeholderRegistry;
     private EconomyManager economyManager;
-    private ActionExecutor actionExecutor;
-    private LoopActionService loopActionService;
     private StageRegistry stageRegistry;
     private StageDispatcher stageDispatcher;
     private ActionEngine actionEngine;
@@ -213,9 +207,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             bStatsService.shutdownAll();
             bStatsService = null;
         }
-        if (loopActionService != null) {
-            loopActionService.cancelAll();
-        }
         if (pipelineTaskService != null) {
             pipelineTaskService.stopAll();
         }
@@ -282,29 +273,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public boolean reloadActionSystem() {
         CoreLibConfig candidateConfig = loadConfigModel();
-        ActionRegistry candidateActionRegistry = new ActionRegistry(this);
-        ActionTemplateRegistry candidateTemplateRegistry = new ActionTemplateRegistry();
         PlaceholderRegistry candidatePlaceholderRegistry = new PlaceholderRegistry(this::debugLogger);
         EconomyManager candidateEconomyManager = new EconomyManager(this);
-        LoopActionService effectiveLoopService = loopActionService == null
-                ? new LoopActionService(this, executionDispatcher)
-                : loopActionService;
         candidatePlaceholderRegistry.register(new ActionContextPlaceholderResolver());
         candidatePlaceholderRegistry.register(new ActionInlineTokenResolver());
         candidatePlaceholderRegistry.register(new PlaceholderApiResolver());
-        for (var entry : candidateConfig.actionTemplates().entrySet()) {
-            candidateTemplateRegistry.register(entry.getKey(), entry.getValue());
-        }
-        BuiltinActions.registerAll(
-                candidateActionRegistry,
-                candidateEconomyManager,
-                itemSourceService,
-                craftEngineBlockBridge,
-                itemsAdderBlockBridge,
-                nexoBlockBridge,
-                oraxenBlockBridge,
-                effectiveLoopService
-        );
         if (pipelineTaskService == null) {
             pipelineTaskService = new PipelineTaskService(this, executionDispatcher,
                     // Late-bound on purpose: the runner needs the engine, the engine needs the stage
@@ -330,7 +303,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 // so the stage resolves a body when it runs rather than when it registers.
                 name -> sequenceRepository == null ? null : sequenceRepository.bodyOf(name)
         );
-        configPrecheckService.configure(candidateActionRegistry, candidateTemplateRegistry);
+        configPrecheckService.configure(candidateStageRegistry);
         ConfigPrecheckReport report = configPrecheckService.checkModule(candidateConfig, "corelib");
         logPrecheckReport(report);
         if (!report.success()) {
@@ -345,8 +318,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             }
             return false;
         }
-        if (loopActionService != null) {
-            loopActionService.cancelAll();
+        if (pipelineTaskService != null) {
+            // Tasks reference the stage table that is about to be replaced, so they cannot outlive it.
+            pipelineTaskService.stopAll();
         }
         configModel = candidateConfig;
         DebugLogger.setGlobalAllEnabled(configModel.debugConfig().globalAll());
@@ -361,27 +335,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (guiBackendRegistry != null && configModel.guiConfig() != null) {
             guiBackendRegistry.setConfiguredName(configModel.guiConfig().backend());
         }
-        actionRegistry = candidateActionRegistry;
-        actionTemplateRegistry = candidateTemplateRegistry;
         placeholderRegistry = candidatePlaceholderRegistry;
         economyManager = candidateEconomyManager;
-        loopActionService = effectiveLoopService;
         if (languageLoader != null && configModel != null) {
             languageLoader.load();
             languageLoader.setLanguage(configModel.language());
         }
-        actionExecutor = new ActionExecutor(
-                this,
-                actionRegistry,
-                new ActionLineParser(),
-                placeholderRegistry,
-                actionTemplateRegistry,
-                executionDispatcher,
-                platformCapabilities,
-                asyncTaskScheduler,
-                performanceMonitor
-        );
-        loopActionService.configure(configModel.loopConfig(), actionTemplateRegistry, actionRegistry, () -> actionExecutor);
         installStageRuntime(candidateStageRegistry);
         buildSequenceRepository();
         refreshServiceRegistry();
@@ -615,8 +574,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
         configuredItemService = new ConfiguredItemService(this, itemSourceService);
         configPrecheckService = new ConfigPrecheckService(messageService);
-        loopActionService = new LoopActionService(this, executionDispatcher);
-        getServer().getPluginManager().registerEvents(loopActionService, this);
         // The v2 dispatcher outlives a reload: it owns pending scheduler handles per plugin, so rebuilding it
         // would strand them. reloadActionSystem cancels this plugin's handles instead.
         stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
@@ -765,24 +722,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return eventBus;
     }
 
-    public ActionRegistry actionRegistry() {
-        return actionRegistry;
-    }
-
-    public ActionTemplateRegistry actionTemplateRegistry() {
-        return actionTemplateRegistry;
-    }
-
     public PlaceholderRegistry placeholderRegistry() {
         return placeholderRegistry;
     }
 
     public EconomyManager economyManager() {
         return economyManager;
-    }
-
-    public ActionExecutor actionExecutor() {
-        return actionExecutor;
     }
 
     /** {@return the live pipeline stage registry, or {@code null} before the first successful reload} */
@@ -803,6 +748,22 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /** {@return the shared batch runner for configured pipeline lines} */
     public PipelineBatchRunner pipelineBatchRunner() {
         return pipelineBatchRunner;
+    }
+
+    /**
+     * Creates a runner a business module can hold for its lifetime.
+     *
+     * <p>The v2 replacement for handing out {@code actionExecutor()}. The engine is read per call rather
+     * than captured, because a reload installs a new engine and stage table; a module holding the old one
+     * would keep running against retired stages and its actions would quietly stop working.</p>
+     *
+     * @param moduleOwner the plugin whose invocations these are
+     * @return a runner bound to that plugin
+     */
+    public ActionLineRunner actionLineRunner(Plugin moduleOwner) {
+        Plugin resolved = moduleOwner == null ? this : moduleOwner;
+        return new ActionLineRunner(resolved, this::actionEngine, pipelineBatchRunner,
+                new RegistryPlaceholderBridge(resolved, this::placeholderRegistry));
     }
 
     /** {@return the long-running task service, or {@code null} before the first reload} */
@@ -895,10 +856,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         });
         LegacyActionMigrator.Report report = migrator.run(getDataFolder().toPath(), folders, false);
         report.describe().forEach(line -> getLogger().info(line));
-    }
-
-    public LoopActionService loopActionService() {
-        return loopActionService;
     }
 
     public ConfigPrecheckService configPrecheckService() {
@@ -1115,14 +1072,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(ExecutionDispatcher.class, executionDispatcher);
         registerService(ThreadOwnership.class, threadOwnership);
         registerService(CorePluginLifecycle.class, corePluginLifecycle);
-        registerService(ActionRegistry.class, actionRegistry);
         registerService(StageRegistry.class, stageRegistry);
         registerService(ActionEngine.class, actionEngine);
-        registerService(ActionTemplateRegistry.class, actionTemplateRegistry);
+        registerService(PipelineTaskService.class, pipelineTaskService);
         registerService(PlaceholderRegistry.class, placeholderRegistry);
         registerService(EconomyManager.class, economyManager);
-        registerService(ActionExecutor.class, actionExecutor);
-        registerService(LoopActionService.class, loopActionService);
         registerService(ConfigPrecheckService.class, configPrecheckService);
         registerService(PdcService.class, pdcService);
         registerService(ItemSourceService.class, itemSourceService);

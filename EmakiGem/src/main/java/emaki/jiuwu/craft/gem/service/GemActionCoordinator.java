@@ -4,13 +4,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 
@@ -27,26 +24,55 @@ public final class GemActionCoordinator {
         }
     }
 
-    private final EmakiGemPlugin plugin;
-    private final Supplier<ActionExecutor> actionExecutorSupplier;
+    /** Reported when the pipeline engine has not finished starting up, so nothing can run yet. */
+    private static final String RUNNER_UNAVAILABLE = "Action executor unavailable.";
 
-    public GemActionCoordinator(EmakiGemPlugin plugin, Supplier<ActionExecutor> actionExecutorSupplier) {
+    /** Reported for a failed batch: the pipeline runner answers with a verdict, not a per-line diagnosis. */
+    private static final String UNKNOWN_FAILURE = "Unknown action failure.";
+
+    private final EmakiGemPlugin plugin;
+    private final ActionLineRunner actionLines;
+
+    /**
+     * Creates a coordinator.
+     *
+     * @param plugin the owning plugin, used for failure logging
+     * @param actionLines the pipeline runner; safe to hold because it reads the live engine per call
+     */
+    public GemActionCoordinator(EmakiGemPlugin plugin, ActionLineRunner actionLines) {
         this.plugin = plugin;
-        this.actionExecutorSupplier = actionExecutorSupplier;
+        this.actionLines = actionLines;
     }
 
+    /**
+     * Starts a phase without waiting for it.
+     *
+     * @param player the acting player
+     * @param phase phase name
+     * @param actions configured pipeline lines
+     * @param placeholders values readable as {@code %var.name%}
+     * @return {@code ok} once the batch is started, or a failure when it could not be started at all
+     */
     public ExecutionResult execute(Player player, String phase, List<String> actions, Map<String, ?> placeholders) {
         if (actions == null || actions.isEmpty()) {
             return ExecutionResult.ok();
         }
-        ActionExecutor executor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
-        if (executor == null) {
-            return ExecutionResult.failure("Action executor unavailable.");
+        if (!available()) {
+            return ExecutionResult.failure(RUNNER_UNAVAILABLE);
         }
-        executeAsync(executor, player, phase, actions, placeholders);
+        executeAsync(actionLines, player, phase, actions, placeholders);
         return ExecutionResult.ok();
     }
 
+    /**
+     * Runs a phase and reports its verdict.
+     *
+     * @param player the acting player
+     * @param phase phase name
+     * @param actions configured pipeline lines
+     * @param placeholders values readable as {@code %var.name%}
+     * @return the batch verdict
+     */
     public CompletionStage<ExecutionResult> executeAsync(Player player,
             String phase,
             List<String> actions,
@@ -54,37 +80,36 @@ public final class GemActionCoordinator {
         if (actions == null || actions.isEmpty()) {
             return CompletableFuture.completedFuture(ExecutionResult.ok());
         }
-        ActionExecutor executor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
-        if (executor == null) {
-            return CompletableFuture.completedFuture(ExecutionResult.failure("Action executor unavailable."));
+        if (!available()) {
+            return CompletableFuture.completedFuture(ExecutionResult.failure(RUNNER_UNAVAILABLE));
         }
-        return executeAsync(executor, player, phase, actions, placeholders);
+        return executeAsync(actionLines, player, phase, actions, placeholders);
     }
 
-    private CompletionStage<ExecutionResult> executeAsync(ActionExecutor executor,
+    private boolean available() {
+        return actionLines != null && actionLines.available();
+    }
+
+    /**
+     * Runs the batch and folds its outcome into an {@link ExecutionResult}.
+     *
+     * <p>The phase is no longer also written as a context attribute: a v2 context carries the phase itself,
+     * so stages read it from {@code context.phase()} instead.</p>
+     */
+    private CompletionStage<ExecutionResult> executeAsync(ActionLineRunner runner,
             Player player,
             String phase,
             List<String> actions,
             Map<String, ?> placeholders) {
-        ActionContext context = ActionContext.create(plugin, player, phase, false)
-                .withPlaceholders(placeholders)
-                .withAttribute("phase", phase);
-        return executor.executeAll(context, actions, true).handle((result, throwable) -> {
+        return runner.run(actions, player, phase, false, placeholders, true).handle((success, throwable) -> {
             if (throwable != null) {
                 String message = Texts.toStringSafe(throwable.getMessage());
                 warnActionFailure(phase, message);
                 return ExecutionResult.failure(message);
             }
-            if (result == null) {
-                warnActionFailure(phase, "Action batch returned no result.");
-                return ExecutionResult.failure("Action batch returned no result.");
-            }
-            if (!result.success()) {
-                String message = result.firstFailure() == null
-                        ? "Unknown action failure."
-                        : result.firstFailure().result().errorMessage();
-                warnActionFailure(phase, message);
-                return ExecutionResult.failure(message);
+            if (!Boolean.TRUE.equals(success)) {
+                warnActionFailure(phase, UNKNOWN_FAILURE);
+                return ExecutionResult.failure(UNKNOWN_FAILURE);
             }
             return ExecutionResult.ok();
         });

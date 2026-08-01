@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.forge.service;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -16,7 +15,6 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
@@ -104,8 +102,8 @@ final class ForgeExecutionService {
             return finishAsync(result, runtimeGeneration).toCompletableFuture();
         }
         return actionCoordinator.executePhase(player, recipe, guiItems, "pre", null, null, 1D, null, null)
-                .thenCompose(preBatch -> callPlayerOwnerAsync(player, sessionGeneration, () -> prepareResultActions(
-                        player, recipe, guiItems, preparedForge, successRate, sessionGeneration, runtimeGeneration, result, preBatch,
+                .thenCompose(preSuccess -> callPlayerOwnerAsync(player, sessionGeneration, () -> prepareResultActions(
+                        player, recipe, guiItems, preparedForge, successRate, sessionGeneration, runtimeGeneration, result, preSuccess,
                         deliveryClaim, deliveryRollback, deliveryCommit)));
     }
 
@@ -117,15 +115,15 @@ final class ForgeExecutionService {
                                                               long sessionGeneration,
                                                               long runtimeGeneration,
                                                               ForgeResult result,
-                                                              ActionBatchResult preBatch,
+                                                              Boolean preSuccess,
                                                               BooleanSupplier deliveryClaim,
                                                               Runnable deliveryRollback,
                                                               Runnable deliveryCommit) {
         if (!isRuntimeCurrent(runtimeGeneration)) {
             return CompletableFuture.completedFuture(staleRuntimeResult());
         }
-        if (!preBatch.success()) {
-            buildActionFailure(result, preBatch);
+        if (!Boolean.TRUE.equals(preSuccess)) {
+            buildActionFailure(result);
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
                     result.actionFailureReason());
         }
@@ -429,18 +427,11 @@ final class ForgeExecutionService {
         return CompletableFuture.completedFuture(result);
     }
 
-    private void buildActionFailure(ForgeResult result, ActionBatchResult batch) {
-        var failure = batch.firstFailure();
-        String reason = actionCoordinator.resolveFailureReason(failure);
+    private void buildActionFailure(ForgeResult result) {
+        String reason = ForgeActionCoordinator.UNKNOWN_FAILURE_REASON;
         result.setErrorKey(DEFAULT_ACTION_FAILURE_KEY);
         result.setActionFailureReason(reason);
-        Map<String, Object> replacements = new LinkedHashMap<>();
-        replacements.put("reason", reason);
-        if (failure != null) {
-            replacements.put("action", failure.actionId());
-            replacements.put("line", failure.lineNumber());
-        }
-        result.setReplacements(Map.copyOf(replacements));
+        result.setReplacements(Map.of("reason", reason));
     }
 
     @FunctionalInterface

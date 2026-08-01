@@ -131,9 +131,6 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (plugin.stageRegistrar() != null) {
             plugin.stageRegistrar().unregister();
         }
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLibPlugin.actionRegistry().unregisterAll(plugin);
-
         if (plugin.advancementRegistrar() != null) {
             boolean removeConfigured = plugin.appConfig() != null && plugin.appConfig().removeOnDisable();
             plugin.advancementRegistrar().shutdown(removeConfigured);

@@ -157,7 +157,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillParameterResolver,
                 coreLibPlugin::economyManager,
                 coreLibPlugin.itemSourceService(),
-                coreLibPlugin::actionExecutor
+                plugin.actionLines()
         );
         ActionBarService actionBarService = new ActionBarService(
                 plugin,

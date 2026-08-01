@@ -9,6 +9,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
@@ -25,7 +26,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.skills.action.SkillsActionRegistrar;
+import emaki.jiuwu.craft.skills.action.v2.SkillsStageRegistrar;
 import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
@@ -124,6 +125,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private DefaultTriggerDispatcher triggerDispatcher;
     private PassiveTriggerDispatcher passiveTriggerDispatcher;
     private PassiveTriggerSource passiveTriggerSource;
+    private SkillsStageRegistrar stageRegistrar;
     private final EmakiSkillsApi.Bridge skillsApiBridge =
             new emaki.jiuwu.craft.skills.apiimpl.DefaultEmakiSkillsApi(this);
 
@@ -150,7 +152,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         reloadPluginState(false);
         registerCommandHandler();
         registerEventHandlers();
-        registerCoreLibActions();
+        registerActionStages();
         registerPublicApi();
         ensurePlaceholderExpansion();
         if (actionBarService != null) {
@@ -162,7 +164,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     @Override
     public void onDisable() {
-        unregisterCoreLibActions();
         ConfigPrecheckLifecycleSupport.unregister("skills");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -176,6 +177,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
             metrics = null;
         }
         EmakiSkillsApi.uninstall(skillsApiBridge);
+        if (stageRegistrar != null) {
+            stageRegistrar.unregister();
+            stageRegistrar = null;
+        }
         if (passiveTriggerSource != null) {
             passiveTriggerSource.stop();
             passiveTriggerSource = null;
@@ -280,18 +285,13 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
                 this);
     }
 
-    private void registerCoreLibActions() {
-        SkillsActionRegistrar.registerAll(coreLib().actionRegistry(), this, mythicSkillCastService,
-                playerSkillStateService, skillLevelService, skillUpgradeService, playerSkillDataStore,
-                manualSkillSourceService);
+    private void registerActionStages() {
+        stageRegistrar = new SkillsStageRegistrar(this);
+        stageRegistrar.register();
     }
 
     private void registerPublicApi() {
         EmakiSkillsApi.install(skillsApiBridge);
-    }
-
-    private void unregisterCoreLibActions() {
-        SkillsActionRegistrar.unregisterAll(coreLib().actionRegistry(), this);
     }
 
     private void ensurePlaceholderExpansion() {
@@ -342,6 +342,16 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+    }
+
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
     }
 
     public ExecutionDispatcher executionDispatcher() {

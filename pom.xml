@@ -99,10 +99,6 @@
         <packetevents.version>2.13.0</packetevents.version>
         <bstats.version>3.2.1</bstats.version>
         <caffeine.version>3.2.4</caffeine.version>
-        <!-- 临时测试工具链（用户决策 D5）：仅供 Action v2 重构期回归验证，
-             阶段 6 验收后与 src/test、surefire 配置一并移除。 -->
-        <junit.jupiter.version>5.11.4</junit.jupiter.version>
-        <maven.surefire.version>3.5.2</maven.surefire.version>
     </properties>
 
     <dependencyManagement>

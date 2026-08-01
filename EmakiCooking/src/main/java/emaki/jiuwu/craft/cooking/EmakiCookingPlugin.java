@@ -12,7 +12,7 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
@@ -31,7 +31,6 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
-import emaki.jiuwu.craft.cooking.action.NutritionActionRegistrar;
 import emaki.jiuwu.craft.cooking.action.v2.CookingStageRegistrar;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.config.CookingConfigPrecheckContributor;
@@ -110,7 +109,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private FermentationBarrelRecipeLoader fermentationBarrelRecipeLoader;
     private MessageService messageService;
     private BootstrapService bootstrapService;
-    private ActionExecutor coreActionExecutor;
     private ItemSourceService coreItemSourceService;
     private CraftEngineBlockBridge craftEngineBlockBridge;
     private CustomBlockBridge itemsAdderBlockBridge;
@@ -179,9 +177,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (stageRegistrar != null) {
             stageRegistrar.unregister();
             stageRegistrar = null;
-        }
-        if (coreLibPlugin.actionRegistry() != null) {
-            coreLibPlugin.actionRegistry().unregisterAll(this);
         }
         EmakiCookingApi.uninstall(cookingApiBridge);
         if (placeholderExpansion != null) {
@@ -291,7 +286,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         fermentationBarrelRecipeLoader = components.fermentationBarrelRecipeLoader();
         messageService = components.messageService();
         bootstrapService = components.bootstrapService();
-        coreActionExecutor = components.coreActionExecutor();
         coreItemSourceService = components.coreItemSourceService();
         craftEngineBlockBridge = components.craftEngineBlockBridge();
         itemsAdderBlockBridge = components.itemsAdderBlockBridge();
@@ -306,7 +300,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         inspectService = components.inspectService();
         displayService = components.displayService();
         textDisplayService = components.textDisplayService();
-        effectService = new CookingEffectService(this, coreActionExecutor, settingsService);
+        effectService = new CookingEffectService(this, settingsService);
         choppingBoardRuntimeService = components.choppingBoardRuntimeService();
         wokRuntimeService = components.wokRuntimeService();
         grinderRuntimeService = components.grinderRuntimeService();
@@ -405,7 +399,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void registerActions() {
-        new NutritionActionRegistrar(this).register(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).actionRegistry());
         stageRegistrar = new CookingStageRegistrar(this);
         stageRegistrar.register();
     }
@@ -524,8 +517,14 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    public ActionExecutor coreActionExecutor() {
-        return coreActionExecutor;
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
     }
 
     public ExecutionDispatcher executionDispatcher() {
