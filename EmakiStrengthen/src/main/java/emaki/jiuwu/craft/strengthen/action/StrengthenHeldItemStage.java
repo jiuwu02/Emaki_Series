@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.strengthen.action.v2;
+package emaki.jiuwu.craft.strengthen.action;
 
 import java.util.List;
 import java.util.Map;
@@ -10,24 +10,24 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 
 /**
  * Reads and rewrites the strengthen layer on the target's held item.
  *
- * <p>The v2 counterpart of {@code StrengthenHeldItemAction}. Two things move out of the implementation and
+ * <p>Replaces the legacy {@code StrengthenHeldItemAction}. Two things move out of the implementation and
  * into declarations: the target is supplied by the pipeline's target flow rather than read from a context
  * player, and the thread domain is stated up front instead of inherited from a base class default.</p>
  *
@@ -134,21 +134,21 @@ public final class StrengthenHeldItemStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (plugin.attemptService() == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.strengthen.service_unavailable");
+                    "action.stage.strengthen.service_unavailable");
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         ItemStack original = target.getInventory().getItemInMainHand();
         if (original == null || original.getType().isAir()) {
-            return CoreActionOutcome.skipped("action.v2.stage.strengthen.empty_hand");
+            return CoreActionOutcome.skipped("action.stage.strengthen.empty_hand");
         }
         StrengthenState before = plugin.attemptService().readState(original);
         ItemStack updated = apply(original, before, arguments);
         if (updated == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.strengthen.rebuild_failed");
+                    "action.stage.strengthen.rebuild_failed");
         }
         target.getInventory().setItemInMainHand(updated);
         StrengthenState after = plugin.attemptService().readState(updated);

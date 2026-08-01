@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.attribute.action.v2;
+package emaki.jiuwu.craft.attribute.action;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,22 +14,22 @@ import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Adds to, sets, or subtracts from one of the target's resources.
  *
- * <p>The v2 counterpart of {@code ResourceModifyAction} and {@code ResourceConsumeAction}. Those were two
+ * <p>Replaces the legacy {@code ResourceModifyAction} and {@code ResourceConsumeAction}. Those were two
  * classes in v1 although {@code consume} and {@code remove} computed the same value; they stay as separate
  * stage ids here because configuration refers to them by name, but they share one implementation.</p>
  *
@@ -118,17 +118,17 @@ public final class ResourceModifyStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (attributeService == null || attributeService.resourceDefinitions() == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.attribute.service_unavailable");
+                    "action.stage.attribute.service_unavailable");
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         String resourceId = Texts.normalizeId(arguments.getString("resource"));
         ResourceDefinition definition = attributeService.resourceDefinitions().get(resourceId);
         if (definition == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.attribute.unknown_resource", Map.of("resource", resourceId));
+                    "action.stage.attribute.unknown_resource", Map.of("resource", resourceId));
         }
         double amount = arguments.getDouble("amount", 0D);
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(target);

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.List;
 import java.util.Map;
@@ -7,13 +7,13 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.potion.PotionEffect;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
 /**
  * Removes every potion effect from the target.
@@ -32,12 +32,12 @@ public final class ClearPotionEffectsStage extends BaseStage {
             @NotNull CoreResolvedArguments arguments) {
         LivingEntity target = StageSupport.livingEntity(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_living_entity");
+            return CoreActionOutcome.skipped("action.stage.common.not_living_entity");
         }
         // Snapshot first: removing an effect mutates the live collection being iterated.
         List<PotionEffect> active = List.copyOf(target.getActivePotionEffects());
         if (active.isEmpty()) {
-            return CoreActionOutcome.skipped("action.v2.stage.potion.none_active");
+            return CoreActionOutcome.skipped("action.stage.potion.none_active");
         }
         active.forEach(effect -> target.removePotionEffect(effect.getType()));
         return CoreActionOutcome.success(Map.of("removed", active.size()));

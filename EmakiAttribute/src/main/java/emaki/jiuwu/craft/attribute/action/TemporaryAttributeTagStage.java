@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.attribute.action.v2;
+package emaki.jiuwu.craft.attribute.action;
 
 import java.util.List;
 import java.util.Locale;
@@ -11,22 +11,22 @@ import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.attribute.service.TemporaryAttributeService;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Grants or withdraws timed attribute modifiers in bulk, addressed by tag.
  *
- * <p>The v2 counterpart of {@code TemporaryAttributeTagAction}. A tag names a group of attributes configured
+ * <p>Replaces the legacy {@code TemporaryAttributeTagAction}. A tag names a group of attributes configured
  * together, so one stage call can apply a whole buff without listing its parts.</p>
  *
  * <p><strong>Known duplication carried over from v1:</strong> {@code attribute_tag_clear} and
@@ -125,16 +125,16 @@ public final class TemporaryAttributeTagStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (attributeService == null || attributeService.temporaryAttributeService() == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.attribute.service_unavailable");
+                    "action.stage.attribute.service_unavailable");
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         String tag = Texts.trim(arguments.getString("tag"));
         if (tag.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.attribute.tag_required");
+                    "action.stage.attribute.tag_required");
         }
         TemporaryAttributeService service = attributeService.temporaryAttributeService();
         int count = operation == Operation.ADD

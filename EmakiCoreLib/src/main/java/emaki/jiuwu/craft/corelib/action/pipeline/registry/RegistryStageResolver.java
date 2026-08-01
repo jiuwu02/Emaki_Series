@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.registry;
+package emaki.jiuwu.craft.corelib.action.pipeline.registry;
 
 import java.util.List;
 import java.util.Set;
@@ -6,17 +6,17 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.StageResolver;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.StageResolver;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
 /** Read-only compiler view over the live stage registry. */

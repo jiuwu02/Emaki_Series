@@ -5,14 +5,14 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
-import emaki.jiuwu.craft.corelib.action.v2.PlaceholderBridge;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.PlaceholderBridge;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
 /**
- * Renders skill placeholders for a v2 pipeline.
+ * Renders skill placeholders for a pipeline.
  *
  * <p>Replaces {@code SkillScriptExecutor.resolveText}. The substitution order is unchanged, so the variable
  * names a skill YAML already uses keep working: pipeline variables first, then CoreLib's placeholder registry

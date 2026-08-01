@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2;
+package emaki.jiuwu.craft.corelib.action.pipeline;
 
 import java.util.List;
 import java.util.Map;
@@ -12,12 +12,12 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 
 /**
  * What business modules use to run a list of configured pipeline lines.
  *
- * <p>This is the v2 replacement for holding an {@code ActionExecutor}. The distinction matters: the v1
+ * <p>This replaces holding an {@code ActionExecutor}. The distinction matters: the v1
  * executor was a stable object a module could keep for its lifetime, while {@link ActionEngine} is rebuilt
  * on every CoreLib reload because a reload installs a new stage table. A module that captured an engine at
  * construction would keep running against retired stages, and the symptom would be actions silently doing

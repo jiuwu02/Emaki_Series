@@ -9,10 +9,10 @@ import java.util.concurrent.TimeUnit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKeys;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -25,9 +25,9 @@ final class ForgeActionCoordinator {
     private static final long ACTION_TIMEOUT_SECONDS = 30L;
 
     /**
-     * Returned to callers that need a human-readable reason when v2's Boolean result provides no step detail.
+     * Returned to callers that need a human-readable reason when the Boolean result provides no step detail.
      *
-     * <p>The v2 pipeline runner answers with a pass/fail verdict; per-step failure information such as action
+     * <p>The pipeline runner answers with a pass/fail verdict; per-step failure information such as action
      * ids and line numbers is not surfaced at this layer. Callers log or display this constant instead.</p>
      */
     static final String UNKNOWN_FAILURE_REASON = "Unknown forge action failure.";
@@ -85,7 +85,7 @@ final class ForgeActionCoordinator {
      * @param guiItems the GUI item slots
      * @param phase phase name
      * @param resultItem the resolved result item
-     * @param itemTarget mutable holder that v2 stages write the item back through; may be {@code null}
+     * @param itemTarget mutable holder that stages write the item back through; may be {@code null}
      * @param quality the resolved quality label
      * @param multiplier the stat multiplier
      * @param errorKey the error key to surface on failure
@@ -250,7 +250,7 @@ final class ForgeActionCoordinator {
                 resultItem, itemTarget, quality, multiplier, errorKey, failureReason);
 
         /*
-         * Pass the action item as CoreActionKeys.ITEM so v2 stages that mutate items (e.g.
+         * Pass the action item as CoreActionKeys.ITEM so stages that mutate items (e.g.
          * item_component_add) can read and write it in place. After the batch completes the updated
          * item is stored back into itemTarget so the caller gets the post-action item at delivery.
          */

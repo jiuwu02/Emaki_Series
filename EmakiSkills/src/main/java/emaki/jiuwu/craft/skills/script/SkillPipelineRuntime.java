@@ -7,13 +7,13 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompileDiagnostic;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline;
-import emaki.jiuwu.craft.corelib.action.v2.compile.PhaseContract;
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
@@ -71,7 +71,7 @@ public final class SkillPipelineRuntime {
         CompiledSkill compiled = compiled(skillId, script);
         if (compiled == null) {
             return CompletableFuture.completedFuture(PipelineOutcome.failure(
-                    CoreActionFailureKind.OWNER_DISABLED, "action.v2.run.stage_unavailable",
+                    CoreActionFailureKind.OWNER_DISABLED, "action.run.stage_unavailable",
                     Map.of(), List.of()));
         }
         List<CompiledPipeline> pipelines = compiled.phase(phase);

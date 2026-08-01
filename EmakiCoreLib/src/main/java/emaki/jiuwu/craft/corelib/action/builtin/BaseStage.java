@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2;
+package emaki.jiuwu.craft.corelib.action.builtin;
 
 import java.util.List;
 import java.util.Set;
@@ -7,11 +7,11 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
 /**
  * Metadata carrier for the builtin action stages.

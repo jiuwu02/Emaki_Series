@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.api.action.v2;
+package emaki.jiuwu.craft.corelib.api.action;
 
 import java.util.List;
 import java.util.Set;
@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A pipeline action: consumes the target flow to produce an effect.
  *
- * <p>This is the v2 replacement for {@code CoreAction}. The differences that matter:</p>
+ * <p>This replaces {@code CoreAction}. The differences that matter:</p>
  * <ul>
  *   <li>{@link #targetRequirement()} is declared, so CoreLib checks it once instead of every
  *       implementation repeating a player check;</li>

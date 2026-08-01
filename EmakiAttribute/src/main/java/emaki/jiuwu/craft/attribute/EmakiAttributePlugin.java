@@ -14,7 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 
-import emaki.jiuwu.craft.attribute.action.v2.AttributeStageRegistrar;
+import emaki.jiuwu.craft.attribute.action.AttributeStageRegistrar;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;

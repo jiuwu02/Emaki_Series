@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.Map;
 
@@ -8,16 +8,16 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
 /**
  * Adds durability damage to an item in one of the target's inventory slots.
@@ -45,28 +45,28 @@ public final class DamageItemStage extends BaseStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = StageSupport.player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         StageSupport.Slot slot = StageSupport.slot(arguments.getString("slot"), "mainhand");
         if (slot == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.item.unknown_slot", Map.of("slot", arguments.getString("slot")));
+                    "action.stage.item.unknown_slot", Map.of("slot", arguments.getString("slot")));
         }
         ItemStack itemStack = slot.get(target.getInventory());
         if (StageSupport.isEmpty(itemStack)) {
-            return CoreActionOutcome.skipped("action.v2.stage.item.slot_empty");
+            return CoreActionOutcome.skipped("action.stage.item.slot_empty");
         }
         int maxDurability = itemStack.getType().getMaxDurability();
         if (maxDurability <= 0) {
-            return CoreActionOutcome.skipped("action.v2.stage.item.no_durability");
+            return CoreActionOutcome.skipped("action.stage.item.no_durability");
         }
         ItemMeta meta = itemStack.getItemMeta();
         if (!(meta instanceof Damageable damageable)) {
-            return CoreActionOutcome.skipped("action.v2.stage.item.not_damageable");
+            return CoreActionOutcome.skipped("action.stage.item.not_damageable");
         }
         int amount = Math.max(0, arguments.getInt("amount", 1));
         if (amount <= 0) {
-            return CoreActionOutcome.skipped("action.v2.stage.item.zero_damage");
+            return CoreActionOutcome.skipped("action.stage.item.zero_damage");
         }
         int before = damageable.getDamage();
         int requested = before + amount;

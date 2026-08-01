@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.compile;
+package emaki.jiuwu.craft.corelib.action.pipeline.compile;
 
 import java.util.List;
 import java.util.Set;
@@ -6,10 +6,10 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
 /**

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.cooking.action.v2;
+package emaki.jiuwu.craft.cooking.action;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,22 +13,22 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Returns the target's nutrition values to their minimum or configured default.
  *
- * <p>The v2 counterpart of {@code NutritionResetAction}. {@code clear} drops each value to its minimum while
+ * <p>Replaces the legacy {@code NutritionResetAction}. {@code clear} drops each value to its minimum while
  * {@code reset} restores the configured default, which is why they are distinct stages: one starves the
  * player, the other returns them to a neutral state.</p>
  *
@@ -109,11 +109,11 @@ public final class NutritionResetStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (plugin.nutritionService() == null || plugin.nutritionTypeRegistry() == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.cooking.service_unavailable");
+                    "action.stage.cooking.service_unavailable");
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         String requestedType = Texts.trim(arguments.getString("type"));
         List<NutritionTypeConfig> types;
@@ -123,12 +123,12 @@ public final class NutritionResetStage implements CoreActionStage {
             NutritionTypeConfig type = plugin.nutritionTypeRegistry().type(requestedType).orElse(null);
             if (type == null) {
                 return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                        "action.v2.stage.cooking.unknown_type", Map.of("type", requestedType));
+                        "action.stage.cooking.unknown_type", Map.of("type", requestedType));
             }
             types = List.of(type);
         }
         if (types.isEmpty()) {
-            return CoreActionOutcome.skipped("action.v2.stage.cooking.no_types");
+            return CoreActionOutcome.skipped("action.stage.cooking.no_types");
         }
         UUID targetId = target.getUniqueId();
         int changed = 0;
@@ -140,7 +140,7 @@ public final class NutritionResetStage implements CoreActionStage {
                 // Stops at the first failure, as v1 did: continuing would leave the player's nutrition half
                 // reset with no record of where it stopped.
                 return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                        "action.v2.stage.cooking.reset_failed",
+                        "action.stage.cooking.reset_failed",
                         Map.of("type", type.id(), "reason", String.valueOf(result.reason())));
             }
             if (Double.compare(result.oldValue(), result.newValue()) != 0) {

@@ -12,10 +12,10 @@ import java.util.function.Supplier;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
@@ -24,12 +24,12 @@ import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 /**
- * Runs a skill's script phases as v2 pipelines.
+ * Runs a skill's script phases as pipelines.
  *
  * <p>Phase ordering is unchanged: {@code cast}, then {@code hit} or {@code miss}, then {@code fail} when
  * something went wrong. What changed is how targets cross a phase boundary. v1 relied on an action writing
- * back into a mutable context ({@code ray save=target}); v2 contexts are read-only, so the only channel is the
- * explicit {@code keep} gate, whose flow CoreLib reports as {@link PipelineOutcome#keptFlow()}.</p>
+ * back into a mutable context ({@code ray save=target}); pipeline contexts are read-only, so the only channel
+ * is the explicit {@code keep} gate, whose flow CoreLib reports as {@link PipelineOutcome#keptFlow()}.</p>
  */
 public final class SkillScriptCastService {
 
@@ -137,7 +137,7 @@ public final class SkillScriptCastService {
         if (completion.throwable() != null) {
             Throwable cause = AsyncFailures.unwrap(completion.throwable());
             return PipelineOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.run.exception",
+                    "action.run.exception",
                     Map.of("error", cause == null || cause.getMessage() == null
                             ? "Skill script execution failed."
                             : cause.getMessage()),
@@ -145,7 +145,7 @@ public final class SkillScriptCastService {
         }
         return completion.outcome() == null
                 ? PipelineOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                        "action.v2.run.exception", Map.of("error", "no result"), List.of())
+                        "action.run.exception", Map.of("error", "no result"), List.of())
                 : completion.outcome();
     }
 

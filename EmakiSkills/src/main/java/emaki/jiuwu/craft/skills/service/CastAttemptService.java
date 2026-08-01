@@ -8,10 +8,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Supplier;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
@@ -45,6 +46,29 @@ public final class CastAttemptService {
 
     /** Reason key {@link #castMythic} reports for an absent Mythic skill. */
     static final String MYTHIC_MISSING_REASON = "skill.mythic_not_found";
+
+    /**
+     * Which of the normal cast gates a caller wants skipped.
+     *
+     * <p>Exists for callers that are not a player pressing a key: the {@code cast_skill} pipeline stage lets a
+     * server owner script a cast that ignores cooldowns or runs free of charge. The three switches are separate
+     * because they answer separate questions: whether the cast is allowed now, whether the caster can afford it,
+     * and whether they are billed for it.</p>
+     *
+     * <p>Only the per-skill and global cooldowns are bypassable. The forced global cast delay is not, because it
+     * is the anti-spam guard the in-flight de-duplication relies on rather than a gameplay cost.</p>
+     *
+     * @param cooldown when {@code true} the per-skill and global cooldown checks are skipped
+     * @param resourceCheck when {@code true} an unaffordable cast proceeds instead of failing
+     * @param consumeResource when {@code false} a successful cast bills nothing
+     */
+    public record CastBypass(boolean cooldown, boolean resourceCheck, boolean consumeResource) {
+
+        /** {@return the normal behaviour: every gate enforced, resources billed} */
+        public static CastBypass none() {
+            return new CastBypass(false, false, true);
+        }
+    }
 
     private final EmakiSkillsPlugin plugin;
     private final PlayerSkillStateService stateService;
@@ -120,12 +144,69 @@ public final class CastAttemptService {
             String triggerId,
             SkillDefinition definition,
             TriggerInvocation invocation) {
+        return attemptDirectCast(player, triggerId, definition, invocation, CastBypass.none());
+    }
+
+    /**
+     * Casts a skill directly, optionally skipping some of the normal gates.
+     *
+     * @param player the caster
+     * @param triggerId trigger name recorded on the attempt
+     * @param definition the skill to cast
+     * @param invocation trigger payload, may be {@code null}
+     * @param bypass which gates to skip; {@code null} means none
+     * @return the attempt result
+     */
+    public CompletableFuture<CastAttemptResult> attemptDirectCast(Player player,
+            String triggerId,
+            SkillDefinition definition,
+            TriggerInvocation invocation,
+            CastBypass bypass) {
         if (player == null || Texts.isBlank(triggerId)) {
             return completedFailure(FailureReason.NO_BINDING, "cast.invalid_input");
         }
         return onCaster(player, () -> CompletableFuture.completedFuture(
-                        prepareDefinitionAttempt(player, definition, triggerId, invocation, true)))
+                        prepareDefinitionAttempt(player, definition, triggerId, invocation, true, bypass)))
                 .thenCompose(this::executePlan);
+    }
+
+    /**
+     * Casts a skill with a non-player entity as the caster.
+     *
+     * <p>Separate from {@link #attemptDirectCast} rather than a generalisation of it, because the whole cast
+     * pipeline is anchored on a player session: {@code PlayerSkillDataStore} opens a session per joining player,
+     * {@code SessionTicket} carries the generation used for optimistic concurrency, and cooldowns and local
+     * resources live inside {@code PlayerSkillProfile}. A mob has none of those, so there is nothing to read a
+     * cooldown from or bill a resource against.</p>
+     *
+     * <p>Consequences a caller must know:</p>
+     * <ul>
+     *   <li>Only the skill's {@code mythicSkill} is cast. A native or hybrid script needs the player variable
+     *       context that {@code SkillScriptCastService} builds, so a script-only skill is refused rather than
+     *       silently doing nothing.</li>
+     *   <li>No cooldown is recorded or enforced. Inventing an in-memory cooldown table keyed by entity would
+     *       need an eviction story for entity death and chunk unload; that belongs with the mob plugin that
+     *       will own non-player casters, not here.</li>
+     *   <li>Resource costs are neither checked nor consumed, because the entity has no resource pool.</li>
+     * </ul>
+     *
+     * @param caster the casting entity, expected not to be a player
+     * @param definition the skill to cast
+     * @return whether MythicMobs accepted the cast
+     */
+    public boolean castAsEntity(Entity caster, SkillDefinition definition) {
+        if (caster == null || definition == null || !definition.enabled()) {
+            return false;
+        }
+        String mythicSkillId = definition.mythicSkill();
+        if (Texts.isBlank(mythicSkillId)) {
+            return false;
+        }
+        if (mythicCastService == null || !mythicCastService.isAvailable()
+                || !mythicCastService.skillExists(mythicSkillId)) {
+            return false;
+        }
+        return mythicCastService.castFromEntity(caster, mythicSkillId);
     }
 
     private AttemptPlan prepareBoundAttempt(Player player, String triggerId, SkillSlotBinding suppliedBinding) {
@@ -157,12 +238,22 @@ public final class CastAttemptService {
             String triggerId,
             TriggerInvocation invocation,
             boolean requireActive) {
+        return prepareDefinitionAttempt(player, definition, triggerId, invocation, requireActive,
+                CastBypass.none());
+    }
+
+    private AttemptPlan prepareDefinitionAttempt(Player player,
+            SkillDefinition definition,
+            String triggerId,
+            TriggerInvocation invocation,
+            boolean requireActive,
+            CastBypass bypass) {
         if (definition == null || !definition.enabled()
                 || (requireActive && definition.activationType()
                         != emaki.jiuwu.craft.skills.model.SkillActivationType.ACTIVE)) {
             return AttemptPlan.failure(player, FailureReason.SKILL_NOT_FOUND, "skill.not_found");
         }
-        return AttemptPlan.ready(player, definition, triggerId, invocation);
+        return AttemptPlan.ready(player, definition, triggerId, invocation, bypass);
     }
 
     private CompletableFuture<CastAttemptResult> executePlan(AttemptPlan plan) {
@@ -214,18 +305,20 @@ public final class CastAttemptService {
                     "cast.forced_delay",
                     cooldownReplacements(timing.forcedGlobalCastDelayUntil(), definition));
         }
-        if (timing.isGlobalCooldownActive()) {
-            return completedFailure(
-                    FailureReason.GLOBAL_COOLDOWN_ACTIVE,
-                    "cast.global_cooldown",
-                    cooldownReplacements(timing.globalCooldownUntil(), definition));
-        }
-        if (timing.isSkillOnCooldown(definition.id())) {
-            Long until = timing.skillCooldownUntilBySkillId().get(definition.id());
-            return completedFailure(
-                    FailureReason.SKILL_COOLDOWN_ACTIVE,
-                    "cast.skill_cooldown",
-                    cooldownReplacements(until == null ? 0L : until, definition));
+        if (!plan.bypass().cooldown()) {
+            if (timing.isGlobalCooldownActive()) {
+                return completedFailure(
+                        FailureReason.GLOBAL_COOLDOWN_ACTIVE,
+                        "cast.global_cooldown",
+                        cooldownReplacements(timing.globalCooldownUntil(), definition));
+            }
+            if (timing.isSkillOnCooldown(definition.id())) {
+                Long until = timing.skillCooldownUntilBySkillId().get(definition.id());
+                return completedFailure(
+                        FailureReason.SKILL_COOLDOWN_ACTIVE,
+                        "cast.skill_cooldown",
+                        cooldownReplacements(until == null ? 0L : until, definition));
+            }
         }
 
         if (!definition.conditions().emptyGroup()) {
@@ -241,9 +334,11 @@ public final class CastAttemptService {
             }
         }
 
-        CastAttemptResult costCheck = checkResourceCosts(player, profile, definition);
-        if (costCheck != null) {
-            return CompletableFuture.completedFuture(costCheck);
+        if (!plan.bypass().resourceCheck()) {
+            CastAttemptResult costCheck = checkResourceCosts(player, profile, definition);
+            if (costCheck != null) {
+                return CompletableFuture.completedFuture(costCheck);
+            }
         }
 
         ResolvedSkillParameters parameters = skillParameterResolver == null
@@ -259,21 +354,25 @@ public final class CastAttemptService {
         return castSkillAsync(player, definition, plan.triggerId(), plan.invocation(), parameters)
                 .handle((result, throwable) -> new CastOutcome(result, throwable))
                 .thenCompose(outcome -> onCaster(player, () -> CompletableFuture.completedFuture(
-                        finalizeAttempt(player, session, definition, plan.triggerId(), outcome))));
+                        finalizeAttempt(player, session, definition, plan.triggerId(), outcome,
+                                plan.bypass()))));
     }
 
     private CastAttemptResult finalizeAttempt(Player player,
             PlayerSkillDataStore.SessionTicket session,
             SkillDefinition definition,
             String triggerId,
-            CastOutcome outcome) {
+            CastOutcome outcome,
+            CastBypass bypass) {
         if (outcome.throwable() != null || !outcome.success()) {
             return describeCastFailure(definition, triggerId, outcome);
         }
         AppConfig config = configSupplier.get();
         long forcedDelayTicks = config != null ? config.castTiming().forcedGlobalCastDelayTicks() : 0L;
         boolean committed = dataStore.mutateIfCurrent(session, profile -> {
-            consumeResources(player, profile, definition);
+            if (bypass.consumeResource()) {
+                consumeResources(player, profile, definition);
+            }
             profile.timingState().recordCast(
                     definition.id(),
                     definition.cooldownTicks(),
@@ -618,23 +717,34 @@ public final class CastAttemptService {
             String triggerId,
             TriggerInvocation invocation,
             CastKey key,
+            CastBypass bypass,
             CastAttemptResult failure) {
 
         private static AttemptPlan ready(Player player,
                 SkillDefinition definition,
                 String triggerId,
                 TriggerInvocation invocation) {
+            return ready(player, definition, triggerId, invocation, CastBypass.none());
+        }
+
+        private static AttemptPlan ready(Player player,
+                SkillDefinition definition,
+                String triggerId,
+                TriggerInvocation invocation,
+                CastBypass bypass) {
             return new AttemptPlan(
                     player,
                     definition,
                     triggerId,
                     invocation,
                     new CastKey(player.getUniqueId().toString(), definition.id()),
+                    bypass == null ? CastBypass.none() : bypass,
                     null);
         }
 
         private static AttemptPlan failure(Player player, FailureReason reason, String message) {
-            return new AttemptPlan(player, null, "", null, null, CastAttemptResult.fail(reason, message));
+            return new AttemptPlan(player, null, "", null, null, CastBypass.none(),
+                    CastAttemptResult.fail(reason, message));
         }
     }
 

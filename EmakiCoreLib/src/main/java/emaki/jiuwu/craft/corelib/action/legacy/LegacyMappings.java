@@ -11,8 +11,8 @@ import org.jetbrains.annotations.Nullable;
 /**
  * The old-to-new mapping table for the one-shot syntax migration.
  *
- * <p>Every entry here was confirmed against the actual v2 stage declarations in
- * {@code action/builtin/v2}, not against the design document: the document predates the stage
+ * <p>Every entry here was confirmed against the actual stage declarations in
+ * {@code action/builtin}, not against the design document: the document predates the stage
  * implementations and lists targets such as {@code start_task} that were never built.</p>
  *
  * <p>This whole package is temporary. It is deleted once the migration has run everywhere, which is

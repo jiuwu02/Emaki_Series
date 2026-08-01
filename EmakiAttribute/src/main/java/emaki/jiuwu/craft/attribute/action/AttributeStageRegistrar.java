@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.attribute.action.v2;
+package emaki.jiuwu.craft.attribute.action;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,8 +7,8 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 
 /**
  * Registers this module's pipeline stages into EmakiCoreLib's single stage registry.

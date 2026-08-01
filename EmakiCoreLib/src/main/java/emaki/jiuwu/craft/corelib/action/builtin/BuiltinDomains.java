@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2;
+package emaki.jiuwu.craft.corelib.action.builtin;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;

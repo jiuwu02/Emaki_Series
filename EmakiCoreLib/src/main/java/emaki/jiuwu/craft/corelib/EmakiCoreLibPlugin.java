@@ -17,20 +17,20 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BuiltinStages;
+import emaki.jiuwu.craft.corelib.action.builtin.BuiltinStages;
 import emaki.jiuwu.craft.corelib.action.legacy.LegacyActionMigrator;
-import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
-import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
-import emaki.jiuwu.craft.corelib.action.v2.PipelineBatchRunner;
-import emaki.jiuwu.craft.corelib.action.v2.RegistryPlaceholderBridge;
-import emaki.jiuwu.craft.corelib.action.v2.exec.ConfiguredSequenceRepository;
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineTaskService;
-import emaki.jiuwu.craft.corelib.action.v2.exec.RegistryStageInvoker;
-import emaki.jiuwu.craft.corelib.action.v2.exec.SequenceRepository;
-import emaki.jiuwu.craft.corelib.action.v2.exec.StageDispatcher;
-import emaki.jiuwu.craft.corelib.action.v2.registry.RegistryStageResolver;
-import emaki.jiuwu.craft.corelib.action.v2.registry.StageRebuildListeners;
-import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineBatchRunner;
+import emaki.jiuwu.craft.corelib.action.pipeline.RegistryPlaceholderBridge;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.ConfiguredSequenceRepository;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.RegistryStageInvoker;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.SequenceRepository;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageDispatcher;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRebuildListeners;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
@@ -379,7 +379,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 new SequenceRepository() {
 
                     @Override
-                    public emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline find(String name) {
+                    public emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline find(String name) {
                         ConfiguredSequenceRepository live = sequenceRepository;
                         return live == null ? null : live.find(name);
                     }
@@ -574,7 +574,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
         configuredItemService = new ConfiguredItemService(this, itemSourceService);
         configPrecheckService = new ConfigPrecheckService(messageService);
-        // The v2 dispatcher outlives a reload: it owns pending scheduler handles per plugin, so rebuilding it
+        // The stage dispatcher outlives a reload: it owns pending scheduler handles per plugin, so rebuilding it
         // would strand them. reloadActionSystem cancels this plugin's handles instead.
         stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
         performanceMonitor = new PerformanceMonitor();
@@ -753,7 +753,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /**
      * Creates a runner a business module can hold for its lifetime.
      *
-     * <p>The v2 replacement for handing out {@code actionExecutor()}. The engine is read per call rather
+     * <p>The replacement for handing out {@code actionExecutor()}. The engine is read per call rather
      * than captured, because a reload installs a new engine and stage table; a module holding the old one
      * would keep running against retired stages and its actions would quietly stop working.</p>
      *

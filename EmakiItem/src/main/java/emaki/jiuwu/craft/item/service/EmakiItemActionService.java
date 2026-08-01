@@ -8,8 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKeys;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -54,7 +54,7 @@ public final class EmakiItemActionService {
         if (player == null || definition == null || lines == null || lines.isEmpty()) {
             return;
         }
-        // The item travels as the typed ITEM key, which is what v2 stages read in place of v1's
+        // The item travels as the typed ITEM key, which is what stages read in place of v1's
         // weakly-typed "item_stack" attribute. The trigger stays the phase, as it was in v1.
         PipelineContext context = plugin.actionLines()
                 .context(player, trigger, false, placeholders(player, definition, trigger, extraPlaceholders));

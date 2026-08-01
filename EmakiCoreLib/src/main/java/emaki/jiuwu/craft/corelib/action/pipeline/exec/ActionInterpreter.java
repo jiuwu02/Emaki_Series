@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.exec;
+package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -10,22 +10,22 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
-import emaki.jiuwu.craft.corelib.action.v2.ResolvedArguments;
-import emaki.jiuwu.craft.corelib.action.v2.compile.ActionAst;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline;
-import emaki.jiuwu.craft.corelib.action.v2.compile.PipelineLimits;
-import emaki.jiuwu.craft.corelib.action.v2.compile.StaticValidator;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKeys;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.ResolvedArguments;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.ActionAst;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.StaticValidator;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -78,7 +78,7 @@ public final class ActionInterpreter {
         java.util.Objects.requireNonNull(context, "context");
         if (pipeline.empty()) {
             return CompletableFuture.completedFuture(
-                    PipelineOutcome.skipped("action.v2.run.empty_pipeline", List.of()));
+                    PipelineOutcome.skipped("action.run.empty_pipeline", List.of()));
         }
         CancellationSignal cancellation = new CancellationSignal();
         PipelineContext rooted = context.with(CoreActionKeys.CANCELLATION, cancellation);
@@ -156,9 +156,9 @@ public final class ActionInterpreter {
             int sequenceDepth) {
         StageInvoker.Handle handle = invoker.resolve(stage.id());
         if (handle == null) {
-            run.record(stage.id(), PipelineOutcome.Status.FAILURE, "action.v2.run.stage_unavailable", 0);
+            run.record(stage.id(), PipelineOutcome.Status.FAILURE, "action.run.stage_unavailable", 0);
             return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.OWNER_DISABLED,
-                    "action.v2.run.stage_unavailable", Map.of("stage", stage.id())));
+                    "action.run.stage_unavailable", Map.of("stage", stage.id())));
         }
         ResolvedArguments arguments = arguments(handle, render(state.context(), stage.arguments()));
         boolean isAfter = StaticValidator.AFTER_STAGE.equals(stage.id());
@@ -172,8 +172,8 @@ public final class ActionInterpreter {
                     state.context().render(stage.positional().get(0))));
         }
         if (body.isEmpty()) {
-            run.record(stage.id(), PipelineOutcome.Status.SKIPPED, "action.v2.run.timing_without_body", 0);
-            return CompletableFuture.completedFuture(state.stopped("action.v2.run.timing_without_body"));
+            run.record(stage.id(), PipelineOutcome.Status.SKIPPED, "action.run.timing_without_body", 0);
+            return CompletableFuture.completedFuture(state.stopped("action.run.timing_without_body"));
         }
         // times counts extra runs on top of the first one (decision D4 makes 0 the default), so a plain
         // `after` and `every ... times 0` both run the body exactly once.
@@ -247,14 +247,14 @@ public final class ActionInterpreter {
 
     private State revalidate(Run run, State state) {
         if (!run.owner().isEnabled()) {
-            run.record("delay", PipelineOutcome.Status.SKIPPED, "action.v2.run.owner_disabled", 0);
-            return state.stopped("action.v2.run.owner_disabled");
+            run.record("delay", PipelineOutcome.Status.SKIPPED, "action.run.owner_disabled", 0);
+            return state.stopped("action.run.owner_disabled");
         }
         PipelineContext revalidated = state.context().revalidated();
         List<CoreActionSubject> survivors = revalidated.targets();
         if (!state.flow().isEmpty() && survivors.isEmpty()) {
-            run.record("delay", PipelineOutcome.Status.SKIPPED, "action.v2.run.all_targets_invalid", 0);
-            return state.stopped("action.v2.run.all_targets_invalid");
+            run.record("delay", PipelineOutcome.Status.SKIPPED, "action.run.all_targets_invalid", 0);
+            return state.stopped("action.run.all_targets_invalid");
         }
         return state.withContext(revalidated).withFlow(survivors);
     }
@@ -265,9 +265,9 @@ public final class ActionInterpreter {
             ActionAst.Stage stage = (ActionAst.Stage) node;
             StageInvoker.Handle handle = invoker.resolve(stage.id());
             if (handle == null) {
-                run.record(stage.id(), PipelineOutcome.Status.FAILURE, "action.v2.run.stage_unavailable", 0);
+                run.record(stage.id(), PipelineOutcome.Status.FAILURE, "action.run.stage_unavailable", 0);
                 return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.OWNER_DISABLED,
-                        "action.v2.run.stage_unavailable", Map.of("stage", stage.id())));
+                        "action.run.stage_unavailable", Map.of("stage", stage.id())));
             }
             CoreActionSubject probe = probeSubject(state);
             ExecutionDomain domain = handle.foldable()
@@ -397,9 +397,9 @@ public final class ActionInterpreter {
             State state) {
         StageInvoker.Handle handle = invoker.resolve(stageId);
         if (handle == null || handle.kind() != CoreStageKind.SOURCE) {
-            run.record(stageId, PipelineOutcome.Status.FAILURE, "action.v2.run.stage_unavailable", 0);
+            run.record(stageId, PipelineOutcome.Status.FAILURE, "action.run.stage_unavailable", 0);
             return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.OWNER_DISABLED,
-                    "action.v2.run.stage_unavailable", Map.of("stage", Texts.toStringSafe(stageId))));
+                    "action.run.stage_unavailable", Map.of("stage", Texts.toStringSafe(stageId))));
         }
         PipelineContext context = state.context();
         StageDispatcher.DispatchTarget target = dispatchTarget(
@@ -486,8 +486,8 @@ public final class ActionInterpreter {
         List<CoreActionSubject> flow = state.flow();
         if (flow.isEmpty()) {
             if (handle.targetRequirement().requiresTarget()) {
-                run.record(handle.id(), PipelineOutcome.Status.SKIPPED, "action.v2.run.no_target", 0);
-                return CompletableFuture.completedFuture(state.stopped("action.v2.run.no_target"));
+                run.record(handle.id(), PipelineOutcome.Status.SKIPPED, "action.run.no_target", 0);
+                return CompletableFuture.completedFuture(state.stopped("action.run.no_target"));
             }
             return invokeOnce(run, handle, raw, state, context, -1)
                     .thenApply(outcome -> actionResult(run, handle.id(), state, List.of(outcome), 0));
@@ -552,11 +552,11 @@ public final class ActionInterpreter {
             List<CoreActionOutcome> outcomes,
             int skippedTargets) {
         if (run.cancellation().cancelled()) {
-            run.record(stageId, PipelineOutcome.Status.FAILURE, "action.v2.run.cancelled", outcomes.size());
+            run.record(stageId, PipelineOutcome.Status.FAILURE, "action.run.cancelled", outcomes.size());
             return state.cancelled();
         }
         if (outcomes.isEmpty()) {
-            String reason = skippedTargets > 0 ? "action.v2.run.all_targets_invalid" : "action.v2.run.no_target";
+            String reason = skippedTargets > 0 ? "action.run.all_targets_invalid" : "action.run.no_target";
             run.record(stageId, PipelineOutcome.Status.SKIPPED, reason, 0);
             return state;
         }
@@ -573,7 +573,7 @@ public final class ActionInterpreter {
         }
         // Partial is recorded but does not stop the pipeline: "three of five targets were immune" is a
         // gameplay result, not a configuration error, and later stages still have work to do.
-        run.record(stageId, PipelineOutcome.Status.PARTIAL, "action.v2.run.partial_targets", outcomes.size());
+        run.record(stageId, PipelineOutcome.Status.PARTIAL, "action.run.partial_targets", outcomes.size());
         return state.partial();
     }
 
@@ -584,9 +584,9 @@ public final class ActionInterpreter {
         String condition = state.context().render(node.condition());
         Boolean evaluated = ExpressionEngine.evaluateBoolean(condition);
         if (evaluated == null) {
-            run.record("if", PipelineOutcome.Status.FAILURE, "action.v2.run.invalid_condition", state.flow().size());
+            run.record("if", PipelineOutcome.Status.FAILURE, "action.run.invalid_condition", state.flow().size());
             return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.run.invalid_condition", Map.of("condition", condition)));
+                    "action.run.invalid_condition", Map.of("condition", condition)));
         }
         List<ActionAst> chosen = evaluated ? node.thenBranch() : node.elseBranch();
         if (chosen.isEmpty()) {
@@ -600,16 +600,16 @@ public final class ActionInterpreter {
             State state,
             int sequenceDepth) {
         if (sequenceDepth >= limits.maxSequenceDepth()) {
-            run.record("run", PipelineOutcome.Status.FAILURE, "action.v2.run.sequence_depth_exceeded", 0);
+            run.record("run", PipelineOutcome.Status.FAILURE, "action.run.sequence_depth_exceeded", 0);
             return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.run.sequence_depth_exceeded",
+                    "action.run.sequence_depth_exceeded",
                     Map.of("sequence", node.sequence(), "maximum", limits.maxSequenceDepth())));
         }
         CompiledPipeline target = sequences.find(node.sequence());
         if (target == null) {
-            run.record("run", PipelineOutcome.Status.FAILURE, "action.v2.run.unknown_sequence", 0);
+            run.record("run", PipelineOutcome.Status.FAILURE, "action.run.unknown_sequence", 0);
             return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.run.unknown_sequence", Map.of("sequence", node.sequence())));
+                    "action.run.unknown_sequence", Map.of("sequence", node.sequence())));
         }
         PipelineContext isolated = state.context()
                 .withTargets(state.flow())
@@ -645,7 +645,7 @@ public final class ActionInterpreter {
                     stageResults, kept);
         }
         if (state.partialSeen()) {
-            return PipelineOutcome.partial("action.v2.run.partial_targets", Map.of(), stageResults, kept);
+            return PipelineOutcome.partial("action.run.partial_targets", Map.of(), stageResults, kept);
         }
         if (state.stoppedReason() != null) {
             return PipelineOutcome.skipped(state.stoppedReason(), stageResults, kept);
@@ -666,20 +666,20 @@ public final class ActionInterpreter {
             cause = cause.getCause();
         }
         if (cause instanceof java.util.concurrent.TimeoutException) {
-            return CoreActionOutcome.failure(CoreActionFailureKind.TIMEOUT, "action.v2.run.timeout");
+            return CoreActionOutcome.failure(CoreActionFailureKind.TIMEOUT, "action.run.timeout");
         }
         if (cause instanceof java.util.concurrent.CancellationException) {
-            return CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED, "action.v2.run.cancelled");
+            return CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED, "action.run.cancelled");
         }
         if (cause instanceof StageDispatcher.OwnerDisabledException) {
             return CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED,
-                    "action.v2.run.owner_disabled", Map.of("error", Texts.toStringSafe(cause.getMessage())));
+                    "action.run.owner_disabled", Map.of("error", Texts.toStringSafe(cause.getMessage())));
         }
         if (cause instanceof StageDispatcher.StageRetiredException) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.run.target_retired", Map.of("error", Texts.toStringSafe(cause.getMessage())));
+                    "action.run.target_retired", Map.of("error", Texts.toStringSafe(cause.getMessage())));
         }
-        return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR, "action.v2.run.exception",
+        return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR, "action.run.exception",
                 Map.of("error", cause == null ? "" : Texts.toStringSafe(cause.getMessage())));
     }
 
@@ -690,7 +690,7 @@ public final class ActionInterpreter {
             }
         }
         return new CoreActionOutcome.Failure(CoreActionFailureKind.INTERNAL_ERROR,
-                "action.v2.run.exception", Map.of());
+                "action.run.exception", Map.of());
     }
 
     private static ResolvedArguments arguments(StageInvoker.Handle handle, Map<String, String> rendered) {
@@ -804,7 +804,7 @@ public final class ActionInterpreter {
         }
 
         private State cancelled() {
-            return failed(CoreActionFailureKind.OWNER_DISABLED, "action.v2.run.cancelled", Map.of());
+            return failed(CoreActionFailureKind.OWNER_DISABLED, "action.run.cancelled", Map.of());
         }
 
         private State partial() {

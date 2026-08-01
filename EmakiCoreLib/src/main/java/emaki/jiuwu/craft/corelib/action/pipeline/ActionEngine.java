@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2;
+package emaki.jiuwu.craft.corelib.action.pipeline;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -7,22 +7,22 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompileDiagnostic;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline;
-import emaki.jiuwu.craft.corelib.action.v2.compile.PhaseContract;
-import emaki.jiuwu.craft.corelib.action.v2.compile.PipelineLimits;
-import emaki.jiuwu.craft.corelib.action.v2.compile.PipelineParser;
-import emaki.jiuwu.craft.corelib.action.v2.compile.SequenceCatalog;
-import emaki.jiuwu.craft.corelib.action.v2.compile.StageResolver;
-import emaki.jiuwu.craft.corelib.action.v2.compile.StaticValidator;
-import emaki.jiuwu.craft.corelib.action.v2.exec.ActionInterpreter;
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
-import emaki.jiuwu.craft.corelib.action.v2.exec.SequenceRepository;
-import emaki.jiuwu.craft.corelib.action.v2.exec.StageDispatcher;
-import emaki.jiuwu.craft.corelib.action.v2.exec.StageInvoker;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineParser;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.SequenceCatalog;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.StageResolver;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.StaticValidator;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.ActionInterpreter;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.SequenceRepository;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageDispatcher;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageInvoker;
 
 /**
- * The single v2 entry point, replacing the v1 {@code ActionExecutor}.
+ * The single entry point, replacing the v1 {@code ActionExecutor}.
  *
  * <p>Compilation and execution are separated on purpose: {@link #compile} runs at config load time and
  * {@link #run} walks an already validated AST. The v1 executor parsed each line on every execution.</p>
@@ -65,7 +65,7 @@ public final class ActionEngine {
             return new Result(null, List.of(parsed.diagnostic()));
         }
         if (parsed.blank()) {
-            return new Result(null, List.of(CompileDiagnostic.at("action.v2.validate.empty_pipeline", null)));
+            return new Result(null, List.of(CompileDiagnostic.at("action.validate.empty_pipeline", null)));
         }
         StaticValidator.Result validated = validator.validate(source, parsed.nodes(), phase);
         return new Result(validated.pipeline(), validated.diagnostics());

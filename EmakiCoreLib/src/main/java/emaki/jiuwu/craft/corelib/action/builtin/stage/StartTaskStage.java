@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -7,19 +7,19 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline;
-import emaki.jiuwu.craft.corelib.action.v2.exec.ConfiguredSequenceRepository;
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineTaskService;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.ConfiguredSequenceRepository;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
@@ -76,21 +76,21 @@ public final class StartTaskStage extends BaseStage {
             @NotNull CoreResolvedArguments arguments) {
         if (tasks == null || sequences == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.task.service_unavailable");
+                    "action.stage.task.service_unavailable");
         }
         if (!(context instanceof PipelineContext pipeline)) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.task.context_unavailable");
+                    "action.stage.task.context_unavailable");
         }
         String sequence = arguments.getString("sequence");
         if (Texts.isBlank(sequence)) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.task.sequence_required");
+                    "action.stage.task.sequence_required");
         }
         List<CompiledPipeline> body = sequences.bodyOf(sequence);
         if (body == null || body.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.task.unknown_sequence", Map.of("sequence", sequence));
+                    "action.stage.task.unknown_sequence", Map.of("sequence", sequence));
         }
         PipelineTaskService.Request request = new PipelineTaskService.Request(
                 body,

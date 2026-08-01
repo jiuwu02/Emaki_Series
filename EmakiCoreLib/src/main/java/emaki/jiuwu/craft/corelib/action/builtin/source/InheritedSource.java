@@ -1,12 +1,12 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.source;
+package emaki.jiuwu.craft.corelib.action.builtin.source;
 
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseSource;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 
 /**
  * The target flow supplied by the caller or the previous phase.
@@ -27,7 +27,7 @@ public final class InheritedSource extends BaseSource {
     public @NotNull CoreSourceResult select(@NotNull CoreStageContext context,
             @NotNull CoreResolvedArguments arguments) {
         if (context.targets().isEmpty()) {
-            return CoreSourceResult.empty("action.v2.source.inherited.no_targets");
+            return CoreSourceResult.empty("action.source.inherited.no_targets");
         }
         return CoreSourceResult.selected(context.targets());
     }

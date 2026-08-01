@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.skills.action.v2;
+package emaki.jiuwu.craft.skills.action;
 
 import java.util.List;
 import java.util.Map;
@@ -7,22 +7,22 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
 /**
  * Unlocks or removes manually learned skills for the target.
  *
- * <p>The v2 counterpart of {@code SkillLearnAction}. All three v1 ids ({@code skill_learn},
+ * <p>Replaces the legacy {@code SkillLearnAction}. All three v1 ids ({@code skill_learn},
  * {@code skill_forget}, {@code skill_forget_all}) are kept verbatim.</p>
  *
  * <p>Only the manual skill source is touched. Skills granted by equipment or other sources are collected
@@ -110,7 +110,7 @@ public final class SkillLearnStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = SkillsStageSupport.player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         if (plugin.manualSkillSourceService() == null
                 || plugin.playerSkillStateService() == null
@@ -123,7 +123,7 @@ public final class SkillLearnStage implements CoreActionStage {
         String skillId = Texts.normalizeId(arguments.getString("skill"));
         if (skillId.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.skills.skill_required");
+                    "action.stage.skills.skill_required");
         }
         return operation == Operation.LEARN ? learn(target, skillId) : forget(target, skillId);
     }
@@ -131,12 +131,12 @@ public final class SkillLearnStage implements CoreActionStage {
     private CoreActionOutcome learn(Player target, String skillId) {
         if (plugin.playerSkillStateService().getDefinition(skillId) == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.skills.unknown_skill", Map.of("skill", skillId));
+                    "action.stage.skills.unknown_skill", Map.of("skill", skillId));
         }
         if (!plugin.manualSkillSourceService().learn(target, skillId)) {
             // Skipped, not failed: the only reason learn refuses a known skill is that it is already
             // unlocked, so the pipeline's intent is already satisfied.
-            return CoreActionOutcome.skipped("action.v2.stage.skills.already_learned");
+            return CoreActionOutcome.skipped("action.stage.skills.already_learned");
         }
         plugin.playerSkillDataStore().save(target);
         return CoreActionOutcome.success(Map.of("skill", skillId));
@@ -148,7 +148,7 @@ public final class SkillLearnStage implements CoreActionStage {
         // earlier config change, and this is the cheap point to notice.
         plugin.playerSkillStateService().validateBindings(target);
         if (!forgotten) {
-            return CoreActionOutcome.skipped("action.v2.stage.skills.not_learned");
+            return CoreActionOutcome.skipped("action.stage.skills.not_learned");
         }
         plugin.playerSkillDataStore().save(target);
         return CoreActionOutcome.success(Map.of("skill", skillId));
@@ -158,7 +158,7 @@ public final class SkillLearnStage implements CoreActionStage {
         int removed = plugin.manualSkillSourceService().forgetAll(target);
         plugin.playerSkillStateService().validateBindings(target);
         if (removed <= 0) {
-            return CoreActionOutcome.skipped("action.v2.stage.skills.nothing_learned");
+            return CoreActionOutcome.skipped("action.stage.skills.nothing_learned");
         }
         plugin.playerSkillDataStore().save(target);
         return CoreActionOutcome.success(Map.of("removed", removed));

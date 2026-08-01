@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2;
+package emaki.jiuwu.craft.corelib.action.pipeline;
 
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -10,16 +10,16 @@ import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Typed argument view over one stage's resolved values.
  *
- * <p>Reuses {@link ValueParsers} for every scalar shape so v2 and v1 parse identical text the same
+ * <p>Reuses {@link ValueParsers} for every scalar shape so the pipeline and v1 parse identical text the same
  * way. Declared defaults are applied here, so stages never repeat null handling.</p>
  */
 public final class ResolvedArguments implements CoreResolvedArguments {

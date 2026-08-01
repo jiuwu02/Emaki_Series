@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.Map;
 
@@ -16,16 +16,16 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
@@ -74,12 +74,12 @@ public final class PlaceBlockStage extends BaseStage {
         ItemSource source = StageSupport.itemSource(arguments.getString("item_source"));
         if (source == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.item.invalid_item_source",
+                    "action.stage.item.invalid_item_source",
                     Map.of("item_source", arguments.getString("item_source")));
         }
         Location location = context.currentTarget().location();
         if (location == null || location.getWorld() == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.no_location");
+            return CoreActionOutcome.skipped("action.stage.common.no_location");
         }
         Block target = location.getBlock();
         Player player = StageSupport.player(context.caster());
@@ -89,14 +89,14 @@ public final class PlaceBlockStage extends BaseStage {
             case ITEMSADDER -> placeCustom(player, target, source, itemsAdderBlockBridge, "ItemsAdder");
             case NEXO -> placeCustom(player, target, source, nexoBlockBridge, "Nexo");
             case ORAXEN -> placeCustom(player, target, source, oraxenBlockBridge, "Oraxen");
-            default -> CoreActionOutcome.skipped("action.v2.stage.place_block.not_placeable");
+            default -> CoreActionOutcome.skipped("action.stage.place_block.not_placeable");
         };
     }
 
     private CoreActionOutcome placeVanilla(Player player, Block target, ItemSource source) {
         Material material = ItemSourceUtil.resolveVanillaMaterial(source.getIdentifier());
         if (material == null || !material.isBlock() || material.isAir()) {
-            return CoreActionOutcome.skipped("action.v2.stage.place_block.not_placeable");
+            return CoreActionOutcome.skipped("action.stage.place_block.not_placeable");
         }
         BlockData blockData = material.createBlockData();
         boolean canPlace = target.canPlace(blockData);
@@ -121,11 +121,11 @@ public final class PlaceBlockStage extends BaseStage {
             CustomBlockBridge bridge,
             String providerName) {
         if (bridge == null || !bridge.available()) {
-            return CoreActionOutcome.skipped("action.v2.stage.place_block.provider_unavailable");
+            return CoreActionOutcome.skipped("action.stage.place_block.provider_unavailable");
         }
         boolean replaceable = target.isEmpty() || target.isLiquid() || target.isPassable();
         if (player == null && !replaceable) {
-            return CoreActionOutcome.skipped("action.v2.stage.place_block.not_replaceable");
+            return CoreActionOutcome.skipped("action.stage.place_block.not_replaceable");
         }
         BlockState replaced = target.getState();
         CoreActionOutcome placeRefused = callPlaceEvent(player, target, replaced,
@@ -135,7 +135,7 @@ public final class PlaceBlockStage extends BaseStage {
         }
         if (!bridge.placeBlock(target, source.getIdentifier())) {
             replaced.update(true, false);
-            return CoreActionOutcome.skipped("action.v2.stage.place_block.provider_refused");
+            return CoreActionOutcome.skipped("action.stage.place_block.provider_refused");
         }
         return placed(source, target);
     }
@@ -146,11 +146,11 @@ public final class PlaceBlockStage extends BaseStage {
             BlockData blockData,
             boolean canPlace) {
         if (player == null) {
-            return canPlace ? null : CoreActionOutcome.skipped("action.v2.stage.place_block.cannot_place");
+            return canPlace ? null : CoreActionOutcome.skipped("action.stage.place_block.cannot_place");
         }
         BlockCanBuildEvent event = new BlockCanBuildEvent(target, player, blockData, canPlace);
         Bukkit.getPluginManager().callEvent(event);
-        return event.isBuildable() ? null : CoreActionOutcome.skipped("action.v2.stage.place_block.build_denied");
+        return event.isBuildable() ? null : CoreActionOutcome.skipped("action.stage.place_block.build_denied");
     }
 
     /** {@return a refusal outcome, or {@code null} when the placement is allowed} */
@@ -170,7 +170,7 @@ public final class PlaceBlockStage extends BaseStage {
         Bukkit.getPluginManager().callEvent(event);
         return !event.isCancelled() && event.canBuild()
                 ? null
-                : CoreActionOutcome.skipped("action.v2.stage.place_block.place_cancelled");
+                : CoreActionOutcome.skipped("action.stage.place_block.place_cancelled");
     }
 
     private ItemStack eventItem(ItemSource source, Material fallback) {

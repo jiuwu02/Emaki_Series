@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.Map;
 import java.util.Optional;
@@ -8,15 +8,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKeys;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 
 /**
@@ -48,11 +48,11 @@ public final class SendItemStage extends BaseStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = StageSupport.player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         Optional<ItemStack> item = context.get(CoreActionKeys.ITEM);
         if (item.isEmpty() || StageSupport.isEmpty(item.get())) {
-            return CoreActionOutcome.skipped("action.v2.stage.item.no_pipeline_item");
+            return CoreActionOutcome.skipped("action.stage.item.no_pipeline_item");
         }
         ItemStack payload = item.get().clone();
         int dropped = 0;

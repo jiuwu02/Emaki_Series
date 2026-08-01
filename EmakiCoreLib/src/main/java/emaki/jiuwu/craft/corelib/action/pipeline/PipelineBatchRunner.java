@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2;
+package emaki.jiuwu.craft.corelib.action.pipeline;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,10 +11,10 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompileDiagnostic;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline;
-import emaki.jiuwu.craft.corelib.action.v2.compile.PhaseContract;
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 
 /**
  * Runs a list of configured pipeline lines in order.

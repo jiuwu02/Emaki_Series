@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.codex.action.v2;
+package emaki.jiuwu.craft.codex.action;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,22 +12,22 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Grants, revokes, resyncs and resets EmakiCodex advancements on the target.
  *
- * <p>The v2 counterpart of the module's five advancement actions. One behavioural difference from v1: there is
+ * <p>Replaces the module's five legacy advancement actions. One behavioural difference from v1: there is
  * no {@code target} argument. Naming the subject is the target flow's job in a pipeline, so
  * {@code player_by_name Steve | codex_grant_advancement advancement=x} replaces {@code target=Steve}, and the
  * v1 default of falling back to the context player is what an omitted source already does. That removes the
@@ -124,7 +124,7 @@ public final class CodexAdvancementStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         return switch (operation) {
             case GRANT -> grant(target, arguments);
@@ -141,13 +141,13 @@ public final class CodexAdvancementStage implements CoreActionStage {
         String advancement = Texts.trim(arguments.getString("advancement"));
         if (advancement.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.codex.advancement_required");
+                    "action.stage.codex.advancement_required");
         }
         if (!plugin.advancementService().grant(target, advancement).isSuccess()) {
             // v1 reported the same two causes together: an unregistered id and an already-completed node are
             // indistinguishable from the service's result, so narrowing the diagnostic here would be a guess.
             return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                    "action.v2.stage.codex.grant_refused", Map.of("advancement", advancement));
+                    "action.stage.codex.grant_refused", Map.of("advancement", advancement));
         }
         return CoreActionOutcome.success(Map.of(
                 "advancement", advancement,
@@ -161,11 +161,11 @@ public final class CodexAdvancementStage implements CoreActionStage {
         String advancement = Texts.trim(arguments.getString("advancement"));
         if (advancement.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.codex.advancement_required");
+                    "action.stage.codex.advancement_required");
         }
         if (!plugin.advancementService().revoke(target, advancement).isSuccess()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                    "action.v2.stage.codex.revoke_refused", Map.of("advancement", advancement));
+                    "action.stage.codex.revoke_refused", Map.of("advancement", advancement));
         }
         return CoreActionOutcome.success(Map.of(
                 "advancement", advancement,
@@ -178,11 +178,11 @@ public final class CodexAdvancementStage implements CoreActionStage {
         }
         if (!plugin.advancementPacketGateway().canResync()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.codex.resync_unavailable");
+                    "action.stage.codex.resync_unavailable");
         }
         if (!plugin.advancementPacketGateway().resync(target)) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.codex.resync_failed", Map.of("player", target.getName()));
+                    "action.stage.codex.resync_failed", Map.of("player", target.getName()));
         }
         return CoreActionOutcome.success(Map.of(
                 "target", target.getUniqueId().toString(),
@@ -196,11 +196,11 @@ public final class CodexAdvancementStage implements CoreActionStage {
         String page = operation == Operation.RESET_PAGE ? Texts.trim(arguments.getString("page")) : "";
         if (operation == Operation.RESET_PAGE && page.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.codex.page_required");
+                    "action.stage.codex.page_required");
         }
         List<AdvancementRegistrar.RegisteredNode> nodes = matchingNodes(page);
         if (nodes.isEmpty()) {
-            return CoreActionOutcome.skipped("action.v2.stage.codex.no_nodes");
+            return CoreActionOutcome.skipped("action.stage.codex.no_nodes");
         }
         int revoked = 0;
         for (AdvancementRegistrar.RegisteredNode node : nodes) {
@@ -241,7 +241,7 @@ public final class CodexAdvancementStage implements CoreActionStage {
 
     private static CoreActionOutcome unavailable() {
         return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                "action.v2.stage.codex.service_unavailable");
+                "action.stage.codex.service_unavailable");
     }
 
     private static Player player(CoreActionSubject subject) {

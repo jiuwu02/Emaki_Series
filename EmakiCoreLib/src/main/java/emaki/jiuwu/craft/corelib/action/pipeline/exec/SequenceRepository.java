@@ -1,10 +1,10 @@
-package emaki.jiuwu.craft.corelib.action.v2.exec;
+package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline;
-import emaki.jiuwu.craft.corelib.action.v2.compile.SequenceCatalog;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.SequenceCatalog;
 
 /** Named, compiled pipelines available to {@code run}. */
 public interface SequenceRepository extends SequenceCatalog {

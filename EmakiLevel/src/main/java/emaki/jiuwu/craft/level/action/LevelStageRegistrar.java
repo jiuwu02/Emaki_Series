@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.level.action.v2;
+package emaki.jiuwu.craft.level.action;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.api.LevelOperationType;
 

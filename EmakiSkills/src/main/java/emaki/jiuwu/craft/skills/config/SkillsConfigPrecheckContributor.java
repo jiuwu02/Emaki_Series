@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckContributor;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
@@ -86,7 +86,7 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
         String path = "skills/" + entry.skillId() + ".yml:script.actions."
                 + entry.phase().configKey();
         String reasonKey = diagnostic.reasonKey();
-        if ("action.v2.validate.unknown_stage".equals(reasonKey)) {
+        if ("action.validate.unknown_stage".equals(reasonKey)) {
             addMessageIssue(path, WARN, "script_action_unknown", Map.of(
                     "skill", entry.skillId(),
                     "line", entry.lineNumber(),
@@ -95,7 +95,7 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
                             ? "-" : String.join(", ", diagnostic.candidates())), issues);
             return;
         }
-        if ("action.v2.validate.missing_required_argument".equals(reasonKey)) {
+        if ("action.validate.missing_required_argument".equals(reasonKey)) {
             addMessageIssue(path, WARN, "script_argument_missing", Map.of(
                     "skill", entry.skillId(),
                     "line", entry.lineNumber(),

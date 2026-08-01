@@ -1,12 +1,12 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2;
+package emaki.jiuwu.craft.corelib.action.builtin;
 
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateThread;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 
 /** Metadata carrier for the builtin gate stages. */
 public abstract class BaseGate implements CoreActionGate {

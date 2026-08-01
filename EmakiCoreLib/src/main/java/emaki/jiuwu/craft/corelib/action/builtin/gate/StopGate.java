@@ -1,15 +1,15 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.gate;
+package emaki.jiuwu.craft.corelib.action.builtin.gate;
 
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseGate;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateThread;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 
 /**
  * Ends the pipeline here.
@@ -30,6 +30,6 @@ public final class StopGate extends BaseGate {
     public @NotNull CoreGateResult apply(@NotNull CoreStageContext context,
             @NotNull List<CoreActionSubject> inbound,
             @NotNull CoreResolvedArguments arguments) {
-        return CoreGateResult.halted("action.v2.gate.stop.stopped");
+        return CoreGateResult.halted("action.gate.stop.stopped");
     }
 }

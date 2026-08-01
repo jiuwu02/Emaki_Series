@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.source;
+package emaki.jiuwu.craft.corelib.action.builtin.source;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,14 +10,14 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseSource;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
 /**
  * Entities around the pipeline origin.
@@ -51,13 +51,13 @@ public final class NearbySource extends BaseSource {
         if (arguments.has("type")) {
             type = arguments.getEntityType("type").orElse(null);
             if (type == null) {
-                return CoreSourceResult.invalid("action.v2.source.nearby.unknown_entity_type",
+                return CoreSourceResult.invalid("action.source.nearby.unknown_entity_type",
                         Map.of("type", arguments.getString("type")));
             }
         }
         Location centre = centre(context);
         if (centre == null || centre.getWorld() == null) {
-            return CoreSourceResult.empty("action.v2.source.nearby.no_origin");
+            return CoreSourceResult.empty("action.source.nearby.no_origin");
         }
         double radius = Math.max(0D, arguments.getDouble("radius", 1D));
         int limit = Math.max(1, arguments.getInt("limit", 1));
@@ -67,7 +67,7 @@ public final class NearbySource extends BaseSource {
                 List.copyOf(world.getNearbyEntities(centre, radius, radius, radius)),
                 centre, type, includePlayers, limit, false);
         if (matches.isEmpty()) {
-            return CoreSourceResult.empty("action.v2.source.nearby.no_match");
+            return CoreSourceResult.empty("action.source.nearby.no_match");
         }
         List<CoreActionSubject> subjects = new ArrayList<>(matches.size());
         matches.forEach(entity -> subjects.add(CoreActionSubject.of(entity)));

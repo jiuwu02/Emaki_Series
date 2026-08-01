@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -16,7 +16,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
- * Per-player boss bars owned by the v2 boss bar stages, keyed by player and bar id.
+ * Per-player boss bars owned by the boss bar stages, keyed by player and bar id.
  *
  * <p>Separate from the v1 {@code BuiltinBossBarRegistry} on purpose. That class is package-private inside
  * {@code action.builtin} and phase 6 deletes it; sharing state across the two would make the v2 stages

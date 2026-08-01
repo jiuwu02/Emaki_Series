@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.compile;
+package emaki.jiuwu.craft.corelib.action.pipeline.compile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -97,7 +97,7 @@ public final class PipelineLexer {
         }
 
         if (quote != 0) {
-            return Result.failed(new CompileDiagnostic("action.v2.lex.unclosed_quote", "", "", 0,
+            return Result.failed(new CompileDiagnostic("action.lex.unclosed_quote", "", "", 0,
                     quoteOpenColumn, String.valueOf(quote),
                     Map.of("quote", String.valueOf(quote)), List.of()));
         }

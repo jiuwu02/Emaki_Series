@@ -1,18 +1,18 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
 /**
  * Runs a command as the console.
@@ -38,6 +38,6 @@ public final class RunCommandAsConsoleStage extends BaseStage {
         return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
                 ? CoreActionOutcome.success()
                 : CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                        "action.v2.stage.command.dispatch_failed");
+                        "action.stage.command.dispatch_failed");
     }
 }

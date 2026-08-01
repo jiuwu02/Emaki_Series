@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.gate;
+package emaki.jiuwu.craft.corelib.action.builtin.gate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,17 +7,17 @@ import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseGate;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKeys;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateThread;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseGate;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
@@ -52,16 +52,16 @@ public final class CreateItemGate extends BaseGate {
             @NotNull CoreResolvedArguments arguments) {
         ItemSource source = StageSupport.itemSource(arguments.getString("item_source"));
         if (source == null) {
-            return CoreGateResult.invalid("action.v2.stage.item.invalid_item_source",
+            return CoreGateResult.invalid("action.stage.item.invalid_item_source",
                     Map.of("item_source", arguments.getString("item_source")));
         }
         if (itemSourceService == null) {
-            return CoreGateResult.invalid("action.v2.stage.item.service_unavailable");
+            return CoreGateResult.invalid("action.stage.item.service_unavailable");
         }
         int amount = Math.max(1, arguments.getInt("amount", 1));
         ItemStack itemStack = itemSourceService.createItem(source, amount);
         if (StageSupport.isEmpty(itemStack)) {
-            return CoreGateResult.invalid("action.v2.stage.item.create_failed",
+            return CoreGateResult.invalid("action.stage.item.create_failed",
                     Map.of("item_source", StageSupport.shorthand(source)));
         }
         Map<CoreActionKey<?>, Object> data = Map.of(CoreActionKeys.ITEM, itemStack.clone());

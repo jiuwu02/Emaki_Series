@@ -267,7 +267,7 @@ public record CoreLibConfig(
     }
 
     /**
-     * Load-time compile limits for v2 pipelines.
+     * Load-time compile limits for pipelines.
      *
      * @param maxRepeatTimes cap for {@code every ... times N}; exceeding it rejects the configuration
      * @param maxSequenceDepth cap for nested {@code run} calls
@@ -292,8 +292,8 @@ public record CoreLibConfig(
         }
 
         /** {@return these limits as the compiler's own type} */
-        public emaki.jiuwu.craft.corelib.action.v2.compile.PipelineLimits toLimits() {
-            return new emaki.jiuwu.craft.corelib.action.v2.compile.PipelineLimits(
+        public emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits toLimits() {
+            return new emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits(
                     maxRepeatTimes, maxSequenceDepth, maxBranchDepth);
         }
     }
@@ -333,7 +333,7 @@ public record CoreLibConfig(
         }
 
         private static long parseTicks(String raw, long fallback) {
-            long parsed = emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers.parseTicks(raw);
+            long parsed = emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers.parseTicks(raw);
             return parsed < 0L ? fallback : parsed;
         }
     }

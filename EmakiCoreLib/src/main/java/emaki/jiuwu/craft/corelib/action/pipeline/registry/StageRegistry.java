@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.registry;
+package emaki.jiuwu.craft.corelib.action.pipeline.registry;
 
 import java.util.List;
 import java.util.Map;
@@ -9,13 +9,13 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
@@ -68,7 +68,7 @@ public final class StageRegistry {
      */
     public @NotNull CoreStageRegistration registerSource(@Nullable Plugin owner, @Nullable CoreActionSource source) {
         if (source == null || Texts.isBlank(source.id())) {
-            return failed(CoreStageKind.SOURCE, "action.v2.register.blank_id");
+            return failed(CoreStageKind.SOURCE, "action.register.blank_id");
         }
         StageRegistrationResult domainCheck = checkDomain(source.id(), CoreStageKind.SOURCE,
                 safeTarget(() -> source.executionTarget(planningProbe())), CoreTargetRequirement.OPTIONAL);
@@ -87,7 +87,7 @@ public final class StageRegistry {
      */
     public @NotNull CoreStageRegistration registerGate(@Nullable Plugin owner, @Nullable CoreActionGate gate) {
         if (gate == null || Texts.isBlank(gate.id())) {
-            return failed(CoreStageKind.GATE, "action.v2.register.blank_id");
+            return failed(CoreStageKind.GATE, "action.register.blank_id");
         }
         return install(gates, owner, gate.id(), gate);
     }
@@ -101,7 +101,7 @@ public final class StageRegistry {
      */
     public @NotNull CoreStageRegistration registerAction(@Nullable Plugin owner, @Nullable CoreActionStage stage) {
         if (stage == null || Texts.isBlank(stage.id())) {
-            return failed(CoreStageKind.ACTION, "action.v2.register.blank_id");
+            return failed(CoreStageKind.ACTION, "action.register.blank_id");
         }
         StageRegistrationResult domainCheck = checkDomain(stage.id(), CoreStageKind.ACTION,
                 safeTarget(() -> stage.executionTarget(planningProbe())), stage.targetRequirement());
@@ -172,12 +172,12 @@ public final class StageRegistry {
             @Nullable CoreActionExecutionTarget target,
             @Nullable CoreTargetRequirement requirement) {
         if (target == null || target.domain() == CoreActionExecutionDomain.UNDECLARED) {
-            return StageRegistrationResult.rejected(id, kind, "action.v2.register.undeclared_domain",
+            return StageRegistrationResult.rejected(id, kind, "action.register.undeclared_domain",
                     Map.of("stage", Texts.toStringSafe(id)));
         }
         if (target.domain() == CoreActionExecutionDomain.ASYNC_COMPUTE
                 && requirement != null && requirement != CoreTargetRequirement.NONE) {
-            return StageRegistrationResult.rejected(id, kind, "action.v2.register.async_needs_target",
+            return StageRegistrationResult.rejected(id, kind, "action.register.async_needs_target",
                     Map.of("stage", Texts.toStringSafe(id), "requirement", requirement.name()));
         }
         return StageRegistrationResult.accepted(Texts.lower(id), kind);
@@ -188,8 +188,8 @@ public final class StageRegistry {
         if (entry == null) {
             String firstOwner = table.ownerNameOf(id);
             return new Handle(table, Texts.lower(id), table.kind(), -1L, false,
-                    Texts.isBlank(firstOwner) ? "action.v2.register.duplicate_id"
-                            : "action.v2.register.duplicate_id_owned_by:" + firstOwner);
+                    Texts.isBlank(firstOwner) ? "action.register.duplicate_id"
+                            : "action.register.duplicate_id_owned_by:" + firstOwner);
         }
         return new Handle(table, entry.id(), table.kind(), entry.generation(), true, "");
     }

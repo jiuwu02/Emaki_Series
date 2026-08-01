@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.exec;
+package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import java.util.List;
 import java.util.Map;
@@ -6,8 +6,8 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 
 /**
  * Result of running one pipeline.

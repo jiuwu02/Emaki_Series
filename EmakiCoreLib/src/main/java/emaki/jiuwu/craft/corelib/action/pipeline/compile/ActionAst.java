@@ -1,11 +1,11 @@
-package emaki.jiuwu.craft.corelib.action.v2.compile;
+package emaki.jiuwu.craft.corelib.action.pipeline.compile;
 
 import java.util.List;
 import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 
 /**
  * Parsed pipeline node.

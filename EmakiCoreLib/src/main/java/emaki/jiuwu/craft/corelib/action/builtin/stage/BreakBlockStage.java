@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.Locale;
 import java.util.Map;
@@ -11,15 +11,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
 /**
  * Breaks or clears the block at the target position.
@@ -46,19 +46,19 @@ public final class BreakBlockStage extends BaseStage {
             @NotNull CoreResolvedArguments arguments) {
         Location location = context.currentTarget().location();
         if (location == null || location.getWorld() == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.no_location");
+            return CoreActionOutcome.skipped("action.stage.common.no_location");
         }
         Block block = location.getBlock();
         Material before = block.getType();
         if (before.isAir()) {
-            return CoreActionOutcome.skipped("action.v2.stage.break_block.already_air");
+            return CoreActionOutcome.skipped("action.stage.break_block.already_air");
         }
         Player player = StageSupport.player(context.caster());
         if (player != null) {
             BlockBreakEvent event = new BlockBreakEvent(block, player);
             Bukkit.getPluginManager().callEvent(event);
             if (event.isCancelled()) {
-                return CoreActionOutcome.skipped("action.v2.stage.break_block.cancelled");
+                return CoreActionOutcome.skipped("action.stage.break_block.cancelled");
             }
         }
         boolean dropItems = arguments.getBoolean("drop_items", false);
@@ -72,7 +72,7 @@ public final class BreakBlockStage extends BaseStage {
             broken = true;
         }
         if (!broken) {
-            return CoreActionOutcome.skipped("action.v2.stage.break_block.not_broken");
+            return CoreActionOutcome.skipped("action.stage.break_block.not_broken");
         }
         return CoreActionOutcome.success(Map.of(
                 "world", block.getWorld().getName(),

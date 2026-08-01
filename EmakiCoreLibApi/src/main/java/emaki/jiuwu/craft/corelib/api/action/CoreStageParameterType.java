@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.api.action.v2;
+package emaki.jiuwu.craft.corelib.api.action;
 
 /**
  * Value shapes a stage parameter can declare.

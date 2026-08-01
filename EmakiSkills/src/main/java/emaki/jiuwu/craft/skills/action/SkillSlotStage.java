@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.skills.action.v2;
+package emaki.jiuwu.craft.skills.action;
 
 import java.util.List;
 import java.util.Map;
@@ -7,24 +7,24 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
 /**
  * Equips, unequips or rebinds one of the target's skill slots.
  *
- * <p>The v2 counterpart of {@code SkillSlotAction}. All three v1 ids ({@code skill_equip},
- * {@code skill_unequip}, {@code skill_bind}) are kept verbatim because they already use the v2 naming
- * style.</p>
+ * <p>Replaces the legacy {@code SkillSlotAction}. All three v1 ids ({@code skill_equip},
+ * {@code skill_unequip}, {@code skill_bind}) are kept verbatim because they already use the current stage
+ * naming style.</p>
  *
  * <p>Slot validation stays entirely inside {@code PlayerSkillStateService}: it owns the unlocked-skill set,
  * the trigger conflict table and the slot-change event, and duplicating any of those checks here would let
@@ -119,7 +119,7 @@ public final class SkillSlotStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = SkillsStageSupport.player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         if (plugin.playerSkillStateService() == null || plugin.playerSkillDataStore() == null) {
             return SkillsStageSupport.serviceUnavailable();
@@ -138,7 +138,7 @@ public final class SkillSlotStage implements CoreActionStage {
             // REJECTED: the state service returns a bare boolean covering an out-of-range slot, a locked
             // skill, a trigger conflict and a cancelled event alike, so the reason cannot be narrowed here.
             return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                    "action.v2.stage.skills.slot_refused", Map.of("slot", slot));
+                    "action.stage.skills.slot_refused", Map.of("slot", slot));
         }
         plugin.playerSkillDataStore().save(target);
         return CoreActionOutcome.success(Map.of("slot", slot));

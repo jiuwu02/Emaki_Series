@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -517,7 +517,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
      * Rejects a recipe whose action lines do not compile.
      *
      * <p>Compilation replaces what used to be three separate checks against the v1 registries: parse the
-     * line, look the action up, then validate its arguments. The v2 compiler does all three and additionally
+     * line, look the action up, then validate its arguments. The pipeline compiler does all three and additionally
      * verifies stage position and referenced sequences, so a recipe that compiles here cannot fail at forge
      * time for a configuration reason.</p>
      *

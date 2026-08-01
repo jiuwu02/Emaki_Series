@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.source;
+package emaki.jiuwu.craft.corelib.action.builtin.source;
 
 import java.util.List;
 
@@ -8,15 +8,15 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseSource;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
 /**
  * The entity the caster is looking at.
@@ -41,24 +41,24 @@ public final class LookingAtSource extends BaseSource {
             @NotNull CoreResolvedArguments arguments) {
         LivingEntity caster = StageSupport.livingEntity(context.caster());
         if (caster == null) {
-            return CoreSourceResult.empty("action.v2.source.looking_at.no_living_caster");
+            return CoreSourceResult.empty("action.source.looking_at.no_living_caster");
         }
         double range = arguments.getDouble("range", 5D);
         double width = arguments.getDouble("width", 0.5D);
         if (range <= 0D || width < 0D) {
-            return CoreSourceResult.invalid("action.v2.source.looking_at.invalid_ray");
+            return CoreSourceResult.invalid("action.source.looking_at.invalid_ray");
         }
         Location eye = caster.getEyeLocation();
         World world = eye.getWorld();
         if (world == null) {
-            return CoreSourceResult.empty("action.v2.source.looking_at.no_hit");
+            return CoreSourceResult.empty("action.source.looking_at.no_hit");
         }
         // World#rayTraceEntities rather than LivingEntity#rayTraceEntities: only the former accepts a ray
         // size, and `width` has to keep the meaning the Skills-side `ray` action gave it.
         RayTraceResult result = world.rayTraceEntities(eye, eye.getDirection(), range, width,
                 candidate -> candidate != null && !candidate.equals(caster));
         if (result == null || result.getHitEntity() == null) {
-            return CoreSourceResult.empty("action.v2.source.looking_at.no_hit");
+            return CoreSourceResult.empty("action.source.looking_at.no_hit");
         }
         return CoreSourceResult.selected(List.of(CoreActionSubject.of(result.getHitEntity())));
     }

@@ -1,12 +1,12 @@
-package emaki.jiuwu.craft.codex.action.v2;
+package emaki.jiuwu.craft.codex.action;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 /**

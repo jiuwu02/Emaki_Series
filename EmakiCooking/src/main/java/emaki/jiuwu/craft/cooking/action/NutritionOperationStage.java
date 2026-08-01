@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.cooking.action.v2;
+package emaki.jiuwu.craft.cooking.action;
 
 import java.util.List;
 import java.util.Map;
@@ -10,22 +10,22 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Adds to, subtracts from, or sets one of the target's nutrition values.
  *
- * <p>The v2 counterpart of {@code NutritionOperationAction}. Two v1 mechanisms are gone:</p>
+ * <p>Replaces the legacy {@code NutritionOperationAction}. Two v1 mechanisms are gone:</p>
  * <ul>
  *   <li>the {@code target} argument and its name-or-UUID resolution. That logic lived in
  *       {@code CookingActionExecutionTargets} and is now CoreLib's {@code player_by_name} source, so
@@ -116,16 +116,16 @@ public final class NutritionOperationStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (plugin.nutritionService() == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.cooking.service_unavailable");
+                    "action.stage.cooking.service_unavailable");
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         String type = Texts.trim(arguments.getString("type"));
         if (type.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.cooking.type_required");
+                    "action.stage.cooking.type_required");
         }
         UUID targetId = target.getUniqueId();
         double amount = arguments.getExpression("amount", 0D);
@@ -136,7 +136,7 @@ public final class NutritionOperationStage implements CoreActionStage {
         };
         if (!result.success()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                    "action.v2.stage.cooking.operation_failed",
+                    "action.stage.cooking.operation_failed",
                     Map.of("reason", String.valueOf(result.reason())));
         }
         return CoreActionOutcome.success(Map.of(

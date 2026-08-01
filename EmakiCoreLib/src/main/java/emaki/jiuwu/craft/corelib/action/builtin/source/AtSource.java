@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.source;
+package emaki.jiuwu.craft.corelib.action.builtin.source;
 
 import java.util.List;
 import java.util.Map;
@@ -7,16 +7,16 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseSource;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
 /**
  * An absolute or origin-relative coordinate.
@@ -47,18 +47,18 @@ public final class AtSource extends BaseSource {
         World fallback = origin == null ? null : origin.getWorld();
         String requested = arguments.getString("world");
         if (requested.isBlank() && fallback == null) {
-            return CoreSourceResult.invalid("action.v2.source.at.world_required");
+            return CoreSourceResult.invalid("action.source.at.world_required");
         }
         World world = StageSupport.world(requested, fallback);
         if (world == null) {
-            return CoreSourceResult.invalid("action.v2.source.at.world_not_found",
+            return CoreSourceResult.invalid("action.source.at.world_not_found",
                     Map.of("world", requested));
         }
         String x = arguments.getString("x", "~");
         String y = arguments.getString("y", "~");
         String z = arguments.getString("z", "~");
         if (origin == null && (relative(x) || relative(y) || relative(z))) {
-            return CoreSourceResult.invalid("action.v2.source.at.relative_without_origin");
+            return CoreSourceResult.invalid("action.source.at.relative_without_origin");
         }
         double baseX = origin == null ? 0D : origin.getX();
         double baseY = origin == null ? 0D : origin.getY();

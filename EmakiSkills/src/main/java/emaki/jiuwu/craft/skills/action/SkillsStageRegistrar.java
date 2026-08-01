@@ -1,11 +1,11 @@
-package emaki.jiuwu.craft.skills.action.v2;
+package emaki.jiuwu.craft.skills.action;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
 /**
@@ -46,6 +46,7 @@ public final class SkillsStageRegistrar {
     private List<CoreActionStage> stages() {
         List<CoreActionStage> stages = new ArrayList<>();
         stages.add(new CastSkillStage(plugin));
+        stages.add(new CastMythicSkillStage());
         for (SkillLevelStage.Operation operation : SkillLevelStage.Operation.values()) {
             stages.add(new SkillLevelStage(plugin, operation));
         }

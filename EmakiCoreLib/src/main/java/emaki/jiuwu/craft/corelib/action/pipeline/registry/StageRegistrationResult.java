@@ -1,11 +1,11 @@
-package emaki.jiuwu.craft.corelib.action.v2.registry;
+package emaki.jiuwu.craft.corelib.action.pipeline.registry;
 
 import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 
 /**
  * Outcome of one registration attempt.

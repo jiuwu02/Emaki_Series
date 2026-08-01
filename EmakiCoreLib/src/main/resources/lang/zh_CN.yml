@@ -104,296 +104,295 @@ loader:
   load_failed: "<red>读取 %type% 文件 %file% 失败: %error%</red>"
 
 action:
-  debug_execution: "<gray>[Action]</gray> <white>phase=%phase%</white>
-    <white>id=%id%</white> <gray>args=%args%</gray>"
+  debug_execution: "<gray>[Action]</gray> <white>phase=%phase%</white> <white>id=%id%</white> <gray>args=%args%</gray>"
   execute_failed: "<red>[Action] 执行 %action% 失败: %error%</red>"
-  # 管道(v2)加载期校验诊断
-  v2:
-    register:
-      blank_id: "<red>[管道] 段 id 为空，注册被拒绝</red>"
-      duplicate_id: "<red>[管道] 段 id 重复，注册被拒绝</red>"
-      registry_unavailable: "<red>[管道] 段注册表尚未就绪，注册被拒绝</red>"
-      undeclared_domain: "<red>[管道] 段 %stage% 未声明线程域，注册被拒绝</red>"
-      async_needs_target: "<red>[管道] 段 %stage% 声明异步域但要求目标(%requirement%)，注册被拒绝</red>"
-      key_type_conflict: "<red>[管道] 上下文键 %key% 类型冲突：已有 %existing%，%stage% 声明 %declared%</red>"
-    validate:
-      empty_pipeline: "<red>[管道] 该行没有任何段</red>"
-      missing_self_source: "<red>[管道] 省略源段需要内置 self 源段，但它当前不可用</red>"
-      unknown_stage: "<red>[管道] 未知段 %token%</red>"
-      stage_owner_disabled: "<red>[管道] 段 %stage% 由插件 %owner% 提供，该插件当前未启用</red>"
-      multiple_sources: "<red>[管道] 一条管道只能有一个源段</red>"
-      source_after_action: "<red>[管道] 源段不能出现在动作段之后</red>"
-      gate_after_action: "<red>[管道] 闸门段 %stage% 不能出现在动作段之后，此时目标流已被消耗</red>"
-      missing_required_argument: "<red>[管道] 缺少必填参数 %argument%</red>"
-      unknown_argument: "<red>[管道] 未知参数 %token%</red>"
-      invalid_argument_type: "<red>[管道] 参数 %argument% 的值 %value% 不是合法的 %expected%</red>"
-      positional_not_allowed: "<red>[管道] 该段不接受无名参数</red>"
-      too_many_positional_arguments: "<red>[管道] 无名参数过多：最多 %maximum% 个，实际 %actual% 个</red>"
-      argument_both_named_and_positional: "<red>[管道] 参数 %token% 同时以具名和无名形式给出</red>"
-      missing_context_key: "<red>[管道] 段 %stage% 需要上下文 %key%(%type%)，但阶段 %phase% 不提供</red>"
-      invalid_every_syntax: "<red>[管道] every 语法错误，应为 %expected%</red>"
-      invalid_repeat_times: "<red>[管道] 重复次数 %value% 不是合法的非负整数</red>"
-      repeat_must_be_literal: "<red>[管道] 重复次数必须是字面量，不能是占位符 %value%</red>"
-      repeat_limit_exceeded: "<red>[管道] 重复次数 %value% 超过上限 %maximum%</red>"
-      branch_depth_exceeded: "<red>[管道] 分支嵌套深度 %depth% 超过上限 %maximum%</red>"
-      unknown_sequence: "<red>[管道] 未知序列 %token%</red>"
-      missing_sequence_parameter: "<red>[管道] 序列 %sequence% 缺少参数 %parameter%</red>"
-      sequence_cycle: "<red>[管道] 序列调用存在环：%path%</red>"
-      thread_domain_undeclared: "<red>[管道] 段 %stage% 未声明线程域</red>"
-      async_stage_requires_target: "<red>[管道] 段 %stage% 声明异步域但要求目标(%requirement%)</red>"
-    run:
-      empty_pipeline: "<gray>[管道] 该管道没有可执行的段</gray>"
-      stage_unavailable: "<red>[管道] 段当前不可用</red>"
-      no_target: "<gray>[管道] 没有目标可作用</gray>"
-      all_targets_invalid: "<gray>[管道] 所有目标在执行前已失效</gray>"
-      partial_targets: "<yellow>[管道] 部分目标执行失败</yellow>"
-      invalid_condition: "<red>[管道] 条件 %condition% 无法求值</red>"
-      unknown_sequence: "<red>[管道] 运行期找不到序列 %sequence%</red>"
-      sequence_depth_exceeded: "<red>[管道] 序列 %sequence% 超过最大嵌套深度 %maximum%</red>"
-      timeout: "<red>[管道] 段执行超时</red>"
-      cancelled: "<gray>[管道] 执行已取消</gray>"
-      owner_disabled: "<red>[管道] 所属插件已停用：%error%</red>"
-      target_retired: "<gray>[管道] 目标在延迟执行前已失效：%error%</gray>"
-      timing_without_body: "<gray>[管道] 时序段之后没有可执行的段</gray>"
+  # 管道加载期校验诊断
+  register:
+    blank_id: "<red>[管道] 段 id 为空，注册被拒绝</red>"
+    duplicate_id: "<red>[管道] 段 id 重复，注册被拒绝</red>"
+    registry_unavailable: "<red>[管道] 段注册表尚未就绪，注册被拒绝</red>"
+    undeclared_domain: "<red>[管道] 段 %stage% 未声明线程域，注册被拒绝</red>"
+    async_needs_target: "<red>[管道] 段 %stage% 声明异步域但要求目标(%requirement%)，注册被拒绝</red>"
+    key_type_conflict: "<red>[管道] 上下文键 %key% 类型冲突：已有 %existing%，%stage% 声明 %declared%</red>"
+  validate:
+    empty_pipeline: "<red>[管道] 该行没有任何段</red>"
+    missing_self_source: "<red>[管道] 省略源段需要内置 self 源段，但它当前不可用</red>"
+    unknown_stage: "<red>[管道] 未知段 %token%</red>"
+    stage_owner_disabled: "<red>[管道] 段 %stage% 由插件 %owner% 提供，该插件当前未启用</red>"
+    multiple_sources: "<red>[管道] 一条管道只能有一个源段</red>"
+    source_after_action: "<red>[管道] 源段不能出现在动作段之后</red>"
+    gate_after_action: "<red>[管道] 闸门段 %stage% 不能出现在动作段之后，此时目标流已被消耗</red>"
+    missing_required_argument: "<red>[管道] 缺少必填参数 %argument%</red>"
+    unknown_argument: "<red>[管道] 未知参数 %token%</red>"
+    invalid_argument_type: "<red>[管道] 参数 %argument% 的值 %value% 不是合法的 %expected%</red>"
+    positional_not_allowed: "<red>[管道] 该段不接受无名参数</red>"
+    too_many_positional_arguments: "<red>[管道] 无名参数过多：最多 %maximum% 个，实际 %actual% 个</red>"
+    argument_both_named_and_positional: "<red>[管道] 参数 %token% 同时以具名和无名形式给出</red>"
+    missing_context_key: "<red>[管道] 段 %stage% 需要上下文 %key%(%type%)，但阶段 %phase% 不提供</red>"
+    invalid_every_syntax: "<red>[管道] every 语法错误，应为 %expected%</red>"
+    invalid_repeat_times: "<red>[管道] 重复次数 %value% 不是合法的非负整数</red>"
+    repeat_must_be_literal: "<red>[管道] 重复次数必须是字面量，不能是占位符 %value%</red>"
+    repeat_limit_exceeded: "<red>[管道] 重复次数 %value% 超过上限 %maximum%</red>"
+    branch_depth_exceeded: "<red>[管道] 分支嵌套深度 %depth% 超过上限 %maximum%</red>"
+    unknown_sequence: "<red>[管道] 未知序列 %token%</red>"
+    missing_sequence_parameter: "<red>[管道] 序列 %sequence% 缺少参数 %parameter%</red>"
+    sequence_cycle: "<red>[管道] 序列调用存在环：%path%</red>"
+    thread_domain_undeclared: "<red>[管道] 段 %stage% 未声明线程域</red>"
+    async_stage_requires_target: "<red>[管道] 段 %stage% 声明异步域但要求目标(%requirement%)</red>"
+  run:
+    empty_pipeline: "<gray>[管道] 该管道没有可执行的段</gray>"
+    stage_unavailable: "<red>[管道] 段当前不可用</red>"
+    no_target: "<gray>[管道] 没有目标可作用</gray>"
+    all_targets_invalid: "<gray>[管道] 所有目标在执行前已失效</gray>"
+    partial_targets: "<yellow>[管道] 部分目标执行失败</yellow>"
+    invalid_condition: "<red>[管道] 条件 %condition% 无法求值</red>"
+    unknown_sequence: "<red>[管道] 运行期找不到序列 %sequence%</red>"
+    sequence_depth_exceeded: "<red>[管道] 序列 %sequence% 超过最大嵌套深度 %maximum%</red>"
+    timeout: "<red>[管道] 段执行超时</red>"
+    cancelled: "<gray>[管道] 执行已取消</gray>"
+    owner_disabled: "<red>[管道] 所属插件已停用：%error%</red>"
+    target_retired: "<gray>[管道] 目标在延迟执行前已失效：%error%</gray>"
+    timing_without_body: "<gray>[管道] 时序段之后没有可执行的段</gray>"
+  task:
+    empty_body: "<red>[管道] 该序列没有可执行的行</red>"
+    times_out_of_range: "<red>[管道] times 超出允许范围，请调整 action.pipeline.max_repeat_times</red>"
+    interval_too_small: "<red>[管道] interval 小于配置允许的最小间隔</red>"
+    total_limit_reached: "<red>[管道] 已达到全服活动任务上限</red>"
+    player_limit_reached: "<red>[管道] 已达到该玩家的活动任务上限</red>"
+    plugin_limit_reached: "<red>[管道] 已达到该插件的活动任务上限</red>"
+    exception: "<red>[管道] 段执行抛出异常：%error%</red>"
+  # 内置源段诊断
+  source:
+    self:
+      no_caster: "<gray>[管道] self 源段没有施法者</gray>"
+    inherited:
+      no_targets: "<gray>[管道] inherited 源段没有可继承的目标</gray>"
+    trigger:
+      no_trigger: "<gray>[管道] trigger 源段没有触发者信息</gray>"
+      not_online: "<gray>[管道] trigger 指向的玩家不在线</gray>"
+    origin:
+      no_origin: "<gray>[管道] origin 源段没有可用的原点</gray>"
+    looking_at:
+      no_living_caster: "<gray>[管道] looking_at 需要生物施法者</gray>"
+      no_hit: "<gray>[管道] looking_at 视线未命中实体</gray>"
+      invalid_ray: "<red>[管道] looking_at 的 range 或 width 不合法</red>"
+    nearby:
+      no_origin: "<gray>[管道] nearby 源段没有可用的原点</gray>"
+      no_match: "<gray>[管道] nearby 未找到符合条件的实体</gray>"
+      unknown_entity_type: "<red>[管道] nearby 的实体类型 %type% 未知</red>"
+    nearby_players:
+      no_origin: "<gray>[管道] nearby_players 源段没有可用的原点</gray>"
+      no_match: "<gray>[管道] nearby_players 未找到玩家</gray>"
+    offset:
+      no_origin: "<gray>[管道] offset 源段没有可用的原点</gray>"
+    at:
+      world_required: "<red>[管道] at 源段无原点时必须指定 world</red>"
+      world_not_found: "<red>[管道] at 源段的世界 %world% 不存在</red>"
+      relative_without_origin: "<red>[管道] at 源段无原点时不能使用 ~ 相对坐标</red>"
+    player_by_name:
+      name_required: "<red>[管道] player_by_name 必须指定 name</red>"
+      not_online: "<gray>[管道] player_by_name 指向的玩家不在线</gray>"
+  # 内置闸门段诊断
+  gate:
+    where:
+      condition_required: "<red>[管道] where 必须给出条件</red>"
+      invalid_condition: "<red>[管道] where 的条件 %condition% 无法求值</red>"
+    chance:
+      chance_required: "<red>[管道] chance 必须给出概率</red>"
+      invalid_chance: "<red>[管道] chance 的概率不合法，应在 0 到 1 之间</red>"
+      not_rolled: "<gray>[管道] chance 判定未通过</gray>"
+    limit:
+      invalid_count: "<red>[管道] limit 的数量必须是非负整数</red>"
+    sort_by:
+      unknown_key: "<red>[管道] sort_by 的排序键 %key% 未知，应为 distance 或 health</red>"
+      unknown_order: "<red>[管道] sort_by 的顺序 %order% 未知，应为 asc 或 desc</red>"
+    set:
+      no_assignment: "<red>[管道] set 必须给出至少一个赋值</red>"
+    stop:
+      stopped: "<gray>[管道] 已由 stop 段终止</gray>"
+  # 内置动作段诊断
+  stage:
+    common:
+      not_entity: "<gray>[管道] 该段需要实体目标</gray>"
+      not_living_entity: "<gray>[管道] 该段需要生物目标</gray>"
+      not_player: "<gray>[管道] 该段需要玩家目标</gray>"
+      no_location: "<gray>[管道] 该段需要有位置的目标</gray>"
+    play_sound:
+      unknown_sound: "<red>[管道] 未知音效 %sound%</red>"
+    spawn_particle:
+      unknown_particle: "<red>[管道] 未知粒子 %particle%</red>"
+    boss_bar:
+      id_required: "<red>[管道] boss bar 段必须指定 id</red>"
+      unknown_color: "<red>[管道] 未知 boss bar 颜色 %color%</red>"
+      unknown_style: "<red>[管道] 未知 boss bar 样式 %style%</red>"
+      unknown_flag: "<red>[管道] 未知 boss bar 标记 %flag%</red>"
+      show_failed: "<red>[管道] 无法为 id %id% 显示 boss bar</red>"
+      none_active: "<gray>[管道] 目标没有活动的 boss bar</gray>"
+      not_found: "<gray>[管道] 未找到该 id 的 boss bar</gray>"
+    kill_entity:
+      player_target: "<gray>[管道] kill_entity 不作用于玩家，请改用 set_health amount=0</gray>"
+      already_dead: "<gray>[管道] 目标实体已死亡</gray>"
+    potion:
+      unknown_effect: "<red>[管道] 未知药水效果 %type%</red>"
+      effect_absent: "<gray>[管道] 目标没有该药水效果</gray>"
+      none_active: "<gray>[管道] 目标没有活动的药水效果</gray>"
     task:
-      empty_body: "<red>[管道] 该序列没有可执行的行</red>"
-      times_out_of_range: "<red>[管道] times 超出允许范围，请调整 action.pipeline.max_repeat_times</red>"
-      interval_too_small: "<red>[管道] interval 小于配置允许的最小间隔</red>"
-      total_limit_reached: "<red>[管道] 已达到全服活动任务上限</red>"
-      player_limit_reached: "<red>[管道] 已达到该玩家的活动任务上限</red>"
-      plugin_limit_reached: "<red>[管道] 已达到该插件的活动任务上限</red>"
-      exception: "<red>[管道] 段执行抛出异常：%error%</red>"
-    # 内置源段诊断
-    source:
-      self:
-        no_caster: "<gray>[管道] self 源段没有施法者</gray>"
-      inherited:
-        no_targets: "<gray>[管道] inherited 源段没有可继承的目标</gray>"
-      trigger:
-        no_trigger: "<gray>[管道] trigger 源段没有触发者信息</gray>"
-        not_online: "<gray>[管道] trigger 指向的玩家不在线</gray>"
-      origin:
-        no_origin: "<gray>[管道] origin 源段没有可用的原点</gray>"
-      looking_at:
-        no_living_caster: "<gray>[管道] looking_at 需要生物施法者</gray>"
-        no_hit: "<gray>[管道] looking_at 视线未命中实体</gray>"
-        invalid_ray: "<red>[管道] looking_at 的 range 或 width 不合法</red>"
-      nearby:
-        no_origin: "<gray>[管道] nearby 源段没有可用的原点</gray>"
-        no_match: "<gray>[管道] nearby 未找到符合条件的实体</gray>"
-        unknown_entity_type: "<red>[管道] nearby 的实体类型 %type% 未知</red>"
-      nearby_players:
-        no_origin: "<gray>[管道] nearby_players 源段没有可用的原点</gray>"
-        no_match: "<gray>[管道] nearby_players 未找到玩家</gray>"
-      offset:
-        no_origin: "<gray>[管道] offset 源段没有可用的原点</gray>"
-      at:
-        world_required: "<red>[管道] at 源段无原点时必须指定 world</red>"
-        world_not_found: "<red>[管道] at 源段的世界 %world% 不存在</red>"
-        relative_without_origin: "<red>[管道] at 源段无原点时不能使用 ~ 相对坐标</red>"
-      player_by_name:
-        name_required: "<red>[管道] player_by_name 必须指定 name</red>"
-        not_online: "<gray>[管道] player_by_name 指向的玩家不在线</gray>"
-    # 内置闸门段诊断
-    gate:
-      where:
-        condition_required: "<red>[管道] where 必须给出条件</red>"
-        invalid_condition: "<red>[管道] where 的条件 %condition% 无法求值</red>"
-      chance:
-        chance_required: "<red>[管道] chance 必须给出概率</red>"
-        invalid_chance: "<red>[管道] chance 的概率不合法，应在 0 到 1 之间</red>"
-        not_rolled: "<gray>[管道] chance 判定未通过</gray>"
-      limit:
-        invalid_count: "<red>[管道] limit 的数量必须是非负整数</red>"
-      sort_by:
-        unknown_key: "<red>[管道] sort_by 的排序键 %key% 未知，应为 distance 或 health</red>"
-        unknown_order: "<red>[管道] sort_by 的顺序 %order% 未知，应为 asc 或 desc</red>"
-      set:
-        no_assignment: "<red>[管道] set 必须给出至少一个赋值</red>"
-      stop:
-        stopped: "<gray>[管道] 已由 stop 段终止</gray>"
-    # 内置动作段诊断
-    stage:
-      common:
-        not_entity: "<gray>[管道] 该段需要实体目标</gray>"
-        not_living_entity: "<gray>[管道] 该段需要生物目标</gray>"
-        not_player: "<gray>[管道] 该段需要玩家目标</gray>"
-        no_location: "<gray>[管道] 该段需要有位置的目标</gray>"
-      play_sound:
-        unknown_sound: "<red>[管道] 未知音效 %sound%</red>"
-      spawn_particle:
-        unknown_particle: "<red>[管道] 未知粒子 %particle%</red>"
-      boss_bar:
-        id_required: "<red>[管道] boss bar 段必须指定 id</red>"
-        unknown_color: "<red>[管道] 未知 boss bar 颜色 %color%</red>"
-        unknown_style: "<red>[管道] 未知 boss bar 样式 %style%</red>"
-        unknown_flag: "<red>[管道] 未知 boss bar 标记 %flag%</red>"
-        show_failed: "<red>[管道] 无法为 id %id% 显示 boss bar</red>"
-        none_active: "<gray>[管道] 目标没有活动的 boss bar</gray>"
-        not_found: "<gray>[管道] 未找到该 id 的 boss bar</gray>"
-      kill_entity:
-        player_target: "<gray>[管道] kill_entity 不作用于玩家，请改用 set_health amount=0</gray>"
-        already_dead: "<gray>[管道] 目标实体已死亡</gray>"
-      potion:
-        unknown_effect: "<red>[管道] 未知药水效果 %type%</red>"
-        effect_absent: "<gray>[管道] 目标没有该药水效果</gray>"
-        none_active: "<gray>[管道] 目标没有活动的药水效果</gray>"
-      task:
-        service_unavailable: "<red>[管道] 长期任务服务当前不可用</red>"
-        context_unavailable: "<red>[管道] 长期任务需要完整的管道上下文</red>"
-        sequence_required: "<red>[管道] start_task 必须指定 sequence</red>"
-        unknown_sequence: "<red>[管道] 未定义的序列 %sequence%</red>"
-        key_required: "<red>[管道] stop_task 必须指定 key</red>"
-        none_matched: "<gray>[管道] 没有匹配该 key 的任务</gray>"
-      item:
-        invalid_item_source: "<red>[管道] 物品来源 %item_source% 不合法</red>"
-        service_unavailable: "<red>[管道] 物品来源服务当前不可用</red>"
-        create_failed: "<red>[管道] 无法根据来源 %item_source% 创建物品</red>"
-        created_air: "<gray>[管道] 该来源创建出的物品为空气</gray>"
-        no_pipeline_item: "<gray>[管道] 管道中没有物品，请先用 create_item</gray>"
-        unknown_slot: "<red>[管道] 不支持的槽位 %slot%</red>"
-        slot_empty: "<gray>[管道] 该槽位没有物品</gray>"
-        source_mismatch: "<gray>[管道] 槽位中的物品与指定来源不匹配</gray>"
-        not_enough: "<gray>[管道] 匹配的物品数量不足</gray>"
-        remove_failed: "<red>[管道] 移除匹配物品失败</red>"
-        not_damageable: "<gray>[管道] 该物品不支持耐久</gray>"
-        no_durability: "<gray>[管道] 该物品没有耐久度</gray>"
-        already_repaired: "<gray>[管道] 该物品耐久已满</gray>"
-        zero_damage: "<gray>[管道] 耐久损耗量必须大于零</gray>"
-        # 以下由 EmakiItem 的段使用，与上面内置段共用同一命名空间
-        inspector_unavailable: "<red>[管道] EmakiItem 组件检查器当前不可用</red>"
-        empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
-        no_result: "<red>[管道] EmakiItem 未返回任何物品</red>"
-        component_required: "<red>[管道] 该段必须指定 component</red>"
-        bad_component_value: "<red>[管道] 组件值不合法：%error%</red>"
-        no_target_item: "<red>[管道] 找不到可操作的物品：既无 slot、也无管道 item、也无玩家目标</red>"
-        target_empty: "<gray>[管道] 目标位置没有物品</gray>"
-        component_exists: "<red>[管道] 组件已存在，请改用 item_component_modify</red>"
-        component_missing: "<red>[管道] 组件不存在，请改用 item_component_add</red>"
-        component_absent: "<gray>[管道] 该物品上没有这个组件</gray>"
-        component_unsupported: "<red>[管道] 当前运行时不支持该组件：%issues%</red>"
-        patch_failed: "<red>[管道] 组件写入失败：%issues%</red>"
-        patch_returned_nothing: "<red>[管道] 组件写入未返回物品</red>"
-        patch_error: "<red>[管道] 组件写入异常：%error%</red>"
-      place_block:
-        not_placeable: "<gray>[管道] 该来源不是可放置的方块</gray>"
-        provider_unavailable: "<gray>[管道] 自定义方块提供者当前不可用</gray>"
-        provider_refused: "<gray>[管道] 自定义方块提供者未放置该方块</gray>"
-        not_replaceable: "<gray>[管道] 目标方块不可替换</gray>"
-        cannot_place: "<gray>[管道] 该位置无法放置方块</gray>"
-        build_denied: "<gray>[管道] 该位置的建造被拒绝</gray>"
-        place_cancelled: "<gray>[管道] 方块放置被取消</gray>"
-      set_block:
-        invalid_material: "<red>[管道] set_block 的 material %material% 或 block_data %block_data% 不合法</red>"
-        not_a_block: "<gray>[管道] set_block 的材质必须是非空气方块</gray>"
-      break_block:
-        already_air: "<gray>[管道] 目标方块已是空气</gray>"
-        cancelled: "<gray>[管道] 方块破坏被取消</gray>"
-        not_broken: "<gray>[管道] 方块未被破坏</gray>"
-      explosion:
-        zero_power: "<gray>[管道] 爆炸威力必须大于零</gray>"
-      projectile:
-        no_caster_entity: "<gray>[管道] projectile 需要生物施法者</gray>"
-        no_world: "<gray>[管道] projectile 的施法者不在任何世界中</gray>"
-        no_scheduler: "<red>[管道] projectile 当前没有可用的调度器</red>"
-      spawn_entity:
-        unknown_entity_type: "<red>[管道] 未知实体类型 %type%</red>"
-        not_spawnable: "<gray>[管道] 该实体类型不可生成</gray>"
-      teleport:
-        world_not_found: "<red>[管道] 传送目标世界 %world% 不存在</red>"
-        rejected: "<red>[管道] 传送被拒绝</red>"
-      money:
-        service_unavailable: "<red>[管道] 经济服务当前不可用</red>"
-        provider_unavailable: "<red>[管道] 经济提供者不可用：%error%</red>"
-        currency_not_found: "<red>[管道] 货币不存在：%error%</red>"
-        insufficient_balance: "<red>[管道] 余额不足：%error%</red>"
-        unsupported: "<red>[管道] 经济提供者不支持该操作：%error%</red>"
-        invalid_argument: "<red>[管道] 经济操作参数不合法：%error%</red>"
-        failed: "<red>[管道] 经济操作失败：%error%</red>"
-        skipped: "<gray>[管道] 经济操作被跳过</gray>"
-        no_result: "<red>[管道] 经济操作没有返回结果</red>"
-      command:
-        dispatch_failed: "<red>[管道] 命令分派失败</red>"
-      cast_mythic_skill:
-        skill_required: "<red>[管道] cast_mythic_skill 必须指定 skill</red>"
-        unavailable: "<red>[管道] MythicMobs 当前不可用</red>"
-        cast_failed: "<red>[管道] MythicMobs 技能 %skill% 施放失败</red>"
-        cast_error: "<red>[管道] MythicMobs 技能 %skill% 施放异常：%error%</red>"
-      # 业务模块提供的动作段诊断。段实现在各模块 jar 内，诊断文案统一留在 CoreLib，
-      # 因为 action.v2.* 整个命名空间由 CoreLib 的占位符解析器渲染。
-      strengthen:
-        service_unavailable: "<red>[管道] EmakiStrengthen 强化服务当前不可用</red>"
-        empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
-        rebuild_failed: "<red>[管道] EmakiStrengthen 无法重建该物品</red>"
-      gem:
-        service_unavailable: "<red>[管道] EmakiGem 宝石服务当前不可用</red>"
-        clear_failed: "<red>[管道] EmakiGem 无法清除宝石层</red>"
-        rejected: "<red>[管道] EmakiGem 拒绝了该操作</red>"
-      cooking:
-        service_unavailable: "<red>[管道] EmakiCooking 营养系统当前不可用</red>"
-        reward_service_unavailable: "<red>[管道] EmakiCooking 配方奖励服务当前不可用</red>"
-        type_required: "<red>[管道] 该段必须指定 type</red>"
-        unknown_type: "<red>[管道] 未知营养类型 %type%</red>"
-        no_types: "<gray>[管道] 没有已注册的营养类型</gray>"
-        operation_failed: "<red>[管道] EmakiCooking 营养操作失败：%reason%</red>"
-        reset_failed: "<red>[管道] 营养类型 %type% 重置失败：%reason%</red>"
-        recheck_unavailable: "<gray>[管道] 该玩家当前没有可复检的营养状态</gray>"
-        recipe_required: "<red>[管道] 该段必须指定 recipe</red>"
-        unknown_station: "<red>[管道] 未知料理台类型 %station%</red>"
-        unknown_recipe: "<red>[管道] 配方 %recipe% 未加载</red>"
-        outcome_empty: "<gray>[管道] 该配方结果没有启用的产出或动作</gray>"
-      storage:
-        unavailable: "<red>[管道] EmakiStorage 仓储服务或该玩家存档当前不可用</red>"
-        unknown_item: "<red>[管道] 未知物品来源 %item%</red>"
-        amount_must_be_positive: "<red>[管道] amount 必须为正数</red>"
-        amount_must_be_non_zero: "<red>[管道] amount 不能为 0</red>"
-        limit_must_be_non_negative: "<red>[管道] limit 必须为 0 或正数</red>"
-        no_entry_at_slot: "<red>[管道] 槽位 %slot% 上没有条目</red>"
-        rejected: "<red>[管道] EmakiStorage 拒绝了该操作：%reason%</red>"
-      attribute:
-        service_unavailable: "<red>[管道] EmakiAttribute 属性服务当前不可用</red>"
-        unknown_damage_cause: "<red>[管道] 未知伤害原因 %cause%</red>"
-        damage_refused: "<red>[管道] 属性伤害未能施加</red>"
-        effect_id_required: "<red>[管道] 该段必须指定 effect_id</red>"
-        tag_required: "<red>[管道] 该段必须指定 tag</red>"
-        unknown_resource: "<red>[管道] 未知资源 %resource%</red>"
-      level:
-        service_unavailable: "<red>[管道] EmakiLevel 等级服务当前不可用</red>"
-        operation_failed: "<red>[管道] EmakiLevel 操作失败：%reason%</red>"
-      skills:
-        service_unavailable: "<red>[管道] EmakiSkills 技能服务当前不可用</red>"
-        skill_required: "<red>[管道] 该段必须指定 skill</red>"
-        unknown_skill: "<red>[管道] 未知技能 %skill%</red>"
-        mythic_unavailable: "<red>[管道] MythicMobs 当前不可用</red>"
-        unknown_mythic_skill: "<red>[管道] 未知 MythicMobs 技能 %skill%</red>"
-        cast_failed: "<red>[管道] MythicMobs 技能 %skill% 释放失败</red>"
-        upgrade_failed: "<red>[管道] EmakiSkills 升级被拒绝：%reason%</red>"
-        slot_refused: "<red>[管道] EmakiSkills 拒绝了对槽位 %slot% 的修改</red>"
-        already_learned: "<gray>[管道] 该技能已通过手动来源学会</gray>"
-        not_learned: "<gray>[管道] 该技能未通过手动来源学会</gray>"
-        nothing_learned: "<gray>[管道] 该玩家没有手动学会的技能</gray>"
-      codex:
-        service_unavailable: "<red>[管道] EmakiCodex 成就服务当前不可用</red>"
-        advancement_required: "<red>[管道] 该段必须指定 advancement</red>"
-        page_required: "<red>[管道] codex_reset_page 必须指定 page</red>"
-        grant_refused: "<red>[管道] 成就 %advancement% 未注册或已完成</red>"
-        revoke_refused: "<red>[管道] 成就 %advancement% 未注册或尚未完成</red>"
-        no_nodes: "<gray>[管道] 没有匹配的 EmakiCodex 成就节点</gray>"
-        resync_unavailable: "<red>[管道] PacketEvents 不可用，成就重同步无法执行</red>"
-        resync_failed: "<red>[管道] 为 %player% 重同步成就失败</red>"
-        toast_requires_packetevents: "<red>[管道] 成就弹窗需要 PacketEvents</red>"
-        title_required: "<red>[管道] codex_show_toast 必须指定 title</red>"
-        unknown_frame: "<red>[管道] 未知弹窗边框 %frame%，可选 task/goal/challenge</red>"
-        toast_send_failed: "<red>[管道] 无法向该玩家发送成就弹窗封包</red>"
-        toast_error: "<red>[管道] 成就弹窗执行异常：%error%</red>"
-      forge:
-        service_unavailable: "<red>[管道] EmakiForge 刷新服务当前不可用</red>"
-        empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
-        refresh_timeout: "<red>[管道] 全服锻造物品刷新超时</red>"
-        refresh_interrupted: "<red>[管道] 全服锻造物品刷新被中断</red>"
-        refresh_failed: "<red>[管道] 全服锻造物品刷新失败：%error%</red>"
-        generation_changed: "<red>[管道] 刷新期间 EmakiForge 运行代数已变更，结果已过期</red>"
-        partial_refresh: "<red>[管道] %failed% 名在线玩家的锻造物品刷新失败</red>"
+      service_unavailable: "<red>[管道] 长期任务服务当前不可用</red>"
+      context_unavailable: "<red>[管道] 长期任务需要完整的管道上下文</red>"
+      sequence_required: "<red>[管道] start_task 必须指定 sequence</red>"
+      unknown_sequence: "<red>[管道] 未定义的序列 %sequence%</red>"
+      key_required: "<red>[管道] stop_task 必须指定 key</red>"
+      none_matched: "<gray>[管道] 没有匹配该 key 的任务</gray>"
+    item:
+      invalid_item_source: "<red>[管道] 物品来源 %item_source% 不合法</red>"
+      service_unavailable: "<red>[管道] 物品来源服务当前不可用</red>"
+      create_failed: "<red>[管道] 无法根据来源 %item_source% 创建物品</red>"
+      created_air: "<gray>[管道] 该来源创建出的物品为空气</gray>"
+      no_pipeline_item: "<gray>[管道] 管道中没有物品，请先用 create_item</gray>"
+      unknown_slot: "<red>[管道] 不支持的槽位 %slot%</red>"
+      slot_empty: "<gray>[管道] 该槽位没有物品</gray>"
+      source_mismatch: "<gray>[管道] 槽位中的物品与指定来源不匹配</gray>"
+      not_enough: "<gray>[管道] 匹配的物品数量不足</gray>"
+      remove_failed: "<red>[管道] 移除匹配物品失败</red>"
+      not_damageable: "<gray>[管道] 该物品不支持耐久</gray>"
+      no_durability: "<gray>[管道] 该物品没有耐久度</gray>"
+      already_repaired: "<gray>[管道] 该物品耐久已满</gray>"
+      zero_damage: "<gray>[管道] 耐久损耗量必须大于零</gray>"
+      # 以下由 EmakiItem 的段使用，与上面内置段共用同一命名空间
+      inspector_unavailable: "<red>[管道] EmakiItem 组件检查器当前不可用</red>"
+      empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
+      no_result: "<red>[管道] EmakiItem 未返回任何物品</red>"
+      component_required: "<red>[管道] 该段必须指定 component</red>"
+      bad_component_value: "<red>[管道] 组件值不合法：%error%</red>"
+      no_target_item: "<red>[管道] 找不到可操作的物品：既无 slot、也无管道 item、也无玩家目标</red>"
+      target_empty: "<gray>[管道] 目标位置没有物品</gray>"
+      component_exists: "<red>[管道] 组件已存在，请改用 item_component_modify</red>"
+      component_missing: "<red>[管道] 组件不存在，请改用 item_component_add</red>"
+      component_absent: "<gray>[管道] 该物品上没有这个组件</gray>"
+      component_unsupported: "<red>[管道] 当前运行时不支持该组件：%issues%</red>"
+      patch_failed: "<red>[管道] 组件写入失败：%issues%</red>"
+      patch_returned_nothing: "<red>[管道] 组件写入未返回物品</red>"
+      patch_error: "<red>[管道] 组件写入异常：%error%</red>"
+    place_block:
+      not_placeable: "<gray>[管道] 该来源不是可放置的方块</gray>"
+      provider_unavailable: "<gray>[管道] 自定义方块提供者当前不可用</gray>"
+      provider_refused: "<gray>[管道] 自定义方块提供者未放置该方块</gray>"
+      not_replaceable: "<gray>[管道] 目标方块不可替换</gray>"
+      cannot_place: "<gray>[管道] 该位置无法放置方块</gray>"
+      build_denied: "<gray>[管道] 该位置的建造被拒绝</gray>"
+      place_cancelled: "<gray>[管道] 方块放置被取消</gray>"
+    set_block:
+      invalid_material: "<red>[管道] set_block 的 material %material% 或 block_data %block_data% 不合法</red>"
+      not_a_block: "<gray>[管道] set_block 的材质必须是非空气方块</gray>"
+    break_block:
+      already_air: "<gray>[管道] 目标方块已是空气</gray>"
+      cancelled: "<gray>[管道] 方块破坏被取消</gray>"
+      not_broken: "<gray>[管道] 方块未被破坏</gray>"
+    explosion:
+      zero_power: "<gray>[管道] 爆炸威力必须大于零</gray>"
+    projectile:
+      no_caster_entity: "<gray>[管道] projectile 需要生物施法者</gray>"
+      no_world: "<gray>[管道] projectile 的施法者不在任何世界中</gray>"
+      no_scheduler: "<red>[管道] projectile 当前没有可用的调度器</red>"
+    spawn_entity:
+      unknown_entity_type: "<red>[管道] 未知实体类型 %type%</red>"
+      not_spawnable: "<gray>[管道] 该实体类型不可生成</gray>"
+    teleport:
+      world_not_found: "<red>[管道] 传送目标世界 %world% 不存在</red>"
+      rejected: "<red>[管道] 传送被拒绝</red>"
+    money:
+      service_unavailable: "<red>[管道] 经济服务当前不可用</red>"
+      provider_unavailable: "<red>[管道] 经济提供者不可用：%error%</red>"
+      currency_not_found: "<red>[管道] 货币不存在：%error%</red>"
+      insufficient_balance: "<red>[管道] 余额不足：%error%</red>"
+      unsupported: "<red>[管道] 经济提供者不支持该操作：%error%</red>"
+      invalid_argument: "<red>[管道] 经济操作参数不合法：%error%</red>"
+      failed: "<red>[管道] 经济操作失败：%error%</red>"
+      skipped: "<gray>[管道] 经济操作被跳过</gray>"
+      no_result: "<red>[管道] 经济操作没有返回结果</red>"
+    command:
+      dispatch_failed: "<red>[管道] 命令分派失败</red>"
+    cast_mythic_skill:
+      skill_required: "<red>[管道] cast_mythic_skill 必须指定 skill</red>"
+      unavailable: "<red>[管道] MythicMobs 当前不可用</red>"
+      cast_failed: "<red>[管道] MythicMobs 技能 %skill% 施放失败</red>"
+      cast_error: "<red>[管道] MythicMobs 技能 %skill% 施放异常：%error%</red>"
+    # 业务模块提供的动作段诊断。段实现在各模块 jar 内，诊断文案统一留在 CoreLib，
+    # 因为这些 key 由 CoreLib 定义的 CoreActionOutcome 契约产出，文案与契约同处一地便于对照。
+    strengthen:
+      service_unavailable: "<red>[管道] EmakiStrengthen 强化服务当前不可用</red>"
+      empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
+      rebuild_failed: "<red>[管道] EmakiStrengthen 无法重建该物品</red>"
+    gem:
+      service_unavailable: "<red>[管道] EmakiGem 宝石服务当前不可用</red>"
+      clear_failed: "<red>[管道] EmakiGem 无法清除宝石层</red>"
+      rejected: "<red>[管道] EmakiGem 拒绝了该操作</red>"
+    cooking:
+      service_unavailable: "<red>[管道] EmakiCooking 营养系统当前不可用</red>"
+      reward_service_unavailable: "<red>[管道] EmakiCooking 配方奖励服务当前不可用</red>"
+      type_required: "<red>[管道] 该段必须指定 type</red>"
+      unknown_type: "<red>[管道] 未知营养类型 %type%</red>"
+      no_types: "<gray>[管道] 没有已注册的营养类型</gray>"
+      operation_failed: "<red>[管道] EmakiCooking 营养操作失败：%reason%</red>"
+      reset_failed: "<red>[管道] 营养类型 %type% 重置失败：%reason%</red>"
+      recheck_unavailable: "<gray>[管道] 该玩家当前没有可复检的营养状态</gray>"
+      recipe_required: "<red>[管道] 该段必须指定 recipe</red>"
+      unknown_station: "<red>[管道] 未知料理台类型 %station%</red>"
+      unknown_recipe: "<red>[管道] 配方 %recipe% 未加载</red>"
+      outcome_empty: "<gray>[管道] 该配方结果没有启用的产出或动作</gray>"
+    storage:
+      unavailable: "<red>[管道] EmakiStorage 仓储服务或该玩家存档当前不可用</red>"
+      unknown_item: "<red>[管道] 未知物品来源 %item%</red>"
+      amount_must_be_positive: "<red>[管道] amount 必须为正数</red>"
+      amount_must_be_non_zero: "<red>[管道] amount 不能为 0</red>"
+      limit_must_be_non_negative: "<red>[管道] limit 必须为 0 或正数</red>"
+      no_entry_at_slot: "<red>[管道] 槽位 %slot% 上没有条目</red>"
+      rejected: "<red>[管道] EmakiStorage 拒绝了该操作：%reason%</red>"
+    attribute:
+      service_unavailable: "<red>[管道] EmakiAttribute 属性服务当前不可用</red>"
+      unknown_damage_cause: "<red>[管道] 未知伤害原因 %cause%</red>"
+      damage_refused: "<red>[管道] 属性伤害未能施加</red>"
+      effect_id_required: "<red>[管道] 该段必须指定 effect_id</red>"
+      tag_required: "<red>[管道] 该段必须指定 tag</red>"
+      unknown_resource: "<red>[管道] 未知资源 %resource%</red>"
+    level:
+      service_unavailable: "<red>[管道] EmakiLevel 等级服务当前不可用</red>"
+      operation_failed: "<red>[管道] EmakiLevel 操作失败：%reason%</red>"
+    skills:
+      service_unavailable: "<red>[管道] EmakiSkills 技能服务当前不可用</red>"
+      skill_required: "<red>[管道] 该段必须指定 skill</red>"
+      unknown_skill: "<red>[管道] 未知技能 %skill%</red>"
+      mythic_unavailable: "<red>[管道] MythicMobs 当前不可用</red>"
+      unknown_mythic_skill: "<red>[管道] 未知 MythicMobs 技能 %skill%</red>"
+      cast_failed: "<red>[管道] 技能 %skill% 释放失败</red>"
+      entity_caster_needs_mythic: "<red>[管道] 非玩家施法者只能释放已配置 mythic_skill 的技能：%skill%</red>"
+      upgrade_failed: "<red>[管道] EmakiSkills 升级被拒绝：%reason%</red>"
+      slot_refused: "<red>[管道] EmakiSkills 拒绝了对槽位 %slot% 的修改</red>"
+      already_learned: "<gray>[管道] 该技能已通过手动来源学会</gray>"
+      not_learned: "<gray>[管道] 该技能未通过手动来源学会</gray>"
+      nothing_learned: "<gray>[管道] 该玩家没有手动学会的技能</gray>"
+    codex:
+      service_unavailable: "<red>[管道] EmakiCodex 成就服务当前不可用</red>"
+      advancement_required: "<red>[管道] 该段必须指定 advancement</red>"
+      page_required: "<red>[管道] codex_reset_page 必须指定 page</red>"
+      grant_refused: "<red>[管道] 成就 %advancement% 未注册或已完成</red>"
+      revoke_refused: "<red>[管道] 成就 %advancement% 未注册或尚未完成</red>"
+      no_nodes: "<gray>[管道] 没有匹配的 EmakiCodex 成就节点</gray>"
+      resync_unavailable: "<red>[管道] PacketEvents 不可用，成就重同步无法执行</red>"
+      resync_failed: "<red>[管道] 为 %player% 重同步成就失败</red>"
+      toast_requires_packetevents: "<red>[管道] 成就弹窗需要 PacketEvents</red>"
+      title_required: "<red>[管道] codex_show_toast 必须指定 title</red>"
+      unknown_frame: "<red>[管道] 未知弹窗边框 %frame%，可选 task/goal/challenge</red>"
+      toast_send_failed: "<red>[管道] 无法向该玩家发送成就弹窗封包</red>"
+      toast_error: "<red>[管道] 成就弹窗执行异常：%error%</red>"
+    forge:
+      service_unavailable: "<red>[管道] EmakiForge 刷新服务当前不可用</red>"
+      empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
+      refresh_timeout: "<red>[管道] 全服锻造物品刷新超时</red>"
+      refresh_interrupted: "<red>[管道] 全服锻造物品刷新被中断</red>"
+      refresh_failed: "<red>[管道] 全服锻造物品刷新失败：%error%</red>"
+      generation_changed: "<red>[管道] 刷新期间 EmakiForge 运行代数已变更，结果已过期</red>"
+      partial_refresh: "<red>[管道] %failed% 名在线玩家的锻造物品刷新失败</red>"
 
 # Debug 模式消息
 debug:

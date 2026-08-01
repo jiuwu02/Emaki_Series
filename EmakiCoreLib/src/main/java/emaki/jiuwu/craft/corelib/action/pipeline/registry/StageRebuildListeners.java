@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.registry;
+package emaki.jiuwu.craft.corelib.action.pipeline.registry;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

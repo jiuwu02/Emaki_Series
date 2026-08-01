@@ -35,7 +35,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.storage.action.v2.StorageStageRegistrar;
+import emaki.jiuwu.craft.storage.action.StorageStageRegistrar;
 import emaki.jiuwu.craft.storage.api.EmakiStorageApi;
 import emaki.jiuwu.craft.storage.api.model.StorageSnapshot;
 import emaki.jiuwu.craft.storage.apiimpl.DefaultStorageApi;

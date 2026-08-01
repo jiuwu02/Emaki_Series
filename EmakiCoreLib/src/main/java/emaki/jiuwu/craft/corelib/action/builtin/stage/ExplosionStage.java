@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.Map;
 
@@ -6,14 +6,14 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
 /**
  * Creates an explosion at the target position.
@@ -40,11 +40,11 @@ public final class ExplosionStage extends BaseStage {
             @NotNull CoreResolvedArguments arguments) {
         Location location = context.currentTarget().location();
         if (location == null || location.getWorld() == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.no_location");
+            return CoreActionOutcome.skipped("action.stage.common.no_location");
         }
         double power = Math.max(0D, arguments.getDouble("power", 0D));
         if (power <= 0D) {
-            return CoreActionOutcome.skipped("action.v2.stage.explosion.zero_power");
+            return CoreActionOutcome.skipped("action.stage.explosion.zero_power");
         }
         boolean fire = arguments.getBoolean("fire", false);
         boolean breakBlocks = arguments.getBoolean("break_blocks", false);

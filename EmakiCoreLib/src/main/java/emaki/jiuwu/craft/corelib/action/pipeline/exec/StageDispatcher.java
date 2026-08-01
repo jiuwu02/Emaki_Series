@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.exec;
+package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import java.util.List;
 import java.util.Map;
@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
 /**
- * The only v2 class that talks to {@link ExecutionDispatcher}.
+ * The only class that talks to {@link ExecutionDispatcher}.
  *
  * <p>It owns pending handles by plugin, applies the one and only timeout layer, and propagates owner
  * disable/timeout into the cooperative cancellation token. The interpreter deals only in immutable

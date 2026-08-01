@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,16 +12,16 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -50,29 +50,29 @@ public final class BossBarShowStage extends BaseStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = StageSupport.player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         String id = arguments.getString("id");
         if (Texts.isBlank(id)) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.boss_bar.id_required");
+                    "action.stage.boss_bar.id_required");
         }
         BarColor color = parseColor(arguments.getString("color", "purple"));
         if (color == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.boss_bar.unknown_color",
+                    "action.stage.boss_bar.unknown_color",
                     Map.of("color", arguments.getString("color")));
         }
         BarStyle style = parseStyle(arguments.getString("style", "solid"));
         if (style == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.boss_bar.unknown_style",
+                    "action.stage.boss_bar.unknown_style",
                     Map.of("style", arguments.getString("style")));
         }
         ParsedFlags flags = parseFlags(arguments.getString("flags"));
         if (flags.invalidFlag() != null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.boss_bar.unknown_flag", Map.of("flag", flags.invalidFlag()));
+                    "action.stage.boss_bar.unknown_flag", Map.of("flag", flags.invalidFlag()));
         }
         double progress = Math.max(0D, Math.min(1D, arguments.getDouble("progress", 1D)));
         BossBar bossBar = BossBarStore.show(target, id,
@@ -80,7 +80,7 @@ public final class BossBarShowStage extends BaseStage {
                 color, style, progress, flags.flags().toArray(new BarFlag[0]));
         if (bossBar == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.boss_bar.show_failed", Map.of("id", id));
+                    "action.stage.boss_bar.show_failed", Map.of("id", id));
         }
         return CoreActionOutcome.success(Map.of(
                 "id", Texts.normalizeId(id),

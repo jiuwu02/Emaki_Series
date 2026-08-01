@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.source;
+package emaki.jiuwu.craft.corelib.action.builtin.source;
 
 import java.util.List;
 
@@ -6,14 +6,14 @@ import org.bukkit.Location;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseSource;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
 /**
  * A location offset from the pipeline origin.
@@ -43,10 +43,10 @@ public final class OffsetSource extends BaseSource {
         try {
             origin = context.origin();
         } catch (IllegalStateException exception) {
-            return CoreSourceResult.empty("action.v2.source.offset.no_origin");
+            return CoreSourceResult.empty("action.source.offset.no_origin");
         }
         if (origin == null || origin.getWorld() == null) {
-            return CoreSourceResult.empty("action.v2.source.offset.no_origin");
+            return CoreSourceResult.empty("action.source.offset.no_origin");
         }
         double x = arguments.getDouble("x", 0D);
         double y = arguments.getDouble("y", 0D);

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.compile;
+package emaki.jiuwu.craft.corelib.action.pipeline.compile;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -16,11 +16,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -48,7 +48,7 @@ public final class StaticValidator {
      * Gate stage that marks the target flow for the next phase.
      *
      * <p>The interpreter records the flow this gate saw into {@link
-     * emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome#keptFlow()}, which is how a caller can hand one
+     * emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome#keptFlow()}, which is how a caller can hand one
      * phase's targets to the next one. Named here next to the other special stage ids so the interpreter does
      * not repeat the literal.</p>
      */
@@ -96,7 +96,7 @@ public final class StaticValidator {
         List<ActionAst> nodes = parsed == null ? List.of() : parsed;
         PhaseContract contract = phase == null ? PhaseContract.permissive("default") : phase;
         if (nodes.isEmpty()) {
-            return Result.failed(CompileDiagnostic.at("action.v2.validate.empty_pipeline", null));
+            return Result.failed(CompileDiagnostic.at("action.validate.empty_pipeline", null));
         }
 
         boolean implicitSelf = needsImplicitSelf(nodes);
@@ -104,7 +104,7 @@ public final class StaticValidator {
         if (implicitSelf) {
             StageResolver.Resolution self = stages.resolve(SELF_SOURCE);
             if (!self.usable() || self.kind() != CoreStageKind.SOURCE) {
-                diagnostics.add(CompileDiagnostic.suggesting("action.v2.validate.missing_self_source",
+                diagnostics.add(CompileDiagnostic.suggesting("action.validate.missing_self_source",
                         token(SELF_SOURCE, nodes.get(0).column()), stages.knownIds(CoreStageKind.SOURCE)));
             }
         }
@@ -129,7 +129,7 @@ public final class StaticValidator {
         for (ActionAst node : nodes) {
             if (node instanceof ActionAst.Branch branch) {
                 if (branchDepth >= limits.maxBranchDepth()) {
-                    state.diagnostics.add(CompileDiagnostic.at("action.v2.validate.branch_depth_exceeded",
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.branch_depth_exceeded",
                             token("if", branch.column()),
                             Map.of("maximum", limits.maxBranchDepth(), "depth", branchDepth + 1)));
                     continue;
@@ -155,7 +155,7 @@ public final class StaticValidator {
                 continue;
             }
             if (resolution.ownerDisabled()) {
-                state.diagnostics.add(CompileDiagnostic.at("action.v2.validate.stage_owner_disabled", stageToken,
+                state.diagnostics.add(CompileDiagnostic.at("action.validate.stage_owner_disabled", stageToken,
                         Map.of("owner", resolution.ownerName(), "stage", stage.id())));
                 continue;
             }
@@ -164,10 +164,10 @@ public final class StaticValidator {
             validateThreadDeclaration(stage, resolution, state.diagnostics);
             if (kind == CoreStageKind.SOURCE) {
                 if (explicitSourceSeen) {
-                    state.diagnostics.add(CompileDiagnostic.at("action.v2.validate.multiple_sources", stageToken));
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.multiple_sources", stageToken));
                 }
                 if (actionSeen) {
-                    state.diagnostics.add(CompileDiagnostic.at("action.v2.validate.source_after_action", stageToken));
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.source_after_action", stageToken));
                 }
                 explicitSourceSeen = true;
                 flowAvailable = true;
@@ -177,7 +177,7 @@ public final class StaticValidator {
                 // touch the flow: they defer the stages that follow them, so `damage | after 10t | heal`
                 // is legitimate and must not be rejected here.
                 if (actionSeen && !timingStage(stage.id())) {
-                    state.diagnostics.add(CompileDiagnostic.at("action.v2.validate.gate_after_action",
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.gate_after_action",
                             stageToken, Map.of("stage", stage.id())));
                 }
                 if (!flowAvailable) {
@@ -206,7 +206,7 @@ public final class StaticValidator {
         candidates.addAll(stages.knownIds(CoreStageKind.SOURCE));
         candidates.addAll(stages.knownIds(CoreStageKind.GATE));
         candidates.addAll(stages.knownIds(CoreStageKind.ACTION));
-        return CompileDiagnostic.suggesting("action.v2.validate.unknown_stage", token, candidates);
+        return CompileDiagnostic.suggesting("action.validate.unknown_stage", token, candidates);
     }
 
     private ActionAst.Stage normalizeArguments(ActionAst.Stage stage,
@@ -229,25 +229,25 @@ public final class StaticValidator {
             normalizeEveryPositional(stage, arguments, diagnostics);
         } else if (!stage.positional().isEmpty()) {
             if (positional.isEmpty()) {
-                diagnostics.add(CompileDiagnostic.at("action.v2.validate.positional_not_allowed",
+                diagnostics.add(CompileDiagnostic.at("action.validate.positional_not_allowed",
                         token(stage.positional().get(0), stage.column())));
             } else if (positional.size() == 1) {
                 CoreStageParameter parameter = positional.get(0);
                 if (arguments.containsKey(parameter.name())) {
-                    diagnostics.add(CompileDiagnostic.at("action.v2.validate.argument_both_named_and_positional",
+                    diagnostics.add(CompileDiagnostic.at("action.validate.argument_both_named_and_positional",
                             token(parameter.name(), stage.column())));
                 } else {
                     arguments.put(parameter.name(), String.join(" ", stage.positional()));
                 }
             } else if (stage.positional().size() > positional.size()) {
-                diagnostics.add(CompileDiagnostic.at("action.v2.validate.too_many_positional_arguments",
+                diagnostics.add(CompileDiagnostic.at("action.validate.too_many_positional_arguments",
                         token(stage.positional().get(positional.size()), stage.column()),
                         Map.of("maximum", positional.size(), "actual", stage.positional().size())));
             } else {
                 for (int index = 0; index < stage.positional().size(); index++) {
                     CoreStageParameter parameter = positional.get(index);
                     if (arguments.containsKey(parameter.name())) {
-                        diagnostics.add(CompileDiagnostic.at("action.v2.validate.argument_both_named_and_positional",
+                        diagnostics.add(CompileDiagnostic.at("action.validate.argument_both_named_and_positional",
                                 token(parameter.name(), stage.column())));
                     } else {
                         arguments.put(parameter.name(), stage.positional().get(index));
@@ -259,7 +259,7 @@ public final class StaticValidator {
         if (!SET_STAGE.equals(stage.id())) {
             for (String supplied : arguments.keySet()) {
                 if (!byName.containsKey(supplied)) {
-                    diagnostics.add(CompileDiagnostic.suggesting("action.v2.validate.unknown_argument",
+                    diagnostics.add(CompileDiagnostic.suggesting("action.validate.unknown_argument",
                             token(supplied, stage.column()), List.copyOf(byName.keySet())));
                 }
             }
@@ -267,7 +267,7 @@ public final class StaticValidator {
         for (CoreStageParameter parameter : declared) {
             String value = arguments.get(parameter.name());
             if (parameter.required() && Texts.isBlank(value) && Texts.isBlank(parameter.defaultValue())) {
-                diagnostics.add(CompileDiagnostic.at("action.v2.validate.missing_required_argument",
+                diagnostics.add(CompileDiagnostic.at("action.validate.missing_required_argument",
                         token(parameter.name(), stage.column()), Map.of("argument", parameter.name())));
             }
         }
@@ -284,20 +284,20 @@ public final class StaticValidator {
         if (!arguments.containsKey("interval")) {
             arguments.put("interval", positional.get(0));
         } else {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.argument_both_named_and_positional",
+            diagnostics.add(CompileDiagnostic.at("action.validate.argument_both_named_and_positional",
                     token("interval", stage.column())));
         }
         if (positional.size() == 1) {
             return;
         }
         if (positional.size() != 3 || !"times".equalsIgnoreCase(positional.get(1))) {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.invalid_every_syntax",
+            diagnostics.add(CompileDiagnostic.at("action.validate.invalid_every_syntax",
                     token(String.join(" ", positional), stage.column()),
                     Map.of("expected", "every <interval> times <count>")));
             return;
         }
         if (arguments.containsKey("times")) {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.argument_both_named_and_positional",
+            diagnostics.add(CompileDiagnostic.at("action.validate.argument_both_named_and_positional",
                     token("times", stage.column())));
         } else {
             arguments.put("times", positional.get(2));
@@ -308,14 +308,14 @@ public final class StaticValidator {
             StageResolver.Resolution resolution,
             List<CompileDiagnostic> diagnostics) {
         if (resolution.probeDomain() == null) {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.thread_domain_undeclared",
+            diagnostics.add(CompileDiagnostic.at("action.validate.thread_domain_undeclared",
                     token(stage.id(), stage.column()), Map.of("stage", stage.id())));
             return;
         }
         if (resolution.probeDomain() == ExecutionDomain.ASYNC_COMPUTE
                 && resolution.kind() == CoreStageKind.ACTION
                 && resolution.targetRequirement() != CoreTargetRequirement.NONE) {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.async_stage_requires_target",
+            diagnostics.add(CompileDiagnostic.at("action.validate.async_stage_requires_target",
                     token(stage.id(), stage.column()),
                     Map.of("stage", stage.id(), "requirement", resolution.targetRequirement().name())));
         }
@@ -327,7 +327,7 @@ public final class StaticValidator {
             List<CompileDiagnostic> diagnostics) {
         for (CoreActionKey<?> key : required) {
             if (!contract.provides(key)) {
-                diagnostics.add(CompileDiagnostic.at("action.v2.validate.missing_context_key",
+                diagnostics.add(CompileDiagnostic.at("action.validate.missing_context_key",
                         token(stage.id(), stage.column()),
                         Map.of("key", key.name(), "type", key.type().getSimpleName(),
                                 "phase", contract.phaseId())));
@@ -347,7 +347,7 @@ public final class StaticValidator {
                 continue;
             }
             if (!validLiteral(value, parameter.type())) {
-                diagnostics.add(CompileDiagnostic.at("action.v2.validate.invalid_argument_type",
+                diagnostics.add(CompileDiagnostic.at("action.validate.invalid_argument_type",
                         token(parameter.name(), stage.column()),
                         Map.of("argument", parameter.name(), "value", value,
                                 "expected", parameter.type().name())));
@@ -361,18 +361,18 @@ public final class StaticValidator {
         }
         String rawTimes = stage.arguments().getOrDefault("times", "0");
         if (containsPlaceholder(rawTimes)) {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.repeat_must_be_literal",
+            diagnostics.add(CompileDiagnostic.at("action.validate.repeat_must_be_literal",
                     token("times", stage.column()), Map.of("value", rawTimes)));
             return;
         }
         Integer times = ValueParsers.parseIntNullable(rawTimes);
         if (times == null || times < 0) {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.invalid_repeat_times",
+            diagnostics.add(CompileDiagnostic.at("action.validate.invalid_repeat_times",
                     token("times", stage.column()), Map.of("value", rawTimes)));
             return;
         }
         if (times > limits.maxRepeatTimes()) {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.repeat_limit_exceeded",
+            diagnostics.add(CompileDiagnostic.at("action.validate.repeat_limit_exceeded",
                     token("times", stage.column()),
                     Map.of("value", times, "maximum", limits.maxRepeatTimes())));
         }
@@ -381,14 +381,14 @@ public final class StaticValidator {
     private void validateSequenceCall(ActionAst.SequenceCall call, ValidationState state) {
         PipelineToken token = token(call.sequence(), call.column());
         if (!sequences.contains(call.sequence())) {
-            state.diagnostics.add(CompileDiagnostic.suggesting("action.v2.validate.unknown_sequence",
+            state.diagnostics.add(CompileDiagnostic.suggesting("action.validate.unknown_sequence",
                     token, sequences.names()));
             return;
         }
         Set<String> required = sequences.requiredParameters(call.sequence());
         for (String parameter : required) {
             if (Texts.isBlank(call.parameters().get(parameter))) {
-                state.diagnostics.add(CompileDiagnostic.at("action.v2.validate.missing_sequence_parameter",
+                state.diagnostics.add(CompileDiagnostic.at("action.validate.missing_sequence_parameter",
                         token, Map.of("sequence", call.sequence(), "parameter", parameter)));
             }
         }
@@ -409,7 +409,7 @@ public final class StaticValidator {
         Deque<String> path = new ArrayDeque<>();
         Set<String> visiting = new LinkedHashSet<>();
         if (cycleFrom(root, path, visiting, 0)) {
-            diagnostics.add(CompileDiagnostic.at("action.v2.validate.sequence_cycle", token,
+            diagnostics.add(CompileDiagnostic.at("action.validate.sequence_cycle", token,
                     Map.of("path", List.copyOf(path))));
         }
     }

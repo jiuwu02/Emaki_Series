@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.item.action.v2;
+package emaki.jiuwu.craft.item.action;
 
 import java.util.List;
 import java.util.Map;
@@ -10,23 +10,23 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
 /**
  * Updates, re-renders or repairs the item in the target's main hand.
  *
- * <p>The v2 counterpart of {@code ItemHeldItemAction}. {@code item_update} reapplies the definition while
+ * <p>Replaces the legacy {@code ItemHeldItemAction}. {@code item_update} reapplies the definition while
  * {@code item_rerender} only rebuilds display data, which is why they stay separate.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's main-hand slot.</p>
@@ -125,20 +125,20 @@ public final class ItemHeldItemStage implements CoreActionStage {
             // Shares the builtin item stages' key: the message is generic enough to fit either owner, and
             // adding a near-duplicate would leave two strings to keep in sync.
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.item.service_unavailable");
+                    "action.stage.item.service_unavailable");
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         ItemStack original = target.getInventory().getItemInMainHand();
         if (original == null || original.getType().isAir()) {
-            return CoreActionOutcome.skipped("action.v2.stage.item.empty_hand");
+            return CoreActionOutcome.skipped("action.stage.item.empty_hand");
         }
         ItemStack updated = apply(original, arguments);
         if (updated == null || updated.getType().isAir()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.item.no_result");
+                    "action.stage.item.no_result");
         }
         boolean changed = updated != original;
         if (changed) {

@@ -6,17 +6,17 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
 
     /** Reported when a stage id resolves against no registered stage. */
-    private static final String UNKNOWN_STAGE = "action.v2.validate.unknown_stage";
+    private static final String UNKNOWN_STAGE = "action.validate.unknown_stage";
 
     /** Reported when a {@code run} target names no configured sequence. */
-    private static final String UNKNOWN_SEQUENCE = "action.v2.validate.unknown_sequence";
+    private static final String UNKNOWN_SEQUENCE = "action.validate.unknown_sequence";
 
     CoreLibConfigPrecheckContributor(Supplier<? extends LogMessages> messagesSupplier) {
         super("corelib", messagesSupplier);
@@ -56,7 +56,7 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
      * Compiles every configured sequence line and reports what the compiler rejected.
      *
      * <p>No parsing or argument checking is repeated here. The v1 version re-implemented both and therefore
-     * had to know each action's arguments by hand; asking the v2 compiler means the precheck accepts exactly
+     * had to know each action's arguments by hand; asking the pipeline compiler means the precheck accepts exactly
      * what the runtime accepts, including bracket, branch, repeat-cap and required-argument errors it never
      * used to catch.</p>
      */

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.api.action.v2;
+package emaki.jiuwu.craft.corelib.api.action;
 
 /**
  * What a stage needs from the target flow.

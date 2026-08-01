@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.gem.action.v2;
+package emaki.jiuwu.craft.gem.action;
 
 import java.util.List;
 import java.util.Map;
@@ -8,16 +8,16 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
@@ -26,7 +26,7 @@ import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 /**
  * Socket, inlay, extract and layer operations on the target's held gear.
  *
- * <p>The v2 counterpart of {@code GemHeldItemAction}. All four operations read the main hand as the gear and,
+ * <p>Replaces the legacy {@code GemHeldItemAction}. All four operations read the main hand as the gear and,
  * for three of them, the off hand as the consumable, then write both back.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: every operation reads and writes one player's inventory. {@code extract}
@@ -125,7 +125,7 @@ public final class GemHeldItemStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         return switch (operation) {
             case OPEN_SOCKET -> openSocket(target, arguments);
@@ -207,7 +207,7 @@ public final class GemHeldItemStage implements CoreActionStage {
         ItemStack updated = plugin.stateService().clearGemLayer(target.getInventory().getItemInMainHand());
         if (updated == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.gem.clear_failed");
+                    "action.stage.gem.clear_failed");
         }
         target.getInventory().setItemInMainHand(updated);
         return CoreActionOutcome.success(Map.of(
@@ -216,7 +216,7 @@ public final class GemHeldItemStage implements CoreActionStage {
 
     private static CoreActionOutcome unavailable() {
         return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                "action.v2.stage.gem.service_unavailable");
+                "action.stage.gem.service_unavailable");
     }
 
     /**
@@ -228,7 +228,7 @@ public final class GemHeldItemStage implements CoreActionStage {
      */
     private static CoreActionOutcome rejected(String messageKey) {
         return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                messageKey == null ? "action.v2.stage.gem.rejected" : messageKey);
+                messageKey == null ? "action.stage.gem.rejected" : messageKey);
     }
 
     private static Map<String, Object> data(Map<String, ?> placeholders) {

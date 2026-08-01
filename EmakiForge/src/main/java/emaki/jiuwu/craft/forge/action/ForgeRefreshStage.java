@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.forge.action.v2;
+package emaki.jiuwu.craft.forge.action;
 
 import java.util.List;
 import java.util.Map;
@@ -11,21 +11,21 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 
 /**
  * Re-renders forged items after a recipe or config change.
  *
- * <p>The v2 counterpart of {@code ForgeRefreshAction}. The three operations differ in scope rather than in
+ * <p>Replaces the legacy {@code ForgeRefreshAction}. The three operations differ in scope rather than in
  * effect: one item, one player's inventory, or every online player.</p>
  */
 public final class ForgeRefreshStage implements CoreActionStage {
@@ -125,14 +125,14 @@ public final class ForgeRefreshStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (refreshService == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.forge.service_unavailable");
+                    "action.stage.forge.service_unavailable");
         }
         if (operation == Operation.ONLINE_PLAYERS) {
             return refreshOnlinePlayers();
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         return operation == Operation.PLAYER_INVENTORY
                 ? refreshInventory(target)
@@ -147,7 +147,7 @@ public final class ForgeRefreshStage implements CoreActionStage {
     private CoreActionOutcome refreshHeldItem(Player target) {
         ItemStack original = target.getInventory().getItemInMainHand();
         if (original == null || original.getType().isAir()) {
-            return CoreActionOutcome.skipped("action.v2.stage.forge.empty_hand");
+            return CoreActionOutcome.skipped("action.stage.forge.empty_hand");
         }
         ItemStack refreshed = refreshService.refreshItem(original);
         boolean changed = refreshed != original;
@@ -160,7 +160,7 @@ public final class ForgeRefreshStage implements CoreActionStage {
     /**
      * Waits for the server-wide refresh to finish and reports what it did.
      *
-     * <p>The refresh service is asynchronous, but a v2 stage completes synchronously, so this blocks. That is
+     * <p>The refresh service is asynchronous, but a stage completes synchronously, so this blocks. That is
      * acceptable here and nowhere else in this class: re-rendering every online player's items is an
      * administrative operation triggered after a config change, not something on a gameplay hot path. The
      * wait is bounded so a stuck refresh cannot pin the calling thread indefinitely.</p>
@@ -177,13 +177,13 @@ public final class ForgeRefreshStage implements CoreActionStage {
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.forge.refresh_interrupted");
+                    "action.stage.forge.refresh_interrupted");
         } catch (TimeoutException exception) {
             return CoreActionOutcome.failure(CoreActionFailureKind.TIMEOUT,
-                    "action.v2.stage.forge.refresh_timeout");
+                    "action.stage.forge.refresh_timeout");
         } catch (CompletionException | java.util.concurrent.ExecutionException exception) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.forge.refresh_failed",
+                    "action.stage.forge.refresh_failed",
                     Map.of("error", String.valueOf(exception.getCause() == null
                             ? exception.getMessage() : exception.getCause().getMessage())));
         }
@@ -195,11 +195,11 @@ public final class ForgeRefreshStage implements CoreActionStage {
                 "stale", summary.stale());
         if (summary.stale()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                    "action.v2.stage.forge.generation_changed", data);
+                    "action.stage.forge.generation_changed", data);
         }
         if (summary.failed() > 0) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.forge.partial_refresh", data);
+                    "action.stage.forge.partial_refresh", data);
         }
         return CoreActionOutcome.success(data);
     }

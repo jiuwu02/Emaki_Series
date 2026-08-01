@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.item.action.v2;
+package emaki.jiuwu.craft.item.action;
 
 import java.util.List;
 import java.util.Locale;
@@ -11,30 +11,30 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKeys;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssue;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector.ComponentValueParseResult;
 
 /**
  * Adds, modifies or removes a data component on an item.
  *
- * <p>The v2 counterpart of {@code ItemComponentAction}, and the place where this module's item-target guessing
+ * <p>Replaces the legacy {@code ItemComponentAction}, and the place where this module's item-target guessing
  * ends. v1 walked a fallback chain of seven weakly-typed context keys ({@code item}, {@code itemStack},
  * {@code item_stack}, {@code resultItem}, {@code result_item}, {@code targetItem}, {@code target_item}) looking
  * for something that happened to be an {@code ItemStack}. Four of those keys had no writer anywhere in the
@@ -154,12 +154,12 @@ public final class ItemComponentStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (inspector == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.item.inspector_unavailable");
+                    "action.stage.item.inspector_unavailable");
         }
         String componentId = inspector.normalizeComponentId(arguments.getString("component"));
         if (componentId.isBlank()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.item.component_required");
+                    "action.stage.item.component_required");
         }
         ItemComponentPatch patch;
         if (operation == Operation.REMOVE) {
@@ -168,7 +168,7 @@ public final class ItemComponentStage implements CoreActionStage {
             ComponentValueParseResult parsed = inspector.parseComponentValue(arguments.getString("value"));
             if (!parsed.success()) {
                 return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                        "action.v2.stage.item.bad_component_value",
+                        "action.stage.item.bad_component_value",
                         Map.of("error", String.valueOf(parsed.errorMessage())));
             }
             patch = ItemComponentPatch.set(parsed.value());
@@ -176,7 +176,7 @@ public final class ItemComponentStage implements CoreActionStage {
         Target target = resolveTarget(context, arguments);
         if (target == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.item.no_target_item");
+                    "action.stage.item.no_target_item");
         }
         return patch(target, componentId, patch);
     }
@@ -185,7 +185,7 @@ public final class ItemComponentStage implements CoreActionStage {
         try {
             ItemStack original = target.itemStack();
             if (original == null || original.getType().isAir()) {
-                return CoreActionOutcome.skipped("action.v2.stage.item.target_empty");
+                return CoreActionOutcome.skipped("action.stage.item.target_empty");
             }
             boolean existedBefore = inspector.contains(original, componentId);
             CoreActionOutcome existence = checkExistence(existedBefore);
@@ -200,7 +200,7 @@ public final class ItemComponentStage implements CoreActionStage {
             ItemStack updated = buildResult.itemStack();
             if (updated == null) {
                 return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                        "action.v2.stage.item.patch_returned_nothing");
+                        "action.stage.item.patch_returned_nothing");
             }
             boolean changed = !updated.equals(original);
             target.commit(updated);
@@ -211,7 +211,7 @@ public final class ItemComponentStage implements CoreActionStage {
                     "existed_before", existedBefore));
         } catch (RuntimeException | LinkageError exception) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.item.patch_error",
+                    "action.stage.item.patch_error",
                     Map.of("error", String.valueOf(exception.getMessage())));
         }
     }
@@ -227,15 +227,15 @@ public final class ItemComponentStage implements CoreActionStage {
         return switch (operation) {
             case ADD -> existedBefore
                     ? CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                            "action.v2.stage.item.component_exists")
+                            "action.stage.item.component_exists")
                     : null;
             case MODIFY -> existedBefore
                     ? null
                     : CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                            "action.v2.stage.item.component_missing");
+                            "action.stage.item.component_missing");
             case REMOVE -> existedBefore
                     ? null
-                    : CoreActionOutcome.skipped("action.v2.stage.item.component_absent");
+                    : CoreActionOutcome.skipped("action.stage.item.component_absent");
         };
     }
 
@@ -247,8 +247,8 @@ public final class ItemComponentStage implements CoreActionStage {
         return CoreActionOutcome.failure(
                 unavailable ? CoreActionFailureKind.MISSING_CONTEXT : CoreActionFailureKind.INVALID_CONFIG,
                 unavailable
-                        ? "action.v2.stage.item.component_unsupported"
-                        : "action.v2.stage.item.patch_failed",
+                        ? "action.stage.item.component_unsupported"
+                        : "action.stage.item.patch_failed",
                 Map.of("issues", result.issues().stream().map(ItemBuildIssue::message).toList()));
     }
 

@@ -107,314 +107,315 @@ action:
   debug_execution: "<gray>[Action]</gray> <white>phase=%phase%</white>
     <white>id=%id%</white> <gray>args=%args%</gray>"
   execute_failed: "<red>[Action] Failed to execute %action%: %error%</red>"
-  # Pipeline (v2) load-time validation diagnostics
-  v2:
-    register:
-      blank_id: "<red>[Pipeline] Stage id is blank; registration refused</red>"
-      duplicate_id: "<red>[Pipeline] Duplicate stage id; registration refused</red>"
-      registry_unavailable: "<red>[Pipeline] The stage registry is not ready yet; registration refused</red>"
-      undeclared_domain: "<red>[Pipeline] Stage %stage% declared no thread domain; registration refused</red>"
-      async_needs_target: "<red>[Pipeline] Stage %stage% declares the async domain but requires a target
-        (%requirement%); registration refused</red>"
-      key_type_conflict: "<red>[Pipeline] Context key %key% type conflict: existing %existing%,
-        %stage% declares %declared%</red>"
-    validate:
-      empty_pipeline: "<red>[Pipeline] This line contains no stages</red>"
-      missing_self_source: "<red>[Pipeline] Omitting the source needs the builtin self source,
-        which is currently unavailable</red>"
-      unknown_stage: "<red>[Pipeline] Unknown stage %token%</red>"
-      stage_owner_disabled: "<red>[Pipeline] Stage %stage% is provided by plugin %owner%,
-        which is currently disabled</red>"
-      multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage</red>"
-      source_after_action: "<red>[Pipeline] A source stage cannot follow an action stage</red>"
-      gate_after_action: "<red>[Pipeline] Gate stage %stage% cannot follow an action stage; the target
-        flow has already been consumed</red>"
-      missing_required_argument: "<red>[Pipeline] Missing required argument %argument%</red>"
-      unknown_argument: "<red>[Pipeline] Unknown argument %token%</red>"
-      invalid_argument_type: "<red>[Pipeline] Argument %argument% value %value% is not a valid
-        %expected%</red>"
-      positional_not_allowed: "<red>[Pipeline] This stage accepts no bare arguments</red>"
-      too_many_positional_arguments: "<red>[Pipeline] Too many bare arguments: at most %maximum%,
-        got %actual%</red>"
-      argument_both_named_and_positional: "<red>[Pipeline] Argument %token% was given both named
-        and bare</red>"
-      missing_context_key: "<red>[Pipeline] Stage %stage% requires context %key%(%type%),
-        which phase %phase% does not provide</red>"
-      invalid_every_syntax: "<red>[Pipeline] Invalid every syntax; expected %expected%</red>"
-      invalid_repeat_times: "<red>[Pipeline] Repeat count %value% is not a valid non-negative
-        integer</red>"
-      repeat_must_be_literal: "<red>[Pipeline] Repeat count must be a literal, not the placeholder
-        %value%</red>"
-      repeat_limit_exceeded: "<red>[Pipeline] Repeat count %value% exceeds the limit %maximum%</red>"
-      branch_depth_exceeded: "<red>[Pipeline] Branch nesting depth %depth% exceeds the limit
-        %maximum%</red>"
-      unknown_sequence: "<red>[Pipeline] Unknown sequence %token%</red>"
-      missing_sequence_parameter: "<red>[Pipeline] Sequence %sequence% is missing parameter
-        %parameter%</red>"
-      sequence_cycle: "<red>[Pipeline] Sequence calls form a cycle: %path%</red>"
-      thread_domain_undeclared: "<red>[Pipeline] Stage %stage% declared no thread domain</red>"
-      async_stage_requires_target: "<red>[Pipeline] Stage %stage% declares the async domain but
-        requires a target (%requirement%)</red>"
-    run:
-      empty_pipeline: "<gray>[Pipeline] This pipeline has no executable stages</gray>"
-      stage_unavailable: "<red>[Pipeline] Stage is currently unavailable</red>"
-      no_target: "<gray>[Pipeline] No target to act on</gray>"
-      all_targets_invalid: "<gray>[Pipeline] Every target became invalid before execution</gray>"
-      partial_targets: "<yellow>[Pipeline] Some targets failed</yellow>"
-      invalid_condition: "<red>[Pipeline] Condition %condition% could not be evaluated</red>"
-      unknown_sequence: "<red>[Pipeline] Sequence %sequence% was not found at run time</red>"
-      sequence_depth_exceeded: "<red>[Pipeline] Sequence %sequence% exceeds the maximum nesting depth
-        %maximum%</red>"
-      timeout: "<red>[Pipeline] Stage execution timed out</red>"
-      cancelled: "<gray>[Pipeline] Execution was cancelled</gray>"
-      owner_disabled: "<red>[Pipeline] The owning plugin is disabled: %error%</red>"
-      target_retired: "<gray>[Pipeline] The target became invalid before the delayed run: %error%</gray>"
-      timing_without_body: "<gray>[Pipeline] A timing stage has no stages after it</gray>"
+  # Pipeline load-time validation diagnostics
+  register:
+    blank_id: "<red>[Pipeline] Stage id is blank; registration refused</red>"
+    duplicate_id: "<red>[Pipeline] Duplicate stage id; registration refused</red>"
+    registry_unavailable: "<red>[Pipeline] The stage registry is not ready yet; registration refused</red>"
+    undeclared_domain: "<red>[Pipeline] Stage %stage% declared no thread domain; registration refused</red>"
+    async_needs_target: "<red>[Pipeline] Stage %stage% declares the async domain but requires a target
+      (%requirement%); registration refused</red>"
+    key_type_conflict: "<red>[Pipeline] Context key %key% type conflict: existing %existing%,
+      %stage% declares %declared%</red>"
+  validate:
+    empty_pipeline: "<red>[Pipeline] This line contains no stages</red>"
+    missing_self_source: "<red>[Pipeline] Omitting the source needs the builtin self source,
+      which is currently unavailable</red>"
+    unknown_stage: "<red>[Pipeline] Unknown stage %token%</red>"
+    stage_owner_disabled: "<red>[Pipeline] Stage %stage% is provided by plugin %owner%,
+      which is currently disabled</red>"
+    multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage</red>"
+    source_after_action: "<red>[Pipeline] A source stage cannot follow an action stage</red>"
+    gate_after_action: "<red>[Pipeline] Gate stage %stage% cannot follow an action stage; the target
+      flow has already been consumed</red>"
+    missing_required_argument: "<red>[Pipeline] Missing required argument %argument%</red>"
+    unknown_argument: "<red>[Pipeline] Unknown argument %token%</red>"
+    invalid_argument_type: "<red>[Pipeline] Argument %argument% value %value% is not a valid
+      %expected%</red>"
+    positional_not_allowed: "<red>[Pipeline] This stage accepts no bare arguments</red>"
+    too_many_positional_arguments: "<red>[Pipeline] Too many bare arguments: at most %maximum%,
+      got %actual%</red>"
+    argument_both_named_and_positional: "<red>[Pipeline] Argument %token% was given both named
+      and bare</red>"
+    missing_context_key: "<red>[Pipeline] Stage %stage% requires context %key%(%type%),
+      which phase %phase% does not provide</red>"
+    invalid_every_syntax: "<red>[Pipeline] Invalid every syntax; expected %expected%</red>"
+    invalid_repeat_times: "<red>[Pipeline] Repeat count %value% is not a valid non-negative
+      integer</red>"
+    repeat_must_be_literal: "<red>[Pipeline] Repeat count must be a literal, not the placeholder
+      %value%</red>"
+    repeat_limit_exceeded: "<red>[Pipeline] Repeat count %value% exceeds the limit %maximum%</red>"
+    branch_depth_exceeded: "<red>[Pipeline] Branch nesting depth %depth% exceeds the limit
+      %maximum%</red>"
+    unknown_sequence: "<red>[Pipeline] Unknown sequence %token%</red>"
+    missing_sequence_parameter: "<red>[Pipeline] Sequence %sequence% is missing parameter
+      %parameter%</red>"
+    sequence_cycle: "<red>[Pipeline] Sequence calls form a cycle: %path%</red>"
+    thread_domain_undeclared: "<red>[Pipeline] Stage %stage% declared no thread domain</red>"
+    async_stage_requires_target: "<red>[Pipeline] Stage %stage% declares the async domain but
+      requires a target (%requirement%)</red>"
+  run:
+    empty_pipeline: "<gray>[Pipeline] This pipeline has no executable stages</gray>"
+    stage_unavailable: "<red>[Pipeline] Stage is currently unavailable</red>"
+    no_target: "<gray>[Pipeline] No target to act on</gray>"
+    all_targets_invalid: "<gray>[Pipeline] Every target became invalid before execution</gray>"
+    partial_targets: "<yellow>[Pipeline] Some targets failed</yellow>"
+    invalid_condition: "<red>[Pipeline] Condition %condition% could not be evaluated</red>"
+    unknown_sequence: "<red>[Pipeline] Sequence %sequence% was not found at run time</red>"
+    sequence_depth_exceeded: "<red>[Pipeline] Sequence %sequence% exceeds the maximum nesting depth
+      %maximum%</red>"
+    timeout: "<red>[Pipeline] Stage execution timed out</red>"
+    cancelled: "<gray>[Pipeline] Execution was cancelled</gray>"
+    owner_disabled: "<red>[Pipeline] The owning plugin is disabled: %error%</red>"
+    target_retired: "<gray>[Pipeline] The target became invalid before the delayed run: %error%</gray>"
+    timing_without_body: "<gray>[Pipeline] A timing stage has no stages after it</gray>"
+  task:
+    empty_body: "<red>[Pipeline] That sequence has no runnable lines</red>"
+    times_out_of_range: "<red>[Pipeline] times is out of range; adjust action.pipeline.max_repeat_times</red>"
+    interval_too_small: "<red>[Pipeline] interval is below the configured minimum</red>"
+    total_limit_reached: "<red>[Pipeline] The server-wide active task limit has been reached</red>"
+    player_limit_reached: "<red>[Pipeline] That player's active task limit has been reached</red>"
+    plugin_limit_reached: "<red>[Pipeline] That plugin's active task limit has been reached</red>"
+    exception: "<red>[Pipeline] Stage threw an exception: %error%</red>"
+  # Builtin source stage diagnostics
+  source:
+    self:
+      no_caster: "<gray>[Pipeline] The self source has no caster</gray>"
+    inherited:
+      no_targets: "<gray>[Pipeline] The inherited source has no targets to inherit</gray>"
+    trigger:
+      no_trigger: "<gray>[Pipeline] The trigger source has no trigger information</gray>"
+      not_online: "<gray>[Pipeline] The player named by trigger is not online</gray>"
+    origin:
+      no_origin: "<gray>[Pipeline] The origin source has no usable origin</gray>"
+    looking_at:
+      no_living_caster: "<gray>[Pipeline] looking_at requires a living caster</gray>"
+      no_hit: "<gray>[Pipeline] looking_at hit no entity</gray>"
+      invalid_ray: "<red>[Pipeline] The range or width of looking_at is invalid</red>"
+    nearby:
+      no_origin: "<gray>[Pipeline] The nearby source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] nearby found no matching entity</gray>"
+      unknown_entity_type: "<red>[Pipeline] Unknown entity type %type% for nearby</red>"
+    nearby_players:
+      no_origin: "<gray>[Pipeline] The nearby_players source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] nearby_players found no player</gray>"
+    offset:
+      no_origin: "<gray>[Pipeline] The offset source has no usable origin</gray>"
+    at:
+      world_required: "<red>[Pipeline] The at source requires world when there is no origin</red>"
+      world_not_found: "<red>[Pipeline] World %world% for the at source does not exist</red>"
+      relative_without_origin: "<red>[Pipeline] The at source cannot use ~ coordinates without an
+        origin</red>"
+    player_by_name:
+      name_required: "<red>[Pipeline] player_by_name requires name</red>"
+      not_online: "<gray>[Pipeline] The player named by player_by_name is not online</gray>"
+  # Builtin gate stage diagnostics
+  gate:
+    where:
+      condition_required: "<red>[Pipeline] where requires a condition</red>"
+      invalid_condition: "<red>[Pipeline] The where condition %condition% cannot be evaluated</red>"
+    chance:
+      chance_required: "<red>[Pipeline] chance requires a probability</red>"
+      invalid_chance: "<red>[Pipeline] The chance probability must be between 0 and 1</red>"
+      not_rolled: "<gray>[Pipeline] The chance roll did not pass</gray>"
+    limit:
+      invalid_count: "<red>[Pipeline] The limit count must be a non-negative integer</red>"
+    sort_by:
+      unknown_key: "<red>[Pipeline] Unknown sort_by key %key%; expected distance or health</red>"
+      unknown_order: "<red>[Pipeline] Unknown sort_by order %order%; expected asc or desc</red>"
+    set:
+      no_assignment: "<red>[Pipeline] set requires at least one assignment</red>"
+    stop:
+      stopped: "<gray>[Pipeline] Ended by the stop stage</gray>"
+  # Builtin action stage diagnostics
+  stage:
+    common:
+      not_entity: "<gray>[Pipeline] This stage requires an entity target</gray>"
+      not_living_entity: "<gray>[Pipeline] This stage requires a living entity target</gray>"
+      not_player: "<gray>[Pipeline] This stage requires a player target</gray>"
+      no_location: "<gray>[Pipeline] This stage requires a target with a position</gray>"
+    play_sound:
+      unknown_sound: "<red>[Pipeline] Unknown sound %sound%</red>"
+    spawn_particle:
+      unknown_particle: "<red>[Pipeline] Unknown particle %particle%</red>"
+    boss_bar:
+      id_required: "<red>[Pipeline] Boss bar stages require id</red>"
+      unknown_color: "<red>[Pipeline] Unknown boss bar color %color%</red>"
+      unknown_style: "<red>[Pipeline] Unknown boss bar style %style%</red>"
+      unknown_flag: "<red>[Pipeline] Unknown boss bar flag %flag%</red>"
+      show_failed: "<red>[Pipeline] Unable to show a boss bar for id %id%</red>"
+      none_active: "<gray>[Pipeline] The target has no active boss bar</gray>"
+      not_found: "<gray>[Pipeline] No boss bar found for that id</gray>"
+    kill_entity:
+      player_target: "<gray>[Pipeline] kill_entity does not act on players; use set_health
+        amount=0</gray>"
+      already_dead: "<gray>[Pipeline] The target entity is already dead</gray>"
+    potion:
+      unknown_effect: "<red>[Pipeline] Unknown potion effect %type%</red>"
+      effect_absent: "<gray>[Pipeline] The target does not have that potion effect</gray>"
+      none_active: "<gray>[Pipeline] The target has no active potion effect</gray>"
     task:
-      empty_body: "<red>[Pipeline] That sequence has no runnable lines</red>"
-      times_out_of_range: "<red>[Pipeline] times is out of range; adjust action.pipeline.max_repeat_times</red>"
-      interval_too_small: "<red>[Pipeline] interval is below the configured minimum</red>"
-      total_limit_reached: "<red>[Pipeline] The server-wide active task limit has been reached</red>"
-      player_limit_reached: "<red>[Pipeline] That player's active task limit has been reached</red>"
-      plugin_limit_reached: "<red>[Pipeline] That plugin's active task limit has been reached</red>"
-      exception: "<red>[Pipeline] Stage threw an exception: %error%</red>"
-    # Builtin source stage diagnostics
-    source:
-      self:
-        no_caster: "<gray>[Pipeline] The self source has no caster</gray>"
-      inherited:
-        no_targets: "<gray>[Pipeline] The inherited source has no targets to inherit</gray>"
-      trigger:
-        no_trigger: "<gray>[Pipeline] The trigger source has no trigger information</gray>"
-        not_online: "<gray>[Pipeline] The player named by trigger is not online</gray>"
-      origin:
-        no_origin: "<gray>[Pipeline] The origin source has no usable origin</gray>"
-      looking_at:
-        no_living_caster: "<gray>[Pipeline] looking_at requires a living caster</gray>"
-        no_hit: "<gray>[Pipeline] looking_at hit no entity</gray>"
-        invalid_ray: "<red>[Pipeline] The range or width of looking_at is invalid</red>"
-      nearby:
-        no_origin: "<gray>[Pipeline] The nearby source has no usable origin</gray>"
-        no_match: "<gray>[Pipeline] nearby found no matching entity</gray>"
-        unknown_entity_type: "<red>[Pipeline] Unknown entity type %type% for nearby</red>"
-      nearby_players:
-        no_origin: "<gray>[Pipeline] The nearby_players source has no usable origin</gray>"
-        no_match: "<gray>[Pipeline] nearby_players found no player</gray>"
-      offset:
-        no_origin: "<gray>[Pipeline] The offset source has no usable origin</gray>"
-      at:
-        world_required: "<red>[Pipeline] The at source requires world when there is no origin</red>"
-        world_not_found: "<red>[Pipeline] World %world% for the at source does not exist</red>"
-        relative_without_origin: "<red>[Pipeline] The at source cannot use ~ coordinates without an
-          origin</red>"
-      player_by_name:
-        name_required: "<red>[Pipeline] player_by_name requires name</red>"
-        not_online: "<gray>[Pipeline] The player named by player_by_name is not online</gray>"
-    # Builtin gate stage diagnostics
-    gate:
-      where:
-        condition_required: "<red>[Pipeline] where requires a condition</red>"
-        invalid_condition: "<red>[Pipeline] The where condition %condition% cannot be evaluated</red>"
-      chance:
-        chance_required: "<red>[Pipeline] chance requires a probability</red>"
-        invalid_chance: "<red>[Pipeline] The chance probability must be between 0 and 1</red>"
-        not_rolled: "<gray>[Pipeline] The chance roll did not pass</gray>"
-      limit:
-        invalid_count: "<red>[Pipeline] The limit count must be a non-negative integer</red>"
-      sort_by:
-        unknown_key: "<red>[Pipeline] Unknown sort_by key %key%; expected distance or health</red>"
-        unknown_order: "<red>[Pipeline] Unknown sort_by order %order%; expected asc or desc</red>"
-      set:
-        no_assignment: "<red>[Pipeline] set requires at least one assignment</red>"
-      stop:
-        stopped: "<gray>[Pipeline] Ended by the stop stage</gray>"
-    # Builtin action stage diagnostics
-    stage:
-      common:
-        not_entity: "<gray>[Pipeline] This stage requires an entity target</gray>"
-        not_living_entity: "<gray>[Pipeline] This stage requires a living entity target</gray>"
-        not_player: "<gray>[Pipeline] This stage requires a player target</gray>"
-        no_location: "<gray>[Pipeline] This stage requires a target with a position</gray>"
-      play_sound:
-        unknown_sound: "<red>[Pipeline] Unknown sound %sound%</red>"
-      spawn_particle:
-        unknown_particle: "<red>[Pipeline] Unknown particle %particle%</red>"
-      boss_bar:
-        id_required: "<red>[Pipeline] Boss bar stages require id</red>"
-        unknown_color: "<red>[Pipeline] Unknown boss bar color %color%</red>"
-        unknown_style: "<red>[Pipeline] Unknown boss bar style %style%</red>"
-        unknown_flag: "<red>[Pipeline] Unknown boss bar flag %flag%</red>"
-        show_failed: "<red>[Pipeline] Unable to show a boss bar for id %id%</red>"
-        none_active: "<gray>[Pipeline] The target has no active boss bar</gray>"
-        not_found: "<gray>[Pipeline] No boss bar found for that id</gray>"
-      kill_entity:
-        player_target: "<gray>[Pipeline] kill_entity does not act on players; use set_health
-          amount=0</gray>"
-        already_dead: "<gray>[Pipeline] The target entity is already dead</gray>"
-      potion:
-        unknown_effect: "<red>[Pipeline] Unknown potion effect %type%</red>"
-        effect_absent: "<gray>[Pipeline] The target does not have that potion effect</gray>"
-        none_active: "<gray>[Pipeline] The target has no active potion effect</gray>"
-      task:
-        service_unavailable: "<red>[Pipeline] The long-running task service is unavailable</red>"
-        context_unavailable: "<red>[Pipeline] Long-running tasks need a full pipeline context</red>"
-        sequence_required: "<red>[Pipeline] start_task requires a sequence</red>"
-        unknown_sequence: "<red>[Pipeline] Undefined sequence %sequence%</red>"
-        key_required: "<red>[Pipeline] stop_task requires a key</red>"
-        none_matched: "<gray>[Pipeline] No task matched that key</gray>"
-      item:
-        invalid_item_source: "<red>[Pipeline] Item source %item_source% is invalid</red>"
-        service_unavailable: "<red>[Pipeline] The item source service is currently unavailable</red>"
-        create_failed: "<red>[Pipeline] Unable to create an item from source %item_source%</red>"
-        created_air: "<gray>[Pipeline] The item created from that source was air</gray>"
-        no_pipeline_item: "<gray>[Pipeline] The pipeline holds no item; use create_item first</gray>"
-        unknown_slot: "<red>[Pipeline] Unsupported slot %slot%</red>"
-        slot_empty: "<gray>[Pipeline] That slot holds no item</gray>"
-        source_mismatch: "<gray>[Pipeline] The item in that slot did not match the requested
-          source</gray>"
-        not_enough: "<gray>[Pipeline] Not enough matching items</gray>"
-        remove_failed: "<red>[Pipeline] Failed to remove the matching items</red>"
-        not_damageable: "<gray>[Pipeline] That item is not damageable</gray>"
-        no_durability: "<gray>[Pipeline] That item has no durability</gray>"
-        already_repaired: "<gray>[Pipeline] That item is already fully repaired</gray>"
-        zero_damage: "<gray>[Pipeline] The damage amount must be greater than zero</gray>"
-        # Used by EmakiItem's stages, which share this namespace with the builtin item stages above.
-        inspector_unavailable: "<red>[Pipeline] The EmakiItem component inspector is currently unavailable</red>"
-        empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
-        no_result: "<red>[Pipeline] EmakiItem returned no item</red>"
-        component_required: "<red>[Pipeline] This stage requires component</red>"
-        bad_component_value: "<red>[Pipeline] Invalid component value: %error%</red>"
-        no_target_item: "<red>[Pipeline] No item to act on: no slot, no pipeline item, and no player target</red>"
-        target_empty: "<gray>[Pipeline] There is no item at the resolved target</gray>"
-        component_exists: "<red>[Pipeline] The component already exists; use item_component_modify</red>"
-        component_missing: "<red>[Pipeline] The component does not exist; use item_component_add</red>"
-        component_absent: "<gray>[Pipeline] That component is not present on the item</gray>"
-        component_unsupported: "<red>[Pipeline] This runtime does not support that component: %issues%</red>"
-        patch_failed: "<red>[Pipeline] The component patch failed: %issues%</red>"
-        patch_returned_nothing: "<red>[Pipeline] The component patch returned no item</red>"
-        patch_error: "<red>[Pipeline] The component patch raised an error: %error%</red>"
-      place_block:
-        not_placeable: "<gray>[Pipeline] That source is not a placeable block</gray>"
-        provider_unavailable: "<gray>[Pipeline] The custom block provider is currently
-          unavailable</gray>"
-        provider_refused: "<gray>[Pipeline] The custom block provider did not place that block</gray>"
-        not_replaceable: "<gray>[Pipeline] The target block is not replaceable</gray>"
-        cannot_place: "<gray>[Pipeline] A block cannot be placed at that position</gray>"
-        build_denied: "<gray>[Pipeline] Building was denied at that position</gray>"
-        place_cancelled: "<gray>[Pipeline] The block placement was cancelled</gray>"
-      set_block:
-        invalid_material: "<red>[Pipeline] The set_block material %material% or block_data
-          %block_data% is invalid</red>"
-        not_a_block: "<gray>[Pipeline] The set_block material must be a non-air block</gray>"
-      break_block:
-        already_air: "<gray>[Pipeline] The target block is already air</gray>"
-        cancelled: "<gray>[Pipeline] The block break was cancelled</gray>"
-        not_broken: "<gray>[Pipeline] The block was not broken</gray>"
-      explosion:
-        zero_power: "<gray>[Pipeline] The explosion power must be greater than zero</gray>"
-      projectile:
-        no_caster_entity: "<gray>[Pipeline] projectile requires a living caster</gray>"
-        no_world: "<gray>[Pipeline] The projectile caster is not in any world</gray>"
-        no_scheduler: "<red>[Pipeline] projectile has no scheduler available</red>"
-      spawn_entity:
-        unknown_entity_type: "<red>[Pipeline] Unknown entity type %type%</red>"
-        not_spawnable: "<gray>[Pipeline] That entity type is not spawnable</gray>"
-      teleport:
-        world_not_found: "<red>[Pipeline] Teleport destination world %world% does not exist</red>"
-        rejected: "<red>[Pipeline] The teleport was rejected</red>"
-      money:
-        service_unavailable: "<red>[Pipeline] The economy service is currently unavailable</red>"
-        provider_unavailable: "<red>[Pipeline] The economy provider is unavailable: %error%</red>"
-        currency_not_found: "<red>[Pipeline] The currency does not exist: %error%</red>"
-        insufficient_balance: "<red>[Pipeline] Insufficient balance: %error%</red>"
-        unsupported: "<red>[Pipeline] The economy provider does not support that operation:
-          %error%</red>"
-        invalid_argument: "<red>[Pipeline] Invalid economy argument: %error%</red>"
-        failed: "<red>[Pipeline] The economy operation failed: %error%</red>"
-        skipped: "<gray>[Pipeline] The economy operation was skipped</gray>"
-        no_result: "<red>[Pipeline] The economy operation returned no result</red>"
-      command:
-        dispatch_failed: "<red>[Pipeline] Command dispatch failed</red>"
-      cast_mythic_skill:
-        skill_required: "<red>[Pipeline] cast_mythic_skill requires skill</red>"
-        unavailable: "<red>[Pipeline] MythicMobs is currently unavailable</red>"
-        cast_failed: "<red>[Pipeline] MythicMobs skill %skill% failed to cast</red>"
-        cast_error: "<red>[Pipeline] MythicMobs skill %skill% raised an error: %error%</red>"
-      # Diagnostics for stages provided by business modules. The stage implementations live in each
-      # module's jar, but the text stays here because CoreLib's resolver renders all of action.v2.*.
-      strengthen:
-        service_unavailable: "<red>[Pipeline] The EmakiStrengthen service is currently unavailable</red>"
-        empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
-        rebuild_failed: "<red>[Pipeline] EmakiStrengthen could not rebuild that item</red>"
-      gem:
-        service_unavailable: "<red>[Pipeline] The EmakiGem service is currently unavailable</red>"
-        clear_failed: "<red>[Pipeline] EmakiGem could not clear the gem layer</red>"
-        rejected: "<red>[Pipeline] EmakiGem refused that operation</red>"
-      cooking:
-        service_unavailable: "<red>[Pipeline] The EmakiCooking nutrition system is currently unavailable</red>"
-        reward_service_unavailable: "<red>[Pipeline] The EmakiCooking recipe reward service is currently unavailable</red>"
-        type_required: "<red>[Pipeline] This stage requires type</red>"
-        unknown_type: "<red>[Pipeline] Unknown nutrition type %type%</red>"
-        no_types: "<gray>[Pipeline] No nutrition types are registered</gray>"
-        operation_failed: "<red>[Pipeline] The EmakiCooking nutrition operation failed: %reason%</red>"
-        reset_failed: "<red>[Pipeline] Resetting nutrition type %type% failed: %reason%</red>"
-        recheck_unavailable: "<gray>[Pipeline] That player has no nutrition state to re-evaluate</gray>"
-        recipe_required: "<red>[Pipeline] This stage requires recipe</red>"
-        unknown_station: "<red>[Pipeline] Unknown station type %station%</red>"
-        unknown_recipe: "<red>[Pipeline] Recipe %recipe% is not loaded</red>"
-        outcome_empty: "<gray>[Pipeline] That recipe outcome has no enabled outputs or actions</gray>"
-      storage:
-        unavailable: "<red>[Pipeline] The EmakiStorage service or that player's record is currently unavailable</red>"
-        unknown_item: "<red>[Pipeline] Unknown item source %item%</red>"
-        amount_must_be_positive: "<red>[Pipeline] amount must be positive</red>"
-        amount_must_be_non_zero: "<red>[Pipeline] amount must not be zero</red>"
-        limit_must_be_non_negative: "<red>[Pipeline] limit must be zero or positive</red>"
-        no_entry_at_slot: "<red>[Pipeline] No entry at slot %slot%</red>"
-        rejected: "<red>[Pipeline] EmakiStorage refused that operation: %reason%</red>"
-      attribute:
-        service_unavailable: "<red>[Pipeline] The EmakiAttribute service is currently unavailable</red>"
-        unknown_damage_cause: "<red>[Pipeline] Unknown damage cause %cause%</red>"
-        damage_refused: "<red>[Pipeline] The attribute damage could not be applied</red>"
-        effect_id_required: "<red>[Pipeline] This stage requires effect_id</red>"
-        tag_required: "<red>[Pipeline] This stage requires tag</red>"
-        unknown_resource: "<red>[Pipeline] Unknown resource %resource%</red>"
-      level:
-        service_unavailable: "<red>[Pipeline] The EmakiLevel service is currently unavailable</red>"
-        operation_failed: "<red>[Pipeline] The EmakiLevel operation failed: %reason%</red>"
-      skills:
-        service_unavailable: "<red>[Pipeline] The EmakiSkills service is currently unavailable</red>"
-        skill_required: "<red>[Pipeline] This stage requires skill</red>"
-        unknown_skill: "<red>[Pipeline] Unknown skill %skill%</red>"
-        mythic_unavailable: "<red>[Pipeline] MythicMobs is currently unavailable</red>"
-        unknown_mythic_skill: "<red>[Pipeline] Unknown MythicMobs skill %skill%</red>"
-        cast_failed: "<red>[Pipeline] MythicMobs skill %skill% failed to cast</red>"
-        upgrade_failed: "<red>[Pipeline] The EmakiSkills upgrade was refused: %reason%</red>"
-        slot_refused: "<red>[Pipeline] EmakiSkills refused the change to slot %slot%</red>"
-        already_learned: "<gray>[Pipeline] That skill is already manually learned</gray>"
-        not_learned: "<gray>[Pipeline] That skill is not manually learned</gray>"
-        nothing_learned: "<gray>[Pipeline] That player has no manually learned skills</gray>"
-      codex:
-        service_unavailable: "<red>[Pipeline] The EmakiCodex advancement service is currently unavailable</red>"
-        advancement_required: "<red>[Pipeline] This stage requires advancement</red>"
-        page_required: "<red>[Pipeline] codex_reset_page requires page</red>"
-        grant_refused: "<red>[Pipeline] Advancement %advancement% is not registered or already completed</red>"
-        revoke_refused: "<red>[Pipeline] Advancement %advancement% is not registered or not yet completed</red>"
-        no_nodes: "<gray>[Pipeline] No matching EmakiCodex advancement nodes</gray>"
-        resync_unavailable: "<red>[Pipeline] PacketEvents is unavailable; advancement resync cannot run</red>"
-        resync_failed: "<red>[Pipeline] Advancement resync failed for %player%</red>"
-        toast_requires_packetevents: "<red>[Pipeline] Achievement toasts require PacketEvents</red>"
-        title_required: "<red>[Pipeline] codex_show_toast requires title</red>"
-        unknown_frame: "<red>[Pipeline] Unknown toast frame %frame%; use task, goal, or challenge</red>"
-        toast_send_failed: "<red>[Pipeline] Could not send the achievement toast packet to that player</red>"
-        toast_error: "<red>[Pipeline] The achievement toast raised an error: %error%</red>"
-      forge:
-        service_unavailable: "<red>[Pipeline] The EmakiForge refresh service is currently unavailable</red>"
-        empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
-        refresh_timeout: "<red>[Pipeline] The server-wide forged item refresh timed out</red>"
-        refresh_interrupted: "<red>[Pipeline] The server-wide forged item refresh was interrupted</red>"
-        refresh_failed: "<red>[Pipeline] The server-wide forged item refresh failed: %error%</red>"
-        generation_changed: "<red>[Pipeline] The EmakiForge runtime generation changed during the refresh; the result is stale</red>"
-        partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player(s)</red>"
+      service_unavailable: "<red>[Pipeline] The long-running task service is unavailable</red>"
+      context_unavailable: "<red>[Pipeline] Long-running tasks need a full pipeline context</red>"
+      sequence_required: "<red>[Pipeline] start_task requires a sequence</red>"
+      unknown_sequence: "<red>[Pipeline] Undefined sequence %sequence%</red>"
+      key_required: "<red>[Pipeline] stop_task requires a key</red>"
+      none_matched: "<gray>[Pipeline] No task matched that key</gray>"
+    item:
+      invalid_item_source: "<red>[Pipeline] Item source %item_source% is invalid</red>"
+      service_unavailable: "<red>[Pipeline] The item source service is currently unavailable</red>"
+      create_failed: "<red>[Pipeline] Unable to create an item from source %item_source%</red>"
+      created_air: "<gray>[Pipeline] The item created from that source was air</gray>"
+      no_pipeline_item: "<gray>[Pipeline] The pipeline holds no item; use create_item first</gray>"
+      unknown_slot: "<red>[Pipeline] Unsupported slot %slot%</red>"
+      slot_empty: "<gray>[Pipeline] That slot holds no item</gray>"
+      source_mismatch: "<gray>[Pipeline] The item in that slot did not match the requested
+        source</gray>"
+      not_enough: "<gray>[Pipeline] Not enough matching items</gray>"
+      remove_failed: "<red>[Pipeline] Failed to remove the matching items</red>"
+      not_damageable: "<gray>[Pipeline] That item is not damageable</gray>"
+      no_durability: "<gray>[Pipeline] That item has no durability</gray>"
+      already_repaired: "<gray>[Pipeline] That item is already fully repaired</gray>"
+      zero_damage: "<gray>[Pipeline] The damage amount must be greater than zero</gray>"
+      # Used by EmakiItem's stages, which share this namespace with the builtin item stages above.
+      inspector_unavailable: "<red>[Pipeline] The EmakiItem component inspector is currently unavailable</red>"
+      empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
+      no_result: "<red>[Pipeline] EmakiItem returned no item</red>"
+      component_required: "<red>[Pipeline] This stage requires component</red>"
+      bad_component_value: "<red>[Pipeline] Invalid component value: %error%</red>"
+      no_target_item: "<red>[Pipeline] No item to act on: no slot, no pipeline item, and no player target</red>"
+      target_empty: "<gray>[Pipeline] There is no item at the resolved target</gray>"
+      component_exists: "<red>[Pipeline] The component already exists; use item_component_modify</red>"
+      component_missing: "<red>[Pipeline] The component does not exist; use item_component_add</red>"
+      component_absent: "<gray>[Pipeline] That component is not present on the item</gray>"
+      component_unsupported: "<red>[Pipeline] This runtime does not support that component: %issues%</red>"
+      patch_failed: "<red>[Pipeline] The component patch failed: %issues%</red>"
+      patch_returned_nothing: "<red>[Pipeline] The component patch returned no item</red>"
+      patch_error: "<red>[Pipeline] The component patch raised an error: %error%</red>"
+    place_block:
+      not_placeable: "<gray>[Pipeline] That source is not a placeable block</gray>"
+      provider_unavailable: "<gray>[Pipeline] The custom block provider is currently
+        unavailable</gray>"
+      provider_refused: "<gray>[Pipeline] The custom block provider did not place that block</gray>"
+      not_replaceable: "<gray>[Pipeline] The target block is not replaceable</gray>"
+      cannot_place: "<gray>[Pipeline] A block cannot be placed at that position</gray>"
+      build_denied: "<gray>[Pipeline] Building was denied at that position</gray>"
+      place_cancelled: "<gray>[Pipeline] The block placement was cancelled</gray>"
+    set_block:
+      invalid_material: "<red>[Pipeline] The set_block material %material% or block_data
+        %block_data% is invalid</red>"
+      not_a_block: "<gray>[Pipeline] The set_block material must be a non-air block</gray>"
+    break_block:
+      already_air: "<gray>[Pipeline] The target block is already air</gray>"
+      cancelled: "<gray>[Pipeline] The block break was cancelled</gray>"
+      not_broken: "<gray>[Pipeline] The block was not broken</gray>"
+    explosion:
+      zero_power: "<gray>[Pipeline] The explosion power must be greater than zero</gray>"
+    projectile:
+      no_caster_entity: "<gray>[Pipeline] projectile requires a living caster</gray>"
+      no_world: "<gray>[Pipeline] The projectile caster is not in any world</gray>"
+      no_scheduler: "<red>[Pipeline] projectile has no scheduler available</red>"
+    spawn_entity:
+      unknown_entity_type: "<red>[Pipeline] Unknown entity type %type%</red>"
+      not_spawnable: "<gray>[Pipeline] That entity type is not spawnable</gray>"
+    teleport:
+      world_not_found: "<red>[Pipeline] Teleport destination world %world% does not exist</red>"
+      rejected: "<red>[Pipeline] The teleport was rejected</red>"
+    money:
+      service_unavailable: "<red>[Pipeline] The economy service is currently unavailable</red>"
+      provider_unavailable: "<red>[Pipeline] The economy provider is unavailable: %error%</red>"
+      currency_not_found: "<red>[Pipeline] The currency does not exist: %error%</red>"
+      insufficient_balance: "<red>[Pipeline] Insufficient balance: %error%</red>"
+      unsupported: "<red>[Pipeline] The economy provider does not support that operation:
+        %error%</red>"
+      invalid_argument: "<red>[Pipeline] Invalid economy argument: %error%</red>"
+      failed: "<red>[Pipeline] The economy operation failed: %error%</red>"
+      skipped: "<gray>[Pipeline] The economy operation was skipped</gray>"
+      no_result: "<red>[Pipeline] The economy operation returned no result</red>"
+    command:
+      dispatch_failed: "<red>[Pipeline] Command dispatch failed</red>"
+    cast_mythic_skill:
+      skill_required: "<red>[Pipeline] cast_mythic_skill requires skill</red>"
+      unavailable: "<red>[Pipeline] MythicMobs is currently unavailable</red>"
+      cast_failed: "<red>[Pipeline] MythicMobs skill %skill% failed to cast</red>"
+      cast_error: "<red>[Pipeline] MythicMobs skill %skill% raised an error: %error%</red>"
+    # Diagnostics for stages provided by business modules. The stage implementations live in each
+    # module's jar, but the text stays here because these keys are emitted through CoreLib's
+    # CoreActionOutcome contract, so text and contract stay side by side.
+    strengthen:
+      service_unavailable: "<red>[Pipeline] The EmakiStrengthen service is currently unavailable</red>"
+      empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
+      rebuild_failed: "<red>[Pipeline] EmakiStrengthen could not rebuild that item</red>"
+    gem:
+      service_unavailable: "<red>[Pipeline] The EmakiGem service is currently unavailable</red>"
+      clear_failed: "<red>[Pipeline] EmakiGem could not clear the gem layer</red>"
+      rejected: "<red>[Pipeline] EmakiGem refused that operation</red>"
+    cooking:
+      service_unavailable: "<red>[Pipeline] The EmakiCooking nutrition system is currently unavailable</red>"
+      reward_service_unavailable: "<red>[Pipeline] The EmakiCooking recipe reward service is currently unavailable</red>"
+      type_required: "<red>[Pipeline] This stage requires type</red>"
+      unknown_type: "<red>[Pipeline] Unknown nutrition type %type%</red>"
+      no_types: "<gray>[Pipeline] No nutrition types are registered</gray>"
+      operation_failed: "<red>[Pipeline] The EmakiCooking nutrition operation failed: %reason%</red>"
+      reset_failed: "<red>[Pipeline] Resetting nutrition type %type% failed: %reason%</red>"
+      recheck_unavailable: "<gray>[Pipeline] That player has no nutrition state to re-evaluate</gray>"
+      recipe_required: "<red>[Pipeline] This stage requires recipe</red>"
+      unknown_station: "<red>[Pipeline] Unknown station type %station%</red>"
+      unknown_recipe: "<red>[Pipeline] Recipe %recipe% is not loaded</red>"
+      outcome_empty: "<gray>[Pipeline] That recipe outcome has no enabled outputs or actions</gray>"
+    storage:
+      unavailable: "<red>[Pipeline] The EmakiStorage service or that player's record is currently unavailable</red>"
+      unknown_item: "<red>[Pipeline] Unknown item source %item%</red>"
+      amount_must_be_positive: "<red>[Pipeline] amount must be positive</red>"
+      amount_must_be_non_zero: "<red>[Pipeline] amount must not be zero</red>"
+      limit_must_be_non_negative: "<red>[Pipeline] limit must be zero or positive</red>"
+      no_entry_at_slot: "<red>[Pipeline] No entry at slot %slot%</red>"
+      rejected: "<red>[Pipeline] EmakiStorage refused that operation: %reason%</red>"
+    attribute:
+      service_unavailable: "<red>[Pipeline] The EmakiAttribute service is currently unavailable</red>"
+      unknown_damage_cause: "<red>[Pipeline] Unknown damage cause %cause%</red>"
+      damage_refused: "<red>[Pipeline] The attribute damage could not be applied</red>"
+      effect_id_required: "<red>[Pipeline] This stage requires effect_id</red>"
+      tag_required: "<red>[Pipeline] This stage requires tag</red>"
+      unknown_resource: "<red>[Pipeline] Unknown resource %resource%</red>"
+    level:
+      service_unavailable: "<red>[Pipeline] The EmakiLevel service is currently unavailable</red>"
+      operation_failed: "<red>[Pipeline] The EmakiLevel operation failed: %reason%</red>"
+    skills:
+      service_unavailable: "<red>[Pipeline] The EmakiSkills service is currently unavailable</red>"
+      skill_required: "<red>[Pipeline] This stage requires skill</red>"
+      unknown_skill: "<red>[Pipeline] Unknown skill %skill%</red>"
+      mythic_unavailable: "<red>[Pipeline] MythicMobs is currently unavailable</red>"
+      unknown_mythic_skill: "<red>[Pipeline] Unknown MythicMobs skill %skill%</red>"
+      cast_failed: "<red>[Pipeline] Skill %skill% failed to cast</red>"
+      entity_caster_needs_mythic: "<red>[Pipeline] A non-player caster can only cast a skill that has mythic_skill configured: %skill%</red>"
+      upgrade_failed: "<red>[Pipeline] The EmakiSkills upgrade was refused: %reason%</red>"
+      slot_refused: "<red>[Pipeline] EmakiSkills refused the change to slot %slot%</red>"
+      already_learned: "<gray>[Pipeline] That skill is already manually learned</gray>"
+      not_learned: "<gray>[Pipeline] That skill is not manually learned</gray>"
+      nothing_learned: "<gray>[Pipeline] That player has no manually learned skills</gray>"
+    codex:
+      service_unavailable: "<red>[Pipeline] The EmakiCodex advancement service is currently unavailable</red>"
+      advancement_required: "<red>[Pipeline] This stage requires advancement</red>"
+      page_required: "<red>[Pipeline] codex_reset_page requires page</red>"
+      grant_refused: "<red>[Pipeline] Advancement %advancement% is not registered or already completed</red>"
+      revoke_refused: "<red>[Pipeline] Advancement %advancement% is not registered or not yet completed</red>"
+      no_nodes: "<gray>[Pipeline] No matching EmakiCodex advancement nodes</gray>"
+      resync_unavailable: "<red>[Pipeline] PacketEvents is unavailable; advancement resync cannot run</red>"
+      resync_failed: "<red>[Pipeline] Advancement resync failed for %player%</red>"
+      toast_requires_packetevents: "<red>[Pipeline] Achievement toasts require PacketEvents</red>"
+      title_required: "<red>[Pipeline] codex_show_toast requires title</red>"
+      unknown_frame: "<red>[Pipeline] Unknown toast frame %frame%; use task, goal, or challenge</red>"
+      toast_send_failed: "<red>[Pipeline] Could not send the achievement toast packet to that player</red>"
+      toast_error: "<red>[Pipeline] The achievement toast raised an error: %error%</red>"
+    forge:
+      service_unavailable: "<red>[Pipeline] The EmakiForge refresh service is currently unavailable</red>"
+      empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
+      refresh_timeout: "<red>[Pipeline] The server-wide forged item refresh timed out</red>"
+      refresh_interrupted: "<red>[Pipeline] The server-wide forged item refresh was interrupted</red>"
+      refresh_failed: "<red>[Pipeline] The server-wide forged item refresh failed: %error%</red>"
+      generation_changed: "<red>[Pipeline] The EmakiForge runtime generation changed during the refresh; the result is stale</red>"
+      partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player(s)</red>"
 
 # Debug mode messages
 debug:

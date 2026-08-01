@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2;
+package emaki.jiuwu.craft.corelib.action.builtin;
 
 import java.util.Locale;
 
@@ -12,14 +12,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
- * Shared parsing and subject helpers for the v2 builtin stages.
+ * Shared parsing and subject helpers for the builtin pipeline stages.
  *
  * <p>Deliberately does not reuse the v1 {@code WorldArgumentResolver} / {@code ActionInventorySlot} /
  * {@code ActionItemSourceArguments} helpers even though the rules are the same. Those classes are

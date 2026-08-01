@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.Map;
 
@@ -7,16 +7,16 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
-import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
  *
  * <p>{@link EconomyManager} still speaks the v1 {@code ActionResult}, so the three stages convert its result
  * rather than reaching into economy providers themselves. That conversion is the only place the two result types
- * meet, and it maps the economy-specific error codes onto the v2 failure kinds: an unavailable provider or
+ * meet, and it maps the economy-specific error codes onto the pipeline failure kinds: an unavailable provider or
  * unknown currency is {@code INVALID_CONFIG} because the server owner named something that does not exist, while
  * an insufficient balance is {@code REJECTED} because the request was well-formed and the domain refused it.</p>
  *
@@ -52,11 +52,11 @@ abstract class MoneyStage extends BaseStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = StageSupport.player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         if (economyManager == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.money.service_unavailable");
+                    "action.stage.money.service_unavailable");
         }
         return convert(perform(economyManager, target,
                 arguments.getString("provider", "auto"),
@@ -83,10 +83,10 @@ abstract class MoneyStage extends BaseStage {
     private static CoreActionOutcome convert(ActionResult result) {
         if (result == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.money.no_result");
+                    "action.stage.money.no_result");
         }
         if (result.skipped()) {
-            return CoreActionOutcome.skipped("action.v2.stage.money.skipped");
+            return CoreActionOutcome.skipped("action.stage.money.skipped");
         }
         if (result.success()) {
             return CoreActionOutcome.success(result.data());
@@ -109,12 +109,12 @@ abstract class MoneyStage extends BaseStage {
 
     private static String reasonKey(ActionErrorType errorType) {
         return switch (errorType) {
-            case PROVIDER_UNAVAILABLE -> "action.v2.stage.money.provider_unavailable";
-            case CURRENCY_NOT_FOUND -> "action.v2.stage.money.currency_not_found";
-            case INSUFFICIENT_BALANCE -> "action.v2.stage.money.insufficient_balance";
-            case UNSUPPORTED -> "action.v2.stage.money.unsupported";
-            case INVALID_ARGUMENT -> "action.v2.stage.money.invalid_argument";
-            default -> "action.v2.stage.money.failed";
+            case PROVIDER_UNAVAILABLE -> "action.stage.money.provider_unavailable";
+            case CURRENCY_NOT_FOUND -> "action.stage.money.currency_not_found";
+            case INSUFFICIENT_BALANCE -> "action.stage.money.insufficient_balance";
+            case UNSUPPORTED -> "action.stage.money.unsupported";
+            case INVALID_ARGUMENT -> "action.stage.money.invalid_argument";
+            default -> "action.stage.money.failed";
         };
     }
 }

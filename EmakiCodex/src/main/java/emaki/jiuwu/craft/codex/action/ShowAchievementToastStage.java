@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.codex.action.v2;
+package emaki.jiuwu.craft.codex.action;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -16,16 +16,16 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -34,7 +34,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 /**
  * Shows a client-side advancement toast without registering or granting an advancement.
  *
- * <p>The v2 counterpart of {@code ShowAchievementToastAction}. The toast is a fake advancement pushed over the
+ * <p>Replaces the legacy {@code ShowAchievementToastAction}. The toast is a fake advancement pushed over the
  * wire and withdrawn again a moment later, so the removal is scheduled rather than immediate.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: the packet goes to one player's connection. Despite touching the network
@@ -117,21 +117,21 @@ public final class ShowAchievementToastStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         if (!isPacketEventsPresent()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.codex.toast_requires_packetevents");
+                    "action.stage.codex.toast_requires_packetevents");
         }
         String title = Texts.trim(arguments.getString("title"));
         if (title.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.codex.title_required");
+                    "action.stage.codex.title_required");
         }
         String frame = frame(arguments);
         if (frame == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.codex.unknown_frame",
+                    "action.stage.codex.unknown_frame",
                     Map.of("frame", arguments.getString("frame")));
         }
         String key = "emakicodex:toast/" + toastId(arguments);
@@ -139,13 +139,13 @@ public final class ShowAchievementToastStage implements CoreActionStage {
         try {
             if (!invokeBridge("send", target, key, title, arguments.getString("description"), icon, frame)) {
                 return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                        "action.v2.stage.codex.toast_send_failed");
+                        "action.stage.codex.toast_send_failed");
             }
             scheduleRemoval(target, key, removeDelayTicks(arguments));
             return CoreActionOutcome.success(Map.of("advancement", key, "frame", frame));
         } catch (Throwable throwable) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                    "action.v2.stage.codex.toast_error",
+                    "action.stage.codex.toast_error",
                     Map.of("error", String.valueOf(rootMessage(throwable))));
         }
     }

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.v2.exec;
+package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,8 +17,8 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 /**
  * Long-running named tasks that repeat a sequence on an interval.
  *
- * <p>The v2 counterpart of the v1 loop subsystem. It keeps that subsystem's operational guarantees,
+ * <p>The replacement for the v1 loop subsystem. It keeps that subsystem's operational guarantees,
  * which exist because a repeating task that outlives its reason is a resource leak: keyed de-duplication,
  * three concurrency ceilings, stop conditions, and cancellation when the owning player leaves.</p>
  *
@@ -78,13 +78,13 @@ public final class PipelineTaskService implements Listener {
     public @NotNull Result start(@NotNull Request request) {
         Limits active = limits;
         if (request.body().isEmpty()) {
-            return Result.rejected("action.v2.task.empty_body");
+            return Result.rejected("action.task.empty_body");
         }
         if (request.times() <= 0 || request.times() > active.maxTimes()) {
-            return Result.rejected("action.v2.task.times_out_of_range");
+            return Result.rejected("action.task.times_out_of_range");
         }
         if (request.intervalTicks() < active.minIntervalTicks()) {
-            return Result.rejected("action.v2.task.interval_too_small");
+            return Result.rejected("action.task.interval_too_small");
         }
         String key = Texts.isBlank(request.key())
                 ? "task:" + owner.getName() + ":" + sequence.incrementAndGet()
@@ -240,7 +240,7 @@ public final class PipelineTaskService implements Listener {
 
     private String checkCeilings(Request request, Limits active) {
         if (tasks.size() >= active.maxTotal()) {
-            return "action.v2.task.total_limit_reached";
+            return "action.task.total_limit_reached";
         }
         Player player = playerOf(request.context());
         String pluginName = request.context().sourcePlugin() == null
@@ -260,9 +260,9 @@ public final class PipelineTaskService implements Listener {
             }
         }
         if (player != null && perPlayer >= active.maxPerPlayer()) {
-            return "action.v2.task.player_limit_reached";
+            return "action.task.player_limit_reached";
         }
-        return perPlugin >= active.maxPerPlugin() ? "action.v2.task.plugin_limit_reached" : null;
+        return perPlugin >= active.maxPerPlugin() ? "action.task.plugin_limit_reached" : null;
     }
 
     private void schedule(Task task, long delayTicks) {

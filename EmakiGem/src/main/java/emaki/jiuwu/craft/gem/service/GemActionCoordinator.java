@@ -7,7 +7,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.v2.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 
@@ -93,7 +93,7 @@ public final class GemActionCoordinator {
     /**
      * Runs the batch and folds its outcome into an {@link ExecutionResult}.
      *
-     * <p>The phase is no longer also written as a context attribute: a v2 context carries the phase itself,
+     * <p>The phase is no longer also written as a context attribute: a pipeline context carries the phase itself,
      * so stages read it from {@code context.phase()} instead.</p>
      */
     private CompletionStage<ExecutionResult> executeAsync(ActionLineRunner runner,

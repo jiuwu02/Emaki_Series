@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.attribute.action.v2;
+package emaki.jiuwu.craft.attribute.action;
 
 import java.util.List;
 import java.util.Map;
@@ -9,21 +9,21 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
 /**
  * Recomputes attribute values, for one target or for everyone online.
  *
- * <p>The v2 counterpart of {@code AttributeSyncAction}. {@code attribute_refresh} additionally drops the
+ * <p>Replaces the legacy {@code AttributeSyncAction}. {@code attribute_refresh} additionally drops the
  * module's caches, which is what makes it the stage to run after editing attribute configuration.</p>
  *
  * <p>This is the one stage in the module whose thread domain depends on its arguments: {@code all=true} walks
@@ -116,7 +116,7 @@ public final class AttributeSyncStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (attributeService == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.attribute.service_unavailable");
+                    "action.stage.attribute.service_unavailable");
         }
         boolean all = arguments.getBoolean("all", Boolean.parseBoolean(operation.allDefault));
         if (operation == Operation.REFRESH) {
@@ -128,7 +128,7 @@ public final class AttributeSyncStage implements CoreActionStage {
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         attributeService.syncPlayer(target, ResourceSyncReason.MANUAL, null);
         return CoreActionOutcome.success(Map.of("all", false, "player", target.getName()));

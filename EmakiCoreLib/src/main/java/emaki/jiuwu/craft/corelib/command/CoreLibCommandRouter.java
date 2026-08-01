@@ -12,12 +12,12 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
-import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineOutcome;
-import emaki.jiuwu.craft.corelib.action.v2.exec.PipelineTaskService;
-import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;

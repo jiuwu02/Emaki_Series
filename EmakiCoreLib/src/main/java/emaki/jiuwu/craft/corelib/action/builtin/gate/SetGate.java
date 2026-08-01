@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.gate;
+package emaki.jiuwu.craft.corelib.action.builtin.gate;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -7,12 +7,12 @@ import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseGate;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateThread;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -40,7 +40,7 @@ public final class SetGate extends BaseGate {
             @NotNull CoreResolvedArguments arguments) {
         Map<String, String> raw = arguments.raw();
         if (raw.isEmpty()) {
-            return CoreGateResult.invalid("action.v2.gate.set.no_assignment");
+            return CoreGateResult.invalid("action.gate.set.no_assignment");
         }
         Map<String, String> variables = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : raw.entrySet()) {
@@ -50,7 +50,7 @@ public final class SetGate extends BaseGate {
             variables.put(Texts.lower(entry.getKey()), evaluate(entry.getValue()));
         }
         if (variables.isEmpty()) {
-            return CoreGateResult.invalid("action.v2.gate.set.no_assignment");
+            return CoreGateResult.invalid("action.gate.set.no_assignment");
         }
         return CoreGateResult.passed(new ArrayList<>(inbound), variables, Map.of());
     }

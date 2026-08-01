@@ -6,15 +6,15 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.compile.CompileDiagnostic;
-import emaki.jiuwu.craft.corelib.action.v2.compile.PipelineLimits;
-import emaki.jiuwu.craft.corelib.action.v2.compile.PipelineParser;
-import emaki.jiuwu.craft.corelib.action.v2.compile.SequenceCatalog;
-import emaki.jiuwu.craft.corelib.action.v2.compile.StageResolver;
-import emaki.jiuwu.craft.corelib.action.v2.compile.StaticValidator;
-import emaki.jiuwu.craft.corelib.action.v2.exec.ConfiguredSequenceRepository;
-import emaki.jiuwu.craft.corelib.action.v2.registry.RegistryStageResolver;
-import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineParser;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.SequenceCatalog;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.StageResolver;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.StaticValidator;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.ConfiguredSequenceRepository;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 
 /**
  * What a precheck contributor may ask about configured pipeline lines.

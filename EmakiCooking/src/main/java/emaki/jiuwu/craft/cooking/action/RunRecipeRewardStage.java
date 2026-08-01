@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.cooking.action.v2;
+package emaki.jiuwu.craft.cooking.action;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,23 +13,23 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
  * Delivers a configured recipe outcome to the target: its outputs, its actions, or both.
  *
  * <p><strong>Transitional implementation.</strong> The reward service this delegates to executes a recipe's
- * configured action lines through the v1 action executor. In v2 those lines belong in a named sequence invoked
+ * configured action lines through the v1 action executor. Those lines now belong in a named sequence invoked
  * with {@code run}, but named sequences are not wired up yet and the recipe files still hold v1 syntax. Rather
  * than migrate the recipe format here, this stage keeps calling the existing service; phase 6 replaces the
  * inner call with {@code run} alongside the config converter that rewrites the recipe files.</p>
@@ -103,27 +103,27 @@ public final class RunRecipeRewardStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         if (plugin.recipeService() == null || plugin.rewardService() == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.v2.stage.cooking.reward_service_unavailable");
+                    "action.stage.cooking.reward_service_unavailable");
         }
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         String recipeId = Texts.trim(arguments.getString("recipe"));
         if (recipeId.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.cooking.recipe_required");
+                    "action.stage.cooking.recipe_required");
         }
         String stationArgument = Texts.trim(arguments.getString("station"));
         StationType stationType = stationType(stationArgument);
         if (!stationArgument.isEmpty() && stationType == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.cooking.unknown_station", Map.of("station", stationArgument));
+                    "action.stage.cooking.unknown_station", Map.of("station", stationArgument));
         }
         RecipeDocument recipe = findRecipe(recipeId, stationType);
         if (recipe == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.cooking.unknown_recipe", Map.of("recipe", recipeId));
+                    "action.stage.cooking.unknown_recipe", Map.of("recipe", recipeId));
         }
         String outcomePath = outcomePath(arguments.getString("outcome", "success"));
         Map<String, Object> outcome = plugin.recipeService().outcome(recipe, outcomePath);
@@ -134,7 +134,7 @@ public final class RunRecipeRewardStage implements CoreActionStage {
                 ? plugin.recipeService().actions(outcome)
                 : List.of();
         if (outputs.isEmpty() && actions.isEmpty()) {
-            return CoreActionOutcome.skipped("action.v2.stage.cooking.outcome_empty");
+            return CoreActionOutcome.skipped("action.stage.cooking.outcome_empty");
         }
         String phase = Texts.trim(arguments.getString("phase"));
         if (phase.isEmpty()) {

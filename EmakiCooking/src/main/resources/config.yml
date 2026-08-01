@@ -491,9 +491,9 @@ nutrition:
           # times 受 CoreLib config.yml 的 action.pipeline.max_repeat_times 限制（默认 100）；
           # 需要更久就调高该值。BUFF 会在营养跌回阈值下方时由 on_recover 取消，
           # 或在玩家离线时由 stop_when_offline 自动停止。
-          - 'start_task sequence=nutrition_well_fed times=100 interval=40t key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type% on_conflict=replace stop_when_offline=true'
+          - "start_task sequence=nutrition_well_fed times=100 interval=40t key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type% on_conflict=replace stop_when_offline=true"
         on_recover:
-          - 'stop_task key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type%'
+          - "stop_task key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type%"
 
     # 组合阈值：当满足条件的营养类型数量达到 required_count 时触发（还原膳食均衡"5 大营养满了反胃"）。
     # required_count 默认 5，可自配，不强制等于营养类型总数。
@@ -514,6 +514,6 @@ nutrition:
           # 启动长期任务：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0；
           # 序列内的 stop_task 会在水果营养 <=0 时结束该任务。
           # times 受 action.pipeline.max_repeat_times 限制（默认 100），需要更久请调高该值。
-          - 'start_task sequence=nutrition_decay times=100 interval=40t key=nutrition_overeat:%caster.uuid% on_conflict=replace stop_when_offline=true'
+          - "start_task sequence=nutrition_decay times=100 interval=40t key=nutrition_overeat:%caster.uuid% on_conflict=replace stop_when_offline=true"
         on_recover:
-          - 'stop_task key=nutrition_overeat:%caster.uuid%'
+          - "stop_task key=nutrition_overeat:%caster.uuid%"

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.gate;
+package emaki.jiuwu.craft.corelib.action.builtin.gate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,14 +6,14 @@ import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseGate;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateThread;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.action.builtin.BaseGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -49,13 +49,13 @@ public final class WhereGate extends BaseGate {
             @NotNull CoreResolvedArguments arguments) {
         String condition = arguments.getString("condition");
         if (Texts.isBlank(condition)) {
-            return CoreGateResult.invalid("action.v2.gate.where.condition_required");
+            return CoreGateResult.invalid("action.gate.where.condition_required");
         }
         // The interpreter already rendered the arguments against the context, so the condition arrives
         // with its placeholders substituted; only the boolean evaluation is left.
         Boolean evaluated = ExpressionEngine.evaluateBoolean(condition);
         if (evaluated == null) {
-            return CoreGateResult.invalid("action.v2.gate.where.invalid_condition",
+            return CoreGateResult.invalid("action.gate.where.invalid_condition",
                     Map.of("condition", condition));
         }
         if (!evaluated) {

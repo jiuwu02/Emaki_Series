@@ -7,14 +7,14 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
@@ -142,7 +142,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     public CoreStageRegistration registerActionStage(Plugin owner, CoreActionStage stage) {
         StageRegistry registry = plugin.stageRegistry();
         return registry == null
-                ? CoreStageRegistration.unavailable(CoreStageKind.ACTION, "action.v2.register.registry_unavailable")
+                ? CoreStageRegistration.unavailable(CoreStageKind.ACTION, "action.register.registry_unavailable")
                 : registry.registerAction(owner, stage);
     }
 
@@ -150,7 +150,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     public CoreStageRegistration registerActionSource(Plugin owner, CoreActionSource source) {
         StageRegistry registry = plugin.stageRegistry();
         return registry == null
-                ? CoreStageRegistration.unavailable(CoreStageKind.SOURCE, "action.v2.register.registry_unavailable")
+                ? CoreStageRegistration.unavailable(CoreStageKind.SOURCE, "action.register.registry_unavailable")
                 : registry.registerSource(owner, source);
     }
 
@@ -158,7 +158,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     public CoreStageRegistration registerActionGate(Plugin owner, CoreActionGate gate) {
         StageRegistry registry = plugin.stageRegistry();
         return registry == null
-                ? CoreStageRegistration.unavailable(CoreStageKind.GATE, "action.v2.register.registry_unavailable")
+                ? CoreStageRegistration.unavailable(CoreStageKind.GATE, "action.register.registry_unavailable")
                 : registry.registerGate(owner, gate);
     }
 

@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.storage.action.v2;
+package emaki.jiuwu.craft.storage.action;
 
 import java.util.List;
 import java.util.Map;
@@ -8,16 +8,16 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
@@ -32,7 +32,7 @@ import emaki.jiuwu.craft.storage.model.StorageResult;
 /**
  * Moves items in and out of the target's warehouse and adjusts its capacity.
  *
- * <p>The v2 counterpart of the five actions that were inner classes of {@code StorageActionRegistrar}. They
+ * <p>Replaces the five legacy actions that were inner classes of {@code StorageActionRegistrar}. They
  * are one class here because they share the same shape: resolve the target's storage, apply one change, record
  * it in the operation log.</p>
  *
@@ -144,7 +144,7 @@ public final class StorageStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         if (plugin.dataStore() == null) {
             return unavailable();
@@ -173,7 +173,7 @@ public final class StorageStage implements CoreActionStage {
         }
         long amount = arguments.getInt("amount", 1);
         if (amount <= 0L) {
-            return invalid("action.v2.stage.storage.amount_must_be_positive");
+            return invalid("action.stage.storage.amount_must_be_positive");
         }
         var capacity = plugin.capacityService().capacityOf(storage, target,
                 plugin.storageGuiService().slotsPerPage());
@@ -194,7 +194,7 @@ public final class StorageStage implements CoreActionStage {
         }
         long amount = arguments.getInt("amount", 1);
         if (amount <= 0L) {
-            return invalid("action.v2.stage.storage.amount_must_be_positive");
+            return invalid("action.stage.storage.amount_must_be_positive");
         }
         StorageResult result = plugin.transactionService().withdraw(storage, target,
                 StorageKey.of(template), amount, StorageOperationSource.ACTION);
@@ -206,7 +206,7 @@ public final class StorageStage implements CoreActionStage {
     private CoreActionOutcome grantSlot(PlayerStorage storage, CoreResolvedArguments arguments) {
         int delta = arguments.getInt("amount", 0);
         if (delta == 0) {
-            return invalid("action.v2.stage.storage.amount_must_be_non_zero");
+            return invalid("action.stage.storage.amount_must_be_non_zero");
         }
         storage.grantedSlots(storage.grantedSlots() + delta);
         storage.markDirty();
@@ -218,7 +218,7 @@ public final class StorageStage implements CoreActionStage {
     private CoreActionOutcome unlockSlot(PlayerStorage storage, CoreResolvedArguments arguments) {
         int slots = arguments.getInt("amount", 0);
         if (slots <= 0) {
-            return invalid("action.v2.stage.storage.amount_must_be_positive");
+            return invalid("action.stage.storage.amount_must_be_positive");
         }
         storage.purchasedSlots(storage.purchasedSlots() + slots);
         storage.markDirty();
@@ -230,7 +230,7 @@ public final class StorageStage implements CoreActionStage {
     private CoreActionOutcome setStackLimit(PlayerStorage storage, CoreResolvedArguments arguments) {
         long limit = arguments.getInt("limit", -1);
         if (limit < 0L) {
-            return invalid("action.v2.stage.storage.limit_must_be_non_negative");
+            return invalid("action.stage.storage.limit_must_be_non_negative");
         }
         int slot = arguments.getInt("slot", -1);
         if (slot < 0) {
@@ -243,7 +243,7 @@ public final class StorageStage implements CoreActionStage {
         StorageEntry entry = storage.entryAt(slot);
         if (entry == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.storage.no_entry_at_slot", Map.of("slot", slot));
+                    "action.stage.storage.no_entry_at_slot", Map.of("slot", slot));
         }
         entry.stackLimit(limit);
         storage.markDirty();
@@ -282,12 +282,12 @@ public final class StorageStage implements CoreActionStage {
 
     private static CoreActionOutcome unavailable() {
         return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                "action.v2.stage.storage.unavailable");
+                "action.stage.storage.unavailable");
     }
 
     private static CoreActionOutcome unknownItem(String token) {
         return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                "action.v2.stage.storage.unknown_item", Map.of("item", String.valueOf(token)));
+                "action.stage.storage.unknown_item", Map.of("item", String.valueOf(token)));
     }
 
     private static CoreActionOutcome invalid(String reasonKey) {
@@ -296,7 +296,7 @@ public final class StorageStage implements CoreActionStage {
 
     private static CoreActionOutcome rejected(String reasonKey) {
         return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
-                "action.v2.stage.storage.rejected", Map.of("reason", String.valueOf(reasonKey)));
+                "action.stage.storage.rejected", Map.of("reason", String.valueOf(reasonKey)));
     }
 
     private static Player player(CoreActionSubject subject) {

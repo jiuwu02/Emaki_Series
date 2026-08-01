@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2;
+package emaki.jiuwu.craft.corelib.action.builtin;
 
 import java.util.List;
 
@@ -6,9 +6,9 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 
 /**
  * Metadata carrier for the builtin source stages.

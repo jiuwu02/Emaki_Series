@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 /**
  * Package-crossing seam for the boss bar cleanup that {@code BuiltinStages.shutdown()} needs.
@@ -11,7 +11,7 @@ public final class BossBarStages {
     private BossBarStages() {
     }
 
-    /** Detaches every boss bar the v2 stages created. */
+    /** Detaches every boss bar these stages created. */
     public static void clearAll() {
         BossBarStore.clear();
     }

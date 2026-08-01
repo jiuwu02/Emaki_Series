@@ -1,27 +1,27 @@
-package emaki.jiuwu.craft.corelib.action.v2.exec;
+package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.v2.registry.RegisteredStage;
-import emaki.jiuwu.craft.corelib.action.v2.registry.StageLookup;
-import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegisteredStage;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageLookup;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreGateThread;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreSourceResult;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
 /** Runs stages that live in the single CoreLib registry. */
@@ -94,7 +94,7 @@ public final class RegistryStageInvoker implements StageInvoker {
             @NotNull CoreResolvedArguments arguments) {
         RegisteredStage entry = live(handle.id());
         if (entry == null || entry.kind() != CoreStageKind.SOURCE) {
-            return CoreSourceResult.invalid("action.v2.run.stage_unavailable");
+            return CoreSourceResult.invalid("action.run.stage_unavailable");
         }
         return ((CoreActionSource) entry.stage()).select(context, arguments);
     }
@@ -106,7 +106,7 @@ public final class RegistryStageInvoker implements StageInvoker {
             @NotNull CoreResolvedArguments arguments) {
         RegisteredStage entry = live(handle.id());
         if (entry == null || entry.kind() != CoreStageKind.GATE) {
-            return CoreGateResult.invalid("action.v2.run.stage_unavailable");
+            return CoreGateResult.invalid("action.run.stage_unavailable");
         }
         return ((CoreActionGate) entry.stage()).apply(context, inbound, arguments);
     }
@@ -118,8 +118,8 @@ public final class RegistryStageInvoker implements StageInvoker {
         RegisteredStage entry = live(handle.id());
         if (entry == null || entry.kind() != CoreStageKind.ACTION) {
             return CoreActionOutcome.failure(
-                    emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind.OWNER_DISABLED,
-                    "action.v2.run.stage_unavailable");
+                    emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind.OWNER_DISABLED,
+                    "action.run.stage_unavailable");
         }
         return ((CoreActionStage) entry.stage()).execute(context, arguments);
     }

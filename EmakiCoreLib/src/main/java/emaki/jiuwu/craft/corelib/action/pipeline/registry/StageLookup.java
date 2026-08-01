@@ -1,9 +1,9 @@
-package emaki.jiuwu.craft.corelib.action.v2.registry;
+package emaki.jiuwu.craft.corelib.action.pipeline.registry;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 
 /**
  * Result of looking a stage up by id.

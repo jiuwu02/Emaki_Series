@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.skills.action.v2;
+package emaki.jiuwu.craft.skills.action;
 
 import java.util.List;
 import java.util.Map;
@@ -7,15 +7,15 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreStagePlanningContext;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 /**
  * Clears or sets one of the target's skill cooldowns.
  *
- * <p>The v2 counterpart of {@code SkillCooldownAction}, which registered {@code skill_clearcooldown} and
+ * <p>Replaces the legacy {@code SkillCooldownAction}, which registered {@code skill_clearcooldown} and
  * {@code skill_setcooldown}. Both ids gain underscore separators to match the other modules' stage naming.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's cast timing state.</p>
@@ -113,7 +113,7 @@ public final class SkillCooldownStage implements CoreActionStage {
             @NotNull CoreResolvedArguments arguments) {
         Player target = SkillsStageSupport.player(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
         if (plugin.playerSkillStateService() == null || plugin.playerSkillDataStore() == null) {
             return SkillsStageSupport.serviceUnavailable();
@@ -131,7 +131,7 @@ public final class SkillCooldownStage implements CoreActionStage {
     private CoreActionOutcome set(Player target, String skillId, CoreResolvedArguments arguments) {
         if (plugin.playerSkillStateService().getDefinition(skillId) == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.v2.stage.skills.unknown_skill", Map.of("skill", skillId));
+                    "action.stage.skills.unknown_skill", Map.of("skill", skillId));
         }
         long ticks = arguments.getDurationTicks("duration_ticks", 0L);
         plugin.playerSkillDataStore().mutate(target, current -> {

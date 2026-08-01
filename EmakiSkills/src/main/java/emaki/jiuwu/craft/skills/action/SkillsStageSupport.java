@@ -1,12 +1,12 @@
-package emaki.jiuwu.craft.skills.action.v2;
+package emaki.jiuwu.craft.skills.action;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionOutcome;
-import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 
 /** Shared helpers for this module's pipeline stages. */
 final class SkillsStageSupport {
@@ -31,6 +31,6 @@ final class SkillsStageSupport {
     /** {@return a failure stating that a required EmakiSkills service is not running} */
     static @NotNull CoreActionOutcome serviceUnavailable() {
         return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                "action.v2.stage.skills.service_unavailable");
+                "action.stage.skills.service_unavailable");
     }
 }
