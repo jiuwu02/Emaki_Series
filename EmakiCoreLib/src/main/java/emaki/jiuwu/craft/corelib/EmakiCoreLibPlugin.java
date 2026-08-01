@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -21,6 +22,7 @@ import emaki.jiuwu.craft.corelib.action.ActionRegistry;
 import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinActions;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BuiltinStages;
+import emaki.jiuwu.craft.corelib.action.legacy.LegacyActionMigrator;
 import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.v2.exec.RegistryStageInvoker;
 import emaki.jiuwu.craft.corelib.action.v2.exec.StageDispatcher;
@@ -187,6 +189,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerCommandHandler();
         registerPublicApiService();
         installPacketBackend();
+        runLegacyActionMigration();
         logStartupAudit();
         metrics = registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -740,6 +743,45 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /** {@return the live pipeline engine, or {@code null} before the first successful reload} */
     public ActionEngine actionEngine() {
         return actionEngine;
+    }
+
+    /**
+     * Runs the one-shot old-syntax migration across every plugin data folder.
+     *
+     * <p>The single call site of the {@code action.legacy} package: removing the migration means deleting
+     * this method, its one call, and that package. Nothing else in the runtime refers to it.</p>
+     *
+     * <p>Runs after the stage registry is live so that every converted line can be compiled before it is
+     * written. A file whose converted form does not compile is left exactly as it was.</p>
+     */
+    private void runLegacyActionMigration() {
+        ActionEngine engine = actionEngine;
+        if (engine == null) {
+            return;
+        }
+        List<Path> folders = new ArrayList<>();
+        File pluginsRoot = getDataFolder().getParentFile();
+        File[] candidates = pluginsRoot == null ? null : pluginsRoot.listFiles();
+        if (candidates != null) {
+            for (File candidate : candidates) {
+                // Only Emaki's own data folders: rewriting another plugin's configs would be well
+                // beyond what this migration was asked to do.
+                if (candidate.isDirectory() && candidate.getName().startsWith("Emaki")) {
+                    folders.add(candidate.toPath());
+                }
+            }
+        }
+        LegacyActionMigrator migrator = new LegacyActionMigrator(pipeline -> {
+            ActionEngine.Result result = engine.compile(pipeline, null);
+            if (result.successful()) {
+                return null;
+            }
+            return result.diagnostics().isEmpty()
+                    ? "did not compile"
+                    : result.diagnostics().get(0).reasonKey();
+        });
+        LegacyActionMigrator.Report report = migrator.run(getDataFolder().toPath(), folders, false);
+        report.describe().forEach(line -> getLogger().info(line));
     }
 
     public LoopActionService loopActionService() {
