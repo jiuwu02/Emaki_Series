@@ -87,12 +87,12 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
                 + entry.phase().configKey();
         String reasonKey = diagnostic.reasonKey();
         if ("action.validate.unknown_stage".equals(reasonKey)) {
+            // The offending token is what the author has to fix. The full stage list is not appended: it
+            // runs to dozens of ids, buries the line number it is attached to, and is already documented.
             addMessageIssue(path, WARN, "script_action_unknown", Map.of(
                     "skill", entry.skillId(),
                     "line", entry.lineNumber(),
-                    "action", diagnostic.token(),
-                    "available", diagnostic.candidates().isEmpty()
-                            ? "-" : String.join(", ", diagnostic.candidates())), issues);
+                    "action", diagnostic.token()), issues);
             return;
         }
         if ("action.validate.missing_required_argument".equals(reasonKey)) {
@@ -100,9 +100,7 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
                     "skill", entry.skillId(),
                     "line", entry.lineNumber(),
                     "action", diagnostic.token(),
-                    "argument", Texts.toStringSafe(diagnostic.detail().get("argument")),
-                    "provided", diagnostic.candidates().isEmpty()
-                            ? "-" : String.join(", ", diagnostic.candidates())), issues);
+                    "argument", Texts.toStringSafe(diagnostic.detail().get("argument"))), issues);
             return;
         }
         addMessageIssue(path, WARN, "script_syntax_error", Map.of(

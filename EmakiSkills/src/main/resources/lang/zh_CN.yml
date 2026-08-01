@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.6.9"
+version: "2.6.10"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -44,9 +44,9 @@ console:
       directory_not_readable: "目录不可读。"
       skill_sources_disabled: "Lore 与 PDC 技能来源均已关闭，装备不会解锁技能。"
       skill_sources_match_requires_both: "严格 Lore/PDC 匹配要求同时启用两个技能来源。"
-      script_action_unknown: "技能 %skill% 第 %line% 行使用了不存在的动作 '%action%'。当前可用动作: %available%"
+      script_action_unknown: "技能 %skill% 第 %line% 行使用了不存在的动作 '%action%'。"
       script_syntax_error: "技能 %skill% 第 %line% 行脚本语法错误: %detail%"
-      script_argument_missing: "技能 %skill% 第 %line% 行动作 '%action%' 缺少必填参数 '%argument%'。已提供的参数: %provided%"
+      script_argument_missing: "技能 %skill% 第 %line% 行动作 '%action%' 缺少必填参数 '%argument%'。"
   reload_loading_files: "<gray>正在加载配置文件...</gray>"
   reload_loading_configs: "<gray>正在读取配置...</gray>"
   reload_applying: "<gray>正在应用配置...</gray>"

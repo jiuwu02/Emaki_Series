@@ -70,14 +70,19 @@ final class LegacyFileScanner {
     }
 
     /**
-     * Applies the changes to produce the new file text.
+     * Applies the given changes to produce the new file text.
+     *
+     * <p>Takes the changes to apply rather than reading them off the scan, so that a caller which
+     * rejected some of them can still install the rest. A line whose change is not passed here keeps
+     * its original text.</p>
      *
      * @param result a previous scan of the same content
+     * @param applied the subset of that scan's changes to install
      * @return the rewritten text
      */
-    @NotNull String rewrite(@NotNull Result result) {
+    @NotNull String rewrite(@NotNull Result result, @NotNull List<Change> applied) {
         String[] lines = result.lines().clone();
-        for (Change change : result.changes()) {
+        for (Change change : applied) {
             String original = lines[change.lineIndex()];
             String ending = original.endsWith("\r") ? "\r" : "";
             lines[change.lineIndex()] = change.newLine() + ending;

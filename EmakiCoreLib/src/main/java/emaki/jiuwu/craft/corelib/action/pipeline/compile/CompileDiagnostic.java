@@ -96,6 +96,15 @@ public record CompileDiagnostic(@NotNull String reasonKey,
         return new CompileDiagnostic(reasonKey, newFile, newKeyPath, newLine, column, token, detail, candidates);
     }
 
+    /**
+     * Renders the diagnostic for a log line.
+     *
+     * <p>{@link #candidates()} is deliberately left out. The stage list it carries for an unknown stage runs
+     * to dozens of ids, and repeating it on every offending line pushes the reason key, file and line number
+     * out of view. Callers that want to show alternatives read the field and decide how many to show.</p>
+     *
+     * @return the rendered diagnostic
+     */
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(reasonKey);
@@ -117,9 +126,6 @@ public record CompileDiagnostic(@NotNull String reasonKey,
         }
         if (!detail.isEmpty()) {
             builder.append(' ').append(detail);
-        }
-        if (!candidates.isEmpty()) {
-            builder.append(" candidates=").append(candidates);
         }
         return builder.toString();
     }

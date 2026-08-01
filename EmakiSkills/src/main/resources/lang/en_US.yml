@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.6.9"
+version: "2.6.10"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -44,9 +44,9 @@ console:
       directory_not_readable: "Directory is not readable."
       skill_sources_disabled: "Both Lore and PDC skill sources are disabled, so equipment cannot unlock skills."
       skill_sources_match_requires_both: "Strict Lore/PDC matching requires both skill sources to be enabled."
-      script_action_unknown: "Skill %skill% line %line% uses unknown action '%action%'. Available actions: %available%"
+      script_action_unknown: "Skill %skill% line %line% uses unknown action '%action%'."
       script_syntax_error: "Skill %skill% line %line% has a script syntax error: %detail%"
-      script_argument_missing: "Skill %skill% line %line% action '%action%' is missing required argument '%argument%'. Provided: %provided%"
+      script_argument_missing: "Skill %skill% line %line% action '%action%' is missing required argument '%argument%'."
   reload_loading_files: "<gray>Loading configuration files...</gray>"
   reload_loading_configs: "<gray>Loading configs...</gray>"
   reload_applying: "<gray>Applying configuration...</gray>"

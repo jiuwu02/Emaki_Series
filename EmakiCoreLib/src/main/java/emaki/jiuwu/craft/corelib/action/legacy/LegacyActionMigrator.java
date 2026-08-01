@@ -77,7 +77,12 @@ public final class LegacyActionMigrator {
             }
         }
         Report report = new Report(false, List.copyOf(files));
-        if (!dryRun && markerDirectory != null && report.convertedFiles() > 0) {
+        // The marker is withheld while anything still needs another attempt. A rejected line is a gap in
+        // this converter's own mapping, and an unreadable or unwritable file is a transient problem, so
+        // both must be retried after the next update. A recognised-but-unmappable id does not withhold
+        // it: no change to this table can convert a line whose target stage was never built.
+        if (!dryRun && markerDirectory != null
+                && report.rejectedLines() == 0 && report.failedFiles() == 0) {
             writeMarker(markerDirectory, report);
         }
         return report;
@@ -88,51 +93,75 @@ public final class LegacyActionMigrator {
         try {
             content = Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException | UncheckedIOException exception) {
-            return new FileReport(file, 0, List.of(), "unreadable: " + exception.getMessage(), false);
+            return new FileReport(file, 0, List.of(), List.of(),
+                    "unreadable: " + exception.getMessage(), false);
         }
         LegacyFileScanner.Result scan = scanner.scan(content);
         List<String> skips = describeSkips(scan);
         if (!scan.hasChanges()) {
-            return skips.isEmpty() ? null : new FileReport(file, 0, skips, null, false);
+            return skips.isEmpty() ? null : new FileReport(file, 0, skips, List.of(), null, false);
         }
-        String rewritten = scanner.rewrite(scan);
         // The compile check is the safety valve: it is the only thing standing between a mapping bug and
-        // a config file that silently stops working. A file that fails it is left exactly as it was.
-        List<String> compileErrors = verify(scan);
-        if (!compileErrors.isEmpty()) {
+        // a config file that silently stops working. It is applied per line rather than per file, because
+        // failing the whole file also discards the lines that did convert, which is how one unmapped
+        // argument name used to leave an entire config in old syntax.
+        Verification verified = verify(scan);
+        if (verified.accepted().isEmpty()) {
             if (!dryRun) {
-                writeQuietly(Path.of(file + FAILED_SUFFIX), rewritten);
+                writeQuietly(Path.of(file + FAILED_SUFFIX), scanner.rewrite(scan, scan.changes()));
             }
-            return new FileReport(file, 0, skips,
-                    "compile check failed: " + String.join("; ", compileErrors), false);
+            return new FileReport(file, 0, skips, verified.rejections(),
+                    "compile check rejected every converted line", false);
         }
+        String rewritten = scanner.rewrite(scan, verified.accepted());
         if (dryRun) {
-            return new FileReport(file, scan.changes().size(), skips, null, true);
+            return new FileReport(file, verified.accepted().size(), skips, verified.rejections(),
+                    null, true);
         }
         try {
-            Files.copy(file, Path.of(file + BACKUP_SUFFIX), StandardCopyOption.REPLACE_EXISTING);
+            // Never overwritten. Withholding the marker means a file with rejected lines is visited again
+            // after an update, and replacing the backup on that second pass would leave the owner holding
+            // a copy of the already-half-migrated file instead of the original they wanted to compare to.
+            Path backup = Path.of(file + BACKUP_SUFFIX);
+            if (!Files.exists(backup)) {
+                Files.copy(file, backup);
+            }
             Path temporary = Path.of(file + ".v2-tmp");
             Files.writeString(temporary, rewritten, StandardCharsets.UTF_8);
             Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException | UncheckedIOException exception) {
-            return new FileReport(file, 0, skips, "write failed: " + exception.getMessage(), false);
+            return new FileReport(file, 0, skips, verified.rejections(),
+                    "write failed: " + exception.getMessage(), false);
         }
-        return new FileReport(file, scan.changes().size(), skips, null, true);
+        return new FileReport(file, verified.accepted().size(), skips, verified.rejections(), null, true);
     }
 
-    /** Compiles every converted line, collecting the ones the v2 engine rejects. */
-    private List<String> verify(LegacyFileScanner.Result scan) {
+    /** Compiles every converted line, splitting the ones the v2 engine accepts from the ones it rejects. */
+    private Verification verify(LegacyFileScanner.Result scan) {
         if (checker == null) {
-            return List.of();
+            return new Verification(scan.changes(), List.of());
         }
-        List<String> errors = new ArrayList<>();
+        List<LegacyFileScanner.Change> accepted = new ArrayList<>(scan.changes().size());
+        List<String> rejections = new ArrayList<>();
         for (LegacyFileScanner.Change change : scan.changes()) {
             String error = checker.check(change.newValue());
-            if (error != null) {
-                errors.add("line " + (change.lineIndex() + 1) + " -> " + error);
+            if (error == null) {
+                accepted.add(change);
+            } else {
+                rejections.add("line " + (change.lineIndex() + 1) + " -> " + error);
             }
         }
-        return errors;
+        return new Verification(List.copyOf(accepted), List.copyOf(rejections));
+    }
+
+    /**
+     * What the compile check made of one file's converted lines.
+     *
+     * @param accepted the changes whose converted line compiles
+     * @param rejections one entry per line the v2 engine refused
+     */
+    private record Verification(@NotNull List<LegacyFileScanner.Change> accepted,
+            @NotNull List<String> rejections) {
     }
 
     private List<String> describeSkips(LegacyFileScanner.Result scan) {
@@ -194,18 +223,21 @@ public final class LegacyActionMigrator {
      *
      * @param file the file
      * @param convertedLines how many lines were rewritten
-     * @param skipped one entry per recognised line that could not be converted
+     * @param skipped one entry per recognised line that has no v2 counterpart
+     * @param rejected one entry per converted line the compile check refused
      * @param failure why the file was left alone, {@code null} when it was not
      * @param changed whether the file was rewritten, or would be in a dry run
      */
     public record FileReport(@NotNull Path file,
             int convertedLines,
             @NotNull List<String> skipped,
+            @NotNull List<String> rejected,
             @Nullable String failure,
             boolean changed) {
 
         public FileReport {
             skipped = skipped == null ? List.of() : List.copyOf(skipped);
+            rejected = rejected == null ? List.of() : List.copyOf(rejected);
         }
     }
 
@@ -240,9 +272,14 @@ public final class LegacyActionMigrator {
             return (int) files.stream().filter(report -> report.failure() != null).count();
         }
 
-        /** {@return how many recognised lines could not be converted} */
+        /** {@return how many recognised lines have no v2 counterpart} */
         public int skippedLines() {
             return files.stream().mapToInt(report -> report.skipped().size()).sum();
+        }
+
+        /** {@return how many converted lines the compile check refused} */
+        public int rejectedLines() {
+            return files.stream().mapToInt(report -> report.rejected().size()).sum();
         }
 
         /**
@@ -250,17 +287,19 @@ public final class LegacyActionMigrator {
          *
          * <p>The per-file detail is intentionally limited to problems. Silence about successes is what
          * "silent migration" means; silence about failures would leave a server owner with a config
-         * that no longer works and no way to find out why.</p>
+         * that no longer works and no way to find out why. A run that found nothing at all says nothing:
+         * on an all-v2 server the summary would otherwise be a permanent startup line reporting zeroes.</p>
          *
          * @return the lines to log
          */
         public @NotNull List<String> describe() {
-            if (alreadyMigrated) {
+            if (alreadyMigrated || files.isEmpty()) {
                 return List.of();
             }
             List<String> lines = new ArrayList<>();
             lines.add("Legacy action migration: converted " + convertedLines() + " line(s) in "
                     + convertedFiles() + " file(s); " + skippedLines() + " line(s) skipped; "
+                    + rejectedLines() + " line(s) rejected; "
                     + failedFiles() + " file(s) left unchanged.");
             for (FileReport report : files) {
                 if (report.failure() != null) {
@@ -268,6 +307,9 @@ public final class LegacyActionMigrator {
                 }
                 for (String skip : report.skipped()) {
                     lines.add("  " + report.file() + " " + skip);
+                }
+                for (String rejection : report.rejected()) {
+                    lines.add("  " + report.file() + " " + rejection);
                 }
             }
             return List.copyOf(lines);
