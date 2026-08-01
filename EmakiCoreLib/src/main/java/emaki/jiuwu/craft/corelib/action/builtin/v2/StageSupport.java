@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -152,7 +152,7 @@ public final class StageSupport {
         if (raw.startsWith("hotbar_")) {
             numeric = raw.substring("hotbar_".length());
         }
-        Integer index = ActionParsers.parseIntNullable(numeric);
+        Integer index = ValueParsers.parseIntNullable(numeric);
         if (index == null || index < 0 || index > 35) {
             return null;
         }

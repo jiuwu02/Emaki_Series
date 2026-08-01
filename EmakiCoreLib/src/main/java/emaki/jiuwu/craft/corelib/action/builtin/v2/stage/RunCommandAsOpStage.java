@@ -4,7 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
@@ -42,7 +42,7 @@ public final class RunCommandAsOpStage extends BaseStage {
         if (target == null) {
             return CoreActionOutcome.skipped("action.v2.stage.common.not_player");
         }
-        String command = ActionParsers.stripLeadingSlash(arguments.getString("command"));
+        String command = ValueParsers.stripLeadingSlash(arguments.getString("command"));
         boolean alreadyOp = target.isOp();
         try {
             if (!alreadyOp) {

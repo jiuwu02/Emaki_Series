@@ -15,7 +15,7 @@ import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionKey;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
@@ -365,7 +365,7 @@ public final class StaticValidator {
                     token("times", stage.column()), Map.of("value", rawTimes)));
             return;
         }
-        Integer times = ActionParsers.parseIntNullable(rawTimes);
+        Integer times = ValueParsers.parseIntNullable(rawTimes);
         if (times == null || times < 0) {
             diagnostics.add(CompileDiagnostic.at("action.v2.validate.invalid_repeat_times",
                     token("times", stage.column()), Map.of("value", rawTimes)));
@@ -460,10 +460,10 @@ public final class StaticValidator {
         CoreStageParameterType expected = type == null ? CoreStageParameterType.STRING : type;
         return switch (expected) {
             case STRING, SOUND -> true;
-            case INTEGER -> ActionParsers.parseIntNullable(value) != null;
-            case DOUBLE -> ActionParsers.parseDoubleNullable(value) != null;
+            case INTEGER -> ValueParsers.parseIntNullable(value) != null;
+            case DOUBLE -> ValueParsers.parseDoubleNullable(value) != null;
             case BOOLEAN -> "true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value);
-            case TIME, DURATION -> ActionParsers.parseTicks(value) >= 0L;
+            case TIME, DURATION -> ValueParsers.parseTicks(value) >= 0L;
             case ENTITY_TYPE -> enumExists(EntityType.class, value);
             case MATERIAL -> Material.matchMaterial(value) != null;
             case PERCENTAGE -> validChance(value);
@@ -474,12 +474,12 @@ public final class StaticValidator {
     private static boolean validChance(String value) {
         int slash = value.indexOf('/');
         if (slash > 0 && slash < value.length() - 1) {
-            Double numerator = ActionParsers.parseDoubleNullable(value.substring(0, slash).trim());
-            Double denominator = ActionParsers.parseDoubleNullable(value.substring(slash + 1).trim());
+            Double numerator = ValueParsers.parseDoubleNullable(value.substring(0, slash).trim());
+            Double denominator = ValueParsers.parseDoubleNullable(value.substring(slash + 1).trim());
             return numerator != null && denominator != null && denominator != 0D
                     && numerator / denominator >= 0D && numerator / denominator <= 1D;
         }
-        double chance = ActionParsers.parseChance(value);
+        double chance = ValueParsers.parseChance(value);
         return chance >= 0D && chance <= 1D;
     }
 

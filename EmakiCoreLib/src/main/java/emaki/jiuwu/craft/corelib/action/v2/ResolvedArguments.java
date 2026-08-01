@@ -10,7 +10,7 @@ import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 /**
  * Typed argument view over one stage's resolved values.
  *
- * <p>Reuses {@link ActionParsers} for every scalar shape so v2 and v1 parse identical text the same
+ * <p>Reuses {@link ValueParsers} for every scalar shape so v2 and v1 parse identical text the same
  * way. Declared defaults are applied here, so stages never repeat null handling.</p>
  */
 public final class ResolvedArguments implements CoreResolvedArguments {
@@ -100,23 +100,23 @@ public final class ResolvedArguments implements CoreResolvedArguments {
 
     @Override
     public int getInt(@Nullable String name, int fallback) {
-        return ActionParsers.parseInt(getString(name, ""), fallback);
+        return ValueParsers.parseInt(getString(name, ""), fallback);
     }
 
     @Override
     public double getDouble(@Nullable String name, double fallback) {
-        return ActionParsers.parseDouble(getString(name, ""), fallback);
+        return ValueParsers.parseDouble(getString(name, ""), fallback);
     }
 
     @Override
     public boolean getBoolean(@Nullable String name, boolean fallback) {
-        Boolean parsed = ActionParsers.parseBoolean(getString(name, ""));
+        Boolean parsed = ValueParsers.parseBoolean(getString(name, ""));
         return parsed == null ? fallback : parsed;
     }
 
     @Override
     public long getDurationTicks(@Nullable String name, long fallbackTicks) {
-        long parsed = ActionParsers.parseTicks(getString(name, ""));
+        long parsed = ValueParsers.parseTicks(getString(name, ""));
         return parsed < 0L ? Math.max(0L, fallbackTicks) : parsed;
     }
 
@@ -128,14 +128,14 @@ public final class ResolvedArguments implements CoreResolvedArguments {
         }
         int slash = raw.indexOf('/');
         if (slash > 0 && slash < raw.length() - 1) {
-            Double numerator = ActionParsers.parseDoubleNullable(raw.substring(0, slash).trim());
-            Double denominator = ActionParsers.parseDoubleNullable(raw.substring(slash + 1).trim());
+            Double numerator = ValueParsers.parseDoubleNullable(raw.substring(0, slash).trim());
+            Double denominator = ValueParsers.parseDoubleNullable(raw.substring(slash + 1).trim());
             if (numerator != null && denominator != null && denominator != 0D) {
                 return numerator / denominator;
             }
             return fallback;
         }
-        double parsed = ActionParsers.parseChance(raw);
+        double parsed = ValueParsers.parseChance(raw);
         return parsed < 0D ? fallback : parsed;
     }
 
@@ -172,6 +172,6 @@ public final class ResolvedArguments implements CoreResolvedArguments {
             return fallback;
         }
         ExpressionEngine.NumericEvaluationResult evaluated = ExpressionEngine.evaluateNumericDetailed(raw);
-        return evaluated.success() ? evaluated.value() : ActionParsers.parseDouble(raw, fallback);
+        return evaluated.success() ? evaluated.value() : ValueParsers.parseDouble(raw, fallback);
     }
 }

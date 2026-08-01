@@ -7,7 +7,7 @@ import org.bukkit.Particle;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
@@ -46,7 +46,7 @@ public final class SpawnParticleStage extends BaseStage {
     public @NotNull CoreActionOutcome execute(@NotNull CoreStageContext context,
             @NotNull CoreResolvedArguments arguments) {
         String key = arguments.getString("particle");
-        Particle particle = ActionParsers.parseParticle(key);
+        Particle particle = ValueParsers.parseParticle(key);
         if (particle == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
                     "action.v2.stage.spawn_particle.unknown_particle", Map.of("particle", key));

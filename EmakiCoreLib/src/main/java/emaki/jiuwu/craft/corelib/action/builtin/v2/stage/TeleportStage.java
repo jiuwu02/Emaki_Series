@@ -7,7 +7,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
@@ -60,9 +60,9 @@ public final class TeleportStage extends BaseStage {
                     Map.of("world", arguments.getString("world")));
         }
         Location destination = new Location(world,
-                ActionParsers.parseCoordinate(arguments.getString("x", "~"), base.getX()),
-                ActionParsers.parseCoordinate(arguments.getString("y", "~"), base.getY()),
-                ActionParsers.parseCoordinate(arguments.getString("z", "~"), base.getZ()),
+                ValueParsers.parseCoordinate(arguments.getString("x", "~"), base.getX()),
+                ValueParsers.parseCoordinate(arguments.getString("y", "~"), base.getY()),
+                ValueParsers.parseCoordinate(arguments.getString("z", "~"), base.getZ()),
                 (float) arguments.getDouble("yaw", base.getYaw()),
                 (float) arguments.getDouble("pitch", base.getPitch()));
         if (!target.teleport(destination)) {

@@ -7,7 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseSource;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
@@ -64,9 +64,9 @@ public final class AtSource extends BaseSource {
         double baseY = origin == null ? 0D : origin.getY();
         double baseZ = origin == null ? 0D : origin.getZ();
         Location location = new Location(world,
-                ActionParsers.parseCoordinate(x, baseX),
-                ActionParsers.parseCoordinate(y, baseY),
-                ActionParsers.parseCoordinate(z, baseZ));
+                ValueParsers.parseCoordinate(x, baseX),
+                ValueParsers.parseCoordinate(y, baseY),
+                ValueParsers.parseCoordinate(z, baseZ));
         return CoreSourceResult.selected(List.of(CoreActionSubject.of(location)));
     }
 

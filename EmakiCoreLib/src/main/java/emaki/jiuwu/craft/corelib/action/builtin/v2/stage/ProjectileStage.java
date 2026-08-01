@@ -15,7 +15,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
@@ -162,7 +162,7 @@ public final class ProjectileStage extends BaseStage {
 
         static Settings of(CoreResolvedArguments arguments) {
             String particleKey = Texts.trim(arguments.getString("particle", "flame"));
-            Particle particle = ActionParsers.parseParticle(particleKey);
+            Particle particle = ValueParsers.parseParticle(particleKey);
             return new Settings(arguments.getDouble("speed", 1.5D),
                     arguments.getDouble("gravity", 0.05D),
                     Math.max(0, arguments.getInt("lifetime", 60)),

@@ -10,7 +10,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.action.v2.PipelineContext;
 import emaki.jiuwu.craft.corelib.action.v2.ResolvedArguments;
 import emaki.jiuwu.craft.corelib.action.v2.compile.ActionAst;
@@ -168,7 +168,7 @@ public final class ActionInterpreter {
         if (intervalTicks <= 0L && !stage.positional().isEmpty()) {
             // The compiler names positional values before execution, but the interpreter must not depend
             // on that having happened: reading the bare value keeps a hand-built AST behaving the same.
-            intervalTicks = Math.max(0L, ActionParsers.parseTicks(
+            intervalTicks = Math.max(0L, ValueParsers.parseTicks(
                     state.context().render(stage.positional().get(0))));
         }
         if (body.isEmpty()) {
@@ -186,7 +186,7 @@ public final class ActionInterpreter {
                 List<String> positional = stage.positional();
                 for (int index = 0; index + 1 < positional.size(); index++) {
                     if ("times".equalsIgnoreCase(positional.get(index))) {
-                        extraRuns = Math.max(0, ActionParsers.parseInt(
+                        extraRuns = Math.max(0, ValueParsers.parseInt(
                                 state.context().render(positional.get(index + 1)), 0));
                         break;
                     }

@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.corelib.action.builtin.v2.stage;
 import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 
-import emaki.jiuwu.craft.corelib.action.ActionParsers;
+import emaki.jiuwu.craft.corelib.action.v2.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.action.builtin.v2.BaseStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionFailureKind;
@@ -34,7 +34,7 @@ public final class RunCommandAsConsoleStage extends BaseStage {
     @Override
     public @NotNull CoreActionOutcome execute(@NotNull CoreStageContext context,
             @NotNull CoreResolvedArguments arguments) {
-        String command = ActionParsers.stripLeadingSlash(arguments.getString("command"));
+        String command = ValueParsers.stripLeadingSlash(arguments.getString("command"));
         return Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
                 ? CoreActionOutcome.success()
                 : CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
