@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.action.ForgeActionRegistrar;
+import emaki.jiuwu.craft.forge.action.v2.ForgeStageRegistrar;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
@@ -94,6 +95,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
+    private ForgeStageRegistrar stageRegistrar;
     private final EmakiForgeApi.Bridge forgeApiBridge =
             new emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi(this);
 
@@ -240,6 +242,15 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         } catch (Throwable throwable) {
             getLogger().warning("[Shutdown] Player session cleanup failed: " + String.valueOf(throwable.getMessage()));
         }
+        if (stageRegistrar != null) {
+            try {
+                stageRegistrar.unregister();
+            } catch (Throwable throwable) {
+                getLogger().warning("[Shutdown] Forge stage cleanup failed: "
+                        + String.valueOf(throwable.getMessage()));
+            }
+            stageRegistrar = null;
+        }
         if (coreLibPlugin == null || coreLibPlugin.actionRegistry() == null) {
             return;
         }
@@ -314,6 +325,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void registerActions() {
         new ForgeActionRegistrar(this).register(coreLib().actionRegistry());
+        stageRegistrar = new ForgeStageRegistrar(this);
+        stageRegistrar.register();
     }
 
     private void registerEventHandlers() {

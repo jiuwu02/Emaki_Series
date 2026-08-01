@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.strengthen.action.StrengthenActionRegistrar;
+import emaki.jiuwu.craft.strengthen.action.v2.StrengthenStageRegistrar;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.apiimpl.DefaultEmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
@@ -98,6 +99,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenGuiService strengthenGuiService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private EmakiStrengthenApi.Bridge strengthenApiBridge;
+    private StrengthenStageRegistrar stageRegistrar;
 
     public EmakiStrengthenPlugin() {
         super(AppConfig::defaults);
@@ -134,6 +136,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
             placeholderExpansion = null;
+        }
+        if (stageRegistrar != null) {
+            stageRegistrar.unregister();
+            stageRegistrar = null;
         }
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
@@ -200,6 +206,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private void registerActions() {
         new StrengthenActionRegistrar(this).register(coreLib().actionRegistry());
+        stageRegistrar = new StrengthenStageRegistrar(this);
+        stageRegistrar.register();
     }
 
     private void registerCommandHandler() {

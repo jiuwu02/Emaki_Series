@@ -9,6 +9,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.codex.action.CodexActionRegistrar;
+import emaki.jiuwu.craft.codex.action.v2.CodexStageRegistrar;
 import emaki.jiuwu.craft.codex.advancement.AdvancementJsonBuilder;
 import emaki.jiuwu.craft.codex.advancement.AdvancementListener;
 import emaki.jiuwu.craft.codex.advancement.AdvancementPlatform;
@@ -78,6 +79,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private CodexGameplaySubscriber gameplaySubscriber;
     private PlayerConnectionListener connectionListener;
     private DebugCommand debugCommand;
+    private CodexStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
 
     private final EmakiCodexApi.Bridge apiBridge =
@@ -149,6 +151,13 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private void registerActions() {
         EmakiCoreLibPlugin coreLib = coreLib();
         new CodexActionRegistrar(this).register(coreLib.actionRegistry(), coreLib.itemSourceService());
+        stageRegistrar = new CodexStageRegistrar(this, coreLib.itemSourceService());
+        stageRegistrar.register();
+    }
+
+    /** {@return the pipeline stage registrar, or {@code null} before actions are registered} */
+    public CodexStageRegistrar stageRegistrar() {
+        return stageRegistrar;
     }
 
     private void registerCommandHandler() {

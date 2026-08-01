@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 import emaki.jiuwu.craft.cooking.action.NutritionActionRegistrar;
+import emaki.jiuwu.craft.cooking.action.v2.CookingStageRegistrar;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.config.CookingConfigPrecheckContributor;
 import emaki.jiuwu.craft.cooking.listener.MmoItemsNutritionListener;
@@ -94,6 +95,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private CookingStationListener stationListener;
     private CookingPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
+    private CookingStageRegistrar stageRegistrar;
 
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
@@ -174,6 +176,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         ConfigPrecheckLifecycleSupport.unregister("cooking");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("cooking");
+        if (stageRegistrar != null) {
+            stageRegistrar.unregister();
+            stageRegistrar = null;
+        }
         if (coreLibPlugin.actionRegistry() != null) {
             coreLibPlugin.actionRegistry().unregisterAll(this);
         }
@@ -400,6 +406,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void registerActions() {
         new NutritionActionRegistrar(this).register(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).actionRegistry());
+        stageRegistrar = new CookingStageRegistrar(this);
+        stageRegistrar.register();
     }
 
     private void registerConfigPrecheckContributor() {

@@ -37,6 +37,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.action.ItemActionRegistrar;
+import emaki.jiuwu.craft.item.action.v2.ItemStageRegistrar;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
@@ -103,6 +104,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemCommandRouter commandRouter;
     private ItemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
+    private ItemStageRegistrar stageRegistrar;
 
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
@@ -177,6 +179,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         if (metrics != null) {
             metrics.close();
             metrics = null;
+        }
+        if (stageRegistrar != null) {
+            stageRegistrar.unregister();
+            stageRegistrar = null;
         }
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
@@ -397,6 +403,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private void registerActions() {
         new ItemActionRegistrar(this).register(coreLib().actionRegistry());
+        stageRegistrar = new ItemStageRegistrar(this);
+        stageRegistrar.register();
     }
 
     private void registerEventHandlers() {

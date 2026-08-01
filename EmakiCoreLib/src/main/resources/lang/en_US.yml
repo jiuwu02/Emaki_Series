@@ -112,6 +112,7 @@ action:
     register:
       blank_id: "<red>[Pipeline] Stage id is blank; registration refused</red>"
       duplicate_id: "<red>[Pipeline] Duplicate stage id; registration refused</red>"
+      registry_unavailable: "<red>[Pipeline] The stage registry is not ready yet; registration refused</red>"
       undeclared_domain: "<red>[Pipeline] Stage %stage% declared no thread domain; registration refused</red>"
       async_needs_target: "<red>[Pipeline] Stage %stage% declares the async domain but requires a target
         (%requirement%); registration refused</red>"
@@ -263,6 +264,21 @@ action:
         no_durability: "<gray>[Pipeline] That item has no durability</gray>"
         already_repaired: "<gray>[Pipeline] That item is already fully repaired</gray>"
         zero_damage: "<gray>[Pipeline] The damage amount must be greater than zero</gray>"
+        # Used by EmakiItem's stages, which share this namespace with the builtin item stages above.
+        inspector_unavailable: "<red>[Pipeline] The EmakiItem component inspector is currently unavailable</red>"
+        empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
+        no_result: "<red>[Pipeline] EmakiItem returned no item</red>"
+        component_required: "<red>[Pipeline] This stage requires component</red>"
+        bad_component_value: "<red>[Pipeline] Invalid component value: %error%</red>"
+        no_target_item: "<red>[Pipeline] No item to act on: no slot, no pipeline item, and no player target</red>"
+        target_empty: "<gray>[Pipeline] There is no item at the resolved target</gray>"
+        component_exists: "<red>[Pipeline] The component already exists; use item_component_modify</red>"
+        component_missing: "<red>[Pipeline] The component does not exist; use item_component_add</red>"
+        component_absent: "<gray>[Pipeline] That component is not present on the item</gray>"
+        component_unsupported: "<red>[Pipeline] This runtime does not support that component: %issues%</red>"
+        patch_failed: "<red>[Pipeline] The component patch failed: %issues%</red>"
+        patch_returned_nothing: "<red>[Pipeline] The component patch returned no item</red>"
+        patch_error: "<red>[Pipeline] The component patch raised an error: %error%</red>"
       place_block:
         not_placeable: "<gray>[Pipeline] That source is not a placeable block</gray>"
         provider_unavailable: "<gray>[Pipeline] The custom block provider is currently
@@ -310,6 +326,69 @@ action:
         unavailable: "<red>[Pipeline] MythicMobs is currently unavailable</red>"
         cast_failed: "<red>[Pipeline] MythicMobs skill %skill% failed to cast</red>"
         cast_error: "<red>[Pipeline] MythicMobs skill %skill% raised an error: %error%</red>"
+      # Diagnostics for stages provided by business modules. The stage implementations live in each
+      # module's jar, but the text stays here because CoreLib's resolver renders all of action.v2.*.
+      strengthen:
+        service_unavailable: "<red>[Pipeline] The EmakiStrengthen service is currently unavailable</red>"
+        empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
+        rebuild_failed: "<red>[Pipeline] EmakiStrengthen could not rebuild that item</red>"
+      gem:
+        service_unavailable: "<red>[Pipeline] The EmakiGem service is currently unavailable</red>"
+        clear_failed: "<red>[Pipeline] EmakiGem could not clear the gem layer</red>"
+        rejected: "<red>[Pipeline] EmakiGem refused that operation</red>"
+      cooking:
+        service_unavailable: "<red>[Pipeline] The EmakiCooking nutrition system is currently unavailable</red>"
+        reward_service_unavailable: "<red>[Pipeline] The EmakiCooking recipe reward service is currently unavailable</red>"
+        type_required: "<red>[Pipeline] This stage requires type</red>"
+        unknown_type: "<red>[Pipeline] Unknown nutrition type %type%</red>"
+        no_types: "<gray>[Pipeline] No nutrition types are registered</gray>"
+        operation_failed: "<red>[Pipeline] The EmakiCooking nutrition operation failed: %reason%</red>"
+        reset_failed: "<red>[Pipeline] Resetting nutrition type %type% failed: %reason%</red>"
+        recheck_unavailable: "<gray>[Pipeline] That player has no nutrition state to re-evaluate</gray>"
+        recipe_required: "<red>[Pipeline] This stage requires recipe</red>"
+        unknown_station: "<red>[Pipeline] Unknown station type %station%</red>"
+        unknown_recipe: "<red>[Pipeline] Recipe %recipe% is not loaded</red>"
+        outcome_empty: "<gray>[Pipeline] That recipe outcome has no enabled outputs or actions</gray>"
+      storage:
+        unavailable: "<red>[Pipeline] The EmakiStorage service or that player's record is currently unavailable</red>"
+        unknown_item: "<red>[Pipeline] Unknown item source %item%</red>"
+        amount_must_be_positive: "<red>[Pipeline] amount must be positive</red>"
+        amount_must_be_non_zero: "<red>[Pipeline] amount must not be zero</red>"
+        limit_must_be_non_negative: "<red>[Pipeline] limit must be zero or positive</red>"
+        no_entry_at_slot: "<red>[Pipeline] No entry at slot %slot%</red>"
+        rejected: "<red>[Pipeline] EmakiStorage refused that operation: %reason%</red>"
+      attribute:
+        service_unavailable: "<red>[Pipeline] The EmakiAttribute service is currently unavailable</red>"
+        unknown_damage_cause: "<red>[Pipeline] Unknown damage cause %cause%</red>"
+        damage_refused: "<red>[Pipeline] The attribute damage could not be applied</red>"
+        effect_id_required: "<red>[Pipeline] This stage requires effect_id</red>"
+        tag_required: "<red>[Pipeline] This stage requires tag</red>"
+        unknown_resource: "<red>[Pipeline] Unknown resource %resource%</red>"
+      level:
+        service_unavailable: "<red>[Pipeline] The EmakiLevel service is currently unavailable</red>"
+        operation_failed: "<red>[Pipeline] The EmakiLevel operation failed: %reason%</red>"
+      codex:
+        service_unavailable: "<red>[Pipeline] The EmakiCodex advancement service is currently unavailable</red>"
+        advancement_required: "<red>[Pipeline] This stage requires advancement</red>"
+        page_required: "<red>[Pipeline] codex_reset_page requires page</red>"
+        grant_refused: "<red>[Pipeline] Advancement %advancement% is not registered or already completed</red>"
+        revoke_refused: "<red>[Pipeline] Advancement %advancement% is not registered or not yet completed</red>"
+        no_nodes: "<gray>[Pipeline] No matching EmakiCodex advancement nodes</gray>"
+        resync_unavailable: "<red>[Pipeline] PacketEvents is unavailable; advancement resync cannot run</red>"
+        resync_failed: "<red>[Pipeline] Advancement resync failed for %player%</red>"
+        toast_requires_packetevents: "<red>[Pipeline] Achievement toasts require PacketEvents</red>"
+        title_required: "<red>[Pipeline] codex_show_toast requires title</red>"
+        unknown_frame: "<red>[Pipeline] Unknown toast frame %frame%; use task, goal, or challenge</red>"
+        toast_send_failed: "<red>[Pipeline] Could not send the achievement toast packet to that player</red>"
+        toast_error: "<red>[Pipeline] The achievement toast raised an error: %error%</red>"
+      forge:
+        service_unavailable: "<red>[Pipeline] The EmakiForge refresh service is currently unavailable</red>"
+        empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
+        refresh_timeout: "<red>[Pipeline] The server-wide forged item refresh timed out</red>"
+        refresh_interrupted: "<red>[Pipeline] The server-wide forged item refresh was interrupted</red>"
+        refresh_failed: "<red>[Pipeline] The server-wide forged item refresh failed: %error%</red>"
+        generation_changed: "<red>[Pipeline] The EmakiForge runtime generation changed during the refresh; the result is stale</red>"
+        partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player(s)</red>"
 
 # Debug mode messages
 debug:

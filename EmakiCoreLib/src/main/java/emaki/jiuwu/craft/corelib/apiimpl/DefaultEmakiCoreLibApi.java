@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.Action;
 import emaki.jiuwu.craft.corelib.action.ActionRegistry;
+import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreAction;
@@ -17,6 +18,11 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionDescriptor;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
@@ -235,6 +241,35 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
                 .map(action -> descriptor(registry, Texts.lower(action.id()), action))
                 .sorted(Comparator.comparing(CoreActionDescriptor::id))
                 .toList();
+    }
+
+    @Override
+    public CoreStageRegistration registerActionStage(Plugin owner, CoreActionStage stage) {
+        StageRegistry registry = plugin.stageRegistry();
+        return registry == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.ACTION, "action.v2.register.registry_unavailable")
+                : registry.registerAction(owner, stage);
+    }
+
+    @Override
+    public CoreStageRegistration registerActionSource(Plugin owner, CoreActionSource source) {
+        StageRegistry registry = plugin.stageRegistry();
+        return registry == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.SOURCE, "action.v2.register.registry_unavailable")
+                : registry.registerSource(owner, source);
+    }
+
+    @Override
+    public CoreStageRegistration registerActionGate(Plugin owner, CoreActionGate gate) {
+        StageRegistry registry = plugin.stageRegistry();
+        return registry == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.GATE, "action.v2.register.registry_unavailable")
+                : registry.registerGate(owner, gate);
+    }
+
+    @Override
+    public boolean onStageRegistryRebuilt(Plugin owner, Runnable reregister) {
+        return plugin.stageRebuildListeners().register(owner, reregister);
     }
 
     private CoreActionDescriptor descriptor(ActionRegistry registry, String id, Action action) {

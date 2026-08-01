@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.storage.action.StorageActionRegistrar;
+import emaki.jiuwu.craft.storage.action.v2.StorageStageRegistrar;
 import emaki.jiuwu.craft.storage.api.EmakiStorageApi;
 import emaki.jiuwu.craft.storage.api.model.StorageSnapshot;
 import emaki.jiuwu.craft.storage.apiimpl.DefaultStorageApi;
@@ -109,6 +110,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private StoragePlayerListener playerListener;
     private emaki.jiuwu.craft.storage.service.StorageAutoPickupService autoPickupService;
     private StorageActionRegistrar actionRegistrar;
+    private StorageStageRegistrar stageRegistrar;
     private StoragePlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
     private BStatsRegistration metrics;
@@ -220,6 +222,13 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         EmakiCoreLibPlugin coreLib = coreLib();
         actionRegistrar = new StorageActionRegistrar(this);
         actionRegistrar.register(coreLib.actionRegistry());
+        stageRegistrar = new StorageStageRegistrar(this);
+        stageRegistrar.register();
+    }
+
+    /** {@return the pipeline stage registrar, or {@code null} before actions are registered} */
+    public StorageStageRegistrar stageRegistrar() {
+        return stageRegistrar;
     }
 
     private void registerCommandHandler() {

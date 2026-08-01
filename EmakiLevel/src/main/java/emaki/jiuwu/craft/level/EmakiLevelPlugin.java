@@ -31,6 +31,7 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 import emaki.jiuwu.craft.level.action.LevelActionRegistrar;
+import emaki.jiuwu.craft.level.action.v2.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
 import emaki.jiuwu.craft.level.bridge.MythicLevelDropBridge;
@@ -130,6 +131,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private PlayerDataListener playerDataListener;
     private LevelCorePlaceholderResolver corePlaceholderResolver;
     private LevelPlaceholderExpansion placeholderExpansion;
+    private LevelStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
     private EmakiLevelApi.Bridge levelApiBridge;
     private ExpSourceProviderRegistry expSourceRegistry;
@@ -203,6 +205,10 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                         + ", saveFailures=" + flushResult.failedEntries()
                         + ", remainingDirty=" + flushResult.remainingDirtyEntries());
             }
+        }
+        if (stageRegistrar != null) {
+            stageRegistrar.unregister();
+            stageRegistrar = null;
         }
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
@@ -352,6 +358,8 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
     private void registerActions() {
         new LevelActionRegistrar(this).register(coreLib.actionRegistry());
+        stageRegistrar = new LevelStageRegistrar(this);
+        stageRegistrar.register();
         messages.info("console.actions_registered");
     }
 

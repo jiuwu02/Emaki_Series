@@ -157,6 +157,9 @@ final class StorageLifecycleCoordinator
 
     /** Releases resources in the reverse order of {@link #initialize(EmakiStoragePlugin)}. */
     public void shutdown(EmakiStoragePlugin plugin) {
+        if (plugin.stageRegistrar() != null) {
+            plugin.stageRegistrar().unregister();
+        }
         EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         if (coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(plugin);

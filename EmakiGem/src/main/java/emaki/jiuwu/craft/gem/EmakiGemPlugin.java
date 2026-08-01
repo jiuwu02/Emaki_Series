@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.action.GemActionRegistrar;
+import emaki.jiuwu.craft.gem.action.v2.GemStageRegistrar;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.config.GemConfigPrecheckContributor;
@@ -102,6 +103,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemResonanceService resonanceService;
     private GemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
+    private GemStageRegistrar stageRegistrar;
     private final EmakiGemApi.Bridge gemApiBridge =
             new emaki.jiuwu.craft.gem.apiimpl.DefaultEmakiGemApi(this);
     private volatile boolean publicApiReady;
@@ -146,6 +148,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             placeholderExpansion = null;
         }
         itemLayerPreviewLifecycle.close();
+        if (stageRegistrar != null) {
+            stageRegistrar.unregister();
+            stageRegistrar = null;
+        }
         EmakiCoreLibPlugin coreLib = coreLib();
         if (coreLib != null && coreLib.actionRegistry() != null) {
             coreLib.actionRegistry().unregisterAll(this);
@@ -223,6 +229,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerActions() {
         new GemActionRegistrar(this).register(coreLib().actionRegistry());
+        stageRegistrar = new GemStageRegistrar(this);
+        stageRegistrar.register();
     }
 
     private void registerEventHandlers() {

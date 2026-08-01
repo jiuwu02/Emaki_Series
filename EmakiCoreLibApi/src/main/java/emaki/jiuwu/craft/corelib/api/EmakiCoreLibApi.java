@@ -16,6 +16,11 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionDescriptor;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.v2.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
@@ -336,6 +341,79 @@ public final class EmakiCoreLibApi {
     }
 
     /**
+     * Registers an action stage into EmakiCoreLib's single stage registry.
+     *
+     * <p>This is the v2 counterpart of {@link #registerAction}. There is no {@code source} parameter and no
+     * unregister-by-id method: a stage is revoked only through the returned handle or by its owner being
+     * disabled, so one plugin can no longer retire another plugin's stage.</p>
+     *
+     * <p>Keep the handle and close it in {@code onDisable}. Because a EmakiCoreLib reload rebuilds the stage
+     * table, also register a rebuild callback through {@link #onStageRegistryRebuilt} or the stage will be
+     * gone after the first reload.</p>
+     *
+     * @param owner plugin that owns the stage lifecycle
+     * @param stage the stage implementation
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreStageRegistration registerActionStage(@Nullable Plugin owner,
+            @Nullable CoreActionStage stage) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.ACTION, "corelib_unavailable")
+                : resolved.registerActionStage(owner, stage);
+    }
+
+    /**
+     * Registers a source stage, which produces the target flow a pipeline starts from.
+     *
+     * @param owner plugin that owns the stage lifecycle
+     * @param source the source implementation
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreStageRegistration registerActionSource(@Nullable Plugin owner,
+            @Nullable CoreActionSource source) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.SOURCE, "corelib_unavailable")
+                : resolved.registerActionSource(owner, source);
+    }
+
+    /**
+     * Registers a gate stage, which narrows or transforms the target flow.
+     *
+     * @param owner plugin that owns the stage lifecycle
+     * @param gate the gate implementation
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreStageRegistration registerActionGate(@Nullable Plugin owner,
+            @Nullable CoreActionGate gate) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.GATE, "corelib_unavailable")
+                : resolved.registerActionGate(owner, gate);
+    }
+
+    /**
+     * Asks EmakiCoreLib to call {@code reregister} whenever it rebuilds the stage table.
+     *
+     * <p>A EmakiCoreLib reload builds a fresh stage table and retires the previous one, so stages registered
+     * once at {@code onEnable} would silently disappear after the first {@code /emakicorelib reload}. Register
+     * the same method that performs your initial registration here and it will be re-run against the new
+     * table.</p>
+     *
+     * <p>Registering twice for one owner replaces the previous callback rather than adding a second one.
+     * Callbacks are removed automatically when the owning plugin is disabled.</p>
+     *
+     * @param owner plugin whose stages need re-registering
+     * @param reregister the registration routine to re-run; ignored when {@code null}
+     * @return whether the callback was accepted
+     */
+    public static boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister) {
+        Bridge resolved = bridge;
+        return resolved != null && resolved.onStageRegistryRebuilt(owner, reregister);
+    }
+
+    /**
      * Bridge contract implemented by EmakiCoreLib. Third-party plugins must not implement it.
      */
     @ApiStatus.NonExtendable
@@ -449,5 +527,36 @@ public final class EmakiCoreLibApi {
          */
         @NotNull
         List<CoreActionDescriptor> actionsBySource(@Nullable String source);
+
+        /**
+         * @param owner plugin that owns the stage lifecycle
+         * @param stage the action stage implementation
+         * @return a revocable handle
+         */
+        @NotNull
+        CoreStageRegistration registerActionStage(@Nullable Plugin owner, @Nullable CoreActionStage stage);
+
+        /**
+         * @param owner plugin that owns the stage lifecycle
+         * @param source the source stage implementation
+         * @return a revocable handle
+         */
+        @NotNull
+        CoreStageRegistration registerActionSource(@Nullable Plugin owner, @Nullable CoreActionSource source);
+
+        /**
+         * @param owner plugin that owns the stage lifecycle
+         * @param gate the gate stage implementation
+         * @return a revocable handle
+         */
+        @NotNull
+        CoreStageRegistration registerActionGate(@Nullable Plugin owner, @Nullable CoreActionGate gate);
+
+        /**
+         * @param owner plugin whose stages need re-registering after a reload
+         * @param reregister the registration routine to re-run
+         * @return whether the callback was accepted
+         */
+        boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister);
     }
 }

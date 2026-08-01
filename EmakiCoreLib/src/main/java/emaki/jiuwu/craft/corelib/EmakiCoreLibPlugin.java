@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.action.v2.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.v2.exec.RegistryStageInvoker;
 import emaki.jiuwu.craft.corelib.action.v2.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.action.v2.registry.RegistryStageResolver;
+import emaki.jiuwu.craft.corelib.action.v2.registry.StageRebuildListeners;
 import emaki.jiuwu.craft.corelib.action.v2.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.action.loop.LoopActionService;
 import emaki.jiuwu.craft.corelib.async.AsyncFailures;
@@ -117,6 +118,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private StageRegistry stageRegistry;
     private StageDispatcher stageDispatcher;
     private ActionEngine actionEngine;
+    // Outlives every reload: it holds the business modules' re-registration routines, which is exactly what
+    // rebuilding the stage table needs to replay.
+    private final StageRebuildListeners stageRebuildListeners = new StageRebuildListeners();
     private ConfigPrecheckService configPrecheckService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
@@ -210,6 +214,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (stageRegistry != null) {
             stageRegistry.clear();
         }
+        stageRebuildListeners.clear();
         BuiltinStages.shutdown();
 
         // Bukkit registrations must be retired while the disable callback still owns the server thread.
@@ -362,6 +367,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
      * <p>The previous registry is revoked and this plugin's pending dispatches cancelled first, so a delayed
      * {@code after 20t} body compiled against the old stage table cannot run against the new one.</p>
      *
+     * <p>Business modules are then asked to re-register: the candidate table holds only CoreLib's builtin
+     * stages, so without this replay every module's stages would be lost on the first reload.</p>
+     *
      * @param candidate the registry to install
      */
     private void installStageRuntime(StageRegistry candidate) {
@@ -385,6 +393,23 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 null,
                 configModel.pipelineConfig().toLimits()
         );
+        replayStageRegistrations();
+    }
+
+    /**
+     * Re-runs the business modules' stage registrations against the newly installed table.
+     *
+     * <p>Runs after the engine is rebuilt so that a module's callback observes a consistent runtime. A module
+     * whose callback throws is named in the log and skipped; the rest still get their stages, because one
+     * module's broken registration must not silently disarm every pipeline on the server.</p>
+     */
+    private void replayStageRegistrations() {
+        if (stageRebuildListeners.size() == 0) {
+            return;
+        }
+        int replayed = stageRebuildListeners.notifyRebuilt(failure -> getLogger().warning(
+                "Stage re-registration failed for " + failure.owner() + ": " + failure.error()));
+        getLogger().info("Replayed pipeline stage registrations for " + replayed + " plugin(s).");
     }
 
     private void logPrecheckReport(ConfigPrecheckReport report) {
@@ -705,6 +730,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /** {@return the live pipeline stage registry, or {@code null} before the first successful reload} */
     public StageRegistry stageRegistry() {
         return stageRegistry;
+    }
+
+    /** {@return the per-owner callbacks replayed when the stage table is rebuilt} */
+    public StageRebuildListeners stageRebuildListeners() {
+        return stageRebuildListeners;
     }
 
     /** {@return the live pipeline engine, or {@code null} before the first successful reload} */
