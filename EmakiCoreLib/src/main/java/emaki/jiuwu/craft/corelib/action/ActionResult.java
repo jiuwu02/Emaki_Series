@@ -12,28 +12,24 @@ import java.util.Map;
  * in terms of it.</p>
  *
  * <p>Pipeline stages never return this type; {@code MoneyStage} converts it to {@code CoreActionOutcome}
- * at the boundary. {@link #skipped(String)} has no caller left — no economy provider reports a skip — so
- * the {@code skipped} component is currently always {@code false}.</p>
+ * at the boundary. The v1 {@code skipped} component is gone: no economy provider ever reported a skip, so
+ * it was permanently {@code false}. A stage that genuinely has nothing to do reports
+ * {@code CoreActionOutcome.Skipped} instead.</p>
  */
 public record ActionResult(boolean success,
-        boolean skipped,
         ActionErrorType errorType,
         String errorMessage,
         Map<String, Object> data) {
 
     public static ActionResult ok() {
-        return new ActionResult(true, false, ActionErrorType.NONE, null, Map.of());
+        return new ActionResult(true, ActionErrorType.NONE, null, Map.of());
     }
 
     public static ActionResult ok(Map<String, Object> data) {
-        return new ActionResult(true, false, ActionErrorType.NONE, null, data == null ? Map.of() : Map.copyOf(data));
-    }
-
-    public static ActionResult skipped(String reason) {
-        return new ActionResult(true, true, ActionErrorType.NONE, reason, Map.of());
+        return new ActionResult(true, ActionErrorType.NONE, null, data == null ? Map.of() : Map.copyOf(data));
     }
 
     public static ActionResult failure(ActionErrorType errorType, String errorMessage) {
-        return new ActionResult(false, false, errorType == null ? ActionErrorType.EXECUTION_EXCEPTION : errorType, errorMessage, Map.of());
+        return new ActionResult(false, errorType == null ? ActionErrorType.EXECUTION_EXCEPTION : errorType, errorMessage, Map.of());
     }
 }

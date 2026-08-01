@@ -153,13 +153,8 @@ public final class ConfiguredItemService {
                 accepted.put(componentId, entry.getValue());
                 continue;
             }
-            MinecraftItemComponentCatalog.Entry catalogEntry = catalog.entry(componentId);
-            if (catalogEntry == null) {
+            if (catalog.entry(componentId) == null) {
                 issues.add(ItemBuildIssue.error(componentId, "Unknown item component id."));
-            } else if (catalog.isKnownFutureComponent(componentId)) {
-                issues.add(ItemBuildIssue.warning(componentId,
-                        "Component requires Minecraft " + catalogEntry.minimumMinecraftVersion()
-                                + "; current server is " + catalog.serverVersion() + ". Patch was skipped."));
             } else {
 
                 accepted.put(componentId, entry.getValue());
@@ -177,13 +172,8 @@ public final class ConfiguredItemService {
                 paperBridge.apply(itemStack, componentId, entry.getValue(), codec, issues);
                 continue;
             }
-            MinecraftItemComponentCatalog.Entry catalogEntry = catalog.entry(componentId);
-            if (catalogEntry == null) {
+            if (catalog.entry(componentId) == null) {
                 issues.add(ItemBuildIssue.error(componentId, "Unknown item component id."));
-            } else if (catalog.isKnownFutureComponent(componentId)) {
-                issues.add(ItemBuildIssue.warning(componentId,
-                        "Component requires Minecraft " + catalogEntry.minimumMinecraftVersion()
-                                + "; current server is " + catalog.serverVersion() + ". Patch was skipped."));
             } else {
                 issues.add(ItemBuildIssue.warning(componentId,
                         "Current Paper runtime does not expose this component through the generic bridge; patch was skipped to preserve source data."));

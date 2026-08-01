@@ -19,7 +19,6 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 
 import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityDataTypes;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
@@ -258,17 +257,13 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         if (spec == null) {
             return;
         }
-        ServerVersion version = PacketEvents.getAPI().getServerManager().getVersion();
-        boolean hasPositionRotationInterpolation = version.isNewerThanOrEquals(ServerVersion.V_1_20_2);
-        int translationIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 3 : 2);
+        int translationIndex = ENTITY_METADATA_BASE + 3;
         DisplayGeometry.Vector3 scale = spec.profile().scale();
 
         List<EntityData<?>> metadata = new ArrayList<>();
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE, EntityDataTypes.INT, 0));
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 1, EntityDataTypes.INT, interpolationTicks));
-        if (hasPositionRotationInterpolation) {
-            metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
-        }
+        metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
         metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F,
                 new Vector3f((float) translation.x(), (float) translation.y(), (float) translation.z())));
         metadata.add(new EntityData<>(translationIndex + 1, EntityDataTypes.VECTOR3F,
@@ -402,17 +397,15 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     /**
      * 构建 TextDisplay 的元数据。
      *
-     * <p>索引需按服务端版本推导：1.20.2 起新增了位置旋转插值字段，
-     * 之后的所有索引整体后移一位。
+     * <p>索引布局：基址为插值起始 tick，+1 插值时长，+2 位置旋转插值时长，
+     * +3 起为位移/缩放，+7 billboard，+9 可见距离，+15 文本。
      */
     private List<EntityData<?>> metadata(VirtualText display) {
         TextDisplaySpec spec = display.spec;
-        ServerVersion version = PacketEvents.getAPI().getServerManager().getVersion();
-        boolean hasPositionRotationInterpolation = version.isNewerThanOrEquals(ServerVersion.V_1_20_2);
-        int translationIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 3 : 2);
-        int billboardIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 7 : 6);
-        int viewRangeIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 9 : 8);
-        int textIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 15 : 14);
+        int translationIndex = ENTITY_METADATA_BASE + 3;
+        int billboardIndex = ENTITY_METADATA_BASE + 7;
+        int viewRangeIndex = ENTITY_METADATA_BASE + 9;
+        int textIndex = ENTITY_METADATA_BASE + 15;
 
         DisplayGeometry.TextProfile profile = spec.profile();
         DisplayGeometry.Vector3 scale = profile.scale();
@@ -422,9 +415,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         List<EntityData<?>> metadata = new ArrayList<>();
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE, EntityDataTypes.INT, 0));
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 1, EntityDataTypes.INT, 0));
-        if (hasPositionRotationInterpolation) {
-            metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
-        }
+        metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
         metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F,
                 new Vector3f((float) translation.x(), (float) translation.y(), (float) translation.z())));
         metadata.add(new EntityData<>(translationIndex + 1, EntityDataTypes.VECTOR3F,

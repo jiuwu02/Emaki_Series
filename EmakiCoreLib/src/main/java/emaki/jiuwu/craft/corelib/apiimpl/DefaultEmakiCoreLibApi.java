@@ -8,7 +8,6 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
-import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
@@ -22,7 +21,6 @@ import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
-import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -34,13 +32,11 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     private static final CoreLibDialogs UNAVAILABLE_DIALOGS = new UnavailableDialogs();
 
     private final EmakiCoreLibPlugin plugin;
-    private final PlatformCapabilities platformCapabilities;
     private volatile CoreLibDialogs dialogBridge;
     private volatile EmakiScheduling schedulingBridge;
 
-    public DefaultEmakiCoreLibApi(EmakiCoreLibPlugin plugin, PlatformCapabilities platformCapabilities) {
+    public DefaultEmakiCoreLibApi(EmakiCoreLibPlugin plugin) {
         this.plugin = plugin;
-        this.platformCapabilities = java.util.Objects.requireNonNull(platformCapabilities, "platformCapabilities");
     }
 
     @Override
@@ -78,11 +74,6 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
      */
     public void installDialogs(CoreLibDialogs dialogs) {
         this.dialogBridge = dialogs;
-    }
-
-    @Override
-    public CompatibilityReport compatibilityReport() {
-        return platformCapabilities.compatibilityReport(status().apiVersion());
     }
 
     @Override

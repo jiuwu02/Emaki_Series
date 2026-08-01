@@ -47,7 +47,6 @@ import emaki.jiuwu.craft.corelib.command.CoreLibBasicCommand;
 import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.apiimpl.DefaultEmakiCoreLibApi;
@@ -72,8 +71,8 @@ import emaki.jiuwu.craft.corelib.placeholder.PlaceholderApiResolver;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.execution.ExecutionBackendLoader;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -109,7 +108,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private emaki.jiuwu.craft.corelib.gui.GuiBackend guiBackend;
     private AsyncFileService asyncFileService;
     private AsyncYamlFiles asyncYamlFiles;
-    private PlatformCapabilities platformCapabilities;
+    private CapabilityProbe platformCapabilities;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
     private CorePluginLifecycle corePluginLifecycle;
@@ -161,17 +160,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onEnable() {
-        platformCapabilities = PlatformCapabilities.detect(getServer());
-        CompatibilityReport compatibilityReport = platformCapabilities.compatibilityReport(getDescription().getVersion());
-        logCompatibilityReport(compatibilityReport);
-        if (!compatibilityReport.compatible()) {
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
+        platformCapabilities = CapabilityProbe.detect(getServer());
         ExecutionBackendLoader.LoadedExecution loadedExecution = ExecutionBackendLoader.load(getServer(), platformCapabilities);
         executionDispatcher = loadedExecution.dispatcher();
         threadOwnership = loadedExecution.ownership();
-        coreLibApiBridge = new DefaultEmakiCoreLibApi(this, platformCapabilities);
+        coreLibApiBridge = new DefaultEmakiCoreLibApi(this);
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
         initializeServices();
@@ -435,7 +428,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     private void registerPublicApiService() {
         if (coreLibApiBridge == null) {
-            coreLibApiBridge = new DefaultEmakiCoreLibApi(this, platformCapabilities);
+            coreLibApiBridge = new DefaultEmakiCoreLibApi(this);
         }
         if (dialogService != null) {
             if (dialogApiBridge == null) {
@@ -455,18 +448,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public BStatsService bStatsService() {
         return bStatsService;
-    }
-
-    private void logCompatibilityReport(CompatibilityReport report) {
-        getLogger().info("[Compatibility] " + report.summary());
-        for (CompatibilityReport.Issue issue : report.issues()) {
-            String message = "[Compatibility][" + issue.code() + "] " + issue.message();
-            switch (issue.severity()) {
-                case INFO -> getLogger().info(message);
-                case WARNING -> getLogger().warning(message);
-                case ERROR -> getLogger().severe(message);
-            }
-        }
     }
 
     private void logStartupAudit() {
@@ -763,7 +744,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     public ActionLineRunner actionLineRunner(Plugin moduleOwner) {
         Plugin resolved = moduleOwner == null ? this : moduleOwner;
         return new ActionLineRunner(resolved, this::actionEngine, pipelineBatchRunner,
-                new RegistryPlaceholderBridge(resolved, this::placeholderRegistry));
+                new RegistryPlaceholderBridge(this::placeholderRegistry));
     }
 
     /** {@return the long-running task service, or {@code null} before the first reload} */
@@ -935,7 +916,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return asyncFileService.openScope(ownerName);
     }
 
-    public PlatformCapabilities platformCapabilities() {
+    public CapabilityProbe platformCapabilities() {
         return platformCapabilities;
     }
 
@@ -1068,7 +1049,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(AsyncTaskScheduler.class, asyncTaskScheduler);
         registerService(AsyncFileService.class, asyncFileService);
         registerService(AsyncYamlFiles.class, asyncYamlFiles);
-        registerService(PlatformCapabilities.class, platformCapabilities);
+        registerService(CapabilityProbe.class, platformCapabilities);
         registerService(ExecutionDispatcher.class, executionDispatcher);
         registerService(ThreadOwnership.class, threadOwnership);
         registerService(CorePluginLifecycle.class, corePluginLifecycle);

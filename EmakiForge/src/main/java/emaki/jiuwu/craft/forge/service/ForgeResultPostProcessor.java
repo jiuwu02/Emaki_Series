@@ -113,7 +113,7 @@ final class ForgeResultPostProcessor {
         String operationId = OPERATION_NAMESPACE + ":" + recipe.id();
         Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
         Object loreActionsToApply = allLoreActions.size() == 1 ? allLoreActions.get(0) : allLoreActions;
-        ActionContext context = ActionContext.create(plugin, player, "forge.result_meta", false)
+        ActionContext context = ActionContext.create(player, "forge.result_meta", false)
                 .withPlaceholders(variables)
                 .withAttribute("recipe", recipe)
                 .withAttribute("resultItem", resultItem)

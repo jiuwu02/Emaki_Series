@@ -78,7 +78,6 @@ final class PaperItemComponentBridge {
             boolean runtimeSupported = supports(id);
             result.add(new ItemComponentCapability(
                     id,
-                    entry == null ? "" : entry.minimumMinecraftVersion(),
                     runtimeSupported,
                     runtimeSupported,
                     entry == null ? "Vanilla component syntax" : entry.valueFormat()

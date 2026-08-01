@@ -6,9 +6,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
-
-import org.bukkit.Bukkit;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -18,20 +15,15 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public final class MinecraftItemComponentCatalog {
 
-    private static final Logger LOGGER = Logger.getLogger(MinecraftItemComponentCatalog.class.getName());
-
     public record Entry(String componentId,
-            String minimumMinecraftVersion,
             String valueFormat,
             boolean nonValued) {
     }
 
     private final Map<String, Entry> entries;
-    private final MinecraftVersion serverVersion;
 
     public MinecraftItemComponentCatalog() {
         this.entries = createEntries();
-        this.serverVersion = MinecraftVersion.parse(detectMinecraftVersion());
     }
 
     public Map<String, Entry> entries() {
@@ -42,72 +34,63 @@ public final class MinecraftItemComponentCatalog {
         return entries.get(componentId);
     }
 
-    public String serverVersion() {
-        return serverVersion.text();
-    }
-
-    public boolean isKnownFutureComponent(String componentId) {
-        Entry entry = entries.get(componentId);
-        return entry != null && serverVersion.compareTo(MinecraftVersion.parse(entry.minimumMinecraftVersion())) < 0;
-    }
-
     private Map<String, Entry> createEntries() {
         Map<String, Entry> resourceEntries = loadResourceEntries();
         if (!resourceEntries.isEmpty()) {
             return resourceEntries;
         }
         Map<String, Entry> result = new LinkedHashMap<>();
-        add(result, "max_stack_size", "1.20.5", "integer 1..99");
-        add(result, "max_damage", "1.20.5", "positive integer");
-        add(result, "damage", "1.20.5", "non-negative integer");
-        addUnit(result, "unbreakable", "1.20.5");
-        add(result, "custom_name", "1.20.5", "MiniMessage string or vanilla text component map/list");
-        add(result, "item_name", "1.20.5", "MiniMessage string or vanilla text component map/list");
-        add(result, "lore", "1.20.5", "MiniMessage string/list or vanilla text component list");
-        add(result, "rarity", "1.20.5", "common, uncommon, rare, or epic");
-        add(result, "enchantments", "1.20.5", "direct enchantment resource id to level map (Minecraft 1.21.5+)");
-        add(result, "can_place_on", "1.20.5", "vanilla adventure predicate map");
-        add(result, "can_break", "1.20.5", "vanilla adventure predicate map");
-        add(result, "attribute_modifiers", "1.20.5", "direct attribute modifier list (Minecraft 1.21.5+)");
-        add(result, "custom_model_data", "1.20.5", "map containing floats/flags/strings/colors");
-        add(result, "repair_cost", "1.20.5", "non-negative integer");
-        add(result, "enchantment_glint_override", "1.20.5", "boolean");
-        addUnit(result, "intangible_projectile", "1.20.5");
-        add(result, "food", "1.20.5", "vanilla food properties map");
-        add(result, "consumable", "1.21.2", "vanilla consumable map");
-        add(result, "use_remainder", "1.21.2", "item stack map");
-        add(result, "use_cooldown", "1.21.2", "vanilla cooldown map");
-        add(result, "damage_resistant", "1.21.2", "damage type tag map");
-        add(result, "tool", "1.20.5", "vanilla tool rules map");
-        add(result, "weapon", "1.21.5", "vanilla weapon properties map");
-        add(result, "enchantable", "1.21.2", "map containing positive integer value");
-        add(result, "equippable", "1.21.2", "vanilla equippable map");
-        add(result, "repairable", "1.21.2", "repair item/tag map");
-        addUnit(result, "glider", "1.21.2");
-        add(result, "item_model", "1.21.2", "namespaced resource id");
-        add(result, "tooltip_style", "1.21.2", "namespaced resource id");
-        add(result, "tooltip_display", "1.21.5", "map containing hide_tooltip/hidden_components");
-        add(result, "death_protection", "1.21.2", "vanilla death protection map");
-        add(result, "blocks_attacks", "1.21.5", "vanilla blocking properties map");
-        add(result, "stored_enchantments", "1.20.5", "vanilla enchantment component map");
-        add(result, "dyed_color", "1.20.5", "RGB integer or color map");
-        add(result, "potion_contents", "1.20.5", "vanilla potion contents map");
-        add(result, "charged_projectiles", "1.20.5", "item stack list");
-        add(result, "bundle_contents", "1.20.5", "item stack list");
-        add(result, "trim", "1.20.5", "trim material/pattern map");
-        add(result, "custom_data", "1.20.5", "plain map or {$snbt: raw SNBT}");
-        add(result, "entity_data", "1.20.5", "plain map or {$snbt: raw SNBT}");
-        add(result, "block_entity_data", "1.20.5", "plain map or {$snbt: raw SNBT}");
-        add(result, "block_state", "1.20.5", "block state property map");
+        add(result, "max_stack_size", "integer 1..99");
+        add(result, "max_damage", "positive integer");
+        add(result, "damage", "non-negative integer");
+        addUnit(result, "unbreakable");
+        add(result, "custom_name", "MiniMessage string or vanilla text component map/list");
+        add(result, "item_name", "MiniMessage string or vanilla text component map/list");
+        add(result, "lore", "MiniMessage string/list or vanilla text component list");
+        add(result, "rarity", "common, uncommon, rare, or epic");
+        add(result, "enchantments", "direct enchantment resource id to level map");
+        add(result, "can_place_on", "vanilla adventure predicate map");
+        add(result, "can_break", "vanilla adventure predicate map");
+        add(result, "attribute_modifiers", "direct attribute modifier list");
+        add(result, "custom_model_data", "map containing floats/flags/strings/colors");
+        add(result, "repair_cost", "non-negative integer");
+        add(result, "enchantment_glint_override", "boolean");
+        addUnit(result, "intangible_projectile");
+        add(result, "food", "vanilla food properties map");
+        add(result, "consumable", "vanilla consumable map");
+        add(result, "use_remainder", "item stack map");
+        add(result, "use_cooldown", "vanilla cooldown map");
+        add(result, "damage_resistant", "damage type tag map");
+        add(result, "tool", "vanilla tool rules map");
+        add(result, "weapon", "vanilla weapon properties map");
+        add(result, "enchantable", "map containing positive integer value");
+        add(result, "equippable", "vanilla equippable map");
+        add(result, "repairable", "repair item/tag map");
+        addUnit(result, "glider");
+        add(result, "item_model", "namespaced resource id");
+        add(result, "tooltip_style", "namespaced resource id");
+        add(result, "tooltip_display", "map containing hide_tooltip/hidden_components");
+        add(result, "death_protection", "vanilla death protection map");
+        add(result, "blocks_attacks", "vanilla blocking properties map");
+        add(result, "stored_enchantments", "vanilla enchantment component map");
+        add(result, "dyed_color", "RGB integer or color map");
+        add(result, "potion_contents", "vanilla potion contents map");
+        add(result, "charged_projectiles", "item stack list");
+        add(result, "bundle_contents", "item stack list");
+        add(result, "trim", "trim material/pattern map");
+        add(result, "custom_data", "plain map or {$snbt: raw SNBT}");
+        add(result, "entity_data", "plain map or {$snbt: raw SNBT}");
+        add(result, "block_entity_data", "plain map or {$snbt: raw SNBT}");
+        add(result, "block_state", "block state property map");
 
-        add(result, "use_effects", "1.21.11", "vanilla use effects map");
-        add(result, "minimum_attack_charge", "1.21.11", "floating-point number");
-        add(result, "damage_type", "1.21.11", "damage type resource id");
-        add(result, "piercing_weapon", "1.21.11", "vanilla piercing weapon map");
-        add(result, "kinetic_weapon", "1.21.11", "vanilla kinetic weapon map");
-        add(result, "attack_range", "1.21.11", "vanilla attack range map");
-        add(result, "swing_animation", "1.21.11", "vanilla swing animation map");
-        add(result, "break_sound", "1.21.5", "sound resource id");
+        add(result, "use_effects", "vanilla use effects map");
+        add(result, "minimum_attack_charge", "floating-point number");
+        add(result, "damage_type", "damage type resource id");
+        add(result, "piercing_weapon", "vanilla piercing weapon map");
+        add(result, "kinetic_weapon", "vanilla kinetic weapon map");
+        add(result, "attack_range", "vanilla attack range map");
+        add(result, "swing_animation", "vanilla swing animation map");
+        add(result, "break_sound", "sound resource id");
         return Collections.unmodifiableMap(result);
     }
 
@@ -121,8 +104,7 @@ public final class MinecraftItemComponentCatalog {
             Map<String, Entry> result = new LinkedHashMap<>();
             for (Object raw : configuredEntries) {
                 String componentId = ConfigNodes.string(raw, "id", null);
-                String minimumVersion = ConfigNodes.string(raw, "since", null);
-                if (Texts.isBlank(componentId) || Texts.isBlank(minimumVersion)) {
+                if (Texts.isBlank(componentId)) {
                     continue;
                 }
                 String normalizedId = componentId.contains(":")
@@ -133,7 +115,6 @@ public final class MinecraftItemComponentCatalog {
                 }
                 result.put(normalizedId, new Entry(
                         normalizedId,
-                        minimumVersion.trim(),
                         ConfigNodes.string(raw, "format", "vanilla component value"),
                         ConfigNodes.bool(raw, "non_valued", false)
                 ));
@@ -144,68 +125,13 @@ public final class MinecraftItemComponentCatalog {
         }
     }
 
-    private void add(Map<String, Entry> entries, String id, String minimumVersion, String format) {
+    private void add(Map<String, Entry> entries, String id, String format) {
         String namespacedId = "minecraft:" + id;
-        entries.put(namespacedId, new Entry(namespacedId, minimumVersion, format, false));
+        entries.put(namespacedId, new Entry(namespacedId, format, false));
     }
 
-    private void addUnit(Map<String, Entry> entries, String id, String minimumVersion) {
+    private void addUnit(Map<String, Entry> entries, String id) {
         String namespacedId = "minecraft:" + id;
-        entries.put(namespacedId, new Entry(namespacedId, minimumVersion, "unit: true, null, or empty map", true));
-    }
-
-    private String detectMinecraftVersion() {
-        try {
-            Object value = Bukkit.class.getMethod("getMinecraftVersion").invoke(null);
-            if (value != null && !String.valueOf(value).isBlank()) {
-                return String.valueOf(value);
-            }
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            LOGGER.warning("Bukkit.getMinecraftVersion() is unavailable, deriving the component catalog version"
-                    + " from the Bukkit version string instead: " + describe(exception));
-        }
-        try {
-            String bukkitVersion = Bukkit.getBukkitVersion();
-            int separator = bukkitVersion.indexOf('-');
-            return separator < 0 ? bukkitVersion : bukkitVersion.substring(0, separator);
-        } catch (RuntimeException ignored) {
-            return "1.21.8";
-        }
-    }
-
-    private String describe(Throwable throwable) {
-        String message = throwable == null ? null : throwable.getMessage();
-        return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
-    }
-
-    private record MinecraftVersion(int major, int minor, int patch, String text) implements Comparable<MinecraftVersion> {
-
-        private static MinecraftVersion parse(String raw) {
-            String normalized = raw == null ? "" : raw.trim();
-            String[] parts = normalized.split("[^0-9]+");
-            int[] numbers = new int[]{0, 0, 0};
-            int target = 0;
-            for (String part : parts) {
-                if (part.isBlank() || target >= numbers.length) {
-                    continue;
-                }
-                try {
-                    numbers[target++] = Integer.parseInt(part);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-            String text = numbers[0] + "." + numbers[1] + "." + numbers[2];
-            return new MinecraftVersion(numbers[0], numbers[1], numbers[2], text);
-        }
-
-        @Override
-        public int compareTo(MinecraftVersion other) {
-            int compared = Integer.compare(major, other.major);
-            if (compared != 0) {
-                return compared;
-            }
-            compared = Integer.compare(minor, other.minor);
-            return compared != 0 ? compared : Integer.compare(patch, other.patch);
-        }
+        entries.put(namespacedId, new Entry(namespacedId, "unit: true, null, or empty map", true));
     }
 }

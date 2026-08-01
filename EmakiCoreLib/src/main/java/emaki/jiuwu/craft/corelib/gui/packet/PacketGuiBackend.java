@@ -26,7 +26,6 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
-import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientClickWindow;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientClickWindow.WindowClickType;
@@ -65,13 +64,6 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         PacketEvents.getAPI().getEventManager().registerListener(clickListener);
         Bukkit.getPluginManager().registerEvents(this, plugin);
         registered.set(true);
-    }
-
-    public static boolean isRuntimeSupported() {
-        return PacketEvents.getAPI()
-                .getServerManager()
-                .getVersion()
-                .isNewerThanOrEquals(ServerVersion.V_1_19_4);
     }
 
     @Override

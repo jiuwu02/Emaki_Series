@@ -85,9 +85,6 @@ abstract class MoneyStage extends BaseStage {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.stage.money.no_result");
         }
-        if (result.skipped()) {
-            return CoreActionOutcome.skipped("action.stage.money.skipped");
-        }
         if (result.success()) {
             return CoreActionOutcome.success(result.data());
         }
@@ -100,7 +97,7 @@ abstract class MoneyStage extends BaseStage {
 
     private static CoreActionFailureKind failureKind(ActionErrorType errorType) {
         return switch (errorType) {
-            case PROVIDER_UNAVAILABLE, CURRENCY_NOT_FOUND, UNSUPPORTED -> CoreActionFailureKind.INVALID_CONFIG;
+            case PROVIDER_UNAVAILABLE, CURRENCY_NOT_FOUND -> CoreActionFailureKind.INVALID_CONFIG;
             case INSUFFICIENT_BALANCE -> CoreActionFailureKind.REJECTED;
             case INVALID_ARGUMENT -> CoreActionFailureKind.INVALID_CONFIG;
             default -> CoreActionFailureKind.INTERNAL_ERROR;
@@ -112,7 +109,6 @@ abstract class MoneyStage extends BaseStage {
             case PROVIDER_UNAVAILABLE -> "action.stage.money.provider_unavailable";
             case CURRENCY_NOT_FOUND -> "action.stage.money.currency_not_found";
             case INSUFFICIENT_BALANCE -> "action.stage.money.insufficient_balance";
-            case UNSUPPORTED -> "action.stage.money.unsupported";
             case INVALID_ARGUMENT -> "action.stage.money.invalid_argument";
             default -> "action.stage.money.failed";
         };

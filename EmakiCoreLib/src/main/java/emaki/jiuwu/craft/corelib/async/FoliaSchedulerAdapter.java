@@ -12,7 +12,6 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionBackendLoader;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 
 
@@ -121,9 +120,8 @@ public final class FoliaSchedulerAdapter {
         }
         synchronized (FoliaSchedulerAdapter.class) {
             if (cachedDispatcher == null || cachedServer != server) {
-                PlatformCapabilities platformCapabilities = PlatformCapabilities.detect(server);
                 cachedCapabilities = CapabilityProbe.detect(server);
-                cachedDispatcher = ExecutionBackendLoader.load(server, platformCapabilities).dispatcher();
+                cachedDispatcher = ExecutionBackendLoader.load(server, cachedCapabilities).dispatcher();
                 cachedServer = server;
             }
             return cachedDispatcher;

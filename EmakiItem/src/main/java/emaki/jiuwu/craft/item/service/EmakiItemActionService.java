@@ -84,7 +84,7 @@ public final class EmakiItemActionService {
             String trigger,
             Map<String, ?> extraPlaceholders,
             ItemStack itemStack) {
-        ActionContext context = ActionContext.create(plugin, player, trigger, false)
+        ActionContext context = ActionContext.create(player, trigger, false)
                 .withPlaceholders(placeholders(player, definition, trigger, extraPlaceholders))
                 .withAttribute("item_definition", definition)
                 .withAttribute("item_id", definition.id())

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.display;
 
 import java.util.Locale;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.display.bukkit.BukkitItemDisplayService;
@@ -9,7 +10,6 @@ import emaki.jiuwu.craft.corelib.display.bukkit.BukkitTextDisplayService;
 import emaki.jiuwu.craft.corelib.display.packet.PacketItemDisplayService;
 import emaki.jiuwu.craft.corelib.display.packet.PacketTextDisplayService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.packet.PacketEventsSupport;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 /**
@@ -28,6 +28,8 @@ public final class DisplayServiceFactory {
     public static final String BACKEND_BUKKIT = "bukkit";
     public static final String BACKEND_PACKET = "packet";
     public static final String BACKEND_AUTO = "auto";
+
+    private static final String PACKET_EVENTS_PLUGIN = "PacketEvents";
 
     private DisplayServiceFactory() {
     }
@@ -95,16 +97,11 @@ public final class DisplayServiceFactory {
         if (BACKEND_BUKKIT.equals(backend)) {
             return false;
         }
-        if (!PacketEventsSupport.pluginPresent()) {
+        if (!Bukkit.getPluginManager().isPluginEnabled(PACKET_EVENTS_PLUGIN)) {
             if (BACKEND_PACKET.equals(backend)) {
                 owner.getLogger().warning("[display] The packet backend needs PacketEvents installed, "
                         + "falling back to real entities.");
             }
-            return false;
-        }
-        if (!PacketEventsSupport.versionSupported()) {
-            owner.getLogger().warning("[display] The packet backend needs server version "
-                    + PacketEventsSupport.minimumVersionName() + " or newer, falling back to real entities.");
             return false;
         }
         return true;

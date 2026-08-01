@@ -106,12 +106,6 @@ public final class EmakiCoreLibApi {
         return resolved == null ? UnavailableScheduling.INSTANCE : resolved.scheduling();
     }
 
-    /** {@return the current runtime compatibility report} */
-    public static @NotNull CompatibilityReport compatibilityReport() {
-        Bridge resolved = bridge;
-        return resolved == null ? CompatibilityReport.unavailable() : resolved.compatibilityReport();
-    }
-
     /**
      * Resolves a unified display name for an item source shorthand or identifier.
      *
@@ -326,10 +320,6 @@ public final class EmakiCoreLibApi {
         /** {@return the Folia-safe scheduling view} */
         @NotNull
         EmakiScheduling scheduling();
-
-        /** {@return the current runtime compatibility report} */
-        @NotNull
-        CompatibilityReport compatibilityReport();
 
         /**
          * @param itemSource item source shorthand

@@ -22,7 +22,6 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Transformation;
 
 import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityDataTypes;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
@@ -247,9 +246,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
             double heightOffset,
             String rotationAxis,
             double rotationDegrees) {
-        ServerVersion version = PacketEvents.getAPI().getServerManager().getVersion();
-        boolean hasPositionRotationInterpolation = version.isNewerThanOrEquals(ServerVersion.V_1_20_2);
-        int translationIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 3 : 2);
+        int translationIndex = ENTITY_METADATA_BASE + 3;
 
         Transformation transformation = display.spec.transformation();
         org.joml.Vector3f originalTranslation = transformation.getTranslation();
@@ -268,9 +265,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         List<EntityData<?>> metadata = new ArrayList<>();
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE, EntityDataTypes.INT, 0));
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 1, EntityDataTypes.INT, interpolationDuration));
-        if (hasPositionRotationInterpolation) {
-            metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
-        }
+        metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
         metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F, animatedTranslation));
         metadata.add(new EntityData<>(translationIndex + 1, EntityDataTypes.VECTOR3F,
                 new Vector3f(scale.x(), scale.y(), scale.z())));
@@ -461,11 +456,9 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
     }
 
     private List<EntityData<?>> metadata(ItemDisplaySpec spec) {
-        ServerVersion version = PacketEvents.getAPI().getServerManager().getVersion();
-        boolean hasPositionRotationInterpolation = version.isNewerThanOrEquals(ServerVersion.V_1_20_2);
-        int translationIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 3 : 2);
-        int viewRangeIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 9 : 8);
-        int itemStackIndex = ENTITY_METADATA_BASE + (hasPositionRotationInterpolation ? 15 : 14);
+        int translationIndex = ENTITY_METADATA_BASE + 3;
+        int viewRangeIndex = ENTITY_METADATA_BASE + 9;
+        int itemStackIndex = ENTITY_METADATA_BASE + 15;
 
         Transformation transformation = spec.transformation();
         org.joml.Vector3f scale = transformation.getScale();
@@ -473,9 +466,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         List<EntityData<?>> metadata = new ArrayList<>();
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE, EntityDataTypes.INT, 0));
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 1, EntityDataTypes.INT, 0));
-        if (hasPositionRotationInterpolation) {
-            metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
-        }
+        metadata.add(new EntityData<>(ENTITY_METADATA_BASE + 2, EntityDataTypes.INT, 0));
         metadata.add(new EntityData<>(translationIndex, EntityDataTypes.VECTOR3F, Vector3f.zero()));
         metadata.add(new EntityData<>(translationIndex + 1, EntityDataTypes.VECTOR3F,
                 new Vector3f(scale.x(), scale.y(), scale.z())));

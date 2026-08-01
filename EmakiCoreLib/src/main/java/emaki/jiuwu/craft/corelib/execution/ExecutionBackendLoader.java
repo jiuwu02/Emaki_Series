@@ -5,6 +5,7 @@ import java.lang.reflect.InvocationTargetException;
 import org.bukkit.Server;
 
 import emaki.jiuwu.craft.corelib.platform.paper.execution.PaperExecutionBackend;
+import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 
 public final class ExecutionBackendLoader {
 
@@ -14,18 +15,18 @@ public final class ExecutionBackendLoader {
     private ExecutionBackendLoader() {
     }
 
-    public static LoadedExecution load(Server server, PlatformCapabilities capabilities) {
+    public static LoadedExecution load(Server server, CapabilityProbe capabilities) {
         if (server == null) {
             throw new IllegalStateException("Server is unavailable; execution backend cannot be initialized");
         }
-        PlatformCapabilities detected = capabilities == null ? PlatformCapabilities.detect(server) : capabilities;
+        CapabilityProbe detected = capabilities == null ? CapabilityProbe.detect(server) : capabilities;
         ExecutionBackend backend = detected.folia()
                 ? loadFoliaBackend(server, detected)
                 : new PaperExecutionBackend(server);
         return new LoadedExecution(backend, backend);
     }
 
-    private static ExecutionBackend loadFoliaBackend(Server server, PlatformCapabilities capabilities) {
+    private static ExecutionBackend loadFoliaBackend(Server server, CapabilityProbe capabilities) {
         if (!capabilities.foliaBackendReady()) {
             throw new IllegalStateException("Folia was detected but required scheduler or ownership capabilities are unavailable");
         }

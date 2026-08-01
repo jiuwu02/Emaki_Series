@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.6.15"
+version: "4.6.16"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -308,10 +308,8 @@ action:
       provider_unavailable: "<red>[管道] 经济提供者不可用：%error%</red>"
       currency_not_found: "<red>[管道] 货币不存在：%error%</red>"
       insufficient_balance: "<red>[管道] 余额不足：%error%</red>"
-      unsupported: "<red>[管道] 经济提供者不支持该操作：%error%</red>"
       invalid_argument: "<red>[管道] 经济操作参数不合法：%error%</red>"
       failed: "<red>[管道] 经济操作失败：%error%</red>"
-      skipped: "<gray>[管道] 经济操作被跳过</gray>"
       no_result: "<red>[管道] 经济操作没有返回结果</red>"
     command:
       dispatch_failed: "<red>[管道] 命令分派失败</red>"

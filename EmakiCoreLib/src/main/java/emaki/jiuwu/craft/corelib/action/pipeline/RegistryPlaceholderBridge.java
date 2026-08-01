@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,18 +27,14 @@ import emaki.jiuwu.craft.corelib.text.Texts;
  */
 public final class RegistryPlaceholderBridge implements PlaceholderBridge {
 
-    private final Plugin owner;
     private final Supplier<PlaceholderRegistry> registrySupplier;
 
     /**
      * Creates the bridge.
      *
-     * @param owner plugin recorded on the adapter context
      * @param registrySupplier reads the live registry; a reload replaces it, so it must not be captured
      */
-    public RegistryPlaceholderBridge(@NotNull Plugin owner,
-            @NotNull Supplier<PlaceholderRegistry> registrySupplier) {
-        this.owner = owner;
+    public RegistryPlaceholderBridge(@NotNull Supplier<PlaceholderRegistry> registrySupplier) {
         this.registrySupplier = registrySupplier;
     }
 
@@ -60,7 +55,7 @@ public final class RegistryPlaceholderBridge implements PlaceholderBridge {
             return resolved;
         }
         ActionContext adapter = ActionContext
-                .create(owner, playerOf(context), context.phase(), context.silent())
+                .create(playerOf(context), context.phase(), context.silent())
                 .withPlaceholders(variables);
         return Texts.toStringSafe(registry.resolve(adapter, resolved));
     }

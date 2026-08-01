@@ -18,8 +18,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
 /**
@@ -32,7 +32,7 @@ import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 public final class StageDispatcher implements AutoCloseable {
 
     private final ExecutionDispatcher dispatcher;
-    private final PlatformCapabilities capabilities;
+    private final CapabilityProbe capabilities;
     private final boolean inline;
     private final Map<Plugin, Set<TaskHandle>> handlesByOwner = new ConcurrentHashMap<>();
     private final Map<Plugin, Set<CancellationSignal>> signalsByOwner = new ConcurrentHashMap<>();
@@ -45,7 +45,7 @@ public final class StageDispatcher implements AutoCloseable {
      * @param capabilities detected platform capabilities
      */
     public StageDispatcher(@NotNull ExecutionDispatcher dispatcher,
-            @NotNull PlatformCapabilities capabilities) {
+            @NotNull CapabilityProbe capabilities) {
         this.dispatcher = java.util.Objects.requireNonNull(dispatcher, "dispatcher");
         this.capabilities = java.util.Objects.requireNonNull(capabilities, "capabilities");
         this.inline = false;

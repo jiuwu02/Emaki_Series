@@ -49,7 +49,7 @@ public final class SkillPlaceholderBridge implements PlaceholderBridge {
         }
         Player caster = casterOf(context);
         ActionContext actionContext = ActionContext
-                .create(plugin, caster, context == null ? "skill_script" : context.phase(), false)
+                .create(caster, context == null ? "skill_script" : context.phase(), false)
                 .withPlaceholders(variables);
         return Texts.toStringSafe(registry.resolve(actionContext, resolved));
     }
