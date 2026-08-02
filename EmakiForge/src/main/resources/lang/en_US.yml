@@ -9,7 +9,7 @@
 
 # version is maintained by resource sync
 
-version: "4.6.8"
+version: "4.6.9"
 
 # General messages
 general:
@@ -274,6 +274,16 @@ gui:
     target: "<aqua>Place Target Item</aqua>"
     required: "<gold>Place Material (any slot)</gold>"
     optional: "<green>Place Material (any slot)</green>"
+
+  # Blueprint slot requirement list (%blueprint_requirements% in gui/forge_gui.yml)
+  # One blueprint can feed several recipes; while the recipe is undecided the entries are
+  # grouped per recipe, at most 3 groups. Amounts are "placed in GUI / required", not inventory.
+  blueprint:
+    no_recipe: "<gray>The recipe is matched from the blueprint item source"
+    recipe_group_header: "<gold>[%recipe%]</gold>"
+    requirement_satisfied: "<green>  ✔ %material% %placed%/%required%</green>"
+    requirement_missing: "<red>  ✘ %material% %placed%/%required%</red>"
+    more_recipes: "<dark_gray>%count% more recipe(s)</dark_gray>"
 
   status:
     crafted: "<green>Crafted</green>"

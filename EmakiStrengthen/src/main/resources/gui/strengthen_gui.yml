@@ -82,10 +82,12 @@ slots:
     item:
       source: "book"
       components:
-        custom_name: "<gold>强化预览</gold>"
+        # 标题与内容都由插件按当前状态供给，文案见 lang 的 gui.preview.*
+        custom_name: "%preview_title%"
         lore:
-          - "<gray>这里会展示成功率、花费与所需材料"
-          - "<gray>所有强化材料都必须放入 GUI 才会计数和扣除"
+          # %preview_lines% 每项各占一行：成功率、花费、失败惩罚与材料清单
+          # 材料按「已放入 GUI 的量 / 需要的量」计数，满足为绿色、不足为红色
+          - "%preview_lines%"
 
   temper_display:
     slots:
@@ -96,7 +98,8 @@ slots:
       components:
         custom_name: "<gold>锻印状态</gold>"
         lore:
-          - "<gray>失败后会累积锻印，提高后续成功率"
+          # %temper_lines% 每项各占一行，文案见 lang 的 gui.temper.*
+          - "%temper_lines%"
 
   material_input_1:
     slots:
@@ -149,10 +152,11 @@ slots:
     item:
       source: "ANVIL"
       components:
-        custom_name: "<green>确认强化</green>"
+        # 不满足强化条件时插件会把图标换成 BARRIER 并改写标题
+        custom_name: "%confirm_title%"
         lore:
-          - "<gray>点击后将结算货币与材料"
-          - "<gray>失败会累积锻印，并可能掉星</gray>"
+          # %confirm_lines% 每项各占一行，文案见 lang 的 gui.confirm.* 与 gui.preview.cost_*
+          - "%confirm_lines%"
     sounds:
       click:
         sound: "ui.button.click"

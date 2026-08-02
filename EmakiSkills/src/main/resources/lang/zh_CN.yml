@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.6.12"
+version: "2.6.13"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -192,9 +192,8 @@ gui:
   page_next: "<gray>下一页</gray>"
   page_info: "<gray>第 %current%/%total% 页</gray>"
   # 升级界面 (gui/upgrade_gui.yml)
-  # 货币、材料、参数三份清单都被压成单行：模板 lore 的行数在 YAML 里写死，
-  # 而占位符替换是逐行进行的，一个占位符无法展开成多条 lore。
-  upgrade_entry_separator: "<gray>, </gray>"
+  # 货币、材料、参数三份清单每项各占一行：模板里写一个占位符，
+  # CoreLib 会按条目数自动展开成对应行数。
   upgrade_cost_free: "<green>无</green>"
   upgrade_currency_title: "<gold>货币消耗</gold>"
   upgrade_currency_entry: "<yellow>%display_name% %amount%</yellow>"

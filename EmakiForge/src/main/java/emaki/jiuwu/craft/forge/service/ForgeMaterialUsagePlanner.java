@@ -42,6 +42,31 @@ final class ForgeMaterialUsagePlanner {
         return result;
     }
 
+    /**
+     * {@return how much of each recipe material is currently sitting in the GUI slots, keyed by
+     * {@link ForgeMaterial#key()}}
+     *
+     * <p>Counts the GUI input slots rather than the player's inventory, because materials are moved out
+     * of the inventory when placed. Reuses the same matching and summing helpers the consumption planner
+     * uses, so a requirement display built on this cannot disagree with what validation will accept.</p>
+     */
+    Map<String, Integer> placedAmounts(Recipe recipe, GuiItems guiItems) {
+        Map<String, Integer> result = new LinkedHashMap<>();
+        if (recipe == null || guiItems == null) {
+            return result;
+        }
+        List<InputStack> requiredInputs = inputStacks(guiItems.requiredMaterials());
+        List<InputStack> optionalInputs = inputStacks(guiItems.optionalMaterials());
+        for (ForgeMaterial material : recipe.materials()) {
+            if (material == null || isBlank(material.key())) {
+                continue;
+            }
+            List<InputStack> inputs = material.optional() ? optionalInputs : requiredInputs;
+            result.merge(material.key(), totalAmount(inputs, material), Integer::sum);
+        }
+        return result;
+    }
+
     int optionalCapacityCost(Recipe recipe, GuiItems guiItems) {
         return sumOptionalContributions(recipe, guiItems, ForgeMaterial::effectiveCapacityCost);
     }

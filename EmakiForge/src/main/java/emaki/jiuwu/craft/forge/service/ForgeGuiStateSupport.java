@@ -269,7 +269,7 @@ final class ForgeGuiStateSupport {
         return itemStack.clone();
     }
 
-    private ForgeMaterialUsagePlanner usagePlanner(ForgeGuiSession state) {
+    ForgeMaterialUsagePlanner usagePlanner(ForgeGuiSession state) {
         ItemIdentifierService identifier = state == null || state.runtimeSnapshot() == null
                 ? null
                 : state.runtimeSnapshot().itemIdentifierService();

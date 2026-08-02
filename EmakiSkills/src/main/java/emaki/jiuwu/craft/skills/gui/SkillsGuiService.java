@@ -529,8 +529,8 @@ public final class SkillsGuiService {
             )));
         }
         replacements.put("currencies", entries.isEmpty()
-                ? messageService.message("gui.upgrade_cost_free")
-                : joinUpgradeEntries(entries));
+                ? List.of(messageService.message("gui.upgrade_cost_free"))
+                : List.copyOf(entries));
         replacements.put("currency_count", entries.size());
         return buildConfiguredItem(slot, "gold_ingot",
                 messageService.message("gui.upgrade_currency_title"), List.of(), replacements);
@@ -562,8 +562,8 @@ public final class SkillsGuiService {
             )));
         }
         replacements.put("materials", entries.isEmpty()
-                ? messageService.message("gui.upgrade_cost_free")
-                : joinUpgradeEntries(entries));
+                ? List.of(messageService.message("gui.upgrade_cost_free"))
+                : List.copyOf(entries));
         replacements.put("material_count", entries.size());
         replacements.put("missing_count", missing);
         return buildConfiguredItem(slot, "chest",
@@ -602,8 +602,8 @@ public final class SkillsGuiService {
             }
         }
         replacements.put("parameters", entries.isEmpty()
-                ? messageService.message("gui.upgrade_parameter_none")
-                : joinUpgradeEntries(entries));
+                ? List.of(messageService.message("gui.upgrade_parameter_none"))
+                : List.copyOf(entries));
         replacements.put("parameter_count", entries.size());
         return buildConfiguredItem(slot, "writable_book",
                 messageService.message("gui.upgrade_parameter_title"), List.of(), replacements);
@@ -671,17 +671,6 @@ public final class SkillsGuiService {
         return InventoryItemUtil.countItems(player,
                 plugin.coreLib().itemSourceService(),
                 ItemSourceUtil.parse(material.item()));
-    }
-
-    /**
-     * {@return 单行清单的拼接结果}
-     *
-     * <p>必须压成一行：模板 lore 的行数在 YAML 里写死，而
-     * {@code ConfiguredItemService} 对每一行分别做占位符替换，
-     * 因此一个占位符无法展开成多条 lore。分隔符走 lang 以便服主调整。</p>
-     */
-    private String joinUpgradeEntries(List<String> entries) {
-        return String.join(messageService.message("gui.upgrade_entry_separator"), entries);
     }
 
     private Map<String, Object> upgradeBaseReplacements(SkillDefinition definition, UpgradePreview preview) {

@@ -10,7 +10,7 @@
 # Emaki Forge 中文语言文件
 
 # version 由资源同步维护
-version: "4.6.8"
+version: "4.6.9"
 
 # 通用消息
 general:
@@ -505,6 +505,16 @@ gui:
     target: "<aqua>放入目标物品</aqua>"
     required: "<gold>放入材料(任意槽位)</gold>"
     optional: "<green>放入材料(任意槽位)</green>"
+
+  # 图纸槽的材料需求清单 (gui/forge_gui.yml 的 %blueprint_requirements%)
+  # 一张图纸可被多个配方使用，配方未确定时按配方分组列出，最多展开 3 组。
+  # 数量口径是「已放入 GUI 的量 / 需要的量」，不是背包里的量。
+  blueprint:
+    no_recipe: "<gray>配方会按图纸物品源自动匹配"
+    recipe_group_header: "<gold>【%recipe%】</gold>"
+    requirement_satisfied: "<green>  ✔ %material% %placed%/%required%</green>"
+    requirement_missing: "<red>  ✘ %material% %placed%/%required%</red>"
+    more_recipes: "<dark_gray>还有 %count% 个配方</dark_gray>"
 
   status:
     crafted: "<green>已锻造</green>"

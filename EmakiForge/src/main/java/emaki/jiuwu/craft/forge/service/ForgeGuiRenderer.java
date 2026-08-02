@@ -1,20 +1,32 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.model.ForgeMaterial;
+import emaki.jiuwu.craft.forge.model.Recipe;
 
 final class ForgeGuiRenderer {
+
+    /**
+     * How many recipe groups the blueprint requirement list expands before collapsing the rest into a
+     * "N more" line. One blueprint can feed many recipes; expanding all of them would overflow the
+     * tooltip.
+     */
+    private static final int MAX_RECIPE_GROUPS = 3;
 
     private final EmakiForgePlugin plugin;
     private final ForgeGuiStateSupport stateSupport;
@@ -65,8 +77,20 @@ final class ForgeGuiRenderer {
         state.guiSession().refresh();
     }
 
+    /**
+     * Builds the capacity slot, the one slot that also carries the blueprint requirement list.
+     *
+     * <p>The requirement list lives here rather than on {@code blueprint_inputs} because that slot is a
+     * placeholder: once a blueprint is placed the real item replaces it, which would hide the very list the
+     * player needs. Requirement lines are only computed for this slot to keep the other slots' rendering
+     * free of the candidate-recipe scan.</p>
+     */
     private ItemStack buildCapacityDisplayItem(GuiSlot slot, ForgeGuiSession state) {
-        return GuiItemBuilder.build(slot.itemDefinition(), slotReplacements(state),
+        Map<String, Object> replacements = slotReplacements(state);
+        List<Recipe> candidates = requirementRecipes(state);
+        replacements.put("recipe_count", candidates.size());
+        replacements.put("blueprint_requirements", blueprintRequirementLines(state, candidates));
+        return GuiItemBuilder.build(slot.itemDefinition(), replacements,
                 plugin.coreLib().configuredItemService());
     }
 
@@ -99,6 +123,98 @@ final class ForgeGuiRenderer {
         replacements.put("max", state.maxCapacity() <= 0 ? "?" : state.maxCapacity());
         replacements.put("capacity_state", capacityStateText(state));
         return replacements;
+    }
+
+    /**
+     * {@return the recipes whose material requirements should be shown}
+     *
+     * <p>Once a preview recipe is resolved the list narrows to that single recipe. Before that, every
+     * recipe matching the placed blueprints is a candidate, because one blueprint can be used by several
+     * recipes and the player still needs to see what each route asks for.</p>
+     */
+    private List<Recipe> requirementRecipes(ForgeGuiSession state) {
+        Recipe resolved = state.previewRecipe() != null ? state.previewRecipe() : state.recipe();
+        if (resolved != null) {
+            return List.of(resolved);
+        }
+        return stateSupport.resolveCandidateRecipes(state);
+    }
+
+    /**
+     * Builds the blueprint requirement lines, one entry per line.
+     *
+     * <p>With a single recipe the materials are listed directly. With several candidates each recipe gets
+     * its own header and material block, deliberately <b>not</b> a merged union: if one recipe needs iron
+     * and another needs gold, a union would show both as missing even though satisfying either is
+     * enough.</p>
+     */
+    private List<String> blueprintRequirementLines(ForgeGuiSession state, List<Recipe> candidates) {
+        List<String> lines = new ArrayList<>();
+        if (candidates.isEmpty()) {
+            lines.add(text(state, "gui.blueprint.no_recipe"));
+            return lines;
+        }
+        boolean grouped = candidates.size() > 1;
+        int shown = Math.min(candidates.size(), MAX_RECIPE_GROUPS);
+        for (int index = 0; index < shown; index++) {
+            Recipe recipe = candidates.get(index);
+            if (recipe == null) {
+                continue;
+            }
+            if (grouped) {
+                lines.add(text(state, "gui.blueprint.recipe_group_header", Map.of(
+                        "recipe", Texts.stripMiniTags(recipe.displayName())
+                )));
+            }
+            appendRequirementLines(lines, state, recipe);
+        }
+        int hidden = candidates.size() - shown;
+        if (hidden > 0) {
+            lines.add(text(state, "gui.blueprint.more_recipes", Map.of("count", hidden)));
+        }
+        return lines;
+    }
+
+    private void appendRequirementLines(List<String> lines, ForgeGuiSession state, Recipe recipe) {
+        Map<String, Integer> placedAmounts = stateSupport.usagePlanner(state)
+                .placedAmounts(recipe, state.toGuiItems());
+        for (ForgeMaterial material : recipe.requiredMaterials()) {
+            if (material == null) {
+                continue;
+            }
+            int required = Math.max(1, material.amount());
+            int placed = placedAmounts.getOrDefault(material.key(), 0);
+            lines.add(text(state, placed >= required
+                    ? "gui.blueprint.requirement_satisfied"
+                    : "gui.blueprint.requirement_missing", Map.of(
+                    "material", materialDisplayName(material),
+                    "placed", placed,
+                    "required", required
+            )));
+        }
+    }
+
+    private String materialDisplayName(ForgeMaterial material) {
+        String item = material == null ? "" : material.item();
+        if (Texts.isBlank(item)) {
+            return "";
+        }
+        String displayName = EmakiCoreLibApi.itemDisplayName(item).orElse("");
+        return Texts.isBlank(displayName) ? item : displayName;
+    }
+
+    private String text(ForgeGuiSession state, String key) {
+        return text(state, key, Map.of());
+    }
+
+    private String text(ForgeGuiSession state, String key, Map<String, ?> replacements) {
+        MessageService messageService = state == null || state.runtimeSnapshot() == null
+                ? null
+                : state.runtimeSnapshot().messageService();
+        if (messageService == null) {
+            messageService = plugin == null ? null : plugin.messageService();
+        }
+        return messageService == null ? "" : messageService.message(key, replacements);
     }
 
     private String capacityStateText(ForgeGuiSession state) {

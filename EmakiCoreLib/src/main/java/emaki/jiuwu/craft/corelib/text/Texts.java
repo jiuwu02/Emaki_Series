@@ -122,6 +122,55 @@ public final class Texts {
         return sb.toString();
     }
 
+    /**
+     * Expands a single template line into one or more lines.
+     *
+     * <p>When the whole line is exactly one placeholder (for example {@code "%materials%"}) and the
+     * matching replacement value is a collection, every collection element becomes its own line. This
+     * lets a fixed-length YAML lore list render a variable number of entries. Every other shape falls
+     * back to {@link #formatTemplate(String, Map)} and yields exactly one line, so a mixed line such as
+     * {@code "cost: %materials%"} keeps its prefix instead of losing it.
+     *
+     * @param template     the template line; may be {@code null}
+     * @param replacements the placeholder replacements
+     * @return the expanded lines, never {@code null}
+     */
+    public static List<String> expandTemplateLines(String template, Map<String, ?> replacements) {
+        Object value = solePlaceholderValue(template, replacements);
+        if (!(value instanceof Collection<?> collection)) {
+            return List.of(formatTemplate(template, replacements));
+        }
+        List<String> result = new ArrayList<>(collection.size());
+        for (Object entry : collection) {
+            result.add(formatTemplate(toStringSafe(entry), replacements));
+        }
+        return result;
+    }
+
+    /**
+     * {@return the replacement value when the trimmed template is exactly one placeholder, otherwise
+     * {@code null}} Key lookup order matches {@link #formatTemplate(String, Map)}: exact key first, then
+     * the lower-cased key.
+     */
+    private static Object solePlaceholderValue(String template, Map<String, ?> replacements) {
+        if (template == null || replacements == null || replacements.isEmpty()) {
+            return null;
+        }
+        String trimmed = template.trim();
+        if (trimmed.length() < 3 || trimmed.charAt(0) != '%' || trimmed.charAt(trimmed.length() - 1) != '%') {
+            return null;
+        }
+        String key = trimmed.substring(1, trimmed.length() - 1);
+        if (key.indexOf('%') >= 0) {
+            return null;
+        }
+        if (replacements.containsKey(key)) {
+            return replacements.get(key);
+        }
+        String lowerKey = lower(key);
+        return replacements.containsKey(lowerKey) ? replacements.get(lowerKey) : null;
+    }
+
     public static List<String> formatTemplateList(Collection<?> template, Map<String, ?> replacements) {
         List<String> result = new ArrayList<>();
         if (template == null) {

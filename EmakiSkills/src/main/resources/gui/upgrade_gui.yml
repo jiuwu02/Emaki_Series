@@ -38,7 +38,7 @@ slots:
       components:
         custom_name: "<gold>货币消耗</gold>"
         lore:
-          # %currencies% 为单行汇总，条目文案见 lang 的 gui.upgrade_currency_entry
+          # %currencies% 每项各占一行，条目文案见 lang 的 gui.upgrade_currency_entry
           - "%currencies%"
           - "<dark_gray>共 %currency_count% 项</dark_gray>"
 
@@ -52,7 +52,7 @@ slots:
       components:
         custom_name: "<gold>材料消耗</gold>"
         lore:
-          # %materials% 内每项都带「拥有/需要」，不足的条目为红色
+          # %materials% 每项各占一行并带「拥有/需要」，不足的条目为红色
           - "%materials%"
           - "<dark_gray>共 %material_count% 项，缺少 %missing_count% 项</dark_gray>"
 
@@ -78,7 +78,7 @@ slots:
       components:
         custom_name: "<gold>参数变化</gold>"
         lore:
-          # %parameters% 形如「damage 10 → 12」，多项以 lang 的分隔符相连
+          # %parameters% 每项各占一行，形如「damage 10 → 12」
           - "%parameters%"
 
   # 返回 (位置 18)
