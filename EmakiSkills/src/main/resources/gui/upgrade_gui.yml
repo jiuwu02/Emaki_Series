@@ -1,0 +1,142 @@
+# ============================================================
+# EmakiSkills GUI 配置 - 技能升级界面
+# ============================================================
+# 玩家查看升级成本、成功率与参数变化并确认升级的界面
+# 入口: 技能界面的已装配技能槽上「右键」
+#
+# 文件放置位置: plugins/EmakiSkills/gui/
+#
+# 单个技能可通过 skills/<file>.yml 的 upgrade.gui_template
+# 指定自定义模板 id，缺省使用本文件的 upgrade_gui。
+# ============================================================
+id: upgrade_gui
+gui_type: CHEST
+title: "<gradient:#4DA6FF:#FF6B6B>技能升级</gradient>"
+rows: 3
+
+slots:
+  # 当前技能 (位置 4)
+  skill_display:
+    type: skill_display
+    slots:
+      - 4
+    item:
+      components:
+        custom_name: "<gold>%skill%</gold>"
+        lore:
+          - "<gray>ID: <white>%skill_id%</white></gray>"
+          - "<gray>等级: <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow></gray>"
+          - "<gray>升级后: <green>%target_level%</green></gray>"
+
+  # 货币成本 (位置 10)
+  cost_currency:
+    type: cost_currency
+    slots:
+      - 10
+    item:
+      source: "gold_ingot"
+      components:
+        custom_name: "<gold>货币消耗</gold>"
+        lore:
+          # %currencies% 为单行汇总，条目文案见 lang 的 gui.upgrade_currency_entry
+          - "%currencies%"
+          - "<dark_gray>共 %currency_count% 项</dark_gray>"
+
+  # 材料成本 (位置 12)
+  cost_material:
+    type: cost_material
+    slots:
+      - 12
+    item:
+      source: "chest"
+      components:
+        custom_name: "<gold>材料消耗</gold>"
+        lore:
+          # %materials% 内每项都带「拥有/需要」，不足的条目为红色
+          - "%materials%"
+          - "<dark_gray>共 %material_count% 项，缺少 %missing_count% 项</dark_gray>"
+
+  # 成功率与失败惩罚 (位置 14)
+  success_rate:
+    type: success_rate
+    slots:
+      - 14
+    item:
+      source: "experience_bottle"
+      components:
+        custom_name: "<gold>成功率: <yellow>%success_rate%%</yellow></gold>"
+        lore:
+          - "<gray>失败惩罚: %failure_penalty%</gray>"
+
+  # 参数变化 (位置 16)
+  parameter_diff:
+    type: parameter_diff
+    slots:
+      - 16
+    item:
+      source: "writable_book"
+      components:
+        custom_name: "<gold>参数变化</gold>"
+        lore:
+          # %parameters% 形如「damage 10 → 12」，多项以 lang 的分隔符相连
+          - "%parameters%"
+
+  # 返回 (位置 18)
+  back:
+    type: back
+    slots:
+      - 18
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<yellow>返回</yellow>"
+        lore:
+          - "<gray>返回技能界面</gray>"
+
+  # 确认升级 (位置 22)
+  confirm:
+    type: confirm
+    slots:
+      - 22
+    item:
+      components:
+        custom_name: "%confirm_title%"
+        lore:
+          # %confirm_status% 会渲染为可升级提示、成本不足原因或已满级
+          - "%confirm_status%"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0
+
+  # 装饰边框
+  border:
+    type: filler
+    slots:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 11
+      - 13
+      - 15
+      - 17
+      - 19
+      - 20
+      - 21
+      - 23
+      - 24
+      - 25
+      - 26
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: " "
+        lore:
+          - ""

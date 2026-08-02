@@ -21,7 +21,9 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
@@ -29,13 +31,18 @@ import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
+import emaki.jiuwu.craft.skills.model.SkillUpgradeConfig;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
+import emaki.jiuwu.craft.skills.service.SkillUpgradeService.CurrencyCost;
+import emaki.jiuwu.craft.skills.service.SkillUpgradeService.MaterialCost;
+import emaki.jiuwu.craft.skills.service.SkillUpgradeService.UpgradePreview;
 import emaki.jiuwu.craft.skills.service.CastModeService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
 import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
+import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
@@ -44,6 +51,7 @@ public final class SkillsGuiService {
 
     private static final String TEMPLATE_SKILLS_GUI = "skills_gui";
     private static final String TEMPLATE_TRIGGER_SELECT = "trigger_select_gui";
+    private static final String TEMPLATE_UPGRADE = SkillUpgradeConfig.DEFAULT_GUI_TEMPLATE;
 
     private final EmakiSkillsPlugin plugin;
     private final GuiService guiService;
@@ -55,6 +63,7 @@ public final class SkillsGuiService {
     private final CastModeService castModeService;
     private final SkillLevelService skillLevelService;
     private final SkillParameterResolver skillParameterResolver;
+    private final SkillUpgradeService skillUpgradeService;
     private final MessageService messageService;
 
     public SkillsGuiService(EmakiSkillsPlugin plugin,
@@ -67,6 +76,7 @@ public final class SkillsGuiService {
             CastModeService castModeService,
             SkillLevelService skillLevelService,
             SkillParameterResolver skillParameterResolver,
+            SkillUpgradeService skillUpgradeService,
             MessageService messageService) {
         this.plugin = plugin;
         this.guiService = guiService;
@@ -78,6 +88,7 @@ public final class SkillsGuiService {
         this.castModeService = castModeService;
         this.skillLevelService = skillLevelService;
         this.skillParameterResolver = skillParameterResolver;
+        this.skillUpgradeService = skillUpgradeService;
         this.messageService = messageService;
     }
 
@@ -133,6 +144,65 @@ public final class SkillsGuiService {
                 plugin, player, template, replacements, renderer, handler);
         GuiSession session = guiService.open(request);
         return session != null;
+    }
+
+    /**
+     * 打开技能升级界面。
+     *
+     * <p>模板取自该技能 {@code upgrade.gui_template} 声明的 id，未配置或该 id
+     * 不存在时回落到内置 {@value #TEMPLATE_UPGRADE}。</p>
+     *
+     * @param player  查看者
+     * @param skillId 要升级的技能 id
+     * @return 会话是否成功打开
+     */
+    public boolean openUpgradeGui(Player player, String skillId) {
+        if (player == null) {
+            return false;
+        }
+        String normalizedSkillId = Texts.normalizeId(skillId);
+        SkillDefinition definition = registryService.getDefinition(normalizedSkillId);
+        if (definition == null) {
+            return false;
+        }
+        GuiTemplate template = resolveUpgradeTemplate(definition);
+        if (template == null) {
+            plugin.getLogger().warning("[SkillsGui] Template '" + TEMPLATE_UPGRADE + "' not found");
+            return false;
+        }
+
+        Runnable onBack = () -> open(player);
+
+        UpgradeGuiHandler handler = new UpgradeGuiHandler(
+                plugin, normalizedSkillId, skillUpgradeService,
+                messageService, this, onBack);
+
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        replacements.put(UpgradeGuiHandler.KEY_SKILL_ID, normalizedSkillId);
+
+        GuiRenderer renderer = (session, slot) -> renderUpgradeSlot(session, slot, normalizedSkillId);
+
+        GuiOpenRequest request = new GuiOpenRequest(
+                plugin, player, template, replacements, renderer, handler);
+        GuiSession session = guiService.open(request);
+        return session != null;
+    }
+
+    /**
+     * {@return 该技能声明的升级模板，缺失时回落内置模板；两者都不存在时为 {@code null}}
+     */
+    private GuiTemplate resolveUpgradeTemplate(SkillDefinition definition) {
+        SkillUpgradeConfig upgrade = definition == null ? null : definition.upgrade();
+        String configured = upgrade == null ? null : Texts.normalizeId(upgrade.guiTemplate());
+        if (Texts.isNotBlank(configured) && !TEMPLATE_UPGRADE.equals(configured)) {
+            GuiTemplate custom = guiTemplateLoader.get(configured);
+            if (custom != null) {
+                return custom;
+            }
+            plugin.getLogger().warning("[SkillsGui] Skill '" + definition.id() + "' declares upgrade template '"
+                    + configured + "' which does not exist; falling back to '" + TEMPLATE_UPGRADE + "'");
+        }
+        return guiTemplateLoader.get(TEMPLATE_UPGRADE);
     }
 
     public void clearAllSessions() {
@@ -400,6 +470,246 @@ public final class SkillsGuiService {
                 "status", status
         );
         return buildConfiguredItem(slot, fallbackItem, nameColor + trigger.displayName(), List.of(), replacements);
+    }
+
+
+    public void renderUpgradeGui(GuiSession session) {
+        if (session == null) {
+            return;
+        }
+        session.refresh();
+    }
+
+    private ItemStack renderUpgradeSlot(GuiSession session, GuiTemplate.ResolvedSlot resolved, String skillId) {
+        if (resolved == null || resolved.definition() == null) {
+            return null;
+        }
+        String type = resolved.definition().type();
+        if (type == null) {
+            return null;
+        }
+        Player player = session.viewer();
+        SkillDefinition definition = registryService.getDefinition(skillId);
+        if (definition == null) {
+            return null;
+        }
+        // 每个槽位各自取一次预览：预览是纯读操作，且升级结算后必须反映新等级。
+        UpgradePreview preview = skillUpgradeService == null ? null : skillUpgradeService.preview(player, definition);
+        GuiSlot slot = resolved.definition();
+        return switch (type) {
+            case "skill_display" -> renderUpgradeSkillDisplay(slot, definition, preview);
+            case "cost_currency" -> renderUpgradeCurrencyCost(slot, definition, preview);
+            case "cost_material" -> renderUpgradeMaterialCost(player, slot, definition, preview);
+            case "success_rate" -> renderUpgradeSuccessRate(slot, definition, preview);
+            case "parameter_diff" -> renderUpgradeParameterDiff(player, slot, definition, preview);
+            case "confirm" -> renderUpgradeConfirm(player, slot, definition, preview);
+            default -> null;
+        };
+    }
+
+    private ItemStack renderUpgradeSkillDisplay(GuiSlot slot, SkillDefinition definition, UpgradePreview preview) {
+        Map<String, Object> replacements = upgradeBaseReplacements(definition, preview);
+        return buildConfiguredItem(slot, definition.iconMaterial(),
+                "<gold>" + definition.displayName(), List.of(), replacements);
+    }
+
+    private ItemStack renderUpgradeCurrencyCost(GuiSlot slot,
+            SkillDefinition definition,
+            UpgradePreview preview) {
+        Map<String, Object> replacements = upgradeBaseReplacements(definition, preview);
+        List<CurrencyCost> currencies = preview == null ? List.of() : preview.currencies();
+        List<String> entries = new ArrayList<>();
+        for (CurrencyCost currency : currencies) {
+            if (currency == null) {
+                continue;
+            }
+            entries.add(messageService.message("gui.upgrade_currency_entry", Map.of(
+                    "display_name", currency.displayName(),
+                    "amount", Numbers.formatNumber(currency.amount(), "0.##")
+            )));
+        }
+        replacements.put("currencies", entries.isEmpty()
+                ? messageService.message("gui.upgrade_cost_free")
+                : joinUpgradeEntries(entries));
+        replacements.put("currency_count", entries.size());
+        return buildConfiguredItem(slot, "gold_ingot",
+                messageService.message("gui.upgrade_currency_title"), List.of(), replacements);
+    }
+
+    private ItemStack renderUpgradeMaterialCost(Player player,
+            GuiSlot slot,
+            SkillDefinition definition,
+            UpgradePreview preview) {
+        Map<String, Object> replacements = upgradeBaseReplacements(definition, preview);
+        List<MaterialCost> materials = preview == null ? List.of() : preview.materials();
+        List<String> entries = new ArrayList<>();
+        int missing = 0;
+        for (MaterialCost material : materials) {
+            if (material == null) {
+                continue;
+            }
+            long available = countMaterial(player, material);
+            boolean satisfied = available >= material.amount();
+            if (!satisfied) {
+                missing++;
+            }
+            entries.add(messageService.message(satisfied
+                    ? "gui.upgrade_material_entry"
+                    : "gui.upgrade_material_entry_missing", Map.of(
+                    "material", material.displayName(),
+                    "required", material.amount(),
+                    "available", available
+            )));
+        }
+        replacements.put("materials", entries.isEmpty()
+                ? messageService.message("gui.upgrade_cost_free")
+                : joinUpgradeEntries(entries));
+        replacements.put("material_count", entries.size());
+        replacements.put("missing_count", missing);
+        return buildConfiguredItem(slot, "chest",
+                messageService.message("gui.upgrade_material_title"), List.of(), replacements);
+    }
+
+    private ItemStack renderUpgradeSuccessRate(GuiSlot slot, SkillDefinition definition, UpgradePreview preview) {
+        Map<String, Object> replacements = upgradeBaseReplacements(definition, preview);
+        return buildConfiguredItem(slot, "experience_bottle",
+                messageService.message("gui.upgrade_success_rate_title", replacements), List.of(), replacements);
+    }
+
+    private ItemStack renderUpgradeParameterDiff(Player player,
+            GuiSlot slot,
+            SkillDefinition definition,
+            UpgradePreview preview) {
+        Map<String, Object> replacements = upgradeBaseReplacements(definition, preview);
+        List<String> entries = new ArrayList<>();
+        if (preview != null && skillParameterResolver != null) {
+            Map<String, String> current = skillParameterResolver
+                    .resolve(player, definition, "upgrade", null).values();
+            for (Map.Entry<String, String> entry : preview.parameters().values().entrySet()) {
+                if (entry.getKey() == null || entry.getKey().startsWith("emaki_")) {
+                    continue;
+                }
+                String before = Texts.toStringSafe(current.get(entry.getKey()));
+                String after = Texts.toStringSafe(entry.getValue());
+                if (before.equals(after)) {
+                    continue;
+                }
+                entries.add(messageService.message("gui.upgrade_parameter_entry", Map.of(
+                        "param_name", entry.getKey(),
+                        "current", before.isEmpty() ? "-" : before,
+                        "target", after.isEmpty() ? "-" : after
+                )));
+            }
+        }
+        replacements.put("parameters", entries.isEmpty()
+                ? messageService.message("gui.upgrade_parameter_none")
+                : joinUpgradeEntries(entries));
+        replacements.put("parameter_count", entries.size());
+        return buildConfiguredItem(slot, "writable_book",
+                messageService.message("gui.upgrade_parameter_title"), List.of(), replacements);
+    }
+
+    /**
+     * 渲染确认槽。
+     *
+     * <p>成本不足与已满级都<b>保留槽位</b>只改文案与图标（不隐藏）：隐藏会让玩家
+     * 无法区分「不能升」与「界面坏了」。实际能否升级仍由
+     * {@code SkillUpgradeService.upgrade} 判定，这里只是提示。</p>
+     */
+    private ItemStack renderUpgradeConfirm(Player player,
+            GuiSlot slot,
+            SkillDefinition definition,
+            UpgradePreview preview) {
+        Map<String, Object> replacements = upgradeBaseReplacements(definition, preview);
+        boolean upgradeEnabled = definition.upgrade() != null && definition.upgrade().enabled();
+        boolean maxLevel = preview != null && preview.currentLevel() >= preview.maxLevel();
+        boolean affordable = upgradeEnabled && !maxLevel && hasAllMaterials(player, preview);
+
+        String statusKey;
+        String titleKey;
+        String fallbackItem;
+        if (!upgradeEnabled) {
+            statusKey = "gui.upgrade_disabled_status";
+            titleKey = "gui.upgrade_unavailable_title";
+            fallbackItem = "barrier";
+        } else if (maxLevel) {
+            statusKey = "gui.upgrade_max_level_status";
+            titleKey = "gui.upgrade_unavailable_title";
+            fallbackItem = "barrier";
+        } else if (!affordable) {
+            statusKey = "gui.upgrade_insufficient_status";
+            titleKey = "gui.upgrade_insufficient_title";
+            fallbackItem = "redstone_block";
+        } else {
+            statusKey = "gui.upgrade_confirm_status";
+            titleKey = "gui.upgrade_confirm_title";
+            fallbackItem = "anvil";
+        }
+        String title = messageService.message(titleKey, replacements);
+        replacements.put("confirm_title", title);
+        replacements.put("confirm_status", messageService.message(statusKey, replacements));
+        replacements.put("upgradable", affordable);
+        return buildConfiguredItem(slot, fallbackItem, title, List.of(), replacements);
+    }
+
+    private boolean hasAllMaterials(Player player, UpgradePreview preview) {
+        if (preview == null) {
+            return false;
+        }
+        for (MaterialCost material : preview.materials()) {
+            if (material != null && countMaterial(player, material) < material.amount()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private long countMaterial(Player player, MaterialCost material) {
+        if (player == null || material == null || Texts.isBlank(material.item())) {
+            return 0L;
+        }
+        return InventoryItemUtil.countItems(player,
+                plugin.coreLib().itemSourceService(),
+                ItemSourceUtil.parse(material.item()));
+    }
+
+    /**
+     * {@return 单行清单的拼接结果}
+     *
+     * <p>必须压成一行：模板 lore 的行数在 YAML 里写死，而
+     * {@code ConfiguredItemService} 对每一行分别做占位符替换，
+     * 因此一个占位符无法展开成多条 lore。分隔符走 lang 以便服主调整。</p>
+     */
+    private String joinUpgradeEntries(List<String> entries) {
+        return String.join(messageService.message("gui.upgrade_entry_separator"), entries);
+    }
+
+    private Map<String, Object> upgradeBaseReplacements(SkillDefinition definition, UpgradePreview preview) {
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        replacements.put("skill", definition == null ? "" : definition.displayName());
+        replacements.put("skill_id", definition == null ? "" : definition.id());
+        int level = preview == null ? 1 : preview.currentLevel();
+        int targetLevel = preview == null ? 1 : preview.targetLevel();
+        int maxLevel = preview == null ? 1 : preview.maxLevel();
+        replacements.put("level", level);
+        replacements.put("current_level", level);
+        replacements.put("target_level", targetLevel);
+        replacements.put("max_level", maxLevel);
+        replacements.put("success_rate", preview == null
+                ? "0"
+                : Numbers.formatNumber(preview.successRate(), "0.##"));
+        replacements.put("failure_penalty", failurePenaltyText(definition));
+        return replacements;
+    }
+
+    private String failurePenaltyText(SkillDefinition definition) {
+        SkillUpgradeConfig upgrade = definition == null ? null : definition.upgrade();
+        String penalty = upgrade == null ? "none" : Texts.lower(upgrade.failurePenalty());
+        return switch (penalty) {
+            case "downgrade" -> messageService.message("gui.upgrade_penalty_downgrade");
+            case "reset" -> messageService.message("gui.upgrade_penalty_reset");
+            default -> messageService.message("gui.upgrade_penalty_none");
+        };
     }
 
 

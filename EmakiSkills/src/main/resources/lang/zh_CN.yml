@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.6.11"
+version: "2.6.12"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -191,6 +191,30 @@ gui:
   page_prev: "<gray>上一页</gray>"
   page_next: "<gray>下一页</gray>"
   page_info: "<gray>第 %current%/%total% 页</gray>"
+  # 升级界面 (gui/upgrade_gui.yml)
+  # 货币、材料、参数三份清单都被压成单行：模板 lore 的行数在 YAML 里写死，
+  # 而占位符替换是逐行进行的，一个占位符无法展开成多条 lore。
+  upgrade_entry_separator: "<gray>, </gray>"
+  upgrade_cost_free: "<green>无</green>"
+  upgrade_currency_title: "<gold>货币消耗</gold>"
+  upgrade_currency_entry: "<yellow>%display_name% %amount%</yellow>"
+  upgrade_material_title: "<gold>材料消耗</gold>"
+  upgrade_material_entry: "<green>%material% %available%/%required%</green>"
+  upgrade_material_entry_missing: "<red>%material% %available%/%required%</red>"
+  upgrade_success_rate_title: "<gold>成功率: <yellow>%success_rate%%</yellow></gold>"
+  upgrade_penalty_none: "<green>无</green>"
+  upgrade_penalty_downgrade: "<red>失败降低一级</red>"
+  upgrade_penalty_reset: "<dark_red>失败重置为一级</dark_red>"
+  upgrade_parameter_title: "<gold>参数变化</gold>"
+  upgrade_parameter_entry: "<gray>%param_name% <white>%current%</white> → <green>%target%</green></gray>"
+  upgrade_parameter_none: "<dark_gray>本次升级无参数变化</dark_gray>"
+  upgrade_confirm_title: "<green>确认升级</green>"
+  upgrade_confirm_status: "<gray>点击后将扣除货币与材料</gray>"
+  upgrade_insufficient_title: "<red>材料不足</red>"
+  upgrade_insufficient_status: "<red>缺少所需材料，无法升级</red>"
+  upgrade_unavailable_title: "<dark_gray>无法升级</dark_gray>"
+  upgrade_max_level_status: "<yellow>已达到最高等级 %max_level%</yellow>"
+  upgrade_disabled_status: "<red>该技能未开启升级</red>"
 
 slot_names:
   main_hand: "主手"
@@ -246,6 +270,7 @@ upgrade:
   not_unlocked: "<red>你尚未解锁技能 <white>%skill%</white>。</red>"
   max_level: "<yellow>技能 <white>%skill%</white> 已达到最高等级
     <gold>%max_level%</gold>。</yellow>"
+  condition_not_met: "<red>技能 <white>%skill%</white> 的升级条件未满足。</red>"
   economy_unavailable: "<red>经济服务不可用，无法扣除 %cost%。</red>"
   commit_failed: "<red>技能升级状态提交失败，已尝试补偿全部消耗。原因：%reason%。</red>"
   insufficient_funds: "<red>金币不足，需要 %cost%。</red>"

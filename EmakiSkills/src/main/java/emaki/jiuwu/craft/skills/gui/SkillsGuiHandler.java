@@ -107,6 +107,16 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
             player.closeInventory();
             plugin.executionDispatcher().runEntity(plugin, player, () ->
                     skillsGuiService.openTriggerSelect(player, slotIndex), () -> { });
+        } else if (click.isRightClick()) {
+            // 右键进入升级界面。左键与 Shift+左键已被卸下/设置触发器占用，
+            // 右键是 active_slot 上唯一空闲的点击方式，说明写在 skills_gui.yml 的 lore 里。
+            String skillId = binding.skillId();
+            player.closeInventory();
+            plugin.executionDispatcher().runEntity(plugin, player, () -> {
+                if (!skillsGuiService.openUpgradeGui(player, skillId)) {
+                    messageService.send(player, "gui.open_failed");
+                }
+            }, () -> { });
         } else {
             stateService.unequipSkill(player, slotIndex);
             messageService.send(player, "gui.skill_unequipped");

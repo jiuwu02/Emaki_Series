@@ -190,7 +190,9 @@ script:
 upgrade:
   enabled: true
   max_level: 10
-  gui_template: "upgrade/default"
+  # 升级界面使用的 GUI 模板 id，对应 gui/ 目录下模板文件里的 id 字段。
+  # 缺省即 upgrade_gui（内置模板）；指定的 id 不存在时会回落到它并打印一条警告。
+  gui_template: "upgrade_gui"
 
   # 升级经济配置
   economy:

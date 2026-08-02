@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.6.11"
+version: "2.6.12"
 
 general:
   prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
@@ -198,6 +198,31 @@ gui:
   page_prev: "<gray>Previous Page</gray>"
   page_next: "<gray>Next Page</gray>"
   page_info: "<gray>Page %current%/%total%</gray>"
+  # Upgrade menu (gui/upgrade_gui.yml)
+  # The currency, material and parameter lists are each collapsed into one line:
+  # template lore length is fixed in YAML and placeholders are substituted per
+  # line, so a single placeholder cannot expand into multiple lore entries.
+  upgrade_entry_separator: "<gray>, </gray>"
+  upgrade_cost_free: "<green>None</green>"
+  upgrade_currency_title: "<gold>Currency Cost</gold>"
+  upgrade_currency_entry: "<yellow>%display_name% %amount%</yellow>"
+  upgrade_material_title: "<gold>Material Cost</gold>"
+  upgrade_material_entry: "<green>%material% %available%/%required%</green>"
+  upgrade_material_entry_missing: "<red>%material% %available%/%required%</red>"
+  upgrade_success_rate_title: "<gold>Success Rate: <yellow>%success_rate%%</yellow></gold>"
+  upgrade_penalty_none: "<green>None</green>"
+  upgrade_penalty_downgrade: "<red>Drops one level on failure</red>"
+  upgrade_penalty_reset: "<dark_red>Resets to level 1 on failure</dark_red>"
+  upgrade_parameter_title: "<gold>Parameter Changes</gold>"
+  upgrade_parameter_entry: "<gray>%param_name% <white>%current%</white> → <green>%target%</green></gray>"
+  upgrade_parameter_none: "<dark_gray>No parameter changes for this upgrade</dark_gray>"
+  upgrade_confirm_title: "<green>Confirm Upgrade</green>"
+  upgrade_confirm_status: "<gray>Clicking will deduct currency and materials</gray>"
+  upgrade_insufficient_title: "<red>Insufficient Materials</red>"
+  upgrade_insufficient_status: "<red>Missing required materials, cannot upgrade</red>"
+  upgrade_unavailable_title: "<dark_gray>Cannot Upgrade</dark_gray>"
+  upgrade_max_level_status: "<yellow>Maximum level %max_level% reached</yellow>"
+  upgrade_disabled_status: "<red>This skill does not have upgrades enabled</red>"
 
 slot_names:
   main_hand: "Main Hand"
@@ -253,6 +278,7 @@ upgrade:
   not_unlocked: "<red>You have not unlocked skill <white>%skill%</white>.</red>"
   max_level: "<yellow>Skill <white>%skill%</white> has reached the maximum level
     <gold>%max_level%</gold>.</yellow>"
+  condition_not_met: "<red>The upgrade conditions for skill <white>%skill%</white> are not met.</red>"
   economy_unavailable: "<red>Economy service unavailable, cannot deduct %cost%.</red>"
   commit_failed: "<red>The skill upgrade could not be committed; cost compensation was attempted. Reason: %reason%.</red>"
   insufficient_funds: "<red>Insufficient funds, requires %cost%.</red>"

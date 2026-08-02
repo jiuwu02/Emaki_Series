@@ -173,7 +173,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 plugin, guiService, guiTemplateLoader,
                 playerSkillStateService, playerSkillDataStore,
                 skillRegistryService, triggerRegistry,
-                castModeService, skillLevelService, skillParameterResolver, messageService);
+                castModeService, skillLevelService, skillParameterResolver,
+                skillUpgradeService, messageService);
         return new SkillsRuntimeComponents(
                 appConfigLoader,
                 executionDispatcher,

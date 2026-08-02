@@ -249,7 +249,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         return new SkillUpgradeConfig(
                 enabled,
                 maxLevel,
-                section.getString("gui_template", "upgrade/default"),
+                section.getString("gui_template", SkillUpgradeConfig.DEFAULT_GUI_TEMPLATE),
                 economy,
                 successRates,
                 section.getString("failure_penalty", "none"),
