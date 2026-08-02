@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -311,7 +311,7 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
         if (source == null) {
             plugin.getLogger().warning("[CookingReward] Failed to parse item_sources from output: " + output.get("item_sources"));
             return null;
@@ -339,7 +339,7 @@ public final class CookingRewardService {
             ItemStack fallbackItem = itemSourceService.createItem(source, amount);
             if (fallbackItem == null) {
                 plugin.getLogger().warning("[CookingReward] Both assembly preview and direct createItem returned null for source="
-                        + ItemSourceUtil.toShorthand(source) + " type=" + source.getType() + " id=" + source.getIdentifier());
+                        + ItemSourceUtil.toShorthand(source) + " type=" + source.kind() + " id=" + source.identifier());
             }
             return fallbackItem;
         }
@@ -520,7 +520,7 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

@@ -221,6 +221,9 @@ public final class AppConfig extends BaseAppConfig {
      * @param multiSlotStacking whether one item kind may span several slots once the per-slot
      *                          ceiling is reached; {@code false} keeps the legacy behaviour of
      *                          refusing the surplus outright
+     * @param batchMaxOps       hard cap on how many increments one API batch may carry, clamped to
+     *                          {@code 1..2000}; a larger request is rejected outright rather than
+     *                          truncated, because a silently shortened batch is a half-applied recipe
      */
     public record BehaviorConfig(WithdrawOverflow overflowOnWithdraw,
             WithdrawAmounts withdrawAmounts,
@@ -229,19 +232,27 @@ public final class AppConfig extends BaseAppConfig {
             DepositFilter depositFilter,
             boolean allowUniqueItems,
             boolean multiSlotStacking,
+            int batchMaxOps,
             SortMode defaultSort,
             boolean playerSortEnabled) {
+
+        /** Inclusive lower bound for {@link #batchMaxOps()}. */
+        public static final int BATCH_MAX_OPS_MIN = 1;
+
+        /** Inclusive upper bound for {@link #batchMaxOps()}. */
+        public static final int BATCH_MAX_OPS_MAX = 2000;
 
         public BehaviorConfig {
             withdrawInput = withdrawInput == null
                     ? InputModeConfig.defaults(WITHDRAW_INPUT_KEY)
                     : withdrawInput;
+            batchMaxOps = Math.clamp(batchMaxOps, BATCH_MAX_OPS_MIN, BATCH_MAX_OPS_MAX);
         }
 
         public static BehaviorConfig defaults() {
             return new BehaviorConfig(WithdrawOverflow.RETURN, WithdrawAmounts.defaults(), true,
                     InputModeConfig.defaults(WITHDRAW_INPUT_KEY),
-                    DepositFilter.defaults(), true, false, SortMode.AMOUNT_DESC, true);
+                    DepositFilter.defaults(), true, false, 200, SortMode.AMOUNT_DESC, true);
         }
     }
 

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 public final class GemItemDefinition {
 
     private final String id;
-    private final List<ItemSource> itemSources;
+    private final List<ItemSourceRef> itemSources;
     private final List<String> slotGroups;
     private final List<String> loreContains;
     private final List<SocketSlot> slots;
@@ -28,7 +28,7 @@ public final class GemItemDefinition {
     private final GuiSettings guiSettings;
 
     public GemItemDefinition(String id,
-            List<ItemSource> itemSources,
+            List<ItemSourceRef> itemSources,
             List<String> slotGroups,
             List<String> loreContains,
             List<SocketSlot> slots,
@@ -58,7 +58,7 @@ public final class GemItemDefinition {
         return id;
     }
 
-    public List<ItemSource> itemSources() {
+    public List<ItemSourceRef> itemSources() {
         return itemSources;
     }
 
@@ -136,9 +136,9 @@ public final class GemItemDefinition {
         Object itemSourcesRaw = match == null ? null : match.get("item_sources");
         Object slotGroupsRaw = match == null ? null : match.get("slot_groups");
         Object loreContainsRaw = match == null ? null : match.get("lore_contains");
-        List<ItemSource> itemSources = new ArrayList<>();
+        List<ItemSourceRef> itemSources = new ArrayList<>();
         for (Object raw : ConfigNodes.asObjectList(itemSourcesRaw)) {
-            ItemSource itemSource = ItemSourceUtil.parse(raw);
+            ItemSourceRef itemSource = ItemSourceUtil.parse(raw);
             if (itemSource != null) {
                 itemSources.add(itemSource);
             }

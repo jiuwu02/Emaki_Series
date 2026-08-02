@@ -25,6 +25,7 @@ public final class PlayerStorage {
     private final UUID playerId;
     private final Map<StorageKey, StorageEntry> entries = new HashMap<>();
     private final List<StorageKey> entryOrder = new ArrayList<>();
+    private final Map<UUID, StorageReservation> reservations = new LinkedHashMap<>();
 
     private String playerName = "";
     private int grantedSlots;
@@ -220,6 +221,74 @@ public final class PlayerStorage {
         return revision;
     }
 
+    /** {@return every outstanding reservation, keyed by reservation id, in insertion order} */
+    public Map<UUID, StorageReservation> reservations() {
+        return Collections.unmodifiableMap(reservations);
+    }
+
+    /**
+     * Records a hold.
+     *
+     * @param reservation the hold to add; ignored when {@code null}
+     */
+    public void addReservation(StorageReservation reservation) {
+        if (reservation != null && reservation.reservationId() != null) {
+            reservations.put(reservation.reservationId(), reservation);
+        }
+    }
+
+    /**
+     * Drops a hold.
+     *
+     * @param reservationId the hold to drop
+     * @return the removed hold, or {@code null} when unknown
+     */
+    public StorageReservation removeReservation(UUID reservationId) {
+        return reservationId == null ? null : reservations.remove(reservationId);
+    }
+
+    /**
+     * {@return how many units of {@code key} are held by outstanding reservations}
+     *
+     * <p>Reserved units stay counted in the entry amount so the player still sees them; they are only
+     * excluded from what a new batch may take, which is what stops the same units being promised twice.
+     *
+     * @param key the stored item identity
+     */
+    public long reservedAmount(StorageKey key) {
+        if (key == null || reservations.isEmpty()) {
+            return 0L;
+        }
+        long reserved = 0L;
+        for (StorageReservation reservation : reservations.values()) {
+            reserved += reservation.heldAmount(key);
+        }
+        return reserved;
+    }
+
+    /**
+     * Drops every hold whose ttl has elapsed.
+     *
+     * <p>Called on load so a crash cannot strand a player's materials forever, and periodically so a
+     * caller that never commits does not hold stock indefinitely.
+     *
+     * @param nowMillis the current wall-clock time
+     * @return how many holds were dropped
+     */
+    public int pruneExpiredReservations(long nowMillis) {
+        if (reservations.isEmpty()) {
+            return 0;
+        }
+        List<UUID> expired = new ArrayList<>();
+        for (StorageReservation reservation : reservations.values()) {
+            if (reservation.expired(nowMillis)) {
+                expired.add(reservation.reservationId());
+            }
+        }
+        expired.forEach(reservations::remove);
+        return expired.size();
+    }
+
     public long persistedRevision() {
         return persistedRevision;
     }
@@ -268,6 +337,7 @@ public final class PlayerStorage {
             copy.append(new StorageEntry(key, entry.amount(), entry.stackLimit(),
                     entry.searchText(), entry.sortName()));
         }
+        copy.reservations.putAll(reservations);
         return copy;
     }
 }

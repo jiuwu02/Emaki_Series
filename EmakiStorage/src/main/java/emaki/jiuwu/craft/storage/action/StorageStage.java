@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.log.StorageLogEntry;
@@ -273,7 +273,7 @@ public final class StorageStage implements CoreActionStage {
     }
 
     private ItemStack resolveItem(String token) {
-        ItemSource source = ItemSourceUtil.parse(token);
+        ItemSourceRef source = ItemSourceUtil.parse(token);
         if (source == null || plugin.coreLib() == null || plugin.coreLib().itemSourceService() == null) {
             return null;
         }

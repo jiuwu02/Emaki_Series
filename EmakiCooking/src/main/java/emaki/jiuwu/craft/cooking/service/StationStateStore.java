@@ -46,7 +46,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
@@ -80,7 +80,7 @@ public final class StationStateStore {
     private final NamespacedKey stateVersionKey;
     private final NamespacedKey tombstoneKey;
     private final StationStateVersionLedger versionLedger = new StationStateVersionLedger();
-    private final ConcurrentMap<StationCoordinates, ItemSource> stationSources = new ConcurrentHashMap<>();
+    private final ConcurrentMap<StationCoordinates, ItemSourceRef> stationSources = new ConcurrentHashMap<>();
     private final ConcurrentMap<StationCoordinates, YamlSection> yamlCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<StationCoordinates, StationIndexEntry> index = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ConcurrentMap<Long, Set<StationCoordinates>>> chunkIndex = new ConcurrentHashMap<>();
@@ -361,7 +361,7 @@ public final class StationStateStore {
         return new DrainResult(false, fileResult.pendingOperations() + pendingOperations.size(), failures);
     }
 
-    public void rememberStationSource(StationCoordinates coordinates, ItemSource stationSource) {
+    public void rememberStationSource(StationCoordinates coordinates, ItemSourceRef stationSource) {
         if (coordinates == null || stationSource == null) {
             return;
         }
@@ -372,11 +372,11 @@ public final class StationStateStore {
         stationSources.put(coordinates, stationSource);
     }
 
-    public ItemSource rememberedStationSource(StationCoordinates coordinates) {
+    public ItemSourceRef rememberedStationSource(StationCoordinates coordinates) {
         return coordinates == null ? null : stationSources.get(coordinates);
     }
 
-    public ItemSource stationSource(YamlSection state) {
+    public ItemSourceRef stationSource(YamlSection state) {
         if (state == null) {
             return null;
         }
@@ -395,7 +395,7 @@ public final class StationStateStore {
         TileState tileState = tileStateOf(block, false);
         StationIndexEntry entry = index.get(coordinates);
         StationType stateType = state == null ? null : stationType(state);
-        ItemSource source = state == null ? null : stationSource(state);
+        ItemSourceRef source = state == null ? null : stationSource(state);
         String sourceText = source == null ? "" : ItemSourceUtil.toShorthand(source);
         return new StorageInspection(
                 coordinates,
@@ -595,7 +595,7 @@ public final class StationStateStore {
     private CompletableFuture<Boolean> saveYamlFallbackAsync(StationCoordinates coordinates, Map<String, Object> state, long mutationVersion) {
         YamlSection section = new MapYamlSection(state);
         StationType type = stationType(section);
-        ItemSource source = stationSource(section);
+        ItemSourceRef source = stationSource(section);
         long savedAt = savedAt(section);
         if (fileScope == null) {
             return CompletableFuture.completedFuture(trySaveYamlFallback(coordinates, state, mutationVersion));
@@ -1002,13 +1002,13 @@ public final class StationStateStore {
         copy.put(FORMAT_VERSION_KEY, FORMAT_VERSION);
         copy.put(STATE_VERSION_KEY, mutationVersion);
         copy.put(TOMBSTONE_KEY, tombstone);
-        ItemSource explicitSource = ItemSourceUtil.parse(copy.get(STATION_SOURCE_KEY));
+        ItemSourceRef explicitSource = ItemSourceUtil.parse(copy.get(STATION_SOURCE_KEY));
         if (explicitSource != null) {
             rememberStationSource(coordinates, explicitSource);
             copy.put(STATION_SOURCE_KEY, ItemSourceUtil.toShorthand(explicitSource));
             return copy;
         }
-        ItemSource remembered = rememberedStationSource(coordinates);
+        ItemSourceRef remembered = rememberedStationSource(coordinates);
         String shorthand = ItemSourceUtil.toShorthand(remembered);
         if (Texts.isNotBlank(shorthand)) {
             copy.put(STATION_SOURCE_KEY, shorthand);
@@ -1314,7 +1314,7 @@ public final class StationStateStore {
     private void recordIndex(StationCoordinates coordinates,
             StationType type,
             StationStorageBackend backend,
-            ItemSource source,
+            ItemSourceRef source,
             long savedAt,
             boolean dirty) {
         if (coordinates == null || type == null) {
@@ -1478,7 +1478,7 @@ public final class StationStateStore {
             int y = Integer.parseInt(parts[3]);
             int z = Integer.parseInt(parts[4]);
             StationStorageBackend backend = StationStorageBackend.parse(parts[5]);
-            ItemSource source = parts.length >= 7 ? ItemSourceUtil.parse(parts[6]) : null;
+            ItemSourceRef source = parts.length >= 7 ? ItemSourceUtil.parse(parts[6]) : null;
             long savedAt = 0L;
             if (parts.length >= 8 && Texts.isNotBlank(parts[7])) {
                 savedAt = Long.parseLong(parts[7]);
@@ -1710,7 +1710,7 @@ public final class StationStateStore {
     private record StationIndexEntry(StationCoordinates coordinates,
             StationType type,
             StationStorageBackend backend,
-            ItemSource source,
+            ItemSourceRef source,
             long savedAtMs) {
     }
 }

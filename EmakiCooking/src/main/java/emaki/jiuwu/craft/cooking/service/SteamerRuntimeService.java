@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -187,7 +187,7 @@ public final class SteamerRuntimeService implements Listener {
             return false;
         }
         SteamerState state = codec.readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         Block block = coordinates.block();
         if (state == null) {
             guiController.closeOpenInventories(coordinates, true);
@@ -681,7 +681,7 @@ public final class SteamerRuntimeService implements Listener {
     private void processStation(StationCoordinates coordinates, long now) {
         Block block = coordinates == null ? null : coordinates.block();
         SteamerState state = loadStateOrEmpty(coordinates);
-        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || !blockMatcher.matches(block, StationType.STEAMER, stationSource)) {
             guiController.closeOpenInventories(coordinates, true);
             removeState(coordinates, true);
@@ -844,7 +844,7 @@ public final class SteamerRuntimeService implements Listener {
     }
 
     private CookingSettingsService.SteamerFuelRule matchFuelRule(ItemStack itemStack) {
-        ItemSource identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         if (identified == null) {
             return null;
         }
@@ -857,7 +857,7 @@ public final class SteamerRuntimeService implements Listener {
     }
 
     private CookingSettingsService.SteamerMoistureRule matchMoistureRule(ItemStack itemStack) {
-        ItemSource identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         if (identified == null) {
             return null;
         }

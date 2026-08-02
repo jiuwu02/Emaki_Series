@@ -8,7 +8,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.VanillaTranslationService;
@@ -137,9 +137,9 @@ public final class StorageTextIndexer {
     public String identifier(StorageKey key, ItemStack template) {
         if (itemSourceService != null) {
             try {
-                ItemSource source = itemSourceService.identifyItem(template);
-                if (source != null && source.getIdentifier() != null && !source.getIdentifier().isBlank()) {
-                    return source.getIdentifier().toLowerCase(Locale.ROOT);
+                ItemSourceRef source = itemSourceService.identifyItem(template);
+                if (source != null && source.identifier() != null && !source.identifier().isBlank()) {
+                    return source.identifier().toLowerCase(Locale.ROOT);
                 }
             } catch (RuntimeException ignored) {
                 // A resolver that is not ready must never block indexing.

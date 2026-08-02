@@ -21,6 +21,9 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
+import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
@@ -116,6 +119,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private volatile StorageLayoutResolver.Layout layout;
 
     private final EmakiStorageApi.Bridge apiBridge = new DefaultStorageApi(this);
+    private CapabilityRegistration capabilityRegistration;
 
     public EmakiStoragePlugin() {
         super(AppConfig::defaults);
@@ -135,7 +139,28 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         registerPlaceholders();
         scheduleAutosave();
         EmakiStorageApi.install(apiBridge);
+        publishCapabilities();
         messageService.info("console.plugin_started");
+    }
+
+    /**
+     * Advertises the optional operations this build really supports.
+     *
+     * <p>Published after the API bridge is installed and revoked before it is uninstalled, so a
+     * consumer that sees the capability can always reach a live bridge behind it. The three keys map
+     * one-to-one onto methods, and none of them is behind a config switch today &mdash; if one ever
+     * is, it must stop being published rather than start returning {@code REJECTED}, or the consumer's
+     * gate stops meaning anything.
+     */
+    private void publishCapabilities() {
+        capabilityRegistration = EmakiCoreLibApi.publishCapabilities(this, Set.of(
+                ApiCapability.of("emakistorage:atomic_batch"),
+                ApiCapability.of("emakistorage:batch_count"),
+                ApiCapability.of("emakistorage:reservation")));
+        if (!capabilityRegistration.successful()) {
+            getLogger().warning("[storage] Capability publication was refused: "
+                    + capabilityRegistration.reasonKey());
+        }
     }
 
     /**
@@ -147,6 +172,10 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
      */
     @Override
     public void onDisable() {
+        if (capabilityRegistration != null) {
+            capabilityRegistration.close();
+            capabilityRegistration = null;
+        }
         EmakiStorageApi.uninstall(apiBridge);
         if (autosaveTask != null) {
             autosaveTask.cancel();

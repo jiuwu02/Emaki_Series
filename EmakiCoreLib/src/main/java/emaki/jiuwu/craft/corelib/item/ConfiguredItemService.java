@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssueSeverity;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
 
@@ -59,12 +60,12 @@ public final class ConfiguredItemService {
             return finish(null, List.of(ItemBuildIssue.error(null, "Configured item definition is null.")));
         }
         ConfiguredItemDefinition resolved = resolve(definition, replacements);
-        ItemSource source = ItemSourceUtil.parse(resolved.source());
+        ItemSourceRef source = ItemSourceUtil.parse(resolved.source());
         if (source == null) {
             return finish(null, List.of(ItemBuildIssue.error(null, "Configured item source is missing or invalid.")));
         }
 
-        ItemStack itemStack = source.getType() == ItemSourceType.VANILLA
+        ItemStack itemStack = source.vanilla()
                 ? createVanilla(source, resolved, issues)
                 : createThirdParty(source, resolved, issues);
         clampAmount(itemStack, resolved.amount(), issues);
@@ -93,10 +94,10 @@ public final class ConfiguredItemService {
         return finish(itemStack, issues);
     }
 
-    private ItemStack createVanilla(ItemSource source,
+    private ItemStack createVanilla(ItemSourceRef source,
             ConfiguredItemDefinition definition,
             List<ItemBuildIssue> issues) {
-        String materialId = "minecraft:" + ItemSourceUtil.normalizeVanillaIdentifier(source.getIdentifier());
+        String materialId = "minecraft:" + ItemSourceUtil.normalizeVanillaIdentifier(source.identifier());
         Map<String, ItemComponentPatch> accepted = acceptedVanillaPatches(definition.components(), issues);
         if (accepted.isEmpty()) {
             ItemStack created = itemSourceService.createItem(source, definition.amount());
@@ -131,7 +132,7 @@ public final class ConfiguredItemService {
         }
     }
 
-    private ItemStack createThirdParty(ItemSource source,
+    private ItemStack createThirdParty(ItemSourceRef source,
             ConfiguredItemDefinition definition,
             List<ItemBuildIssue> issues) {
         ItemStack created = itemSourceService.createItem(source, definition.amount());

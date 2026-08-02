@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.api.event.ForgeCompletedEvent;
@@ -61,7 +61,7 @@ final class ForgeGuiInteractionController {
             return;
         }
         ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
-        ItemSource source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
+        ItemSourceRef source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
         String materialId = materialKey(state, source);
 
         if (rules.requiredIds().contains(materialId)) {
@@ -130,7 +130,7 @@ final class ForgeGuiInteractionController {
                 required ? "required_materials" : "optional_materials",
                 required ? state.requiredMaterialItems() : state.optionalMaterialItems(),
                 itemStack -> {
-        ItemSource source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
+        ItemSourceRef source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
 
                     String materialId = materialKey(state, source);
                     if (Texts.isBlank(materialId)) {
@@ -734,7 +734,7 @@ final class ForgeGuiInteractionController {
         stateSupport.returnItems(state);
     }
 
-    private String materialKey(ForgeGuiSession state, ItemSource source) {
+    private String materialKey(ForgeGuiSession state, ItemSourceRef source) {
         if (state == null || source == null || state.runtimeSnapshot().forgeService() == null) {
             return "";
         }

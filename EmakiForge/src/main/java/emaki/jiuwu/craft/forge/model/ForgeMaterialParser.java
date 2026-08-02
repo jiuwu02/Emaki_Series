@@ -7,7 +7,7 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -27,7 +27,7 @@ final class ForgeMaterialParser {
                 && (section.contains("id") || section.contains("display_name") || section.contains("description"))) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(ConfigNodes.get(raw, "item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(ConfigNodes.get(raw, "item_sources"));
         String item = ItemSourceUtil.toShorthand(source);
         if (Texts.isBlank(item)) {
             return null;

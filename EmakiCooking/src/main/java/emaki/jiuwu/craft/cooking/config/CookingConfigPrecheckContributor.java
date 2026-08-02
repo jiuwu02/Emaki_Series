@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationType;
@@ -72,7 +72,7 @@ public final class CookingConfigPrecheckContributor extends AbstractModuleConfig
             return;
         }
         for (StationType type : StationType.values()) {
-            for (ItemSource source : plugin.settingsService().stationBlockSources(type)) {
+            for (ItemSourceRef source : plugin.settingsService().stationBlockSources(type)) {
                 String shorthand = ItemSourceUtil.toShorthand(source);
                 if (shorthand == null || shorthand.isBlank()) {
                     continue;

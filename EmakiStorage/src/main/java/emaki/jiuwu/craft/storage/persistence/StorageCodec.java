@@ -5,6 +5,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
 
@@ -26,8 +27,18 @@ public final class StorageCodec {
     /** File magic: {@code EMSTOR} in ASCII. */
     static final byte[] MAGIC = { 'E', 'M', 'S', 'T', 'O', 'R' };
 
-    /** Current on-disk format version. */
-    static final int FORMAT_VERSION = 1;
+    /**
+     * Current on-disk format version.
+     *
+     * <p>{@code 1} held only the entry records. {@code 2} appends a reservation section after them, so
+     * a held batch survives a restart. A {@code 1} file is still read normally and simply has no
+     * reservations; there is no rewrite step, because the first save after the upgrade writes {@code 2}
+     * anyway.
+     */
+    static final int FORMAT_VERSION = 2;
+
+    /** The first format version that carries a reservation section. */
+    static final int RESERVATION_FORMAT_VERSION = 2;
 
     /** Guards against absurd frame lengths from a truncated or corrupt file. */
     static final int MAX_PAYLOAD_LENGTH = 4 * 1024 * 1024;
@@ -122,6 +133,50 @@ public final class StorageCodec {
      */
     public static ItemStack decodeItem(byte[] payload) {
         return ItemStack.deserializeBytes(payload);
+    }
+
+    /**
+     * Writes a UUID as 16 raw big-endian bytes.
+     *
+     * <p>Not as two varints: half of all UUID longs are negative and {@link #writeVarLong} refuses
+     * negative values on purpose, so a fixed-width encoding is the honest choice here.
+     *
+     * @param out   the sink
+     * @param value the identifier
+     * @throws IOException when the sink fails
+     */
+    public static void writeUuid(OutputStream out, UUID value) throws IOException {
+        writeLongRaw(out, value.getMostSignificantBits());
+        writeLongRaw(out, value.getLeastSignificantBits());
+    }
+
+    /**
+     * Reads a UUID written by {@link #writeUuid(OutputStream, UUID)}.
+     *
+     * @param in the source
+     * @return the decoded identifier
+     * @throws IOException when the stream ends early
+     */
+    public static UUID readUuid(InputStream in) throws IOException {
+        return new UUID(readLongRaw(in), readLongRaw(in));
+    }
+
+    private static void writeLongRaw(OutputStream out, long value) throws IOException {
+        for (int shift = 56; shift >= 0; shift -= 8) {
+            out.write((int) ((value >>> shift) & 0xFFL));
+        }
+    }
+
+    private static long readLongRaw(InputStream in) throws IOException {
+        byte[] bytes = in.readNBytes(Long.BYTES);
+        if (bytes.length != Long.BYTES) {
+            throw new EOFException("Truncated 64-bit value");
+        }
+        long value = 0L;
+        for (byte part : bytes) {
+            value = (value << 8) | (part & 0xFFL);
+        }
+        return value;
     }
 
     /**

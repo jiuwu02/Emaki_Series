@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.storage.api.event.StorageUnlockEvent;
@@ -275,7 +275,7 @@ public final class StorageUnlockService {
 
         List<InventoryItemUtil.RemovalPlan> appliedPlans = new ArrayList<>();
         for (Map.Entry<String, Integer> required : quote.itemTotals().entrySet()) {
-            ItemSource itemSource = ItemSourceUtil.parse(required.getKey());
+            ItemSourceRef itemSource = ItemSourceUtil.parse(required.getKey());
             if (itemSource == null) {
                 compensate(player, quote, currencyCharged, appliedPlans);
                 return PurchaseResult.failed(quote, "unknown_item_source");

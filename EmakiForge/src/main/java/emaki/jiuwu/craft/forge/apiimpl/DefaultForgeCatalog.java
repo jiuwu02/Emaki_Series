@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -93,7 +93,7 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
         if (service == null || plugin.itemIdentifierService() == null) {
             return Optional.empty();
         }
-        ItemSource source = plugin.itemIdentifierService().identifySource(itemStack);
+        ItemSourceRef source = plugin.itemIdentifierService().identifySource(itemStack);
         if (source == null) {
             return Optional.empty();
         }

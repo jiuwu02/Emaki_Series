@@ -28,7 +28,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
@@ -71,7 +72,7 @@ public final class PlaceBlockStage extends BaseStage {
     @Override
     public @NotNull CoreActionOutcome execute(@NotNull CoreStageContext context,
             @NotNull CoreResolvedArguments arguments) {
-        ItemSource source = StageSupport.itemSource(arguments.getString("item_source"));
+        ItemSourceRef source = StageSupport.itemSource(arguments.getString("item_source"));
         if (source == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.item.invalid_item_source",
@@ -83,18 +84,29 @@ public final class PlaceBlockStage extends BaseStage {
         }
         Block target = location.getBlock();
         Player player = StageSupport.player(context.caster());
-        return switch (source.getType()) {
-            case VANILLA -> placeVanilla(player, target, source);
-            case CRAFTENGINE -> placeCustom(player, target, source, craftEngineBlockBridge, "CraftEngine");
-            case ITEMSADDER -> placeCustom(player, target, source, itemsAdderBlockBridge, "ItemsAdder");
-            case NEXO -> placeCustom(player, target, source, nexoBlockBridge, "Nexo");
-            case ORAXEN -> placeCustom(player, target, source, oraxenBlockBridge, "Oraxen");
-            default -> CoreActionOutcome.skipped("action.stage.place_block.not_placeable");
-        };
+        // An if-chain rather than a switch: the kind is a record now, so it cannot be a switch label.
+        // Only these five kinds have a block form at all; everything else is item-only.
+        ItemSourceKind kind = source.kind();
+        if (ItemSourceKind.VANILLA.equals(kind)) {
+            return placeVanilla(player, target, source);
+        }
+        if (ItemSourceKind.CRAFTENGINE.equals(kind)) {
+            return placeCustom(player, target, source, craftEngineBlockBridge, "CraftEngine");
+        }
+        if (ItemSourceKind.ITEMSADDER.equals(kind)) {
+            return placeCustom(player, target, source, itemsAdderBlockBridge, "ItemsAdder");
+        }
+        if (ItemSourceKind.NEXO.equals(kind)) {
+            return placeCustom(player, target, source, nexoBlockBridge, "Nexo");
+        }
+        if (ItemSourceKind.ORAXEN.equals(kind)) {
+            return placeCustom(player, target, source, oraxenBlockBridge, "Oraxen");
+        }
+        return CoreActionOutcome.skipped("action.stage.place_block.not_placeable");
     }
 
-    private CoreActionOutcome placeVanilla(Player player, Block target, ItemSource source) {
-        Material material = ItemSourceUtil.resolveVanillaMaterial(source.getIdentifier());
+    private CoreActionOutcome placeVanilla(Player player, Block target, ItemSourceRef source) {
+        Material material = ItemSourceUtil.resolveVanillaMaterial(source.identifier());
         if (material == null || !material.isBlock() || material.isAir()) {
             return CoreActionOutcome.skipped("action.stage.place_block.not_placeable");
         }
@@ -117,7 +129,7 @@ public final class PlaceBlockStage extends BaseStage {
 
     private CoreActionOutcome placeCustom(Player player,
             Block target,
-            ItemSource source,
+            ItemSourceRef source,
             CustomBlockBridge bridge,
             String providerName) {
         if (bridge == null || !bridge.available()) {
@@ -133,7 +145,7 @@ public final class PlaceBlockStage extends BaseStage {
         if (placeRefused != null) {
             return placeRefused;
         }
-        if (!bridge.placeBlock(target, source.getIdentifier())) {
+        if (!bridge.placeBlock(target, source.identifier())) {
             replaced.update(true, false);
             return CoreActionOutcome.skipped("action.stage.place_block.provider_refused");
         }
@@ -173,7 +185,7 @@ public final class PlaceBlockStage extends BaseStage {
                 : CoreActionOutcome.skipped("action.stage.place_block.place_cancelled");
     }
 
-    private ItemStack eventItem(ItemSource source, Material fallback) {
+    private ItemStack eventItem(ItemSourceRef source, Material fallback) {
         ItemStack created = itemSourceService == null ? null : itemSourceService.createItem(source, 1);
         if (!StageSupport.isEmpty(created)) {
             return created;
@@ -181,7 +193,7 @@ public final class PlaceBlockStage extends BaseStage {
         return new ItemStack(fallback != null && fallback.isItem() ? fallback : Material.STONE);
     }
 
-    private static CoreActionOutcome placed(ItemSource source, Block block) {
+    private static CoreActionOutcome placed(ItemSourceRef source, Block block) {
         return CoreActionOutcome.success(Map.of(
                 "item_source", StageSupport.shorthand(source),
                 "world", block.getWorld().getName(),

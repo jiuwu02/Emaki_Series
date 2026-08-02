@@ -7,7 +7,7 @@ import java.util.Locale;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
@@ -38,7 +38,7 @@ public final class GemItemMatcher {
     public void refresh() {
     }
 
-    public ItemSource identifyItem(ItemStack itemStack) {
+    public ItemSourceRef identifyItem(ItemStack itemStack) {
         return itemSourceService == null ? null : itemSourceService.identifyItem(itemStack);
     }
 
@@ -109,7 +109,7 @@ public final class GemItemMatcher {
         if (itemStack == null || itemStack.getType() == Material.AIR) {
             return null;
         }
-        ItemSource identified = identifyItem(itemStack);
+        ItemSourceRef identified = identifyItem(itemStack);
         for (GemItemDefinition definition : plugin.gemItemLoader().all().values()) {
             if (definition == null) {
                 continue;
@@ -123,7 +123,7 @@ public final class GemItemMatcher {
         return null;
     }
 
-    private boolean matchesItemSource(GemItemDefinition definition, ItemSource identified) {
+    private boolean matchesItemSource(GemItemDefinition definition, ItemSourceRef identified) {
         if (definition.itemSources().isEmpty()) {
             return true;
         }
@@ -190,7 +190,7 @@ public final class GemItemMatcher {
             SocketOpenerConfig config = plugin.appConfig().socketOpeners().get(openerId);
             return config == null || !config.enabled() ? List.of() : List.of(config);
         }
-        ItemSource identified = identifyItem(itemStack);
+        ItemSourceRef identified = identifyItem(itemStack);
         if (identified == null) {
             return List.of();
         }
@@ -201,7 +201,7 @@ public final class GemItemMatcher {
     }
 
     private GemDefinition matchGemDefinitionBySource(ItemStack itemStack) {
-        ItemSource identified = identifyItem(itemStack);
+        ItemSourceRef identified = identifyItem(itemStack);
         if (identified == null) {
             return null;
         }

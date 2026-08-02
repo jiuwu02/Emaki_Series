@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -482,7 +482,7 @@ public final class PlayerLevelService {
                 continue;
             }
             for (String sourceText : reward.itemSources()) {
-                ItemSource source = ItemSourceUtil.parse(sourceText);
+                ItemSourceRef source = ItemSourceUtil.parse(sourceText);
                 ItemStack item = itemSourceService.createItem(source, reward.amount());
                 if (item != null) {
                     InventoryItemUtil.giveOrDrop(player, item);

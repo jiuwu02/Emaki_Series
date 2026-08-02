@@ -17,6 +17,10 @@ import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRegistration;
+import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleState;
+import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleStatus;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -25,9 +29,9 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
     private final JavaPlugin plugin;
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
-    private final List<ManagedItemSourceResolver> managedResolvers;
-    private final Map<String, ManagedItemSourceResolver.Status> lastStatuses = new HashMap<>();
-    private final Map<String, ItemSourceService.ResolverRegistration> resolverRegistrations = new HashMap<>();
+    private final List<ManagedItemSourceProvider> managedProviders;
+    private final Map<String, LifecycleStatus> lastStatuses = new HashMap<>();
+    private final Map<String, ItemSourceRegistration> registrations = new HashMap<>();
     private final Set<String> loadEventBindings = new HashSet<>();
     private boolean initialized;
 
@@ -38,7 +42,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.messageService = Objects.requireNonNull(messageService, "messageService");
         this.itemSourceService = Objects.requireNonNull(itemSourceService, "itemSourceService");
-        this.managedResolvers = new ArrayList<>();
+        this.managedProviders = new ArrayList<>();
     }
 
     public void initialize() {
@@ -47,7 +51,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         }
         initialized = true;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        registerResolversForEnabledPlugins();
+        registerProvidersForEnabledPlugins();
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -64,15 +68,16 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         if (enabledPlugin == null) {
             return;
         }
-        if (registerResolverForPlugin(enabledPlugin.getName())) {
+        if (registerProviderForPlugin(enabledPlugin.getName())) {
             return;
         }
-        for (ManagedItemSourceResolver resolver : managedResolvers) {
-            if (!equalsPluginName(resolver.pluginName(), enabledPlugin.getName())) {
+        for (ManagedItemSourceProvider provider : managedProviders) {
+            if (!equalsPluginName(provider.providerPluginName(), enabledPlugin.getName())) {
                 continue;
             }
-            ensureLoadEventListener(resolver);
-            publishStatus(resolver, resolver.onPluginEnabled());
+            ensureLoadEventListener(provider);
+            // The plugin merely enabled; whether its items are loaded is still for the provider to detect.
+            publishStatus(provider, provider.onProviderReady(false));
         }
     }
 
@@ -80,62 +85,63 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         if (disabledPlugin == null) {
             return;
         }
-        for (ManagedItemSourceResolver resolver : managedResolvers) {
-            if (!equalsPluginName(resolver.pluginName(), disabledPlugin.getName())) {
+        for (ManagedItemSourceProvider provider : managedProviders) {
+            if (!equalsPluginName(provider.providerPluginName(), disabledPlugin.getName())) {
                 continue;
             }
-            resolver.onPluginDisabled();
-            lastStatuses.remove(resolver.id());
+            provider.onProviderDisabled();
+            lastStatuses.remove(provider.kind().key());
         }
     }
 
-    private void ensureLoadEventListener(ManagedItemSourceResolver resolver) {
-        if (resolver == null || !loadEventBindings.add(Texts.normalizeId(resolver.id()))) {
+    private void ensureLoadEventListener(ManagedItemSourceProvider provider) {
+        if (provider == null || !loadEventBindings.add(provider.kind().key())) {
             return;
         }
-        resolver.registerLoadEventListener(plugin, loadedResolver -> publishStatus(loadedResolver, loadedResolver.onItemsLoaded()));
+        // The load event is authoritative, so it passes itemsLoaded=true rather than re-detecting.
+        provider.registerLoadEventListener(plugin,
+                loaded -> publishStatus(loaded, loaded.onProviderReady(true)));
     }
 
-    private void registerResolversForEnabledPlugins() {
-        registerResolverForPlugin("NeigeItems");
-        registerResolverForPlugin("CraftEngine");
-        registerResolverForPlugin("MMOItems");
-        registerResolverForPlugin("ItemsAdder");
-        registerResolverForPlugin("Nexo");
-        registerResolverForPlugin("Oraxen");
-        registerResolverForPlugin("EcoItems");
+    private void registerProvidersForEnabledPlugins() {
+        registerProviderForPlugin("NeigeItems");
+        registerProviderForPlugin("CraftEngine");
+        registerProviderForPlugin("MMOItems");
+        registerProviderForPlugin("ItemsAdder");
+        registerProviderForPlugin("Nexo");
+        registerProviderForPlugin("Oraxen");
+        registerProviderForPlugin("EcoItems");
     }
 
-    private boolean registerResolverForPlugin(String pluginName) {
-        ItemSourceResolver resolver = createResolver(pluginName);
-        if (resolver == null) {
-            return false;
-        }
-        return registerResolver(resolver);
+    private boolean registerProviderForPlugin(String pluginName) {
+        ItemSourceProvider provider = createProvider(pluginName);
+        return provider != null && registerProvider(provider);
     }
 
-    private boolean registerResolver(ItemSourceResolver resolver) {
-        if (resolver == null || Texts.isBlank(resolver.id())) {
+    private boolean registerProvider(ItemSourceProvider provider) {
+        if (provider == null) {
             return false;
         }
-        String resolverId = Texts.normalizeId(resolver.id());
-        if (resolverRegistrations.containsKey(resolverId)) {
+        String kindKey = provider.kind().key();
+        if (registrations.containsKey(kindKey)) {
             return false;
         }
-        ItemSourceService.ResolverRegistration registration = itemSourceService.registerResolverHandle(resolver);
-        if (!registration.registered()) {
+        // Owner is CoreLib's own plugin instance: these bridges are revoked when CoreLib shuts down,
+        // not when the bridged plugin disables — a disabled plugin only moves the provider to ABSENT.
+        ItemSourceRegistration registration = itemSourceService.registerProvider(plugin, provider);
+        if (!registration.successful()) {
             return false;
         }
-        resolverRegistrations.put(resolverId, registration);
-        if (resolver instanceof ManagedItemSourceResolver managedResolver) {
-            managedResolvers.add(managedResolver);
-            ensureLoadEventListener(managedResolver);
-            publishStatus(managedResolver, managedResolver.bootstrap());
+        registrations.put(kindKey, registration);
+        if (provider instanceof ManagedItemSourceProvider managedProvider) {
+            managedProviders.add(managedProvider);
+            ensureLoadEventListener(managedProvider);
+            publishStatus(managedProvider, managedProvider.bootstrap());
         }
         return true;
     }
 
-    private ItemSourceResolver createResolver(String pluginName) {
+    private ItemSourceProvider createProvider(String pluginName) {
         if (!isPluginEnabled(pluginName)) {
             return null;
         }
@@ -163,37 +169,39 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         return Texts.isNotBlank(pluginName) && plugin.getServer().getPluginManager().isPluginEnabled(pluginName);
     }
 
-    private void publishStatus(ManagedItemSourceResolver resolver, ManagedItemSourceResolver.Status status) {
-        if (resolver == null || status == null) {
+    private void publishStatus(ManagedItemSourceProvider provider, LifecycleStatus status) {
+        if (provider == null || status == null) {
             return;
         }
-        ManagedItemSourceResolver.Status previous = lastStatuses.get(resolver.id());
+        String kindKey = provider.kind().key();
+        LifecycleStatus previous = lastStatuses.get(kindKey);
         if (Objects.equals(previous, status)) {
             return;
         }
-        lastStatuses.put(resolver.id(), status);
+        lastStatuses.put(kindKey, status);
         switch (status.state()) {
             case ABSENT -> {
                 return;
             }
             case READY ->
                 messageService.info("console.item_source_bridge_ready", Map.of(
-                        "library", resolver.pluginName()
+                        "library", provider.providerPluginName()
                 ));
             case WAITING ->
                 messageService.info("console.item_source_bridge_waiting", Map.of(
-                        "library", resolver.pluginName(),
-                        "detail", defaultWaitingDetail(resolver.pluginName(), status.detail())
+                        "library", provider.providerPluginName(),
+                        "detail", defaultWaitingDetail(provider.providerPluginName(), status.detail())
                 ));
             case INCOMPATIBLE ->
                 messageService.warning("console.item_source_bridge_incompatible", Map.of(
-                        "library", resolver.pluginName(),
-                        "detail", defaultIncompatibleDetail(resolver.pluginName(), status.detail())
+                        "library", provider.providerPluginName(),
+                        "detail", defaultIncompatibleDetail(provider.providerPluginName(), status.detail())
                 ));
         }
     }
 
-    public Map<String, ManagedItemSourceResolver.Status> statuses() {
+    /** {@return the last published status per provider kind} */
+    public Map<String, LifecycleStatus> statuses() {
         return Map.copyOf(new LinkedHashMap<>(lastStatuses));
     }
 
@@ -203,12 +211,12 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
 
     public int readyResolverCount() {
         return (int) lastStatuses.values().stream()
-                .filter(status -> status != null && status.state() == ManagedItemSourceResolver.State.READY)
+                .filter(status -> status != null && status.state() == LifecycleState.READY)
                 .count();
     }
 
     public int managedResolverCount() {
-        return managedResolvers.size();
+        return managedProviders.size();
     }
 
     @Override
@@ -224,11 +232,11 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         if (unregisterBukkitListeners) {
             org.bukkit.event.HandlerList.unregisterAll(this);
         }
-        for (ItemSourceService.ResolverRegistration registration : List.copyOf(resolverRegistrations.values())) {
+        for (ItemSourceRegistration registration : List.copyOf(registrations.values())) {
             registration.close();
         }
-        resolverRegistrations.clear();
-        managedResolvers.clear();
+        registrations.clear();
+        managedProviders.clear();
         lastStatuses.clear();
         loadEventBindings.clear();
         initialized = false;

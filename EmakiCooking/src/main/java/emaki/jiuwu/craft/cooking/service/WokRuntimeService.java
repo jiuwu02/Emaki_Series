@@ -10,7 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -47,7 +47,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 public final class WokRuntimeService {
 
-    private static final ItemSource BOWL_SOURCE = ItemSourceUtil.parse("minecraft-bowl");
+    private static final ItemSourceRef BOWL_SOURCE = ItemSourceUtil.parse("minecraft-bowl");
 
     private final EmakiCookingPlugin plugin;
     private final MessageService messageService;
@@ -136,7 +136,7 @@ public final class WokRuntimeService {
             return false;
         }
         WokState state = readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         Block block = coordinates.block();
         if (state == null || !state.hasIngredients()) {
             displayService.removeStation(StationType.WOK, coordinates);
@@ -567,7 +567,7 @@ public final class WokRuntimeService {
             }
             int fallbackAmount = Math.max(0, ingredient.amount() - droppedStoredItems);
             if (fallbackAmount > 0) {
-                ItemSource source = ItemSourceUtil.parse(ingredient.source());
+                ItemSourceRef source = ItemSourceUtil.parse(ingredient.source());
                 ItemStack itemStack = source == null ? null : itemSourceService.createItem(source, fallbackAmount);
                 if (itemStack != null && !itemStack.getType().isAir()) {
                     dropLocation.getWorld().dropItemNaturally(dropLocation, itemStack);
@@ -876,7 +876,7 @@ public final class WokRuntimeService {
         WokIngredientState last = updatedIngredients.get(lastIndex);
         ItemStack itemStack = last.lastStoredItem();
         if (itemStack == null || itemStack.getType().isAir()) {
-            ItemSource source = ItemSourceUtil.parse(last.source());
+            ItemSourceRef source = ItemSourceUtil.parse(last.source());
             itemStack = source == null ? null : itemSourceService.createItem(source, 1);
         }
         if (itemStack == null || itemStack.getType().isAir()) {
@@ -959,7 +959,7 @@ public final class WokRuntimeService {
             if (rule == null) {
                 continue;
             }
-            ItemSource target = lit ? rule.litSource() : rule.unlitSource();
+            ItemSourceRef target = lit ? rule.litSource() : rule.unlitSource();
             if (target == null) {
                 continue;
             }
@@ -976,16 +976,16 @@ public final class WokRuntimeService {
         return false;
     }
 
-    private boolean matchesSource(Block block, ItemSource source) {
+    private boolean matchesSource(Block block, ItemSourceRef source) {
         return block != null && source != null && blockMatcher.matches(block, source);
     }
 
     private boolean isSpatula(ItemStack itemStack) {
-        ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         if (source == null) {
             return false;
         }
-        for (ItemSource tool : settingsService.wokSpatulaSources()) {
+        for (ItemSourceRef tool : settingsService.wokSpatulaSources()) {
             if (ItemSourceUtil.matches(tool, source)) {
                 return true;
             }
@@ -997,12 +997,12 @@ public final class WokRuntimeService {
         if (itemStack == null || itemStack.getType().isAir()) {
             return false;
         }
-        ItemSource source = itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemSourceService.identifyItem(itemStack);
         return ItemSourceUtil.matches(BOWL_SOURCE, source);
     }
 
     private String identifySource(ItemStack itemStack) {
-        ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         return source == null ? "" : Texts.toStringSafe(ItemSourceUtil.toShorthand(source));
     }
 
@@ -1208,7 +1208,7 @@ public final class WokRuntimeService {
             if (itemStack == null || itemStack.getType().isAir()) {
                 continue;
             }
-            ItemSource source = ItemSourceUtil.parse(ingredient.source());
+            ItemSourceRef source = ItemSourceUtil.parse(ingredient.source());
             if (source == null) {
                 source = itemSourceService.identifyItem(itemStack);
             }
@@ -1248,7 +1248,7 @@ public final class WokRuntimeService {
     }
 
     private String displayGroupKey(String source) {
-        ItemSource parsed = ItemSourceUtil.parse(source);
+        ItemSourceRef parsed = ItemSourceUtil.parse(source);
         String shorthand = parsed == null ? source : ItemSourceUtil.toShorthand(parsed);
         return Texts.normalizeId(shorthand);
     }
@@ -1261,7 +1261,7 @@ public final class WokRuntimeService {
                 return storedItem;
             }
         }
-        ItemSource source = ItemSourceUtil.parse(ingredient.source());
+        ItemSourceRef source = ItemSourceUtil.parse(ingredient.source());
         ItemStack itemStack = source == null ? null : itemSourceService.createItem(source, 1);
         if (isDisplayable(itemStack)) {
             itemStack.setAmount(1);
@@ -1324,8 +1324,8 @@ public final class WokRuntimeService {
     }
 
     private boolean sourceMatches(String left, String right) {
-        ItemSource leftSource = ItemSourceUtil.parse(left);
-        ItemSource rightSource = ItemSourceUtil.parse(right);
+        ItemSourceRef leftSource = ItemSourceUtil.parse(left);
+        ItemSourceRef rightSource = ItemSourceUtil.parse(right);
         return ItemSourceUtil.matches(leftSource, rightSource);
     }
 
@@ -1337,7 +1337,7 @@ public final class WokRuntimeService {
         if (itemSources == null) {
             return "";
         }
-        ItemSource source = ItemSourceUtil.parse(itemSources);
+        ItemSourceRef source = ItemSourceUtil.parse(itemSources);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

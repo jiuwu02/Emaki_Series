@@ -101,11 +101,12 @@ public final class StorageEntry {
     /**
      * Builds the immutable API view of this entry.
      *
-     * @param slotIndex     the logical slot index this entry currently occupies
+     * @param slotIndex      the logical slot index this entry currently occupies
      * @param effectiveLimit the resolved three-level stack limit
+     * @param reservedAmount how many of {@link #amount()} are held by outstanding reservations
      * @return a detached snapshot
      */
-    public StorageEntrySnapshot toSnapshot(int slotIndex, long effectiveLimit) {
-        return new StorageEntrySnapshot(slotIndex, key.toItemStack(), amount, effectiveLimit);
+    public StorageEntrySnapshot toSnapshot(int slotIndex, long effectiveLimit, long reservedAmount) {
+        return new StorageEntrySnapshot(slotIndex, key.toItemStack(), amount, effectiveLimit, reservedAmount);
     }
 }

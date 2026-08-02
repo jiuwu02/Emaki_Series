@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
@@ -158,7 +158,7 @@ public final class ItemRepairService {
             return null;
         }
         ItemSourceService sourceService = itemSourceService;
-        ItemSource repairItemSource = sourceService == null ? null : sourceService.identifyItem(repairItem);
+        ItemSourceRef repairItemSource = sourceService == null ? null : sourceService.identifyItem(repairItem);
         if (repairItemSource == null) {
             return null;
         }
@@ -199,7 +199,7 @@ public final class ItemRepairService {
             if (itemStack == null || itemStack.getType().isAir()) {
                 continue;
             }
-            ItemSource source = sourceService.identifyItem(itemStack);
+            ItemSourceRef source = sourceService.identifyItem(itemStack);
             if (material.matches(source)) {
                 total += itemStack.getAmount();
             }
@@ -220,7 +220,7 @@ public final class ItemRepairService {
         }
         long remaining = material.amount();
         List<InventoryItemUtil.RemovalPlan> plans = new ArrayList<>();
-        for (ItemSource source : material.itemSources()) {
+        for (ItemSourceRef source : material.itemSources()) {
             if (remaining <= 0L) {
                 break;
             }

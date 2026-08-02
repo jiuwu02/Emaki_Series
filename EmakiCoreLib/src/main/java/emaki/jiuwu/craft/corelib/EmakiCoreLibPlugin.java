@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,6 +44,9 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerCodecRegistry;
 import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceRegistry;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
+import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
+import emaki.jiuwu.craft.corelib.capability.CapabilityRegistry;
 import emaki.jiuwu.craft.corelib.command.CoreLibBasicCommand;
 import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
@@ -123,6 +127,9 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     // Outlives every reload: it holds the business modules' re-registration routines, which is exactly what
     // rebuilding the stage table needs to replay.
     private final StageRebuildListeners stageRebuildListeners = new StageRebuildListeners();
+    // Outlives every reload as well, but for the opposite reason: a published capability belongs to the
+    // plugin that published it, so re-reading CoreLib's own config must not retract it.
+    private final CapabilityRegistry capabilityRegistry = new CapabilityRegistry();
     private ConfigPrecheckService configPrecheckService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
@@ -182,6 +189,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         registerCommandHandler();
         registerPublicApiService();
+        publishOwnCapabilities();
         installPacketBackend();
         runLegacyActionMigration();
         logStartupAudit();
@@ -212,6 +220,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             stageRegistry.clear();
         }
         stageRebuildListeners.clear();
+        capabilityRegistry.clear();
         BuiltinStages.shutdown();
 
         // Bukkit registrations must be retired while the disable callback still owns the server thread.
@@ -437,6 +446,23 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             coreLibApiBridge.installDialogs(dialogApiBridge);
         }
         EmakiCoreLibApi.install(coreLibApiBridge);
+    }
+
+    /**
+     * 发布 CoreLib 自身提供的能力标识，供跨模块特性探测使用。
+     *
+     * <p>放在 {@link #registerPublicApiService()} 之后调用：能力表示「该 API 已可用」，
+     * 因此必须在 API 门面装好之后才发布。发布失败只记日志而不中断启动——能力缺失时
+     * 消费方会走降级路径，而 CoreLib 本身的功能并不依赖这条声明。
+     */
+    private void publishOwnCapabilities() {
+        CapabilityRegistration registration = capabilityRegistry.publish(
+                this,
+                Set.of(ApiCapability.of("emakicorelib:itemsource_registry"))
+        );
+        if (!registration.successful()) {
+            getLogger().warning("Failed to publish own capabilities: " + registration.reasonKey());
+        }
     }
 
     public BStatsRegistration registerBStats(JavaPlugin plugin, int pluginId) {
@@ -719,6 +745,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /** {@return the per-owner callbacks replayed when the stage table is rebuilt} */
     public StageRebuildListeners stageRebuildListeners() {
         return stageRebuildListeners;
+    }
+
+    /** {@return the cross-module capability registry; never {@code null} and never rebuilt by a reload} */
+    public CapabilityRegistry capabilityRegistry() {
+        return capabilityRegistry;
     }
 
     /** {@return the live pipeline engine, or {@code null} before the first successful reload} */
@@ -1054,6 +1085,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(ThreadOwnership.class, threadOwnership);
         registerService(CorePluginLifecycle.class, corePluginLifecycle);
         registerService(StageRegistry.class, stageRegistry);
+        registerService(CapabilityRegistry.class, capabilityRegistry);
         registerService(ActionEngine.class, actionEngine);
         registerService(PipelineTaskService.class, pipelineTaskService);
         registerService(PlaceholderRegistry.class, placeholderRegistry);

@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
@@ -393,7 +393,7 @@ public final class EmakiItemUpdateService {
             return null;
         }
         writeAssemblyBasePresentation(assemblyState, rebuiltBase);
-        ItemSource source = ItemSourceUtil.parse(prepared.itemDefinition().source());
+        ItemSourceRef source = ItemSourceUtil.parse(prepared.itemDefinition().source());
         ItemStack assembled = assemblyService.preview(
                 new EmakiItemAssemblyRequest(source, amount, assemblyState, List.of()),
                 assemblyRevert.readResult()

@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
@@ -121,7 +121,7 @@ public final class CookingLayerSnapshotBuilder {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

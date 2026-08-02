@@ -4,7 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -14,7 +14,7 @@ record ForgeMaterialContribution(ForgeMaterial material,
         int slot,
         String category,
         int sequence,
-        ItemSource source,
+        ItemSourceRef source,
         double qualityScore) {
 
     ForgeMaterialContribution(ForgeMaterial material,
@@ -22,7 +22,7 @@ record ForgeMaterialContribution(ForgeMaterial material,
             int slot,
             String category,
             int sequence,
-            ItemSource source) {
+            ItemSourceRef source) {
         this(material, amount, slot, category, sequence, source, 0D);
     }
 

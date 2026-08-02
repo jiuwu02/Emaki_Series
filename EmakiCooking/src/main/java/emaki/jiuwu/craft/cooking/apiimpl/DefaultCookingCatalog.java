@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
@@ -78,7 +78,7 @@ public final class DefaultCookingCatalog implements CookingCatalog {
                 || stationType == CookingStationType.FERMENTATION_BARREL) {
             return EmakiResult.rejected("cooking.recipe.single_input_match_unsupported");
         }
-        ItemSource source = plugin.coreItemSourceService().identifyItem(input);
+        ItemSourceRef source = plugin.coreItemSourceService().identifyItem(input);
         if (source == null) {
             return EmakiResult.notFound("cooking.input.source_not_found");
         }

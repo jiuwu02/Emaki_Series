@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -43,7 +43,7 @@ public final class StrengthenRecipeResolver {
 
     public ResolvedItem resolve(ItemStack itemStack, String explicitRecipeId) {
         boolean isEmaki = itemAssemblyService != null && itemAssemblyService.isEmakiItem(itemStack);
-        ItemSource baseSource = resolveBaseSource(itemStack);
+        ItemSourceRef baseSource = resolveBaseSource(itemStack);
         String shorthand = ItemSourceUtil.toShorthand(baseSource);
         Map<String, Double> stats = aggregateStats(itemStack, isEmaki);
         List<String> loreLines = extractLore(itemStack);
@@ -60,7 +60,7 @@ public final class StrengthenRecipeResolver {
         return recipe == null ? "" : recipe.id();
     }
 
-    public ItemSource resolveBaseSource(ItemStack itemStack) {
+    public ItemSourceRef resolveBaseSource(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
@@ -68,7 +68,7 @@ public final class StrengthenRecipeResolver {
             return null;
         }
         if (itemAssemblyService != null && itemAssemblyService.isEmakiItem(itemStack)) {
-            ItemSource stored = itemAssemblyService.readBaseSource(itemStack);
+            ItemSourceRef stored = itemAssemblyService.readBaseSource(itemStack);
             if (stored != null) {
                 return stored;
             }
@@ -78,7 +78,7 @@ public final class StrengthenRecipeResolver {
 
     private String resolveRecipeId(String explicitRecipeId,
             String shorthand,
-            ItemSource baseSource,
+            ItemSourceRef baseSource,
             String slotGroup,
             List<String> loreLines,
             Map<String, Double> stats) {
@@ -98,7 +98,7 @@ public final class StrengthenRecipeResolver {
             Predicate<String> recipeExists,
             List<StrengthenRecipe> orderedRecipes,
             String shorthand,
-            ItemSource baseSource,
+            ItemSourceRef baseSource,
             String slotGroup,
             List<String> loreLines,
             Map<String, Double> stats) {
@@ -121,7 +121,7 @@ public final class StrengthenRecipeResolver {
 
     static boolean matchesRecipe(StrengthenRecipe recipe,
             String shorthand,
-            ItemSource baseSource,
+            ItemSourceRef baseSource,
             String slotGroup,
             List<String> loreLines,
             Map<String, Double> stats) {
@@ -130,7 +130,11 @@ public final class StrengthenRecipeResolver {
         }
         StrengthenRecipe.MatchRule rule = recipe.matchRule();
         if (!rule.sourceTypes().isEmpty()) {
-            String sourceType = baseSource == null || baseSource.getType() == null ? "" : Texts.lower(baseSource.getType().name());
+            // Config writes bare source-type names such as "vanilla" / "craftengine" / "emakiitem",
+            // which used to be the enum constant lower-cased. kind().id() reproduces all nine spellings
+            // exactly, which is why EmakiItem's kind is "emakiitem:emakiitem" rather than the
+            // better-reading "emakiitem:item".
+            String sourceType = baseSource == null ? "" : Texts.lower(baseSource.kind().id());
             if (!rule.sourceTypes().contains(sourceType)) {
                 return false;
             }
@@ -268,7 +272,7 @@ public final class StrengthenRecipeResolver {
         return false;
     }
 
-    private String resolveSlotGroup(ItemStack itemStack, ItemSource baseSource) {
+    private String resolveSlotGroup(ItemStack itemStack, ItemSourceRef baseSource) {
         String name = itemStack == null || itemStack.getType() == null
                 ? ""
                 : itemStack.getType().name().toLowerCase(Locale.ROOT);
@@ -291,7 +295,7 @@ public final class StrengthenRecipeResolver {
         return "weapon";
     }
 
-    public record ResolvedItem(ItemSource baseSource,
+    public record ResolvedItem(ItemSourceRef baseSource,
             String baseSourceSignature,
             Map<String, Double> stats,
             List<String> loreLines,

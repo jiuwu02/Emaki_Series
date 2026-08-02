@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.level.model.LevelFailureReason;
@@ -51,7 +51,7 @@ final class LevelCostTransaction {
                 if (remaining <= 0L) {
                     break;
                 }
-                ItemSource source = ItemSourceUtil.parse(itemToken);
+                ItemSourceRef source = ItemSourceUtil.parse(itemToken);
                 if (source == null) {
                     continue;
                 }

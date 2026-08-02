@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.ForgeRuntimeSnapshot;
@@ -239,7 +239,7 @@ public final class ForgeService {
         return lookupIndex.sortedRecipes();
     }
 
-    public ForgeMaterial findMaterialBySource(ItemSource source) {
+    public ForgeMaterial findMaterialBySource(ItemSourceRef source) {
         return lookupIndex.findMaterialBySource(source);
     }
 
@@ -247,7 +247,7 @@ public final class ForgeService {
         return lookupIndex.findMaterialById(materialId);
     }
 
-    public BlueprintRequirement findBlueprintRequirementBySource(ItemSource source) {
+    public BlueprintRequirement findBlueprintRequirementBySource(ItemSourceRef source) {
         return lookupIndex.findBlueprintRequirementBySource(source);
     }
 
@@ -257,7 +257,7 @@ public final class ForgeService {
 
     private List<Recipe> candidateRecipes(GuiItems guiItems) {
         List<Recipe> candidates = new ArrayList<>(lookupIndex.genericRecipes());
-        ItemSource inputSource = guiItems == null || guiItems.targetItem() == null
+        ItemSourceRef inputSource = guiItems == null || guiItems.targetItem() == null
                 ? null
                 : plugin.itemIdentifierService().identifyItem(guiItems.targetItem());
         if (inputSource == null) {

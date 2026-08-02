@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -347,7 +347,7 @@ public final class GemEconomyService {
         if (materials == null || materials.isEmpty()) {
             return List.of();
         }
-        Map<ItemSource, Integer> aggregated = new LinkedHashMap<>();
+        Map<ItemSourceRef, Integer> aggregated = new LinkedHashMap<>();
         for (GemDefinition.MaterialCost material : materials) {
             if (material == null || material.itemSource() == null || material.amount() <= 0) {
                 continue;
@@ -355,7 +355,7 @@ public final class GemEconomyService {
             aggregated.merge(material.itemSource(), material.amount(), this::saturatedAdd);
         }
         List<GemDefinition.MaterialCost> result = new ArrayList<>(aggregated.size());
-        for (Map.Entry<ItemSource, Integer> entry : aggregated.entrySet()) {
+        for (Map.Entry<ItemSourceRef, Integer> entry : aggregated.entrySet()) {
             result.add(new GemDefinition.MaterialCost(entry.getKey(), entry.getValue()));
         }
         return List.copyOf(result);
@@ -516,7 +516,7 @@ public final class GemEconomyService {
         if (materialDebits == null || materialDebits.isEmpty()) {
             return List.of();
         }
-        Map<ItemSource, Integer> remaining = new LinkedHashMap<>();
+        Map<ItemSourceRef, Integer> remaining = new LinkedHashMap<>();
         for (int index = materialDebits.size() - 1; index >= 0; index--) {
             MaterialDebit debit = materialDebits.get(index);
             long amount = 0L;
@@ -611,7 +611,7 @@ public final class GemEconomyService {
         return available;
     }
 
-    private long countItemCost(Player player, ItemSource targetSource) {
+    private long countItemCost(Player player, ItemSourceRef targetSource) {
         return InventoryItemUtil.countItems(player, itemSourceService, targetSource);
     }
 
@@ -641,7 +641,7 @@ public final class GemEconomyService {
         return placeholders;
     }
 
-    private long countProvidedItemCost(Map<Integer, ItemStack> providedItems, ItemSource targetSource) {
+    private long countProvidedItemCost(Map<Integer, ItemStack> providedItems, ItemSourceRef targetSource) {
         return InventoryItemUtil.countItems(providedItems, itemSourceService, targetSource);
     }
 

@@ -4,7 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 public record SocketOpenerConfig(String id,
         boolean enabled,
-        ItemSource itemSource,
+        ItemSourceRef itemSource,
         Integer customModelData,
         String displayName,
         List<String> lore,

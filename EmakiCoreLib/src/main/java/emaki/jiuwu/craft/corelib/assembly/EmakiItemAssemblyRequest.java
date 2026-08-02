@@ -9,9 +9,9 @@ import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 
-public record EmakiItemAssemblyRequest(ItemSource baseSource,
+public record EmakiItemAssemblyRequest(ItemSourceRef baseSource,
         int amount,
         ItemStack existingItem,
         List<EmakiItemLayerSnapshot> layerSnapshots,
@@ -23,14 +23,14 @@ public record EmakiItemAssemblyRequest(ItemSource baseSource,
         removedNamespaceIds = copyRemovedNamespaces(removedNamespaceIds);
     }
 
-    public EmakiItemAssemblyRequest(ItemSource baseSource,
+    public EmakiItemAssemblyRequest(ItemSourceRef baseSource,
             int amount,
             ItemStack existingItem,
             Collection<EmakiItemLayerSnapshot> layerSnapshots) {
         this(baseSource, amount, existingItem, layerSnapshots, List.of(), null);
     }
 
-    public EmakiItemAssemblyRequest(ItemSource baseSource,
+    public EmakiItemAssemblyRequest(ItemSourceRef baseSource,
             int amount,
             ItemStack existingItem,
             Collection<EmakiItemLayerSnapshot> layerSnapshots,
@@ -38,7 +38,7 @@ public record EmakiItemAssemblyRequest(ItemSource baseSource,
         this(baseSource, amount, existingItem, layerSnapshots, List.of(), feedbackPlayerId);
     }
 
-    public EmakiItemAssemblyRequest(ItemSource baseSource,
+    public EmakiItemAssemblyRequest(ItemSourceRef baseSource,
             int amount,
             ItemStack existingItem,
             Collection<EmakiItemLayerSnapshot> layerSnapshots,
@@ -46,7 +46,7 @@ public record EmakiItemAssemblyRequest(ItemSource baseSource,
         this(baseSource, amount, existingItem, layerSnapshots, removedNamespaceIds, null);
     }
 
-    public EmakiItemAssemblyRequest(ItemSource baseSource,
+    public EmakiItemAssemblyRequest(ItemSourceRef baseSource,
             int amount,
             ItemStack existingItem,
             Collection<EmakiItemLayerSnapshot> layerSnapshots,

@@ -10,7 +10,7 @@ import org.bukkit.event.inventory.InventoryType;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -156,7 +156,7 @@ public final class GuiTemplateParser {
         if (Texts.isNotBlank(item)) {
             return item;
         }
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         return source == null ? null : ItemSourceUtil.toShorthand(source);
     }
 
@@ -167,7 +167,7 @@ public final class GuiTemplateParser {
         if (raw instanceof String text) {
             return Texts.trim(text);
         }
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         return source == null ? null : ItemSourceUtil.toShorthand(source);
     }
 

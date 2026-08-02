@@ -2,8 +2,8 @@ package emaki.jiuwu.craft.cooking;
 
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceType;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import io.th0rgal.oraxen.api.events.furniture.OraxenFurnitureBreakEvent;
 import io.th0rgal.oraxen.api.events.furniture.OraxenFurnitureInteractEvent;
 import io.th0rgal.oraxen.api.events.noteblock.OraxenNoteBlockBreakEvent;
@@ -65,7 +65,7 @@ final class OraxenCookingStationListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onOraxenFurnitureInteract(OraxenFurnitureInteractEvent event) {
         Block block = furnitureBlock(event.getBlock(), event.getBaseEntity());
-        ItemSource source = oraxenSource(event.getMechanic());
+        ItemSourceRef source = oraxenSource(event.getMechanic());
         Player player = event.getPlayer();
         if (player == null || block == null || source == null) {
             return;
@@ -84,7 +84,7 @@ final class OraxenCookingStationListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onOraxenFurnitureBreak(OraxenFurnitureBreakEvent event) {
         Block block = furnitureBlock(event.getBlock(), event.getBaseEntity());
-        ItemSource source = oraxenSource(event.getMechanic());
+        ItemSourceRef source = oraxenSource(event.getMechanic());
         if (block == null || source == null) {
             return;
         }
@@ -101,7 +101,7 @@ final class OraxenCookingStationListener implements Listener {
             Action action,
             EquipmentSlot hand,
             java.util.function.Consumer<Boolean> cancelConsumer,
-            ItemSource source) {
+            ItemSourceRef source) {
         if (player == null || block == null) {
             return;
         }
@@ -119,7 +119,7 @@ final class OraxenCookingStationListener implements Listener {
     private void dispatchBlockBreak(Player player,
             Block block,
             java.util.function.Consumer<Boolean> cancelConsumer,
-            ItemSource source) {
+            ItemSourceRef source) {
         if (player == null || block == null) {
             return;
         }
@@ -138,10 +138,10 @@ final class OraxenCookingStationListener implements Listener {
         return baseEntity == null || baseEntity.getWorld() == null ? null : baseEntity.getLocation().getBlock();
     }
 
-    private ItemSource oraxenSource(Mechanic mechanic) {
+    private ItemSourceRef oraxenSource(Mechanic mechanic) {
         if (mechanic == null || mechanic.getItemID() == null || mechanic.getItemID().isBlank()) {
             return null;
         }
-        return new ItemSource(ItemSourceType.ORAXEN, mechanic.getItemID());
+        return ItemSourceRef.orNull(ItemSourceKind.ORAXEN, mechanic.getItemID());
     }
 }

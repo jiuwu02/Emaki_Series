@@ -18,8 +18,8 @@ import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceProbeStatus;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
@@ -52,7 +52,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                                   boolean skipped,
                                   String source,
                                   String provider,
-                                  ItemSourceProbeStatus sourceStatus) {
+                                  ItemSourceProbeState sourceStatus) {
 
         public RecipeLoadIssue {
             recipeId = Texts.toStringSafe(recipeId);
@@ -70,9 +70,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         }
 
         public boolean capabilityIssue() {
-            return sourceStatus == ItemSourceProbeStatus.RESOLVER_MISSING
-                    || sourceStatus == ItemSourceProbeStatus.PROVIDER_NOT_READY
-                    || sourceStatus == ItemSourceProbeStatus.INCOMPATIBLE;
+            return sourceStatus == ItemSourceProbeState.PROVIDER_MISSING
+                    || sourceStatus == ItemSourceProbeState.PROVIDER_NOT_READY
+                    || sourceStatus == ItemSourceProbeState.INCOMPATIBLE;
         }
     }
 
@@ -86,7 +86,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                                    int guiVisible,
                                    Map<String, Integer> inputSourceTypes,
                                    Map<String, Integer> outputSourceTypes,
-                                   Map<ItemSourceProbeStatus, Integer> sourceStatuses,
+                                   Map<ItemSourceProbeState, Integer> sourceStatuses,
                                    List<RecipeLoadIssue> issues,
                                    String directoryPath,
                                    String fileSummaryHash,
@@ -168,7 +168,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     private final List<RecipeLoadIssue> structuredIssues = new ArrayList<>();
     private final Map<String, Integer> inputSourceTypes = new LinkedHashMap<>();
     private final Map<String, Integer> outputSourceTypes = new LinkedHashMap<>();
-    private final Map<ItemSourceProbeStatus, Integer> sourceStatuses = new LinkedHashMap<>();
+    private final Map<ItemSourceProbeState, Integer> sourceStatuses = new LinkedHashMap<>();
     private final List<File> discoveredFiles = new ArrayList<>();
     private final List<DeferredRecipe> deferredRecipes = new ArrayList<>();
     private final List<DeferredSourceValidation> deferredSourceValidations = new ArrayList<>();
@@ -605,7 +605,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             alternatives = List.of(raw);
         }
         for (Object alternative : alternatives) {
-            ItemSource source = ItemSourceUtil.parse(alternative);
+            ItemSourceRef source = ItemSourceUtil.parse(alternative);
             Object plain = ConfigNodes.toPlainData(alternative);
             if (itemIdentifierService.probeSource(source).ready()) {
                 ready.add(plain);
@@ -720,17 +720,19 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         int ready = 0;
         List<ItemIdentifierService.SourceProbe> probes = new ArrayList<>();
         for (Object alternative : alternatives) {
-            ItemSource source = ItemSourceUtil.parse(alternative);
+            ItemSourceRef source = ItemSourceUtil.parse(alternative);
             ItemIdentifierService.SourceProbe probe = itemIdentifierService == null
                     ? new ItemIdentifierService.SourceProbe(source,
-                    ItemSourceProbeStatus.RESOLVER_MISSING,
+                    ItemSourceProbeState.PROVIDER_MISSING,
                     "EmakiCoreLib",
                     "Item source probing is unavailable.")
                     : itemIdentifierService.probeSource(source, yamlPath);
             probes.add(probe);
             sourceStatuses.merge(probe.status(), 1, Integer::sum);
-            if (source != null && source.getType() != null) {
-                typeDistribution.merge(source.getType().name(), 1, Integer::sum);
+            if (source != null) {
+                // A diagnostic distribution only, reported as-is and never compared against config.
+                // The key was the enum's name(); the kind's canonical key serves the same purpose.
+                typeDistribution.merge(source.kind().key(), 1, Integer::sum);
             }
             if (probe.ready()) {
                 ready++;

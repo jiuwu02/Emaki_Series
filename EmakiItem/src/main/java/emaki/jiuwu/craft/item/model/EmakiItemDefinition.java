@@ -13,8 +13,7 @@ import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceType;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -395,10 +394,10 @@ public final class EmakiItemDefinition {
     }
 
     private static Material projectMaterial(ConfiguredItemDefinition definition) {
-        ItemSource source = definition == null ? null : ItemSourceUtil.parse(definition.source());
-        return source == null || source.getType() != ItemSourceType.VANILLA
+        ItemSourceRef source = definition == null ? null : ItemSourceUtil.parse(definition.source());
+        return source == null || !source.vanilla()
                 ? null
-                : ItemSourceUtil.resolveVanillaMaterial(source.getIdentifier());
+                : ItemSourceUtil.resolveVanillaMaterial(source.identifier());
     }
 
     private static Object componentValue(ConfiguredItemDefinition definition, String componentId) {

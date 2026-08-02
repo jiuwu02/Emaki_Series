@@ -11,7 +11,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -85,7 +85,7 @@ final class ForgeValidationService {
         }
         List<String> parts = new ArrayList<>();
         if (guiItems.targetItem() != null && !guiItems.targetItem().getType().isAir()) {
-            ItemSource source = plugin.itemIdentifierService().identifyItem(guiItems.targetItem());
+            ItemSourceRef source = plugin.itemIdentifierService().identifyItem(guiItems.targetItem());
             parts.add("target=" + (source == null ? guiItems.targetItem().getType().name() : ItemSourceUtil.toShorthand(source)));
         }
         if (guiItems.blueprints() != null) {
@@ -107,7 +107,7 @@ final class ForgeValidationService {
     }
 
     private void addDescribedItem(List<String> parts, String prefix, ItemStack item, boolean includeAmount) {
-        ItemSource source = plugin.itemIdentifierService().identifyItem(item);
+        ItemSourceRef source = plugin.itemIdentifierService().identifyItem(item);
         String value = prefix + "=" + (source == null ? item.getType().name() : ItemSourceUtil.toShorthand(source));
         parts.add(includeAmount ? value + " x" + item.getAmount() : value);
     }

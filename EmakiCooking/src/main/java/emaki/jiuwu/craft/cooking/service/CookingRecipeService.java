@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -23,7 +23,7 @@ public final class CookingRecipeService {
 
     private final EmakiCookingPlugin plugin;
     private final CookingSettingsService settingsService;
-    private final Map<RecipeDocument, ItemSource> parsedSourceCache = new ConcurrentHashMap<>();
+    private final Map<RecipeDocument, ItemSourceRef> parsedSourceCache = new ConcurrentHashMap<>();
 
     public CookingRecipeService(EmakiCookingPlugin plugin, CookingSettingsService settingsService) {
         this.plugin = plugin;
@@ -185,7 +185,7 @@ public final class CookingRecipeService {
         return null;
     }
 
-    public List<ItemSource> juicerContainerSources(RecipeDocument recipe) {
+    public List<ItemSourceRef> juicerContainerSources(RecipeDocument recipe) {
         if (recipe == null) {
             return List.of();
         }
@@ -428,7 +428,7 @@ public final class CookingRecipeService {
         if (recipes == null || recipes.isEmpty() || Texts.isBlank(inputSource)) {
             return null;
         }
-        ItemSource expected = ItemSourceUtil.parse(inputSource);
+        ItemSourceRef expected = ItemSourceUtil.parse(inputSource);
         if (expected == null) {
             return null;
         }
@@ -436,7 +436,7 @@ public final class CookingRecipeService {
             if (recipe == null) {
                 continue;
             }
-            ItemSource configured = parsedSourceCache.computeIfAbsent(recipe,
+            ItemSourceRef configured = parsedSourceCache.computeIfAbsent(recipe,
                     r -> ItemSourceUtil.parse(r.configuration().get("input.item_sources")));
             if (configured == null || !ItemSourceUtil.matches(configured, expected)) {
                 continue;
@@ -476,15 +476,15 @@ public final class CookingRecipeService {
     }
 
     private String firstSourceShorthand(Object raw) {
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }
 
-    private List<ItemSource> parseItemSources(Object raw) {
-        List<ItemSource> sources = new ArrayList<>();
+    private List<ItemSourceRef> parseItemSources(Object raw) {
+        List<ItemSourceRef> sources = new ArrayList<>();
         for (Object token : emaki.jiuwu.craft.corelib.config.ConfigNodes.asObjectList(raw)) {
-            ItemSource source = ItemSourceUtil.parse(token);
+            ItemSourceRef source = ItemSourceUtil.parse(token);
             if (source != null) {
                 sources.add(source);
             }

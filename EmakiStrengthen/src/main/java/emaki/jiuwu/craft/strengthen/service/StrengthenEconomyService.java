@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -398,7 +398,7 @@ public final class StrengthenEconomyService {
         if (player == null || player.getInventory() == null || amount <= 0L || amount > Integer.MAX_VALUE) {
             return false;
         }
-        ItemSource source = ItemSourceUtil.parse(itemToken);
+        ItemSourceRef source = ItemSourceUtil.parse(itemToken);
         ItemStack itemStack = source == null ? null : plugin.coreItemFactory().create(source, (int) amount);
         if (itemStack == null || itemStack.isEmpty()) {
             return false;

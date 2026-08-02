@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
 import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -165,7 +165,7 @@ final class ConfiguredGuiSupport {
         if (Texts.isNotBlank(configuredItem)) {
             return configuredItem;
         }
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         if (source != null) {
             String shorthand = ItemSourceUtil.toShorthand(source);
             if (Texts.isNotBlank(shorthand)) {

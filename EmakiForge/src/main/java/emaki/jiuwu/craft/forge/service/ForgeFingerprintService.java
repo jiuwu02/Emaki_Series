@@ -8,7 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -68,7 +68,7 @@ final class ForgeFingerprintService {
         if (parts == null || itemStack == null || itemStack.getType() == Material.AIR) {
             return;
         }
-        ItemSource source = plugin.itemIdentifierService().identifyItem(itemStack);
+        ItemSourceRef source = plugin.itemIdentifierService().identifyItem(itemStack);
         parts.add(prefix);
         parts.add(source == null ? "" : ItemSourceUtil.toShorthand(source));
         parts.add(itemStack.getAmount());

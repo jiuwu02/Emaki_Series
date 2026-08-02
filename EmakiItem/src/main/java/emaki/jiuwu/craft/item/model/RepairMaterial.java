@@ -3,12 +3,12 @@ package emaki.jiuwu.craft.item.model;
 import java.util.List;
 import java.util.Objects;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
-public record RepairMaterial(List<ItemSource> itemSources,
+public record RepairMaterial(List<ItemSourceRef> itemSources,
         int amount,
         String restoreRaw) {
 
@@ -24,7 +24,7 @@ public record RepairMaterial(List<ItemSource> itemSources,
         return !itemSources.isEmpty();
     }
 
-    public boolean matches(ItemSource source) {
+    public boolean matches(ItemSourceRef source) {
         if (source == null) {
             return false;
         }

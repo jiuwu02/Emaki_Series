@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.cooking.model;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 
 
 
@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSource;
 
 
 
-public record NutritionFoodSource(List<ItemSource> itemSources,
+public record NutritionFoodSource(List<ItemSourceRef> itemSources,
         Map<String, Double> nutrition,
         List<String> actions) {
 

@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridgeHolder;
-import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRegistration;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -59,7 +59,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml", "gui/repair_gui.yml", "id_aliases.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets", "gui");
 
-    private ItemSourceService.ResolverRegistration itemSourceResolverRegistration;
+    private ItemSourceRegistration itemSourceResolverRegistration;
 
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
@@ -342,8 +342,10 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     public void registerServices(EmakiItemPlugin plugin) {
         closeItemSourceResolver();
+        // Owner is EmakiItem itself: the provider is revoked when EmakiItem disables, not when CoreLib
+        // reloads, because the definitions it resolves belong to this plugin's lifetime.
         itemSourceResolverRegistration = plugin.itemSourceService()
-                .registerResolverHandle(new EmakiItemSourceResolver(plugin.itemApi()));
+                .registerProvider(plugin, new EmakiItemSourceResolver(plugin.itemApi()));
     }
 
     public void shutdown(EmakiItemPlugin plugin) {
@@ -422,7 +424,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     }
 
     private void closeItemSourceResolver() {
-        ItemSourceService.ResolverRegistration registration = itemSourceResolverRegistration;
+        ItemSourceRegistration registration = itemSourceResolverRegistration;
         itemSourceResolverRegistration = null;
         if (registration != null) {
             registration.close();

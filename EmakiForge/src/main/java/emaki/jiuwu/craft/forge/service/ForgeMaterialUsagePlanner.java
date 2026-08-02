@@ -9,7 +9,7 @@ import java.util.function.ToIntFunction;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -269,7 +269,7 @@ final class ForgeMaterialUsagePlanner {
         return total;
     }
 
-    private String blueprintKey(Recipe recipe, ItemSource source) {
+    private String blueprintKey(Recipe recipe, ItemSourceRef source) {
         if (recipe == null || source == null) {
             return "";
         }
@@ -281,12 +281,12 @@ final class ForgeMaterialUsagePlanner {
         return "";
     }
 
-    private String materialKey(Recipe recipe, ItemSource source, boolean optional) {
+    private String materialKey(Recipe recipe, ItemSourceRef source, boolean optional) {
         ForgeMaterial material = recipe == null || source == null ? null : recipe.findMaterialBySource(source, optional);
         return material == null ? "" : material.key();
     }
 
-    private ItemSource identify(ItemStack itemStack) {
+    private ItemSourceRef identify(ItemStack itemStack) {
         ItemIdentifierService identifier = itemIdentifierService != null
                 ? itemIdentifierService
                 : plugin == null ? null : plugin.itemIdentifierService();
@@ -308,10 +308,10 @@ final class ForgeMaterialUsagePlanner {
     @FunctionalInterface
     private interface InputKeyResolver {
 
-        String resolve(ItemSource source);
+        String resolve(ItemSourceRef source);
     }
 
-    private record InputStack(int slot, ItemStack itemStack, ItemSource source) {
+    private record InputStack(int slot, ItemStack itemStack, ItemSourceRef source) {
 
     }
 }

@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.gem.loader;
 import java.io.File;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
@@ -38,7 +38,7 @@ public final class GemLoader extends YamlDirectoryLoader<GemDefinition> {
             onBlankId(file);
             return null;
         }
-        ItemSource itemSource = ItemSourceUtil.parse(configuration.get("item_sources"));
+        ItemSourceRef itemSource = ItemSourceUtil.parse(configuration.get("item_sources"));
         if (itemSource == null) {
             issue("loader.gem_missing_item_source", Map.of(
                     "file", file.getName(),

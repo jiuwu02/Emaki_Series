@@ -14,7 +14,7 @@ import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
@@ -106,12 +106,12 @@ public final class StageSupport {
      * @param raw raw argument value
      * @return the parsed source, or {@code null} when it cannot be parsed
      */
-    public static ItemSource itemSource(String raw) {
+    public static ItemSourceRef itemSource(String raw) {
         return ItemSourceUtil.parse(Texts.trim(raw));
     }
 
     /** {@return the shorthand form of {@code source}, never {@code null}} */
-    public static String shorthand(ItemSource source) {
+    public static String shorthand(ItemSourceRef source) {
         return Texts.toStringSafe(ItemSourceUtil.toShorthand(source));
     }
 

@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
@@ -100,7 +100,7 @@ public final class StrengthenAttemptService {
         if (itemStack == null || itemStack.getType().isAir()) {
             return new ResolvedState(StrengthenState.ineligible("strengthen.error.no_target", null, ""), StoredState.empty(null, ""));
         }
-        ItemSource initialBaseSource = recipeResolver.resolveBaseSource(itemStack);
+        ItemSourceRef initialBaseSource = recipeResolver.resolveBaseSource(itemStack);
         String initialSignature = ItemSourceUtil.toShorthand(initialBaseSource);
         StoredState stored = readStoredState(itemStack, initialBaseSource, initialSignature);
         StrengthenRecipeResolver.ResolvedItem resolved = recipeResolver.resolve(itemStack, stored.recipeId());
@@ -608,7 +608,7 @@ public final class StrengthenAttemptService {
                 currentStar, temper, false, 0, Map.of(), Set.of(), List.of(), List.of());
     }
 
-    private StoredState readStoredState(ItemStack itemStack, ItemSource baseSource, String fallbackSignature) {
+    private StoredState readStoredState(ItemStack itemStack, ItemSourceRef baseSource, String fallbackSignature) {
         if (itemAssemblyService == null || itemStack == null || !itemAssemblyService.isEmakiItem(itemStack)) {
             return StoredState.empty(baseSource, fallbackSignature);
         }
@@ -818,7 +818,7 @@ public final class StrengthenAttemptService {
             String baseSourceSignature,
             String branchPath) {
 
-        private static StoredState empty(ItemSource baseSource, String fallbackSignature) {
+        private static StoredState empty(ItemSourceRef baseSource, String fallbackSignature) {
             String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
             return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature, "");
         }

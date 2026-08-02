@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -60,12 +60,12 @@ public final class ClearItemStage extends BaseStage {
         }
         String requested = arguments.getString("item_source");
         if (Texts.isNotBlank(requested)) {
-            ItemSource expected = StageSupport.itemSource(requested);
+            ItemSourceRef expected = StageSupport.itemSource(requested);
             if (expected == null) {
                 return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
                         "action.stage.item.invalid_item_source", Map.of("item_source", requested));
             }
-            ItemSource actual = itemSourceService == null ? null : itemSourceService.identifyItem(current);
+            ItemSourceRef actual = itemSourceService == null ? null : itemSourceService.identifyItem(current);
             if (!ItemSourceUtil.matches(expected, actual)) {
                 return CoreActionOutcome.skipped("action.stage.item.source_mismatch");
             }

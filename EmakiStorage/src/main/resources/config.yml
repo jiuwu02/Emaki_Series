@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.8"
+version: "1.0.11"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -158,6 +158,13 @@ behavior:
   # 从 true 改回 false 不丢数据：已超限的条目仍占一格、显示按 100% 截断、
   # 拒绝新存入、可正常取空。
   multi_slot_stacking: false
+  # 单次 API 原子批量（applyBatchAsync / reserveAsync）允许携带的增减项上限。
+  # 批量在玩家 owner 线程内一次预检、一次提交，项数越多单 tick 停留越久，
+  # 因此这里是一道保护上限而不是性能开关。
+  # 超出上限的请求整批拒绝（INVALID_INPUT + batch_too_large），不会截断执行——
+  # 被截断的批量等于一份只扣了一半材料的配方。
+  # 取值范围 1..2000，超出会被夹紧。仅影响 API 调用，GUI 与命令不走此路径。
+  batch_max_ops: 200
   # 排序默认值：material_asc|material_desc|name_asc|name_desc|amount_asc|amount_desc
   default_sort: amount_desc
   # 是否允许玩家在 GUI 中切换排序（false 时强制使用 default_sort）

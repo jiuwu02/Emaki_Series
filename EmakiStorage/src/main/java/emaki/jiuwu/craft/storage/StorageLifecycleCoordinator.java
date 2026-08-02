@@ -278,6 +278,7 @@ final class StorageLifecycleCoordinator
                 depositFilter,
                 bool(section, "allow_unique_items", defaults.allowUniqueItems()),
                 bool(section, "multi_slot_stacking", defaults.multiSlotStacking()),
+                (int) longValue(section, "batch_max_ops", defaults.batchMaxOps()),
                 SortMode.fromId(section.getString("default_sort", null), defaults.defaultSort()),
                 bool(section, "player_sort_enabled", defaults.playerSortEnabled()));
     }

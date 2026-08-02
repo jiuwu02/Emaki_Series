@@ -2,21 +2,40 @@ package emaki.jiuwu.craft.corelib.item;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeResult;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
 
-final class MmoItemsItemSourceResolver implements ItemSourceResolver {
+/**
+ * MMOItems bridge.
+ *
+ * <p>Implements {@link ItemSourceProvider} directly rather than extending
+ * {@link AbstractManagedItemSourceProvider}: MMOItems has no "items loaded" event to hook, its readiness
+ * is a plain {@code MMOItems.plugin != null} check, and an identifier here is a composite
+ * {@code <type>:<item>} that the shared accessor shape cannot express.
+ */
+final class MmoItemsItemSourceResolver implements ItemSourceProvider {
 
     private static final String PLUGIN_NAME = "MMOItems";
 
     @Override
-    public String id() {
-        return "corelib_mmoitems";
+    public ItemSourceKind kind() {
+        return ItemSourceKind.MMOITEMS;
+    }
+
+    @Override
+    public Set<String> shorthandPrefixes() {
+        return Set.of("mmoitems-", "mi-");
     }
 
     @Override
@@ -25,70 +44,51 @@ final class MmoItemsItemSourceResolver implements ItemSourceResolver {
     }
 
     @Override
-    public boolean supports(ItemSource source) {
-        return source != null && source.getType() == ItemSourceType.MMOITEMS;
+    public String providerPluginName() {
+        return PLUGIN_NAME;
     }
 
     @Override
-    public boolean isAvailable(ItemSource source) {
-        return probe(source).ready();
+    public boolean supports(ItemSourceRef ref) {
+        return ref != null && ItemSourceKind.MMOITEMS.equals(ref.kind());
     }
 
     @Override
-    public ItemSourceProbe probe(ItemSource source) {
-        if (source == null || source.getType() == null || !supports(source)) {
-            return ItemSourceProbe.of(
-                    ItemSourceProbeStatus.INVALID_SOURCE,
-                    source,
-                    id(),
-                    "The item source is invalid or unsupported by the MMOItems resolver."
-            );
+    public ItemSourceProbeResult probe(ItemSourceRef ref) {
+        String providerId = kind().key();
+        if (!supports(ref)) {
+            return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, ref, providerId,
+                    "The item source is invalid or unsupported by the MMOItems provider.");
         }
-        MmoItemsKey key = MmoItemsKey.parse(source.getIdentifier());
+        MmoItemsKey key = MmoItemsKey.parse(ref.identifier());
         if (key == null) {
-            return ItemSourceProbe.of(
-                    ItemSourceProbeStatus.INVALID_SOURCE,
-                    source,
-                    id(),
-                    "MMOItems sources require a '<type>:<item>' identifier."
-            );
+            return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, ref, providerId,
+                    "MMOItems sources require a '<type>:<item>' identifier.");
         }
         try {
             if (!mmoItemsReady()) {
-                return ItemSourceProbe.of(
-                        ItemSourceProbeStatus.PROVIDER_NOT_READY,
-                        source,
-                        id(),
-                        "MMOItems is not enabled or its API instance is not ready."
-                );
+                return ItemSourceProbeResult.of(ItemSourceProbeState.PROVIDER_NOT_READY, ref, providerId,
+                        "MMOItems is not enabled or its API instance is not ready.");
             }
             Type type = resolveType(key.typeId());
             if (type == null) {
-                return ItemSourceProbe.of(
-                        ItemSourceProbeStatus.SOURCE_NOT_FOUND,
-                        source,
-                        id(),
-                        "MMOItems does not contain the requested item type."
-                );
+                return ItemSourceProbeResult.of(ItemSourceProbeState.SOURCE_NOT_FOUND, ref, providerId,
+                        "MMOItems does not contain the requested item type.");
             }
             ItemStack itemStack = createItem(type, key.itemId(), 1);
             return itemStack == null || itemStack.getType().isAir()
-                    ? ItemSourceProbe.of(
-                    ItemSourceProbeStatus.SOURCE_NOT_FOUND,
-                    source,
-                    id(),
-                    "MMOItems does not contain the requested item."
-            )
-                    : ItemSourceProbe.ready(source, id());
+                    ? ItemSourceProbeResult.of(ItemSourceProbeState.SOURCE_NOT_FOUND, ref, providerId,
+                            "MMOItems does not contain the requested item.")
+                    : ItemSourceProbeResult.ready(ref, providerId);
         } catch (LinkageError exception) {
-            return ItemSourceProbe.of(ItemSourceProbeStatus.INCOMPATIBLE, source, id(), detail(exception));
+            return ItemSourceProbeResult.of(ItemSourceProbeState.INCOMPATIBLE, ref, providerId, detail(exception));
         } catch (RuntimeException exception) {
-            return ItemSourceProbe.of(ItemSourceProbeStatus.RESOLUTION_ERROR, source, id(), detail(exception));
+            return ItemSourceProbeResult.of(ItemSourceProbeState.RESOLUTION_ERROR, ref, providerId, detail(exception));
         }
     }
 
     @Override
-    public ItemSource identify(ItemStack itemStack) {
+    public ItemSourceRef identify(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir() || !mmoItemsReady()) {
             return null;
         }
@@ -98,18 +98,18 @@ final class MmoItemsItemSourceResolver implements ItemSourceResolver {
             if (type == null || Texts.isBlank(type.getId()) || Texts.isBlank(itemId)) {
                 return null;
             }
-            return new ItemSource(ItemSourceType.MMOITEMS, type.getId() + ":" + itemId);
+            return ItemSourceRef.orNull(ItemSourceKind.MMOITEMS, type.getId() + ":" + itemId);
         } catch (RuntimeException | LinkageError exception) {
             return null;
         }
     }
 
     @Override
-    public ItemStack create(ItemSource source, int amount) {
-        if (!supports(source) || !mmoItemsReady()) {
+    public ItemStack create(ItemSourceRef ref, int amount) {
+        if (!supports(ref) || !mmoItemsReady()) {
             return null;
         }
-        MmoItemsKey key = MmoItemsKey.parse(source.getIdentifier());
+        MmoItemsKey key = MmoItemsKey.parse(ref.identifier());
         if (key == null) {
             return null;
         }
@@ -131,11 +131,11 @@ final class MmoItemsItemSourceResolver implements ItemSourceResolver {
     }
 
     @Override
-    public String displayName(ItemSource source) {
-        if (!supports(source) || !mmoItemsReady()) {
+    public String displayName(ItemSourceRef ref) {
+        if (!supports(ref) || !mmoItemsReady()) {
             return null;
         }
-        MmoItemsKey key = MmoItemsKey.parse(source.getIdentifier());
+        MmoItemsKey key = MmoItemsKey.parse(ref.identifier());
         if (key == null) {
             return null;
         }

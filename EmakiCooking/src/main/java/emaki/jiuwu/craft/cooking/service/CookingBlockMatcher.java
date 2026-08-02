@@ -7,8 +7,8 @@ import org.bukkit.block.Block;
 
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceType;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import org.bukkit.Material;
 
@@ -50,11 +50,11 @@ public final class CookingBlockMatcher {
         return matches(block, stationType, null);
     }
 
-    public boolean matches(Block block, StationType stationType, ItemSource stationSource) {
+    public boolean matches(Block block, StationType stationType, ItemSourceRef stationSource) {
         if (stationType == null) {
             return false;
         }
-        for (ItemSource source : settingsService.stationBlockSources(stationType)) {
+        for (ItemSourceRef source : settingsService.stationBlockSources(stationType)) {
             if (matches(block, source) || sourceMatches(source, stationSource)) {
                 return true;
             }
@@ -62,36 +62,56 @@ public final class CookingBlockMatcher {
         return false;
     }
 
-    public boolean matches(Block block, ItemSource source) {
-        if (block == null || source == null || source.getType() == null) {
+    public boolean matches(Block block, ItemSourceRef source) {
+        if (block == null || source == null) {
             return false;
         }
-        return switch (source.getType()) {
-            case VANILLA -> matchesVanilla(block, source.getIdentifier());
-            case CRAFTENGINE -> craftEngineBlockBridge != null && craftEngineBlockBridge.matches(block, source.getIdentifier());
-            case ITEMSADDER -> itemsAdderBlockBridge != null && itemsAdderBlockBridge.matches(block, source.getIdentifier());
-            case NEXO -> nexoBlockBridge != null && nexoBlockBridge.matches(block, source.getIdentifier());
-            case ORAXEN -> oraxenBlockBridge != null && oraxenBlockBridge.matches(block, source.getIdentifier());
-            default -> false;
-        };
+        // An if-chain rather than a switch: the kind is a record now, so it cannot be a switch label.
+        // Only these five kinds have a block form; anything else is item-only and never matches a block.
+        ItemSourceKind kind = source.kind();
+        if (ItemSourceKind.VANILLA.equals(kind)) {
+            return matchesVanilla(block, source.identifier());
+        }
+        if (ItemSourceKind.CRAFTENGINE.equals(kind)) {
+            return craftEngineBlockBridge != null && craftEngineBlockBridge.matches(block, source.identifier());
+        }
+        if (ItemSourceKind.ITEMSADDER.equals(kind)) {
+            return itemsAdderBlockBridge != null && itemsAdderBlockBridge.matches(block, source.identifier());
+        }
+        if (ItemSourceKind.NEXO.equals(kind)) {
+            return nexoBlockBridge != null && nexoBlockBridge.matches(block, source.identifier());
+        }
+        if (ItemSourceKind.ORAXEN.equals(kind)) {
+            return oraxenBlockBridge != null && oraxenBlockBridge.matches(block, source.identifier());
+        }
+        return false;
     }
 
-    private boolean sourceMatches(ItemSource expected, ItemSource actual) {
+    private boolean sourceMatches(ItemSourceRef expected, ItemSourceRef actual) {
         return ItemSourceUtil.matches(expected, actual);
     }
 
-    public boolean place(Block block, ItemSource source) {
-        if (block == null || source == null || source.getType() == null) {
+    public boolean place(Block block, ItemSourceRef source) {
+        if (block == null || source == null) {
             return false;
         }
-        return switch (source.getType()) {
-            case VANILLA -> placeVanilla(block, source.getIdentifier());
-            case CRAFTENGINE -> craftEngineBlockBridge != null && craftEngineBlockBridge.placeBlock(block, source.getIdentifier());
-            case ITEMSADDER -> itemsAdderBlockBridge != null && itemsAdderBlockBridge.placeBlock(block, source.getIdentifier());
-            case NEXO -> nexoBlockBridge != null && nexoBlockBridge.placeBlock(block, source.getIdentifier());
-            case ORAXEN -> oraxenBlockBridge != null && oraxenBlockBridge.placeBlock(block, source.getIdentifier());
-            default -> false;
-        };
+        ItemSourceKind kind = source.kind();
+        if (ItemSourceKind.VANILLA.equals(kind)) {
+            return placeVanilla(block, source.identifier());
+        }
+        if (ItemSourceKind.CRAFTENGINE.equals(kind)) {
+            return craftEngineBlockBridge != null && craftEngineBlockBridge.placeBlock(block, source.identifier());
+        }
+        if (ItemSourceKind.ITEMSADDER.equals(kind)) {
+            return itemsAdderBlockBridge != null && itemsAdderBlockBridge.placeBlock(block, source.identifier());
+        }
+        if (ItemSourceKind.NEXO.equals(kind)) {
+            return nexoBlockBridge != null && nexoBlockBridge.placeBlock(block, source.identifier());
+        }
+        if (ItemSourceKind.ORAXEN.equals(kind)) {
+            return oraxenBlockBridge != null && oraxenBlockBridge.placeBlock(block, source.identifier());
+        }
+        return false;
     }
 
     public boolean setCustomLit(Block block, boolean lit) {

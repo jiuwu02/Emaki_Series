@@ -1,7 +1,11 @@
 package emaki.jiuwu.craft.storage.apiimpl;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -20,7 +24,10 @@ import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.EmakiStorageApi;
 import emaki.jiuwu.craft.storage.api.StorageOperations;
+import emaki.jiuwu.craft.storage.api.model.ReservationHandle;
 import emaki.jiuwu.craft.storage.api.model.StorageAmount;
+import emaki.jiuwu.craft.storage.api.model.StorageBatchRequest;
+import emaki.jiuwu.craft.storage.api.model.StorageBatchResult;
 import emaki.jiuwu.craft.storage.api.model.StorageEntrySnapshot;
 import emaki.jiuwu.craft.storage.model.StorageResult;
 import emaki.jiuwu.craft.storage.api.model.StorageSnapshot;
@@ -30,6 +37,7 @@ import emaki.jiuwu.craft.storage.log.StorageOperationType;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
+import emaki.jiuwu.craft.storage.service.StorageTransactionService;
 
 /** Runtime bridge backing {@link EmakiStorageApi}. */
 public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
@@ -78,7 +86,8 @@ public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
                 continue;
             }
             entries.add(entry.toSnapshot(index,
-                    plugin.capacityService().effectiveStackLimit(storage, entry)));
+                    plugin.capacityService().effectiveStackLimit(storage, entry),
+                    storage.reservedAmount(entry.key())));
         }
         return new StorageSnapshot(storage.playerId(), entries, capacity,
                 storage.defaultStackLimit(), storage.sortMode().id());
@@ -162,7 +171,7 @@ public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
 
     private static FailureKind failureKind(String reasonKey) {
         return switch (reasonKey) {
-            case "invalid_item", "invalid_amount" -> FailureKind.INVALID_INPUT;
+            case "invalid_item", "invalid_amount", "invalid_delta" -> FailureKind.INVALID_INPUT;
             case "entry_missing", "slot_empty", "empty_slot" -> FailureKind.NOT_FOUND;
             default -> FailureKind.REJECTED;
         };
@@ -318,6 +327,116 @@ public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
                     : EmakiResult.failure(FailureKind.UNAVAILABLE, "storage.gui_unavailable");
         }
 
+        @Override
+        public @NotNull CompletableFuture<EmakiResult<StorageBatchResult>> applyBatchAsync(
+                @Nullable UUID playerId, @Nullable StorageBatchRequest request) {
+            EmakiResult<StorageBatchResult> invalid = validateBatch(request);
+            if (invalid != null) {
+                return completed(invalid);
+            }
+            return mutate(playerId, storage -> {
+                Player player = plugin.onlinePlayer(playerId);
+                var capacity = plugin.capacityService().capacityOf(storage, player,
+                        plugin.storageGuiService().slotsPerPage());
+                StorageTransactionService.BatchOutcome outcome = plugin.transactionService().applyBatch(
+                        storage, player, capacity, request.ops(), request.allOrNothing(),
+                        StorageOperationSource.API);
+                return mapBatch(request, outcome);
+            }, "storage.batch_failed");
+        }
+
+        @Override
+        public @NotNull CompletableFuture<EmakiResult<Map<ItemStack, Long>>> countAllAsync(
+                @Nullable UUID playerId, @Nullable Collection<ItemStack> templates) {
+            if (templates == null || templates.isEmpty()) {
+                return completed(EmakiResult.invalidInput("invalid_item"));
+            }
+            List<ItemStack> requested = new ArrayList<>(templates.size());
+            for (ItemStack template : templates) {
+                if (template == null || template.getType().isAir()) {
+                    return completed(EmakiResult.invalidInput("invalid_item"));
+                }
+                requested.add(template);
+            }
+            return readSnapshotAsync(playerId).thenApply(result -> switch (result) {
+                case EmakiResult.Success<StorageSnapshot> success ->
+                    EmakiResult.success(countAll(success.value(), requested));
+                case EmakiResult.Partial<StorageSnapshot> partial ->
+                    EmakiResult.partial(countAll(partial.value(), requested), partial.reasonKey());
+                case EmakiResult.Failure<StorageSnapshot> failure -> failure.retypeFailure();
+            });
+        }
+
+        @Override
+        public @NotNull CompletableFuture<EmakiResult<ReservationHandle>> reserveAsync(@Nullable UUID playerId,
+                @Nullable StorageBatchRequest request, @Nullable Duration ttl) {
+            EmakiResult<ReservationHandle> invalid = validateBatch(request);
+            if (invalid != null) {
+                return completed(invalid);
+            }
+            if (ttl == null || ttl.isZero() || ttl.isNegative()) {
+                return completed(EmakiResult.invalidInput("invalid_ttl"));
+            }
+            return mutate(playerId, storage -> {
+                Player player = plugin.onlinePlayer(playerId);
+                var capacity = plugin.capacityService().capacityOf(storage, player,
+                        plugin.storageGuiService().slotsPerPage());
+                return plugin.transactionService().reserve(storage, capacity, request.ops(), ttl)
+                        .map(reservationId -> {
+                            storage.markDirty();
+                            return EmakiResult.success(new ReservationHandle(reservationId, playerId));
+                        })
+                        .orElseGet(() -> EmakiResult.failure(FailureKind.REJECTED, "insufficient_stock"));
+            }, "storage.reserve_failed");
+        }
+
+        @Override
+        public @NotNull CompletableFuture<EmakiResult<StorageBatchResult>> commitAsync(
+                @Nullable ReservationHandle handle) {
+            if (handle == null || handle.reservationId() == null || handle.playerId() == null) {
+                return completed(EmakiResult.invalidInput("storage.invalid_reservation"));
+            }
+            return mutate(handle.playerId(), storage -> {
+                Player player = plugin.onlinePlayer(handle.playerId());
+                var capacity = plugin.capacityService().capacityOf(storage, player,
+                        plugin.storageGuiService().slotsPerPage());
+                StorageTransactionService.CommitOutcome commit = plugin.transactionService().commitReservation(
+                        storage, player, capacity, handle.reservationId(), StorageOperationSource.API);
+                if (commit.outcome() == null) {
+                    return EmakiResult.notFound("reservation_missing");
+                }
+                return mapBatch(commit.allOrNothing(), commit.outcome());
+            }, "storage.commit_failed");
+        }
+
+        @Override
+        public @NotNull CompletableFuture<EmakiResult<Unit>> releaseAsync(@Nullable ReservationHandle handle) {
+            if (handle == null || handle.reservationId() == null || handle.playerId() == null) {
+                return completed(EmakiResult.invalidInput("storage.invalid_reservation"));
+            }
+            return mutate(handle.playerId(), storage -> {
+                if (storage.removeReservation(handle.reservationId()) == null) {
+                    return EmakiResult.<Unit>notFound("reservation_missing");
+                }
+                storage.markDirty();
+                return EmakiResult.ok();
+            }, "storage.release_failed");
+        }
+
+        private <T> EmakiResult<T> validateBatch(StorageBatchRequest request) {
+            if (request == null || request.empty()) {
+                return EmakiResult.invalidInput("batch_empty");
+            }
+            if (!isReady()) {
+                return EmakiResult.unavailable();
+            }
+            int maximum = plugin.transactionService().batchMaxOps();
+            if (request.ops().size() > maximum) {
+                return EmakiResult.invalidInput("batch_too_large");
+            }
+            return null;
+        }
+
         private long count(StorageSnapshot snapshot, ItemStack template) {
             StorageKey key = StorageKey.of(template);
             ItemStack normalized = key.toItemStack();
@@ -328,5 +447,45 @@ public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
             }
             return 0L;
         }
+
+        private Map<ItemStack, Long> countAll(StorageSnapshot snapshot, List<ItemStack> templates) {
+            Map<ItemStack, Long> counts = new LinkedHashMap<>(templates.size());
+            for (ItemStack template : templates) {
+                counts.put(template, count(snapshot, template));
+            }
+            return Map.copyOf(counts);
+        }
+    }
+
+    private static EmakiResult<StorageBatchResult> mapBatch(StorageBatchRequest request,
+            StorageTransactionService.BatchOutcome outcome) {
+        return mapBatch(request.allOrNothing(), outcome);
+    }
+
+    /**
+     * Maps a transaction-layer batch outcome onto the public result.
+     *
+     * <p>An all-or-nothing batch is never reported as {@code Partial}: it either applied every op or
+     * applied none, so a partial result would tell the caller something that cannot have happened.
+     */
+    private static EmakiResult<StorageBatchResult> mapBatch(boolean allOrNothing,
+            StorageTransactionService.BatchOutcome outcome) {
+        if (outcome.cancelled()) {
+            return EmakiResult.failure(FailureKind.CANCELLED, "batch_cancelled");
+        }
+        int opCount = outcome.requested().size();
+        List<StorageAmount> amounts = new ArrayList<>(opCount);
+        for (int index = 0; index < opCount; index++) {
+            long applied = index < outcome.applied().size() ? outcome.applied().get(index) : 0L;
+            amounts.add(new StorageAmount(outcome.requested().get(index), applied));
+        }
+        StorageBatchResult result = new StorageBatchResult(amounts, outcome.failedIndex(),
+                outcome.reasonKey());
+        if (!outcome.failed()) {
+            return EmakiResult.success(result);
+        }
+        return allOrNothing
+                ? EmakiResult.failure(failureKind(outcome.reasonKey()), outcome.reasonKey())
+                : EmakiResult.partial(result, outcome.reasonKey());
     }
 }

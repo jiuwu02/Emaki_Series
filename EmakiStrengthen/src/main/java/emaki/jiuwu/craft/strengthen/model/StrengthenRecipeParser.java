@@ -10,7 +10,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.condition.ConditionNode;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -274,7 +274,7 @@ public final class StrengthenRecipeParser {
     }
 
     static String parseMaterialItem(Object rawEntry) {
-        ItemSource source = ItemSourceUtil.parse(ConfigNodes.get(rawEntry, "item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(ConfigNodes.get(rawEntry, "item_sources"));
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

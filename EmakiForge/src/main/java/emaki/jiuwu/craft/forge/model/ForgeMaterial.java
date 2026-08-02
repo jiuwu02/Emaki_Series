@@ -7,7 +7,7 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -70,14 +70,14 @@ public final class ForgeMaterial {
     private final boolean optional;
     private final int capacityCost;
     private final List<MaterialEffect> effects;
-    private final ItemSource source;
+    private final ItemSourceRef source;
 
     public ForgeMaterial(String item,
             int amount,
             boolean optional,
             int capacityCost,
             List<MaterialEffect> effects,
-            ItemSource source) {
+            ItemSourceRef source) {
         this.item = item;
         this.amount = amount;
         this.optional = optional;
@@ -94,7 +94,7 @@ public final class ForgeMaterial {
         return ForgeMaterialParser.parse(raw);
     }
 
-    public boolean matches(ItemSource other) {
+    public boolean matches(ItemSourceRef other) {
         return other != null && ItemSourceUtil.matches(source, other);
     }
 
@@ -319,7 +319,7 @@ public final class ForgeMaterial {
         return effects;
     }
 
-    public ItemSource source() {
+    public ItemSourceRef source() {
         return source;
     }
 }

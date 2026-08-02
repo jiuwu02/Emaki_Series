@@ -22,7 +22,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -92,12 +92,12 @@ public final class CookingSettingsService {
         stationDisabledWorlds = loadStationDisabledWorlds();
     }
 
-    public List<ItemSource> stationBlockSources(StationType stationType) {
+    public List<ItemSourceRef> stationBlockSources(StationType stationType) {
         return parseSources(configuration.get(stationPath(stationType) + ".block_item_sources"));
     }
 
-    public ItemSource stationBlockSource(StationType stationType) {
-        List<ItemSource> sources = stationBlockSources(stationType);
+    public ItemSourceRef stationBlockSource(StationType stationType) {
+        List<ItemSourceRef> sources = stationBlockSources(stationType);
         return sources.isEmpty() ? null : sources.getFirst();
     }
 
@@ -232,7 +232,7 @@ public final class CookingSettingsService {
         return interaction.matches(configured);
     }
 
-    public DisplayAdjustmentProfile displayAdjustment(StationType stationType, ItemSource source, boolean blockDisplay) {
+    public DisplayAdjustmentProfile displayAdjustment(StationType stationType, ItemSourceRef source, boolean blockDisplay) {
         DisplayAdjustmentKind kind = blockDisplay ? DisplayAdjustmentKind.BLOCK : DisplayAdjustmentKind.ITEM;
         DisplayAdjustmentProfile fallback = resolveDefaultDisplayAdjustment(stationType, kind);
         if (source == null) {
@@ -258,7 +258,7 @@ public final class CookingSettingsService {
         return Math.max(0L, configuration.getInt("stations.chopping_board.interaction_delay_ms", 1000));
     }
 
-    public List<ItemSource> choppingToolSources() {
+    public List<ItemSourceRef> choppingToolSources() {
         return parseSources(configuration.get("stations.chopping_board.tool_item_sources"));
     }
 
@@ -298,7 +298,7 @@ public final class CookingSettingsService {
         return Math.max(0L, configuration.getInt("stations.wok.timeout_ms", 30000));
     }
 
-    public List<ItemSource> wokSpatulaSources() {
+    public List<ItemSourceRef> wokSpatulaSources() {
         return parseSources(configuration.get("stations.wok.spatula_item_sources"));
     }
 
@@ -306,15 +306,15 @@ public final class CookingSettingsService {
         List<HeatLevelRule> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("stations.wok.heat_levels")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
+            ItemSourceRef source = ItemSourceUtil.parse(normalized.get("item_sources"));
             if (source == null) {
                 continue;
             }
-            ItemSource litSource = ItemSourceUtil.parse(firstPresent(
+            ItemSourceRef litSource = ItemSourceUtil.parse(firstPresent(
                     normalized,
                     LIT_SOURCE_KEYS
             ));
-            ItemSource unlitSource = ItemSourceUtil.parse(firstPresent(
+            ItemSourceRef unlitSource = ItemSourceUtil.parse(firstPresent(
                     normalized,
                     UNLIT_SOURCE_KEYS
             ));
@@ -393,7 +393,7 @@ public final class CookingSettingsService {
         return ingredientSlots(steamerGuiConfiguration, steamerInventoryRows() * 9, 5);
     }
 
-    public List<ItemSource> steamerHeatSources() {
+    public List<ItemSourceRef> steamerHeatSources() {
         return parseSources(configuration.get("stations.steamer.heat_item_sources"));
     }
 
@@ -409,7 +409,7 @@ public final class CookingSettingsService {
         List<SteamerFuelRule> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("stations.steamer.fuels")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
+            ItemSourceRef source = ItemSourceUtil.parse(normalized.get("item_sources"));
             if (source == null) {
                 continue;
             }
@@ -423,11 +423,11 @@ public final class CookingSettingsService {
         List<SteamerMoistureRule> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("stations.steamer.moisture_rules")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource input = ItemSourceUtil.parse(normalized.get("input_item_sources"));
+            ItemSourceRef input = ItemSourceUtil.parse(normalized.get("input_item_sources"));
             if (input == null) {
                 continue;
             }
-            ItemSource output = ItemSourceUtil.parse(normalized.get("item_sources"));
+            ItemSourceRef output = ItemSourceUtil.parse(normalized.get("item_sources"));
             Integer moisture = configurationValueToInt(normalized.get("moisture"), 0);
             result.add(new SteamerMoistureRule(input, output, moisture == null ? 0 : Math.max(0, moisture)));
         }
@@ -471,7 +471,7 @@ public final class CookingSettingsService {
         List<OvenFuelRule> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("stations.oven.fuels")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
+            ItemSourceRef source = ItemSourceUtil.parse(normalized.get("item_sources"));
             if (source == null) {
                 continue;
             }
@@ -506,7 +506,7 @@ public final class CookingSettingsService {
         return configuration.getBoolean("stations.juicer.require_container", true);
     }
 
-    public List<ItemSource> juicerContainerSources() {
+    public List<ItemSourceRef> juicerContainerSources() {
         return parseSources(configuration.get("stations.juicer.container_item_sources"));
     }
 
@@ -575,10 +575,10 @@ public final class CookingSettingsService {
         return List.copyOf(slots);
     }
 
-    private List<ItemSource> parseSources(Object raw) {
-        List<ItemSource> result = new ArrayList<>();
+    private List<ItemSourceRef> parseSources(Object raw) {
+        List<ItemSourceRef> result = new ArrayList<>();
         for (Object token : ConfigNodes.asObjectList(raw)) {
-            ItemSource source = ItemSourceUtil.parse(token);
+            ItemSourceRef source = ItemSourceUtil.parse(token);
             if (source != null) {
                 result.add(source);
             }
@@ -591,7 +591,7 @@ public final class CookingSettingsService {
         for (Object token : ConfigNodes.asObjectList(raw)) {
             if (token instanceof Map<?, ?> map) {
                 Map<String, Object> normalized = MapYamlSection.normalizeMap(map);
-                ItemSource source = ItemSourceUtil.parse(firstPresent(
+                ItemSourceRef source = ItemSourceUtil.parse(firstPresent(
                         normalized,
                         "item_sources",
                         "source",
@@ -600,18 +600,18 @@ public final class CookingSettingsService {
                 if (source == null) {
                     continue;
                 }
-                ItemSource litSource = ItemSourceUtil.parse(firstPresent(
+                ItemSourceRef litSource = ItemSourceUtil.parse(firstPresent(
                         normalized,
                         LIT_SOURCE_KEYS
                 ));
-                ItemSource unlitSource = ItemSourceUtil.parse(firstPresent(
+                ItemSourceRef unlitSource = ItemSourceUtil.parse(firstPresent(
                         normalized,
                         UNLIT_SOURCE_KEYS
                 ));
                 result.add(new HeatSourceIgnitionRule(source, litSource, unlitSource == null ? source : unlitSource));
                 continue;
             }
-            ItemSource source = ItemSourceUtil.parse(token);
+            ItemSourceRef source = ItemSourceUtil.parse(token);
             if (source != null) {
                 result.add(new HeatSourceIgnitionRule(source, null, source));
             }
@@ -632,7 +632,7 @@ public final class CookingSettingsService {
     }
 
     private String firstSourceShorthand(Object raw) {
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }
@@ -784,7 +784,7 @@ public final class CookingSettingsService {
         if (section == null || section.isEmpty()) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(section.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(section.get("item_sources"));
         String shorthand = source == null ? "" : ItemSourceUtil.toShorthand(source);
         if (Texts.isBlank(shorthand)) {
             return null;
@@ -903,19 +903,19 @@ public final class CookingSettingsService {
         return Numbers.tryParseDouble(raw, fallback);
     }
 
-    public record HeatLevelRule(ItemSource source, ItemSource litSource, ItemSource unlitSource, int level) {
+    public record HeatLevelRule(ItemSourceRef source, ItemSourceRef litSource, ItemSourceRef unlitSource, int level) {
     }
 
-    public record HeatSourceIgnitionRule(ItemSource source, ItemSource litSource, ItemSource unlitSource) {
+    public record HeatSourceIgnitionRule(ItemSourceRef source, ItemSourceRef litSource, ItemSourceRef unlitSource) {
     }
 
-    public record SteamerFuelRule(ItemSource source, int durationSeconds) {
+    public record SteamerFuelRule(ItemSourceRef source, int durationSeconds) {
     }
 
-    public record SteamerMoistureRule(ItemSource inputSource, ItemSource outputSource, int moisture) {
+    public record SteamerMoistureRule(ItemSourceRef inputSource, ItemSourceRef outputSource, int moisture) {
     }
 
-    public record OvenFuelRule(ItemSource source, int durationSeconds, int heat) {
+    public record OvenFuelRule(ItemSourceRef source, int durationSeconds, int heat) {
     }
 
     private enum DisplayAdjustmentKind {
@@ -1097,7 +1097,7 @@ public final class CookingSettingsService {
         List<NutritionFoodSource> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            List<ItemSource> sources = parseSources(firstPresent(normalized, "item_sources", "item_source", "item", "source"));
+            List<ItemSourceRef> sources = parseSources(firstPresent(normalized, "item_sources", "item_source", "item", "source"));
             if (sources.isEmpty()) {
                 continue;
             }

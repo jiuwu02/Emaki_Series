@@ -26,7 +26,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -185,7 +185,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     private ItemStack resolveIcon(String rawIcon) {
         if (itemSourceService != null) {
             try {
-                ItemSource source = ItemSourceUtil.parse(rawIcon);
+                ItemSourceRef source = ItemSourceUtil.parse(rawIcon);
                 if (source != null) {
                     ItemStack itemStack = itemSourceService.createItem(source, 1);
                     if (itemStack != null && !itemStack.getType().isAir()) {

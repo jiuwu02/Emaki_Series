@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -180,7 +180,7 @@ public final class OvenRuntimeService implements Listener {
             return false;
         }
         OvenState state = codec.readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         Block block = coordinates.block();
         if (state == null) {
             guiController.closeOpenInventories(coordinates, true);
@@ -508,7 +508,7 @@ public final class OvenRuntimeService implements Listener {
     private void processStation(StationCoordinates coordinates, long now) {
         Block block = coordinates == null ? null : coordinates.block();
         OvenState state = loadStateOrEmpty(coordinates);
-        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || !blockMatcher.matches(block, StationType.OVEN, stationSource)) {
             guiController.closeOpenInventories(coordinates, true);
             removeState(coordinates, true);
@@ -713,7 +713,7 @@ public final class OvenRuntimeService implements Listener {
     }
 
     private CookingSettingsService.OvenFuelRule matchFuelRule(ItemStack itemStack) {
-        ItemSource identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         if (identified == null) {
             return null;
         }

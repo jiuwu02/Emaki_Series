@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.item;
 
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.bukkit.event.EventHandler;
@@ -8,13 +9,14 @@ import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.momirealms.craftengine.bukkit.api.CraftEngineItems;
 import net.momirealms.craftengine.bukkit.api.event.CraftEngineReloadEvent;
 import net.momirealms.craftengine.core.util.Key;
 
 final class CraftEngineItemSourceResolver
-        extends AbstractManagedItemSourceResolver<CraftEngineItemSourceResolver.DirectAccessor> {
+        extends AbstractManagedItemSourceProvider<CraftEngineItemSourceResolver.DirectAccessor> {
 
     private static final String PLUGIN_NAME = "CraftEngine";
 
@@ -27,8 +29,13 @@ final class CraftEngineItemSourceResolver
     }
 
     @Override
-    public String id() {
-        return "corelib_craftengine";
+    public ItemSourceKind kind() {
+        return ItemSourceKind.CRAFTENGINE;
+    }
+
+    @Override
+    public Set<String> shorthandPrefixes() {
+        return Set.of("craftengine-", "ce-");
     }
 
     @Override
@@ -37,13 +44,8 @@ final class CraftEngineItemSourceResolver
     }
 
     @Override
-    public String pluginName() {
+    public String providerPluginName() {
         return PLUGIN_NAME;
-    }
-
-    @Override
-    protected ItemSourceType sourceType() {
-        return ItemSourceType.CRAFTENGINE;
     }
 
     @Override
@@ -52,14 +54,14 @@ final class CraftEngineItemSourceResolver
     }
 
     @Override
-    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceResolver> loadedHandler) {
+    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceProvider> loadedHandler) {
         if (plugin == null || loadedHandler == null) {
             return;
         }
         plugin.getServer().getPluginManager().registerEvents(new CraftEngineReloadListener(this, loadedHandler), plugin);
     }
 
-    static final class DirectAccessor implements AbstractManagedItemSourceResolver.Accessor {
+    static final class DirectAccessor implements AbstractManagedItemSourceProvider.Accessor {
 
         private String failureReason = "";
 
@@ -126,11 +128,11 @@ final class CraftEngineItemSourceResolver
 
     private static final class CraftEngineReloadListener implements Listener {
 
-        private final ManagedItemSourceResolver resolver;
-        private final Consumer<ManagedItemSourceResolver> loadedHandler;
+        private final ManagedItemSourceProvider resolver;
+        private final Consumer<ManagedItemSourceProvider> loadedHandler;
 
-        private CraftEngineReloadListener(ManagedItemSourceResolver resolver,
-                Consumer<ManagedItemSourceResolver> loadedHandler) {
+        private CraftEngineReloadListener(ManagedItemSourceProvider resolver,
+                Consumer<ManagedItemSourceProvider> loadedHandler) {
             this.resolver = resolver;
             this.loadedHandler = loadedHandler;
         }

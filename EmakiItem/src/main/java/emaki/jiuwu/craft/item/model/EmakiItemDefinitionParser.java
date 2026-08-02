@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
 import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -397,7 +397,7 @@ public final class EmakiItemDefinitionParser {
             if (entry == null) {
                 continue;
             }
-            List<ItemSource> itemSources = parseRepairItemSources(entry);
+            List<ItemSourceRef> itemSources = parseRepairItemSources(entry);
             int amount = Numbers.tryParseInt(ConfigNodes.get(entry, "amount"), 1);
             String restore = Texts.toStringSafe(ConfigNodes.get(entry, "restore"));
             if (!itemSources.isEmpty() && Texts.isNotBlank(restore)) {
@@ -411,7 +411,7 @@ public final class EmakiItemDefinitionParser {
         return new RepairConfig(true, materials, economy, disabledDisplay, onDisabled, onRepaired);
     }
 
-    private List<ItemSource> parseRepairItemSources(Map<?, ?> entry) {
+    private List<ItemSourceRef> parseRepairItemSources(Map<?, ?> entry) {
         Object rawSources = ConfigNodes.get(entry, "item_sources");
         if (rawSources == null) {
             rawSources = ConfigNodes.get(entry, "item_source");
@@ -419,9 +419,9 @@ public final class EmakiItemDefinitionParser {
         if (rawSources == null) {
             rawSources = ConfigNodes.get(entry, "item");
         }
-        List<ItemSource> result = new ArrayList<>();
+        List<ItemSourceRef> result = new ArrayList<>();
         for (Object rawSource : ConfigNodes.asObjectList(rawSources)) {
-            ItemSource source = ItemSourceUtil.parse(rawSource);
+            ItemSourceRef source = ItemSourceUtil.parse(rawSource);
             if (source != null) {
                 result.add(source);
             }

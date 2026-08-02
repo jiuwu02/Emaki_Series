@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -111,7 +111,7 @@ final class OvenGuiController {
             }
             ItemStack itemStack = codec.deserializeItem(state.slotItemData(slot));
             if (itemStack == null || itemStack.getType().isAir()) {
-                ItemSource itemSource = ItemSourceUtil.parse(source);
+                ItemSourceRef itemSource = ItemSourceUtil.parse(source);
                 itemStack = itemSource == null ? null : itemSourceService.createItem(itemSource, 1);
             }
             if (itemStack != null && !itemStack.getType().isAir()) {
@@ -389,7 +389,7 @@ final class OvenGuiController {
     }
 
     String identifySource(ItemStack itemStack) {
-        ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         return source == null ? "" : Texts.toStringSafe(ItemSourceUtil.toShorthand(source));
     }
 

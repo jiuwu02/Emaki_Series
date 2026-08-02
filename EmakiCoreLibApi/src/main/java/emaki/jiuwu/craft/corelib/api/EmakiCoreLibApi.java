@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -16,6 +17,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
+import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
@@ -304,6 +307,79 @@ public final class EmakiCoreLibApi {
     }
 
     /**
+     * Publishes optional API capabilities on behalf of {@code owner}.
+     *
+     * <p>Call this right after installing your own API bridge in {@code onEnable}, and close the
+     * returned handle right before uninstalling it in {@code onDisable}. Publish a capability only
+     * while the matching method is genuinely callable: if a config switch turns the feature off, do
+     * not publish it, because a consumer that gated on it and then got rejected is worse off than a
+     * consumer that never called at all.</p>
+     *
+     * <p>Publication is all-or-nothing. A capability already owned by another plugin fails the whole
+     * batch and names the first owner in {@link CapabilityRegistration#reasonKey()} instead of
+     * silently taking it over, because one capability identifier must have exactly one owner.</p>
+     *
+     * @param owner plugin that owns the capability lifecycle
+     * @param capabilities the capabilities to publish
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CapabilityRegistration publishCapabilities(@Nullable Plugin owner,
+            @Nullable Set<ApiCapability> capabilities) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CapabilityRegistration.unavailable("corelib_unavailable")
+                : resolved.publishCapabilities(owner, capabilities);
+    }
+
+    /**
+     * Revokes every capability published by {@code owner}.
+     *
+     * @param owner the publishing plugin
+     * @return how many capabilities were revoked; {@code 0} when EmakiCoreLib is unavailable
+     */
+    public static int revokeCapabilities(@Nullable Plugin owner) {
+        Bridge resolved = bridge;
+        return resolved == null ? 0 : resolved.revokeCapabilities(owner);
+    }
+
+    /**
+     * Reports whether an optional capability is available right now.
+     *
+     * <p>Keep the guarded call inside the {@code if} body. The JVM only resolves a method reference
+     * when the {@code invoke} instruction executes, so a guarded call never triggers
+     * {@link NoSuchMethodError} while the capability is absent &mdash; but that only holds if the call
+     * is not hoisted into a field initialiser, a static block, or an eagerly evaluated argument. See
+     * {@link ApiCapability} for the full rule, including why the identifier must come from
+     * {@link ApiCapability#of(String)} rather than from the provider's own API jar.</p>
+     *
+     * <p><strong>Thread:</strong> any thread.</p>
+     *
+     * @param capability the capability to test
+     * @return whether it is published and its owner is still enabled
+     */
+    public static boolean hasCapability(@Nullable ApiCapability capability) {
+        Bridge resolved = bridge;
+        return resolved != null && resolved.hasCapability(capability);
+    }
+
+    /** {@return every published capability, immutable; empty when EmakiCoreLib is unavailable} */
+    public static @NotNull Set<ApiCapability> capabilities() {
+        Bridge resolved = bridge;
+        return resolved == null ? Set.of() : Set.copyOf(resolved.capabilities());
+    }
+
+    /**
+     * Lists the capabilities published by one plugin.
+     *
+     * @param pluginName the publishing plugin's name, matched case-insensitively
+     * @return that plugin's capabilities, immutable; empty when unknown or unavailable
+     */
+    public static @NotNull Set<ApiCapability> capabilitiesOf(@Nullable String pluginName) {
+        Bridge resolved = bridge;
+        return resolved == null ? Set.of() : Set.copyOf(resolved.capabilitiesOf(pluginName));
+    }
+
+    /**
      * Bridge contract implemented by EmakiCoreLib. Third-party plugins must not implement it.
      */
     @ApiStatus.NonExtendable
@@ -389,5 +465,37 @@ public final class EmakiCoreLibApi {
          * @return whether the callback was accepted
          */
         boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister);
+
+        /**
+         * @param owner plugin that owns the capability lifecycle
+         * @param capabilities the capabilities to publish
+         * @return a revocable handle
+         */
+        @NotNull
+        CapabilityRegistration publishCapabilities(@Nullable Plugin owner,
+                @Nullable Set<ApiCapability> capabilities);
+
+        /**
+         * @param owner the publishing plugin
+         * @return how many capabilities were revoked
+         */
+        int revokeCapabilities(@Nullable Plugin owner);
+
+        /**
+         * @param capability the capability to test
+         * @return whether it is published and its owner is still enabled
+         */
+        boolean hasCapability(@Nullable ApiCapability capability);
+
+        /** {@return every published capability} */
+        @NotNull
+        Set<ApiCapability> capabilities();
+
+        /**
+         * @param pluginName the publishing plugin's name
+         * @return that plugin's capabilities
+         */
+        @NotNull
+        Set<ApiCapability> capabilitiesOf(@Nullable String pluginName);
     }
 }

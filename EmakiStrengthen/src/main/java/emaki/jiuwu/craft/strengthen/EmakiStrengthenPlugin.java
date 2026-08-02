@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -331,7 +331,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     @FunctionalInterface
     public interface CoreItemFactory {
 
-        ItemStack create(ItemSource source, int amount);
+        ItemStack create(ItemSourceRef source, int amount);
     }
 
     public ItemSourceService coreItemSourceService() {

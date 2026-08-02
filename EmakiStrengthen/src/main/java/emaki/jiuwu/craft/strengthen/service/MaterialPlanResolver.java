@@ -7,7 +7,7 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
@@ -178,7 +178,7 @@ final class MaterialPlanResolver {
     }
 
     private String resolveItemToken(ItemStack itemStack) {
-        ItemSource source = recipeResolver.resolveBaseSource(itemStack);
+        ItemSourceRef source = recipeResolver.resolveBaseSource(itemStack);
         return source == null ? "" : ItemSourceUtil.toShorthand(source);
     }
 

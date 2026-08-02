@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -139,7 +139,7 @@ public final class JuicerRuntimeService implements Listener {
         }
         Block block = coordinates.block();
         JuicerState state = codec.readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         if (state == null || state.isCompletelyEmpty()) {
             removeState(coordinates, false);
             return false;
@@ -350,16 +350,16 @@ public final class JuicerRuntimeService implements Listener {
             return null;
         }
         ItemStack hand = player.getInventory().getItemInMainHand();
-        ItemSource identified = hand == null || hand.getType().isAir() ? null : itemSourceService.identifyItem(hand);
+        ItemSourceRef identified = hand == null || hand.getType().isAir() ? null : itemSourceService.identifyItem(hand);
         if (identified == null) {
             return null;
         }
-        for (ItemSource source : recipeService.juicerContainerSources(recipe)) {
+        for (ItemSourceRef source : recipeService.juicerContainerSources(recipe)) {
             if (ItemSourceUtil.matches(source, identified)) {
                 return CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "juicer serving container");
             }
         }
-        for (ItemSource source : settingsService.juicerContainerSources()) {
+        for (ItemSourceRef source : settingsService.juicerContainerSources()) {
             if (ItemSourceUtil.matches(source, identified)) {
                 return CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "juicer serving container");
             }
@@ -461,7 +461,7 @@ public final class JuicerRuntimeService implements Listener {
         for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
             ItemStack item = codec.deserializeItem(state.slotItemData(entry.getKey()));
             if (item == null || item.getType().isAir()) {
-                ItemSource source = ItemSourceUtil.parse(entry.getValue());
+                ItemSourceRef source = ItemSourceUtil.parse(entry.getValue());
                 item = source == null ? null : itemSourceService.createItem(source, 1);
             }
             if (item != null && !item.getType().isAir()) {

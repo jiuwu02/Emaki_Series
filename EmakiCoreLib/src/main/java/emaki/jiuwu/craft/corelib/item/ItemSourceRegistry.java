@@ -1,275 +1,211 @@
 package emaki.jiuwu.craft.corelib.item;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Function;
 
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.text.Texts;
 
+/**
+ * Maps shorthand prefixes onto the providers that claim them.
+ *
+ * <p>The table is entirely provider-driven. There used to be a hard-coded list of seventeen prefixes
+ * here plus a reserved-word short circuit for {@code emakiitem-} / {@code ei-}, which meant CoreLib
+ * recognised an item source whose implementation lived in another plugin, and registered parsers never
+ * even saw those two prefixes. Now every prefix arrives with the provider that can actually resolve it,
+ * so the ownership rule is enforced by the structure rather than by convention.
+ *
+ * <p>Matching is by <strong>longest prefix first</strong>. Without that, {@code ei-} would swallow
+ * {@code eci-} and EcoItems entries would be handed to EmakiItem.
+ *
+ * <p>This is a singleton because {@link ItemSourceUtil}'s static entry points must reach it. Binding a
+ * prefix that is already bound to the <em>same</em> kind is idempotent rather than a failure, so a
+ * secondary {@link ItemSourceService} instance re-registering the built-in vanilla provider does not
+ * break; binding it to a different kind is a hard failure naming the first owner.
+ */
 public final class ItemSourceRegistry {
 
     private static final ItemSourceRegistry SYSTEM = new ItemSourceRegistry();
 
-    private final List<ItemSourceParser> parsers = new CopyOnWriteArrayList<>();
-    private final Map<String, RegisteredParser> namedParsers = new ConcurrentHashMap<>();
-    private final Map<ItemSourceType, RegisteredShorthandWriter> shorthandWriters = new ConcurrentHashMap<>();
-    private final AtomicLong registrationSequence = new AtomicLong();
-    private volatile ItemSourceParser fallbackParser = ItemSourceUtil::parseVanillaShorthand;
+    private final Object writeLock = new Object();
+    private final Map<String, Binding> bindings = new LinkedHashMap<>();
+
+    /** Prefixes ordered longest first; rebuilt on every bind/unbind, read without a lock. */
+    private volatile List<Binding> orderedBindings = List.of();
 
     private ItemSourceRegistry() {
-        registerBuiltinParsers();
     }
 
+    /** {@return the shared registry backing {@link ItemSourceUtil}} */
     public static ItemSourceRegistry system() {
         return SYSTEM;
     }
 
-    public void registerParser(ItemSourceParser parser) {
-        if (parser != null) {
-            parsers.add(0, parser);
+    /**
+     * Binds a provider's shorthand prefixes.
+     *
+     * @param kind the provider's kind
+     * @param provider the provider
+     * @param ownerName owning plugin name, for diagnostics; may be empty for CoreLib built-ins
+     * @return {@code null} on success, otherwise a stable reason key describing the conflict
+     */
+    String bind(ItemSourceKind kind, ItemSourceProvider provider, String ownerName) {
+        if (kind == null || provider == null) {
+            return "itemsource.register.missing_provider";
         }
-    }
-
-    public void registerParser(String id, ItemSourceParser parser) {
-        if (Texts.isBlank(id)) {
-            registerParser(parser);
-            return;
+        List<String> prefixes = normalizedPrefixes(provider);
+        if (prefixes.isEmpty()) {
+            return "itemsource.register.no_prefix";
         }
-        registerNamedParser(id, parser);
-    }
-
-    public synchronized ParserRegistration registerParserHandle(String id, ItemSourceParser parser) {
-        if (Texts.isBlank(id) || parser == null) {
-            return new ParserRegistration("", -1L, false);
-        }
-        String normalizedId = Texts.normalizeId(id);
-        long generation = registerNamedParser(normalizedId, parser);
-        return new ParserRegistration(normalizedId, generation, true);
-    }
-
-    private synchronized long registerNamedParser(String id, ItemSourceParser parser) {
-        if (parser == null) {
-            return -1L;
-        }
-        String normalizedId = Texts.normalizeId(id);
-        RegisteredParser previous = namedParsers.remove(normalizedId);
-        if (previous != null) {
-            parsers.remove(previous.parser());
-        }
-        long generation = registrationSequence.incrementAndGet();
-        namedParsers.put(normalizedId, new RegisteredParser(parser, generation));
-        parsers.add(0, parser);
-        return generation;
-    }
-
-    public synchronized void unregisterParser(String id) {
-        if (Texts.isBlank(id)) {
-            return;
-        }
-        RegisteredParser registered = namedParsers.remove(Texts.normalizeId(id));
-        if (registered != null) {
-            parsers.remove(registered.parser());
-        }
-    }
-
-    public void registerShorthandWriter(ItemSourceType type, Function<ItemSource, String> writer) {
-        if (type == null || writer == null) {
-            return;
-        }
-        installShorthandWriter(type, writer);
-    }
-
-    public ShorthandWriterRegistration registerShorthandWriterHandle(
-            ItemSourceType type,
-            Function<ItemSource, String> writer) {
-        if (type == null || writer == null) {
-            return new ShorthandWriterRegistration(null, -1L, false);
-        }
-        long generation = installShorthandWriter(type, writer);
-        return new ShorthandWriterRegistration(type, generation, true);
-    }
-
-    private long installShorthandWriter(ItemSourceType type, Function<ItemSource, String> writer) {
-        long generation = registrationSequence.incrementAndGet();
-        shorthandWriters.put(type, new RegisteredShorthandWriter(writer, generation));
-        return generation;
-    }
-
-    public void unregisterShorthandWriter(ItemSourceType type) {
-        if (type != null) {
-            shorthandWriters.remove(type);
-        }
-    }
-
-    public String toShorthand(ItemSource source) {
-        if (source == null || source.getType() == null) {
+        synchronized (writeLock) {
+            for (String prefix : prefixes) {
+                Binding existing = bindings.get(prefix);
+                if (existing != null && !existing.kind().equals(kind)) {
+                    return Texts.isBlank(existing.ownerName())
+                            ? "itemsource.register.duplicate_prefix"
+                            : "itemsource.register.duplicate_prefix_owned_by:" + existing.ownerName()
+                                    + ":" + prefix;
+                }
+            }
+            for (String prefix : prefixes) {
+                bindings.put(prefix, new Binding(prefix, kind, provider, Texts.toStringSafe(ownerName)));
+            }
+            rebuildOrder();
             return null;
         }
-        if (source.getType() == ItemSourceType.EMAKIITEM) {
-            String identifier = ItemSourceUtil.normalizeIdentifier(ItemSourceType.EMAKIITEM, source.getIdentifier());
-            return Texts.isBlank(identifier) ? null : "emakiitem-" + identifier;
+    }
+
+    /**
+     * Removes every prefix bound to {@code kind}.
+     *
+     * @param kind the kind being revoked
+     */
+    void unbind(ItemSourceKind kind) {
+        if (kind == null) {
+            return;
         }
-        RegisteredShorthandWriter registered = shorthandWriters.get(source.getType());
-        return registered == null ? null : registered.writer().apply(source);
+        synchronized (writeLock) {
+            boolean removed = bindings.entrySet().removeIf(entry -> entry.getValue().kind().equals(kind));
+            if (removed) {
+                rebuildOrder();
+            }
+        }
     }
 
-    public void setFallbackParser(ItemSourceParser parser) {
-        fallbackParser = parser;
-    }
-
-    public ItemSource parseShorthand(String shorthand) {
+    /**
+     * Parses shorthand text into a reference.
+     *
+     * <p>Prefixed text goes to the claiming provider, which normalises the identifier itself. Bare text
+     * such as {@code IRON_INGOT} falls through to the vanilla reading, which stays in CoreLib because it
+     * is the catch-all path rather than any one plugin's item source.
+     *
+     * @param shorthand the shorthand text
+     * @return the reference, or {@code null} when nothing claims it and it is not a vanilla material id
+     */
+    public ItemSourceRef parseShorthand(String shorthand) {
         if (Texts.isBlank(shorthand)) {
             return null;
         }
         String text = Texts.trim(shorthand);
         String lower = Texts.lower(text);
-        if (lower.startsWith("emakiitem-")) {
-            return parseReservedShorthand(text, "emakiitem-");
-        }
-        if (lower.startsWith("ei-")) {
-            return parseReservedShorthand(text, "ei-");
-        }
-        for (ItemSourceParser parser : parsers) {
-            ItemSource parsed = parser.parse(text);
-            if (parsed != null) {
-                return parsed;
+        for (Binding binding : orderedBindings) {
+            if (!lower.startsWith(binding.prefix())) {
+                continue;
             }
-        }
-        ItemSourceParser parser = fallbackParser;
-        return parser == null ? null : parser.parse(text);
-    }
-
-    private void registerBuiltinParsers() {
-        parsers.add(prefixParser("mmoitems-", ItemSourceType.MMOITEMS));
-        parsers.add(prefixParser("mi-", ItemSourceType.MMOITEMS));
-        parsers.add(prefixParser("itemsadder-", ItemSourceType.ITEMSADDER));
-        parsers.add(prefixParser("ia-", ItemSourceType.ITEMSADDER));
-        parsers.add(prefixParser("neigeitems-", ItemSourceType.NEIGEITEMS));
-        parsers.add(prefixParser("ni-", ItemSourceType.NEIGEITEMS));
-        parsers.add(prefixParser("nexo-", ItemSourceType.NEXO));
-        parsers.add(prefixParser("no-", ItemSourceType.NEXO));
-        parsers.add(prefixParser("oraxen-", ItemSourceType.ORAXEN));
-        parsers.add(prefixParser("ox-", ItemSourceType.ORAXEN));
-        parsers.add(prefixParser("ecoitems-", ItemSourceType.ECOITEMS));
-        parsers.add(prefixParser("eci-", ItemSourceType.ECOITEMS));
-        parsers.add(prefixParser("craftengine-", ItemSourceType.CRAFTENGINE));
-        parsers.add(prefixParser("ce-", ItemSourceType.CRAFTENGINE));
-        parsers.add(prefixParser("minecraft-", ItemSourceType.VANILLA));
-        parsers.add(prefixParser("mc-", ItemSourceType.VANILLA));
-        parsers.add(prefixParser("v-", ItemSourceType.VANILLA));
-    }
-
-    private ItemSource parseReservedShorthand(String shorthand, String prefix) {
-        String identifier = shorthand.substring(prefix.length());
-        if (Texts.isBlank(identifier)) {
-            return null;
-        }
-        String normalized = ItemSourceUtil.normalizeIdentifier(ItemSourceType.EMAKIITEM, identifier);
-        return Texts.isBlank(normalized) ? null : new ItemSource(ItemSourceType.EMAKIITEM, normalized);
-    }
-
-    private ItemSourceParser prefixParser(String prefix, ItemSourceType type) {
-        return shorthand -> {
-            if (Texts.isBlank(shorthand)) {
-                return null;
-            }
-            String text = Texts.trim(shorthand);
-            if (!Texts.lower(text).startsWith(prefix)) {
-                return null;
-            }
-            String identifier = text.substring(prefix.length());
+            String identifier = text.substring(binding.prefix().length());
             if (Texts.isBlank(identifier)) {
                 return null;
             }
-            String normalized = ItemSourceUtil.normalizeIdentifier(type, identifier);
-            return Texts.isBlank(normalized) ? null : new ItemSource(type, normalized);
-        };
+            String normalized = normalizeIdentifier(binding.provider(), identifier);
+            return Texts.isBlank(normalized) ? null : ItemSourceRef.orNull(binding.kind(), normalized);
+        }
+        return ItemSourceUtil.parseVanillaShorthand(text);
     }
 
-    private synchronized boolean unregisterParserIfMatches(String id, long generation) {
-        RegisteredParser registered = namedParsers.get(id);
-        if (registered == null || registered.generation() != generation) {
+    /**
+     * Writes a reference back into shorthand text.
+     *
+     * @param ref the reference
+     * @return the shorthand, or {@code null} when no provider claims the kind
+     */
+    public String toShorthand(ItemSourceRef ref) {
+        if (ref == null) {
+            return null;
+        }
+        for (Binding binding : orderedBindings) {
+            if (!binding.kind().equals(ref.kind())) {
+                continue;
+            }
+            try {
+                String shorthand = binding.provider().toShorthand(ref);
+                if (Texts.isNotBlank(shorthand)) {
+                    return shorthand;
+                }
+            } catch (LinkageError | RuntimeException failure) {
+                return null;
+            }
+            return null;
+        }
+        return null;
+    }
+
+    /**
+     * {@return whether any provider claims {@code kind}}
+     *
+     * @param kind the kind to test
+     */
+    public boolean claims(ItemSourceKind kind) {
+        if (kind == null) {
             return false;
         }
-        namedParsers.remove(id);
-        parsers.remove(registered.parser());
-        return true;
-    }
-
-    private boolean unregisterShorthandWriterIfMatches(ItemSourceType type, long generation) {
-        AtomicBoolean removed = new AtomicBoolean();
-        shorthandWriters.computeIfPresent(type, (_, registered) -> {
-            if (registered.generation() != generation) {
-                return registered;
+        for (Binding binding : orderedBindings) {
+            if (binding.kind().equals(kind)) {
+                return true;
             }
-            removed.set(true);
+        }
+        return false;
+    }
+
+    private static String normalizeIdentifier(ItemSourceProvider provider, String identifier) {
+        try {
+            return provider.normalizeIdentifier(identifier);
+        } catch (LinkageError | RuntimeException failure) {
             return null;
+        }
+    }
+
+    private static List<String> normalizedPrefixes(ItemSourceProvider provider) {
+        java.util.Set<String> declared;
+        try {
+            declared = provider.shorthandPrefixes();
+        } catch (LinkageError | RuntimeException failure) {
+            return List.of();
+        }
+        if (declared == null || declared.isEmpty()) {
+            return List.of();
+        }
+        List<String> normalized = new ArrayList<>(declared.size());
+        for (String prefix : declared) {
+            if (Texts.isNotBlank(prefix)) {
+                normalized.add(Texts.lower(Texts.trim(prefix)));
+            }
+        }
+        return List.copyOf(normalized);
+    }
+
+    private void rebuildOrder() {
+        List<Binding> ordered = new ArrayList<>(bindings.values());
+        ordered.sort((left, right) -> {
+            int byLength = Integer.compare(right.prefix().length(), left.prefix().length());
+            return byLength != 0 ? byLength : left.prefix().compareTo(right.prefix());
         });
-        return removed.get();
+        orderedBindings = List.copyOf(ordered);
     }
 
-    public final class ParserRegistration implements AutoCloseable {
-
-        private final String id;
-        private final long generation;
-        private final boolean registered;
-        private final AtomicBoolean closed = new AtomicBoolean();
-
-        private ParserRegistration(String id, long generation, boolean registered) {
-            this.id = id;
-            this.generation = generation;
-            this.registered = registered;
-        }
-
-        public boolean registered() {
-            return registered;
-        }
-
-        public boolean unregister() {
-            return registered && closed.compareAndSet(false, true) && unregisterParserIfMatches(id, generation);
-        }
-
-        @Override
-        public void close() {
-            unregister();
-        }
-    }
-
-    public final class ShorthandWriterRegistration implements AutoCloseable {
-
-        private final ItemSourceType type;
-        private final long generation;
-        private final boolean registered;
-        private final AtomicBoolean closed = new AtomicBoolean();
-
-        private ShorthandWriterRegistration(ItemSourceType type, long generation, boolean registered) {
-            this.type = type;
-            this.generation = generation;
-            this.registered = registered;
-        }
-
-        public boolean registered() {
-            return registered;
-        }
-
-        public boolean unregister() {
-            return registered && closed.compareAndSet(false, true)
-                    && unregisterShorthandWriterIfMatches(type, generation);
-        }
-
-        @Override
-        public void close() {
-            unregister();
-        }
-    }
-
-    private record RegisteredParser(ItemSourceParser parser, long generation) {
-    }
-
-    private record RegisteredShorthandWriter(Function<ItemSource, String> writer, long generation) {
+    private record Binding(String prefix, ItemSourceKind kind, ItemSourceProvider provider, String ownerName) {
     }
 }

@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.6.17"
+version: "4.6.18"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -394,6 +394,13 @@ action:
       refresh_failed: "<red>[管道] 全服锻造物品刷新失败：%error%</red>"
       generation_changed: "<red>[管道] 刷新期间 EmakiForge 运行代数已变更，结果已过期</red>"
       partial_refresh: "<red>[管道] %failed% 名在线玩家的锻造物品刷新失败</red>"
+
+# 跨模块能力注册表诊断
+capability:
+  publish:
+    missing_owner: "<red>[能力] 未提供发布方插件，能力发布被拒绝</red>"
+    empty: "<red>[能力] 能力集合为空，能力发布被拒绝</red>"
+    duplicate: "<red>[能力] 该能力标识已被占用，能力发布被拒绝</red>"
 
 # Debug 模式消息
 debug:

@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -33,7 +33,7 @@ final class GemDefinitionParser {
         if (Texts.isBlank(id)) {
             return null;
         }
-        ItemSource itemSource = ItemSourceUtil.parse(section.get("item_sources"));
+        ItemSourceRef itemSource = ItemSourceUtil.parse(section.get("item_sources"));
         if (itemSource == null) {
             return null;
         }
@@ -107,7 +107,7 @@ final class GemDefinitionParser {
     }
 
     static MaterialCost parseMaterialCost(Object raw) {
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         if (source == null) {
             return null;
         }

@@ -20,7 +20,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
@@ -326,7 +326,7 @@ public final class GemOperationJournal {
     private List<GemDefinition.MaterialCost> decodeMaterials(List<Map<String, Object>> values) {
         List<GemDefinition.MaterialCost> costs = new ArrayList<>();
         for (Map<String, Object> value : values) {
-            ItemSource source = ItemSourceUtil.parse(text(value.get("item")));
+            ItemSourceRef source = ItemSourceUtil.parse(text(value.get("item")));
             if (source != null) {
                 costs.add(new GemDefinition.MaterialCost(source, number(value.get("amount")).intValue()));
             }

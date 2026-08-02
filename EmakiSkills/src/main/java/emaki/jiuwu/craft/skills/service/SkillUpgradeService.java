@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
@@ -524,7 +524,7 @@ public final class SkillUpgradeService {
             if (material == null || material.amount() <= 0) {
                 continue;
             }
-            ItemSource source = ItemSourceUtil.parse(material.item());
+            ItemSourceRef source = ItemSourceUtil.parse(material.item());
             MaterialKey key = new MaterialKey(source, source == null ? Texts.lower(material.item()) : "");
             ResolvedMaterialCost existing = aggregated.get(key);
             long amount = existing == null
@@ -787,11 +787,11 @@ public final class SkillUpgradeService {
 
     }
 
-    private record MaterialKey(ItemSource source, String unresolvedToken) {
+    private record MaterialKey(ItemSourceRef source, String unresolvedToken) {
 
     }
 
-    private record ResolvedMaterialCost(ItemSource source, int amount, String displayName) {
+    private record ResolvedMaterialCost(ItemSourceRef source, int amount, String displayName) {
 
     }
 

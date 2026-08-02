@@ -1,20 +1,28 @@
 package emaki.jiuwu.craft.storage.service;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.storage.api.event.StorageBatchEvent;
 import emaki.jiuwu.craft.storage.api.event.StorageDepositEvent;
 import emaki.jiuwu.craft.storage.api.event.StorageWithdrawEvent;
+import emaki.jiuwu.craft.storage.api.model.StorageBatchOp;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
 import emaki.jiuwu.craft.storage.model.StorageResult;
 import emaki.jiuwu.craft.storage.config.AppConfig;
@@ -25,6 +33,7 @@ import emaki.jiuwu.craft.storage.log.StorageOperationType;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
+import emaki.jiuwu.craft.storage.model.StorageReservation;
 
 /**
  * The single implementation of deposit and withdrawal.
@@ -381,6 +390,364 @@ public final class StorageTransactionService {
     }
 
     /**
+     * Per-op outcome of one batch, plus where and why it stopped.
+     *
+     * @param requested   unsigned requested amount per op, positionally aligned with the request
+     * @param applied     unsigned applied amount per op, positionally aligned with the request
+     * @param failedIndex the op that could not be applied in full, or {@code -1}
+     * @param reasonKey   reason key for {@code failedIndex}, or an empty string
+     * @param cancelled   whether a listener cancelled the batch before anything moved
+     */
+    public record BatchOutcome(List<Long> requested, List<Long> applied, int failedIndex, String reasonKey,
+            boolean cancelled) {
+
+        /** {@return whether some op could not be applied in full} */
+        public boolean failed() {
+            return failedIndex >= 0;
+        }
+    }
+
+    /**
+     * Applies a batch of signed increments in one owner-thread pass, never touching any inventory.
+     *
+     * <p>Three phases, in this order, and the order is the whole point:</p>
+     * <ol>
+     *   <li><strong>pre-check</strong> on a projection of the entry table, so an under-stocked or
+     *       over-capacity batch is rejected before a single unit moves;</li>
+     *   <li><strong>one event</strong> for the batch, cancellable, still before any mutation;</li>
+     *   <li><strong>apply</strong> in list order, recording enough to undo.</li>
+     * </ol>
+     *
+     * <p>Under {@code allOrNothing} any op that cannot be applied in full triggers an exact undo of
+     * the ops already applied. The undo is exact because nothing outside the entry table is touched:
+     * amounts are pure arithmetic, and emptied entries are deliberately <em>not</em> pruned until the
+     * batch has committed. Pruning mid-batch would shift every later slot index, and re-appending on
+     * undo would put the entry back at the tail instead of its original position.
+     *
+     * @param storage      the target storage
+     * @param player       the online storage owner, used only to recompute capacity
+     * @param capacity     the capacity breakdown captured before the batch
+     * @param ops          the increments, in application order
+     * @param allOrNothing whether a single unapplicable op aborts and undoes the whole batch
+     * @param source       the originating surface
+     * @return the per-op outcome
+     */
+    public BatchOutcome applyBatch(PlayerStorage storage,
+            Player player,
+            StorageCapacity capacity,
+            List<StorageBatchOp> ops,
+            boolean allOrNothing,
+            StorageOperationSource source) {
+        int size = ops.size();
+        List<StorageKey> keys = new ArrayList<>(size);
+        List<Long> requested = new ArrayList<>(size);
+        for (StorageBatchOp op : ops) {
+            keys.add(StorageKey.of(op.template()));
+            requested.add(op.magnitude());
+        }
+        // Expired holds must stop counting against available stock before the pre-check reads it,
+        // or a caller that never committed would keep the units frozen for the whole session.
+        storage.pruneExpiredReservations(System.currentTimeMillis());
+
+        BatchRejection rejection = preCheckBatch(storage, capacity, ops, keys);
+        if (rejection != null && allOrNothing) {
+            return new BatchOutcome(requested, zeros(size), rejection.index(), rejection.reasonKey(), false);
+        }
+        if (!fireBatchEvent(storage, ops, allOrNothing, source)) {
+            return new BatchOutcome(requested, zeros(size), -1, "batch_cancelled", true);
+        }
+
+        Set<StorageKey> preexisting = new HashSet<>();
+        for (StorageKey key : keys) {
+            if (storage.entry(key) != null) {
+                preexisting.add(key);
+            }
+        }
+
+        List<Long> applied = new ArrayList<>(size);
+        List<AppliedOp> undoLog = new ArrayList<>(size);
+        StorageCapacity current = capacity;
+        int firstFailIndex = -1;
+        String firstFailReason = "";
+        for (int index = 0; index < size; index++) {
+            StorageBatchOp op = ops.get(index);
+            StorageKey key = keys.get(index);
+            long magnitude = op.magnitude();
+            long moved;
+            String failure;
+            if (op.delta() == 0L) {
+                moved = 0L;
+                failure = "invalid_delta";
+            } else if (op.withdrawal()) {
+                moved = debitForBatch(storage, key, magnitude);
+                failure = moved < magnitude ? "insufficient_stock" : null;
+            } else {
+                PreCheck preCheck = preCheck(storage, key, current);
+                if (preCheck.rejection() != null) {
+                    moved = 0L;
+                    failure = preCheck.rejection();
+                } else {
+                    long acceptable = Math.min(magnitude, preCheck.room());
+                    moved = acceptable <= 0L ? 0L : credit(storage, key, preCheck, acceptable);
+                    failure = moved < magnitude ? "slot_full" : null;
+                }
+            }
+            if (failure != null && allOrNothing) {
+                if (moved > 0L) {
+                    undoLog.add(new AppliedOp(key, op.delta() < 0L ? -moved : moved));
+                }
+                undo(storage, undoLog, preexisting);
+                return new BatchOutcome(requested, zeros(size), index, failure, false);
+            }
+            if (failure != null && firstFailIndex < 0) {
+                firstFailIndex = index;
+                firstFailReason = failure;
+            }
+            applied.add(moved);
+            if (moved > 0L) {
+                undoLog.add(new AppliedOp(key, op.delta() < 0L ? -moved : moved));
+                current = capacityService.capacityOf(storage, player, capacity.slotsPerPage());
+            }
+        }
+
+        if (undoLog.isEmpty()) {
+            return new BatchOutcome(requested, applied, firstFailIndex, firstFailReason, false);
+        }
+        storage.pruneEmpty();
+        storage.markDirty();
+        for (int index = 0; index < size; index++) {
+            long moved = applied.get(index);
+            if (moved <= 0L) {
+                continue;
+            }
+            StorageKey key = keys.get(index);
+            if (ops.get(index).withdrawal()) {
+                logWithdraw(storage, key, moved, source);
+            } else {
+                logDeposit(storage, key, moved, source);
+            }
+        }
+        return new BatchOutcome(requested, applied, firstFailIndex, firstFailReason, false);
+    }
+
+    /** One increment that really moved, kept only to undo it. */
+    private record AppliedOp(StorageKey key, long signedAmount) {
+    }
+
+    /** {@return the configured cap on how many increments one API batch may carry} */
+    public int batchMaxOps() {
+        return config.behavior().batchMaxOps();
+    }
+
+    /**
+     * Holds the withdrawal side of a batch without applying anything.
+     *
+     * <p>Only the withdrawal side is validated. Capacity is deliberately not pre-booked: a hold
+     * exists to stop stock being spent twice, and freezing free slots as well would let one caller
+     * starve every other deposit path for as long as it holds the ticket. Commit re-checks capacity.
+     *
+     * @param storage  the target storage
+     * @param capacity the capacity breakdown, unused today but kept for symmetry with commit
+     * @param ops      the increments whose withdrawals should be held
+     * @param ttl      how long the hold survives without a commit
+     * @return the new reservation id, or empty when stock is insufficient
+     */
+    public Optional<UUID> reserve(PlayerStorage storage,
+            StorageCapacity capacity,
+            List<StorageBatchOp> ops,
+            Duration ttl) {
+        Map<StorageKey, Long> projected = new HashMap<>();
+        List<StorageReservation.Op> holds = new ArrayList<>(ops.size());
+        storage.pruneExpiredReservations(System.currentTimeMillis());
+        for (StorageBatchOp op : ops) {
+            if (op.delta() == 0L) {
+                return Optional.empty();
+            }
+            StorageKey key = StorageKey.of(op.template());
+            holds.add(new StorageReservation.Op(key, op.delta()));
+            if (!op.withdrawal()) {
+                continue;
+            }
+            long stock = projected.computeIfAbsent(key, candidate -> availableAmount(storage, candidate));
+            if (stock < op.magnitude()) {
+                return Optional.empty();
+            }
+            projected.put(key, stock - op.magnitude());
+        }
+        UUID reservationId = UUID.randomUUID();
+        storage.addReservation(new StorageReservation(reservationId,
+                System.currentTimeMillis() + Math.max(1L, ttl.toMillis()), holds));
+        return Optional.of(reservationId);
+    }
+
+    /**
+     * Applies a held reservation.
+     *
+     * @param outcome       the batch outcome, or {@code null} when the reservation was unknown
+     * @param allOrNothing  always {@code true}: a reservation is an all-or-nothing promise
+     */
+    public record CommitOutcome(BatchOutcome outcome, boolean allOrNothing) {
+    }
+
+    /**
+     * Drops the hold and applies its increments in one owner-thread pass.
+     *
+     * <p>The hold is removed <em>before</em> applying, or {@link #availableAmount} would still exclude
+     * the very units this commit is supposed to take.
+     *
+     * @param storage       the target storage
+     * @param player        the online storage owner, used only to recompute capacity
+     * @param capacity      the capacity breakdown captured before the commit
+     * @param reservationId the hold to commit
+     * @param source        the originating surface
+     * @return the outcome, with a {@code null} batch outcome when the hold is unknown or expired
+     */
+    public CommitOutcome commitReservation(PlayerStorage storage,
+            Player player,
+            StorageCapacity capacity,
+            UUID reservationId,
+            StorageOperationSource source) {
+        StorageReservation reservation = storage.reservations().get(reservationId);
+        if (reservation == null || reservation.expired(System.currentTimeMillis())) {
+            storage.removeReservation(reservationId);
+            return new CommitOutcome(null, true);
+        }
+        storage.removeReservation(reservationId);
+        List<StorageBatchOp> ops = new ArrayList<>(reservation.ops().size());
+        for (StorageReservation.Op op : reservation.ops()) {
+            ops.add(new StorageBatchOp(op.key().toItemStack(), op.delta()));
+        }
+        BatchOutcome outcome = applyBatch(storage, player, capacity, ops, true, source);
+        if (outcome.failed() || outcome.cancelled()) {
+            // Put the hold back: a failed commit must not silently release the stock it was holding.
+            storage.addReservation(reservation);
+        }
+        return new CommitOutcome(outcome, true);
+    }
+
+    /** Where and why a batch pre-check refused. */
+    private record BatchRejection(int index, String reasonKey) {
+    }
+
+    /**
+     * Validates the whole batch against a projection of the entry table.
+     *
+     * <p>The projection is what makes "any shortfall aborts everything" honest for a batch that lists
+     * the same template several times: two withdrawals of 40 against a stock of 60 must fail, and they
+     * only do so if the second op sees the first one's effect.
+     *
+     * @return the first rejection, or {@code null} when every op is applicable
+     */
+    private BatchRejection preCheckBatch(PlayerStorage storage,
+            StorageCapacity capacity,
+            List<StorageBatchOp> ops,
+            List<StorageKey> keys) {
+        AppConfig active = config;
+        Map<StorageKey, Long> projected = new HashMap<>();
+        Set<StorageKey> created = new HashSet<>();
+        int freeSlots = Math.max(0, capacity.effectiveSlots() - capacity.usedSlots());
+        for (int index = 0; index < ops.size(); index++) {
+            StorageBatchOp op = ops.get(index);
+            StorageKey key = keys.get(index);
+            if (op.delta() == 0L) {
+                return new BatchRejection(index, "invalid_delta");
+            }
+            StorageEntry entry = storage.entry(key);
+            long stock = projected.computeIfAbsent(key, candidate -> availableAmount(storage, candidate));
+            if (op.withdrawal()) {
+                if (stock < op.magnitude()) {
+                    return new BatchRejection(index, "insufficient_stock");
+                }
+                projected.put(key, stock - op.magnitude());
+                continue;
+            }
+            ItemStack template = key.toItemStack();
+            if (!passesFilter(template, active.behavior().depositFilter())) {
+                return new BatchRejection(index, "filtered");
+            }
+            if (entry == null && !active.behavior().allowUniqueItems() && isUnique(template)) {
+                return new BatchRejection(index, "unique_rejected");
+            }
+            if (entry == null && created.add(key) && created.size() > freeSlots) {
+                return new BatchRejection(index, "no_free_slot");
+            }
+            int remainingSlots = Math.max(0, freeSlots - created.size());
+            long ceiling = capacityService.spanCeiling(storage, entry, remainingSlots);
+            if (stock > ceiling - op.magnitude()) {
+                return new BatchRejection(index, "slot_full");
+            }
+            projected.put(key, stock + op.magnitude());
+        }
+        return null;
+    }
+
+    /**
+     * {@return how many units of {@code key} a batch may actually take}
+     *
+     * <p>Reserved units are stored and visible but already promised to an outstanding reservation, so
+     * they are excluded here rather than in the caller: a batch that could spend them would let the
+     * same units be handed out twice.
+     */
+    private long availableAmount(PlayerStorage storage, StorageKey key) {
+        StorageEntry entry = storage.entry(key);
+        if (entry == null) {
+            return 0L;
+        }
+        return Math.max(0L, entry.amount() - storage.reservedAmount(key));
+    }
+
+    /** Debits without pruning the entry, so an undo can restore it in place. */
+    private long debitForBatch(PlayerStorage storage, StorageKey key, long amount) {
+        StorageEntry entry = storage.entry(key);
+        if (entry == null) {
+            return 0L;
+        }
+        long takeable = Math.min(amount, availableAmount(storage, key));
+        return takeable <= 0L ? 0L : entry.remove(takeable);
+    }
+
+    private void undo(PlayerStorage storage, List<AppliedOp> undoLog, Set<StorageKey> preexisting) {
+        for (int index = undoLog.size() - 1; index >= 0; index--) {
+            AppliedOp entryOp = undoLog.get(index);
+            StorageEntry entry = storage.entry(entryOp.key());
+            if (entry == null) {
+                continue;
+            }
+            if (entryOp.signedAmount() < 0L) {
+                entry.add(-entryOp.signedAmount(), Long.MAX_VALUE);
+            } else {
+                entry.remove(entryOp.signedAmount());
+            }
+            if (entry.empty() && !preexisting.contains(entryOp.key())) {
+                storage.remove(entryOp.key());
+            }
+        }
+    }
+
+    private static List<Long> zeros(int size) {
+        List<Long> zeros = new ArrayList<>(size);
+        for (int index = 0; index < size; index++) {
+            zeros.add(0L);
+        }
+        return zeros;
+    }
+
+    private boolean fireBatchEvent(PlayerStorage storage, List<StorageBatchOp> ops,
+            boolean allOrNothing, StorageOperationSource source) {
+        StorageBatchEvent event = new StorageBatchEvent(storage.playerId(), ops, allOrNothing, source.id());
+        event.callEvent();
+        return !event.isCancelled();
+    }
+
+    private void logWithdraw(PlayerStorage storage, StorageKey key, long applied,
+            StorageOperationSource source) {
+        StorageEntry entry = storage.entry(key);
+        operationLog.record(StorageLogEntry.of(storage.playerId(), StorageOperationType.WITHDRAW,
+                textIndexer.identifierOf(key), -applied,
+                entry == null ? 0L : entry.amount(), source, uniqueNote(key)));
+    }
+
+    /**
      * Pre-transaction validation shared by every deposit path.
      *
      * @param room      how many units may still be accepted
@@ -470,7 +837,7 @@ public final class StorageTransactionService {
     }
 
     private boolean matchesAnyToken(ItemStack template, List<String> tokens) {
-        ItemSource actual = itemSourceService == null ? null : itemSourceService.identifyItem(template);
+        ItemSourceRef actual = itemSourceService == null ? null : itemSourceService.identifyItem(template);
         String materialKey = template.getType().getKey().value().toLowerCase(Locale.ROOT);
         for (String token : tokens) {
             if (token == null || token.isBlank()) {
@@ -480,7 +847,7 @@ public final class StorageTransactionService {
             if (normalized.equals(materialKey)) {
                 return true;
             }
-            ItemSource parsed = ItemSourceUtil.parse(normalized);
+            ItemSourceRef parsed = ItemSourceUtil.parse(normalized);
             if (parsed != null && actual != null && ItemSourceUtil.matches(parsed, actual)) {
                 return true;
             }

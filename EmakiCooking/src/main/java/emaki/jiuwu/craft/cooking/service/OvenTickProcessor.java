@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -230,7 +230,7 @@ final class OvenTickProcessor {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }
@@ -291,7 +291,7 @@ final class OvenTickProcessor {
                     dropSource = Texts.isBlank(outputSource) ? dropSource : outputSource;
                 }
             }
-            ItemSource source = ItemSourceUtil.parse(dropSource);
+            ItemSourceRef source = ItemSourceUtil.parse(dropSource);
             ItemStack itemStack = source == null ? null : itemSourceService.createItem(source, 1);
             if (itemStack != null && !itemStack.getType().isAir()) {
                 ovenBlock.getWorld().dropItemNaturally(dropLocation, itemStack);

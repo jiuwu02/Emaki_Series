@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.apiimpl;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -14,6 +15,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
+import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
@@ -21,8 +24,8 @@ import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -78,7 +81,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
 
     @Override
     public EmakiResult<String> itemDisplayName(String itemSource) {
-        ItemSource source = ItemSourceUtil.parse(itemSource);
+        ItemSourceRef source = ItemSourceUtil.parse(itemSource);
         String displayName = plugin.itemSourceService().displayName(source);
         if (!Texts.isBlank(displayName)) {
             return EmakiResult.success(displayName);
@@ -94,7 +97,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         if (itemStack == null || itemStack.getType().isAir()) {
             return EmakiResult.invalidInput("corelib.item.stack_missing");
         }
-        ItemSource source = plugin.itemSourceService().identifyItem(itemStack);
+        ItemSourceRef source = plugin.itemSourceService().identifyItem(itemStack);
         String displayName = plugin.itemSourceService().displayName(source);
         if (!Texts.isBlank(displayName)) {
             return EmakiResult.success(displayName);
@@ -156,5 +159,30 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public boolean onStageRegistryRebuilt(Plugin owner, Runnable reregister) {
         return plugin.stageRebuildListeners().register(owner, reregister);
+    }
+
+    @Override
+    public CapabilityRegistration publishCapabilities(Plugin owner, Set<ApiCapability> capabilities) {
+        return plugin.capabilityRegistry().publish(owner, capabilities);
+    }
+
+    @Override
+    public int revokeCapabilities(Plugin owner) {
+        return plugin.capabilityRegistry().revokeAll(owner);
+    }
+
+    @Override
+    public boolean hasCapability(ApiCapability capability) {
+        return plugin.capabilityRegistry().has(capability);
+    }
+
+    @Override
+    public Set<ApiCapability> capabilities() {
+        return plugin.capabilityRegistry().all();
+    }
+
+    @Override
+    public Set<ApiCapability> capabilitiesOf(String pluginName) {
+        return plugin.capabilityRegistry().ownedBy(pluginName);
     }
 }

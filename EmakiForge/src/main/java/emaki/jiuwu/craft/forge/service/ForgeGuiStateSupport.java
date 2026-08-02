@@ -12,7 +12,7 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -204,12 +204,12 @@ final class ForgeGuiStateSupport {
         return rules.optionalLimit() <= 0 || occupiedCount < rules.optionalLimit();
     }
 
-    public BlueprintRequirement findBlueprintRequirementBySource(ForgeGuiSession state, ItemSource source) {
+    public BlueprintRequirement findBlueprintRequirementBySource(ForgeGuiSession state, ItemSourceRef source) {
         ForgeService forgeService = state == null ? null : state.runtimeSnapshot().forgeService();
         return forgeService == null ? null : forgeService.findBlueprintRequirementBySource(source);
     }
 
-    public ForgeMaterial findMaterialBySource(ForgeGuiSession state, ItemSource source) {
+    public ForgeMaterial findMaterialBySource(ForgeGuiSession state, ItemSourceRef source) {
         ForgeService forgeService = state == null ? null : state.runtimeSnapshot().forgeService();
         return forgeService == null ? null : forgeService.findMaterialBySource(source);
     }

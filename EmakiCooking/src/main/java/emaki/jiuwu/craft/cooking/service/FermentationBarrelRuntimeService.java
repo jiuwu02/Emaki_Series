@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -152,7 +152,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         Block block = coordinates.block();
         FermentationBarrelState state = codec.readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         if (state == null || state.isCompletelyEmpty()) {
             removeState(coordinates, false);
             activeStations.remove(coordinates);
@@ -347,7 +347,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
     }
 
     private String firstSource(Object raw) {
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }
@@ -461,7 +461,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
         Block block = coordinates.block();
-        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || !blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource)) {
             removeState(coordinates, true);
             activeStations.remove(coordinates);
@@ -559,7 +559,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
             ItemStack item = codec.deserializeItem(state.slotItemData(entry.getKey()));
             if (item == null || item.getType().isAir()) {
-                ItemSource source = ItemSourceUtil.parse(entry.getValue());
+                ItemSourceRef source = ItemSourceUtil.parse(entry.getValue());
                 item = source == null ? null : itemSourceService.createItem(source, state.slotAmounts().getOrDefault(entry.getKey(), 1));
             }
             if (item != null && !item.getType().isAir()) {

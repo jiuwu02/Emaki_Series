@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -119,13 +119,13 @@ public final class SourceExperienceService {
 
     public SourceRuleConfig.Rule matchItem(SourceRuleConfig source, ItemStack itemStack) {
         ItemSourceService itemSourceService = plugin.coreLib().itemSourceService();
-        ItemSource actual = itemSourceService.identifyItem(itemStack);
+        ItemSourceRef actual = itemSourceService.identifyItem(itemStack);
         for (SourceRuleConfig.Rule rule : source.rules()) {
             if (rule.resultItemSources().isEmpty()) {
                 return rule;
             }
             for (String expectedText : rule.resultItemSources()) {
-                ItemSource expected = ItemSourceUtil.parse(expectedText);
+                ItemSourceRef expected = ItemSourceUtil.parse(expectedText);
                 if (ItemSourceUtil.matches(expected, actual)) {
                     return rule;
                 }

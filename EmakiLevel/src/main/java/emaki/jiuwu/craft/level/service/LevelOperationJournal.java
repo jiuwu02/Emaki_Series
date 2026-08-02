@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
@@ -220,7 +220,7 @@ final class LevelOperationJournal {
             Object sourcesValue = material.get("item_sources");
             if (sourcesValue instanceof List<?> sources) {
                 for (Object sourceValue : sources) {
-                    ItemSource source = ItemSourceUtil.parse(text(sourceValue));
+                    ItemSourceRef source = ItemSourceUtil.parse(text(sourceValue));
                     if (source == null || itemSourceService == null) {
                         continue;
                     }

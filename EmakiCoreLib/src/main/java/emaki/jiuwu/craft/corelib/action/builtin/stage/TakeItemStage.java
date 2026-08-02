@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 /**
@@ -47,7 +47,7 @@ public final class TakeItemStage extends BaseStage {
         if (target == null) {
             return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
-        ItemSource source = StageSupport.itemSource(arguments.getString("item_source"));
+        ItemSourceRef source = StageSupport.itemSource(arguments.getString("item_source"));
         if (source == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.item.invalid_item_source",

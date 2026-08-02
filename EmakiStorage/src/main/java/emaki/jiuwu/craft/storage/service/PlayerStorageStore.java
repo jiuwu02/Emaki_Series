@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.SortMode;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
+import emaki.jiuwu.craft.storage.model.StorageReservation;
 import emaki.jiuwu.craft.storage.persistence.StorageDataFile;
 import emaki.jiuwu.craft.storage.persistence.StorageMetaFile;
 
@@ -218,10 +219,43 @@ public final class PlayerStorageStore {
             logger.warning("[storage] Merged " + merged + " duplicate entr(ies) for " + playerId
                     + "; two stored items now compare equal after a component format change.");
         }
+        restoreReservations(playerId, storage, loaded.reservations());
         storage.pruneEmpty();
         storage.clearDirty();
         warnOnLargeStorage(playerId, storage);
         return storage;
+    }
+
+    /**
+     * Re-attaches persisted holds and drops the ones that outlived their ttl.
+     *
+     * <p>This is the crash-recovery path. A hold taken just before the server died would otherwise
+     * keep its stock frozen forever, because the caller that would have committed or released it is
+     * long gone. Expiry is checked on load rather than lazily, so the player's next snapshot already
+     * shows the released units.
+     */
+    private void restoreReservations(UUID playerId, PlayerStorage storage,
+            List<StorageDataFile.ReservationRecord> reservations) {
+        if (reservations.isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        int expired = 0;
+        for (StorageDataFile.ReservationRecord record : reservations) {
+            if (now >= record.expiresAtMillis()) {
+                expired++;
+                continue;
+            }
+            List<StorageReservation.Op> ops = new ArrayList<>(record.ops().size());
+            for (StorageDataFile.ReservationOpRecord op : record.ops()) {
+                ops.add(new StorageReservation.Op(StorageKey.of(op.template()), op.delta()));
+            }
+            storage.addReservation(new StorageReservation(record.reservationId(),
+                    record.expiresAtMillis(), ops));
+        }
+        if (expired > 0) {
+            logger.info("[storage] Released " + expired + " expired reservation(s) for " + playerId + ".");
+        }
     }
 
     private void warnOnLargeStorage(UUID playerId, PlayerStorage storage) {
@@ -293,12 +327,22 @@ public final class PlayerStorageStore {
             }
             records.add(new StorageDataFile.Record(key.toItemStack(), entry.amount(), entry.stackLimit()));
         }
+        List<StorageDataFile.ReservationRecord> reservations =
+                new ArrayList<>(snapshot.reservations().size());
+        for (StorageReservation reservation : snapshot.reservations().values()) {
+            List<StorageDataFile.ReservationOpRecord> ops = new ArrayList<>(reservation.ops().size());
+            for (StorageReservation.Op op : reservation.ops()) {
+                ops.add(new StorageDataFile.ReservationOpRecord(op.key().toItemStack(), op.delta()));
+            }
+            reservations.add(new StorageDataFile.ReservationRecord(reservation.reservationId(),
+                    reservation.expiresAtMillis(), ops));
+        }
         StorageMetaFile.Meta meta = new StorageMetaFile.Meta(snapshot.playerName(),
                 snapshot.grantedSlots(), snapshot.purchasedSlots(),
                 snapshot.defaultStackLimit(), snapshot.sortMode(), snapshot.autoPickupEnabled());
         return fileScope.write(dataFile.dataFile(playerId), "storage-save", () -> {
             try {
-                dataFile.save(playerId, records);
+                dataFile.save(playerId, records, reservations);
                 metaFile.save(playerId, meta);
             } catch (IOException failure) {
                 throw new CompletionException(failure);

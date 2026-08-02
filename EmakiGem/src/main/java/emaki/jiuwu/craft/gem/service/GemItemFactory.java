@@ -120,7 +120,7 @@ public final class GemItemFactory {
         return definition.id();
     }
 
-    private ItemStack createBaseItem(emaki.jiuwu.craft.corelib.item.ItemSource itemSource, int amount) {
+    private ItemStack createBaseItem(emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef itemSource, int amount) {
         return itemSourceService == null || itemSource == null ? null : itemSourceService.createItem(itemSource, amount);
     }
 }

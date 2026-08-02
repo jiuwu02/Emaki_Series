@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.6.17"
+version: "4.6.18"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -416,6 +416,13 @@ action:
       refresh_failed: "<red>[Pipeline] The server-wide forged item refresh failed: %error%</red>"
       generation_changed: "<red>[Pipeline] The EmakiForge runtime generation changed during the refresh; the result is stale</red>"
       partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player(s)</red>"
+
+# Cross-module capability registry diagnostics
+capability:
+  publish:
+    missing_owner: "<red>[Capability] No publishing plugin was supplied; publication refused</red>"
+    empty: "<red>[Capability] The capability set is empty; publication refused</red>"
+    duplicate: "<red>[Capability] That capability identifier is already taken; publication refused</red>"
 
 # Debug mode messages
 debug:

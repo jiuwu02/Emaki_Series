@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -136,7 +136,7 @@ public final class GrinderRuntimeService {
             return false;
         }
         GrinderState state = readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         Block block = coordinates.block();
         if (state == null) {
             activeStations.remove(coordinates.runtimeKey());
@@ -215,7 +215,7 @@ public final class GrinderRuntimeService {
             interaction.cancel();
             return true;
         }
-        ItemSource source = itemSourceService.identifyItem(hand);
+        ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
         RecipeDocument recipe = recipeService.findGrinderRecipe(shorthand, player);
         if (recipe == null) {
@@ -265,7 +265,7 @@ public final class GrinderRuntimeService {
             return false;
         }
         if (state.hasInputSource()) {
-            ItemSource source = ItemSourceUtil.parse(state.inputSource());
+            ItemSourceRef source = ItemSourceUtil.parse(state.inputSource());
             ItemStack itemStack = itemSourceService.createItem(source, 1);
             if (itemStack != null && !itemStack.getType().isAir()) {
                 block.getWorld().dropItemNaturally(block.getLocation().add(0.5D, 1.0D, 0.5D), itemStack);
@@ -407,7 +407,7 @@ public final class GrinderRuntimeService {
         }
         Block block = coordinates.block();
         RecipeDocument recipe = recipeService.grinderRecipeById(state.recipeId());
-        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || recipe == null || !blockMatcher.matches(block, StationType.GRINDER, stationSource)) {
             activeStations.remove(coordinates.runtimeKey());
             stateStore.deleteAsync(coordinates);

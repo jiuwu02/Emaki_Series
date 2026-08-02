@@ -9,7 +9,7 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
@@ -20,7 +20,7 @@ public final class GemDefinition {
     private final List<String> lore;
     private final String gemType;
     private final int level;
-    private final ItemSource itemSource;
+    private final ItemSourceRef itemSource;
     private final Integer customModelData;
     private final Map<String, Object> stats;
     private final Map<String, Object> attributes;
@@ -42,7 +42,7 @@ public final class GemDefinition {
             List<String> lore,
             String gemType,
             int level,
-            ItemSource itemSource,
+            ItemSourceRef itemSource,
             Integer customModelData,
             Map<String, Object> stats,
             Map<String, Object> attributes,
@@ -101,7 +101,7 @@ public final class GemDefinition {
         return level;
     }
 
-    public ItemSource itemSource() {
+    public ItemSourceRef itemSource() {
         return itemSource;
     }
 
@@ -330,7 +330,7 @@ public final class GemDefinition {
         }
     }
 
-    public record MaterialCost(ItemSource itemSource, int amount) {
+    public record MaterialCost(ItemSourceRef itemSource, int amount) {
 
         public MaterialCost {
             amount = Math.max(1, amount);

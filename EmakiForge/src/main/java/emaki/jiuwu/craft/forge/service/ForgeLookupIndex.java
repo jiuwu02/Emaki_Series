@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
@@ -103,7 +103,7 @@ public final class ForgeLookupIndex {
             if (recipe == null) {
                 continue;
             }
-            ItemSource outputSource = recipe.configuredOutputSource();
+            ItemSourceRef outputSource = recipe.configuredOutputSource();
             recordSourceType(sourceTypes, outputSource);
             if (outputSource == null) {
                 genericRecipeList.add(recipe);
@@ -169,7 +169,7 @@ public final class ForgeLookupIndex {
         return new Metrics(counters.generation, counters.hits.sum(), counters.misses.sum());
     }
 
-    ForgeMaterial findMaterialBySource(ItemSource source) {
+    ForgeMaterial findMaterialBySource(ItemSourceRef source) {
         Snapshot snapshot = activeSnapshot();
         ForgeMaterial value = source == null ? null : snapshot.materialsBySource().get(shorthand(source));
         recordQuery(snapshot.generation(), value != null);
@@ -183,7 +183,7 @@ public final class ForgeLookupIndex {
         return value;
     }
 
-    BlueprintRequirement findBlueprintRequirementBySource(ItemSource source) {
+    BlueprintRequirement findBlueprintRequirementBySource(ItemSourceRef source) {
         Snapshot snapshot = activeSnapshot();
         BlueprintRequirement value = source == null ? null : snapshot.blueprintsBySource().get(shorthand(source));
         recordQuery(snapshot.generation(), value != null);
@@ -194,7 +194,7 @@ public final class ForgeLookupIndex {
         return activeSnapshot().sortedRecipes();
     }
 
-    List<Recipe> findRecipesByConfiguredOutputSource(ItemSource source) {
+    List<Recipe> findRecipesByConfiguredOutputSource(ItemSourceRef source) {
         Snapshot snapshot = activeSnapshot();
         List<Recipe> value = source == null
                 ? snapshot.genericRecipes()
@@ -229,22 +229,25 @@ public final class ForgeLookupIndex {
         }
     }
 
-    private static void recordSourceType(Map<String, Boolean> sink, ItemSource source) {
-        if (sink != null && source != null && source.getType() != null) {
-            sink.put(source.getType().name(), Boolean.TRUE);
+    /**
+     * Records which item source kinds a recipe set touches.
+     *
+     * <p>Only the resulting {@code size()} is ever read &mdash; it feeds the "distinct source kinds"
+     * diagnostic counter. The key was the enum's {@code name()} and is now the kind's canonical key;
+     * both are just de-duplication tokens that never leave this method's caller.
+     */
+    private static void recordSourceType(Map<String, Boolean> sink, ItemSourceRef source) {
+        if (sink != null && source != null) {
+            sink.put(source.kind().key(), Boolean.TRUE);
         }
     }
 
-    private static String shorthand(ItemSource source) {
+    private static String shorthand(ItemSourceRef source) {
         if (source == null) {
             return "";
         }
         String shorthand = Texts.lower(ItemSourceUtil.toShorthand(source));
-        if (source.getType() == null) {
-            return shorthand;
-        }
-        if (source.getType() == emaki.jiuwu.craft.corelib.item.ItemSourceType.VANILLA
-                && shorthand.startsWith("minecraft:")) {
+        if (source.vanilla() && shorthand.startsWith("minecraft:")) {
             return shorthand.substring("minecraft:".length());
         }
         return shorthand;

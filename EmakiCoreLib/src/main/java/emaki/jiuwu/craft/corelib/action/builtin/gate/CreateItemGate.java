@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 /**
@@ -61,7 +61,7 @@ public final class CreateItemGate extends BaseGate {
     public @NotNull CoreGateResult apply(@NotNull CoreStageContext context,
             @NotNull List<CoreActionSubject> inbound,
             @NotNull CoreResolvedArguments arguments) {
-        ItemSource source = StageSupport.itemSource(arguments.getString("item_source"));
+        ItemSourceRef source = StageSupport.itemSource(arguments.getString("item_source"));
         if (source == null) {
             return CoreGateResult.invalid("action.stage.item.invalid_item_source",
                     Map.of("item_source", arguments.getString("item_source")));

@@ -5,7 +5,7 @@ import java.util.Locale;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -72,7 +72,7 @@ public final class StoragePlaceholderExpansion extends AbstractEmakiPlaceholderE
         if (token.isBlank()) {
             return 0L;
         }
-        ItemSource source = ItemSourceUtil.parse(token);
+        ItemSourceRef source = ItemSourceUtil.parse(token);
         if (source == null) {
             return 0L;
         }

@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.math.Numbers;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -27,7 +27,7 @@ public final class Recipe {
         }
     }
 
-    public record ResultConfig(ItemSource outputItem,
+    public record ResultConfig(ItemSourceRef outputItem,
             List<String> action,
             List<Map<String, Object>> nameModifications,
             List<Map<String, Object>> loreActions) {
@@ -200,7 +200,7 @@ public final class Recipe {
             return new ResultConfig(null, List.of(), List.of(), List.of());
         }
         Object outputItem = firstResultOutput(ConfigNodes.get(success, "outputs"));
-        ItemSource parsedOutputItem = ItemSourceUtil.parse(outputItem);
+        ItemSourceRef parsedOutputItem = ItemSourceUtil.parse(outputItem);
         if (outputItem != null && parsedOutputItem == null) {
             return null;
         }
@@ -275,7 +275,7 @@ public final class Recipe {
         return outcomes;
     }
 
-    public ForgeMaterial findMaterialBySource(ItemSource source) {
+    public ForgeMaterial findMaterialBySource(ItemSourceRef source) {
         if (source == null) {
             return null;
         }
@@ -287,7 +287,7 @@ public final class Recipe {
         return null;
     }
 
-    public ForgeMaterial findMaterialBySource(ItemSource source, boolean optional) {
+    public ForgeMaterial findMaterialBySource(ItemSourceRef source, boolean optional) {
         if (source == null) {
             return null;
         }
@@ -348,7 +348,7 @@ public final class Recipe {
         return forgeCapacity;
     }
 
-    public ItemSource configuredOutputSource() {
+    public ItemSourceRef configuredOutputSource() {
         return result == null ? null : result.outputItem();
     }
 

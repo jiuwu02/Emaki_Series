@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
@@ -228,7 +228,7 @@ public final class EmakiItemAssemblyService {
         return dataManager.isEmakiItem(itemStack);
     }
 
-    public ItemSource readBaseSource(ItemStack itemStack) {
+    public ItemSourceRef readBaseSource(ItemStack itemStack) {
         return dataManager.readBaseSource(itemStack);
     }
 
@@ -322,14 +322,14 @@ public final class EmakiItemAssemblyService {
         Map<String, EmakiItemLayerSnapshot> storedLayers = Map.of();
         List<String> previousActiveLayers = List.of();
 
-        ItemSource storedBaseSource = existingIsEmakiItem ? dataManager.readBaseSource(existingItem) : null;
+        ItemSourceRef storedBaseSource = existingIsEmakiItem ? dataManager.readBaseSource(existingItem) : null;
         int storedAmount = existingIsEmakiItem
                 ? dataManager.readBaseAmount(existingItem)
                 : existingItem == null ? 1 : Math.max(1, existingItem.getAmount());
         String storedBaseCustomName = existingIsEmakiItem ? dataManager.readBaseCustomName(existingItem) : "";
         List<String> storedBaseLore = existingIsEmakiItem ? safeLore(dataManager.readBaseLore(existingItem)) : List.of();
 
-        ItemSource baseSource = request.baseSource() != null ? request.baseSource() : storedBaseSource;
+        ItemSourceRef baseSource = request.baseSource() != null ? request.baseSource() : storedBaseSource;
         int amount = request.amount() > 0 ? request.amount() : storedAmount;
         String baseCustomName;
         List<String> baseLore;
@@ -595,7 +595,7 @@ public final class EmakiItemAssemblyService {
                 || dataManager.readPresentationSnapshot(managedProjection.itemStack()) != null;
     }
 
-    private ItemPresentationSnapshot renderPresentationSnapshot(ItemSource baseSource,
+    private ItemPresentationSnapshot renderPresentationSnapshot(ItemSourceRef baseSource,
             int amount,
             String baseCustomName,
             List<String> baseLore,
@@ -838,7 +838,7 @@ public final class EmakiItemAssemblyService {
 
     private record AssemblyContext(ItemStack existingItem,
             boolean existingIsEmakiItem,
-            ItemSource baseSource,
+            ItemSourceRef baseSource,
             int amount,
             String baseCustomName,
             List<String> baseLore,

@@ -53,16 +53,37 @@ public final class StorageDataFile {
     }
 
     /**
+     * One signed increment inside a persisted reservation.
+     *
+     * @param template the stored item, amount already normalised to one
+     * @param delta    signed unit count; negative withdraws, positive deposits
+     */
+    public record ReservationOpRecord(ItemStack template, long delta) {
+    }
+
+    /**
+     * One persisted hold.
+     *
+     * @param reservationId   the reservation identity
+     * @param expiresAtMillis wall-clock expiry in epoch milliseconds
+     * @param ops             the signed increments the hold will apply on commit
+     */
+    public record ReservationRecord(UUID reservationId, long expiresAtMillis, List<ReservationOpRecord> ops) {
+    }
+
+    /**
      * Outcome of a load.
      *
      * @param records          successfully decoded records in file order
+     * @param reservations     successfully decoded holds; always empty for a format {@code 1} file
      * @param corruptRecords   how many records failed to decode and were quarantined
      * @param quarantineTarget where the corrupt bytes were written, {@code null} when none were
      */
-    public record LoadResult(List<Record> records, int corruptRecords, Path quarantineTarget) {
+    public record LoadResult(List<Record> records, List<ReservationRecord> reservations, int corruptRecords,
+            Path quarantineTarget) {
 
         public static LoadResult empty() {
-            return new LoadResult(List.of(), 0, null);
+            return new LoadResult(List.of(), List.of(), 0, null);
         }
 
         public boolean hasCorruption() {
@@ -108,10 +129,12 @@ public final class StorageDataFile {
             return LoadResult.empty();
         }
         List<Record> records = new ArrayList<>();
+        List<ReservationRecord> reservations = new ArrayList<>();
         List<byte[]> corrupt = new ArrayList<>();
         try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
-            StorageCodec.readHeader(in);
+            int version = StorageCodec.readHeader(in);
             long declared = StorageCodec.readVarLong(in);
+            boolean framingIntact = true;
             for (long index = 0; index < declared; index++) {
                 byte[] payload;
                 long amount;
@@ -122,6 +145,7 @@ public final class StorageDataFile {
                     stackLimit = StorageCodec.readVarLong(in);
                 } catch (IOException framingFailure) {
                     // Framing itself broke: nothing after this point can be trusted.
+                    framingIntact = false;
                     break;
                 }
                 try {
@@ -136,9 +160,63 @@ public final class StorageDataFile {
                     corrupt.add(StorageCodec.reframe(payload));
                 }
             }
+            if (framingIntact && version >= StorageCodec.RESERVATION_FORMAT_VERSION) {
+                reservations.addAll(readReservations(in));
+            }
         }
         Path quarantine = corrupt.isEmpty() ? null : quarantine(playerId, corrupt);
-        return new LoadResult(records, corrupt.size(), quarantine);
+        return new LoadResult(records, reservations, corrupt.size(), quarantine);
+    }
+
+    /**
+     * Reads the reservation section.
+     *
+     * <p>A hold that cannot be decoded is dropped rather than quarantined. A reservation is a
+     * short-lived promise, not player property: losing one releases stock back to the player, while
+     * keeping an undecodable one would freeze that stock forever.
+     */
+    private List<ReservationRecord> readReservations(InputStream in) throws IOException {
+        long declared;
+        try {
+            declared = StorageCodec.readVarLong(in);
+        } catch (IOException missingSection) {
+            return List.of();
+        }
+        List<ReservationRecord> reservations = new ArrayList<>();
+        for (long index = 0; index < declared; index++) {
+            try {
+                UUID reservationId = StorageCodec.readUuid(in);
+                long expiresAt = StorageCodec.readVarLong(in);
+                long opCount = StorageCodec.readVarLong(in);
+                List<ReservationOpRecord> ops = new ArrayList<>((int) Math.min(opCount, 2048L));
+                boolean usable = true;
+                for (long opIndex = 0; opIndex < opCount; opIndex++) {
+                    byte[] payload = StorageCodec.readItemPayload(in);
+                    int sign = in.read();
+                    long magnitude = StorageCodec.readVarLong(in);
+                    if (sign < 0) {
+                        throw new IOException("Truncated reservation op sign");
+                    }
+                    try {
+                        ItemStack template = StorageCodec.decodeItem(payload);
+                        if (template == null || template.getType().isAir()) {
+                            usable = false;
+                            continue;
+                        }
+                        template.setAmount(1);
+                        ops.add(new ReservationOpRecord(template, sign == 1 ? -magnitude : magnitude));
+                    } catch (RuntimeException decodeFailure) {
+                        usable = false;
+                    }
+                }
+                if (usable && !ops.isEmpty()) {
+                    reservations.add(new ReservationRecord(reservationId, expiresAt, ops));
+                }
+            } catch (IOException framingFailure) {
+                break;
+            }
+        }
+        return reservations;
     }
 
     /**
@@ -147,15 +225,17 @@ public final class StorageDataFile {
      * <p>Sequence: write tmp, re-read tmp and compare the record count, then atomically replace.
      * Any failure keeps the previous file and deletes the tmp.
      *
-     * @param playerId the storage owner
-     * @param records  the complete record set to persist
+     * @param playerId     the storage owner
+     * @param records      the complete record set to persist
+     * @param reservations the outstanding holds to persist
      * @throws IOException when writing, validating or replacing fails
      */
-    public void save(UUID playerId, List<Record> records) throws IOException {
+    public void save(UUID playerId, List<Record> records, List<ReservationRecord> reservations) throws IOException {
         Path directory = playerDirectory(playerId);
         Files.createDirectories(directory);
         Path target = directory.resolve(DATA_FILE_NAME);
         Path temp = directory.resolve(DATA_FILE_NAME + TEMP_SUFFIX);
+        List<ReservationRecord> holds = reservations == null ? List.of() : reservations;
         boolean replaced = false;
         try {
             try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(temp))) {
@@ -166,8 +246,19 @@ public final class StorageDataFile {
                     StorageCodec.writeVarLong(out, Math.max(0L, record.amount()));
                     StorageCodec.writeVarLong(out, Math.max(0L, record.stackLimit()));
                 }
+                StorageCodec.writeVarLong(out, holds.size());
+                for (ReservationRecord reservation : holds) {
+                    StorageCodec.writeUuid(out, reservation.reservationId());
+                    StorageCodec.writeVarLong(out, Math.max(0L, reservation.expiresAtMillis()));
+                    StorageCodec.writeVarLong(out, reservation.ops().size());
+                    for (ReservationOpRecord op : reservation.ops()) {
+                        StorageCodec.writeItem(out, op.template());
+                        out.write(op.delta() < 0L ? 1 : 0);
+                        StorageCodec.writeVarLong(out, Math.abs(op.delta()));
+                    }
+                }
             }
-            verify(temp, records.size());
+            verify(temp, records.size(), holds.size());
             moveReplacing(temp, target);
             replaced = true;
         } finally {
@@ -180,11 +271,12 @@ public final class StorageDataFile {
     /**
      * Re-reads a freshly written file and confirms it decodes to the expected record count.
      *
-     * @param file     the temporary file
-     * @param expected how many records were written
-     * @throws IOException when the file cannot be read back or the count differs
+     * @param file             the temporary file
+     * @param expected         how many records were written
+     * @param expectedHolds    how many reservations were written
+     * @throws IOException when the file cannot be read back or a count differs
      */
-    private void verify(Path file, int expected) throws IOException {
+    private void verify(Path file, int expected, int expectedHolds) throws IOException {
         try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
             StorageCodec.readHeader(in);
             long declared = StorageCodec.readVarLong(in);
@@ -196,6 +288,23 @@ public final class StorageDataFile {
                 StorageCodec.readItemPayload(in);
                 StorageCodec.readVarLong(in);
                 StorageCodec.readVarLong(in);
+            }
+            long declaredHolds = StorageCodec.readVarLong(in);
+            if (declaredHolds != expectedHolds) {
+                throw new IOException("Verification failed: header declares " + declaredHolds
+                        + " reservations but " + expectedHolds + " were written");
+            }
+            for (long index = 0; index < declaredHolds; index++) {
+                StorageCodec.readUuid(in);
+                StorageCodec.readVarLong(in);
+                long opCount = StorageCodec.readVarLong(in);
+                for (long opIndex = 0; opIndex < opCount; opIndex++) {
+                    StorageCodec.readItemPayload(in);
+                    if (in.read() < 0) {
+                        throw new IOException("Verification failed: truncated reservation op sign");
+                    }
+                    StorageCodec.readVarLong(in);
+                }
             }
             if (in.read() >= 0) {
                 throw new IOException("Verification failed: trailing bytes after " + declared + " records");

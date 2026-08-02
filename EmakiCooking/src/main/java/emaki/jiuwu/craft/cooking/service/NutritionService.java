@@ -14,7 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.Texts;
@@ -202,7 +202,7 @@ public final class NutritionService {
         if (player == null || itemStack == null || itemStack.getType().isAir()) {
             return new FoodApplyResult(FoodApplyStatus.INVALID_INPUT);
         }
-        ItemSource source = itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemSourceService.identifyItem(itemStack);
         if (source == null) {
             return new FoodApplyResult(FoodApplyStatus.SOURCE_NOT_FOUND);
         }
@@ -253,8 +253,8 @@ public final class NutritionService {
         return new FoodApplyResult(ruleMatched ? FoodApplyStatus.DATA_UNAVAILABLE : FoodApplyStatus.NO_RULE);
     }
 
-    private boolean matchesAny(List<ItemSource> sources, ItemSource target) {
-        for (ItemSource candidate : sources) {
+    private boolean matchesAny(List<ItemSourceRef> sources, ItemSourceRef target) {
+        for (ItemSourceRef candidate : sources) {
             if (ItemSourceUtil.matches(candidate, target)) {
                 return true;
             }

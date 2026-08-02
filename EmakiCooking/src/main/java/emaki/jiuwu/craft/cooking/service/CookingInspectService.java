@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -44,7 +44,7 @@ public final class CookingInspectService {
             messageService.send(sender, "general.no_item_in_hand");
             return true;
         }
-        ItemSource source = itemSourceService.identifyItem(hand);
+        ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? "-" : String.valueOf(ItemSourceUtil.toShorthand(source));
         String displayName = EmakiCoreLibApi.itemDisplayName(hand).orElse("");
         messageService.sendRaw(sender, messageService.message("command.inspect.header"));

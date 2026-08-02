@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
@@ -144,7 +144,7 @@ public final class ChoppingBoardRuntimeService {
             return false;
         }
         ChoppingBoardState state = readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         Block block = coordinates.block();
         if (state == null) {
             clearDisplay(coordinates, null, null);
@@ -469,7 +469,7 @@ public final class ChoppingBoardRuntimeService {
         if (hand == null || hand.getType().isAir()) {
             return false;
         }
-        ItemSource source = itemSourceService.identifyItem(hand);
+        ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
         if (shorthand == null || shorthand.isBlank()) {
             return false;
@@ -581,7 +581,7 @@ public final class ChoppingBoardRuntimeService {
                 || hand == null || hand.getType().isAir()) {
             return false;
         }
-        ItemSource source = itemSourceService.identifyItem(hand);
+        ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
         if (shorthand == null || shorthand.isBlank() || !matchesInputSource(shorthand, state.inputSource())) {
             return false;
@@ -621,8 +621,8 @@ public final class ChoppingBoardRuntimeService {
     }
 
     private boolean matchesInputSource(String candidateSource, String storedSource) {
-        ItemSource candidate = ItemSourceUtil.parse(candidateSource);
-        ItemSource stored = ItemSourceUtil.parse(storedSource);
+        ItemSourceRef candidate = ItemSourceUtil.parse(candidateSource);
+        ItemSourceRef stored = ItemSourceUtil.parse(storedSource);
         if (candidate != null && stored != null) {
             return ItemSourceUtil.matches(stored, candidate);
         }
@@ -660,11 +660,11 @@ public final class ChoppingBoardRuntimeService {
         if (itemStack == null || itemStack.getType().isAir()) {
             return false;
         }
-        ItemSource source = itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemSourceService.identifyItem(itemStack);
         if (source == null) {
             return false;
         }
-        for (ItemSource tool : settingsService.choppingToolSources()) {
+        for (ItemSourceRef tool : settingsService.choppingToolSources()) {
             if (ItemSourceUtil.matches(tool, source)) {
                 return true;
             }
@@ -764,7 +764,7 @@ public final class ChoppingBoardRuntimeService {
     }
 
     private void refreshDisplay(StationCoordinates coordinates, String inputSource, Map<String, Object> inputItemData) {
-        ItemSource source = ItemSourceUtil.parse(inputSource);
+        ItemSourceRef source = ItemSourceUtil.parse(inputSource);
         ItemStack itemStack = storedItemOrFallback(inputSource, inputItemData, 1);
         if (source == null && itemStack != null && !itemStack.getType().isAir()) {
             source = itemSourceService.identifyItem(itemStack);
@@ -808,7 +808,7 @@ public final class ChoppingBoardRuntimeService {
             storedItem.setAmount(Math.max(1, amount));
             return storedItem;
         }
-        ItemSource source = ItemSourceUtil.parse(sourceText);
+        ItemSourceRef source = ItemSourceUtil.parse(sourceText);
         return source == null ? null : itemSourceService.createItem(source, amount);
     }
 
@@ -970,7 +970,7 @@ public final class ChoppingBoardRuntimeService {
         if (coordinates == null || Texts.isBlank(inputSource)) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(inputSource);
+        ItemSourceRef source = ItemSourceUtil.parse(inputSource);
         ItemStack itemStack = itemSourceService.createItem(source, 1);
         if (source == null || itemStack == null || itemStack.getType().isAir()) {
             return null;

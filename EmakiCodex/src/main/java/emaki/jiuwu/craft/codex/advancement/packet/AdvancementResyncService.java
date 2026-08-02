@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.codex.advancement.model.AdvancementFrame;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
@@ -202,7 +202,7 @@ public final class AdvancementResyncService {
     private com.github.retrooper.packetevents.protocol.item.ItemStack resolveIcon(String iconShorthand) {
         ItemStack bukkitIcon = null;
         if (Texts.isNotBlank(iconShorthand) && itemSourceService != null) {
-            ItemSource source = ItemSourceUtil.parse(iconShorthand);
+            ItemSourceRef source = ItemSourceUtil.parse(iconShorthand);
             if (source != null) {
                 ItemStack created = itemSourceService.createItem(source, 1);
                 if (created != null && !created.getType().isAir()) {
