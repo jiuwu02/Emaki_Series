@@ -542,7 +542,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
                         "station_type", StationType.FERMENTATION_BARREL.folderName(),
                         "stage", stageName
                 ),
-                List.of()
+                List.of(),
+                // No player inventory input on this path; the pipeline evaluates the condition itself.
+                null
         ));
         if (accepted && notifyPlayer && player != null) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());

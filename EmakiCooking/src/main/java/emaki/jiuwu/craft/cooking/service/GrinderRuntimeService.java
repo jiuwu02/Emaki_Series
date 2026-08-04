@@ -455,7 +455,9 @@ public final class GrinderRuntimeService {
                         "recipe_id", recipe.id(),
                         "station_type", StationType.GRINDER.folderName()
                 ),
-                List.of()
+                List.of(),
+                // No player inventory input on this path; the pipeline evaluates the condition itself.
+                null
         ));
         if (accepted && player != null && player.isOnline()) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.completed", Map.of("recipe", recipe.displayName()));

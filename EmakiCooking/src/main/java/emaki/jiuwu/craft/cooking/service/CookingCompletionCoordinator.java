@@ -47,6 +47,17 @@ public final class CookingCompletionCoordinator {
 
     private static final long RETRY_DELAY_TICKS = 20L;
 
+    /**
+     * How many times a player-inventory input may be attempted before the completion is abandoned.
+     *
+     * <p>These units read the player's main hand at execution time, so an unbounded retry would keep
+     * watching the hand and consume the item at some arbitrary later moment — long after the
+     * interaction that asked for it. With {@link #RETRY_DELAY_TICKS} at 20 ticks this bounds the watch
+     * to roughly five seconds, after which nothing has been consumed and no state has been committed,
+     * so abandoning simply returns the station to the player untouched.
+     */
+    private static final int MAX_PLAYER_INPUT_ATTEMPTS = 5;
+
     private final JavaPlugin plugin;
     private final CookingRewardService rewardService;
     private final CookingCompletionJournalStore journalStore;
@@ -178,7 +189,8 @@ public final class CookingCompletionCoordinator {
                 request.outputs(),
                 request.actions(),
                 request.phase(),
-                request.placeholders()
+                request.placeholders(),
+                request.conditionOutcome()
         );
         List<Unit> inputs = freezePlayerInputs(request);
         List<Unit> deliveries = new ArrayList<>();
@@ -366,16 +378,54 @@ public final class CookingCompletionCoordinator {
                             .filter(candidate -> candidate.unitId().equals(unit.unitId()))
                             .findFirst()
                             .orElseThrow();
-                    CookingCompletionOperation updated = success
-                            ? saved.withInputUnit(current.complete())
-                            : saved.withInputUnit(current.fail("Required main-hand inventory input is unavailable"));
+                    if (success) {
+                        return save(saved.withInputUnit(current.complete())).thenApply(_ -> true);
+                    }
+                    // The unit reads the player's main hand when it runs, so retrying forever would let it
+                    // consume the item at an unrelated later moment. Give up once the attempt budget is
+                    // spent: nothing was consumed and no state was committed, so the station is released
+                    // exactly as the player left it.
+                    if (current.attempts() >= MAX_PLAYER_INPUT_ATTEMPTS) {
+                        return abandonUnavailableInput(saved, current).thenApply(_ -> false);
+                    }
+                    CookingCompletionOperation updated =
+                            saved.withInputUnit(current.fail("Required main-hand inventory input is unavailable"));
                     return save(updated).thenApply(_ -> {
-                        if (!success) {
-                            scheduleRetry(updated.operationId());
-                        }
-                        return success;
+                        scheduleRetry(updated.operationId());
+                        return false;
                     });
                 }));
+    }
+
+    /**
+     * Abandons a completion whose required player-inventory input never became available.
+     *
+     * <p>Reached only while the operation is still {@code PREPARED}: no input has been consumed and the
+     * station state has not been committed, so there is nothing to roll back and nothing to salvage.
+     * The operation is archived rather than quarantined because it is a benign outcome — the player
+     * simply no longer held the item — and archiving releases the station through {@code remove}.
+     *
+     * @param operation the operation to abandon
+     * @param unit the input unit that exhausted its attempts
+     * @return the archived operation
+     */
+    private CompletableFuture<CookingCompletionOperation> abandonUnavailableInput(
+            CookingCompletionOperation operation,
+            Unit unit) {
+        logger.warning("Abandoning cooking completion " + operation.operationId()
+                + " after " + unit.attempts() + " attempts: required inventory input was never available"
+                + " (nothing consumed, station state unchanged)");
+        debugCompletion("station.completion_input_abandoned", Map.of(
+                "operation", operation.operationId(),
+                "station", operation.stationCoordinates().runtimeKey(),
+                "unit", unit.unitId(),
+                "attempts", unit.attempts()
+        ));
+        String reason = "Required main-hand inventory input was never available after "
+                + unit.attempts() + " attempts";
+        return archive(operation
+                .withInputUnit(unit.fail(reason))
+                .withError(reason));
     }
 
     private CompletableFuture<Boolean> commitStationState(

@@ -683,6 +683,34 @@ public final class WokRuntimeService {
             case "overcooked" -> recipeService.outcome(recipe, "result.overcooked");
             default -> invalidOutcome(recipe);
         };
+        Location rewardLocation = block.getLocation().add(0.5D, 1.0D, 0.5D);
+        Map<String, Object> completionPlaceholders = Map.of(
+                "recipe_id", recipe.id(),
+                "station_type", StationType.WOK.folderName(),
+                "outcome", branch
+        );
+        // The condition decides whether this serving runs at all. Evaluating it here, before the bowl is
+        // frozen and before the DELETE commit, is what keeps a blocked condition from eating the bowl and
+        // clearing the wok while reporting success.
+        CookingRewardService.ConditionGate gate = rewardService.evaluateConditionGate(recipe, player);
+        if (gate.blocked()) {
+            debugStation("station.wok_serve", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "result", "rejected_condition",
+                    "with_bowl", consumeBowl,
+                    "stir", state.totalStirCount(),
+                    "recipe", recipe.id()
+            ));
+            rewardService.runConditionFailActions(
+                    gate.failActions(),
+                    player,
+                    rewardLocation,
+                    "cooking_wok_" + branch,
+                    completionPlaceholders
+            );
+            return true;
+        }
         CookingCompletionRequest.PlayerInventoryInput bowlInput = consumeBowl
                 ? CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "wok serving bowl")
                 : null;
@@ -697,7 +725,7 @@ public final class WokRuntimeService {
                         Map.of(),
                         recipe,
                         player,
-                        block.getLocation().add(0.5D, 1.0D, 0.5D),
+                        rewardLocation,
                         settingsService.wokDropResult(),
                         state.ingredients().stream()
                                 .map(ingredient -> new CookingInputIngredient(ingredient.source(), ingredient.amount()))
@@ -705,12 +733,9 @@ public final class WokRuntimeService {
                         recipeService.outputs(outcome),
                         recipeService.actions(outcome),
                         "cooking_wok_" + branch,
-                        Map.of(
-                                "recipe_id", recipe.id(),
-                                "station_type", StationType.WOK.folderName(),
-                                "outcome", branch
-                        ),
-                        bowlInput == null ? List.of() : List.of(bowlInput)
+                        completionPlaceholders,
+                        bowlInput == null ? List.of() : List.of(bowlInput),
+                        gate.outcome()
                 ));
         debugStation("station.wok_serve", Map.of(
                 "player", player.getName(),
@@ -779,7 +804,9 @@ public final class WokRuntimeService {
                         List.of(),
                         phase,
                         Map.of("station_type", StationType.WOK.folderName()),
-                        bowlInput == null ? List.of() : List.of(bowlInput)
+                        bowlInput == null ? List.of() : List.of(bowlInput),
+                        // No recipe on this path, so there is no completion condition to carry.
+                        null
                 ));
         if (accepted) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, messageKey, replacements);

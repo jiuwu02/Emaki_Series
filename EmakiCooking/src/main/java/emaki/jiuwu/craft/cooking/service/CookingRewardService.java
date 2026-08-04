@@ -116,13 +116,37 @@ public final class CookingRewardService {
             List<String> actions,
             String phase,
             Map<String, ?> placeholders) {
+        return prepare(operationId, recipe, player, location, dropResult, inputs, outputs, actions, phase,
+                placeholders, null);
+    }
+
+    /**
+     * Freezes the reward units for a completion.
+     *
+     * @param conditionOutcome a completion condition the caller already evaluated, or {@code null} to
+     *         evaluate it here. Supplying it keeps the condition a single observation per completion,
+     *         which matters because the caller may have gated the submission on that same result.
+     */
+    PreparedReward prepare(String operationId,
+            RecipeDocument recipe,
+            Player player,
+            Location location,
+            boolean dropResult,
+            List<CookingInputIngredient> inputs,
+            List<Map<String, Object>> outputs,
+            List<String> actions,
+            String phase,
+            Map<String, ?> placeholders,
+            CookingCompletionRequest.ConditionOutcome conditionOutcome) {
         String stableOperationId = Texts.isBlank(operationId) ? UUID.randomUUID().toString() : operationId;
         Map<String, Object> basePlaceholders = defaultPlaceholders(recipe, player, location, inputs, placeholders);
         List<FrozenRewardUnit> units = new ArrayList<>();
         int sequence = 0;
 
         if (recipe != null && recipeService != null && recipeService.hasCompletionCondition(recipe)) {
-            boolean conditionPassed = recipeService.completionConditionPasses(recipe, player);
+            boolean conditionPassed = conditionOutcome != null
+                    ? conditionOutcome.passed()
+                    : recipeService.completionConditionPasses(recipe, player);
             List<String> branchActions = recipeService.completionConditionActions(recipe, conditionPassed);
             if (!branchActions.isEmpty()) {
                 units.add(freezeActionUnit(
@@ -300,6 +324,79 @@ public final class CookingRewardService {
 
     public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
         return recipeService != null && recipeService.completionConditionBlocksOutput(recipe);
+    }
+
+    /**
+     * Evaluates a recipe's completion condition once, before anything is consumed or committed.
+     *
+     * <p>Player-driven completions must decide whether to run at all before they take the player's
+     * item and clear the station: a condition with {@code block_output} would otherwise suppress the
+     * outputs while the inputs and the state commit anyway. Callers submit only when
+     * {@link ConditionGate#blocked()} is false, and pass {@link ConditionGate#outcome()} into the
+     * request so the pipeline reuses this same result rather than evaluating the condition again.
+     *
+     * <p>When the gate blocks, the caller is responsible for running {@link ConditionGate#failActions}
+     * on the calling thread; those actions are not frozen into the journal because no operation exists.
+     *
+     * @param recipe the recipe whose condition applies, may be {@code null}
+     * @param player the player the condition is evaluated against
+     * @return the gate decision; never {@code null}
+     */
+    public ConditionGate evaluateConditionGate(RecipeDocument recipe, Player player) {
+        if (recipe == null || recipeService == null || !recipeService.hasCompletionCondition(recipe)) {
+            return ConditionGate.OPEN;
+        }
+        boolean passed = recipeService.completionConditionPasses(recipe, player);
+        boolean blocked = !passed && recipeService.completionConditionBlocksOutput(recipe);
+        return new ConditionGate(
+                CookingCompletionRequest.ConditionOutcome.of(passed),
+                blocked,
+                blocked ? recipeService.completionConditionActions(recipe, false) : List.of()
+        );
+    }
+
+    /**
+     * The result of {@link #evaluateConditionGate}.
+     *
+     * @param outcome the evaluated condition, to be carried into the completion request
+     * @param blocked whether the condition forbids this completion from running at all
+     * @param failActions the {@code on_fail} actions to run when {@code blocked} is true
+     */
+    public record ConditionGate(
+            CookingCompletionRequest.ConditionOutcome outcome,
+            boolean blocked,
+            List<String> failActions) {
+
+        static final ConditionGate OPEN = new ConditionGate(null, false, List.of());
+
+        public ConditionGate {
+            failActions = failActions == null ? List.of() : List.copyOf(failActions);
+        }
+    }
+
+    /**
+     * Runs a blocked condition's {@code on_fail} actions immediately.
+     *
+     * <p>Used only on the gate-blocked path, where no journal operation is created and therefore no
+     * frozen action unit can carry them.
+     *
+     * @param actions the action lines to run
+     * @param player the acting player
+     * @param location the station location used as the pipeline origin
+     * @param phase the completion phase name
+     * @param placeholders placeholders exposed to the action lines
+     */
+    public void runConditionFailActions(List<String> actions,
+            Player player,
+            Location location,
+            String phase,
+            Map<String, ?> placeholders) {
+        if (actions == null || actions.isEmpty() || actionLines == null) {
+            return;
+        }
+        PipelineContext context = actionLines.context(player, Texts.toStringSafe(phase), false, immutableMap(placeholders))
+                .withOrigin(location);
+        actionLines.run(actions, context, true);
     }
 
     public ItemStack createOutputItem(RecipeDocument recipe,

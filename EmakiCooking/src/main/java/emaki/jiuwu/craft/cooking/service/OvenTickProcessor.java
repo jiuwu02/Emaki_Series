@@ -177,7 +177,9 @@ final class OvenTickProcessor {
                 actions,
                 "cooking_oven_complete",
                 placeholders,
-                List.of()
+                List.of(),
+                // No player inventory input on this path; the pipeline evaluates the condition itself.
+                null
         ));
         return accepted;
     }

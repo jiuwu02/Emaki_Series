@@ -276,6 +276,26 @@ public final class JuicerRuntimeService implements Listener {
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.need_container", Map.of());
                 return true;
             }
+            Location pressLocation = block.getLocation().add(0.5D, 1.0D, 0.5D);
+            Map<String, Object> pressPlaceholders = Map.of(
+                    "recipe_id", recipe.id(),
+                    "station_type", StationType.JUICER.folderName(),
+                    "slot_index", slot
+            );
+            // Same gate as the serving path: decide before the container is frozen and the slot is cleared.
+            CookingRewardService.ConditionGate pressGate = rewardService.evaluateConditionGate(recipe, player);
+            if (pressGate.blocked()) {
+                state.setProgress(slot, required);
+                saveState(coordinates, state);
+                rewardService.runConditionFailActions(
+                        pressGate.failActions(),
+                        player,
+                        pressLocation,
+                        "cooking_juicer_complete",
+                        pressPlaceholders
+                );
+                return true;
+            }
             JuicerState committed = copyState(coordinates, state);
             committed.removeSlot(slot);
             committed.setPlayerContext(player.getUniqueId(), player.getName());
@@ -289,18 +309,15 @@ public final class JuicerRuntimeService implements Listener {
                     committed.isCompletelyEmpty() ? Map.of() : codec.serializeState(coordinates, committed),
                     recipe,
                     player,
-                    block.getLocation().add(0.5D, 1.0D, 0.5D),
+                    pressLocation,
                     settingsService.juicerDropResult(),
                     List.of(new CookingInputIngredient(state.slotSources().get(slot), 1)),
                     recipeService.outputs(outcome),
                     recipeService.actions(outcome),
                     "cooking_juicer_complete",
-                    Map.of(
-                            "recipe_id", recipe.id(),
-                            "station_type", StationType.JUICER.folderName(),
-                            "slot_index", slot
-                    ),
-                    containerInput == null ? List.of() : List.of(containerInput)
+                    pressPlaceholders,
+                    containerInput == null ? List.of() : List.of(containerInput),
+                    pressGate.outcome()
             ));
             if (accepted) {
                 CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "juicer.completed", Map.of("recipe", recipe.displayName()));
@@ -395,6 +412,24 @@ public final class JuicerRuntimeService implements Listener {
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.outcome(recipe, "result.success");
+        Map<String, Object> completionPlaceholders = Map.of(
+                "recipe_id", recipe.id(),
+                "station_type", StationType.JUICER.folderName(),
+                "fluid_id", state.fluidId()
+        );
+        // Gate before the container is frozen and before the fluid is committed: a blocked condition must
+        // not take the player's container or drain the juicer while the output is suppressed.
+        CookingRewardService.ConditionGate gate = rewardService.evaluateConditionGate(recipe, player);
+        if (gate.blocked()) {
+            rewardService.runConditionFailActions(
+                    gate.failActions(),
+                    player,
+                    location,
+                    "cooking_juicer_serve",
+                    completionPlaceholders
+            );
+            return true;
+        }
         JuicerState committed = copyState(coordinates, state);
         committed.consumeFluid(servingMl);
         committed.setPlayerContext(player.getUniqueId(), player.getName());
@@ -413,12 +448,9 @@ public final class JuicerRuntimeService implements Listener {
                 recipeService.outputs(outcome),
                 recipeService.actions(outcome),
                 "cooking_juicer_serve",
-                Map.of(
-                        "recipe_id", recipe.id(),
-                        "station_type", StationType.JUICER.folderName(),
-                        "fluid_id", state.fluidId()
-                ),
-                containerInput == null ? List.of() : List.of(containerInput)
+                completionPlaceholders,
+                containerInput == null ? List.of() : List.of(containerInput),
+                gate.outcome()
         ));
         if (!accepted) {
             return true;

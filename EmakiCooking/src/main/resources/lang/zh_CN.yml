@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.1.9"
+version: "4.1.10"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -431,6 +431,7 @@ debug:
     grinder_tick: "研磨机计时 | 工位=%station% | 结果=%result% | 已用=%elapsed_ms%ms | 目标=%target_ms%ms"
     completion_relation: "完成流水线状态比对 | 操作=%operation% | 工位=%station% | 阶段=%status% | 关系=%relation% | 快照=%snapshot% | 提交模式=%commit_mode%"
     completion_quarantined: "完成流水线隔离 | 操作=%operation% | 工位=%station% | 阶段=%status% | 原因=%reason%"
+    completion_input_abandoned: "完成流水线放弃取材 | 操作=%operation% | 工位=%station% | 单元=%unit% | 尝试次数=%attempts%"
   recipe:
     source_resolve: "食材来源解析 | 物品来源=%sources% | 解析结果=%resolved%"
     match_start: "开始配方匹配 | 工位=%station% | 食材=%ingredients%"

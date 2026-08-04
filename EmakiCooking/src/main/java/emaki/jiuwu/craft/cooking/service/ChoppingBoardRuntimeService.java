@@ -435,7 +435,9 @@ public final class ChoppingBoardRuntimeService {
                         "recipe_id", recipe.id(),
                         "station_type", StationType.CHOPPING_BOARD.folderName()
                 ),
-                List.of()
+                List.of(),
+                // No player inventory input on this path; the pipeline evaluates the condition itself.
+                null
         ));
         if (accepted) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.completed", Map.of("recipe", recipe.displayName()));
