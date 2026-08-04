@@ -398,6 +398,10 @@ public final class EmakiCoreLibApi {
         EmakiScheduling scheduling();
 
         /**
+         * Backs {@link EmakiCoreLibApi#itemDisplayName(String)} by parsing the shorthand and asking the
+         * registered item source providers to name it. A blank or unparseable input is reported as
+         * invalid input; an unresolvable but non-blank input echoes the given text as a {@code Partial}.
+         *
          * @param itemSource item source shorthand
          * @return the unified MiniMessage display name
          */
@@ -405,6 +409,11 @@ public final class EmakiCoreLibApi {
         EmakiResult<String> itemDisplayName(@Nullable String itemSource);
 
         /**
+         * Backs {@link EmakiCoreLibApi#itemDisplayName(ItemStack)} by identifying the stack's source and
+         * naming it. A {@code null} or air stack is reported as invalid input; when no provider names it,
+         * the stack's own effective name text is returned as a {@code Partial}, or {@code NOT_FOUND} when
+         * even that is blank.
+         *
          * @param itemStack the stack to inspect
          * @return the unified MiniMessage display name
          */
@@ -412,6 +421,11 @@ public final class EmakiCoreLibApi {
         EmakiResult<String> itemDisplayName(@Nullable ItemStack itemStack);
 
         /**
+         * Backs {@link EmakiCoreLibApi#createConfiguredItem(ConfiguredItemDefinition, Map)}. The facade
+         * substitutes an empty map for a {@code null} {@code replacements} before calling. When the
+         * runtime's configured item service is not yet built, the result carries an unavailable issue
+         * rather than throwing.
+         *
          * @param definition   the configured definition
          * @param replacements placeholder substitutions
          * @return the build outcome with diagnostics
@@ -421,6 +435,11 @@ public final class EmakiCoreLibApi {
                 @Nullable Map<String, ?> replacements);
 
         /**
+         * Backs {@link EmakiCoreLibApi#applyConfiguredItem(ItemStack, ConfiguredItemDefinition, Map)}.
+         * The facade substitutes an empty map for a {@code null} {@code replacements} before calling.
+         * When the runtime's configured item service is not yet built, the result carries an unavailable
+         * issue rather than throwing.
+         *
          * @param itemStack    the stack to patch
          * @param definition   the configured definition
          * @param replacements placeholder substitutions
@@ -436,6 +455,10 @@ public final class EmakiCoreLibApi {
         List<ItemComponentCapability> itemComponentCapabilities();
 
         /**
+         * Backs {@link EmakiCoreLibApi#registerActionStage(Plugin, CoreActionStage)} by delegating to the
+         * runtime stage registry. Returns an inactive handle carrying a stable {@code reasonKey} when the
+         * registry has not been built yet, instead of throwing.
+         *
          * @param owner plugin that owns the stage lifecycle
          * @param stage the action stage implementation
          * @return a revocable handle
@@ -444,6 +467,10 @@ public final class EmakiCoreLibApi {
         CoreStageRegistration registerActionStage(@Nullable Plugin owner, @Nullable CoreActionStage stage);
 
         /**
+         * Backs {@link EmakiCoreLibApi#registerActionSource(Plugin, CoreActionSource)} by delegating to
+         * the runtime stage registry. Returns an inactive handle carrying a stable {@code reasonKey} when
+         * the registry has not been built yet, instead of throwing.
+         *
          * @param owner plugin that owns the stage lifecycle
          * @param source the source stage implementation
          * @return a revocable handle
@@ -452,6 +479,10 @@ public final class EmakiCoreLibApi {
         CoreStageRegistration registerActionSource(@Nullable Plugin owner, @Nullable CoreActionSource source);
 
         /**
+         * Backs {@link EmakiCoreLibApi#registerActionGate(Plugin, CoreActionGate)} by delegating to the
+         * runtime stage registry. Returns an inactive handle carrying a stable {@code reasonKey} when the
+         * registry has not been built yet, instead of throwing.
+         *
          * @param owner plugin that owns the stage lifecycle
          * @param gate the gate stage implementation
          * @return a revocable handle
@@ -460,6 +491,10 @@ public final class EmakiCoreLibApi {
         CoreStageRegistration registerActionGate(@Nullable Plugin owner, @Nullable CoreActionGate gate);
 
         /**
+         * Backs {@link EmakiCoreLibApi#onStageRegistryRebuilt(Plugin, Runnable)} by storing the callback
+         * in the runtime's rebuild listener table. Registering twice for one owner replaces the previous
+         * callback; callbacks are dropped when the owning plugin is disabled.
+         *
          * @param owner plugin whose stages need re-registering after a reload
          * @param reregister the registration routine to re-run
          * @return whether the callback was accepted
@@ -467,6 +502,11 @@ public final class EmakiCoreLibApi {
         boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister);
 
         /**
+         * Backs {@link EmakiCoreLibApi#publishCapabilities(Plugin, Set)} by delegating to the runtime
+         * capability registry. Publication is all-or-nothing: a capability already owned by another
+         * plugin fails the whole batch and names the first owner through
+         * {@link CapabilityRegistration#reasonKey()}.
+         *
          * @param owner plugin that owns the capability lifecycle
          * @param capabilities the capabilities to publish
          * @return a revocable handle
@@ -476,22 +516,34 @@ public final class EmakiCoreLibApi {
                 @Nullable Set<ApiCapability> capabilities);
 
         /**
+         * Backs {@link EmakiCoreLibApi#revokeCapabilities(Plugin)} by revoking every capability the given
+         * owner published.
+         *
          * @param owner the publishing plugin
          * @return how many capabilities were revoked
          */
         int revokeCapabilities(@Nullable Plugin owner);
 
         /**
+         * Backs {@link EmakiCoreLibApi#hasCapability(ApiCapability)}. Callable from any thread.
+         *
          * @param capability the capability to test
          * @return whether it is published and its owner is still enabled
          */
         boolean hasCapability(@Nullable ApiCapability capability);
 
-        /** {@return every published capability} */
+        /**
+         * {@return every published capability}
+         *
+         * <p>The facade defensively copies this into an immutable set before handing it out.
+         */
         @NotNull
         Set<ApiCapability> capabilities();
 
         /**
+         * Backs {@link EmakiCoreLibApi#capabilitiesOf(String)}, matching the plugin name
+         * case-insensitively. The facade defensively copies the result into an immutable set.
+         *
          * @param pluginName the publishing plugin's name
          * @return that plugin's capabilities
          */

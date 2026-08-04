@@ -165,7 +165,7 @@ public final class StrengthenActionCoordinator {
         var message = plugin.messageService() == null
                 ? ""
                 : plugin.messageService().message("strengthen.misc.default_item_name");
-        return emaki.jiuwu.craft.corelib.text.Texts.isBlank(message) ? "物品" : message;
+        return emaki.jiuwu.craft.corelib.api.text.Texts.isBlank(message) ? "物品" : message;
     }
 
     private String resolveSuccessRate(StrengthenRecipe recipe, int currentStar, int temper) {

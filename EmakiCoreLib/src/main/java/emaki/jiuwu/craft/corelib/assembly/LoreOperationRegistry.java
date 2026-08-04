@@ -7,7 +7,7 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class LoreOperationRegistry {
 
@@ -196,7 +196,7 @@ public final class LoreOperationRegistry {
         }
 
         private int parseRequestedIndex(Object rawIndex) {
-            Integer parsed = emaki.jiuwu.craft.corelib.math.Numbers.tryParseInt(rawIndex, null);
+            Integer parsed = emaki.jiuwu.craft.corelib.api.math.Numbers.tryParseInt(rawIndex, null);
             return parsed == null ? 0 : Math.max(0, parsed);
         }
     }

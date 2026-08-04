@@ -65,8 +65,20 @@ public record GemDefinitionView(@NotNull String id,
     }
 
     /**
-     * @param socketType the socket type to test
-     * @return whether this gem may be inlaid into that socket type
+     * Tests this view's {@link #socketCompatibility()} set against one socket type.
+     *
+     * <p>An empty compatibility set means unrestricted and always passes. Otherwise the check is an
+     * exact membership test: the argument is compared as given, and EmakiGem stores socket types
+     * lowercased, so pass a lowercased type or the test will not match.
+     *
+     * <p>This is a convenience check over the declared set, not the full runtime decision. It does not
+     * apply the runtime's {@code universal} wildcard handling, and it knows nothing about whether a
+     * socket is open, already occupied, or blocked by the item's own type limits or by this gem's
+     * {@link #dependencies()} and {@link #conflicts()}. Use
+     * {@link emaki.jiuwu.craft.gem.api.GemCatalog#canInlay} for an authoritative answer.
+     *
+     * @param socketType the socket type to test, expected lowercase
+     * @return whether the declared compatibility set permits that socket type
      */
     public boolean supportsSocketType(@NotNull String socketType) {
         return socketCompatibility.isEmpty() || socketCompatibility.contains(socketType);

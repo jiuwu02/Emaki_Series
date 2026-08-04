@@ -37,13 +37,25 @@ public interface GemCatalog {
     Optional<GemStateView> readState(@Nullable ItemStack equipment);
 
     /**
-     * @param itemStack the item to identify
+     * Tests whether a stack carries EmakiGem's loose-gem data.
+     *
+     * <p>Identification reads the item's gem payload, not its display name or lore. {@code null}, air,
+     * and stacks without that payload all return {@code false}, and so does an unavailable runtime, so
+     * {@code false} means "not recognised as a gem here and now" rather than "definitely not a gem".
+     *
+     * @param itemStack the item to identify; {@code null} and air are accepted and yield {@code false}
      * @return whether the item is a loose gem item
      */
     boolean isGemItem(@Nullable ItemStack itemStack);
 
     /**
-     * @param itemStack the item to identify
+     * Tests whether a stack matches one of the socket openers declared in EmakiGem's configuration.
+     *
+     * <p>Only openers that are currently loaded and enabled can match, so a configuration reload that
+     * disables an opener flips this to {@code false} for stacks players already hold. As with
+     * {@link #isGemItem}, {@code null}, air, and an unavailable runtime return {@code false}.
+     *
+     * @param itemStack the item to identify; {@code null} and air are accepted and yield {@code false}
      * @return whether the item is a configured socket opener
      */
     boolean isOpenerItem(@Nullable ItemStack itemStack);
@@ -98,15 +110,34 @@ public interface GemCatalog {
     EmakiResult<GemResonanceView> resonance(@Nullable ItemStack equipment);
 
     /**
-     * @param equipment the equipment to inspect
-     * @return summed attribute contributions; empty when no inlaid gem contributes attributes
+     * Sums the attribute contributions of every gem currently inlaid in an equipment item.
+     *
+     * <p>Each gem contributes the values resolved for the level it was inlaid at, and equal attribute
+     * ids are added together. Sockets holding a gem whose definition is no longer loaded are skipped
+     * silently, so a configuration change can shrink the result without any error surfacing here.
+     *
+     * <p>This reflects only EmakiGem's own layer; it does not include the base item's attributes or
+     * contributions from other Emaki modules.
+     *
+     * @param equipment the equipment to inspect; {@code null}, air, and non-socketable items yield an
+     *                  empty map
+     * @return an unmodifiable map of attribute id to summed value, empty when nothing contributes or
+     *         the runtime is unavailable
      */
     @NotNull
     Map<String, Double> aggregatedAttributes(@Nullable ItemStack equipment);
 
     /**
-     * @param equipment the equipment to inspect
-     * @return distinct skill ids granted by inlaid gems
+     * Collects the distinct skill ids granted by the gems currently inlaid in an equipment item.
+     *
+     * <p>Two gems granting the same skill appear once. As with {@link #aggregatedAttributes}, sockets
+     * whose gem definition is no longer loaded are skipped silently, and an empty result does not
+     * distinguish "grants no skills" from "runtime unavailable".
+     *
+     * @param equipment the equipment to inspect; {@code null}, air, and non-socketable items yield an
+     *                  empty set
+     * @return an unmodifiable set of distinct skill ids, empty when none are granted or the runtime is
+     *         unavailable
      */
     @NotNull
     Set<String> aggregatedSkillIds(@Nullable ItemStack equipment);

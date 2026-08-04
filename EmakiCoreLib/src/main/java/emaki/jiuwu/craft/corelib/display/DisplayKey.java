@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.corelib.display;
 
 import java.util.Objects;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * 展示实体的三段式身份。

@@ -11,7 +11,7 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.ActionResult;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class EconomyManager {
 

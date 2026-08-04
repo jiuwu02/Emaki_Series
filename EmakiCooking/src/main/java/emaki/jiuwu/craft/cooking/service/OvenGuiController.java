@@ -28,6 +28,8 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import net.kyori.adventure.text.Component;
+
 final class OvenGuiController {
 
     private final EmakiCookingPlugin plugin;
@@ -94,7 +96,7 @@ final class OvenGuiController {
     }
 
     Inventory createInventory(OvenGuiHolder holder) {
-        String title = MiniMessages.plain(MiniMessages.parse(settingsService.ovenInventoryTitle()));
+        Component title = MiniMessages.parse(settingsService.ovenInventoryTitle());
         return Bukkit.createInventory(holder, settingsService.ovenInventoryRows() * 9, title);
     }
 

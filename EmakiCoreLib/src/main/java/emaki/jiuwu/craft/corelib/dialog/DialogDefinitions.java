@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 

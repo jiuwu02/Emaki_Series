@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Shared parsing and subject helpers for the builtin pipeline stages.

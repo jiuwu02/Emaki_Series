@@ -7,12 +7,13 @@ import java.util.Set;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeResult;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
 

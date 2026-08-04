@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 
 public final class ConfigPrecheckMessages {

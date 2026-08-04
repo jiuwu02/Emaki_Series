@@ -187,7 +187,7 @@ public final class ItemTextBridge {
             if (material.isBlock()) {
                 return material.getBlockTranslationKey();
             }
-            return material.getTranslationKey();
+            return material.translationKey();
         } catch (RuntimeException _) {
             return "";
         }

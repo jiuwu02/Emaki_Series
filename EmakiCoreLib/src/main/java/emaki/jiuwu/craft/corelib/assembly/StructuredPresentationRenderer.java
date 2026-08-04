@@ -11,9 +11,9 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
 import emaki.jiuwu.craft.corelib.api.assembly.BaseNamePolicy;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiLoreSectionContribution;
@@ -189,7 +189,7 @@ final class StructuredPresentationRenderer {
             if (material.isBlock()) {
                 return material.getBlockTranslationKey();
             }
-            return material.getTranslationKey();
+            return material.translationKey();
         } catch (RuntimeException _) {
             return "";
         }

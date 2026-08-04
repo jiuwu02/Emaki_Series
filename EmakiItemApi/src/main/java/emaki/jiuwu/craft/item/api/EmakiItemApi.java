@@ -20,13 +20,22 @@ public final class EmakiItemApi {
     private EmakiItemApi() {
     }
 
-    /** Installs the runtime bridge. Runtime use only. */
+    /**
+     * Installs the runtime bridge. Runtime use only.
+     *
+     * @param bridge the active bridge implementation supplied by EmakiItem
+     */
     @org.jetbrains.annotations.ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
         EmakiItemApi.bridge = bridge;
     }
 
-    /** Removes the runtime bridge when it is still the active instance. Runtime use only. */
+    /**
+     * Removes the runtime bridge when it is still the active instance. Runtime use only.
+     *
+     * @param bridge the bridge to remove; ignored when it is not the active bridge, so a stale instance
+     *               from a previous reload cannot uninstall the current one
+     */
     @org.jetbrains.annotations.ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
         if (EmakiItemApi.bridge == bridge) {
@@ -70,20 +79,33 @@ public final class EmakiItemApi {
         return resolved == null ? UnavailableItem.EXTENSIONS : resolved.extensions();
     }
 
-    /** Runtime bridge contract. Third-party plugins must not implement it. */
+    /**
+     * Runtime bridge contract. Third-party plugins must not implement it.
+     *
+     * <p>EmakiItem supplies one instance through {@link #install(Bridge)}. Every accessor below must
+     * return a usable layer rather than {@code null}: the facade only substitutes its own no-op layers
+     * when no bridge is installed at all, so a bridge returning {@code null} would break the
+     * never-{@code null} contract these accessors are documented under.
+     */
     @org.jetbrains.annotations.ApiStatus.NonExtendable
     public interface Bridge {
 
+        /** {@return runtime availability and identity metadata} */
         @NotNull ApiStatus status();
 
+        /** {@return the runtime read-only catalog layer} */
         @NotNull ItemCatalog catalog();
 
+        /** {@return the runtime item operation layer} */
         @NotNull ItemOperations operations();
 
+        /** {@return the runtime repair layer} */
         @NotNull ItemRepair repair();
 
+        /** {@return the runtime administrative migration layer} */
         @NotNull ItemMigration migration();
 
+        /** {@return the runtime extension registration layer} */
         @NotNull ItemExtensions extensions();
     }
 }

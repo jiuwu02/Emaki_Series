@@ -8,7 +8,7 @@ import java.util.Map;
 import org.bukkit.event.inventory.InventoryType;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class GuiTemplate {
 

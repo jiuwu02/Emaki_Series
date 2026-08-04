@@ -13,14 +13,15 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeResult;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRegistration;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
 
 /**
@@ -367,7 +368,7 @@ public final class ItemSourceService {
             if (material.isBlock()) {
                 return material.getBlockTranslationKey();
             }
-            return material.getTranslationKey();
+            return material.translationKey();
         } catch (RuntimeException _) {
             return "";
         }

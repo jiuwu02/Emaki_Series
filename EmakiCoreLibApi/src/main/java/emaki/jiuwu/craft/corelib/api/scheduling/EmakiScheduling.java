@@ -33,12 +33,23 @@ public interface EmakiScheduling {
     boolean ownsGlobal();
 
     /**
+     * Tests entity ownership before touching an entity, its inventory, or its held items directly.
+     *
+     * <p>Callable from any thread and answers about the calling thread only. On Paper this is true on
+     * the main thread; on Folia only on the region thread that currently owns the entity. A
+     * {@code false} answer means you must hop through {@link #runForEntity} rather than proceed.
+     *
      * @param entity the entity to test; {@code null} yields {@code false}
      * @return whether the calling thread owns the given entity's region
      */
     boolean ownsEntity(@Nullable Entity entity);
 
     /**
+     * Tests location ownership before touching blocks, block entities, or chunk state directly.
+     *
+     * <p>Callable from any thread and answers about the calling thread only. A {@code false} answer
+     * means you must hop through {@link #runAtLocation} rather than proceed.
+     *
      * @param location the location to test; {@code null} yields {@code false}
      * @return whether the calling thread owns the given location's region
      */

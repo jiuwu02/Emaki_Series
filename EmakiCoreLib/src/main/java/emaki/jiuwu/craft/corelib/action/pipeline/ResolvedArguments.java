@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Typed argument view over one stage's resolved values.

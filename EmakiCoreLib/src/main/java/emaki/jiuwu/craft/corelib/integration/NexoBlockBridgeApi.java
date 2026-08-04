@@ -8,7 +8,7 @@ import org.bukkit.block.Block;
 
 import com.nexomc.nexo.api.NexoBlocks;
 import com.nexomc.nexo.mechanics.custom_block.CustomBlockMechanic;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class NexoBlockBridgeApi implements CustomBlockBridge {
 

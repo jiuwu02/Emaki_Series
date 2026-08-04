@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRegistration;
 import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleState;
 import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleStatus;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class ItemSourceIntegrationCoordinator implements Listener, AutoCloseable {
 

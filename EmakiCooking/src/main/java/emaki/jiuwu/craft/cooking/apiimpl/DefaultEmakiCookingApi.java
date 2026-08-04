@@ -36,7 +36,7 @@ public final class DefaultEmakiCookingApi implements EmakiCookingApi.Bridge {
             return ApiStatus.notInstalled();
         }
         String pluginName = plugin.getName();
-        String version = plugin.getDescription().getVersion();
+        String version = plugin.getPluginMeta().getVersion();
         boolean ready = plugin.publicApiReady()
                 && plugin.recipeService() != null
                 && plugin.rewardService() != null

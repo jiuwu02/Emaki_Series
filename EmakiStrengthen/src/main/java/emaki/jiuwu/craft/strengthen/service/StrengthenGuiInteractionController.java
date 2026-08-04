@@ -45,7 +45,7 @@ final class StrengthenGuiInteractionController {
         if (itemStack == null) {
             return;
         }
-        if (state.targetItem() == null && emaki.jiuwu.craft.corelib.text.Texts.isNotBlank(attemptService.readState(itemStack).baseSource())) {
+        if (state.targetItem() == null && emaki.jiuwu.craft.corelib.api.text.Texts.isNotBlank(attemptService.readState(itemStack).baseSource())) {
             state.setTargetItem(itemStack);
             click.clearClickedSlot();
             renderer.refreshGui(state);

@@ -270,7 +270,7 @@ final class ResourceManagementService {
             currentValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
         }
         currentValue = Math.max(0D, Math.min(currentValue, currentMax));
-        String sourceSignature = emaki.jiuwu.craft.corelib.pdc.SignatureUtil.combine(
+        String sourceSignature = emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil.combine(
                 service.defaultProfileSignature(),
                 snapshot == null ? "" : snapshot.sourceSignature(),
                 resourceDefinition.id(),

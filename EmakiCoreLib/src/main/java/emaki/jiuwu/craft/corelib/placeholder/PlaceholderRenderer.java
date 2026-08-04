@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class PlaceholderRenderer {

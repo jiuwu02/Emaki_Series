@@ -160,7 +160,7 @@ public final class PlaceBlockStage extends BaseStage {
         if (player == null) {
             return canPlace ? null : CoreActionOutcome.skipped("action.stage.place_block.cannot_place");
         }
-        BlockCanBuildEvent event = new BlockCanBuildEvent(target, player, blockData, canPlace);
+        BlockCanBuildEvent event = new BlockCanBuildEvent(target, player, blockData, canPlace, EquipmentSlot.HAND);
         Bukkit.getPluginManager().callEvent(event);
         return event.isBuildable() ? null : CoreActionOutcome.skipped("action.stage.place_block.build_denied");
     }

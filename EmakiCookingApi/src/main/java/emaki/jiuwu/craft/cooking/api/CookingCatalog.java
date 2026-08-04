@@ -25,6 +25,11 @@ import emaki.jiuwu.craft.cooking.api.model.CookingStationView;
 public interface CookingCatalog {
 
     /**
+     * Lists every loaded recipe for one station kind, sorted by recipe id.
+     *
+     * <p>Returns an empty list rather than {@code null} when the station kind is {@code null} or the
+     * runtime is unavailable. Recipes that carry a blank id are omitted.
+     *
      * @param stationType station kind
      * @return all loaded recipes for exactly that station kind
      */
@@ -32,6 +37,10 @@ public interface CookingCatalog {
     List<CookingRecipeView> recipes(@Nullable CookingStationType stationType);
 
     /**
+     * Looks up one recipe by id within a single station's loader.
+     *
+     * <p>The id is matched case-insensitively; ids from another station kind are not consulted.
+     *
      * @param stationType station kind
      * @param recipeId   recipe id
      * @return the recipe, or an empty optional when it does not exist in that station's loader

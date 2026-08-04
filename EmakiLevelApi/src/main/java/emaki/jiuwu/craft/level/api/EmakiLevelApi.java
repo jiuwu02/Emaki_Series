@@ -18,13 +18,25 @@ public final class EmakiLevelApi {
     private EmakiLevelApi() {
     }
 
-    /** Installs the runtime bridge. Intended for EmakiLevel lifecycle code only. */
+    /**
+     * Installs the runtime bridge. Intended for EmakiLevel lifecycle code only.
+     *
+     * @param bridge the runtime implementation to publish; replaces any previously installed bridge
+     */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
         EmakiLevelApi.bridge = bridge;
     }
 
-    /** Removes the bridge only when it is still the active instance. */
+    /**
+     * Removes the bridge only when it is still the active instance.
+     *
+     * <p>Passing a superseded instance is a no-op, so a late uninstall from an old plugin instance
+     * cannot detach the bridge published by a newer one after a reload.
+     *
+     * @param bridge the instance to retire; ignored when it is not the currently active bridge, and
+     *               {@code null} never detaches an active bridge
+     */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
         if (EmakiLevelApi.bridge == bridge) {
@@ -62,15 +74,19 @@ public final class EmakiLevelApi {
     @ApiStatus.NonExtendable
     public interface Bridge {
 
+        /** {@return availability and identity metadata for the live runtime} */
         @NotNull
         emaki.jiuwu.craft.corelib.api.contract.ApiStatus status();
 
+        /** {@return the runtime's read-only query layer} */
         @NotNull
         LevelCatalog catalog();
 
+        /** {@return the runtime's synchronous player operation layer} */
         @NotNull
         LevelOperations operations();
 
+        /** {@return the runtime's experience-source extension layer} */
         @NotNull
         LevelExtensions extensions();
     }

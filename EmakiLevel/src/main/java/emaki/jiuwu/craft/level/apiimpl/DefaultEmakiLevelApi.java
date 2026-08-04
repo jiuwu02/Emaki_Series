@@ -29,7 +29,7 @@ public final class DefaultEmakiLevelApi implements EmakiLevelApi.Bridge {
         if (plugin == null || !plugin.isEnabled()) {
             return ApiStatus.notInstalled();
         }
-        String version = plugin.getDescription().getVersion();
+        String version = plugin.getPluginMeta().getVersion();
         return plugin.typeRegistry() != null && plugin.dataStore() != null && plugin.levelService() != null
                 ? ApiStatus.ready(plugin.getName(), version, version)
                 : ApiStatus.loading(plugin.getName(), version, version);

@@ -8,7 +8,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeResult;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleStatus;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Shared body for CoreLib's seven third-party item source bridges.

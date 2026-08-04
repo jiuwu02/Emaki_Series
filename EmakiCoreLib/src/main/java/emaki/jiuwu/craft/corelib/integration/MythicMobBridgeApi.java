@@ -5,7 +5,7 @@ import java.util.Optional;
 import org.bukkit.entity.LivingEntity;
 
 import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 import io.lumine.mythic.api.mobs.MythicMob;
 import io.lumine.mythic.api.skills.placeholders.PlaceholderString;

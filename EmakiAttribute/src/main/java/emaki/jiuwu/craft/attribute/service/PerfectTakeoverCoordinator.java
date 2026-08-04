@@ -59,6 +59,9 @@ public final class PerfectTakeoverCoordinator implements Listener {
         service.applyDamageSideEffectsAsync(claimed.resolvedDamage()).exceptionally(throwable -> false);
     }
 
+    // DamageModifier 整组已被 Bukkit 弃用且无替代 API；这里刻意清零原版减伤以把结算权交给 EA 的
+    // 伤害类型阶段，抑制范围与下方 zeroModifierIfApplicable 一致。
+    @SuppressWarnings("deprecation")
     private void neutralizeVanillaMitigation(EntityDamageEvent event) {
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.HARD_HAT);
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.ARMOR);

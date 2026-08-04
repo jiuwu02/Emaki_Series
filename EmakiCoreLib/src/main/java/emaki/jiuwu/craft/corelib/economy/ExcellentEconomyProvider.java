@@ -6,7 +6,7 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 
 import emaki.jiuwu.craft.corelib.api.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.ActionResult;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import su.nightexpress.excellenteconomy.api.ExcellentEconomyAPI;
 import su.nightexpress.excellenteconomy.api.currency.ExcellentCurrency;
 

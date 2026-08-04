@@ -68,7 +68,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
             return ApiStatus.notInstalled();
         }
         String pluginName = attributeService.plugin().getName();
-        String version = attributeService.plugin().getDescription().getVersion();
+        String version = attributeService.plugin().getPluginMeta().getVersion();
         return runtimeReady()
                 ? ApiStatus.ready(pluginName, version, version)
                 : ApiStatus.loading(pluginName, version, version);

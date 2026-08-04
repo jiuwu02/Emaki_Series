@@ -494,7 +494,10 @@ public final class MmoItemsBridge implements Listener {
                 if (stat == null) {
                     continue;
                 }
-                statObjects.putIfAbsent(normalizeMmoId(stat.name()), stat);
+                // MMOItems 的 ItemStat#name() 已弃用但未提供替代读取入口，保留以维持旧 stat 名索引。
+                @SuppressWarnings("deprecation")
+                String statName = stat.name();
+                statObjects.putIfAbsent(normalizeMmoId(statName), stat);
                 String statId = stat.getId();
                 if (Texts.isNotBlank(statId)) {
                     statObjects.putIfAbsent(normalizeMmoId(statId), stat);

@@ -29,12 +29,12 @@ public record RepairEconomyConfig(boolean enabled,
         if (!isPercent()) {
             return 0D;
         }
-        Double parsed = emaki.jiuwu.craft.corelib.math.Numbers.tryParseDouble(restoreRaw.substring(0, restoreRaw.length() - 1).trim(), null);
+        Double parsed = emaki.jiuwu.craft.corelib.api.math.Numbers.tryParseDouble(restoreRaw.substring(0, restoreRaw.length() - 1).trim(), null);
         return parsed == null ? 0D : Math.max(0D, Math.min(1D, parsed / 100D));
     }
 
     public int fixedValue() {
-        Integer parsed = emaki.jiuwu.craft.corelib.math.Numbers.tryParseInt(restoreRaw, null);
+        Integer parsed = emaki.jiuwu.craft.corelib.api.math.Numbers.tryParseInt(restoreRaw, null);
         return parsed == null ? 0 : Math.max(0, parsed);
     }
 

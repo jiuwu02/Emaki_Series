@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+
 public final class Randoms {
 
     public record Weighted<T>(T item, double weight) {

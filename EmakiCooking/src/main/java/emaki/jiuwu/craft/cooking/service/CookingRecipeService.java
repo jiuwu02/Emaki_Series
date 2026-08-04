@@ -483,7 +483,7 @@ public final class CookingRecipeService {
 
     private List<ItemSourceRef> parseItemSources(Object raw) {
         List<ItemSourceRef> sources = new ArrayList<>();
-        for (Object token : emaki.jiuwu.craft.corelib.config.ConfigNodes.asObjectList(raw)) {
+        for (Object token : emaki.jiuwu.craft.corelib.api.config.ConfigNodes.asObjectList(raw)) {
             ItemSourceRef source = ItemSourceUtil.parse(token);
             if (source != null) {
                 sources.add(source);

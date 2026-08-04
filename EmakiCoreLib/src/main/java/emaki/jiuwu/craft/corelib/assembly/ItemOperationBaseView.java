@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.corelib.assembly;
 
 import java.util.List;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 record ItemOperationBaseView(String customName, List<String> lore) {
 

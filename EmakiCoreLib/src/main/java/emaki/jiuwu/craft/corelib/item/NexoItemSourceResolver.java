@@ -15,8 +15,8 @@ import com.nexomc.nexo.api.events.NexoItemsLoadedEvent;
 import com.nexomc.nexo.items.ItemBuilder;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class NexoItemSourceResolver
         extends AbstractManagedItemSourceProvider<NexoItemSourceResolver.DirectAccessor> {

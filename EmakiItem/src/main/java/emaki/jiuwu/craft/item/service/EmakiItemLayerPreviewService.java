@@ -155,8 +155,6 @@ public final class EmakiItemLayerPreviewService {
                     : result;
         } catch (VirtualMachineError error) {
             throw error;
-        } catch (ThreadDeath error) {
-            throw error;
         } catch (Throwable throwable) {
             return unavailableProvider(providerId, throwable.getMessage());
         }

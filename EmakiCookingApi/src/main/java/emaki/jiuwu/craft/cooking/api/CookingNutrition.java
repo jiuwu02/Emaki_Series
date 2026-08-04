@@ -23,6 +23,12 @@ public interface CookingNutrition {
     boolean enabled();
 
     /**
+     * Reads one nutrition value for a player, falling back to the type's configured default.
+     *
+     * <p>Returns {@code INVALID_INPUT} for a {@code null} player id or blank type id,
+     * {@code UNAVAILABLE} when the nutrition runtime is not built, {@code REJECTED} when nutrition
+     * gameplay is disabled, and {@code NOT_FOUND} for an unregistered type id.
+     *
      * @param playerId player id
      * @param typeId   nutrition type id
      * @return current or configured default value
@@ -63,6 +69,11 @@ public interface CookingNutrition {
     List<NutritionTypeView> types();
 
     /**
+     * Looks up one registered nutrition type definition.
+     *
+     * <p>Matching does not depend on whether nutrition gameplay is currently enabled; an empty optional
+     * is returned for a blank id or when the type registry is unavailable.
+     *
      * @param typeId nutrition type id
      * @return its definition, or empty when unknown
      */

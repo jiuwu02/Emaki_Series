@@ -253,7 +253,7 @@ final class CookingCommandRouter implements TabExecutor {
             double value = plugin.nutritionService().value(target.getUniqueId(), typeArg);
             plugin.messageService().send(sender, "nutrition.value", Map.of(
                     "player", target.getName(),
-                    "type", emaki.jiuwu.craft.corelib.text.Texts.normalizeId(typeArg),
+                    "type", emaki.jiuwu.craft.corelib.api.text.Texts.normalizeId(typeArg),
                     "value", formatValue(value)
             ));
             return true;

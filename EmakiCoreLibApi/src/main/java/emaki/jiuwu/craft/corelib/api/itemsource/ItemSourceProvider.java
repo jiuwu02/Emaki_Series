@@ -98,6 +98,15 @@ public interface ItemSourceProvider {
     }
 
     /**
+     * Claims or declines a reference; CoreLib calls this first and skips the provider entirely when it
+     * returns {@code false}, so {@link #create}, {@link #displayName} and {@link #probe} are only
+     * reached for references this method accepted.
+     *
+     * <p>Return {@code false} for a {@code null} reference rather than throwing. CoreLib's own
+     * resolution paths null-check before calling, but {@link #probe}'s default implementation does not.
+     * A thrown {@link RuntimeException} or {@link LinkageError} is swallowed and treated as
+     * {@code false}, which silently removes the provider from resolution.
+     *
      * @param ref the reference to test
      * @return whether this provider handles it
      */
@@ -123,6 +132,15 @@ public interface ItemSourceProvider {
     ItemStack create(@Nullable ItemSourceRef ref, int amount);
 
     /**
+     * Supplies this source's own display name for a reference, ahead of CoreLib's fallbacks.
+     *
+     * <p>Only consulted after {@link #supports} accepted the reference, and only after CoreLib has
+     * already tried an explicit custom name on the built stack and, for vanilla references, the
+     * translatable vanilla name. Returning {@code null} or blank lets CoreLib continue to lower-priority
+     * providers and then to its own derived names, so it is not an error. A thrown
+     * {@link RuntimeException} or {@link LinkageError} is swallowed and treated the same as
+     * {@code null}.
+     *
      * @param ref the reference to name
      * @return a MiniMessage display name, or {@code null} to let CoreLib derive one from the built item
      */

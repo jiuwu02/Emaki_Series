@@ -61,7 +61,7 @@ final class FermentationBarrelGuiController {
         }
         FermentationBarrelGuiHolder holder = new FermentationBarrelGuiHolder(player.getUniqueId(), coordinates);
         Inventory inventory = Bukkit.createInventory(holder, settingsService.fermentationBarrelInventoryRows() * 9,
-                MiniMessages.plain(MiniMessages.parse(settingsService.fermentationBarrelInventoryTitle())));
+                MiniMessages.parse(settingsService.fermentationBarrelInventoryTitle()));
         holder.attach(inventory);
         loadInventory(coordinates, inventory);
         openSessions.put(player.getUniqueId(), holder);

@@ -15,7 +15,7 @@ import io.th0rgal.oraxen.api.events.OraxenItemsLoadedEvent;
 import io.th0rgal.oraxen.items.ItemBuilder;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class OraxenItemSourceResolver
         extends AbstractManagedItemSourceProvider<OraxenItemSourceResolver.DirectAccessor> {

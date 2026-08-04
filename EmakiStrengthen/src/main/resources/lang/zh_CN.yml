@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.6.8"
+version: "4.6.9"
 
 general:
   prefix: "<gray>[ <gradient:#FACC15:#F97316>EmakiStrengthen</gradient> ]</gray>"

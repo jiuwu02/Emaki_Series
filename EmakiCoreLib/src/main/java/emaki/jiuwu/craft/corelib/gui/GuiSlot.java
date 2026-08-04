@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 
 public final class GuiSlot {

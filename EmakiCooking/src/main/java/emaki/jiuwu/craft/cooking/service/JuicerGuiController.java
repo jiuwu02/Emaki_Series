@@ -76,7 +76,7 @@ final class JuicerGuiController {
         }
         JuicerGuiHolder holder = new JuicerGuiHolder(player.getUniqueId(), coordinates);
         Inventory inventory = Bukkit.createInventory(holder, settingsService.juicerInventoryRows() * 9,
-                MiniMessages.plain(MiniMessages.parse(settingsService.juicerInventoryTitle())));
+                MiniMessages.parse(settingsService.juicerInventoryTitle()));
         holder.attach(inventory);
         loadInventory(coordinates, inventory);
         openSessions.put(player.getUniqueId(), holder);

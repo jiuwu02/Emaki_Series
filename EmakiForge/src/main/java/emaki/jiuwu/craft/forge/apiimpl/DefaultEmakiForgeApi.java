@@ -36,7 +36,7 @@ public final class DefaultEmakiForgeApi implements EmakiForgeApi.Bridge {
             return ApiStatus.notInstalled();
         }
         String pluginName = plugin.getName();
-        String version = plugin.getDescription().getVersion();
+        String version = plugin.getPluginMeta().getVersion();
         return plugin.isRuntimeReady()
                 ? ApiStatus.ready(pluginName, version, version)
                 : ApiStatus.loading(pluginName, version, version);

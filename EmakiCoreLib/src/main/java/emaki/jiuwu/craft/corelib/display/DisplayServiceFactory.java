@@ -10,7 +10,7 @@ import emaki.jiuwu.craft.corelib.display.bukkit.BukkitTextDisplayService;
 import emaki.jiuwu.craft.corelib.display.packet.PacketItemDisplayService;
 import emaki.jiuwu.craft.corelib.display.packet.PacketTextDisplayService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * 展示实体服务的工厂。

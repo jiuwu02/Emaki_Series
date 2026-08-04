@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class ExceptionHandler {
 

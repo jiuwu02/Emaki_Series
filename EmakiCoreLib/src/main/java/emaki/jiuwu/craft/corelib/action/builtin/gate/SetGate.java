@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Writes pipeline variables, readable later as {@code %var.<name>%}.

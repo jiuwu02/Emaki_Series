@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 
 final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {

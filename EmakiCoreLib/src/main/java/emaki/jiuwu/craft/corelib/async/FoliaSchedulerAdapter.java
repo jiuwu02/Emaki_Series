@@ -34,6 +34,10 @@ import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
  *         which return {@link emaki.jiuwu.craft.corelib.execution.TaskHandle} and make the owning
  *         thread explicit
  */
+// 本类与同包 async.TaskHandle 是同批待删除组合：TaskHandle 在本仓库的唯一引用者就是本类。
+// forRemoval 告警是强制的，无法靠「使用点自身已弃用」抑制，只有本注解能压。抑制范围严格限于
+// 这对内部引用，不掩盖任何外部弃用；两者将在下个大版本一并移除。
+@SuppressWarnings("removal")
 @Deprecated(forRemoval = true)
 public final class FoliaSchedulerAdapter {
 

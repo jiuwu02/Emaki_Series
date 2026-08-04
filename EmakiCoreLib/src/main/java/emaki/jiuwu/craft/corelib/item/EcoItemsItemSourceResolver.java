@@ -9,7 +9,7 @@ import com.willfp.ecoitems.items.EcoItems;
 import com.willfp.ecoitems.items.ItemUtilsKt;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 
 

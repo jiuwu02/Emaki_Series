@@ -36,7 +36,7 @@ public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
             return ApiStatus.notInstalled();
         }
         String pluginName = plugin.getName();
-        String version = plugin.getDescription().getVersion();
+        String version = plugin.getPluginMeta().getVersion();
         return plugin.runtimeReady()
                 ? ApiStatus.ready(pluginName, version, version)
                 : ApiStatus.loading(pluginName, version, version);

@@ -14,8 +14,8 @@ import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.ItemsAdder;
 import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class ItemsAdderItemSourceResolver
         extends AbstractManagedItemSourceProvider<ItemsAdderItemSourceResolver.DirectAccessor> {
@@ -67,6 +67,8 @@ final class ItemsAdderItemSourceResolver
 
         private String failureReason = "";
 
+        // ItemsAdder 的 areItemsLoaded() 已弃用，但该 API 没有提供任何替代的加载态判定入口。
+        @SuppressWarnings("deprecation")
         @Override
         public boolean ensureAvailable() {
             try {
@@ -86,6 +88,8 @@ final class ItemsAdderItemSourceResolver
             return failureReason;
         }
 
+        // 同上：areItemsLoaded() 无替代 API。
+        @SuppressWarnings("deprecation")
         @Override
         public boolean detectLoaded() {
             try {

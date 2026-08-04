@@ -135,6 +135,6 @@ public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
     }
 
     private String normalize(String sourceId) {
-        return emaki.jiuwu.craft.corelib.text.Texts.normalizeId(sourceId);
+        return emaki.jiuwu.craft.corelib.api.text.Texts.normalizeId(sourceId);
     }
 }

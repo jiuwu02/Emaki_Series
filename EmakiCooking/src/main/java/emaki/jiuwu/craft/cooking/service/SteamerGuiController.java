@@ -29,6 +29,8 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import net.kyori.adventure.text.Component;
+
 final class SteamerGuiController implements Listener {
 
     private final EmakiCookingPlugin plugin;
@@ -99,7 +101,7 @@ final class SteamerGuiController implements Listener {
     }
 
     Inventory createInventory(SteamerGuiHolder holder) {
-        String title = MiniMessages.plain(MiniMessages.parse(settingsService.steamerInventoryTitle()));
+        Component title = MiniMessages.parse(settingsService.steamerInventoryTitle());
         return Bukkit.createInventory(holder, settingsService.steamerInventoryRows() * 9, title);
     }
 

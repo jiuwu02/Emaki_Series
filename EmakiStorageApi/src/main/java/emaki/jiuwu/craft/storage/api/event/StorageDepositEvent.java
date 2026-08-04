@@ -29,6 +29,18 @@ public class StorageDepositEvent extends Event implements Cancellable {
     private final String source;
     private boolean cancelled;
 
+    /**
+     * Constructs the event. Called by EmakiStorage's transaction service; listeners receive instances
+     * rather than creating them.
+     *
+     * @param playerId        the storage owner
+     * @param template        the item being deposited; defensively copied, so later mutation by the
+     *                        caller is not visible to listeners
+     * @param requestedAmount how many units the caller asked to deposit, which may exceed what the
+     *                        storage can actually accept
+     * @param source          the originating surface id, one of {@code gui}, {@code command},
+     *                        {@code api} or {@code action}
+     */
     public StorageDepositEvent(@NotNull UUID playerId,
             @NotNull ItemStack template,
             long requestedAmount,
@@ -74,6 +86,7 @@ public class StorageDepositEvent extends Event implements Cancellable {
         return HANDLERS;
     }
 
+    /** {@return the shared handler list, as required by the Bukkit event contract} */
     public static @NotNull HandlerList getHandlerList() {
         return HANDLERS;
     }

@@ -60,21 +60,21 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.6.19</emaki.corelib.version>
-        <emaki.attribute.version>4.6.14</emaki.attribute.version>
-        <emaki.item.version>2.6.11</emaki.item.version>
-        <emaki.skills.version>2.6.13</emaki.skills.version>
-        <emaki.corelib.api.version>4.6.19</emaki.corelib.api.version>
-        <emaki.attribute.api.version>4.6.14</emaki.attribute.api.version>
-        <emaki.item.api.version>2.6.11</emaki.item.api.version>
-        <emaki.skills.api.version>2.6.13</emaki.skills.api.version>
-        <emaki.forge.api.version>4.6.9</emaki.forge.api.version>
-        <emaki.strengthen.api.version>4.6.8</emaki.strengthen.api.version>
-        <emaki.cooking.api.version>4.1.8</emaki.cooking.api.version>
-        <emaki.gem.api.version>2.6.8</emaki.gem.api.version>
-        <emaki.level.api.version>1.4.7</emaki.level.api.version>
-        <emaki.codex.api.version>1.0.6</emaki.codex.api.version>
-        <emaki.storage.api.version>1.0.11</emaki.storage.api.version>
+        <emaki.corelib.version>4.6.20</emaki.corelib.version>
+        <emaki.attribute.version>4.6.15</emaki.attribute.version>
+        <emaki.item.version>2.6.12</emaki.item.version>
+        <emaki.skills.version>2.6.14</emaki.skills.version>
+        <emaki.corelib.api.version>4.6.20</emaki.corelib.api.version>
+        <emaki.attribute.api.version>4.6.15</emaki.attribute.api.version>
+        <emaki.item.api.version>2.6.12</emaki.item.api.version>
+        <emaki.skills.api.version>2.6.14</emaki.skills.api.version>
+        <emaki.forge.api.version>4.6.10</emaki.forge.api.version>
+        <emaki.strengthen.api.version>4.6.9</emaki.strengthen.api.version>
+        <emaki.cooking.api.version>4.1.9</emaki.cooking.api.version>
+        <emaki.gem.api.version>2.6.9</emaki.gem.api.version>
+        <emaki.level.api.version>1.4.8</emaki.level.api.version>
+        <emaki.codex.api.version>1.0.7</emaki.codex.api.version>
+        <emaki.storage.api.version>1.0.12</emaki.storage.api.version>
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>
@@ -431,6 +431,24 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>3.12.0</version>
+                    <configuration>
+                        <!--
+                            关闭 DocLint 的 missing 组。该组覆盖「缺 @param / 缺 @return / 无注释 /
+                            无主说明」四类，实测全量为 1159 条（构建日志显示的 698 条是 javadoc 默认
+                            -Xmaxwarns 100 截断后的假数，4 个模块的计数都正好停在 100）。
+
+                            公开面文档不靠本开关兜底：公开事件类、各模块 API 入口（*Catalog /
+                            *Operations / *Extensions / Emaki*Api / ItemRepair / ItemMigration）以及
+                            全部「无主说明」缺陷已逐条补齐 javadoc，屏蔽后这些文件复跑 -Xdoclint:all
+                            仍为 0。被本开关屏蔽的 806 条集中在 record 组件 @param 与 getter /
+                            紧凑构造器 / 常量的「无注释」——自解释数据载体，逐条补齐只会产出无信息
+                            文档。这是有意保留的文档覆盖率债，不是「已完备」。
+
+                            其余 DocLint 组（accessibility / html / reference / syntax）保持开启：
+                            它们检查的是文档正确性（坏链接、错误标签、语法错误），必须继续失败可见。
+                        -->
+                        <doclint>all,-missing</doclint>
+                    </configuration>
                     <executions>
                         <execution>
                             <id>attach-javadocs</id>

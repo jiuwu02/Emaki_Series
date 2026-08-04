@@ -8,7 +8,7 @@ import org.bukkit.block.Block;
 
 import io.th0rgal.oraxen.api.OraxenBlocks;
 import io.th0rgal.oraxen.mechanics.Mechanic;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class OraxenBlockBridgeApi implements CustomBlockBridge {
 

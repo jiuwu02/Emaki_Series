@@ -537,7 +537,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             java.nio.file.Path target = dataPath("exports", fileName);
             try {
                 java.nio.file.Files.createDirectories(target.getParent());
-                emaki.jiuwu.craft.corelib.yaml.YamlFiles.save(target.toFile(), dump);
+                emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.save(target.toFile(), dump);
                 return "exports/" + fileName;
             } catch (java.io.IOException failure) {
                 getLogger().warning("[storage] Failed to export storage for " + playerId

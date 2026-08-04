@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.corelib.placeholder;
 import org.bukkit.Bukkit;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class PlaceholderApiResolver implements PlaceholderResolver {
 

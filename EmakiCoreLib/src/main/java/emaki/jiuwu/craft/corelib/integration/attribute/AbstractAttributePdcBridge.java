@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Shared source-registration and payload-guard mechanics for module-side attribute PDC bridges.

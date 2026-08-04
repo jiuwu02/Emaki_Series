@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
 
@@ -48,7 +48,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
             return ApiStatus.notInstalled();
         }
         String pluginName = plugin.getName();
-        String version = plugin.getDescription().getVersion();
+        String version = plugin.getPluginMeta().getVersion();
         return plugin.messageService() == null
                 ? ApiStatus.loading(pluginName, version, version)
                 : ApiStatus.ready(pluginName, version, version);

@@ -7,7 +7,7 @@ import java.util.Locale;
 import org.bukkit.Particle;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Scalar parsing shared by the pipeline compiler, the runtime and every stage.

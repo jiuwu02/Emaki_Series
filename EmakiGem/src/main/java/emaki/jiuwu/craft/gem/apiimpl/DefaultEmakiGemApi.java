@@ -32,7 +32,7 @@ public final class DefaultEmakiGemApi implements EmakiGemApi.Bridge {
             return ApiStatus.notInstalled();
         }
         String pluginName = plugin.getName();
-        String version = plugin.getDescription().getVersion();
+        String version = plugin.getPluginMeta().getVersion();
         boolean ready = plugin.publicApiReady()
                 && plugin.gemLoader() != null
                 && plugin.gemItemLoader() != null

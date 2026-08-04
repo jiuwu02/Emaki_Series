@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Long-running named tasks that repeat a sequence on an interval.

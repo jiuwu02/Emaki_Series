@@ -32,6 +32,14 @@ public interface CoreLibDialogs {
     Collection<String> dialogIds();
 
     /**
+     * Tests whether one dialog id is currently loaded, so callers can distinguish "the id is wrong"
+     * from "showing it failed".
+     *
+     * <p>The id is normalised before lookup: trimmed, lower-cased with {@link java.util.Locale#ROOT},
+     * and spaces replaced with underscores. A {@code null} or blank id yields {@code false}, as does a
+     * disabled or unavailable dialog subsystem; check {@link #enabled()} to tell those apart. Callable
+     * from any thread.
+     *
      * @param dialogId the dialog id
      * @return whether a dialog with that id is loaded
      */

@@ -486,7 +486,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
         Map<String, Integer> limits = new LinkedHashMap<>();
         for (String key : section.getKeys(false)) {
-            String tag = emaki.jiuwu.craft.corelib.text.Texts.normalizeId(key).replace('-', '_');
+            String tag = emaki.jiuwu.craft.corelib.api.text.Texts.normalizeId(key).replace('-', '_');
             int limit = intValue(section.getInt(key), 0);
             if (!tag.isBlank() && limit > 0) {
                 limits.put(tag, limit);

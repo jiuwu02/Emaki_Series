@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.corelib.dialog;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 import io.papermc.paper.dialog.DialogResponseView;
 
