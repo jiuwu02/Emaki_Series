@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.item.model;
 
 import java.util.List;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record DisabledDisplay(String namePrefix,
         List<String> loreAppend) {

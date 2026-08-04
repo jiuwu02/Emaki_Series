@@ -3,9 +3,9 @@ package emaki.jiuwu.craft.storage.config;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-import emaki.jiuwu.craft.corelib.dialog.DialogDefinition;
+import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 import emaki.jiuwu.craft.corelib.dialog.DialogDefinitions;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 /**
  * 单个交互的输入方式与对话框定义。

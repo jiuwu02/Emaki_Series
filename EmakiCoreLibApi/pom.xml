@@ -27,6 +27,18 @@
             <artifactId>annotations</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!--
+            M2-2 route A: the YAML contract (YamlSection and friends) now lives in this
+            artifact, so boosted-yaml becomes part of the published compile-time surface.
+            Kept optional so downstream consumers that only touch non-YAML contracts do
+            not inherit it transitively; those that do use YamlSection must declare it.
+            Version comes from the root dependencyManagement.
+        -->
+        <dependency>
+            <groupId>dev.dejvokep</groupId>
+            <artifactId>boosted-yaml</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 
     <build>

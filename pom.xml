@@ -455,6 +455,25 @@
                                     <exclude>META-INF/versions/**/module-info.class</exclude>
                                 </excludes>
                             </filter>
+                            <!--
+                                Each runtime module shades its own API jar, and that jar carries its own
+                                META-INF/MANIFEST.MF which collides with the module's manifest. That is the
+                                real source of the 11 shade "overlapping resource" warnings (one per runtime
+                                module) - not the dependency-specific filters below, none of which ever
+                                trigger because no module shades exp4j / caffeine / kyori / jspecify /
+                                auto-service / error_prone.
+
+                                Scoped to *-api on purpose. A blanket emaki.jiuwu.craft:* pattern also matches
+                                the module's own main artifact and strips the manifest shade would otherwise
+                                have kept, leaving the shipped jar with no META-INF/MANIFEST.MF at all.
+                            -->
+                            <filter>
+                                <artifact>emaki.jiuwu.craft:*-api</artifact>
+                                <excludes>
+                                    <exclude>META-INF/MANIFEST.MF</exclude>
+                                    <exclude>META-INF/maven/**</exclude>
+                                </excludes>
+                            </filter>
                             <filter>
                                 <artifact>net.objecthunter:exp4j</artifact>
                                 <excludes>
@@ -490,6 +509,19 @@
                             </filter>
                             <filter>
                                 <artifact>com.github.ben-manes.caffeine:caffeine</artifact>
+                                <excludes>
+                                    <exclude>META-INF/MANIFEST.MF</exclude>
+                                    <exclude>META-INF/maven/**</exclude>
+                                </excludes>
+                            </filter>
+                            <!--
+                                bstats-base and bstats-bukkit are shaded together and both carry their own
+                                manifest, so they overlap with each other rather than with our artifacts.
+                                This is the one MANIFEST collision the emaki.jiuwu.craft:* filter above does
+                                not cover.
+                            -->
+                            <filter>
+                                <artifact>org.bstats:*</artifact>
                                 <excludes>
                                     <exclude>META-INF/MANIFEST.MF</exclude>
                                     <exclude>META-INF/maven/**</exclude>

@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 
 /**
  * Rejects an invalid pipeline at config load time and resolves its stage roles and positional

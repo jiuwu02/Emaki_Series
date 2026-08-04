@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.item.service;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.model.RefreshFullReason;
 import emaki.jiuwu.craft.item.model.RefreshScope;
 

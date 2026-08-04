@@ -23,8 +23,8 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -102,7 +102,7 @@ public final class JuicerRuntimeService implements Listener {
             public java.util.concurrent.CompletionStage<Void> replace(
                     StationCoordinates coordinates,
                     Map<String, Object> committedState) {
-                JuicerState state = codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(committedState));
+                JuicerState state = codec.readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(committedState));
                 if (state == null || state.isCompletelyEmpty()) {
                     return java.util.concurrent.CompletableFuture.failedFuture(
                             new IllegalArgumentException("Invalid committed juicer state"));
@@ -133,7 +133,7 @@ public final class JuicerRuntimeService implements Listener {
         stateStore.forEachLoadedState(StationType.JUICER, this::restoreStoredState);
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
         if (coordinates == null) {
             return false;
         }
@@ -477,7 +477,7 @@ public final class JuicerRuntimeService implements Listener {
     }
 
     private JuicerState copyState(StationCoordinates coordinates, JuicerState state) {
-        return codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
+        return codec.readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
     }
 
     void saveState(StationCoordinates coordinates, JuicerState state) {

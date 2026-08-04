@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -98,7 +98,7 @@ public final class GrinderRuntimeService {
             public java.util.concurrent.CompletionStage<Void> replace(
                     StationCoordinates coordinates,
                     Map<String, Object> committedState) {
-                GrinderState state = readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(committedState));
+                GrinderState state = readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(committedState));
                 if (state == null) {
                     return java.util.concurrent.CompletableFuture.failedFuture(
                             new IllegalArgumentException("Invalid committed grinder state"));
@@ -131,7 +131,7 @@ public final class GrinderRuntimeService {
         ensureTicker();
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
         if (coordinates == null) {
             return false;
         }
@@ -549,7 +549,7 @@ public final class GrinderRuntimeService {
         return root;
     }
 
-    private GrinderState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    private GrinderState readState(emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
         if (section == null || !StationType.GRINDER.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
             return null;
         }

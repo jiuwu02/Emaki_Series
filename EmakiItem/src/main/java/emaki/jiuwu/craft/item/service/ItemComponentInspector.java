@@ -6,14 +6,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
 
 import io.papermc.paper.datacomponent.DataComponentType;
 
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 
 public final class ItemComponentInspector {
 
@@ -309,8 +311,12 @@ public final class ItemComponentInspector {
                 boolean removed = !itemStack.hasData(type);
                 result.put(id, new ComponentEntry(id, removed ? "" : paperDataValue(itemStack, type), removed));
             }
-        } catch (RuntimeException | LinkageError _) {
-
+        } catch (RuntimeException | LinkageError throwable) {
+            Bukkit.getLogger().log(Level.WARNING,
+                    "[EmakiItem] Paper data component inspection failed: item=" + itemStack.getType()
+                            + ", collected=" + result.size()
+                            + ", operation=read_paper_data_components, cause=" + throwable,
+                    throwable);
         }
         return result;
     }

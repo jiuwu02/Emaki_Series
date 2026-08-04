@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.api.LevelOperationType;
 import emaki.jiuwu.craft.level.api.LevelUpCause;
@@ -47,6 +47,7 @@ public final class PlayerLevelService {
     private final ItemSourceService itemSourceService;
     private final EconomyManager economyManager;
     private final ActionLineRunner actionLines;
+    private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
     private final LevelOperationJournal operationJournal;
     private final Runnable attributeRefreshAll;
@@ -78,6 +79,7 @@ public final class PlayerLevelService {
         this.itemSourceService = itemSourceService;
         this.economyManager = economyManager;
         this.actionLines = actionLines;
+        this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
         this.operationJournal = new LevelOperationJournal(plugin, executionDispatcher, threadOwnership);
         this.config = config;
@@ -420,9 +422,28 @@ public final class PlayerLevelService {
 
     public void syncAllOnline() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            syncPlayer(player);
+            syncOwnedPlayer(player);
         }
         attributeRefreshAll.run();
+    }
+
+    private void syncOwnedPlayer(Player player) {
+        if (player == null) {
+            return;
+        }
+        if (ownsPlayer(player)) {
+            syncPlayer(player);
+            return;
+        }
+        if (executionDispatcher == null) {
+            plugin.getLogger().warning("EmakiLevel skipped level sync for " + player.getName()
+                    + ": caller thread does not own the player and no execution dispatcher is available.");
+            return;
+        }
+        if (executionDispatcher.runEntity(plugin, player, () -> syncPlayer(player)) == null) {
+            plugin.getLogger().warning("EmakiLevel failed to reroute level sync for " + player.getName()
+                    + ": entity task scheduling was rejected.");
+        }
     }
 
     public void syncPlayer(Player player) {

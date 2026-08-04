@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
@@ -563,6 +563,13 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return settingsService;
     }
 
+    /**
+     * {@return the cooking block matcher}
+     *
+     * @deprecated 仓库内零调用。方块匹配在监听器内部完成，
+     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "4.1.7", forRemoval = true)
     public CookingBlockMatcher blockMatcher() {
         return blockMatcher;
     }
@@ -583,6 +590,13 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return inspectService;
     }
 
+    /**
+     * {@return the cooking display service}
+     *
+     * @deprecated 仓库内零调用。展示实体由站点状态变更驱动刷新，
+     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "4.1.7", forRemoval = true)
     public CookingDisplayService displayService() {
         return displayService;
     }

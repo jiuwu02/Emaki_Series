@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.attribute.model.DamageStageKind;
 import emaki.jiuwu.craft.attribute.model.DamageStageMode;
 import emaki.jiuwu.craft.attribute.model.DamageStageSource;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class StageCalculator {
 

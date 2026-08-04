@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.attribute.model.DamageTraceRecord;
 import emaki.jiuwu.craft.attribute.model.DamageTraceStageRecord;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class DamageTraceService {
 

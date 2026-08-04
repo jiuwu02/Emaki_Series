@@ -8,7 +8,7 @@ import java.util.Set;
 
 import org.bukkit.event.entity.EntityDamageEvent;
 
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 /**
  * 伤害飘字设置。

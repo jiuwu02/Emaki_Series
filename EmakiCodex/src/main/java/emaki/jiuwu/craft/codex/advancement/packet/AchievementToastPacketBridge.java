@@ -20,8 +20,8 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUp
 
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 
 public final class AchievementToastPacketBridge {

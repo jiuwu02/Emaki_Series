@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeResult;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 
 /**

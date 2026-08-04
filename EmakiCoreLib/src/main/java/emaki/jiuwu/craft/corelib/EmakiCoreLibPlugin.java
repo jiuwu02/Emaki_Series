@@ -33,7 +33,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRebuildListeners;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 
-import emaki.jiuwu.craft.corelib.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckService;
@@ -84,8 +84,8 @@ import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 
 public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, DebugLoggerProvider {
 
@@ -472,6 +472,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return bStatsService.register(plugin, pluginId);
     }
 
+    /**
+     * @return the bStats service
+     * @deprecated no in-tree caller remains; use {@link #registerBStats(Plugin, int)} instead.
+     *         Scheduled for removal in the next major version after one full minor cycle
+     */
+    @Deprecated(forRemoval = true)
     public BStatsService bStatsService() {
         return bStatsService;
     }
@@ -711,6 +717,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     /** {@return CoreLib 的默认物品展示服务，语义同 {@link #textDisplayService()}} */
+    /**
+     * @return the item display service
+     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
+     *         cycle in case an external plugin compiled against it. Scheduled for removal in
+     *         the next major version; re-check source and binary usage before removing
+     */
+    @Deprecated(forRemoval = true)
     public emaki.jiuwu.craft.corelib.display.ItemDisplayService itemDisplayService() {
         return itemDisplayService;
     }
@@ -758,6 +771,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     /** {@return the shared batch runner for configured pipeline lines} */
+    /**
+     * @return the pipeline batch runner
+     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
+     *         cycle in case an external plugin compiled against it. Scheduled for removal in
+     *         the next major version; re-check source and binary usage before removing
+     */
+    @Deprecated(forRemoval = true)
     public PipelineBatchRunner pipelineBatchRunner() {
         return pipelineBatchRunner;
     }
@@ -784,6 +804,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     /** {@return the compiled named sequences} */
+    /**
+     * @return the sequence repository
+     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
+     *         cycle in case an external plugin compiled against it. Scheduled for removal in
+     *         the next major version; re-check source and binary usage before removing
+     */
+    @Deprecated(forRemoval = true)
     public ConfiguredSequenceRepository sequenceRepository() {
         return sequenceRepository;
     }
@@ -891,6 +918,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
 
 
+    /**
+     * @return the gui backend registry
+     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
+     *         cycle in case an external plugin compiled against it. Scheduled for removal in
+     *         the next major version; re-check source and binary usage before removing
+     */
+    @Deprecated(forRemoval = true)
     public emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry guiBackendRegistry() {
         return guiBackendRegistry;
     }
@@ -923,6 +957,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
     }
 
+    /**
+     * @return the async file service
+     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
+     *         cycle in case an external plugin compiled against it. Scheduled for removal in
+     *         the next major version; re-check source and binary usage before removing
+     */
+    @Deprecated(forRemoval = true)
     public AsyncFileService asyncFileService() {
         return asyncFileService;
     }
@@ -947,6 +988,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return asyncFileService.openScope(ownerName);
     }
 
+    /**
+     * @return the platform capabilities
+     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
+     *         cycle in case an external plugin compiled against it. Scheduled for removal in
+     *         the next major version; re-check source and binary usage before removing
+     */
+    @Deprecated(forRemoval = true)
     public CapabilityProbe platformCapabilities() {
         return platformCapabilities;
     }
@@ -959,6 +1007,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return threadOwnership;
     }
 
+    /**
+     * @return the core plugin lifecycle
+     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
+     *         cycle in case an external plugin compiled against it. Scheduled for removal in
+     *         the next major version; re-check source and binary usage before removing
+     */
+    @Deprecated(forRemoval = true)
     public CorePluginLifecycle corePluginLifecycle() {
         return corePluginLifecycle;
     }
@@ -1038,6 +1093,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return namespaceRegistry;
     }
 
+    /**
+     * @return the item layer codec registry
+     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
+     *         cycle in case an external plugin compiled against it. Scheduled for removal in
+     *         the next major version; re-check source and binary usage before removing
+     */
+    @Deprecated(forRemoval = true)
     public EmakiItemLayerCodecRegistry itemLayerCodecRegistry() {
         return itemLayerCodecRegistry;
     }

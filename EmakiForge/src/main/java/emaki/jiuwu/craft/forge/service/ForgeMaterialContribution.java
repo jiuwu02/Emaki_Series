@@ -6,7 +6,7 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 
 record ForgeMaterialContribution(ForgeMaterial material,

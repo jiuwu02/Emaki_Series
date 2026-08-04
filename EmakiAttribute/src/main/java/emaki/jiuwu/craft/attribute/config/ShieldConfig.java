@@ -2,8 +2,8 @@ package emaki.jiuwu.craft.attribute.config;
 
 import java.util.Locale;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 /**
  * 盾牌格挡设置。

@@ -1,211 +1,94 @@
 package emaki.jiuwu.craft.corelib.text;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 
+/**
+ * 已搬迁到 {@link emaki.jiuwu.craft.corelib.api.text.Texts}，本类仅作过渡转发。
+ *
+ * <p>M2-2 路线 A：CoreLib 的通用工具改由 {@code emaki-corelib-api} 契约 artifact 提供，
+ * 业务模块不再直连实现包。此处保留全部 18 个方法签名并逐一委托，
+ * 因此旧调用点行为完全不变，可在一个完整次版本周期内平滑迁移。
+ *
+ * @deprecated 改用 {@link emaki.jiuwu.craft.corelib.api.text.Texts}。
+ *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+ */
+@Deprecated(since = "4.6.19", forRemoval = true)
 public final class Texts {
-
-    private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<[^>]+>");
-    private static final Pattern WHITESPACE_PATTERN = Pattern.compile("\\s+");
 
     private Texts() {
     }
 
     public static String toStringSafe(Object value) {
-        return value == null ? "" : String.valueOf(value);
+        return emaki.jiuwu.craft.corelib.api.text.Texts.toStringSafe(value);
     }
 
     public static boolean isBlank(Object value) {
-        return toStringSafe(value).trim().isEmpty();
+        return emaki.jiuwu.craft.corelib.api.text.Texts.isBlank(value);
     }
 
     public static boolean isNotBlank(Object value) {
-        return !isBlank(value);
+        return emaki.jiuwu.craft.corelib.api.text.Texts.isNotBlank(value);
     }
 
     public static String trim(Object value) {
-        return toStringSafe(value).trim();
+        return emaki.jiuwu.craft.corelib.api.text.Texts.trim(value);
     }
 
     public static String lower(Object value) {
-        return toStringSafe(value).toLowerCase(java.util.Locale.ROOT);
+        return emaki.jiuwu.craft.corelib.api.text.Texts.lower(value);
     }
 
     public static String upper(Object value) {
-        return toStringSafe(value).toUpperCase(java.util.Locale.ROOT);
+        return emaki.jiuwu.craft.corelib.api.text.Texts.upper(value);
     }
 
     public static boolean startsWith(Object text, Object prefix) {
-        return toStringSafe(text).startsWith(toStringSafe(prefix));
+        return emaki.jiuwu.craft.corelib.api.text.Texts.startsWith(text, prefix);
     }
 
     public static boolean endsWith(Object text, Object suffix) {
-        return toStringSafe(text).endsWith(toStringSafe(suffix));
+        return emaki.jiuwu.craft.corelib.api.text.Texts.endsWith(text, suffix);
     }
 
     public static boolean contains(Object text, Object substring) {
-        return toStringSafe(text).contains(toStringSafe(substring));
+        return emaki.jiuwu.craft.corelib.api.text.Texts.contains(text, substring);
     }
 
     public static String stripMiniTags(Object value) {
-        String text = toStringSafe(value);
-        if (text.indexOf('<') < 0 || text.indexOf('>') < 0) {
-            return text;
-        }
-        return MINI_TAG_PATTERN.matcher(text).replaceAll("");
+        return emaki.jiuwu.craft.corelib.api.text.Texts.stripMiniTags(value);
     }
 
     public static String normalizeWhitespace(String value) {
-        String text = toStringSafe(value).trim();
-        if (text.isEmpty()) {
-            return "";
-        }
-        if (text.length() < 2 || !containsRepeatedWhitespace(text)) {
-            return text;
-        }
-        return WHITESPACE_PATTERN.matcher(text).replaceAll(" ");
+        return emaki.jiuwu.craft.corelib.api.text.Texts.normalizeWhitespace(value);
     }
 
     public static String normalizeWhitespace(Object value) {
-        return normalizeWhitespace(toStringSafe(value));
+        return emaki.jiuwu.craft.corelib.api.text.Texts.normalizeWhitespace(value);
     }
 
     public static String normalizeId(String value) {
-        return toStringSafe(value).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+        return emaki.jiuwu.craft.corelib.api.text.Texts.normalizeId(value);
     }
 
     public static List<String> stripMiniTags(Collection<?> values) {
-        List<String> result = new ArrayList<>();
-        if (values == null) {
-            return result;
-        }
-        for (Object value : values) {
-            result.add(stripMiniTags(value));
-        }
-        return result;
+        return emaki.jiuwu.craft.corelib.api.text.Texts.stripMiniTags(values);
     }
 
     public static String formatTemplate(String template, Map<String, ?> replacements) {
-        if (template == null) {
-            return "";
-        }
-        if (replacements == null || replacements.isEmpty()) {
-            return template;
-        }
-        int len = template.length();
-        StringBuilder sb = new StringBuilder(len + 32);
-        for (int i = 0; i < len; i++) {
-            char ch = template.charAt(i);
-            if (ch == '%') {
-                int close = template.indexOf('%', i + 1);
-                if (close > i + 1) {
-                    String key = template.substring(i + 1, close);
-                    if (replacements.containsKey(key)) {
-                        sb.append(toStringSafe(replacements.get(key)));
-                        i = close;
-                        continue;
-                    }
-                    String lowerKey = lower(key);
-                    if (replacements.containsKey(lowerKey)) {
-                        sb.append(toStringSafe(replacements.get(lowerKey)));
-                        i = close;
-                        continue;
-                    }
-                }
-            }
-            sb.append(ch);
-        }
-        return sb.toString();
+        return emaki.jiuwu.craft.corelib.api.text.Texts.formatTemplate(template, replacements);
     }
 
-    /**
-     * Expands a single template line into one or more lines.
-     *
-     * <p>When the whole line is exactly one placeholder (for example {@code "%materials%"}) and the
-     * matching replacement value is a collection, every collection element becomes its own line. This
-     * lets a fixed-length YAML lore list render a variable number of entries. Every other shape falls
-     * back to {@link #formatTemplate(String, Map)} and yields exactly one line, so a mixed line such as
-     * {@code "cost: %materials%"} keeps its prefix instead of losing it.
-     *
-     * @param template     the template line; may be {@code null}
-     * @param replacements the placeholder replacements
-     * @return the expanded lines, never {@code null}
-     */
     public static List<String> expandTemplateLines(String template, Map<String, ?> replacements) {
-        Object value = solePlaceholderValue(template, replacements);
-        if (!(value instanceof Collection<?> collection)) {
-            return List.of(formatTemplate(template, replacements));
-        }
-        List<String> result = new ArrayList<>(collection.size());
-        for (Object entry : collection) {
-            result.add(formatTemplate(toStringSafe(entry), replacements));
-        }
-        return result;
-    }
-
-    /**
-     * {@return the replacement value when the trimmed template is exactly one placeholder, otherwise
-     * {@code null}} Key lookup order matches {@link #formatTemplate(String, Map)}: exact key first, then
-     * the lower-cased key.
-     */
-    private static Object solePlaceholderValue(String template, Map<String, ?> replacements) {
-        if (template == null || replacements == null || replacements.isEmpty()) {
-            return null;
-        }
-        String trimmed = template.trim();
-        if (trimmed.length() < 3 || trimmed.charAt(0) != '%' || trimmed.charAt(trimmed.length() - 1) != '%') {
-            return null;
-        }
-        String key = trimmed.substring(1, trimmed.length() - 1);
-        if (key.indexOf('%') >= 0) {
-            return null;
-        }
-        if (replacements.containsKey(key)) {
-            return replacements.get(key);
-        }
-        String lowerKey = lower(key);
-        return replacements.containsKey(lowerKey) ? replacements.get(lowerKey) : null;
+        return emaki.jiuwu.craft.corelib.api.text.Texts.expandTemplateLines(template, replacements);
     }
 
     public static List<String> formatTemplateList(Collection<?> template, Map<String, ?> replacements) {
-        List<String> result = new ArrayList<>();
-        if (template == null) {
-            return result;
-        }
-        for (Object value : template) {
-            result.add(formatTemplate(toStringSafe(value), replacements));
-        }
-        return result;
+        return emaki.jiuwu.craft.corelib.api.text.Texts.formatTemplateList(template, replacements);
     }
 
     public static List<String> asStringList(Object value) {
-        List<String> result = new ArrayList<>();
-        if (value == null) {
-            return result;
-        }
-        if (value instanceof Collection<?> collection) {
-            for (Object entry : collection) {
-                result.add(toStringSafe(entry));
-            }
-            return result;
-        }
-        result.add(toStringSafe(value));
-        return result;
-    }
-
-    private static boolean containsRepeatedWhitespace(String text) {
-        boolean previousWhitespace = false;
-        for (int index = 0; index < text.length(); index++) {
-            boolean whitespace = Character.isWhitespace(text.charAt(index));
-            if (whitespace && previousWhitespace) {
-                return true;
-            }
-            previousWhitespace = whitespace;
-        }
-        return false;
+        return emaki.jiuwu.craft.corelib.api.text.Texts.asStringList(value);
     }
 }

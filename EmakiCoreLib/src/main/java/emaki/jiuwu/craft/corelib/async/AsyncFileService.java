@@ -17,7 +17,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
-import emaki.jiuwu.craft.corelib.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler.TaskPriority;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 

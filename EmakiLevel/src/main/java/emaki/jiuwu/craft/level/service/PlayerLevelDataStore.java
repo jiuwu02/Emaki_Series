@@ -13,6 +13,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -20,12 +22,12 @@ import java.util.logging.Logger;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
@@ -50,10 +52,13 @@ public final class PlayerLevelDataStore {
     private record PendingLoad(long generation, CompletableFuture<PlayerLevelData> future) {
     }
 
+    /** Debug module the session anchors are filed under; must stay within EmakiLevelPlugin's set. */
+    private static final String DEBUG_SESSION_MODULE = "common";
+
     private final File dataFolder;
     private final Logger logger;
     private final Supplier<AsyncYamlFiles> asyncYamlFilesSupplier;
-    private final PlayerLevelDataCache cache = new PlayerLevelDataCache();
+    private final PlayerLevelDataCache cache;
     private final Map<UUID, PendingLoad> pendingLoads = new ConcurrentHashMap<>();
     private FlushResult flushResult;
 
@@ -65,16 +70,35 @@ public final class PlayerLevelDataStore {
         this(
                 Objects.requireNonNull(plugin, "plugin").getDataFolder(),
                 plugin.getLogger(),
-                asyncYamlFilesSupplier
+                asyncYamlFilesSupplier,
+                // Session anchors (W6-2a) ride the plugin's existing debug switch, so they stay off
+                // until an operator turns that module on. Resolved lazily: the plugin wires its
+                // debug logger during enable, and either side may still be null here.
+                () -> plugin.debugLogger() != null
+                        && plugin.debugLogger().shouldLog(DEBUG_SESSION_MODULE, (UUID) null),
+                fields -> {
+                    if (plugin.debugLogger() != null) {
+                        plugin.debugLogger().logRaw(DEBUG_SESSION_MODULE, (UUID) null, "session " + fields);
+                    }
+                }
         );
     }
 
     PlayerLevelDataStore(File dataFolder,
             Logger logger,
             Supplier<AsyncYamlFiles> asyncYamlFilesSupplier) {
+        this(dataFolder, logger, asyncYamlFilesSupplier, null, null);
+    }
+
+    PlayerLevelDataStore(File dataFolder,
+            Logger logger,
+            Supplier<AsyncYamlFiles> asyncYamlFilesSupplier,
+            BooleanSupplier anchorGate,
+            Consumer<String> anchorSink) {
         this.dataFolder = Objects.requireNonNull(dataFolder, "dataFolder");
         this.logger = logger == null ? Logger.getLogger(PlayerLevelDataStore.class.getName()) : logger;
         this.asyncYamlFilesSupplier = asyncYamlFilesSupplier;
+        this.cache = new PlayerLevelDataCache(anchorGate, anchorSink);
     }
 
     public CompletableFuture<PlayerLevelData> beginSession(Player player, Map<String, LevelTypeConfig> types) {
@@ -166,7 +190,7 @@ public final class PlayerLevelDataStore {
         if (cache.isSealed()) {
             return CompletableFuture.completedFuture(0);
         }
-        List<PlayerLevelDataCache.SaveTicket> tickets = cache.snapshotDirtyEntries();
+        List<PlayerLevelDataCache.SaveTicket<UUID, PlayerLevelData>> tickets = cache.snapshotDirtyEntries();
         List<CompletableFuture<Boolean>> futures = saveTickets(tickets);
         if (futures.isEmpty()) {
             return CompletableFuture.completedFuture(0);
@@ -210,7 +234,7 @@ public final class PlayerLevelDataStore {
         long deadline = System.nanoTime() + Math.max(0L, unit.toNanos(timeout));
         cache.seal();
 
-        List<PlayerLevelDataCache.SaveTicket> tickets = cache.snapshotDirtyEntries();
+        List<PlayerLevelDataCache.SaveTicket<UUID, PlayerLevelData>> tickets = cache.snapshotDirtyEntries();
         List<CompletableFuture<Boolean>> saveFutures = saveTickets(tickets);
         CompletableFuture<Void> savesComplete = saveFutures.isEmpty()
                 ? CompletableFuture.completedFuture(null)
@@ -328,7 +352,7 @@ public final class PlayerLevelDataStore {
             return CompletableFuture.completedFuture(null);
         }
 
-        PlayerLevelDataCache.Snapshot current = cache.snapshot(playerId);
+        PlayerLevelDataCache.Snapshot<PlayerLevelData> current = cache.snapshot(playerId);
         if (current != null) {
             if (current.lifecycle() == PlayerLevelDataCache.Lifecycle.ACTIVE && current.loadWritable()) {
                 cache.mutate(playerId, current.generation(), data -> {
@@ -353,7 +377,7 @@ public final class PlayerLevelDataStore {
 
         File file = playerFile(playerId);
         PlayerLevelData initial = createDefault(playerId, types);
-        PlayerLevelDataCache.SessionTicket ticket = cache.beginSession(playerId, initial, false);
+        PlayerLevelDataCache.SessionTicket<UUID> ticket = cache.beginSession(playerId, initial, false);
         if (ticket == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -393,19 +417,19 @@ public final class PlayerLevelDataStore {
         return loadResult;
     }
 
-    private PlayerLevelData installLoaded(PlayerLevelDataCache.SessionTicket ticket,
+    private PlayerLevelData installLoaded(PlayerLevelDataCache.SessionTicket<UUID> ticket,
             PlayerLevelData loaded,
             String playerName) {
         if (cache.installLoaded(ticket, loaded) == PlayerLevelDataCache.CommitResult.COMMITTED) {
             if (playerName != null) {
-                cache.mutate(ticket.playerId(), ticket.generation(), data -> {
+                cache.mutate(ticket.key(), ticket.generation(), data -> {
                     data.name(playerName);
                     return null;
                 });
             }
-            return cache.activeData(ticket.playerId());
+            return cache.activeData(ticket.key());
         }
-        return cache.activeData(ticket.playerId());
+        return cache.activeData(ticket.key());
     }
 
     private CompletableFuture<PlayerLevelData> loadDetached(UUID playerId,
@@ -429,19 +453,20 @@ public final class PlayerLevelDataStore {
                 });
     }
 
-    private List<CompletableFuture<Boolean>> saveTickets(List<PlayerLevelDataCache.SaveTicket> tickets) {
+    private List<CompletableFuture<Boolean>> saveTickets(
+            List<PlayerLevelDataCache.SaveTicket<UUID, PlayerLevelData>> tickets) {
         List<CompletableFuture<Boolean>> futures = new ArrayList<>(tickets.size());
-        for (PlayerLevelDataCache.SaveTicket ticket : tickets) {
+        for (PlayerLevelDataCache.SaveTicket<UUID, PlayerLevelData> ticket : tickets) {
             futures.add(saveTicket(ticket));
         }
         return futures;
     }
 
-    private CompletableFuture<Boolean> saveTicket(PlayerLevelDataCache.SaveTicket ticket) {
+    private CompletableFuture<Boolean> saveTicket(PlayerLevelDataCache.SaveTicket<UUID, PlayerLevelData> ticket) {
         if (ticket == null) {
             return CompletableFuture.completedFuture(true);
         }
-        return cache.enqueueSave(ticket, current -> writeSnapshot(current.playerId(), current.snapshot()));
+        return cache.enqueueSave(ticket, current -> writeSnapshot(current.key(), current.snapshot()));
     }
 
     private CompletableFuture<Boolean> writeSnapshot(UUID playerId, PlayerLevelData snapshot) {

@@ -15,7 +15,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
-import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;

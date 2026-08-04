@@ -27,12 +27,16 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
 import net.kyori.adventure.text.Component;
+import emaki.jiuwu.craft.corelib.api.assembly.BaseNamePolicy;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 
 public final class EmakiItemAssemblyService {
 
@@ -42,6 +46,10 @@ public final class EmakiItemAssemblyService {
     // rather than re-pointed at a v2 constant: a preview cache TTL has nothing to do with how long a
     // pipeline stage may run, and borrowing that number again would recreate the same false coupling.
     private static final long PREVIEW_CACHE_TTL_MILLIS = 30_000L;
+    // Diagnostics below read EmakiItem's set-state fields. The partition must mirror EmakiItem's write
+    // side exactly (EmakiItemIdentifier.PARTITION = "emakiitem" over PdcService namespace "emaki",
+    // wired in ItemLifecycleCoordinator), otherwise existing item data becomes invisible here.
+    private static final PdcPartition ITEM_SET_PARTITION = new PdcPartition("emaki", "emakiitem");
 
     private final ItemSourceService itemSourceService;
     private final AssemblyDataManager dataManager;
@@ -772,12 +780,11 @@ public final class EmakiItemAssemblyService {
             return "";
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        for (NamespacedKey key : container.getKeys()) {
-            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.STRING)) {
-                return Texts.toStringSafe(container.get(key, PersistentDataType.STRING));
-            }
+        NamespacedKey key = ITEM_SET_PARTITION.key(field);
+        if (!container.has(key, PersistentDataType.STRING)) {
+            return "";
         }
-        return "";
+        return Texts.toStringSafe(container.get(key, PersistentDataType.STRING));
     }
 
     private Integer pdcInteger(ItemMeta itemMeta, String field) {
@@ -785,12 +792,11 @@ public final class EmakiItemAssemblyService {
             return null;
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        for (NamespacedKey key : container.getKeys()) {
-            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.INTEGER)) {
-                return container.get(key, PersistentDataType.INTEGER);
-            }
+        NamespacedKey key = ITEM_SET_PARTITION.key(field);
+        if (!container.has(key, PersistentDataType.INTEGER)) {
+            return null;
         }
-        return null;
+        return container.get(key, PersistentDataType.INTEGER);
     }
 
     private <T> T measure(String metricKey, SupplierWithException<T> supplier) {

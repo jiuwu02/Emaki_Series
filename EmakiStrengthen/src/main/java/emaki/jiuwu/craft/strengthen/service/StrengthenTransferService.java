@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.strengthen.service;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.event.StrengthenTransferCompletedEvent;
 import emaki.jiuwu.craft.strengthen.api.event.StrengthenTransferEvent;

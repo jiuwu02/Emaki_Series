@@ -84,6 +84,7 @@ console:
   mythic_bridge_init_failed: "初始化 MythicMobs 技能桥接失败: %error%"
   mythic_bridge_skill_lookup_failed: "查询 Mythic 技能失败: %skill% (%error%)"
   mythic_bridge_cast_failed: "释放 Mythic 技能失败: %skill% (%error%)"
+  trigger_legacy_cancelled_dispatch_deprecated: "<yellow>[弃用]</yellow> <gray>触发器 <yellow>%source%</yellow> 正在使用兼容开关 <white>trigger_settings.legacy_dispatch_cancelled_events</white>，已被其他插件（如 WorldGuard、领地保护）取消的事件仍会触发技能。该开关仅保留一个次版本周期，下一个主版本将移除，请尽快关闭并改用默认行为。</gray>"
   skills_loaded: "<gray>已加载 <yellow>%skills%</yellow> 个技能, <yellow>%triggers%</yellow> 个触发器</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 

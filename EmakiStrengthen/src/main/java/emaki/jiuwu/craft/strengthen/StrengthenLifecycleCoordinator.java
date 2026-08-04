@@ -11,9 +11,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -24,8 +25,8 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
@@ -136,12 +137,26 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return;
         }
         try {
-            plugin.languageLoader().load();
-            plugin.appConfigLoader().load();
+            // Same load/apply split the async path already uses: everything the precheck inspects loads
+            // inside the candidate step, and nothing is applied until the gate commits.
+            ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                    plugin.messageService(),
+                    "strengthen",
+                    plugin.appConfigLoader()::current,
+                    () -> {
+                        plugin.languageLoader().load();
+                        AppConfig candidate = plugin.appConfigLoader().load();
+                        plugin.recipeLoader().load();
+                        plugin.guiTemplateLoader().load();
+                        return candidate;
+                    },
+                    plugin.appConfigLoader()::overrideCurrent);
+            if (gate.rejected()) {
+                // Previous AppConfig is active again; resumeAccepting still runs in the finally block.
+                return;
+            }
             plugin.languageLoader().setLanguage(plugin.appConfig().language());
-            plugin.recipeLoader().load();
             StrengthenRecipeResolver.clearPatternCache();
-            plugin.guiTemplateLoader().load();
                 plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
             plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
             plugin.refreshService().refreshOnlinePlayers();
@@ -172,10 +187,23 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         return closeSessions.thenCompose(_ -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "strengthen", "config-load", "Loading configs...", progressListener,
                 () -> {
-                    plugin.languageLoader().load();
-                    plugin.appConfigLoader().load();
-                    plugin.recipeLoader().load();
-                    plugin.guiTemplateLoader().load();
+                    ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                            plugin.messageService(),
+                            "strengthen",
+                            plugin.appConfigLoader()::current,
+                            () -> {
+                                plugin.languageLoader().load();
+                                AppConfig candidate = plugin.appConfigLoader().load();
+                                plugin.recipeLoader().load();
+                                plugin.guiTemplateLoader().load();
+                                return candidate;
+                            },
+                            plugin.appConfigLoader()::overrideCurrent);
+                    if (gate.rejected()) {
+                        // Aborts the stage so the apply step never runs; AppConfig is already restored.
+                        throw new IllegalStateException("Strengthen config precheck failed: "
+                                + String.join("; ", gate.failures()));
+                    }
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {

@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiLoreSectionContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 

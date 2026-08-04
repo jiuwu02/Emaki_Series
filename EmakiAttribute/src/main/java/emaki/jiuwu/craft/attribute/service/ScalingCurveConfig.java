@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record ScalingCurveConfig(String attributeId, double threshold, String curveType, double factor) {
 

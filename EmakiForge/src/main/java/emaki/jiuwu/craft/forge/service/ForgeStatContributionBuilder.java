@@ -5,8 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStatContribution;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 
 final class ForgeStatContributionBuilder {
 

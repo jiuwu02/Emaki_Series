@@ -14,8 +14,8 @@ import emaki.jiuwu.craft.attribute.api.event.PlayerAttributePointResetEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class ParentAttributeService {
 
@@ -121,7 +121,7 @@ public final class ParentAttributeService {
             return AllocateResult.NOT_ENOUGH_POINTS;
         }
         data.availablePoints(data.availablePoints() - safeAmount);
-        data.allocations().merge(definition.id(), safeAmount, Integer::sum);
+        data.addAllocation(definition.id(), safeAmount);
         data.markDirty();
         afterMutation(player, data);
         return AllocateResult.SUCCESS;
@@ -146,7 +146,7 @@ public final class ParentAttributeService {
             data.resetPoints(data.resetPoints() - 1);
         }
         data.availablePoints(data.availablePoints() + allocated);
-        data.allocations().clear();
+        data.clearAllocations();
         data.markDirty();
         afterMutation(player, data);
         return ResetResult.SUCCESS;

@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.bukkit.Material;
 
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 
 /**
  * Resolves vanilla translation keys to localized text on the server side.

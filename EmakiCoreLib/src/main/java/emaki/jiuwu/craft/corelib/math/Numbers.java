@@ -1,111 +1,69 @@
 package emaki.jiuwu.craft.corelib.math;
 
-import java.text.DecimalFormat;
-
-import emaki.jiuwu.craft.corelib.text.Texts;
-
+/**
+ * 已搬迁到 {@link emaki.jiuwu.craft.corelib.api.math.Numbers}，本类仅作过渡转发。
+ *
+ * <p>M2-2 路线 A：CoreLib 的通用工具改由 {@code emaki-corelib-api} 契约 artifact 提供。
+ * 此处保留全部 13 个方法签名并逐一委托，旧调用点行为完全不变。
+ *
+ * @deprecated 改用 {@link emaki.jiuwu.craft.corelib.api.math.Numbers}。
+ *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+ */
+@Deprecated(since = "4.6.19", forRemoval = true)
 public final class Numbers {
 
     private Numbers() {
     }
 
     public static Integer tryParseInt(Object value, Integer defaultValue) {
-        if (value == null) {
-            return defaultValue;
-        }
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        try {
-            return Integer.parseInt(Texts.trim(value));
-        } catch (Exception _) {
-            return defaultValue;
-        }
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.tryParseInt(value, defaultValue);
     }
 
     public static Long tryParseLong(Object value, Long defaultValue) {
-        if (value == null) {
-            return defaultValue;
-        }
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        try {
-            return Long.parseLong(Texts.trim(value));
-        } catch (Exception _) {
-            return defaultValue;
-        }
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.tryParseLong(value, defaultValue);
     }
 
     public static Double tryParseDouble(Object value, Double defaultValue) {
-        if (value == null) {
-            return defaultValue;
-        }
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        try {
-            return Double.parseDouble(Texts.trim(value));
-        } catch (Exception _) {
-            return defaultValue;
-        }
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.tryParseDouble(value, defaultValue);
     }
 
     public static boolean isNumeric(Object value) {
-        return tryParseDouble(value, null) != null;
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.isNumeric(value);
     }
 
     public static int clamp(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.clamp(value, min, max);
     }
 
     public static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.clamp(value, min, max);
     }
 
     public static String toPlainString(double value) {
-        if (Double.isNaN(value) || Double.isInfinite(value)) {
-            return Double.toString(value);
-        }
-        return java.math.BigDecimal.valueOf(value).toPlainString();
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.toPlainString(value);
     }
 
     public static String formatNumber(double value, String pattern) {
-        String effectivePattern = Texts.isBlank(pattern) ? "0.##" : pattern;
-        try {
-            return new DecimalFormat(effectivePattern).format(value);
-        } catch (Exception _) {
-            return Double.toString(value);
-        }
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.formatNumber(value, pattern);
     }
 
     public static int roundToInt(double value) {
-        return (int) Math.round(value);
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.roundToInt(value);
     }
 
     public static int floor(double value) {
-        return (int) Math.floor(value);
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.floor(value);
     }
 
     public static int ceil(double value) {
-        return (int) Math.ceil(value);
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.ceil(value);
     }
 
     public static double safeDivide(double numerator, double denominator, double defaultValue) {
-        if (denominator == 0D) {
-            return defaultValue;
-        }
-        return numerator / denominator;
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.safeDivide(numerator, denominator, defaultValue);
     }
 
     public static Double parsePercentage(Object value) {
-        if (value == null) {
-            return null;
-        }
-        String text = Texts.trim(value);
-        if (text.endsWith("%")) {
-            text = text.substring(0, text.length() - 1);
-        }
-        return tryParseDouble(text, null);
+        return emaki.jiuwu.craft.corelib.api.math.Numbers.parsePercentage(value);
     }
 }

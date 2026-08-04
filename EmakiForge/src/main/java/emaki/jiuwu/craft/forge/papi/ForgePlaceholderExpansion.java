@@ -6,7 +6,7 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.model.PlayerData;

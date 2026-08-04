@@ -5,7 +5,7 @@ import java.io.File;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
 

@@ -15,9 +15,9 @@ import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementTrigger;
 import emaki.jiuwu.craft.codex.api.AdvancementTriggerContext;
-import emaki.jiuwu.craft.corelib.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /** Resolves configured and external trigger providers into central advancement mutations. */
 public final class CodexTriggerService {

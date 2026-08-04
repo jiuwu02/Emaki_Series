@@ -141,6 +141,16 @@ triggers:
     enabled: true
     incompatible_with: []
 
+# 主动触发器设置
+trigger_settings:
+  # 【临时兼容开关，下一个主版本移除】
+  # false（默认）: 已被其他插件取消的事件不再触发技能。
+  #   例如 WorldGuard、领地保护插件拦截了左右键/丢弃/切换快捷栏时，
+  #   技能不再扣蓝、不再进入冷却、不再执行动作。
+  # true: 恢复旧行为，即事件已被取消仍然触发技能。
+  #   仅供暂时无法适配的服务器过渡使用，启用后控制台会输出弃用告警。
+  legacy_dispatch_cancelled_events: false
+
 # 被动触发器设置
 passive_trigger_settings:
   # timer 被动触发器的检查间隔，单位 tick

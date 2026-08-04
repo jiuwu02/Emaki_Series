@@ -9,9 +9,9 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.chat.ChatInputRequest;
-import emaki.jiuwu.craft.corelib.chat.ChatInputResult;
-import emaki.jiuwu.craft.corelib.dialog.DialogDefinition;
+import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
+import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
+import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;

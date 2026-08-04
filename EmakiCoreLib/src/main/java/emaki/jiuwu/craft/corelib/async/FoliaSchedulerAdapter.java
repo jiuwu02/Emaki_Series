@@ -14,13 +14,27 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionBackendLoader;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 
-
-
-
-
-
-
-
+/**
+ * Legacy static scheduler facade kept only for third-party source compatibility.
+ *
+ * <p>This class has <strong>no remaining users in this repository</strong> (verified: the only
+ * matches are its own declarations). Every method already delegates to
+ * {@link ExecutionDispatcher}, so it adds nothing but a second way to reach the same behaviour.
+ *
+ * <p>It is actively harmful to keep as a supported entry point: it exposes a static, plugin-less
+ * scheduling surface that invites callers to bypass the owner-thread abstraction, and it declares
+ * legacy scheduler shapes that do not exist on Folia. New code must go through
+ * {@link ExecutionDispatcher} so the region/entity/location owner is explicit.
+ *
+ * <p>Scheduled for removal in the next major version, after one full minor cycle. Before removal,
+ * re-run a source and binary usage check — it was published as part of CoreLib's public surface.
+ *
+ * @deprecated obtain an {@link ExecutionDispatcher} and call
+ *         {@code runGlobal} / {@code runEntity} / {@code runAtLocation} / {@code runAsync} on it,
+ *         which return {@link emaki.jiuwu.craft.corelib.execution.TaskHandle} and make the owning
+ *         thread explicit
+ */
+@Deprecated(forRemoval = true)
 public final class FoliaSchedulerAdapter {
 
     private static volatile ExecutionDispatcher cachedDispatcher;

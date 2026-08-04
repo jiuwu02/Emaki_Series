@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.codex.api.model.AdvancementFrameType;
 import emaki.jiuwu.craft.codex.api.model.AdvancementView;
 import emaki.jiuwu.craft.codex.api.model.CodexPageView;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * {@link CodexCatalog} 的运行时实现。

@@ -21,6 +21,7 @@ public final class AppConfig extends BaseAppConfig {
     private final Map<String, TriggerConfig> passiveTriggers;
     private final PassiveTriggerSettings passiveTriggerSettings;
     private final ScriptEngineSettings scriptEngine;
+    private final TriggerSettings triggerSettings;
 
     public AppConfig(String language,
             String configVersion,
@@ -34,7 +35,8 @@ public final class AppConfig extends BaseAppConfig {
             Map<String, TriggerConfig> triggers,
             Map<String, TriggerConfig> passiveTriggers,
             PassiveTriggerSettings passiveTriggerSettings,
-            ScriptEngineSettings scriptEngine) {
+            ScriptEngineSettings scriptEngine,
+            TriggerSettings triggerSettings) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.defaultSlotCount = Math.max(1, defaultSlotCount);
@@ -49,6 +51,7 @@ public final class AppConfig extends BaseAppConfig {
                 ? PassiveTriggerSettings.defaults()
                 : passiveTriggerSettings;
         this.scriptEngine = scriptEngine == null ? ScriptEngineSettings.defaults() : scriptEngine;
+        this.triggerSettings = triggerSettings == null ? TriggerSettings.defaults() : triggerSettings;
     }
 
     public static AppConfig defaults() {
@@ -65,7 +68,8 @@ public final class AppConfig extends BaseAppConfig {
                 Map.of(),
                 Map.of(),
                 PassiveTriggerSettings.defaults(),
-                ScriptEngineSettings.defaults()
+                ScriptEngineSettings.defaults(),
+                TriggerSettings.defaults()
         );
     }
 
@@ -111,6 +115,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public ScriptEngineSettings scriptEngine() {
         return scriptEngine;
+    }
+
+    public TriggerSettings triggerSettings() {
+        return triggerSettings;
     }
 
     public record SkillSourceSettings(boolean readLoreSkills,
@@ -169,6 +177,26 @@ public final class AppConfig extends BaseAppConfig {
         public TriggerConfig {
             displayName = displayName == null || displayName.isBlank() ? "Unknown" : displayName;
             incompatibleWith = incompatibleWith == null ? List.of() : List.copyOf(incompatibleWith);
+        }
+    }
+
+    /**
+     * Active trigger source settings.
+     *
+     * @param legacyDispatchCancelledEvents when {@code true}, the drop / hotbar
+     *        / interact trigger sources still dispatch skills for events that
+     *        another plugin (WorldGuard, land-claim protection, ...) already
+     *        cancelled. Defaults to {@code false}, i.e. cancelled events are
+     *        respected.
+     *        <p><strong>Temporary legacy switch.</strong> It exists only so
+     *        administrators can defer the behaviour change by one full minor
+     *        cycle, emits a deprecation warning while enabled, and is removed
+     *        in the next major release.
+     */
+    public record TriggerSettings(boolean legacyDispatchCancelledEvents) {
+
+        public static TriggerSettings defaults() {
+            return new TriggerSettings(false);
         }
     }
 

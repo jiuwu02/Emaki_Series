@@ -54,18 +54,26 @@ public final class GemSocketOpenEvent extends Event implements Cancellable {
         return equipment;
     }
 
+    /**
+     * {@return the opener item consumed for this operation, or {@code null}}
+     *
+     * 为 {@code null} 表示本次开孔并非由开孔道具触发（例如命令或后台授予）。
+     */
     public @Nullable ItemStack getOpenerItem() {
         return openerItem;
     }
 
+    /** {@return the opener id; empty when no opener item was involved} */
     public @NotNull String getOpenerId() {
         return openerId;
     }
 
+    /** {@return the zero-based index of the socket about to be opened} */
     public int getSlotIndex() {
         return slotIndex;
     }
 
+    /** {@return the EmakiItem definition id of the equipment being modified} */
     public @NotNull String getItemDefinitionId() {
         return itemDefinitionId;
     }

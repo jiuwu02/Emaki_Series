@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -77,7 +78,12 @@ public final class PerfectTakeoverCoordinator implements Listener {
             if (event.isApplicable(modifier)) {
                 event.setDamage(modifier, 0D);
             }
-        } catch (UnsupportedOperationException | IllegalArgumentException ignored) {
+        } catch (UnsupportedOperationException | IllegalArgumentException exception) {
+            service.plugin().getLogger().log(Level.WARNING,
+                    "Vanilla damage modifier neutralization failed: entity=" + event.getEntity().getType()
+                            + ", modifier=" + modifier
+                            + ", operation=zero_damage_modifier, cause=" + exception,
+                    exception);
         }
     }
 }

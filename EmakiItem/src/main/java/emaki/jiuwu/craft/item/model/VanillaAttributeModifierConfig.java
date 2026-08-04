@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.item.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 
 public record VanillaAttributeModifierConfig(String attribute,
         Object amount,

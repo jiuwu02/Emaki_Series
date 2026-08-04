@@ -12,7 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.LevelPermissions;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;

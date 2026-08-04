@@ -16,7 +16,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
-import emaki.jiuwu.craft.corelib.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;

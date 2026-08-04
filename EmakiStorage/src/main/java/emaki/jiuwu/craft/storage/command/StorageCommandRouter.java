@@ -15,7 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
 import emaki.jiuwu.craft.storage.api.model.StorageSnapshot;

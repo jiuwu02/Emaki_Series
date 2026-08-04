@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.corelib.bootstrap;
 
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public interface BootstrapHooks {
 

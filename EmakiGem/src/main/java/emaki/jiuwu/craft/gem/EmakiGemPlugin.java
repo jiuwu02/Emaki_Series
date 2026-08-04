@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.action.GemStageRegistrar;
@@ -330,6 +330,13 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         return snapshotBuilder;
     }
 
+    /**
+     * {@return the gem PDC attribute writer}
+     *
+     * @deprecated 仓库内零调用。PDC 属性写入由镶嵌/拆卸流程内部调用，
+     *         外部直接写入会绕过日志与校验。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.8", forRemoval = true)
     public GemPdcAttributeWriter pdcAttributeWriter() {
         return pdcAttributeWriter;
     }
@@ -354,6 +361,13 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         return inlayService;
     }
 
+    /**
+     * {@return the gem extract service}
+     *
+     * @deprecated 仓库内零调用。宝石取出由 GUI 与命令路径调用，
+     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.8", forRemoval = true)
     public GemExtractService extractService() {
         return extractService;
     }

@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -28,9 +29,9 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
-import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.level.action.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
@@ -220,8 +221,19 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     }
 
     public void reloadPluginState() {
+        // Gate first: nothing below may run on a candidate the precheck rejects. Level parses straight
+        // into the active field, so the restorer puts the last known good config back instead of
+        // letting the module continue on a half-applied or defaulted one.
+        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                messages,
+                "level",
+                () -> appConfig,
+                () -> appConfig = AppConfig.parse(YamlFiles.load(getDataFolder().toPath().resolve("config.yml").toFile())),
+                restored -> appConfig = restored);
+        if (gate.rejected()) {
+            return;
+        }
         closeAttributeBridge();
-        appConfig = AppConfig.parse(YamlFiles.load(getDataFolder().toPath().resolve("config.yml").toFile()));
         messages.load(appConfig.language());
         debugLanguageLoader.load();
         debugLanguageLoader.setLanguage(appConfig.language());
@@ -248,11 +260,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         levelService.syncAllOnline();
         messages.info("console.types_loaded", Map.of("count", String.valueOf(typeRegistry.all().size())));
         messages.info("console.sources_loaded", Map.of("count", String.valueOf(sourceRuleLoader.rules().size())));
-        logConfigPrecheckReport();
-    }
-
-    private void logConfigPrecheckReport() {
-        ConfigPrecheckLifecycleSupport.logReport(messages, "level");
     }
 
     private void registerConfigPrecheckContributor() {
@@ -398,6 +405,8 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                     appConfig);
             if (!bridge.register()) {
                 bridge.close();
+                getLogger().warning("EmakiAttribute bridge registration failed: provider=EmakiAttribute,"
+                        + " operation=register_attribute_bridge, cause=bridge.register() returned false");
                 messages.info("console.attribute_bridge_unavailable");
                 return;
             }
@@ -406,7 +415,10 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             attributeRefreshPlayer = bridge::resync;
             messages.info("console.attribute_bridge_ready");
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiAttribute bridge skipped: " + exception.getMessage());
+            getLogger().log(java.util.logging.Level.WARNING,
+                    "EmakiAttribute bridge registration failed: provider=EmakiAttribute,"
+                            + " operation=register_attribute_bridge, cause=" + exception,
+                    exception);
             messages.info("console.attribute_bridge_unavailable");
         }
     }

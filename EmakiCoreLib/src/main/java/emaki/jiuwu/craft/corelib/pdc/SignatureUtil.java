@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.pdc;
 
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -11,207 +13,39 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
-
+/**
+ * 已搬迁到 {@link emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil}，本类仅作过渡转发。
+ *
+ * <p>M2-2 路线 A：CoreLib 的通用工具与契约类型改由 {@code emaki-corelib-api}
+ * 提供。此处保留全部 5 个 public static 方法签名并逐一委托，
+ * 旧调用点行为完全不变。
+ *
+ * @deprecated 改用 {@link emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil}。
+ *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+ */
+@Deprecated(since = "4.6.19", forRemoval = true)
 public final class SignatureUtil {
 
     private SignatureUtil() {
     }
 
     public static String sha256(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(Texts.toStringSafe(value).getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (Exception exception) {
-            throw new IllegalStateException("Failed to create signature digest", exception);
-        }
+        return emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil.sha256(value);
     }
 
     public static String stableSignature(Object value) {
-        return sha256(canonicalize(value));
+        return emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil.stableSignature(value);
     }
 
     public static String stableSignature(Map<String, ?> values) {
-        return stableSignature((Object) values);
+        return emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil.stableSignature(values);
     }
 
     public static String stableSignature(Collection<?> values) {
-        return stableSignature((Object) values);
+        return emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil.stableSignature(values);
     }
 
     public static String combine(String... values) {
-        if (values == null || values.length == 0) {
-            return sha256("");
-        }
-        List<String> parts = new ArrayList<>();
-        for (String value : values) {
-            parts.add(Texts.toStringSafe(value));
-        }
-        return stableSignature(parts);
-    }
-
-    private static String canonicalize(Object value) {
-        if (value == null) {
-            return "null";
-        }
-        if (value instanceof String string) {
-            return string;
-        }
-        if (value instanceof Number number) {
-            return canonicalNumber(number);
-        }
-        if (value instanceof Boolean bool) {
-            return Boolean.toString(bool);
-        }
-        if (value instanceof Map<?, ?> map) {
-            Map<String, Object> normalized = new LinkedHashMap<>();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                if (entry.getKey() == null) {
-                    continue;
-                }
-                normalized.put(String.valueOf(entry.getKey()), ConfigNodes.toPlainData(entry.getValue()));
-            }
-            List<Map.Entry<String, Object>> entries = new ArrayList<>(normalized.entrySet());
-            entries.sort(Comparator.comparing(Map.Entry::getKey));
-            StringBuilder builder = new StringBuilder("{");
-            for (int index = 0; index < entries.size(); index++) {
-                Map.Entry<String, Object> entry = entries.get(index);
-                if (index > 0) {
-                    builder.append(',');
-                }
-                builder.append(canonicalize(entry.getKey())).append(':').append(canonicalize(entry.getValue()));
-            }
-            return builder.append('}').toString();
-        }
-        if (value instanceof Collection<?> collection) {
-            StringBuilder builder = new StringBuilder("[");
-            int index = 0;
-            for (Object entry : collection) {
-                if (index++ > 0) {
-                    builder.append(',');
-                }
-                builder.append(canonicalize(ConfigNodes.toPlainData(entry)));
-            }
-            return builder.append(']').toString();
-        }
-        if (value instanceof Object[] array) {
-            return canonicalize(toList(array));
-        }
-        if (value instanceof int[] array) {
-            return canonicalize(toList(array));
-        }
-        if (value instanceof long[] array) {
-            return canonicalize(toList(array));
-        }
-        if (value instanceof double[] array) {
-            return canonicalize(toList(array));
-        }
-        if (value instanceof float[] array) {
-            return canonicalize(toList(array));
-        }
-        if (value instanceof boolean[] array) {
-            return canonicalize(toList(array));
-        }
-        if (value instanceof byte[] array) {
-            return canonicalize(toList(array));
-        }
-        if (value instanceof short[] array) {
-            return canonicalize(toList(array));
-        }
-        if (value instanceof char[] array) {
-            return canonicalize(toList(array));
-        }
-        Object plain = ConfigNodes.toPlainData(value);
-        if (plain != value) {
-            return canonicalize(plain);
-        }
-        return Texts.toStringSafe(value);
-    }
-
-    private static String canonicalNumber(Number number) {
-        if (number instanceof Byte || number instanceof Short || number instanceof Integer || number instanceof Long) {
-            return String.valueOf(number.longValue());
-        }
-        try {
-            return BigDecimal.valueOf(number.doubleValue()).stripTrailingZeros().toPlainString();
-        } catch (Exception _) {
-            return String.valueOf(number);
-        }
-    }
-
-    private static List<Object> toList(Object[] array) {
-        List<Object> entries = new ArrayList<>();
-        if (array != null) {
-            for (Object entry : array) {
-                entries.add(entry);
-            }
-        }
-        return entries;
-    }
-
-    private static List<Object> toList(int[] array) {
-        List<Object> entries = new ArrayList<>();
-        for (int entry : array) {
-            entries.add(entry);
-        }
-        return entries;
-    }
-
-    private static List<Object> toList(long[] array) {
-        List<Object> entries = new ArrayList<>();
-        for (long entry : array) {
-            entries.add(entry);
-        }
-        return entries;
-    }
-
-    private static List<Object> toList(double[] array) {
-        List<Object> entries = new ArrayList<>();
-        for (double entry : array) {
-            entries.add(entry);
-        }
-        return entries;
-    }
-
-    private static List<Object> toList(float[] array) {
-        List<Object> entries = new ArrayList<>();
-        for (float entry : array) {
-            entries.add(entry);
-        }
-        return entries;
-    }
-
-    private static List<Object> toList(boolean[] array) {
-        List<Object> entries = new ArrayList<>();
-        for (boolean entry : array) {
-            entries.add(entry);
-        }
-        return entries;
-    }
-
-    private static List<Object> toList(byte[] array) {
-        List<Object> entries = new ArrayList<>();
-        for (byte entry : array) {
-            entries.add(entry);
-        }
-        return entries;
-    }
-
-    private static List<Object> toList(short[] array) {
-        List<Object> entries = new ArrayList<>();
-        for (short entry : array) {
-            entries.add(entry);
-        }
-        return entries;
-    }
-
-    private static List<Object> toList(char[] array) {
-        List<Object> entries = new ArrayList<>();
-        for (char entry : array) {
-            entries.add(String.valueOf(entry));
-        }
-        return entries;
+        return emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil.combine(values);
     }
 }

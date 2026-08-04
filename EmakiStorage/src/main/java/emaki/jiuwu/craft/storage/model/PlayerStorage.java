@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import emaki.jiuwu.craft.corelib.session.SessionData;
+
 /**
  * Aggregate root for one player's warehouse.
  *
@@ -20,7 +22,7 @@ import java.util.UUID;
  * because deposits and withdrawals are atomic trades against the player's inventory, and Bukkit
  * inventories may only be touched there.
  */
-public final class PlayerStorage {
+public final class PlayerStorage implements SessionData<PlayerStorage> {
 
     private final UUID playerId;
     private final Map<StorageKey, StorageEntry> entries = new HashMap<>();
@@ -217,6 +219,7 @@ public final class PlayerStorage {
         entryOrder.addAll(rebuilt);
     }
 
+    @Override
     public long revision() {
         return revision;
     }
@@ -289,23 +292,28 @@ public final class PlayerStorage {
         return expired.size();
     }
 
+    @Override
     public long persistedRevision() {
         return persistedRevision;
     }
 
     /** {@return whether the in-memory state differs from what was last written to disk} */
+    @Override
     public boolean dirty() {
         return revision > persistedRevision;
     }
 
+    @Override
     public void markDirty() {
         revision++;
     }
 
+    @Override
     public void markPersisted(long revision) {
         this.persistedRevision = Math.max(this.persistedRevision, revision);
     }
 
+    @Override
     public void clearDirty() {
         persistedRevision = revision;
     }
@@ -318,6 +326,7 @@ public final class PlayerStorage {
      *
      * @return a detached copy safe to hand to an async file lane
      */
+    @Override
     public PlayerStorage copy() {
         PlayerStorage copy = new PlayerStorage(playerId);
         copy.playerName = playerName;

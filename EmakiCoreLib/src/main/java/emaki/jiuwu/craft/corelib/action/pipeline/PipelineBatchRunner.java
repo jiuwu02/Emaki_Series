@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
-import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 
 /**

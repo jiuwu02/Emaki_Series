@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.cooking.model;
 
 import java.util.Objects;
 
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record RecipeDocument(String id,
         String displayName,

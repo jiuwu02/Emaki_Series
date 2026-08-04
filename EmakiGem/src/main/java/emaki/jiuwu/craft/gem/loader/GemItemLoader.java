@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.gem.loader;
 import java.io.File;
 
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 

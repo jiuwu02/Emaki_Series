@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.item.model;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 
 public record ItemSetThreshold(int requiredPieces,
         List<String> lore,

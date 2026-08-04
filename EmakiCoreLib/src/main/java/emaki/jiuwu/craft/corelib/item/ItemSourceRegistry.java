@@ -8,7 +8,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Maps shorthand prefixes onto the providers that claim them.
@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.corelib.text.Texts;
  *
  * <p>This is a singleton because {@link ItemSourceUtil}'s static entry points must reach it. Binding a
  * prefix that is already bound to the <em>same</em> kind is idempotent rather than a failure, so a
- * secondary {@link ItemSourceService} instance re-registering the built-in vanilla provider does not
+ * secondary {@code ItemSourceService} instance re-registering the built-in vanilla provider does not
  * break; binding it to a different kind is a hard failure naming the first owner.
  */
 public final class ItemSourceRegistry {

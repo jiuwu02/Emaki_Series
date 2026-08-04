@@ -49,7 +49,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
-import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 
 public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMessagesProvider, EmakiServiceRegistry {
@@ -99,6 +99,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private List<Listener> listeners = List.of();
     private AttributeCommand command;
     private MythicBridge mythicBridge;
+    private boolean mythicBridgeRegistered;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
     private TaskHandle regenTask;
@@ -138,17 +139,31 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
             metrics = null;
         }
         regenTask = null;
+        // Bukkit 在 disable 时注销本插件的监听，这里同步清掉句柄与注册标记，
+        // 避免旧 bridge 实例与「已注册」状态跨 reload 泄漏到下一次 enable。
+        mythicBridge = null;
+        mythicBridgeRegistered = false;
     }
 
+    /**
+     * MythicBridge 的唯一注册入口：幂等地保证实例存在且已注册一次监听。
+     *
+     * <p>守卫针对「是否已注册」而非「是否已构造」，因为实例可能由生命周期协调器的
+     * {@code initialize} 预先构造；只防重复构造会让注册责任落到别处，
+     * 导致同一实例被注册两次、处理器触发两次。
+     */
     public void ensureMythicBridge() {
-        if (mythicBridge != null) {
+        if (mythicBridgeRegistered) {
             return;
         }
         if (!Bukkit.getPluginManager().isPluginEnabled("MythicMobs")) {
             return;
         }
-        mythicBridge = new MythicBridge(this, attributeService);
+        if (mythicBridge == null) {
+            mythicBridge = new MythicBridge(this, attributeService);
+        }
         getServer().getPluginManager().registerEvents(mythicBridge, this);
+        mythicBridgeRegistered = true;
     }
 
     public void ensureMmoItemsBridge() {
@@ -338,6 +353,14 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return messageService;
     }
 
+    /**
+     * {@return the parent attribute data store}
+     *
+     * @deprecated 仓库内零调用。父属性数据读写应经 {@code ParentAttributeService}，
+     *         该服务负责校验与快照语义，直接取用底层 store 会绕过这些保证。
+     *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "4.6.14", forRemoval = true)
     public ParentAttributeDataStore parentAttributeDataStore() {
         return parentAttributeDataStore;
     }
@@ -374,6 +397,13 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return mythicBridge;
     }
 
+    /**
+     * {@return the MMOItems bridge}
+     *
+     * @deprecated 仓库内零调用。MMOItems 集成由桥接内部在事件回调中自行接线，
+     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "4.6.14", forRemoval = true)
     public MmoItemsBridge mmoItemsBridge() {
         return mmoItemsBridge;
     }
@@ -396,14 +426,14 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     private volatile java.util.List<emaki.jiuwu.craft.attribute.service.ScalingCurveConfig> scalingCurves = java.util.List.of();
 
-    public void loadScalingCurves(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public void loadScalingCurves(emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
         if (section == null) {
             this.scalingCurves = java.util.List.of();
             return;
         }
         java.util.List<emaki.jiuwu.craft.attribute.service.ScalingCurveConfig> curves = new java.util.ArrayList<>();
         for (String key : section.getKeys(false)) {
-            emaki.jiuwu.craft.corelib.yaml.YamlSection curveSection = section.getSection(key);
+            emaki.jiuwu.craft.corelib.api.yaml.YamlSection curveSection = section.getSection(key);
             if (curveSection == null) {
                 continue;
             }

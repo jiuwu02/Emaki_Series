@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.api.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 
 /** Removes money from the target's balance. See {@link MoneyStage} for the shared contract. */

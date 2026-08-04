@@ -61,6 +61,7 @@ public final class GemInlayEvent extends Event implements Cancellable {
         return gemItem;
     }
 
+    /** {@return the zero-based socket index the gem is being inlaid into} */
     public int getSlotIndex() {
         return slotIndex;
     }
@@ -69,14 +70,26 @@ public final class GemInlayEvent extends Event implements Cancellable {
         return gemId;
     }
 
+    /** {@return the gem level; the constructor floors this at 1} */
     public int getGemLevel() {
         return gemLevel;
     }
 
+    /** {@return the success chance as a percentage in {@code [0, 100]}} */
     public double getSuccessChance() {
         return successChance;
     }
 
+    /**
+     * 替换本次镶嵌的成功率。
+     *
+     * <p>入参会被<strong>钳制到 {@code [0, 100]}</strong>，因此传 {@code -5} 得到 {@code 0}、
+     * 传 {@code 150} 得到 {@code 100}，不会抛异常。该值是百分数而非 {@code [0,1]} 概率。
+     *
+     * <p>多个监听器依次修改时后写入者生效；最终值在事件未被取消时用于掷骰。
+     *
+     * @param successChance 期望的成功率百分数
+     */
     public void setSuccessChance(double successChance) {
         this.successChance = clamp(successChance);
     }

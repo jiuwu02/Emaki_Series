@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.gem.model;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record ResonancePatternEntry(
         String id,

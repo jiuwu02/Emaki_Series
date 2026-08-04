@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.dialog;
 
 import java.util.List;
+import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 
 /**
  * 常用程序化对话框的构造快捷方式。

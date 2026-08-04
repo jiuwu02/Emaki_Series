@@ -4,12 +4,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.session.SessionData;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 
 
 
-public final class PlayerNutritionData {
+public final class PlayerNutritionData implements SessionData<PlayerNutritionData> {
 
     private final UUID uuid;
     private String name;
@@ -68,32 +69,39 @@ public final class PlayerNutritionData {
         }
     }
 
+    @Override
     public void markDirty() {
         revision++;
     }
 
+    @Override
     public void clearDirty() {
         persistedRevision = revision;
     }
 
+    @Override
     public boolean dirty() {
         return revision > persistedRevision;
     }
 
+    @Override
     public long revision() {
         return revision;
     }
 
+    @Override
     public long persistedRevision() {
         return persistedRevision;
     }
 
+    @Override
     public void markPersisted(long savedRevision) {
         if (savedRevision > persistedRevision) {
             persistedRevision = Math.min(savedRevision, revision);
         }
     }
 
+    @Override
     public PlayerNutritionData copy() {
         PlayerNutritionData copy = new PlayerNutritionData(uuid, name);
         copy.values.putAll(values);

@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record DamageTypeDefinition(String id,
         String displayName,

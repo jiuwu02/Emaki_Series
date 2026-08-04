@@ -50,14 +50,15 @@ import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 
 final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiAttributePlugin, AttributeRuntimeComponents> {
 
@@ -171,12 +172,16 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             }
         }
-        if (plugin.mythicBridge() != null) {
-            plugin.getServer().getPluginManager().registerEvents(plugin.mythicBridge(), plugin);
-        }
+        // mythicBridge 不在此注册：它的唯一注册入口是 EmakiAttributePlugin#ensureMythicBridge，
+        // 那里同时覆盖 reload 与 MythicMobs 后启用两条路径。
     }
 
     public TaskHandle reload(EmakiAttributePlugin plugin, TaskHandle currentTask, boolean resyncPlayers) {
+        // Entry B rather than the single-loader gate: this module loads in stages, and two of its
+        // registries (DefaultProfileRegistry, AttributeBalanceRegistry) read plugin.configModel()
+        // while loading, so the candidate config has to be in place before the stages can run. The
+        // previous model is captured here and put back if the precheck rejects the candidate.
+        AttributeConfig previousConfig = plugin.configModel();
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().load();
         }
@@ -195,6 +200,12 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         runReloadStage("pdc_read_rule_loader", () -> plugin.pdcReadRuleLoader().load(), failureHandler(plugin));
         runReloadStage("attribute_balance_registry", () -> plugin.attributeBalanceRegistry().load(), failureHandler(plugin));
         runReloadStage("damage_type_registry", () -> plugin.damageTypeRegistry().load(), failureHandler(plugin));
+        // Gate after the stages because the attribute precheck reads every registry's issue list, and
+        // before the cache/bridge/player work so a rejected candidate never reaches online entities.
+        if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
+            restoreConfigModel(plugin, previousConfig);
+            return currentTask;
+        }
         if (plugin.attributeService() != null) {
             plugin.attributeService().refreshCaches();
         }
@@ -214,6 +225,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             boolean resyncPlayers,
             Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        // Captured before the pipeline mutates it, for the same reason as the synchronous path.
+        AttributeConfig previousConfig = plugin.configModel();
         return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<>(
                 "attribute",
                 "bootstrap",
@@ -299,6 +312,11 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 configModel,
                 failureHandler(plugin)
         ))).thenCompose(configModel -> plugin.executionDispatcher().submitGlobal(plugin, () -> {
+            if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
+                restoreConfigModel(plugin, previousConfig);
+                notifyProgress(progressListener, "EmakiAttribute 配置预检未通过，已保留上一份配置。");
+                return currentTask;
+            }
             notifyProgress(progressListener, "正在刷新缓存并同步在线实体...");
             if (plugin.attributeService() != null) {
                 plugin.attributeService().refreshCaches();
@@ -390,6 +408,24 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ));
     }
 
+    /**
+     * Puts the last known good config model back after a rejected precheck.
+     *
+     * <p>Restoring the captured instance rather than reloading from disk is deliberate: the file on disk
+     * is the rejected candidate, and {@code loadConfigModel} falls back to {@link AttributeConfig#defaults()}
+     * when parsing fails, which would silently discard the operator's working configuration.
+     */
+    private void restoreConfigModel(EmakiAttributePlugin plugin, AttributeConfig previousConfig) {
+        AttributeConfig restored = previousConfig == null ? AttributeConfig.defaults() : previousConfig;
+        plugin.setConfigModel(restored);
+        if (plugin.attributeService() != null) {
+            plugin.attributeService().reloadConfig(restored);
+        }
+        if (plugin.languageLoader() != null) {
+            plugin.languageLoader().setLanguage(restored.language());
+        }
+    }
+
     private AttributeConfig loadConfigModel(EmakiAttributePlugin plugin) {
         try {
             File file = new File(plugin.getDataFolder(), "config.yml");
@@ -428,8 +464,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ));
     }
 
-    private void mergeBundledConfig(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+    private void mergeBundledConfig(emaki.jiuwu.craft.corelib.api.yaml.YamlSection runtime,
+            emaki.jiuwu.craft.corelib.api.yaml.YamlSection bundled) {
         boolean changed = mergeDefaultProfile(runtime, bundled);
         if (mergeAllowedDamageCauses(runtime, bundled)) {
             changed = true;
@@ -439,8 +475,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-    private boolean mergeDefaultProfile(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+    private boolean mergeDefaultProfile(emaki.jiuwu.craft.corelib.api.yaml.YamlSection runtime,
+            emaki.jiuwu.craft.corelib.api.yaml.YamlSection bundled) {
         if (runtime == null || bundled == null || runtime.contains("default_profile")) {
             return false;
         }
@@ -452,8 +488,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         return true;
     }
 
-    private boolean mergeAllowedDamageCauses(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+    private boolean mergeAllowedDamageCauses(emaki.jiuwu.craft.corelib.api.yaml.YamlSection runtime,
+            emaki.jiuwu.craft.corelib.api.yaml.YamlSection bundled) {
         if (runtime == null || bundled == null) {
             return false;
         }

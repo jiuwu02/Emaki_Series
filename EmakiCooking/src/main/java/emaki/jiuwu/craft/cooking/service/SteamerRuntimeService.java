@@ -27,8 +27,8 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -119,7 +119,7 @@ public final class SteamerRuntimeService implements Listener {
 
             @Override
             public java.util.concurrent.CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
-                SteamerState state = codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(committedState));
+                SteamerState state = codec.readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(committedState));
                 if (state == null || state.isCompletelyEmpty()) {
                     return java.util.concurrent.CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed steamer state"));
                 }
@@ -182,7 +182,7 @@ public final class SteamerRuntimeService implements Listener {
         ensureTicker();
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
         if (coordinates == null) {
             return false;
         }

@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.skills.action.SkillsStageRegistrar;
@@ -362,6 +362,13 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return threadOwnership;
     }
 
+    /**
+     * {@return the equipment skill collector}
+     *
+     * @deprecated 仓库内零调用。装备技能收集由 {@code SkillsLifecycleCoordinator} 在编排期直接持有并驱动，
+     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.13", forRemoval = true)
     public EquipmentSkillCollector equipmentSkillCollector() {
         return equipmentSkillCollector;
     }
@@ -398,10 +405,24 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return skillLevelService;
     }
 
+    /**
+     * {@return the skill parameter resolver}
+     *
+     * @deprecated 仓库内零调用。参数解析在技能流水线内部完成，调用方应使用 {@code SkillPipelineRuntime}
+     *         而非直接取解析器。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.13", forRemoval = true)
     public SkillParameterResolver skillParameterResolver() {
         return skillParameterResolver;
     }
 
+    /**
+     * {@return the skill variable resolver}
+     *
+     * @deprecated 仓库内零调用。变量解析在技能流水线内部完成，调用方应使用 {@code SkillPipelineRuntime}
+     *         而非直接取解析器。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.13", forRemoval = true)
     public SkillVariableResolver skillVariableResolver() {
         return skillVariableResolver;
     }
@@ -410,6 +431,13 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return skillPipelineRuntime;
     }
 
+    /**
+     * {@return the skill script cast service}
+     *
+     * @deprecated 仓库内零调用。脚本释放由 {@code SkillsLifecycleCoordinator} 在编排期接线，
+     *         外部释放技能应走 {@code EmakiSkillsApi}。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.13", forRemoval = true)
     public SkillScriptCastService skillScriptCastService() {
         return skillScriptCastService;
     }
@@ -430,6 +458,13 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return castAttemptService;
     }
 
+    /**
+     * {@return the MythicMobs skill cast service}
+     *
+     * @deprecated 仓库内零调用。MythicMobs 释放路径由 {@code MythicBridge} 统一封装，
+     *         调用方应使用桥接而非直接取服务。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.13", forRemoval = true)
     public MythicSkillCastService mythicSkillCastService() {
         return mythicSkillCastService;
     }
@@ -458,10 +493,26 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return placeholderExpansion;
     }
 
+    /**
+     * {@return the active trigger dispatcher}
+     *
+     * @deprecated 仓库内零调用（同名字段仍在 {@code onEnable} 内部接线触发源，勿据此误删字段）。
+     *         触发器注册应通过各 {@code *TriggerSource#register} 完成。
+     *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.13", forRemoval = true)
     public DefaultTriggerDispatcher triggerDispatcher() {
         return triggerDispatcher;
     }
 
+    /**
+     * {@return the passive trigger dispatcher}
+     *
+     * @deprecated 仓库内零调用（同名字段仍在 {@code onEnable} 内部接线被动触发源，勿据此误删字段）。
+     *         被动触发注册应通过 {@code PassiveTriggerSource#register} 完成。
+     *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "2.6.13", forRemoval = true)
     public PassiveTriggerDispatcher passiveTriggerDispatcher() {
         return passiveTriggerDispatcher;
     }

@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.skills.config;
 
-import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
-import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.WARN;
+import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.INFO;
+import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.WARN;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;

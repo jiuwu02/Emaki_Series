@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 
 public final class ConfigPrecheckService {
 

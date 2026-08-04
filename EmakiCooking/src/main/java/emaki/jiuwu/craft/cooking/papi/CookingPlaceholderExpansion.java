@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class CookingPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 

@@ -13,12 +13,12 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.async.AsyncFailures;
-import emaki.jiuwu.craft.corelib.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.api.event.SkillPostCastEvent;
 import emaki.jiuwu.craft.skills.api.event.SkillPreCastEvent;

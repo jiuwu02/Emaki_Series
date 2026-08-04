@@ -11,10 +11,10 @@ import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
-import emaki.jiuwu.craft.corelib.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
 /**

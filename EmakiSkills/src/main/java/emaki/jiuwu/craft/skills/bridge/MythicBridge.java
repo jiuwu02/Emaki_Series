@@ -11,7 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import io.lumine.mythic.api.skills.SkillMetadata;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
@@ -154,7 +154,12 @@ public final class MythicBridge {
             }
             try {
                 metadata.getParameters().putAll(parameters.values());
-            } catch (RuntimeException _) {
+            } catch (RuntimeException exception) {
+                plugin.getLogger().log(Level.WARNING,
+                        "MythicMobs skill metadata parameters rejected: provider=MythicMobs, parameters="
+                                + parameters.values().keySet()
+                                + ", operation=apply_skill_metadata_parameters, cause=" + exception,
+                        exception);
             }
             for (Map.Entry<String, String> entry : parameters.values().entrySet()) {
                 metadata.getVariables().putString(entry.getKey(), entry.getValue());

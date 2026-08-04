@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.storage.config;
 
 import java.util.Locale;
 
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 /**
  * 自动拾取设置。

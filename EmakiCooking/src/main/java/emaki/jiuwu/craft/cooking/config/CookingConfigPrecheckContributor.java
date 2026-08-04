@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
-import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity;
+import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;

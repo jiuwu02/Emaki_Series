@@ -264,8 +264,13 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         if (config.healthDisplayScalingEnabled()) {
             resourceManagementService.resetHealthDisplayScaling();
         }
-        if (parentAttributeService != null) {
-            parentAttributeService.saveAll();
+        if (parentAttributeService != null && parentAttributeService.dataStore() != null) {
+            ParentAttributeDataStore.DrainReport report = parentAttributeService.dataStore().flushAndSeal();
+            if (report.clean()) {
+                plugin.getLogger().info("[Shutdown] Parent attribute data drain: " + report);
+            } else {
+                plugin.getLogger().warning("[Shutdown] Parent attribute data drain incomplete: " + report);
+            }
         }
         temporaryAttributeService.close();
     }

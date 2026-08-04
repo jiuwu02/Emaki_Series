@@ -26,6 +26,7 @@ import io.papermc.paper.registry.data.dialog.input.TextDialogInput;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
 
 import net.kyori.adventure.text.event.ClickEvent;
+import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 
 /**
  * 管理对话框定义并把它们展示给玩家。

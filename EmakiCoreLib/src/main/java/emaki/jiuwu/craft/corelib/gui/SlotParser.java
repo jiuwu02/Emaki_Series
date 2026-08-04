@@ -1,99 +1,38 @@
 package emaki.jiuwu.craft.corelib.gui;
 
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
 
+/**
+ * 已搬迁到 {@link emaki.jiuwu.craft.corelib.api.gui.SlotParser}，本类仅作过渡转发。
+ *
+ * <p>M2-2 路线 A：CoreLib 的通用工具与契约类型改由 {@code emaki-corelib-api}
+ * 提供。此处保留全部 3 个 public static 方法签名并逐一委托，
+ * 旧调用点行为完全不变。
+ *
+ * @deprecated 改用 {@link emaki.jiuwu.craft.corelib.api.gui.SlotParser}。
+ *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+ */
+@Deprecated(since = "4.6.19", forRemoval = true)
 public final class SlotParser {
 
     private SlotParser() {
     }
 
     public static List<Integer> parse(Object raw) {
-        if (raw == null) {
-            return List.of();
-        }
-        Set<Integer> result = new LinkedHashSet<>();
-        if (raw instanceof Number number) {
-            result.add(number.intValue());
-            return new ArrayList<>(result);
-        }
-        if (raw instanceof String text) {
-            parseInto(result, text);
-            return new ArrayList<>(result);
-        }
-        if (raw instanceof Iterable<?> iterable) {
-            for (Object entry : iterable) {
-                if (entry != null) {
-                    parseInto(result, entry);
-                }
-            }
-            return new ArrayList<>(result);
-        }
-        parseInto(result, raw);
-        return new ArrayList<>(result);
+        return emaki.jiuwu.craft.corelib.api.gui.SlotParser.parse(raw);
     }
 
     public static boolean isValidSlot(Integer slot, int rows) {
-        if (slot == null) {
-            return false;
-        }
-        return slot >= 0 && slot <= rows * 9 - 1;
+        return emaki.jiuwu.craft.corelib.api.gui.SlotParser.isValidSlot(slot, rows);
     }
 
     public static List<Integer> borderSlots(int rows) {
-        List<Integer> result = new ArrayList<>();
-        if (rows < 3) {
-            return result;
-        }
-        for (int col = 0; col < 9; col++) {
-            result.add(col);
-            result.add((rows - 1) * 9 + col);
-        }
-        for (int row = 1; row < rows - 1; row++) {
-            result.add(row * 9);
-            result.add(row * 9 + 8);
-        }
-        return result;
-    }
-
-    private static void parseInto(Set<Integer> result, Object raw) {
-        if (raw instanceof Number number) {
-            result.add(number.intValue());
-            return;
-        }
-        String text = Texts.trim(raw);
-        if (Texts.isBlank(text)) {
-            return;
-        }
-        String[] parts = text.split(",");
-        for (String part : parts) {
-            String trimmed = part.trim();
-            if (trimmed.contains("-")) {
-                String[] range = trimmed.split("-", 2);
-                Integer start = Numbers.tryParseInt(range[0], null);
-                Integer end = Numbers.tryParseInt(range[1], null);
-                if (start == null || end == null) {
-                    continue;
-                }
-                if (start > end) {
-                    int swap = start;
-                    start = end;
-                    end = swap;
-                }
-                for (int slot = start; slot <= end; slot++) {
-                    result.add(slot);
-                }
-                continue;
-            }
-            Integer parsed = Numbers.tryParseInt(trimmed, null);
-            if (parsed != null) {
-                result.add(parsed);
-            }
-        }
+        return emaki.jiuwu.craft.corelib.api.gui.SlotParser.borderSlots(rows);
     }
 }

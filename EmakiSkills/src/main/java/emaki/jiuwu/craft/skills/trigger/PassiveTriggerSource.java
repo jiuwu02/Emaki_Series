@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import org.bukkit.Location;
 import org.bukkit.entity.AbstractArrow;
@@ -48,6 +49,7 @@ public final class PassiveTriggerSource {
     private final AtomicLong timerGeneration = new AtomicLong();
     private TaskHandle timerTask;
     private long lastTimerDispatchAt;
+    private volatile boolean timerDispatchWarningLogged;
 
     public PassiveTriggerSource(Supplier<AppConfig> configSupplier) {
         this.configSupplier = configSupplier;
@@ -232,7 +234,16 @@ public final class PassiveTriggerSource {
                                 null
                         ));
                     }, () -> { });
-                } catch (Throwable ignored) {
+                    timerDispatchWarningLogged = false;
+                } catch (Throwable throwable) {
+                    if (!timerDispatchWarningLogged) {
+                        timerDispatchWarningLogged = true;
+                        plugin.getLogger().log(Level.WARNING,
+                                "Passive trigger dispatch failed: trigger=timer, player=" + player.getName()
+                                        + ", operation=timer_dispatch, cause=" + throwable
+                                        + " (further identical warnings suppressed until the next successful dispatch)",
+                                throwable);
+                    }
                 }
             }
         }, 1L, 1L);

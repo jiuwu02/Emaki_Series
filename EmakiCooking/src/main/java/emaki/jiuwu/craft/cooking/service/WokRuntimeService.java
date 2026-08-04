@@ -14,9 +14,9 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
@@ -30,8 +30,8 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -131,7 +131,7 @@ public final class WokRuntimeService {
         stateStore.forEachLoadedState(StationType.WOK, this::restoreStoredState);
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
         if (coordinates == null) {
             return false;
         }
@@ -1294,13 +1294,13 @@ public final class WokRuntimeService {
         textDisplayService.removeStation(StationType.WOK, coordinates);
     }
 
-    private WokState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    private WokState readState(emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
         if (section == null || !StationType.WOK.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
             return null;
         }
         List<WokIngredientState> ingredients = new ArrayList<>();
         for (Map<?, ?> entry : section.getMapList("wok.ingredients")) {
-            Map<String, Object> normalized = emaki.jiuwu.craft.corelib.yaml.MapYamlSection.normalizeMap(entry);
+            Map<String, Object> normalized = emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection.normalizeMap(entry);
             String source = String.valueOf(normalized.getOrDefault("source", ""));
             if (Texts.isBlank(source)) {
                 continue;

@@ -12,11 +12,11 @@ import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeSemanticDefinition;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.service.MessageService;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class AttributeBalanceRegistry {
 
@@ -24,7 +24,7 @@ public final class AttributeBalanceRegistry {
     private final AttributeRegistry attributeRegistry;
     private final Map<String, AttributeSemanticDefinition> semantics = new LinkedHashMap<>();
     private final Map<String, Double> scores = new LinkedHashMap<>();
-    private YamlSection configuration = new emaki.jiuwu.craft.corelib.yaml.MapYamlSection();
+    private YamlSection configuration = new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection();
 
     public AttributeBalanceRegistry(EmakiAttributePlugin plugin, AttributeRegistry attributeRegistry) {
         this.plugin = plugin;
@@ -40,13 +40,13 @@ public final class AttributeBalanceRegistry {
             if (plugin.configModel().releaseDefaultData()) {
                 YamlFiles.copyResourceIfMissing(plugin, "attribute_balance.yml", file);
             }
-            configuration = file.isFile() ? YamlFiles.load(file) : new emaki.jiuwu.craft.corelib.yaml.MapYamlSection();
+            configuration = file.isFile() ? YamlFiles.load(file) : new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection();
         } catch (IOException exception) {
             messages.warning("loader.bundled_resource_sync_failed", Map.of(
                     "path", file.getPath(),
                     "error", String.valueOf(exception.getMessage())
             ));
-            configuration = file.isFile() ? YamlFiles.load(file) : new emaki.jiuwu.craft.corelib.yaml.MapYamlSection();
+            configuration = file.isFile() ? YamlFiles.load(file) : new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection();
         }
         if (plugin.configModel().releaseDefaultData() && !file.exists()) {
             messages.warning("loader.bundled_resource_missing", Map.of(

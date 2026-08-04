@@ -7,7 +7,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
-import emaki.jiuwu.craft.corelib.entity.EntityPhysicsSupport;
+import emaki.jiuwu.craft.corelib.api.entity.EntityPhysicsSupport;
 
 public final class CombatSupport {
 

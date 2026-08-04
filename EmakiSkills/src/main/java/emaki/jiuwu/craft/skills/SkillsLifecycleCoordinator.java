@@ -18,6 +18,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -27,8 +28,8 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.skills.bridge.EaBridge;
 import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
@@ -215,12 +216,26 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         if (closeInventories) {
             forEachOnlinePlayer(plugin, Player::closeInventory).join();
         }
-        plugin.languageLoader().load();
-        plugin.appConfigLoader().load();
+        // Definition loaders belong to the candidate step because the skills precheck reads their issue
+        // lists; the apply work below only runs once the gate has accepted that candidate.
+        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                plugin.messageService(),
+                "skills",
+                plugin.appConfigLoader()::current,
+                () -> {
+                    plugin.languageLoader().load();
+                    AppConfig candidate = plugin.appConfigLoader().load();
+                    plugin.skillDefinitionLoader().load();
+                    plugin.localResourceDefinitionLoader().load();
+                    plugin.guiTemplateLoader().load();
+                    return candidate;
+                },
+                plugin.appConfigLoader()::overrideCurrent);
+        if (gate.rejected()) {
+            // Previous AppConfig is active again and no candidate value reached a runtime service.
+            return;
+        }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        plugin.skillDefinitionLoader().load();
-        plugin.localResourceDefinitionLoader().load();
-        plugin.guiTemplateLoader().load();
         // The skill YAML was just reread, so every compiled pipeline was built from text that may no longer be
         // configured. Dropping the cache here is what makes the next cast compile the current lines.
         plugin.skillPipelineRuntime().invalidateAll();
@@ -250,11 +265,24 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 .thenCompose(ignored -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                         "skills", "config-load", plugin.messageService().message("console.reload_loading_configs"), progressListener,
                         () -> {
-                            plugin.languageLoader().load();
-                            plugin.appConfigLoader().load();
-                            plugin.skillDefinitionLoader().load();
-                            plugin.localResourceDefinitionLoader().load();
-                            plugin.guiTemplateLoader().load();
+                            ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                                    plugin.messageService(),
+                                    "skills",
+                                    plugin.appConfigLoader()::current,
+                                    () -> {
+                                        plugin.languageLoader().load();
+                                        AppConfig candidate = plugin.appConfigLoader().load();
+                                        plugin.skillDefinitionLoader().load();
+                                        plugin.localResourceDefinitionLoader().load();
+                                        plugin.guiTemplateLoader().load();
+                                        return candidate;
+                                    },
+                                    plugin.appConfigLoader()::overrideCurrent);
+                            if (gate.rejected()) {
+                                // Aborts the stage so the apply step never runs; AppConfig is already restored.
+                                throw new IllegalStateException("Skills config precheck failed: "
+                                        + String.join("; ", gate.failures()));
+                            }
                         },
                         null,
                         (stage, ex) -> plugin.getLogger().warning(
@@ -408,6 +436,14 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                                 (int) defaults.passiveTriggerSettings().comboTimeoutTicks())
                 );
 
+        YamlSection triggerSettingsSection = configuration.getSection("trigger_settings");
+        AppConfig.TriggerSettings triggerSettings = triggerSettingsSection == null
+                ? defaults.triggerSettings()
+                : new AppConfig.TriggerSettings(
+                        boolValue(triggerSettingsSection.getBoolean("legacy_dispatch_cancelled_events"),
+                                defaults.triggerSettings().legacyDispatchCancelledEvents())
+                );
+
         AppConfig.ScriptEngineSettings scriptEngine = parseScriptEngineSettings(
                 configuration.getSection("script_engine"), defaults.scriptEngine());
 
@@ -424,7 +460,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 triggers,
                 passiveTriggers,
                 passiveTriggerSettings,
-                scriptEngine
+                scriptEngine,
+                triggerSettings
         );
     }
 

@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -24,8 +25,8 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
@@ -205,7 +206,19 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (!reloadAllowed(allowed)) {
             return;
         }
-        plugin.appConfigLoader().load();
+        // The item precheck inspects files and directories rather than loader issue lists, so the gate can
+        // run right after the app config candidate is read and stop the definition loaders from touching
+        // live state at all when it is rejected.
+        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                plugin.messageService(),
+                "item",
+                plugin.appConfigLoader()::current,
+                plugin.appConfigLoader()::load,
+                plugin.appConfigLoader()::overrideCurrent);
+        if (gate.rejected()) {
+            // Previous AppConfig is active again and no candidate value reached a runtime service.
+            return;
+        }
         if (!reloadAllowed(allowed)) {
             return;
         }
@@ -274,7 +287,17 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     if (!reloadAllowed(allowed)) {
                         return;
                     }
-                    plugin.appConfigLoader().load();
+                    ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                            plugin.messageService(),
+                            "item",
+                            plugin.appConfigLoader()::current,
+                            plugin.appConfigLoader()::load,
+                            plugin.appConfigLoader()::overrideCurrent);
+                    if (gate.rejected()) {
+                        // Aborts the stage so the apply step never runs; AppConfig is already restored.
+                        throw new IllegalStateException("Item config precheck failed: "
+                                + String.join("; ", gate.failures()));
+                    }
                     if (!reloadAllowed(allowed)) {
                         return;
                     }
@@ -333,8 +356,21 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             return;
         }
         for (var player : Bukkit.getOnlinePlayers()) {
-            if (plugin.repairGuiService().getSession(player) != null) {
+            if (plugin.repairGuiService().getSession(player) == null) {
+                continue;
+            }
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
                 player.closeInventory();
+                continue;
+            }
+            if (plugin.executionDispatcher() == null) {
+                plugin.getLogger().warning("EmakiItem skipped repair GUI closure for " + player.getName()
+                        + ": caller thread does not own the player and no execution dispatcher is available.");
+                continue;
+            }
+            if (plugin.executionDispatcher().runEntity(plugin, player, player::closeInventory) == null) {
+                plugin.getLogger().warning("EmakiItem failed to reroute repair GUI closure for " + player.getName()
+                        + ": entity task scheduling was rejected.");
             }
         }
         plugin.repairGuiService().clearAllSessions();

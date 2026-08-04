@@ -9,8 +9,8 @@ import org.bukkit.Registry;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
  * Static entry points for reading item sources out of config and writing them back.

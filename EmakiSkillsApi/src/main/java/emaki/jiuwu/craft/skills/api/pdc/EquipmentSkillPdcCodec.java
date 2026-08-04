@@ -14,6 +14,45 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+/**
+ * 装备技能 PDC 的读写编解码器，是 EmakiSkills 与其他模块之间的 wire protocol。
+ *
+ * <h2>持久化格式（跨版本稳定契约）</h2>
+ *
+ * 三个 {@link NamespacedKey} 全部使用命名空间 {@code emaki_skills}，值类型均为
+ * {@link PersistentDataType#STRING}：
+ *
+ * <ul>
+ *   <li>{@code item.skills.ids} —— 技能 id 列表，以 {@code ;} 分隔并按自然序排序，
+ *       例如 {@code fireball;heal}</li>
+ *   <li>{@code item.skills.active_slot} —— 生效槽位，取本类的 {@code SLOT_*} 常量之一</li>
+ *   <li>{@code item.skills.triggers} —— 技能到触发器的绑定，形如
+ *       {@code skillId=triggerId} 的键值对再以 {@code ;} 分隔，按 key 排序</li>
+ * </ul>
+ *
+ * <p><strong>三个 key 是同一份 payload 的组成部分</strong>：{@code clear} 会一并移除三者，
+ * 只写其中一个会得到不完整的 payload。判断物品是否携带 payload 用
+ * {@link #hasPayload(ItemStack)}，它对三个 key 取或。
+ *
+ * <h2>规范化语义</h2>
+ *
+ * 写入前一律先经 {@link #normalize(Iterable, String, Map)}：技能 id 去空白、转小写、空格转
+ * 下划线并去重排序；触发器 id 在此基础上再把 {@code -} 转为 {@code _}。
+ * {@code boundTriggers} 的 key 会被并入技能 id 集合，因此绑定了触发器的技能不必再单独列入
+ * {@code skillIds}。规范化后若技能集合为空，写入等价于 {@code clear}。
+ *
+ * <p>槽位匹配见 {@link #matchesSlot(String, String)}：{@code all} 匹配一切，
+ * 而 {@code hand} 同时匹配 {@code main_hand} 与 {@code off_hand}。
+ *
+ * <h2>失败语义</h2>
+ *
+ * 所有写操作返回 {@link SkillPdcMutation} 而不抛异常，其 {@code committed} 表示
+ * {@code setItemMeta} 是否成功，{@code reason} 在未提交时给出原因
+ * （{@code item_missing}、{@code item_meta_missing}、{@code payload_absent}）。
+ *
+ * <p>本类被需要读写该 payload 的运行时模块 shade 并 relocate，因此
+ * <strong>key 名称与编码格式的任何改动都是跨模块的破坏性变更</strong>。
+ */
 public final class EquipmentSkillPdcCodec {
 
     public static final String SLOT_ALL = "all";
@@ -32,14 +71,17 @@ public final class EquipmentSkillPdcCodec {
     private EquipmentSkillPdcCodec() {
     }
 
+    /** {@return the PDC key holding the {@code ;}-separated, sorted skill id list} */
     public static NamespacedKey skillIdsKey() {
         return SKILL_IDS_KEY;
     }
 
+    /** {@return the PDC key holding the required slot, one of the {@code SLOT_*} constants} */
     public static NamespacedKey activeSlotKey() {
         return SKILL_ACTIVE_SLOT_KEY;
     }
 
+    /** {@return the PDC key holding {@code skillId=triggerId} pairs joined by {@code ;}} */
     public static NamespacedKey boundTriggersKey() {
         return SKILL_TRIGGERS_KEY;
     }

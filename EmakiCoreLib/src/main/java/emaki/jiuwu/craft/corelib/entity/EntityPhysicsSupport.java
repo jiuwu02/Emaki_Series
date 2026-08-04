@@ -4,28 +4,23 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.util.Vector;
 
+/**
+ * 已搬迁到 {@link emaki.jiuwu.craft.corelib.api.entity.EntityPhysicsSupport}，本类仅作过渡转发。
+ *
+ * <p>M2-2 路线 A：CoreLib 的通用工具与契约类型改由 {@code emaki-corelib-api}
+ * 提供。此处保留全部 1 个 public static 方法签名并逐一委托，
+ * 旧调用点行为完全不变。
+ *
+ * @deprecated 改用 {@link emaki.jiuwu.craft.corelib.api.entity.EntityPhysicsSupport}。
+ *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+ */
+@Deprecated(since = "4.6.19", forRemoval = true)
 public final class EntityPhysicsSupport {
 
     private EntityPhysicsSupport() {
     }
 
     public static void applyKnockback(LivingEntity target, Entity source, double strength) {
-        if (target == null || source == null || strength <= 0D || !target.isValid() || target.isDead()) {
-            return;
-        }
-        Vector direction = target.getLocation().toVector().subtract(source.getLocation().toVector());
-        direction.setY(0D);
-        if (direction.lengthSquared() < 1.0E-6D) {
-            direction = source.getLocation().getDirection().multiply(-1D).setY(0D);
-        }
-        if (direction.lengthSquared() < 1.0E-6D) {
-            return;
-        }
-        direction.normalize().multiply(strength);
-        Vector velocity = target.getVelocity().clone();
-        velocity.setX(velocity.getX() + direction.getX());
-        velocity.setZ(velocity.getZ() + direction.getZ());
-        velocity.setY(Math.max(0.1D, velocity.getY() + Math.min(0.4D, strength * 0.5D)));
-        target.setVelocity(velocity);
+        emaki.jiuwu.craft.corelib.api.entity.EntityPhysicsSupport.applyKnockback(target, source, strength);
     }
 }

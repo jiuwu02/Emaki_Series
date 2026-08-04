@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.item.model;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record ItemSetMembership(String setId, String pieceId) {
 

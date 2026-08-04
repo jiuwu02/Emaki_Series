@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.skills.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record SkillParameterDefinition(
         String id,

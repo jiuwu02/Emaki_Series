@@ -86,6 +86,7 @@ console:
   mythic_bridge_init_failed: "Failed to initialize MythicMobs skill bridge: %error%"
   mythic_bridge_skill_lookup_failed: "Failed to look up Mythic skill: %skill% (%error%)"
   mythic_bridge_cast_failed: "Failed to cast Mythic skill: %skill% (%error%)"
+  trigger_legacy_cancelled_dispatch_deprecated: "<yellow>[Deprecated]</yellow> <gray>Trigger source <yellow>%source%</yellow> is running with the compatibility switch <white>trigger_settings.legacy_dispatch_cancelled_events</white>, so events already cancelled by another plugin (WorldGuard, land-claim protection, ...) still trigger skills. This switch is kept for one minor cycle only and will be removed in the next major release; please turn it off and adopt the default behaviour.</gray>"
   skills_loaded: "<gray>Loaded <yellow>%skills%</yellow> skill(s), <yellow>%triggers%</yellow> trigger(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
 

@@ -8,14 +8,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
@@ -24,12 +26,12 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
@@ -174,12 +176,26 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     private void reloadNow(EmakiGemPlugin plugin) {
-        plugin.languageLoader().load();
-        plugin.appConfigLoader().load();
+        // The definition loaders run inside the candidate step because the gem precheck reads their
+        // issue lists; gating before they load would certify a candidate nobody parsed yet.
+        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                plugin.messageService(),
+                "gem",
+                plugin.appConfigLoader()::current,
+                () -> {
+                    plugin.languageLoader().load();
+                    AppConfig candidate = plugin.appConfigLoader().load();
+                    plugin.gemLoader().load();
+                    plugin.gemItemLoader().load();
+                    plugin.guiTemplateLoader().load();
+                    return candidate;
+                },
+                plugin.appConfigLoader()::overrideCurrent);
+        if (gate.rejected()) {
+            // Previous AppConfig is active again and no candidate value reached a runtime service.
+            return;
+        }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        plugin.gemLoader().load();
-        plugin.gemItemLoader().load();
-        plugin.guiTemplateLoader().load();
         plugin.itemMatcher().refresh();
         GemOperationJournal.forPlugin(plugin, plugin.executionDispatcher(), plugin.threadOwnership()).recover(plugin.economyService());
         loadResonances(plugin);
@@ -207,11 +223,24 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
             return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                     "gem", "config-load", "Loading configs...", progressListener,
                     () -> {
-                        plugin.languageLoader().load();
-                        plugin.appConfigLoader().load();
-                        plugin.gemLoader().load();
-                        plugin.gemItemLoader().load();
-                        plugin.guiTemplateLoader().load();
+                        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                                plugin.messageService(),
+                                "gem",
+                                plugin.appConfigLoader()::current,
+                                () -> {
+                                    plugin.languageLoader().load();
+                                    AppConfig candidate = plugin.appConfigLoader().load();
+                                    plugin.gemLoader().load();
+                                    plugin.gemItemLoader().load();
+                                    plugin.guiTemplateLoader().load();
+                                    return candidate;
+                                },
+                                plugin.appConfigLoader()::overrideCurrent);
+                        if (gate.rejected()) {
+                            // Aborts the stage so the apply step never runs; AppConfig is already restored.
+                            throw new IllegalStateException("Gem config precheck failed: "
+                                    + String.join("; ", gate.failures()));
+                        }
                     },
                     null,
                     (stage, ex) -> plugin.getLogger().warning(
@@ -249,7 +278,27 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     private void refreshOnlinePlayerItems(EmakiGemPlugin plugin) {
-        Bukkit.getOnlinePlayers().forEach(player -> GemItemObtainListener.refreshInventory(plugin, player));
+        // Inventory refresh is per-player entity work: the global region thread owns no player,
+        // so every refresh is dispatched to its own owner thread instead of running inline here.
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (player == null) {
+                continue;
+            }
+            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+                GemItemObtainListener.refreshInventory(plugin, player);
+                continue;
+            }
+            if (plugin.executionDispatcher() == null) {
+                plugin.getLogger().warning("EmakiGem skipped gem item refresh for " + player.getName()
+                        + ": caller thread does not own the player and no execution dispatcher is available.");
+                continue;
+            }
+            if (plugin.executionDispatcher().runEntity(plugin, player,
+                    () -> GemItemObtainListener.refreshInventory(plugin, player)) == null) {
+                plugin.getLogger().warning("EmakiGem failed to reroute gem item refresh for " + player.getName()
+                        + ": entity task scheduling was rejected.");
+            }
+        }
     }
 
     public void shutdown(EmakiGemPlugin plugin) {

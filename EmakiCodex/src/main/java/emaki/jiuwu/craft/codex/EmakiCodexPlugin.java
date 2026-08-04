@@ -20,10 +20,12 @@ import emaki.jiuwu.craft.codex.advancement.trigger.AdvancementTriggerRegistry;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexGameplaySubscriber;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
 import emaki.jiuwu.craft.codex.config.AppConfig;
+import emaki.jiuwu.craft.codex.config.CodexConfigPrecheckContributor;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
 import emaki.jiuwu.craft.codex.listener.PlayerConnectionListener;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -32,7 +34,7 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
@@ -101,6 +103,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         registerActions();
+        // Registered before the first reload because that reload is now gated on this contributor.
+        registerConfigPrecheckContributor();
         reloadPluginState();
         registerCommandHandler();
         registerEventHandlers();
@@ -111,6 +115,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     @Override
     public void onDisable() {
+        ConfigPrecheckLifecycleSupport.unregister("codex");
         EmakiCodexApi.uninstall(apiBridge);
         if (gameplaySubscriber != null) {
             gameplaySubscriber.unsubscribe();
@@ -125,6 +130,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public void reloadPluginState() {
         lifecycleCoordinator.reload(this);
+    }
+
+    private void registerConfigPrecheckContributor() {
+        ConfigPrecheckLifecycleSupport.register(new CodexConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(CodexRuntimeComponents components) {
@@ -242,6 +251,13 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return advancementTriggerRegistry;
     }
 
+    /**
+     * {@return the codex trigger service}
+     *
+     * @deprecated 仓库内零调用。图鉴触发由生命周期编排在启用期接线，
+     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "1.0.6", forRemoval = true)
     public CodexTriggerService triggerService() {
         return triggerService;
     }

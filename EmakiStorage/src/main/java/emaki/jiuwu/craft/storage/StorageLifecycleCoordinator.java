@@ -11,15 +11,16 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.storage.config.AppConfig;
 import emaki.jiuwu.craft.storage.config.UnlockCostConfig;
 import emaki.jiuwu.craft.storage.gui.StorageAmountFormatter;
@@ -127,8 +128,24 @@ final class StorageLifecycleCoordinator
      * @return how many GUI templates were loaded
      */
     public int reload(EmakiStoragePlugin plugin) {
-        plugin.languageLoader().load();
-        plugin.appConfigLoader().load();
+        // The GUI template loader runs inside the candidate step because the storage precheck reads its
+        // issue list; every reconfigure below only happens once the gate accepts that candidate.
+        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                plugin.messageService(),
+                "storage",
+                plugin.appConfigLoader()::current,
+                () -> {
+                    plugin.languageLoader().load();
+                    AppConfig candidate = plugin.appConfigLoader().load();
+                    plugin.guiTemplateLoader().load();
+                    return candidate;
+                },
+                plugin.appConfigLoader()::overrideCurrent);
+        if (gate.rejected()) {
+            // Previous AppConfig is active again and no candidate value reached a runtime service, so the
+            // layout the server is still running on is the one reported back.
+            return plugin.guiTemplateLoader().all().size();
+        }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
 
         AppConfig config = plugin.appConfig();
@@ -143,7 +160,8 @@ final class StorageLifecycleCoordinator
         plugin.dataStore().configure(config.behavior().defaultSort(), config.capacity().warnEntryCount(),
                 config.autoPickup().defaultEnabled());
 
-        int templates = plugin.guiTemplateLoader().load();
+        // Already loaded in the candidate step above, so this only reads the resulting count.
+        int templates = plugin.guiTemplateLoader().all().size();
         StorageLayoutResolver.Layout layout =
                 plugin.layoutResolver().resolve(plugin.guiTemplateLoader(), config.gui().storageRows());
         plugin.storageGuiService().reconfigure(config, layout);

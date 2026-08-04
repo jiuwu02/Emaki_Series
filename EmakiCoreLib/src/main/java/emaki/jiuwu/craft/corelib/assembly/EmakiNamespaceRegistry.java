@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 
 public final class EmakiNamespaceRegistry {
 

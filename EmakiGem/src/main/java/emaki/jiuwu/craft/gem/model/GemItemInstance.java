@@ -3,8 +3,8 @@ package emaki.jiuwu.craft.gem.model;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record GemItemInstance(String gemId, int level, long updatedAt) {
 

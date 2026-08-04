@@ -4,72 +4,42 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+/**
+ * 已搬迁到 {@link emaki.jiuwu.craft.corelib.api.command.CommandTabHelper}，本类仅作过渡转发。
+ *
+ * <p>M2-2 路线 A：CoreLib 的通用工具与契约类型改由 {@code emaki-corelib-api}
+ * 提供。此处保留全部 5 个 public static 方法签名并逐一委托，
+ * 旧调用点行为完全不变。
+ *
+ * @deprecated 改用 {@link emaki.jiuwu.craft.corelib.api.command.CommandTabHelper}。
+ *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+ */
+@Deprecated(since = "4.6.19", forRemoval = true)
 public final class CommandTabHelper {
 
     private CommandTabHelper() {
     }
 
-
     public static List<String> filterByPrefix(Collection<String> candidates, String prefix) {
-        if (candidates == null || candidates.isEmpty()) {
-            return new ArrayList<>();
-        }
-        String lowered = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
-        List<String> result = new ArrayList<>();
-        for (String candidate : candidates) {
-            if (candidate != null && candidate.toLowerCase(Locale.ROOT).startsWith(lowered)) {
-                result.add(candidate);
-            }
-        }
-        return result;
+        return emaki.jiuwu.craft.corelib.api.command.CommandTabHelper.filterByPrefix(candidates, prefix);
     }
-
 
     public static List<String> completeOnlinePlayers(String prefix) {
-        String lowered = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
-        List<String> result = new ArrayList<>();
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getName().toLowerCase(Locale.ROOT).startsWith(lowered)) {
-                result.add(player.getName());
-            }
-        }
-        return result;
+        return emaki.jiuwu.craft.corelib.api.command.CommandTabHelper.completeOnlinePlayers(prefix);
     }
 
-
     public static List<String> completeSubcommands(Collection<String> subcommands, String prefix) {
-        return filterByPrefix(subcommands, prefix);
+        return emaki.jiuwu.craft.corelib.api.command.CommandTabHelper.completeSubcommands(subcommands, prefix);
     }
 
     public static List<String> completeLiterals(String prefix, String... values) {
-        if (values == null || values.length == 0) {
-            return new ArrayList<>();
-        }
-        String lowered = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
-        List<String> result = new ArrayList<>();
-        for (String value : values) {
-            if (value != null && value.toLowerCase(Locale.ROOT).startsWith(lowered)) {
-                result.add(value);
-            }
-        }
-        return result;
+        return emaki.jiuwu.craft.corelib.api.command.CommandTabHelper.completeLiterals(prefix, values);
     }
 
-
     public static List<String> completeIntRange(String prefix, int min, int max) {
-        int safeMax = Math.min(max, min + 100);
-        String lowered = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
-        List<String> result = new ArrayList<>();
-        for (int i = min; i <= safeMax; i++) {
-            String value = Integer.toString(i);
-            if (value.startsWith(lowered)) {
-                result.add(value);
-            }
-        }
-        return result;
+        return emaki.jiuwu.craft.corelib.api.command.CommandTabHelper.completeIntRange(prefix, min, max);
     }
 }

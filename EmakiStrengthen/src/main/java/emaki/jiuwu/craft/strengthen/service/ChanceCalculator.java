@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.strengthen.service;
 
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 

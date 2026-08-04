@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -238,7 +238,7 @@ final class SteamerTickProcessor {
     }
 
     private SteamerState copyState(StationCoordinates coordinates, SteamerState state) {
-        return codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
+        return codec.readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
     }
 
     boolean canStoreOutcomeInSlot(List<Map<String, Object>> outputs) {

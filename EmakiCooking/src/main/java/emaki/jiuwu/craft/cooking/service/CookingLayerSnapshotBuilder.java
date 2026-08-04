@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 
 public final class CookingLayerSnapshotBuilder {

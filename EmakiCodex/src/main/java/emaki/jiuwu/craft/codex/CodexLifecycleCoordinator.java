@@ -18,12 +18,13 @@ import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 
 
@@ -88,10 +89,24 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
 
     public void reload(EmakiCodexPlugin plugin) {
-        plugin.languageLoader().load();
-        plugin.appConfigLoader().load();
+        // The page loader runs inside the candidate step because the codex precheck reads its issue list;
+        // advancement registration below only happens once the gate accepts that candidate.
+        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                plugin.messageService(),
+                "codex",
+                plugin.appConfigLoader()::current,
+                () -> {
+                    plugin.languageLoader().load();
+                    AppConfig candidate = plugin.appConfigLoader().load();
+                    plugin.advancementPageLoader().load();
+                    return candidate;
+                },
+                plugin.appConfigLoader()::overrideCurrent);
+        if (gate.rejected()) {
+            // Previous AppConfig is active again and no candidate value reached a runtime service.
+            return;
+        }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        plugin.advancementPageLoader().load();
 
         AppConfig config = plugin.appConfig();
 

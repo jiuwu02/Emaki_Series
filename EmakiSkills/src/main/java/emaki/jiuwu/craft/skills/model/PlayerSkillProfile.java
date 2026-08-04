@@ -6,7 +6,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class PlayerSkillProfile {
+import emaki.jiuwu.craft.corelib.session.SessionData;
+
+public final class PlayerSkillProfile implements SessionData<PlayerSkillProfile> {
 
     private String uuid;
     private final List<SkillSlotBinding> bindings;
@@ -112,6 +114,7 @@ public final class PlayerSkillProfile {
         }
     }
 
+    @Override
     public synchronized void markDirty() {
         revision++;
     }
@@ -120,22 +123,33 @@ public final class PlayerSkillProfile {
         return revision > persistedRevision;
     }
 
+    /** {@inheritDoc} Delegates to the pre-existing {@link #isDirty()} spelling. */
+    @Override
+    public synchronized boolean dirty() {
+        return isDirty();
+    }
+
+    @Override
     public synchronized void clearDirty() {
         persistedRevision = revision;
     }
 
+    @Override
     public synchronized void markPersisted(long savedRevision) {
         persistedRevision = Math.max(persistedRevision, Math.min(savedRevision, revision));
     }
 
+    @Override
     public synchronized long revision() {
         return revision;
     }
 
+    @Override
     public synchronized long persistedRevision() {
         return persistedRevision;
     }
 
+    @Override
     public synchronized PlayerSkillProfile copy() {
         PlayerSkillProfile copy = new PlayerSkillProfile(uuid, bindings.size());
         copy.bindings.clear();

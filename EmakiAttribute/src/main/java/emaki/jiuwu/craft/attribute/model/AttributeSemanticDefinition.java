@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.attribute.model;
 
 import java.util.Locale;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record AttributeSemanticDefinition(String id,
         String group,

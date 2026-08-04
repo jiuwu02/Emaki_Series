@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -14,7 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 
 
 
@@ -144,8 +145,11 @@ final class CodexCommandRouter implements TabExecutor {
             } else {
                 plugin.executionDispatcher().runGlobal(plugin, task);
             }
-        } catch (Throwable ignored) {
-
+        } catch (Throwable throwable) {
+            plugin.getLogger().log(Level.WARNING,
+                    "Codex command response dispatch failed: sender=" + sender.getName()
+                            + ", operation=send_to_sender, cause=" + throwable,
+                    throwable);
         }
     }
 

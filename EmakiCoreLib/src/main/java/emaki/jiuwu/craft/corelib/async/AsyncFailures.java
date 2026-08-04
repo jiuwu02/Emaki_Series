@@ -4,56 +4,30 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Shared unwrapping for async failure causes.
+ * 已搬迁到 {@link emaki.jiuwu.craft.corelib.api.async.AsyncFailures}，本类仅作过渡转发。
  *
- * <p>Two contracts are intentionally kept separate because call sites depend on the
- * difference: {@link #unwrap(Throwable)} collapses an entire wrapper chain, while
- * {@link #unwrapOnce(Throwable)} peels exactly one {@link CompletionException} layer.
- * Swapping one for the other changes which throwable a caller reports.
+ * <p>M2-2 路线 A：CoreLib 的通用工具与契约类型改由 {@code emaki-corelib-api}
+ * 提供。此处保留全部 3 个 public static 方法签名并逐一委托，
+ * 旧调用点行为完全不变。
+ *
+ * @deprecated 改用 {@link emaki.jiuwu.craft.corelib.api.async.AsyncFailures}。
+ *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
  */
+@Deprecated(since = "4.6.19", forRemoval = true)
 public final class AsyncFailures {
 
     private AsyncFailures() {
     }
 
-    /**
-     * Unwraps every consecutive {@link CompletionException} / {@link ExecutionException}
-     * wrapper and returns the innermost cause.
-     *
-     * @return the original throwable when it is not a wrapper or has no cause
-     */
     public static Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof CompletionException || current instanceof ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
+        return emaki.jiuwu.craft.corelib.api.async.AsyncFailures.unwrap(throwable);
     }
 
-    /**
-     * Peels exactly one {@link CompletionException} layer.
-     *
-     * @return the direct cause, or the original throwable when it is not a
-     *         {@code CompletionException} or carries no cause
-     */
     public static Throwable unwrapOnce(Throwable throwable) {
-        if (throwable instanceof CompletionException completionException && completionException.getCause() != null) {
-            return completionException.getCause();
-        }
-        return throwable;
+        return emaki.jiuwu.craft.corelib.api.async.AsyncFailures.unwrapOnce(throwable);
     }
 
-    /**
-     * Renders a compact {@code SimpleName: message} description of the innermost cause.
-     */
     public static String describe(Throwable throwable) {
-        if (throwable == null) {
-            return "null";
-        }
-        Throwable root = unwrap(throwable);
-        String message = root.getMessage();
-        return root.getClass().getSimpleName()
-                + (message == null || message.isBlank() ? "" : ": " + message);
+        return emaki.jiuwu.craft.corelib.api.async.AsyncFailures.describe(throwable);
     }
 }

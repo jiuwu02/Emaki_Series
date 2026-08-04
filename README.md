@@ -8,19 +8,19 @@ Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采�
 
 | 模块              | 当前版本 | 角色       | 说明                                                                                  |
 | ----------------- | -------- | ---------- | ------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.6.9`  | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
-| `EmakiAttribute`  | `4.6.9`  | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
-| `EmakiForge`      | `4.6.4`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
-| `EmakiStrengthen` | `4.6.4`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
-| `EmakiCooking`    | `4.1.5`  | 烹饪系统   | 提供多类世界工位运行时、配方判定、输入限制、展示与状态持久化能力                      |
-| `EmakiGem`        | `2.6.5`  | 宝石系统   | 提供装备开孔、宝石镶嵌、取出、升级、装备模板、宝石定义与可选属性系统接入能力          |
-| `EmakiSkills`     | `2.6.4`  | 技能系统   | 提供主动技能槽位、被动触发器、施法模式、冷却与 MythicMobs / Attribute 桥接能力        |
-| `EmakiItem`       | `2.6.7`  | 物品系统   | 提供自定义物品定义、原版组件、修复、自动更新、套装、触发器与旧配置安全迁移            |
-| `EmakiLevel`      | `1.4.3`  | 等级系统   | 提供多等级类型、经验来源、升级需求、PDC、占位符与跨模块成长桥接                       |
-| `EmakiCodex`      | `1.0.4`  | 图鉴系统   | 提供图鉴、进度追踪、Gameplay Event 条件、奖励与客户端成就提示桥接                     |
-| `EmakiStorage`    | `1.0.6`  | 仓库系统   | 提供分页 GUI 仓库、单槽大额存量、容量档位与权限、付费解锁与存取事件                   |
+| `EmakiCoreLib`    | `4.6.19` | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
+| `EmakiAttribute`  | `4.6.14` | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
+| `EmakiForge`      | `4.6.9`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
+| `EmakiStrengthen` | `4.6.8`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
+| `EmakiCooking`    | `4.1.7`  | 烹饪系统   | 提供多类世界工位运行时、配方判定、输入限制、展示与状态持久化能力                      |
+| `EmakiGem`        | `2.6.8`  | 宝石系统   | 提供装备开孔、宝石镶嵌、取出、升级、装备模板、宝石定义与可选属性系统接入能力          |
+| `EmakiSkills`     | `2.6.13` | 技能系统   | 提供主动技能槽位、被动触发器、施法模式、冷却与 MythicMobs / Attribute 桥接能力        |
+| `EmakiItem`       | `2.6.11` | 物品系统   | 提供自定义物品定义、原版组件、修复、自动更新、套装、触发器与旧配置安全迁移            |
+| `EmakiLevel`      | `1.4.7`  | 等级系统   | 提供多等级类型、经验来源、升级需求、PDC、占位符与跨模块成长桥接                       |
+| `EmakiCodex`      | `1.0.6`  | 图鉴系统   | 提供图鉴、进度追踪、Gameplay Event 条件、奖励与客户端成就提示桥接                     |
+| `EmakiStorage`    | `1.0.11` | 仓库系统   | 提供分页 GUI 仓库、单槽大额存量、容量档位与权限、付费解锁与存取事件                   |
 
-除上述运行时模块外，仓库还包含各模块对应的 `Emaki*Api` 编译期契约模块，以及纯协议模块 `EmakiSkillsProtocol`（artifact `emaki-skills-protocol`，版本 `2.6.0`）。它们不是服务器插件，不要放入 `plugins/`。
+除上述运行时模块外，仓库还包含各模块对应的 `Emaki*Api` 编译期契约模块。装备技能 PDC 协议不是独立模块，而是 `EmakiSkillsApi` 的 `emaki.jiuwu.craft.skills.api.pdc` 包，由需要它的运行时模块在 shade 时嵌入并 relocate。这些 Api 模块不是服务器插件，不要放入 `plugins/`。
 
 ## 技术基线
 
@@ -29,7 +29,7 @@ Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采�
 | Java       | `25`                                       |
 | 服务端 API | `Paper API 1.21.8-R0.1-SNAPSHOT`           |
 | 描述符基线 | `api-version: "1.21.8"`                    |
-| Folia      | 所有运行时插件声明 `folia-supported: true` |
+| Folia      | 11 个运行时插件均声明 `folia-supported: true`（声明值，尚未有实机验证记录）|
 | 文本组件   | `Adventure 4.26.1`                         |
 | 构建工具   | Maven 多模块聚合                           |
 | 许可证     | `GPL-3.0-only`                             |
@@ -75,11 +75,11 @@ Project/
 ├── EmakiCooking/          # 烹饪系统
 ├── EmakiCodex/            # 图鉴与进度系统
 ├── Emaki*Api/             # 各模块编译期 API 契约（不部署到服务器）
-├── EmakiSkillsProtocol/   # 装备技能 PDC 协议模块（编译期嵌入并 relocate）
+│                          #   装备技能 PDC 协议在 EmakiSkillsApi 的 api.pdc 包内
 └── pom.xml                # Maven 父工程
 ```
 
-`private-modules` profile 在根目录存在 `.key` 文件时按文件自动激活，用于纳入 `EmakiSkills`、`EmakiGem`、`EmakiItem` 三个模块。
+`private-modules` profile 在根目录存在 `.key` 文件时按文件自动激活，用于纳入 `EmakiSkills`、`EmakiGem`、`EmakiItem`、`EmakiStorage` 四个模块。`.key` 被 `.gitignore` 忽略且不受 git 跟踪，因此新克隆的仓库默认不存在该文件，此时 Maven 只构建 19 个模块而不报错；这是受支持的合法状态，需要私有模块时在仓库根目录创建空文件 `.key` 即可。
 
 ## 默认资源定位
 
@@ -106,7 +106,7 @@ Project/
 
 迁移是幂等的；迁移后的文件再次启动不会重复改写。不过正式服升级前仍建议先备份完整的 `plugins/Emaki*/` 配置目录。
 
-这是一层物理隔离的过渡兼容实现：它不读取或比较插件、配置、语言文件中的版本号，只在检测到旧字段时执行。CoreLib 的 `configureditem` 包提供通用迁移执行器与节点转换器，EmakiItem 的旧 definition 转换规则由 `EmakiItemLegacyDefinitionConverter` 自持；生产桥接只位于 GUI 模板加载与 EmakiItem definition 加载入口，未来结束旧格式兼容时可整体删除，不影响 canonical `item.*` parser、model 或 YAML 基础设施。
+这是一层物理隔离的过渡兼容实现：它不读取或比较插件、配置、语言文件中的版本号，只在检测到旧字段时执行。CoreLib 的 `corelib.action.legacy` 包提供通用迁移执行器与行转换器（`LegacyActionMigrator`、`LegacyLineConverter`），旧 configured-item definition 的转换规则由 `corelib.item.LegacyConfiguredItemConverter` 承担；生产桥接只位于 GUI 模板加载与 EmakiItem definition 加载入口，未来结束旧格式兼容时可整体删除，不影响 canonical `item.*` parser、model 或 YAML 基础设施。
 
 ## EmakiItem 套装状态
 

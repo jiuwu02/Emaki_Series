@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.attribute.config;
 
-import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
-import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.WARN;
+import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.INFO;
+import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.WARN;
 
 import java.io.File;
 import java.util.ArrayList;

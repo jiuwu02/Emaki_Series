@@ -19,6 +19,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -35,7 +36,7 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.storage.action.StorageStageRegistrar;
@@ -44,6 +45,7 @@ import emaki.jiuwu.craft.storage.api.model.StorageSnapshot;
 import emaki.jiuwu.craft.storage.apiimpl.DefaultStorageApi;
 import emaki.jiuwu.craft.storage.command.StorageCommandRouter;
 import emaki.jiuwu.craft.storage.config.AppConfig;
+import emaki.jiuwu.craft.storage.config.StorageConfigPrecheckContributor;
 import emaki.jiuwu.craft.storage.gui.StorageAmountFormatter;
 import emaki.jiuwu.craft.storage.gui.StorageGuiService;
 import emaki.jiuwu.craft.storage.gui.StorageLayoutResolver;
@@ -133,6 +135,8 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         registerActions();
+        // Registered before the first reload because that reload is now gated on this contributor.
+        registerConfigPrecheckContributor();
         reloadPluginState();
         registerCommandHandler();
         registerEventHandlers();
@@ -172,6 +176,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
      */
     @Override
     public void onDisable() {
+        ConfigPrecheckLifecycleSupport.unregister("storage");
         if (capabilityRegistration != null) {
             capabilityRegistration.close();
             capabilityRegistration = null;
@@ -214,6 +219,10 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     /** Reloads configuration, language, cost tiers and the GUI template. */
     public int reloadPluginState() {
         return lifecycleCoordinator.reload(this);
+    }
+
+    private void registerConfigPrecheckContributor() {
+        ConfigPrecheckLifecycleSupport.register(new StorageConfigPrecheckContributor(this));
     }
 
     private void applyRuntimeComponents(StorageRuntimeComponents components) {
@@ -312,6 +321,14 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         this.layout = layout;
     }
 
+    /**
+     * {@return the resolved storage layout}
+     *
+     * @deprecated 仓库内零调用（同名字段仍在内部使用，勿据此误删字段）。
+     *         布局由 {@code StorageLayoutResolver} 在配置加载期解析，
+     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "1.0.11", forRemoval = true)
     public StorageLayoutResolver.Layout layout() {
         return layout;
     }
@@ -383,6 +400,13 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return transactionService;
     }
 
+    /**
+     * {@return the storage search service}
+     *
+     * @deprecated 仓库内零调用。仓库搜索由 GUI 路径内部调用，
+     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+     */
+    @Deprecated(since = "1.0.11", forRemoval = true)
     public StorageSearchService searchService() {
         return searchService;
     }

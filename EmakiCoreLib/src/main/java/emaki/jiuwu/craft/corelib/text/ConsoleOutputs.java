@@ -1,61 +1,31 @@
 package emaki.jiuwu.craft.corelib.text;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * 已搬迁到 {@link emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs}，本类仅作过渡转发。
+ *
+ * <p>M2-2 路线 A：CoreLib 的通用工具与契约类型改由 {@code emaki-corelib-api}
+ * 提供。此处保留全部 2 个 public static 方法签名并逐一委托，
+ * 旧调用点行为完全不变。
+ *
+ * @deprecated 改用 {@link emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs}。
+ *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
+ */
+@Deprecated(since = "4.6.19", forRemoval = true)
 public final class ConsoleOutputs {
-
-    private static final int ASCII_START_COLOR = 0xFF80FF;
-    private static final int ASCII_END_COLOR = 0x00FFFF;
 
     private ConsoleOutputs() {
     }
 
     public static void sendGradientAscii(JavaPlugin plugin, String asciiArt) {
-        sendGradientAscii(plugin, asciiArt, ASCII_START_COLOR, ASCII_END_COLOR);
+        emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs.sendGradientAscii(plugin, asciiArt);
     }
 
     public static void sendGradientAscii(JavaPlugin plugin, String asciiArt, int startColor, int endColor) {
-        if (plugin == null || Texts.isBlank(asciiArt)) {
-            return;
-        }
-        String normalized = Texts.toStringSafe(asciiArt)
-                .stripTrailing()
-                .replace("\r\n", "\n")
-                .replace("\r", "\n");
-        for (String line : normalized.split("\n", -1)) {
-            plugin.getServer().getConsoleSender().sendMessage(buildGradientLine(line, startColor, endColor));
-        }
-    }
-
-    private static Component buildGradientLine(String line, int startColor, int endColor) {
-        if (line == null || line.isEmpty()) {
-            return Component.empty();
-        }
-        TextComponent.Builder builder = Component.text();
-        int length = line.length();
-        for (int index = 0; index < length; index++) {
-            float progress = length == 1 ? 0F : (float) index / (length - 1);
-            builder.append(Component.text(line.charAt(index), interpolateColor(progress, startColor, endColor)));
-        }
-        return builder.build();
-    }
-
-    private static TextColor interpolateColor(float progress, int startColor, int endColor) {
-        int startRed = (startColor >> 16) & 0xFF;
-        int startGreen = (startColor >> 8) & 0xFF;
-        int startBlue = startColor & 0xFF;
-
-        int endRed = (endColor >> 16) & 0xFF;
-        int endGreen = (endColor >> 8) & 0xFF;
-        int endBlue = endColor & 0xFF;
-
-        int red = Math.round(startRed + (endRed - startRed) * progress);
-        int green = Math.round(startGreen + (endGreen - startGreen) * progress);
-        int blue = Math.round(startBlue + (endBlue - startBlue) * progress);
-        return TextColor.color(red, green, blue);
+        emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs.sendGradientAscii(plugin, asciiArt, startColor, endColor);
     }
 }
