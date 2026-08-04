@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -135,6 +136,10 @@ public final class CookingCompletionCoordinator {
             }
             install(created);
             triggerAdvance(created.operationId());
+        }).exceptionally(error -> {
+            logger.warning("Unhandled failure while starting cooking completion " + operationId + ": "
+                    + rootCauseMessage(error));
+            return null;
         });
         return true;
     }
@@ -253,13 +258,56 @@ public final class CookingCompletionCoordinator {
         if (!accepting.get() || Texts.isBlank(operationId) || !advancing.add(operationId)) {
             return;
         }
-        advanceOne(operationId).whenComplete((progressed, error) -> {
+        CookingCompletionOperation operation = operations.get(operationId);
+        if (operation == null) {
+            advancing.remove(operationId);
+            return;
+        }
+        if (!dispatchAdvance(operationId, operation.stationCoordinates())) {
+            advancing.remove(operationId);
+            scheduleRetry(operationId);
+        }
+    }
+
+    private boolean dispatchAdvance(String operationId, StationCoordinates coordinates) {
+        if (executionDispatcher == null) {
+            advanceOnOwnerThread(operationId);
+            return true;
+        }
+        Location location = coordinates == null ? null : coordinates.location(0, 0, 0);
+        if (location == null) {
+            return false;
+        }
+        try {
+            return executionDispatcher.runAtLocation(
+                    plugin, location, () -> advanceOnOwnerThread(operationId)) != null;
+        } catch (Throwable error) {
+            logger.warning("Failed to schedule cooking completion advance " + operationId + ": "
+                    + rootCauseMessage(error));
+            return false;
+        }
+    }
+
+    private void advanceOnOwnerThread(String operationId) {
+        CompletableFuture<Boolean> advance;
+        try {
+            advance = advanceOne(operationId);
+            if (advance == null) {
+                advance = CompletableFuture.completedFuture(false);
+            }
+        } catch (Throwable error) {
+            advance = CompletableFuture.failedFuture(error);
+        }
+        advance.whenComplete((progressed, error) -> {
             advancing.remove(operationId);
             if (error != null) {
                 CookingCompletionOperation operation = operations.get(operationId);
-                if (operation != null) {
-                    save(operation.withError(rootCauseMessage(error))).whenComplete((_, saveError) -> scheduleRetry(operationId));
+                if (operation == null) {
+                    logger.warning("Cooking completion advance failed for " + operationId + ": "
+                            + rootCauseMessage(error));
+                    return;
                 }
+                save(operation.withError(rootCauseMessage(error))).whenComplete((_, saveError) -> scheduleRetry(operationId));
                 return;
             }
             if (Boolean.TRUE.equals(progressed) && operations.containsKey(operationId)) {
