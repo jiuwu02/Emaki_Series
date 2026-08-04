@@ -1,0 +1,90 @@
+version: "1.0.0"
+
+console:
+  plugin_starting: "正在启动 EmakiStation..."
+  plugin_started: "EmakiStation 启动完成"
+  plugin_stopped: "EmakiStation 已停止"
+  bootstrap_start: "正在检查配置文件..."
+  loader_config_load_error: "读取 config.yml 失败，已回退到默认配置"
+
+general:
+  no_permission: "<red>你没有权限执行该操作</red>"
+  players_only: "<red>该指令只能由玩家执行</red>"
+  unknown_command: "<red>未知子指令，使用 /emakistation help 查看帮助</red>"
+
+command:
+  help: |-
+    <gray>=== <aqua>EmakiStation</aqua> ===</gray>
+    <gray>/emakistation open <工作站></gray> <dark_gray>-</dark_gray> <white>打开工作站界面</white>
+    <gray>/emakistation queue</gray> <dark_gray>-</dark_gray> <white>查看自己的队列</white>
+    <gray>/emakistation claim</gray> <dark_gray>-</dark_gray> <white>领取待领取的产物</white>
+    <gray>/emakistation cancel <工作站> <序号></gray> <dark_gray>-</dark_gray> <white>取消队列条目</white>
+    <gray>/emakistation list [工作站]</gray> <dark_gray>-</dark_gray> <white>列出工作站或其配方</white>
+    <gray>/emakistation reload</gray> <dark_gray>-</dark_gray> <white>重载配置</white>
+  open_usage: "<red>用法：/emakistation open <工作站></red>"
+  open_failed: "<red>无法打开工作站：<gray>%reason%</gray></red>"
+  cancel_usage: "<red>用法：/emakistation cancel <工作站> <序号></red>"
+  cancel_done: "<green>已取消第 <yellow>%index%</yellow> 条队列</green>"
+  cancel_failed: "<red>取消失败：<gray>%reason%</gray></red>"
+  claim_done: "<green>已领取 <yellow>%count%</yellow> 条产物</green>"
+  claim_failed: "<red>领取失败：<gray>%reason%</gray></red>"
+  queue_empty: "<gray>当前没有任何队列条目</gray>"
+  queue_header: "<gray>[<aqua>%station%</aqua>] 队列 <yellow>%used%</yellow><gray>/</gray><yellow>%max%</yellow></gray>"
+  queue_entry: "<gray> <white>%index%.</white> <aqua>%recipe%</aqua> x<yellow>%batch%</yellow> <dark_gray>|</dark_gray> %state% <dark_gray>|</dark_gray> 剩余 <yellow>%remaining%</yellow></gray>"
+  list_station: "<gray>- <aqua>%station%</aqua> <white>%name%</white> <dark_gray>(<yellow>%recipes%</yellow> 个配方)</dark_gray></gray>"
+  list_recipe: "<gray>- <aqua>%recipe%</aqua> <white>%name%</white> <dark_gray>(<yellow>%duration%</yellow>s)</dark_gray></gray>"
+  reload_done: "<green>重载完成：<yellow>%stations%</yellow> 个工作站，<yellow>%recipes%</yellow> 个配方，<yellow>%issues%</yellow> 个问题</green>"
+  admin_usage: "<red>用法：/emakistation admin queue <玩家></red>"
+  unknown_station: "<red>未知工作站：<gray>%station%</gray></red>"
+  unknown_player: "<red>未知玩家：<gray>%player%</gray></red>"
+  debug_unavailable: "<red>调试功能当前不可用</red>"
+
+station:
+  # 加载期问题
+  station_missing_id: "工作站文件缺少 id：%file%"
+  station_no_channel: "工作站 %station% 的两个材料通道都被关闭，已跳过（%file%）"
+  recipe_missing_id: "配方文件缺少 id：%file%"
+  recipe_no_materials: "配方 %recipe% 没有任何可用材料，已跳过（%file%）"
+  recipe_no_outputs: "配方 %recipe% 没有任何产物，已跳过（%file%）"
+  recipe_bad_amount: "配方 %recipe% 的数量 %amount% 无效，已跳过该条"
+  recipe_bad_source: "配方 %recipe% 的物品源 %source% 无法解析（%file%）"
+  recipe_many_materials: "配方 %recipe% 有 %count% 种材料，超过警告阈值 %limit%"
+
+  # 运行期拒绝原因
+  unknown_station: "工作站不存在"
+  unknown_recipe: "配方不存在"
+  missing_layout: "工作站界面布局不存在"
+  bad_batch: "倍率无效"
+  recipe_not_at_station: "该配方不属于此工作站"
+  recipe_no_permission: "你没有使用该配方的权限"
+  recipe_condition_failed: "不满足该配方的合成条件"
+  queue_not_loaded: "队列数据尚未加载完成，请稍后再试"
+  queue_full: "队列已满"
+  pending_claim_full: "未领取的产物过多，请先领取"
+  storage_unavailable: "仓库通道当前不可用"
+  storage_insufficient: "仓库中的材料不足"
+  storage_batch_too_large: "本次操作涉及的材料种类过多"
+  storage_bad_request: "仓库请求参数无效"
+  insufficient_materials: "材料不足"
+  no_recipe: "没有匹配的配方"
+  submit_cancelled: "提交被其他插件取消"
+  cancel_pending_claim: "待领取的条目不能取消，请直接领取"
+  cancel_vetoed: "取消被其他插件阻止"
+  refund_partial: "部分材料未能退还"
+  queue_entry_missing: "队列条目不存在"
+  queue_load_failed: "读取队列数据失败"
+  open_bad_request: "打开请求参数无效"
+  open_failed: "界面打开失败"
+  open_mismatch: "界面校验失败"
+  submit_bad_request: "提交请求参数无效"
+  cancel_bad_request: "取消请求参数无效"
+  claim_bad_request: "领取请求参数无效"
+  claim_failed: "领取过程出错"
+  cancel_failed: "取消过程出错"
+  snapshot_bad_request: "查询参数无效"
+  api_backpack_unsupported: "API 不支持背包通道，材料只能由玩家在界面中放入"
+
+precheck:
+  passed: "配置检查通过"
+  required_file_missing: "缺少必需文件"
+  required_directory_missing: "缺少必需目录"

@@ -32,12 +32,14 @@
         <module>EmakiLevelApi</module>
         <module>EmakiCodexApi</module>
         <module>EmakiStorageApi</module>
+        <module>EmakiStationApi</module>
         <module>EmakiForge</module>
         <module>EmakiStrengthen</module>
         <module>EmakiCooking</module>
         <module>EmakiAttribute</module>
         <module>EmakiLevel</module>
         <module>EmakiCodex</module>
+        <module>EmakiStation</module>
     </modules>
 
     <profiles>
@@ -75,6 +77,8 @@
         <emaki.level.api.version>1.4.8</emaki.level.api.version>
         <emaki.codex.api.version>1.0.7</emaki.codex.api.version>
         <emaki.storage.api.version>1.0.12</emaki.storage.api.version>
+        <emaki.station.api.version>1.0.0</emaki.station.api.version>
+        <emaki.station.version>1.0.0</emaki.station.version>
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>

@@ -1,0 +1,51 @@
+# EmakiStation 工作站示例
+#
+# 文件名与 id 一致。每个工作站有自己的界面布局、配方集、队列参数和权限。
+id: "blacksmith"
+display_name: "<gold>铁匠工坊</gold>"
+
+# 使用哪个 gui/<layout>.yml。省略时按 id 查找。
+layout: "grid_3x3"
+
+# 打开该工作站需要的权限。留空则回落到 emakistation.access.<id>。
+permission: ""
+
+# 该工作站开放哪些配方。
+#   include_tags / include_ids 都为空时表示"全部配方"
+#   两者是并集关系，exclude_ids 最后生效
+recipes:
+  include_tags:
+    - "blacksmith"
+  include_ids: []
+  exclude_ids: []
+
+# 队列参数，省略的键继承 config.yml 的 queue 段。
+queue:
+  base_length: 3
+  max_length: 16
+  progress_mode: "offline"
+  cancel_refund_rate: 1.0
+  speed_multiplier: 1.0
+  allow_purchase: false
+
+# 材料来源通道。两个都关会导致该工作站被拒绝加载
+# （能打开但永远用不了，不如启动时就报错）。
+channels:
+  backpack: true
+  storage: true
+  # 打开界面时默认停在哪个通道。若该通道不可用会自动落到另一个。
+  default: "backpack"
+
+# 产物去向。
+#   storage_first / backpack_first - 首选目标满了会退到另一个
+#   storage_only / backpack_only   - 只用一个目标
+#
+# 所有目标都放不下时，条目进入"待领取"状态，不会掉落也不会销毁。
+output:
+  default: "storage_first"
+  player_switchable: true
+
+# 打开界面前的条件门。语法与其他 Emaki 模块一致。
+condition:
+  invalid_as_failure: true
+  conditions: []

@@ -1,0 +1,90 @@
+version: "1.0.0"
+
+console:
+  plugin_starting: "Starting EmakiStation..."
+  plugin_started: "EmakiStation started"
+  plugin_stopped: "EmakiStation stopped"
+  bootstrap_start: "Checking configuration files..."
+  loader_config_load_error: "Failed to read config.yml, falling back to defaults"
+
+general:
+  no_permission: "<red>You do not have permission to do that</red>"
+  players_only: "<red>That command can only be run by a player</red>"
+  unknown_command: "<red>Unknown subcommand, use /emakistation help</red>"
+
+command:
+  help: |-
+    <gray>=== <aqua>EmakiStation</aqua> ===</gray>
+    <gray>/emakistation open <station></gray> <dark_gray>-</dark_gray> <white>Open a station</white>
+    <gray>/emakistation queue</gray> <dark_gray>-</dark_gray> <white>View your queues</white>
+    <gray>/emakistation claim</gray> <dark_gray>-</dark_gray> <white>Claim finished outputs</white>
+    <gray>/emakistation cancel <station> <index></gray> <dark_gray>-</dark_gray> <white>Cancel a queued craft</white>
+    <gray>/emakistation list [station]</gray> <dark_gray>-</dark_gray> <white>List stations or recipes</white>
+    <gray>/emakistation reload</gray> <dark_gray>-</dark_gray> <white>Reload configuration</white>
+  open_usage: "<red>Usage: /emakistation open <station></red>"
+  open_failed: "<red>Could not open the station: <gray>%reason%</gray></red>"
+  cancel_usage: "<red>Usage: /emakistation cancel <station> <index></red>"
+  cancel_done: "<green>Cancelled queue entry <yellow>%index%</yellow></green>"
+  cancel_failed: "<red>Cancellation failed: <gray>%reason%</gray></red>"
+  claim_done: "<green>Claimed <yellow>%count%</yellow> finished crafts</green>"
+  claim_failed: "<red>Claim failed: <gray>%reason%</gray></red>"
+  queue_empty: "<gray>You have no queued crafts</gray>"
+  queue_header: "<gray>[<aqua>%station%</aqua>] queue <yellow>%used%</yellow><gray>/</gray><yellow>%max%</yellow></gray>"
+  queue_entry: "<gray> <white>%index%.</white> <aqua>%recipe%</aqua> x<yellow>%batch%</yellow> <dark_gray>|</dark_gray> %state% <dark_gray>|</dark_gray> <yellow>%remaining%</yellow> left</gray>"
+  list_station: "<gray>- <aqua>%station%</aqua> <white>%name%</white> <dark_gray>(<yellow>%recipes%</yellow> recipes)</dark_gray></gray>"
+  list_recipe: "<gray>- <aqua>%recipe%</aqua> <white>%name%</white> <dark_gray>(<yellow>%duration%</yellow>s)</dark_gray></gray>"
+  reload_done: "<green>Reloaded: <yellow>%stations%</yellow> stations, <yellow>%recipes%</yellow> recipes, <yellow>%issues%</yellow> issues</green>"
+  admin_usage: "<red>Usage: /emakistation admin queue <player></red>"
+  unknown_station: "<red>Unknown station: <gray>%station%</gray></red>"
+  unknown_player: "<red>Unknown player: <gray>%player%</gray></red>"
+  debug_unavailable: "<red>Debug output is unavailable right now</red>"
+
+station:
+  # Load-time problems
+  station_missing_id: "Station file is missing its id: %file%"
+  station_no_channel: "Station %station% has both material channels disabled, skipped (%file%)"
+  recipe_missing_id: "Recipe file is missing its id: %file%"
+  recipe_no_materials: "Recipe %recipe% has no usable materials, skipped (%file%)"
+  recipe_no_outputs: "Recipe %recipe% has no outputs, skipped (%file%)"
+  recipe_bad_amount: "Recipe %recipe% has an invalid amount %amount%, entry skipped"
+  recipe_bad_source: "Recipe %recipe% has an unresolvable item source %source% (%file%)"
+  recipe_many_materials: "Recipe %recipe% has %count% material types, above the warning threshold %limit%"
+
+  # Runtime rejections
+  unknown_station: "That station does not exist"
+  unknown_recipe: "That recipe does not exist"
+  missing_layout: "The station's GUI layout does not exist"
+  bad_batch: "Invalid batch multiplier"
+  recipe_not_at_station: "That recipe does not belong to this station"
+  recipe_no_permission: "You do not have permission to use that recipe"
+  recipe_condition_failed: "You do not meet that recipe's conditions"
+  queue_not_loaded: "Queue data is still loading, try again shortly"
+  queue_full: "The queue is full"
+  pending_claim_full: "Too many unclaimed crafts, claim them first"
+  storage_unavailable: "The warehouse channel is unavailable"
+  storage_insufficient: "Not enough materials in the warehouse"
+  storage_batch_too_large: "Too many material types for one operation"
+  storage_bad_request: "Invalid warehouse request"
+  insufficient_materials: "Not enough materials"
+  no_recipe: "No matching recipe"
+  submit_cancelled: "The submission was cancelled by another plugin"
+  cancel_pending_claim: "Unclaimed crafts cannot be cancelled, claim them instead"
+  cancel_vetoed: "The cancellation was blocked by another plugin"
+  refund_partial: "Some materials could not be refunded"
+  queue_entry_missing: "That queue entry does not exist"
+  queue_load_failed: "Failed to read queue data"
+  open_bad_request: "Invalid open request"
+  open_failed: "The window could not be opened"
+  open_mismatch: "Window validation failed"
+  submit_bad_request: "Invalid submit request"
+  cancel_bad_request: "Invalid cancel request"
+  claim_bad_request: "Invalid claim request"
+  claim_failed: "The claim failed"
+  cancel_failed: "The cancellation failed"
+  snapshot_bad_request: "Invalid query"
+  api_backpack_unsupported: "The API does not support the backpack channel; materials must be placed by the player"
+
+precheck:
+  passed: "Configuration check passed"
+  required_file_missing: "Required file is missing"
+  required_directory_missing: "Required directory is missing"

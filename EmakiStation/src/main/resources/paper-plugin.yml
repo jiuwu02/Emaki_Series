@@ -1,0 +1,28 @@
+name: EmakiStation
+main: emaki.jiuwu.craft.station.EmakiStationPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    EmakiStorage:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakistation.use:
+    default: true
+  emakistation.reload:
+    default: op
+  emakistation.debug:
+    default: op
+  emakistation.admin:
+    default: op

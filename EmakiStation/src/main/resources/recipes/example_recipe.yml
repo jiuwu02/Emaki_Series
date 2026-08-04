@@ -1,0 +1,53 @@
+# EmakiStation 配方示例
+#
+# 匹配方式是无序集合匹配：只看材料种类和总数，不看摆放位置，没有 shaped 概念。
+id: "iron_ingot_block"
+display_name: "<white>铁块压制</white>"
+
+# 工作站通过 tags 或 id 引用配方。
+tags:
+  - "blacksmith"
+
+# 使用该配方需要的权限，留空表示不限制。
+permission: ""
+
+# 单次合成耗时（秒）。填 0 或省略表示立即完成，不进队列。
+duration_seconds: 30
+
+# 材料需求。
+#
+# item_sources 是"任意其一"集合，数量按集合内总数计算：
+# 需要 64 个时，30 个 coal + 34 个 charcoal 也算满足。
+#
+# 单个配方的材料种类数不受 GUI 槽位数限制。仓库通道按 long 直扣，
+# 背包通道受原版每格 64 上限约束。
+#
+# 注意：材料分配是贪心的，没有回溯。当同一个物品能满足多条需求时，
+# 会分配给先声明的那一条。极少数情况下这会让一个理论可行的配方匹配失败，
+# 拆分配方即可规避。
+materials:
+  - item_sources:
+      - "minecraft:iron_ingot"
+    amount: 9
+    # consume: false 表示只校验持有、不扣除（用于"需要工具在手"这类需求）
+    consume: true
+
+result:
+  outputs:
+    - item_sources:
+        - "minecraft:iron_block"
+      amount: 1
+
+  # 结算后执行的动作行，语法与其他 Emaki 模块一致。
+  actions: []
+
+# 提交前的条件门。
+condition:
+  invalid_as_failure: true
+  conditions: []
+
+# 各阶段动作行。
+actions:
+  pre: []
+  success: []
+  failure: []
