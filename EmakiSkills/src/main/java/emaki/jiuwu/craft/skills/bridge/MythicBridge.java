@@ -12,7 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
-import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
+
 import io.lumine.mythic.api.skills.SkillMetadata;
 import io.lumine.mythic.bukkit.BukkitAPIHelper;
 import io.lumine.mythic.bukkit.MythicBukkit;
@@ -70,7 +70,7 @@ public final class MythicBridge {
     }
 
     public boolean castSkill(Player caster, String mythicSkillId) {
-        return castSkill(caster, mythicSkillId, ResolvedSkillParameters.empty());
+        return castSkill(caster, mythicSkillId, Map.of());
     }
 
     /**
@@ -90,8 +90,7 @@ public final class MythicBridge {
             return false;
         }
         try {
-            return apiHelper.castSkill(caster, mythicSkillId,
-                    metadataConsumer(ResolvedSkillParameters.empty()));
+            return apiHelper.castSkill(caster, mythicSkillId, metadataConsumer(Map.of()));
         } catch (Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),
@@ -101,12 +100,12 @@ public final class MythicBridge {
         }
     }
 
-    public boolean castSkill(Player caster, String mythicSkillId, ResolvedSkillParameters parameters) {
+    public boolean castSkill(Player caster, String mythicSkillId, Map<String, String> variables) {
         if (!available || apiHelper == null || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
             return false;
         }
         try {
-            return apiHelper.castSkill(caster, mythicSkillId, metadataConsumer(parameters));
+            return apiHelper.castSkill(caster, mythicSkillId, metadataConsumer(variables));
         } catch (Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),
@@ -117,19 +116,19 @@ public final class MythicBridge {
     }
 
     public boolean castSkill(Player caster, String mythicSkillId, Entity targetEntity, Location targetLocation) {
-        return castSkill(caster, mythicSkillId, targetEntity, targetLocation, ResolvedSkillParameters.empty());
+        return castSkill(caster, mythicSkillId, targetEntity, targetLocation, Map.of());
     }
 
     public boolean castSkill(Player caster,
             String mythicSkillId,
             Entity targetEntity,
             Location targetLocation,
-            ResolvedSkillParameters parameters) {
+            Map<String, String> variables) {
         if (!available || apiHelper == null || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
             return false;
         }
         if (targetEntity == null && targetLocation == null) {
-            return castSkill(caster, mythicSkillId, parameters);
+            return castSkill(caster, mythicSkillId, variables);
         }
         try {
             Entity trigger = targetEntity == null ? caster : targetEntity;
@@ -137,7 +136,7 @@ public final class MythicBridge {
             List<Entity> entityTargets = targetEntity == null ? List.of() : List.of(targetEntity);
             List<Location> locationTargets = targetLocation == null ? List.of() : List.of(targetLocation);
             return apiHelper.castSkill(caster, mythicSkillId, trigger, origin,
-                    entityTargets, locationTargets, 1.0F, metadataConsumer(parameters));
+                    entityTargets, locationTargets, 1.0F, metadataConsumer(variables));
         } catch (Exception exception) {
             warning("console.mythic_bridge_cast_failed", Map.of(
                     "skill", String.valueOf(mythicSkillId),
@@ -147,21 +146,21 @@ public final class MythicBridge {
         }
     }
 
-    private Consumer<SkillMetadata> metadataConsumer(ResolvedSkillParameters parameters) {
+    private Consumer<SkillMetadata> metadataConsumer(Map<String, String> variables) {
         return metadata -> {
-            if (metadata == null || parameters == null || parameters.values().isEmpty()) {
+            if (metadata == null || variables == null || variables.isEmpty()) {
                 return;
             }
             try {
-                metadata.getParameters().putAll(parameters.values());
+                metadata.getParameters().putAll(variables);
             } catch (RuntimeException exception) {
                 plugin.getLogger().log(Level.WARNING,
                         "MythicMobs skill metadata parameters rejected: provider=MythicMobs, parameters="
-                                + parameters.values().keySet()
+                                + variables.keySet()
                                 + ", operation=apply_skill_metadata_parameters, cause=" + exception,
                         exception);
             }
-            for (Map.Entry<String, String> entry : parameters.values().entrySet()) {
+            for (Map.Entry<String, String> entry : variables.entrySet()) {
                 metadata.getVariables().putString(entry.getKey(), entry.getValue());
             }
         };

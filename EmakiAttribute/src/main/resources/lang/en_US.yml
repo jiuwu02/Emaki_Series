@@ -36,6 +36,7 @@ console:
       directory_not_readable: "The directory is not readable."
       attribute_sources_disabled: "Both Lore and PDC item attribute sources are disabled, so all item attributes are inactive."
       attribute_sources_match_requires_both: "Match mode requires both Lore and PDC attribute reading; otherwise all item attributes are inactive."
+      scaling_curve_type_unknown: "Unknown scaling curve type %curve_type% for attribute %attribute%; falling back to logarithmic."
   combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>Config load failed: %error%</red>"

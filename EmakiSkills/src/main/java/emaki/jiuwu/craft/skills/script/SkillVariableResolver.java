@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
+import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillParameterDefinition;
 import emaki.jiuwu.craft.skills.model.SkillParameterType;
@@ -28,8 +28,7 @@ public final class SkillVariableResolver {
     public Map<String, String> resolve(Player player,
             SkillDefinition definition,
             String triggerId,
-            TriggerInvocation invocation,
-            ResolvedSkillParameters parameters) {
+            TriggerInvocation invocation) {
         Map<String, String> resolved = new LinkedHashMap<>();
         int level = definition == null ? 1 : levelService.currentLevel(player, definition);
         Map<String, Object> expressionVariables = parameterResolver.variables(player, definition, triggerId, invocation, level, level);
@@ -38,13 +37,14 @@ public final class SkillVariableResolver {
         resolved.put("trigger_id", Texts.toStringSafe(triggerId));
         resolved.put("has_target", invocation != null && invocation.targetEntity() != null ? "1" : "0");
 
-        if (parameters != null && parameters.values() != null) {
-            for (Map.Entry<String, String> entry : parameters.values().entrySet()) {
-                String key = normalizeRuntimeKey(entry.getKey());
-                resolved.put(key, entry.getValue());
-                expressionVariables.put(key, entry.getValue());
-            }
-        }
+        // The `emaki_`-prefixed keys are what MythicMobs skills read as `<skill.var.emaki_*>`. The loader
+        // skips `emaki_` keys in `variables:` (see SkillDefinitionLoader), so they can only be supplied here.
+        resolved.put("emaki_skill_id", definition == null ? "" : definition.id());
+        resolved.put("emaki_skill_level", Integer.toString(level));
+        resolved.put("emaki_trigger_id", Texts.toStringSafe(triggerId));
+        resolved.put("emaki_is_passive",
+                definition != null && definition.activationType() == SkillActivationType.PASSIVE ? "1" : "0");
+        resolved.put("emaki_has_target", invocation != null && invocation.targetEntity() != null ? "1" : "0");
 
         if (definition != null) {
             for (SkillParameterDefinition variable : definition.variables().values()) {
@@ -85,16 +85,5 @@ public final class SkillVariableResolver {
             return Long.toString(Math.round(value));
         }
         return Double.toString(value);
-    }
-
-    private String normalizeRuntimeKey(String key) {
-        String normalized = Texts.normalizeId(key);
-        if (normalized.startsWith("emaki_skill_")) {
-            return normalized.substring("emaki_skill_".length());
-        }
-        if (normalized.startsWith("emaki_")) {
-            return normalized.substring("emaki_".length());
-        }
-        return normalized;
     }
 }

@@ -275,12 +275,18 @@ damage_indicator:
 #   threshold: 衰减起始阈值（低于此值不受影响）
 #   curve_type: 衰减函数类型
 #     - "logarithmic": 对数衰减（推荐，平滑且直觉）
-#     - "sqrt": 平方根衰减（比对数更激进）
+#     - "sqrt": 平方根衰减。实现为 sqrt(factor × 超出量)，同一 factor 下
+#       实际弱于对数；且超出量小于 factor 时会放大而非衰减，需谨慎取值。
 #     - "piecewise_linear": 线性折扣（超出部分乘以 factor）
-#   factor: 衰减系数
-#     - logarithmic/sqrt: 控制曲线陡峭程度（越大越平缓）
-#     - piecewise_linear: 超出部分的保留比例（如 0.5 = 保留 50%）
+#   factor: 衰减系数。不同曲线下含义不同:
+#     - logarithmic/sqrt: 控制曲线陡峭程度（越大越平缓）。作除数使用，
+#       填 0 或负数会被抬为 1。
+#     - piecewise_linear: 超出部分的保留比例（如 0.5 = 保留 50%）。
+#       填 0 表示超出部分全部作废，是合法取值。
+# 说明: curve_type 拼写无法识别时回退为 logarithmic，并在配置预检中告警。
+#       piecewise_linear 实际是「超出部分乘以 factor」的单一折扣，不支持多段。
 #
+# 默认为空，即不启用任何衰减。取消下方注释即可生效。
 # 示例: 物理攻击超过 500 后对数衰减
 # scaling_curves:
 #   physical_attack_cap:

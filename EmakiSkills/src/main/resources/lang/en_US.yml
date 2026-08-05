@@ -200,7 +200,7 @@ gui:
   page_next: "<gray>Next Page</gray>"
   page_info: "<gray>Page %current%/%total%</gray>"
   # Upgrade menu (gui/upgrade_gui.yml)
-  # The currency, material and parameter lists render one entry per line: write a
+  # The currency and material lists render one entry per line: write a
   # single placeholder in the template and CoreLib expands it to match the entry count.
   upgrade_cost_free: "<green>None</green>"
   upgrade_currency_title: "<gold>Currency Cost</gold>"
@@ -212,9 +212,6 @@ gui:
   upgrade_penalty_none: "<green>None</green>"
   upgrade_penalty_downgrade: "<red>Drops one level on failure</red>"
   upgrade_penalty_reset: "<dark_red>Resets to level 1 on failure</dark_red>"
-  upgrade_parameter_title: "<gold>Parameter Changes</gold>"
-  upgrade_parameter_entry: "<gray>%param_name% <white>%current%</white> → <green>%target%</green></gray>"
-  upgrade_parameter_none: "<dark_gray>No parameter changes for this upgrade</dark_gray>"
   upgrade_confirm_title: "<green>Confirm Upgrade</green>"
   upgrade_confirm_status: "<gray>Clicking will deduct currency and materials</gray>"
   upgrade_insufficient_title: "<red>Insufficient Materials</red>"

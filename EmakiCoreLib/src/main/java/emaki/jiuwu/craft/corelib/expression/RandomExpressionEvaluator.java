@@ -50,10 +50,6 @@ final class RandomExpressionEvaluator {
             if (ConfigNodes.get(config, "min") != null && ConfigNodes.get(config, "max") != null) {
                 return evaluateUniformDetailed(config, scoped, depth + 1, maxNestedDepth);
             }
-            Object expression = ConfigNodes.get(config, "expression");
-            if (expression != null) {
-                return ExpressionEngine.evaluateNumberDetailed(Texts.toStringSafe(expression), scoped, depth + 1);
-            }
             return NumericEvaluationResult.failure("Numeric config does not declare a supported type or numeric fields.");
         }
         return switch (type) {
@@ -70,7 +66,7 @@ final class RandomExpressionEvaluator {
             case "triangle" ->
                 evaluateTriangleDetailed(config, scoped, depth + 1, maxNestedDepth);
             case "expression" ->
-                evaluateRequiredExpressionConfig(config, scoped, depth + 1);
+                evaluateRequiredChildConfig(config, "value", scoped, depth + 1, "expression", maxNestedDepth);
             case "string", "boolean" ->
                 NumericEvaluationResult.failure("Config type '" + type
                         + "' cannot be used where a numeric config is required.");
@@ -193,19 +189,6 @@ final class RandomExpressionEvaluator {
                 mode.value() == null ? 0D : mode.value(),
                 deviation.value() == null ? 1D : deviation.value()
         ));
-    }
-
-    private static NumericEvaluationResult evaluateRequiredExpressionConfig(Object config,
-            ExpressionEngine.NumericEvaluationScope scope,
-            int depth) {
-        Object expression = ConfigNodes.get(config, "expression");
-        if (expression == null) {
-            expression = ConfigNodes.get(config, "formula");
-        }
-        if (expression == null) {
-            return NumericEvaluationResult.failure("Numeric expression config is missing 'expression'.");
-        }
-        return ExpressionEngine.evaluateNumberDetailed(Texts.toStringSafe(expression), scope, depth + 1);
     }
 
     static NumericEvaluationResult evaluateRequiredChildConfig(Object config,

@@ -168,8 +168,7 @@ public final class DefaultSkillCatalog implements SkillCatalog {
                 preview.currencies().stream().map(cost -> new SkillUpgradePreview.CurrencyCost(
                         cost.provider(), cost.currencyId(), cost.amount(), cost.displayName())).toList(),
                 preview.materials().stream().map(cost -> new SkillUpgradePreview.MaterialCost(
-                        cost.item(), cost.amount(), cost.displayName())).toList(),
-                preview.parameters().values());
+                        cost.item(), cost.amount(), cost.displayName())).toList());
     }
 
     static SkillDefinitionView toView(SkillDefinition definition) {

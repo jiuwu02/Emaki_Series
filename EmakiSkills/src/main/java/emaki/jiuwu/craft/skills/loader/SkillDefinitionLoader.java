@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.skills.loader;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,6 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 configuration.getString("mythic_skill", ""),
                 activationType,
                 normalizeTriggerIds(configuration.getStringList("passive_triggers")),
-                parseSkillParameters(configuration.getSection("skill_parameters")),
                 parseSkillParameters(configuration.getSection("variables")),
                 parseScript(configuration.getSection("script")),
                 parseUpgradeConfig(configuration.getSection("upgrade")),
@@ -136,7 +136,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
             }
             parameters.put(definition.id(), definition);
         }
-        return Map.copyOf(parameters);
+        return Collections.unmodifiableMap(parameters);
     }
 
     private SkillParameterType resolveParameterType(YamlSection section) {
@@ -144,10 +144,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         if (Texts.isNotBlank(configuredType)) {
             return SkillParameterType.fromString(configuredType);
         }
-        if (Texts.isNotBlank(section.getString("formula", ""))
-                || Texts.isNotBlank(section.getString("expression", ""))) {
-            return SkillParameterType.EXPRESSION;
-        }
+
         if (hasRandomTextLines(section)) {
             return SkillParameterType.RANDOM_TEXT;
         }
@@ -168,13 +165,10 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
             return Map.copyOf(config);
         }
         if (type == SkillParameterType.STRING || type == SkillParameterType.BOOLEAN) {
-            return section.getString("expression", "");
+            return section.getString("value", "");
         }
         Map<String, Object> config = new LinkedHashMap<>(ConfigNodes.entries(section));
         config.put("type", type.configType());
-        if (type == SkillParameterType.EXPRESSION) {
-            config.put("expression", section.getString("expression", ""));
-        }
         config.entrySet().removeIf(entry -> entry.getValue() == null);
         return Map.copyOf(config);
     }
@@ -319,7 +313,6 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                     parseMaterials(levelSection.getMapList("materials")),
                     parseEconomyOverride(levelSection.getSection("economy")),
                     successRate,
-                    parseSkillParameters(levelSection.getSection("parameters")),
                     parseActionLines(levelSection.getSection("actions"), "success"),
                     parseActionLines(levelSection.getSection("actions"), "failure")
             );

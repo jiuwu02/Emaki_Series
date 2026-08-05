@@ -131,12 +131,12 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 plugin::appConfig
         );
         SkillLevelService skillLevelService = new SkillLevelService(playerSkillDataStore);
-        SkillParameterResolver skillParameterResolver = new SkillParameterResolver(skillLevelService, plugin);
+        SkillParameterResolver skillParameterResolver = new SkillParameterResolver(skillLevelService);
         CastModeService castModeService = new CastModeService(playerSkillDataStore);
         MythicSkillCastService mythicSkillCastService = new MythicSkillCastService(mythicBridge);
         SkillVariableResolver skillVariableResolver = new SkillVariableResolver(skillLevelService, skillParameterResolver);
         SkillPipelineRuntime skillPipelineRuntime = new SkillPipelineRuntime(plugin);
-        SkillScriptCastService skillScriptCastService = new SkillScriptCastService(plugin, skillVariableResolver, skillPipelineRuntime);
+        SkillScriptCastService skillScriptCastService = new SkillScriptCastService(plugin, skillPipelineRuntime);
         CastAttemptService castAttemptService = new CastAttemptService(
                 plugin,
                 playerSkillStateService,
@@ -144,7 +144,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 playerSkillDataStore,
                 mythicSkillCastService,
                 skillScriptCastService,
-                skillParameterResolver,
+                skillVariableResolver,
                 eaBridge,
                 externalManaBridge,
                 () -> localResourceDefinitionLoader.all(),
@@ -174,7 +174,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 plugin, guiService, guiTemplateLoader,
                 playerSkillStateService, playerSkillDataStore,
                 skillRegistryService, triggerRegistry,
-                castModeService, skillLevelService, skillParameterResolver,
+                castModeService, skillLevelService,
                 skillUpgradeService, messageService);
         return new SkillsRuntimeComponents(
                 appConfigLoader,

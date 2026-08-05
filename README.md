@@ -90,7 +90,7 @@ Project/
 - `EmakiStrengthen`：默认强化配方位于 `recipes/*.yml`（内置 `example_recipe.yml` 与 `example_branch_recipe.yml`），强化定义目录为 `enhancements/`，广播与全局成功率位于 `config.yml`。
 - `EmakiGem`：宝石、装备模板、开孔器与 GUI 资源位于 `gems/`、`items/`、`gui/gem/`、`gui/open/`、`gui/upgrade/` 与 `config.yml`。
 - `EmakiLevel`：等级类型、经验来源与升级需求位于 `types/`、`sources/`、`requirements.yml` 与 `config.yml`。
-- `EmakiSkills`：技能、GUI、主动/被动触发器配置位于 `skills/`、`gui/` 与 `config.yml`，技能效果本体通过 MythicMobs 配置桥接；技能配置可通过 `skill_parameters` 注入 `<skill.var.xxx>`，并使用与宝石/强化一致的 `upgrade` 风格配置技能升级。
+- `EmakiSkills`：技能、GUI、主动/被动触发器配置位于 `skills/`、`gui/` 与 `config.yml`，技能效果本体通过 MythicMobs 配置桥接；技能配置可通过 `variables` 注入 `<skill.var.xxx>`，并使用与宝石/强化一致的 `upgrade` 风格配置技能升级。
 - `EmakiCooking`：配方按工位分目录位于 `recipes/<station>/`（砧板、炒锅、研磨机、蒸锅、烤炉、榨汁机、发酵桶），另有 `nutrition/`、`item_adjustments/` 与 `gui/`；工位运行时状态保存在数据目录的 `data/stations/`。
 - `EmakiCodex`：图鉴、分类、进度规则与奖励资源位于模块配置目录及对应 definitions 文件中。
 
@@ -114,7 +114,7 @@ Project/
 
 ## EmakiSkills 技能参数与升级
 
-- `skill_parameters` 用于配置释放技能时注入 MythicMobs 的变量，MythicMobs 技能中推荐使用 `<skill.var.damage>`、`<skill.var.radius>`、`<skill.var.emaki_skill_level>` 读取。
+- `variables` 用于配置释放技能时注入 MythicMobs 的变量，MythicMobs 技能中推荐使用 `<skill.var.damage>`、`<skill.var.radius>`、`<skill.var.emaki_skill_level>` 读取。
 - `upgrade` 是技能升级的唯一配置入口，字段风格对齐 `EmakiGem` / `EmakiStrengthen`：`enabled`、`max_level`、`gui_template`、`economy.currencies`、`success_rates`、`failure_penalty`、`levels`。
 - `upgrade.levels.<target_level>` 表示升级到该等级的材料、经济覆盖、成功率覆盖、成功/失败动作，以及可选的参数覆盖。
 - 玩家技能等级由 `EmakiSkills` 持久化到玩家档案的 `skill_levels.<skill_id>.level`，未开启升级的技能等级固定为 `1`。

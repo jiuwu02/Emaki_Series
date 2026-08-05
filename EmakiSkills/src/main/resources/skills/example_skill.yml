@@ -102,35 +102,34 @@ resource_costs:
     failure_message: "魔力不足，需要 30 点魔力"
 
 # ============================================================
-# 技能参数
+# 技能变量
 # ============================================================
-# 定义技能的数值参数，支持表达式（可引用 %level% 等变量）。
-# type: 参数类型
+# 用于脚本中的占位符替换，脚本内以 %var.<名称>% 读取。
+# 支持两种写法：
+#   1. 简写：直接写字符串表达式或布尔表达式
+#   2. 完整：写成子节点，可指定类型与数值范围
+# 完整写法的字段：
+# type: 变量类型
 #   - "expression": 表达式类型（根据等级动态计算）
 #   - "constant": 常量类型（固定值）
 #   - "string": 字符串类型
 #   - "boolean": 布尔类型
 # decimals: 小数位数
 # min/max: 数值范围限制
-skill_parameters:
+# 注意：技能的 variables 是脚本内部使用的，不同于其他插件的 effects 变量。
+variables:
   damage:
     type: "expression"
-    expression: "18 + (%level% - 1) * 4"
+    value: "18 + (%level% - 1) * 4"
     decimals: 1
     min: 0
 
   radius:
     type: "expression"
-    expression: "2 + floor((%level% - 1) / 3) * 0.5"
+    value: "2 + floor((%level% - 1) / 3) * 0.5"
     decimals: 2
     min: 1
 
-# ============================================================
-# 技能变量
-# ============================================================
-# 用于脚本中的占位符替换。支持表达式字符串和布尔表达式。
-# 注意：技能的 variables 是脚本内部使用的，不同于其他插件的 effects 变量。
-variables:
   ignite_ticks: "40 + (%level% - 1) * 6"
   empowered: "%level% >= 5 && %has_target% == 1"
   impact_message: "<gold>火球术命中 %target_name%，造成 %damage% 点火焰伤害。</gold>"
@@ -230,18 +229,12 @@ upgrade:
         success: []
         failure: []
 
-    # 里程碑等级：参数覆盖
+    # 里程碑等级
     5:
       materials:
         - item_sources:
             - "minecraft-blaze_rod"
           amount: 1
-      # parameters: 覆盖技能参数（此等级及以上使用新的计算方式）
-      parameters:
-        radius:
-          type: "constant"
-          value: 3.5
-          decimals: 2
       actions:
         success:
           - 'send_message text="<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>"'

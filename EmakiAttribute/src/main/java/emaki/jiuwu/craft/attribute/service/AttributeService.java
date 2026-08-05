@@ -10,6 +10,7 @@ import org.bukkit.entity.Projectile;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.config.ScalingCurveConfig;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -337,7 +338,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     }
 
     List<ScalingCurveConfig> scalingCurves() {
-        return plugin.scalingCurves();
+        return configRef().scalingCurves();
     }
 
     @Override

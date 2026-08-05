@@ -31,7 +31,7 @@ public enum SkillParameterType {
             case "gaussian", "normal" -> GAUSSIAN;
             case "skew_normal", "skewnormal" -> SKEW_NORMAL;
             case "triangle" -> TRIANGLE;
-            case "expression", "expr", "formula" -> EXPRESSION;
+            case "expression" -> EXPRESSION;
             default -> CONSTANT;
         };
     }

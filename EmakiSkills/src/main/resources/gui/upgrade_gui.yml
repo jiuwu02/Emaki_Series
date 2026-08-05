@@ -68,19 +68,6 @@ slots:
         lore:
           - "<gray>失败惩罚: %failure_penalty%</gray>"
 
-  # 参数变化 (位置 16)
-  parameter_diff:
-    type: parameter_diff
-    slots:
-      - 16
-    item:
-      source: "writable_book"
-      components:
-        custom_name: "<gold>参数变化</gold>"
-        lore:
-          # %parameters% 每项各占一行，形如「damage 10 → 12」
-          - "%parameters%"
-
   # 返回 (位置 18)
   back:
     type: back

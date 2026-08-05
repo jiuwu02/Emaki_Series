@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.skills.api.model;
 
 import java.util.List;
-import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -13,8 +12,7 @@ public record SkillUpgradePreview(
         int maxLevel,
         double successRate,
         @NotNull List<CurrencyCost> currencies,
-        @NotNull List<MaterialCost> materials,
-        @NotNull Map<String, String> targetParameters) {
+        @NotNull List<MaterialCost> materials) {
 
     public SkillUpgradePreview {
         skillId = skillId == null ? "" : skillId;
@@ -24,7 +22,6 @@ public record SkillUpgradePreview(
         successRate = Math.max(0D, Math.min(100D, successRate));
         currencies = currencies == null ? List.of() : List.copyOf(currencies);
         materials = materials == null ? List.of() : List.copyOf(materials);
-        targetParameters = targetParameters == null ? Map.of() : Map.copyOf(targetParameters);
     }
 
     /** One currency component of an upgrade quote. */

@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.attribute.config.ScalingCurveConfig;
+
 final class ScalingCurveProcessor {
 
     ScalingCurveProcessor() {
@@ -28,9 +30,10 @@ final class ScalingCurveProcessor {
 
     private double applyFunction(double excess, String curveType, double factor) {
         return switch (curveType) {
-            case "sqrt" -> factor * Math.sqrt(excess / factor);
-            case "piecewise_linear", "linear" -> excess * factor;
-            case "logarithmic" -> factor * Math.log1p(excess / factor);
+            case ScalingCurveConfig.CURVE_SQRT -> factor * Math.sqrt(excess / factor);
+            case ScalingCurveConfig.CURVE_PIECEWISE_LINEAR, ScalingCurveConfig.CURVE_LINEAR -> excess * factor;
+            // Unknown types land here as well. The config precheck reports them, so the fallback only has to
+            // stay predictable rather than also diagnose.
             default -> factor * Math.log1p(excess / factor);
         };
     }

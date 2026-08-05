@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.api.event.SkillPreUpgradeEvent;
 import emaki.jiuwu.craft.skills.api.event.SkillUpgradeEvent;
-import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
+
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillUpgradeConfig;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
@@ -64,13 +64,11 @@ public final class SkillUpgradeService {
             int maxLevel,
             double successRate,
             List<CurrencyCost> currencies,
-            List<MaterialCost> materials,
-            ResolvedSkillParameters parameters) {
+            List<MaterialCost> materials) {
 
         public UpgradePreview {
             currencies = currencies == null ? List.of() : List.copyOf(currencies);
             materials = materials == null ? List.of() : List.copyOf(materials);
-            parameters = parameters == null ? ResolvedSkillParameters.empty() : parameters;
         }
     }
 
@@ -150,8 +148,7 @@ public final class SkillUpgradeService {
                 maxLevel,
                 successRate,
                 quoteCurrencies(player, definition, currentLevel, targetLevel),
-                quoteMaterials(definition, targetLevel),
-                resolveTargetParameters(player, definition, targetLevel)
+                quoteMaterials(definition, targetLevel)
         );
     }
 
@@ -341,15 +338,6 @@ public final class SkillUpgradeService {
             ));
         }
         return List.copyOf(result);
-    }
-
-    private ResolvedSkillParameters resolveTargetParameters(Player player, SkillDefinition definition, int targetLevel) {
-        if (definition == null || parameterResolver == null) {
-            return ResolvedSkillParameters.empty();
-        }
-        int currentLevel = levelService.currentLevel(player, definition);
-        return parameterResolver.resolveAtLevel(player, definition, "upgrade", null,
-                Math.max(1, targetLevel), Math.max(1, targetLevel), currentLevel);
     }
 
     private CostCheckResult checkCosts(Player player, UpgradePreview preview) {

@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
-import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
+
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
@@ -34,14 +34,11 @@ import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 public final class SkillScriptCastService {
 
     private final EmakiSkillsPlugin plugin;
-    private final SkillVariableResolver variableResolver;
     private final SkillPipelineRuntime runtime;
 
     public SkillScriptCastService(EmakiSkillsPlugin plugin,
-            SkillVariableResolver variableResolver,
             SkillPipelineRuntime runtime) {
         this.plugin = plugin;
-        this.variableResolver = variableResolver;
         this.runtime = runtime;
     }
 
@@ -55,22 +52,22 @@ public final class SkillScriptCastService {
      * @param definition the skill being cast
      * @param triggerId the trigger that started this cast
      * @param invocation the trigger invocation context, may be {@code null}
-     * @param parameters the resolved skill parameters
+     * @param variables the resolved skill variables
      * @return the outcome of the script run, never {@code null}
      */
     public CompletableFuture<PipelineOutcome> cast(Player caster,
             SkillDefinition definition,
             String triggerId,
             TriggerInvocation invocation,
-            ResolvedSkillParameters parameters) {
+            Map<String, String> variables) {
         if (caster == null || definition == null || !definition.script().enabled()) {
             return CompletableFuture.completedFuture(PipelineOutcome.failure(
                     CoreActionFailureKind.REJECTED, "skill.script_unavailable", Map.of(), List.of()));
         }
-        // Still hops to the caster's thread first: building the root context reads the caster's location, and
-        // the variable resolver reads live player state. Everything inside a phase is dispatched by CoreLib.
+        // Still hops to the caster's thread first: building the root context reads the caster's location.
+        // Everything inside a phase is dispatched by CoreLib.
         return onCaster(caster, () -> CompletableFuture.completedFuture(
-                        newSession(caster, definition, triggerId, invocation, parameters)))
+                        newSession(caster, definition, triggerId, invocation, variables)))
                 .thenCompose(session -> executeMainPhases(session)
                         .handle((outcome, throwable) -> new Completion(session, outcome, throwable)))
                 .thenCompose(this::finish);
@@ -80,9 +77,7 @@ public final class SkillScriptCastService {
             SkillDefinition definition,
             String triggerId,
             TriggerInvocation invocation,
-            ResolvedSkillParameters parameters) {
-        Map<String, String> variables = variableResolver.resolve(
-                caster, definition, triggerId, invocation, parameters);
+            Map<String, String> variables) {
         return new CastSession(caster, definition, variables, triggerTargets(invocation),
                 invocation == null ? null : invocation.targetLocation());
     }

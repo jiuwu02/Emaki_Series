@@ -1,10 +1,11 @@
 package emaki.jiuwu.craft.skills.mythic;
 
+import java.util.Map;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
-import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 public final class MythicSkillCastService {
@@ -51,20 +52,20 @@ public final class MythicSkillCastService {
     }
 
     public boolean cast(Player caster, String mythicSkillId, TriggerInvocation invocation) {
-        return cast(caster, mythicSkillId, invocation, ResolvedSkillParameters.empty());
+        return cast(caster, mythicSkillId, invocation, Map.of());
     }
 
     public boolean cast(Player caster,
             String mythicSkillId,
             TriggerInvocation invocation,
-            ResolvedSkillParameters parameters) {
+            Map<String, String> variables) {
         if (!isAvailable() || caster == null || mythicSkillId == null || mythicSkillId.isBlank()) {
             return false;
         }
         if (invocation == null) {
-            return mythicBridge.castSkill(caster, mythicSkillId, parameters);
+            return mythicBridge.castSkill(caster, mythicSkillId, variables);
         }
         return mythicBridge.castSkill(caster, mythicSkillId,
-                invocation.targetEntity(), invocation.targetLocation(), parameters);
+                invocation.targetEntity(), invocation.targetLocation(), variables);
     }
 }

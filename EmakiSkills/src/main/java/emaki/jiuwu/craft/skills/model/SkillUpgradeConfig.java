@@ -106,7 +106,6 @@ public record SkillUpgradeConfig(
             List<MaterialCost> materials,
             EconomyOverride economyOverride,
             Double successRate,
-            Map<String, SkillParameterDefinition> parameters,
             List<String> successActions,
             List<String> failureActions
     ) {
@@ -114,7 +113,6 @@ public record SkillUpgradeConfig(
         public SkillUpgradeLevel {
             targetLevel = Math.max(1, targetLevel);
             materials = materials == null ? List.of() : List.copyOf(materials);
-            parameters = parameters == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(parameters));
             successActions = successActions == null ? List.of() : List.copyOf(successActions);
             failureActions = failureActions == null ? List.of() : List.copyOf(failureActions);
         }

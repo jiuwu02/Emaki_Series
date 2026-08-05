@@ -32,7 +32,6 @@ import emaki.jiuwu.craft.skills.model.LocalResourceDefinition;
 import emaki.jiuwu.craft.skills.model.PlayerCastTimingState;
 import emaki.jiuwu.craft.skills.model.PlayerLocalResourceState;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
-import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillResourceCost;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
@@ -40,6 +39,7 @@ import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptMode;
+import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
 
 public final class CastAttemptService {
@@ -76,7 +76,7 @@ public final class CastAttemptService {
     private final PlayerSkillDataStore dataStore;
     private final MythicSkillCastService mythicCastService;
     private final SkillScriptCastService skillScriptCastService;
-    private final SkillParameterResolver skillParameterResolver;
+    private final SkillVariableResolver skillVariableResolver;
     private final EaBridge eaBridge;
     private final ExternalManaBridge externalManaBridge;
     private final Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier;
@@ -89,7 +89,7 @@ public final class CastAttemptService {
             PlayerSkillDataStore dataStore,
             MythicSkillCastService mythicCastService,
             SkillScriptCastService skillScriptCastService,
-            SkillParameterResolver skillParameterResolver,
+            SkillVariableResolver skillVariableResolver,
             EaBridge eaBridge,
             ExternalManaBridge externalManaBridge,
             Supplier<Map<String, LocalResourceDefinition>> localResourceDefsSupplier,
@@ -100,7 +100,7 @@ public final class CastAttemptService {
         this.dataStore = dataStore;
         this.mythicCastService = mythicCastService;
         this.skillScriptCastService = skillScriptCastService;
-        this.skillParameterResolver = skillParameterResolver;
+        this.skillVariableResolver = skillVariableResolver;
         this.eaBridge = eaBridge;
         this.externalManaBridge = externalManaBridge;
         this.localResourceDefsSupplier = localResourceDefsSupplier;
@@ -341,9 +341,11 @@ public final class CastAttemptService {
             }
         }
 
-        ResolvedSkillParameters parameters = skillParameterResolver == null
-                ? ResolvedSkillParameters.empty()
-                : skillParameterResolver.resolve(player, definition, plan.triggerId(), plan.invocation());
+        // Resolved once here and shared by both the script and Mythic legs: HYBRID runs them in sequence, and a
+        // random-valued variable must not roll a second time between the two.
+        Map<String, String> variables = skillVariableResolver == null
+                ? Map.of()
+                : skillVariableResolver.resolve(player, definition, plan.triggerId(), plan.invocation());
         SkillPreCastEvent preCastEvent = new SkillPreCastEvent(
                 player, definition.id(), Texts.toStringSafe(plan.triggerId()));
         plugin.getServer().getPluginManager().callEvent(preCastEvent);
@@ -351,7 +353,7 @@ public final class CastAttemptService {
             return completedFailure(FailureReason.CANCELLED, "cast.cancelled");
         }
 
-        return castSkillAsync(player, definition, plan.triggerId(), plan.invocation(), parameters)
+        return castSkillAsync(player, definition, plan.triggerId(), plan.invocation(), variables)
                 .handle((result, throwable) -> new CastOutcome(result, throwable))
                 .thenCompose(outcome -> onCaster(player, () -> CompletableFuture.completedFuture(
                         finalizeAttempt(player, session, definition, plan.triggerId(), outcome,
@@ -393,7 +395,7 @@ public final class CastAttemptService {
             SkillDefinition definition,
             String triggerId,
             TriggerInvocation invocation,
-            ResolvedSkillParameters parameters) {
+            Map<String, String> variables) {
         boolean hasScript = definition.script() != null && definition.script().enabled();
         String mythicSkillId = definition.mythicSkill();
         boolean hasMythic = Texts.isNotBlank(mythicSkillId);
@@ -401,13 +403,13 @@ public final class CastAttemptService {
         if (hasScript && mode == SkillScriptMode.NATIVE) {
             return skillScriptCastService == null
                     ? CompletableFuture.completedFuture(scriptServiceUnavailable())
-                    : skillScriptCastService.cast(player, definition, triggerId, invocation, parameters);
+                    : skillScriptCastService.cast(player, definition, triggerId, invocation, variables);
         }
         if (hasScript && mode == SkillScriptMode.HYBRID) {
             if (skillScriptCastService == null) {
                 return CompletableFuture.completedFuture(scriptServiceUnavailable());
             }
-            return skillScriptCastService.cast(player, definition, triggerId, invocation, parameters)
+            return skillScriptCastService.cast(player, definition, triggerId, invocation, variables)
                     .thenCompose(nativeOutcome -> {
                         if (nativeOutcome == null) {
                             return CompletableFuture.completedFuture(scriptServiceUnavailable());
@@ -419,7 +421,7 @@ public final class CastAttemptService {
                             return CompletableFuture.completedFuture(nativeOutcome);
                         }
                         return onCaster(player, () -> CompletableFuture.completedFuture(
-                                castMythic(player, mythicSkillId, invocation, parameters)));
+                                castMythic(player, mythicSkillId, invocation, variables)));
                     });
         }
         if (!hasMythic) {
@@ -429,7 +431,7 @@ public final class CastAttemptService {
                     CoreActionFailureKind.REJECTED, "skill.mythic_not_configured",
                     Map.of(), List.of()));
         }
-        return CompletableFuture.completedFuture(castMythic(player, mythicSkillId, invocation, parameters));
+        return CompletableFuture.completedFuture(castMythic(player, mythicSkillId, invocation, variables));
     }
 
     private static PipelineOutcome scriptServiceUnavailable() {
@@ -448,7 +450,7 @@ public final class CastAttemptService {
     private PipelineOutcome castMythic(Player player,
             String mythicSkillId,
             TriggerInvocation invocation,
-            ResolvedSkillParameters parameters) {
+            Map<String, String> variables) {
         if (mythicCastService == null) {
             return PipelineOutcome.failure(CoreActionFailureKind.OWNER_DISABLED,
                     "skill.script_unavailable", Map.of(), List.of());
@@ -458,7 +460,7 @@ public final class CastAttemptService {
                     MYTHIC_MISSING_REASON,
                     Map.of("mythic_skill", Texts.toStringSafe(mythicSkillId)), List.of());
         }
-        return mythicCastService.cast(player, mythicSkillId, invocation, parameters)
+        return mythicCastService.cast(player, mythicSkillId, invocation, variables)
                 ? PipelineOutcome.success(List.of())
                 : PipelineOutcome.failure(CoreActionFailureKind.REJECTED,
                         "skill.mythic_rejected", Map.of(), List.of());

@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
-import emaki.jiuwu.craft.skills.model.ResolvedSkillParameters;
+
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.model.SkillUpgradeConfig;
@@ -40,7 +40,7 @@ import emaki.jiuwu.craft.skills.service.CastModeService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
-import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
+
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
@@ -62,7 +62,7 @@ public final class SkillsGuiService {
     private final TriggerRegistry triggerRegistry;
     private final CastModeService castModeService;
     private final SkillLevelService skillLevelService;
-    private final SkillParameterResolver skillParameterResolver;
+
     private final SkillUpgradeService skillUpgradeService;
     private final MessageService messageService;
 
@@ -75,7 +75,6 @@ public final class SkillsGuiService {
             TriggerRegistry triggerRegistry,
             CastModeService castModeService,
             SkillLevelService skillLevelService,
-            SkillParameterResolver skillParameterResolver,
             SkillUpgradeService skillUpgradeService,
             MessageService messageService) {
         this.plugin = plugin;
@@ -87,7 +86,6 @@ public final class SkillsGuiService {
         this.triggerRegistry = triggerRegistry;
         this.castModeService = castModeService;
         this.skillLevelService = skillLevelService;
-        this.skillParameterResolver = skillParameterResolver;
         this.skillUpgradeService = skillUpgradeService;
         this.messageService = messageService;
     }
@@ -341,7 +339,7 @@ public final class SkillsGuiService {
         for (String line : definition.description()) {
             lore.add("<gray>" + line);
         }
-        appendLevelAndParameterLore(lore, player, definition);
+        appendLevelLore(lore, player, definition);
         String sourceLabel = "";
         if (entry.sourceType() != null) {
             lore.add("");
@@ -501,7 +499,6 @@ public final class SkillsGuiService {
             case "cost_currency" -> renderUpgradeCurrencyCost(slot, definition, preview);
             case "cost_material" -> renderUpgradeMaterialCost(player, slot, definition, preview);
             case "success_rate" -> renderUpgradeSuccessRate(slot, definition, preview);
-            case "parameter_diff" -> renderUpgradeParameterDiff(player, slot, definition, preview);
             case "confirm" -> renderUpgradeConfirm(player, slot, definition, preview);
             default -> null;
         };
@@ -574,39 +571,6 @@ public final class SkillsGuiService {
         Map<String, Object> replacements = upgradeBaseReplacements(definition, preview);
         return buildConfiguredItem(slot, "experience_bottle",
                 messageService.message("gui.upgrade_success_rate_title", replacements), List.of(), replacements);
-    }
-
-    private ItemStack renderUpgradeParameterDiff(Player player,
-            GuiSlot slot,
-            SkillDefinition definition,
-            UpgradePreview preview) {
-        Map<String, Object> replacements = upgradeBaseReplacements(definition, preview);
-        List<String> entries = new ArrayList<>();
-        if (preview != null && skillParameterResolver != null) {
-            Map<String, String> current = skillParameterResolver
-                    .resolve(player, definition, "upgrade", null).values();
-            for (Map.Entry<String, String> entry : preview.parameters().values().entrySet()) {
-                if (entry.getKey() == null || entry.getKey().startsWith("emaki_")) {
-                    continue;
-                }
-                String before = Texts.toStringSafe(current.get(entry.getKey()));
-                String after = Texts.toStringSafe(entry.getValue());
-                if (before.equals(after)) {
-                    continue;
-                }
-                entries.add(messageService.message("gui.upgrade_parameter_entry", Map.of(
-                        "param_name", entry.getKey(),
-                        "current", before.isEmpty() ? "-" : before,
-                        "target", after.isEmpty() ? "-" : after
-                )));
-            }
-        }
-        replacements.put("parameters", entries.isEmpty()
-                ? List.of(messageService.message("gui.upgrade_parameter_none"))
-                : List.copyOf(entries));
-        replacements.put("parameter_count", entries.size());
-        return buildConfiguredItem(slot, "writable_book",
-                messageService.message("gui.upgrade_parameter_title"), List.of(), replacements);
     }
 
     /**
@@ -725,7 +689,7 @@ public final class SkillsGuiService {
         return result;
     }
 
-    private void appendLevelAndParameterLore(List<String> lore, Player player, SkillDefinition definition) {
+    private void appendLevelLore(List<String> lore, Player player, SkillDefinition definition) {
         if (lore == null || player == null || definition == null || skillLevelService == null) {
             return;
         }
@@ -733,24 +697,6 @@ public final class SkillsGuiService {
         int maxLevel = skillLevelService.maxLevel(definition);
         if (maxLevel > 1) {
             lore.add("<gray>等级: <gold>" + level + "</gold><dark_gray>/</dark_gray><yellow>" + maxLevel + "</yellow>");
-        }
-        if (skillParameterResolver == null || definition.skillParameters().isEmpty()) {
-            return;
-        }
-        ResolvedSkillParameters parameters = skillParameterResolver.resolve(player, definition, "preview", null);
-        int shown = 0;
-        for (Map.Entry<String, String> entry : parameters.values().entrySet()) {
-            if (entry.getKey().startsWith("emaki_")) {
-                continue;
-            }
-            if (shown == 0) {
-                lore.add("<dark_gray>参数预览:");
-            }
-            lore.add("<gray> - " + entry.getKey() + ": <white>" + entry.getValue());
-            shown++;
-            if (shown >= 3) {
-                break;
-            }
         }
     }
 

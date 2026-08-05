@@ -31,7 +31,8 @@ public record AttributeConfig(String language,
         boolean syntheticHitHurtSound,
         ShieldConfig shield,
         DamageIndicatorConfig damageIndicator,
-        List<DamageCauseRule> allowedDamageCauses) {
+        List<DamageCauseRule> allowedDamageCauses,
+        List<ScalingCurveConfig> scalingCurves) {
 
     /** Attack speed cooldown is managed by EmakiAttribute for every attack. */
     private static final String ATTACK_SPEED_SCOPE_GLOBAL = "global";
@@ -64,6 +65,7 @@ public record AttributeConfig(String language,
                 true,
                 ShieldConfig.defaults(),
                 DamageIndicatorConfig.defaults(),
+                List.of(),
                 List.of()
         );
     }
@@ -113,6 +115,16 @@ public record AttributeConfig(String language,
                 causes.add(rule);
             }
         }
+        List<ScalingCurveConfig> curves = new ArrayList<>();
+        YamlSection curvesSection = configuration.getSection("scaling_curves");
+        if (curvesSection != null) {
+            for (String key : curvesSection.getKeys(false)) {
+                ScalingCurveConfig curve = ScalingCurveConfig.fromConfig(curvesSection.getSection(key), key);
+                if (curve != null && !curve.attributeId().isEmpty()) {
+                    curves.add(curve);
+                }
+            }
+        }
         return new AttributeConfig(
                 language,
                 releaseDefaultData,
@@ -137,7 +149,8 @@ public record AttributeConfig(String language,
                 syntheticHitHurtSound,
                 ShieldConfig.fromConfig(configuration.getSection("shield")),
                 DamageIndicatorConfig.fromConfig(configuration.getSection("damage_indicator")),
-                List.copyOf(causes)
+                List.copyOf(causes),
+                List.copyOf(curves)
         );
     }
 

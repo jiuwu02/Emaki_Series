@@ -36,6 +36,7 @@ console:
       directory_not_readable: "目录不可读。"
       attribute_sources_disabled: "Lore 与 PDC 物品属性来源均已关闭，所有物品属性都会失效。"
       attribute_sources_match_requires_both: "一致模式要求同时启用 Lore 与 PDC 属性读取，否则所有物品属性都会失效。"
+      scaling_curve_type_unknown: "属性 %attribute% 的衰减曲线类型 %curve_type% 无法识别，已回退为 logarithmic。"
   combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>配置读取失败: %error%</red>"
