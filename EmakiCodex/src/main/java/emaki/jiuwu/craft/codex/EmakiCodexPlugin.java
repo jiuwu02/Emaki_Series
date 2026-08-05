@@ -251,17 +251,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return advancementTriggerRegistry;
     }
 
-    /**
-     * {@return the codex trigger service}
-     *
-     * @deprecated 仓库内零调用。图鉴触发由生命周期编排在启用期接线，
-     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "1.0.6", forRemoval = true)
-    public CodexTriggerService triggerService() {
-        return triggerService;
-    }
-
     public DebugCommand debugCommand() {
         return debugCommand;
     }

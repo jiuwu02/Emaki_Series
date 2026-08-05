@@ -25,9 +25,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 /**
  * Grants, replaces or withdraws a timed attribute modifier on the target.
  *
- * <p>Replaces the legacy {@code TemporaryAttributeAction}. {@code add} stacks onto an existing effect of the
- * same id while {@code set} replaces it, which is why they are separate stages rather than one with a mode
- * argument.</p>
+ * <p>{@code add} stacks onto an existing effect of the same id while {@code set} replaces it, which is why
+ * they are separate stages rather than one with a mode argument.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: writes one player's temporary modifier table.</p>
  */

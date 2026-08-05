@@ -146,8 +146,8 @@ public final class EmakiItemDefinitionParser {
 
     private void removeLegacyOnlyComponentPatches(Map<String, ItemComponentPatch> patches, Object raw) {
         Object components = ConfigNodes.get(raw, "components");
-        for (String legacyKey : List.of("raw", "item_flags", "hide_tooltip", "hide-tooltip",
-                "hidden_components", "custommodeldata", "item-model", "display_name")) {
+        for (String legacyKey : List.of("raw", "item_flags", "hide_tooltip",
+                "hidden_components", "display_name")) {
             if (ConfigNodes.contains(components, legacyKey)) {
                 patches.remove("minecraft:" + legacyKey);
             }
@@ -155,11 +155,11 @@ public final class EmakiItemDefinitionParser {
     }
 
     private void overlayLegacyTextComponents(Map<String, ItemComponentPatch> patches, Object raw) {
-        Object displayName = first(raw, "display_name", "displayName");
+        Object displayName = ConfigNodes.get(raw, "display_name");
         if (displayName != null) {
             patches.put("minecraft:custom_name", ItemComponentPatch.set(ConfigNodes.toPlainData(displayName)));
         }
-        Object itemName = first(raw, "item_name", "itemName");
+        Object itemName = ConfigNodes.get(raw, "item_name");
         if (itemName != null && Texts.isNotBlank(itemName)) {
             patches.put("minecraft:item_name", ItemComponentPatch.set(ConfigNodes.toPlainData(itemName)));
         }
@@ -173,15 +173,6 @@ public final class EmakiItemDefinitionParser {
         Map<String, ItemComponentPatch> legacyText = new LinkedHashMap<>();
         overlayLegacyTextComponents(legacyText, raw);
         legacyText.forEach(patches::putIfAbsent);
-    }
-
-    private Object first(Object raw, String... keys) {
-        for (String key : keys) {
-            if (ConfigNodes.contains(raw, key)) {
-                return ConfigNodes.get(raw, key);
-            }
-        }
-        return null;
     }
 
     private String legacyMaterialSource(String materialName) {

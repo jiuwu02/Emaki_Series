@@ -54,8 +54,8 @@ public final class CookingSettingsService {
 
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*-\\s*(-?\\d+(?:\\.\\d+)?)\\s*$");
 
-    private static final String[] LIT_SOURCE_KEYS = {"lit_item_sources", "lit_source", "ignited_item_sources", "ignited_source", "on_item_sources", "on_source"};
-    private static final String[] UNLIT_SOURCE_KEYS = {"unlit_item_sources", "unlit_source", "extinguished_item_sources", "extinguished_source", "off_item_sources", "off_source"};
+    private static final String[] LIT_SOURCE_KEYS = {"lit_item_sources"};
+    private static final String[] UNLIT_SOURCE_KEYS = {"unlit_item_sources"};
     private static final DisplayAdjustmentProfile DEFAULT_ITEM_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
             new Vector3(0.5D, 1.02D, 0.5D),
             new RotationProfile(AxisRotation.fixed(90D), AxisRotation.fixed(0D), AxisRotation.fixed(0D)),
@@ -1022,7 +1022,7 @@ public final class CookingSettingsService {
         List<NutritionFoodSource> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            List<ItemSourceRef> sources = parseSources(firstPresent(normalized, "item_sources", "item_source", "item", "source"));
+            List<ItemSourceRef> sources = parseSources(normalized.get("item_sources"));
             if (sources.isEmpty()) {
                 continue;
             }
@@ -1048,11 +1048,11 @@ public final class CookingSettingsService {
             if (Texts.isBlank(id)) {
                 id = "single_" + index;
             }
-            List<String> types = normalizeIds(stringList(firstPresent(normalized, "types", "type")));
+            List<String> types = normalizeIds(stringList(normalized.get("types")));
             double value = configurationValueToDouble(normalized.get("value"), 0D);
-            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(firstPresent(normalized, "compare", "operator", "op")));
-            List<String> onMeet = stringList(firstPresent(normalized, "actions", "on_meet", "on_pass"));
-            List<String> onRecover = stringList(firstPresent(normalized, "on_recover", "on_fail", "recover_actions"));
+            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(normalized.get("compare")));
+            List<String> onMeet = stringList(normalized.get("actions"));
+            List<String> onRecover = stringList(normalized.get("on_recover"));
             if (onMeet.isEmpty() && onRecover.isEmpty()) {
                 index++;
                 continue;
@@ -1075,12 +1075,12 @@ public final class CookingSettingsService {
             if (Texts.isBlank(id)) {
                 id = "combo_" + index;
             }
-            List<String> types = normalizeIds(stringList(firstPresent(normalized, "types", "type")));
+            List<String> types = normalizeIds(stringList(normalized.get("types")));
             double value = configurationValueToDouble(normalized.get("value"), 0D);
-            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(firstPresent(normalized, "compare", "operator", "op")));
-            Integer requiredCount = configurationValueToInt(firstPresent(normalized, "required_count", "count"), 5);
-            List<String> onMeet = stringList(firstPresent(normalized, "actions", "on_meet", "on_pass"));
-            List<String> onRecover = stringList(firstPresent(normalized, "on_recover", "on_fail", "recover_actions"));
+            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(normalized.get("compare")));
+            Integer requiredCount = configurationValueToInt(normalized.get("required_count"), 5);
+            List<String> onMeet = stringList(normalized.get("actions"));
+            List<String> onRecover = stringList(normalized.get("on_recover"));
             if (onMeet.isEmpty() && onRecover.isEmpty()) {
                 index++;
                 continue;

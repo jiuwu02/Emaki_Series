@@ -102,7 +102,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private StorageOperationLog operationLog;
     private StorageCapacityService capacityService;
     private StorageTransactionService transactionService;
-    private StorageSearchService searchService;
     private StorageSortService sortService;
     private StorageOverflowService overflowService;
     private StorageUnlockService unlockService;
@@ -118,7 +117,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private DebugCommand debugCommand;
     private BStatsRegistration metrics;
     private TaskHandle autosaveTask;
-    private volatile StorageLayoutResolver.Layout layout;
 
     private final EmakiStorageApi.Bridge apiBridge = new DefaultStorageApi(this);
     private CapabilityRegistration capabilityRegistration;
@@ -240,7 +238,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         operationLog = components.operationLog();
         capacityService = components.capacityService();
         transactionService = components.transactionService();
-        searchService = components.searchService();
         sortService = components.sortService();
         overflowService = components.overflowService();
         unlockService = components.unlockService();
@@ -316,22 +313,8 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }, ticks, ticks);
     }
 
-    /** Records the resolved layout so command and session code can consult it. */
-    void applyLayout(StorageLayoutResolver.Layout layout) {
-        this.layout = layout;
-    }
 
-    /**
-     * {@return the resolved storage layout}
-     *
-     * @deprecated 仓库内零调用（同名字段仍在内部使用，勿据此误删字段）。
-     *         布局由 {@code StorageLayoutResolver} 在配置加载期解析，
-     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "1.0.11", forRemoval = true)
-    public StorageLayoutResolver.Layout layout() {
-        return layout;
-    }
+
 
     @Override
     public YamlConfigLoader<AppConfig> appConfigLoader() {
@@ -398,17 +381,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     public StorageTransactionService transactionService() {
         return transactionService;
-    }
-
-    /**
-     * {@return the storage search service}
-     *
-     * @deprecated 仓库内零调用。仓库搜索由 GUI 路径内部调用，
-     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "1.0.11", forRemoval = true)
-    public StorageSearchService searchService() {
-        return searchService;
     }
 
     public StorageSortService sortService() {

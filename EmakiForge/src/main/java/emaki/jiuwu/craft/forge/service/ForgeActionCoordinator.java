@@ -317,7 +317,6 @@ final class ForgeActionCoordinator {
         placeholders.put("forge_error_key", Texts.toStringSafe(errorKey));
         placeholders.put("forge_failure_reason", Texts.toStringSafe(failureReason));
         placeholders.put("forge_show_item", showItem);
-        placeholders.put("show_item", showItem);
         return placeholders;
     }
 

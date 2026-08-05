@@ -90,7 +90,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private MessageService messageService;
     private emaki.jiuwu.craft.attribute.service.DamageIndicatorService damageIndicatorService;
     private EmakiAttributeApi.Bridge emakiAttributeBridge;
-    private ParentAttributeDataStore parentAttributeDataStore;
     private ParentAttributeService parentAttributeService;
     private GuiTemplateLoader guiTemplateLoader;
     private GuiService guiService;
@@ -249,7 +248,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
                 () -> configModel() == null ? null : configModel().damageIndicator(),
                 this::messageService);
         emakiAttributeBridge = components.emakiAttributeBridge();
-        parentAttributeDataStore = components.parentAttributeDataStore();
         parentAttributeService = components.parentAttributeService();
         guiTemplateLoader = components.guiTemplateLoader();
         guiService = components.guiService();
@@ -353,18 +351,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return messageService;
     }
 
-    /**
-     * {@return the parent attribute data store}
-     *
-     * @deprecated 仓库内零调用。父属性数据读写应经 {@code ParentAttributeService}，
-     *         该服务负责校验与快照语义，直接取用底层 store 会绕过这些保证。
-     *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "4.6.14", forRemoval = true)
-    public ParentAttributeDataStore parentAttributeDataStore() {
-        return parentAttributeDataStore;
-    }
-
     public ParentAttributeService parentAttributeService() {
         return parentAttributeService;
     }
@@ -395,17 +381,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     public MythicBridge mythicBridge() {
         return mythicBridge;
-    }
-
-    /**
-     * {@return the MMOItems bridge}
-     *
-     * @deprecated 仓库内零调用。MMOItems 集成由桥接内部在事件回调中自行接线，
-     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "4.6.14", forRemoval = true)
-    public MmoItemsBridge mmoItemsBridge() {
-        return mmoItemsBridge;
     }
 
     public AttributePlaceholderExpansion placeholderExpansion() {

@@ -159,10 +159,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
             return false;
         }
         YamlSection condition = configuration.getSection("condition");
-        Object rawEntries = condition == null ? configuration.get("conditions") : condition.get("entries");
-        if (rawEntries == null && condition != null) {
-            rawEntries = condition.get("conditions");
-        }
+        Object rawEntries = condition == null ? null : condition.get("entries");
         if (rawEntries == null) {
             return true;
         }

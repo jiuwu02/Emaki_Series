@@ -90,7 +90,7 @@ public final class SkillCooldownStage implements CoreActionStage {
         return switch (operation) {
             case SET -> List.of(
                     CoreStageParameter.required("skill", CoreStageParameterType.STRING, "Skill id"),
-                    CoreStageParameter.required("duration_ticks", CoreStageParameterType.TIME,
+                    CoreStageParameter.required("duration_ticks", CoreStageParameterType.DURATION,
                             "Cooldown duration in ticks; zero or less removes the cooldown"));
             case CLEAR -> List.of(
                     CoreStageParameter.optional("skill", CoreStageParameterType.STRING, "",

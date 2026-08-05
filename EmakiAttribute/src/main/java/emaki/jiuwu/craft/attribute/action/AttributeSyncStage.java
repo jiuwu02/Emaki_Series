@@ -23,8 +23,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 /**
  * Recomputes attribute values, for one target or for everyone online.
  *
- * <p>Replaces the legacy {@code AttributeSyncAction}. {@code attribute_refresh} additionally drops the
- * module's caches, which is what makes it the stage to run after editing attribute configuration.</p>
+ * <p>{@code attribute_refresh} additionally drops the module's caches, which is what makes it the stage to
+ * run after editing attribute configuration.</p>
  *
  * <p>This is the one stage in the module whose thread domain depends on its arguments: {@code all=true} walks
  * the online-player list and therefore needs {@code SERVER_GLOBAL}, while {@code all=false} touches a single

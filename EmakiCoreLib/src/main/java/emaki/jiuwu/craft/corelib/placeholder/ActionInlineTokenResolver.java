@@ -12,9 +12,6 @@ public final class ActionInlineTokenResolver implements PlaceholderResolver {
         }
         String resolved = text;
         String showItem = context.placeholder("var.show_item");
-        if (Texts.isBlank(showItem)) {
-            showItem = context.placeholder("show_item");
-        }
         if (Texts.isNotBlank(showItem)) {
             resolved = resolved.replace("<show_item>", showItem);
         }

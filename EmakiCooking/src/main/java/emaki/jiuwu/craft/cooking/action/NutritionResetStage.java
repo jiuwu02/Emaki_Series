@@ -28,9 +28,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 /**
  * Returns the target's nutrition values to their minimum or configured default.
  *
- * <p>Replaces the legacy {@code NutritionResetAction}. {@code clear} drops each value to its minimum while
- * {@code reset} restores the configured default, which is why they are distinct stages: one starves the
- * player, the other returns them to a neutral state.</p>
+ * <p>{@code clear} drops each value to its minimum while {@code reset} restores the configured default, which
+ * is why they are distinct stages: one starves the player, the other returns them to a neutral state.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: writes one player's nutrition record.</p>
  */

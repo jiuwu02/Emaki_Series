@@ -26,8 +26,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 /**
  * Applies attribute-typed custom damage to the target.
  *
- * <p>Replaces the legacy {@code AttributeDamageAction}. Unlike the builtin {@code damage} stage this routes
- * through EmakiAttribute so the module's damage types, resistances and combat snapshot all apply.</p>
+ * <p>Unlike the builtin {@code damage} stage this routes through EmakiAttribute so the module's damage
+ * types, resistances and combat snapshot all apply.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: applies damage to one entity.</p>
  */

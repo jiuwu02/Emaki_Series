@@ -91,13 +91,11 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemItemMatcher itemMatcher;
     private GemItemFactory itemFactory;
     private GemSnapshotBuilder snapshotBuilder;
-    private GemPdcAttributeWriter pdcAttributeWriter;
     private GemStateService stateService;
     private GemEconomyService economyService;
     private GemActionCoordinator actionCoordinator;
     private SocketOpenerService socketOpenerService;
     private GemInlayService inlayService;
-    private GemExtractService extractService;
     private GemGuiService gemGuiService;
     private GemResonanceLoader resonanceLoader;
     private GemResonanceService resonanceService;
@@ -201,13 +199,11 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         itemMatcher = components.itemMatcher();
         itemFactory = components.itemFactory();
         snapshotBuilder = components.snapshotBuilder();
-        pdcAttributeWriter = components.pdcAttributeWriter();
         stateService = components.stateService();
         economyService = components.economyService();
         actionCoordinator = components.actionCoordinator();
         socketOpenerService = components.socketOpenerService();
         inlayService = components.inlayService();
-        extractService = components.extractService();
         gemGuiService = components.gemGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
@@ -330,17 +326,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         return snapshotBuilder;
     }
 
-    /**
-     * {@return the gem PDC attribute writer}
-     *
-     * @deprecated 仓库内零调用。PDC 属性写入由镶嵌/拆卸流程内部调用，
-     *         外部直接写入会绕过日志与校验。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.8", forRemoval = true)
-    public GemPdcAttributeWriter pdcAttributeWriter() {
-        return pdcAttributeWriter;
-    }
-
     public GemStateService stateService() {
         return stateService;
     }
@@ -359,17 +344,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public GemInlayService inlayService() {
         return inlayService;
-    }
-
-    /**
-     * {@return the gem extract service}
-     *
-     * @deprecated 仓库内零调用。宝石取出由 GUI 与命令路径调用，
-     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.8", forRemoval = true)
-    public GemExtractService extractService() {
-        return extractService;
     }
 
     public GemGuiService gemGuiService() {

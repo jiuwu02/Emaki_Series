@@ -25,14 +25,10 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 /**
  * Adds to, subtracts from, or sets one of the target's nutrition values.
  *
- * <p>Replaces the legacy {@code NutritionOperationAction}. Two v1 mechanisms are gone:</p>
- * <ul>
- *   <li>the {@code target} argument and its name-or-UUID resolution. That logic lived in
- *       {@code CookingActionExecutionTargets} and is now CoreLib's {@code player_by_name} source, so
- *       {@code player_by_name Steve | cooking_add_nutrition ...} replaces {@code target=Steve};</li>
- *   <li>the hand-built expression variable map. The pipeline renders placeholders into argument text before
- *       arguments are resolved, so {@code amount} declared as {@code EXPRESSION} covers the same ground.</li>
- * </ul>
+ * <p>Target selection is composed rather than an argument: {@code player_by_name Steve |
+ * cooking_add_nutrition ...} addresses another player through CoreLib's {@code player_by_name} source.
+ * Expression variables need no hand-built map either, because the pipeline renders placeholders into
+ * argument text before arguments are resolved, so {@code amount} declared as {@code EXPRESSION} suffices.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: writes one player's nutrition record.</p>
  */

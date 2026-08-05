@@ -26,13 +26,13 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 /**
  * Grants or withdraws timed attribute modifiers in bulk, addressed by tag.
  *
- * <p>Replaces the legacy {@code TemporaryAttributeTagAction}. A tag names a group of attributes configured
- * together, so one stage call can apply a whole buff without listing its parts.</p>
+ * <p>A tag names a group of attributes configured together, so one stage call can apply a whole buff without
+ * listing its parts.</p>
  *
- * <p><strong>Known duplication carried over from v1:</strong> {@code attribute_tag_clear} and
- * {@code attribute_tag_remove} both call {@code removeByTag} with the same argument, so the two ids behave
- * identically. This is preserved rather than fixed, because deciding what {@code clear} was meant to do
- * (drop every tag, presumably) would change behaviour that existing configuration may depend on.</p>
+ * <p><strong>Known duplication:</strong> {@code attribute_tag_clear} and {@code attribute_tag_remove} both
+ * call {@code removeByTag} with the same argument, so the two ids behave identically. This is preserved
+ * rather than fixed, because deciding what {@code clear} was meant to do (drop every tag, presumably) would
+ * change behaviour that existing configuration may depend on.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: writes one player's temporary modifier table.</p>
  */

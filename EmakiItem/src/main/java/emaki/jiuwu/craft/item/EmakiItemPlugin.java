@@ -120,7 +120,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private EmakiItemIdResolver idResolver;
     private EmakiItemMigrationService migrationService;
     private EmakiItemLayerPreviewRegistry layerPreviewRegistry;
-    private EmakiItemLayerPreviewService layerPreviewService;
     private EmakiItemIdentifier identifier;
     private EmakiItemPdcWriter pdcWriter;
     private EmakiItemFactory itemFactory;
@@ -368,7 +367,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         idResolver = components.idResolver();
         migrationService = components.migrationService();
         layerPreviewRegistry = components.layerPreviewRegistry();
-        layerPreviewService = components.layerPreviewService();
         identifier = components.identifier();
         pdcWriter = components.pdcWriter();
         itemFactory = components.itemFactory();
@@ -488,17 +486,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public EmakiItemLayerPreviewRegistry layerPreviewRegistry() {
         return layerPreviewRegistry;
-    }
-
-    /**
-     * {@return the item layer preview service}
-     *
-     * @deprecated 仓库内零调用。层预览由 GUI 路径内部调用，
-     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.11", forRemoval = true)
-    public EmakiItemLayerPreviewService layerPreviewService() {
-        return layerPreviewService;
     }
 
     public EmakiItemIdentifier identifier() {

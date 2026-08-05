@@ -100,7 +100,6 @@ public final class StrengthenActionCoordinator {
         placeholders.put("strengthen_temper", Integer.toString(temper));
         placeholders.put("strengthen_show_item", showItem);
         placeholders.put("strengthen_result_slot", resultSlotId == null ? "" : resultSlotId);
-        placeholders.put("show_item", showItem);
         placeholders.put("star", Integer.toString(star));
         placeholders.put("temper", Integer.toString(temper));
         placeholders.put("dropped", Boolean.toString(dropped));

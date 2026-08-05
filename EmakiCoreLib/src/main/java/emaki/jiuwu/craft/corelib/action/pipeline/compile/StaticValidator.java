@@ -533,7 +533,7 @@ public final class StaticValidator {
             case INTEGER -> ValueParsers.parseIntNullable(value) != null;
             case DOUBLE -> ValueParsers.parseDoubleNullable(value) != null;
             case BOOLEAN -> "true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value);
-            case TIME, DURATION -> ValueParsers.parseTicks(value) >= 0L;
+            case DURATION -> ValueParsers.parseTicks(value) >= 0L;
             case ENTITY_TYPE -> enumExists(EntityType.class, value);
             case MATERIAL -> Material.matchMaterial(value) != null;
             case PERCENTAGE -> validChance(value);

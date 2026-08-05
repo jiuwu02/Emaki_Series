@@ -509,7 +509,7 @@ public final class ExpressionEngine {
                         ? TextEvaluationResult.success(formatTextNumber(result.value()))
                         : TextEvaluationResult.failure(result.issues());
             }
-            Object value = firstConfigValue(config, "value", "text", "template", "expression", "formula");
+            Object value = ConfigNodes.get(config, "value");
             if (value != null) {
                 return evaluateStringConfigDetailed(value, scoped, depth + 1);
             }
@@ -529,14 +529,14 @@ public final class ExpressionEngine {
             return evaluateConditionalCharDetailed(config, scoped, depth + 1);
         }
         if (isStringConfigType(type)) {
-            Object value = firstConfigValue(config, "value", "text", "template", "expression", "formula");
+            Object value = ConfigNodes.get(config, "value");
             return value == null
                     ? TextEvaluationResult.success("")
                     : evaluateStringConfigDetailed(value, scoped, depth + 1);
         }
         if (isBooleanConfigType(type)) {
             TextBooleanResult result = evaluateTextBooleanValue(
-                    firstConfigValue(config, "value", "expression", "formula"),
+                    ConfigNodes.get(config, "value"),
                     scoped,
                     depth + 1,
                     false
@@ -603,7 +603,7 @@ public final class ExpressionEngine {
             }
             lines.addAll(lineResult.lines());
         }
-        String separator = Texts.toStringSafe(firstConfigValue(config, "separator", "joiner"));
+        String separator = Texts.toStringSafe(ConfigNodes.get(config, "separator"));
         if (separator.isEmpty()) {
             separator = "\n";
         }
@@ -639,7 +639,7 @@ public final class ExpressionEngine {
                 ? selectWeightedRandomChars(config, candidates.values(), scoped, depth + 1, requestedCount,
                         allowDuplicates.value(), issues)
                 : selectRandomChars(candidates.values(), requestedCount, allowDuplicates.value());
-        String separator = Texts.toStringSafe(firstConfigValue(config, "separator", "joiner"));
+        String separator = Texts.toStringSafe(ConfigNodes.get(config, "separator"));
         String value = String.join(separator, selected);
         return new TextEvaluationResult(issues.isEmpty(), value, value.isEmpty() ? List.of() : List.of(value), issues);
     }
@@ -653,7 +653,7 @@ public final class ExpressionEngine {
         }
         TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
         List<String> issues = new ArrayList<>();
-        Object rawCases = firstConfigValue(config, "cases", "conditions");
+        Object rawCases = ConfigNodes.get(config, "cases");
         List<Object> cases = ConfigNodes.asObjectList(rawCases);
         if (!cases.isEmpty()) {
             for (int index = 0; index < cases.size(); index++) {
@@ -662,7 +662,7 @@ public final class ExpressionEngine {
                     issues.add("Conditional char case at index " + index + " is empty.");
                     continue;
                 }
-                Object condition = firstConfigValue(entry, "condition", "when", "if", "expression", "formula");
+                Object condition = ConfigNodes.get(entry, "condition");
                 if (condition == null) {
                     issues.add("Conditional char case at index " + index + " is missing condition.");
                     continue;
@@ -676,29 +676,29 @@ public final class ExpressionEngine {
                 if (!conditionResult.value()) {
                     continue;
                 }
-                Object value = firstConfigValue(entry, "value", "char", "text", "result", "output");
+                Object value = ConfigNodes.get(entry, "value");
                 if (value == null) {
                     issues.add("Conditional char case at index " + index + " is missing value.");
                     return new TextEvaluationResult(false, "", List.of(), issues);
                 }
                 return evaluateConditionalCharValue(value, scoped, depth + 1, issues);
             }
-            Object fallback = firstConfigValue(config, "fallback", "default", "else", "false_value");
+            Object fallback = ConfigNodes.get(config, "fallback");
             if (fallback == null) {
                 return new TextEvaluationResult(issues.isEmpty(), "", List.of(), issues);
             }
             return evaluateConditionalCharValue(fallback, scoped, depth + 1, issues);
         }
 
-        Object condition = firstConfigValue(config, "condition", "when", "if", "expression", "formula");
+        Object condition = ConfigNodes.get(config, "condition");
         if (condition == null) {
             return TextEvaluationResult.failure("Conditional char config is missing 'condition' or 'cases'.");
         }
         TextBooleanResult conditionResult = evaluateTextBooleanValue(condition, scoped, depth + 1, false);
         issues.addAll(conditionResult.issues());
         Object value = conditionResult.issues().isEmpty() && conditionResult.value()
-                ? firstConfigValue(config, "true_value", "true", "then", "value", "char")
-                : firstConfigValue(config, "false_value", "false", "else", "fallback", "default");
+                ? ConfigNodes.get(config, "true_value")
+                : ConfigNodes.get(config, "false_value");
         if (value == null) {
             issues.add("Conditional char config is missing "
                     + (conditionResult.issues().isEmpty() && conditionResult.value() ? "true_value" : "false_value")
@@ -842,7 +842,7 @@ public final class ExpressionEngine {
         }
         if (isBooleanConfigType(type)) {
             TextBooleanResult result = evaluateTextBooleanValue(
-                    firstConfigValue(rawValue, "value", "expression", "formula"),
+                    ConfigNodes.get(rawValue, "value"),
                     scope,
                     depth + 1,
                     false
@@ -855,7 +855,7 @@ public final class ExpressionEngine {
     }
 
     private static TextIntegerResult evaluateTextRollCount(Object config, TextEvaluationScope scope, int depth) {
-        Object value = firstConfigValue(config, "rolls", "count", "times", "random_times", "amount");
+        Object value = ConfigNodes.get(config, "count");
         if (value == null) {
             return new TextIntegerResult(1, List.of());
         }
@@ -872,14 +872,7 @@ public final class ExpressionEngine {
     }
 
     private static TextBooleanResult evaluateTextAllowDuplicates(Object config, TextEvaluationScope scope, int depth) {
-        Object value = firstConfigValue(config,
-                "allow_duplicates",
-                "allow_duplicate",
-                "allow_repeat",
-                "allow_repeats",
-                "repeat",
-                "repeatable",
-                "with_replacement");
+        Object value = ConfigNodes.get(config, "allow_duplicates");
         if (value == null) {
             return new TextBooleanResult(false, List.of());
         }
@@ -902,7 +895,7 @@ public final class ExpressionEngine {
         Object expression = value;
         if (!(value instanceof String)) {
             TextEvaluationScope scoped = textScopeWithConfigVariables(value, scope);
-            expression = firstConfigValue(value, "value", "expression", "formula");
+            expression = ConfigNodes.get(value, "value");
             if (expression == null) {
                 return new TextBooleanResult(fallback, List.of("Boolean text config is missing value or expression."));
             }
@@ -917,7 +910,7 @@ public final class ExpressionEngine {
     }
 
     private static List<Object> randomTextLineCandidates(Object config) {
-        Object value = firstConfigValue(config, "lines", "values", "options", "texts", "value");
+        Object value = ConfigNodes.get(config, "lines");
         if (value == null) {
             return List.of();
         }
@@ -931,7 +924,7 @@ public final class ExpressionEngine {
     }
 
     private static TextCandidates randomCharCandidates(Object config, TextEvaluationScope scope, int depth) {
-        Object raw = firstConfigValue(config, "chars", "characters", "alphabet", "values");
+        Object raw = ConfigNodes.get(config, "chars");
         if (raw == null) {
             raw = DEFAULT_RANDOM_CHARS;
         }
@@ -1027,7 +1020,7 @@ public final class ExpressionEngine {
             TextEvaluationScope scope,
             int depth,
             List<String> issues) {
-        Object rawWeights = firstConfigValue(config, "weights", "weight");
+        Object rawWeights = ConfigNodes.get(config, "weights");
         if (rawWeights == null) {
             issues.add("Weighted random char config is missing 'weights'.");
             return List.of();
@@ -1066,19 +1059,7 @@ public final class ExpressionEngine {
     }
 
     private static boolean hasRandomTextLines(Object config) {
-        return firstConfigValue(config, "lines", "values", "options", "texts") != null;
-    }
-
-    private static Object firstConfigValue(Object config, String... keys) {
-        if (config == null || keys == null) {
-            return null;
-        }
-        for (String key : keys) {
-            if (ConfigNodes.contains(config, key)) {
-                return ConfigNodes.get(config, key);
-            }
-        }
-        return null;
+        return ConfigNodes.get(config, "lines") != null;
     }
 
     private static TextEvaluationScope textScopeWithConfigVariables(Object config, TextEvaluationScope scope) {
@@ -1147,7 +1128,7 @@ public final class ExpressionEngine {
             return true;
         }
         return Texts.isBlank(type) && (hasRandomTextLines(config)
-                || firstConfigValue(config, "text", "template") != null);
+                || ConfigNodes.get(config, "text") != null);
     }
 
     private static boolean looksLikeNumericConfig(Object config) {
@@ -1184,16 +1165,16 @@ public final class ExpressionEngine {
     }
 
     static boolean isStringConfigType(String type) {
-        return "string".equals(type) || "str".equals(type) || "text".equals(type);
+        return "string".equals(type);
     }
 
     static boolean isBooleanConfigType(String type) {
-        return "boolean".equals(type) || "bool".equals(type) || "flag".equals(type);
+        return "boolean".equals(type);
     }
 
     static boolean isNumericConfigType(String type) {
         return switch (type) {
-            case "constant", "const", "fixed", "range", "uniform", "gaussian", "normal",
+            case "constant", "range", "uniform", "gaussian",
                     "skew_normal", "triangle", "expression" ->
                 true;
             default ->

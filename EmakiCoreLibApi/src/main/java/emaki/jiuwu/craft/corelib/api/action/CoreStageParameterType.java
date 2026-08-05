@@ -3,8 +3,8 @@ package emaki.jiuwu.craft.corelib.api.action;
 /**
  * Value shapes a stage parameter can declare.
  *
- * <p>Extends the v1 five-value set with the types that v1 stages parsed by hand inside
- * {@code execute}, so validation moves to config load time.</p>
+ * <p>Declaring the shape moves validation to config load time instead of leaving each stage to parse the
+ * raw text inside {@code execute}.</p>
  */
 public enum CoreStageParameterType {
 
@@ -19,9 +19,6 @@ public enum CoreStageParameterType {
 
     /** {@code true} / {@code false}. */
     BOOLEAN,
-
-    /** Legacy tick/second form kept for v1 parity. */
-    TIME,
 
     /** A Bukkit {@code EntityType} name. */
     ENTITY_TYPE,

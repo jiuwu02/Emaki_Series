@@ -50,7 +50,7 @@ public record ConditionGroup(String conditionType,
         }
         YamlSection section = asSection(raw);
         if (section != null) {
-            Object entries = section.contains("entries") ? section.get("entries") : section.get("conditions");
+            Object entries = section.get("entries");
             if (entries == null) {
                 return new ConditionGroup(defaultType, defaultRequiredCount, List.of());
             }

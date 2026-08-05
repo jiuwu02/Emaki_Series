@@ -44,7 +44,7 @@ result:
 # 提交前的条件门。
 condition:
   invalid_as_failure: true
-  conditions: []
+  entries: []
 
 # 各阶段动作行。
 actions:

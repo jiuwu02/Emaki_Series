@@ -21,8 +21,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 /**
  * Re-evaluates the target's nutrition thresholds so buffs and penalties catch up.
  *
- * <p>Replaces the legacy {@code NutritionThresholdRecheckAction}. Useful after a batch of nutrition writes
- * that each suppressed threshold evaluation, or after the thresholds themselves were reconfigured.</p>
+ * <p>Useful after a batch of nutrition writes that each suppressed threshold evaluation, or after the
+ * thresholds themselves were reconfigured.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: {@code recheckThresholds} takes one player and evaluates only that
  * player's single and combination thresholds. The service does walk the online-player list elsewhere, but that

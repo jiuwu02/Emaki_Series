@@ -108,14 +108,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private ManualSkillSourceService manualSkillSourceService;
     private PlayerSkillStateService playerSkillStateService;
     private SkillLevelService skillLevelService;
-    private SkillParameterResolver skillParameterResolver;
-    private SkillVariableResolver skillVariableResolver;
     private SkillPipelineRuntime skillPipelineRuntime;
-    private SkillScriptCastService skillScriptCastService;
     private SkillUpgradeService skillUpgradeService;
     private CastModeService castModeService;
     private CastAttemptService castAttemptService;
-    private MythicSkillCastService mythicSkillCastService;
     private ActionBarService actionBarService;
     private SkillsGuiService skillsGuiService;
     private EaBridge eaBridge;
@@ -227,14 +223,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         manualSkillSourceService = components.manualSkillSourceService();
         playerSkillStateService = components.playerSkillStateService();
         skillLevelService = components.skillLevelService();
-        skillParameterResolver = components.skillParameterResolver();
-        skillVariableResolver = components.skillVariableResolver();
         skillPipelineRuntime = components.skillPipelineRuntime();
-        skillScriptCastService = components.skillScriptCastService();
         skillUpgradeService = components.skillUpgradeService();
         castModeService = components.castModeService();
         castAttemptService = components.castAttemptService();
-        mythicSkillCastService = components.mythicSkillCastService();
         actionBarService = components.actionBarService();
         skillsGuiService = components.skillsGuiService();
         eaBridge = components.eaBridge();
@@ -362,17 +354,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return threadOwnership;
     }
 
-    /**
-     * {@return the equipment skill collector}
-     *
-     * @deprecated 仓库内零调用。装备技能收集由 {@code SkillsLifecycleCoordinator} 在编排期直接持有并驱动，
-     *         外部无需从插件主类取用。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.13", forRemoval = true)
-    public EquipmentSkillCollector equipmentSkillCollector() {
-        return equipmentSkillCollector;
-    }
-
     public SkillSourceRegistry skillSourceRegistry() {
         return skillSourceRegistry;
     }
@@ -405,41 +386,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return skillLevelService;
     }
 
-    /**
-     * {@return the skill parameter resolver}
-     *
-     * @deprecated 仓库内零调用。参数解析在技能流水线内部完成，调用方应使用 {@code SkillPipelineRuntime}
-     *         而非直接取解析器。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.13", forRemoval = true)
-    public SkillParameterResolver skillParameterResolver() {
-        return skillParameterResolver;
-    }
-
-    /**
-     * {@return the skill variable resolver}
-     *
-     * @deprecated 仓库内零调用。变量解析在技能流水线内部完成，调用方应使用 {@code SkillPipelineRuntime}
-     *         而非直接取解析器。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.13", forRemoval = true)
-    public SkillVariableResolver skillVariableResolver() {
-        return skillVariableResolver;
-    }
-
     public SkillPipelineRuntime skillPipelineRuntime() {
         return skillPipelineRuntime;
-    }
-
-    /**
-     * {@return the skill script cast service}
-     *
-     * @deprecated 仓库内零调用。脚本释放由 {@code SkillsLifecycleCoordinator} 在编排期接线，
-     *         外部释放技能应走 {@code EmakiSkillsApi}。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.13", forRemoval = true)
-    public SkillScriptCastService skillScriptCastService() {
-        return skillScriptCastService;
     }
 
     public EmakiSkillsApi.Bridge emakiSkillsApi() {
@@ -456,17 +404,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public CastAttemptService castAttemptService() {
         return castAttemptService;
-    }
-
-    /**
-     * {@return the MythicMobs skill cast service}
-     *
-     * @deprecated 仓库内零调用。MythicMobs 释放路径由 {@code MythicBridge} 统一封装，
-     *         调用方应使用桥接而非直接取服务。保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.13", forRemoval = true)
-    public MythicSkillCastService mythicSkillCastService() {
-        return mythicSkillCastService;
     }
 
     public ActionBarService actionBarService() {
@@ -491,30 +428,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public SkillsPlaceholderExpansion placeholderExpansion() {
         return placeholderExpansion;
-    }
-
-    /**
-     * {@return the active trigger dispatcher}
-     *
-     * @deprecated 仓库内零调用（同名字段仍在 {@code onEnable} 内部接线触发源，勿据此误删字段）。
-     *         触发器注册应通过各 {@code *TriggerSource#register} 完成。
-     *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.13", forRemoval = true)
-    public DefaultTriggerDispatcher triggerDispatcher() {
-        return triggerDispatcher;
-    }
-
-    /**
-     * {@return the passive trigger dispatcher}
-     *
-     * @deprecated 仓库内零调用（同名字段仍在 {@code onEnable} 内部接线被动触发源，勿据此误删字段）。
-     *         被动触发注册应通过 {@code PassiveTriggerSource#register} 完成。
-     *         保留一个完整次版本周期后移除；移除前需再做源码/二进制使用面核对。
-     */
-    @Deprecated(since = "2.6.13", forRemoval = true)
-    public PassiveTriggerDispatcher passiveTriggerDispatcher() {
-        return passiveTriggerDispatcher;
     }
 
     public DebugCommand debugCommand() {

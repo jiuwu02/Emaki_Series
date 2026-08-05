@@ -75,21 +75,9 @@ public record ConditionBlock(ConditionGroup group,
                 section.getBoolean("invalid_as_failure", defaultInvalidAsFailure),
                 section.getStringList("on_pass.actions"),
                 section.getStringList("on_fail.actions"),
-                firstBoolean(section, defaultBlockOutput, "on_fail.block_output", "on_fail.block"),
+                section.getBoolean("on_fail.block_output", defaultBlockOutput),
                 section.getString("on_fail.message", "")
         );
-    }
-
-    private static boolean firstBoolean(YamlSection section, boolean defaultValue, String... paths) {
-        if (section == null || paths == null) {
-            return defaultValue;
-        }
-        for (String path : paths) {
-            if (Texts.isNotBlank(path) && section.contains(path)) {
-                return section.getBoolean(path, defaultValue);
-            }
-        }
-        return defaultValue;
     }
 
     private static List<String> normalizeActions(List<String> values) {

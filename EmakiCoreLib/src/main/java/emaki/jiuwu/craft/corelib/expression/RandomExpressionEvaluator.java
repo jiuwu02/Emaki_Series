@@ -57,13 +57,13 @@ final class RandomExpressionEvaluator {
             return NumericEvaluationResult.failure("Numeric config does not declare a supported type or numeric fields.");
         }
         return switch (type) {
-            case "constant", "const", "fixed" ->
+            case "constant" ->
                 evaluateRequiredChildConfig(config, "value", scoped, depth + 1, "constant", maxNestedDepth);
             case "range" ->
                 evaluateRangeDetailed(config, scoped, depth + 1, maxNestedDepth);
             case "uniform" ->
                 evaluateUniformDetailed(config, scoped, depth + 1, maxNestedDepth);
-            case "gaussian", "normal" ->
+            case "gaussian" ->
                 evaluateGaussianDetailed(config, scoped, depth + 1, maxNestedDepth);
             case "skew_normal" ->
                 evaluateSkewNormalDetailed(config, scoped, depth + 1, maxNestedDepth);
@@ -71,7 +71,7 @@ final class RandomExpressionEvaluator {
                 evaluateTriangleDetailed(config, scoped, depth + 1, maxNestedDepth);
             case "expression" ->
                 evaluateRequiredExpressionConfig(config, scoped, depth + 1);
-            case "string", "str", "text", "boolean", "bool", "flag" ->
+            case "string", "boolean" ->
                 NumericEvaluationResult.failure("Config type '" + type
                         + "' cannot be used where a numeric config is required.");
             default ->

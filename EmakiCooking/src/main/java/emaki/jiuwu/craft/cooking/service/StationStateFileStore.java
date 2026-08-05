@@ -46,10 +46,8 @@ final class StationStateFileStore {
     static final String STATION_SOURCE_KEY = "station_source";
     static final String STATION_TYPE_KEY = "station_type";
     static final String SAVED_AT_KEY = "station_saved_at_ms";
-    static final String FORMAT_VERSION_KEY = "station_format_version";
     static final String STATE_VERSION_KEY = "station_state_version";
     static final String TOMBSTONE_KEY = "station_tombstone";
-    static final int FORMAT_VERSION = 1;
 
     private final JavaPlugin plugin;
     private final FileScope fileScope;
@@ -58,7 +56,6 @@ final class StationStateFileStore {
     private final NamespacedKey stateKey;
     private final NamespacedKey stationTypeKey;
     private final NamespacedKey stationSourceKey;
-    private final NamespacedKey formatVersionKey;
     private final NamespacedKey savedAtKey;
     private final NamespacedKey stateVersionKey;
     private final NamespacedKey tombstoneKey;
@@ -77,7 +74,6 @@ final class StationStateFileStore {
         this.stateKey = new NamespacedKey(plugin, "station_state");
         this.stationTypeKey = new NamespacedKey(plugin, "station_type");
         this.stationSourceKey = new NamespacedKey(plugin, "station_source");
-        this.formatVersionKey = new NamespacedKey(plugin, "station_format_version");
         this.savedAtKey = new NamespacedKey(plugin, "station_saved_at_ms");
         this.stateVersionKey = new NamespacedKey(plugin, "station_state_version");
         this.tombstoneKey = new NamespacedKey(plugin, "station_tombstone");
@@ -205,7 +201,6 @@ final class StationStateFileStore {
         if (Texts.isNotBlank(stationSource)) {
             container.set(stationSourceKey, PersistentDataType.STRING, stationSource);
         }
-        container.set(formatVersionKey, PersistentDataType.INTEGER, FORMAT_VERSION);
         container.set(savedAtKey, PersistentDataType.LONG, savedAt);
         container.set(stateVersionKey, PersistentDataType.LONG, mutationVersion);
         container.set(tombstoneKey, PersistentDataType.BYTE, (byte) 0);
@@ -232,7 +227,6 @@ final class StationStateFileStore {
         container.remove(stateKey);
         container.remove(stationTypeKey);
         container.remove(stationSourceKey);
-        container.set(formatVersionKey, PersistentDataType.INTEGER, FORMAT_VERSION);
         container.set(savedAtKey, PersistentDataType.LONG, System.currentTimeMillis());
         container.set(stateVersionKey, PersistentDataType.LONG, mutationVersion);
         container.set(tombstoneKey, PersistentDataType.BYTE, (byte) 1);
@@ -466,7 +460,6 @@ final class StationStateFileStore {
         copy.putIfAbsent("y", coordinates.y());
         copy.putIfAbsent("z", coordinates.z());
         copy.put(SAVED_AT_KEY, System.currentTimeMillis());
-        copy.put(FORMAT_VERSION_KEY, FORMAT_VERSION);
         copy.put(STATE_VERSION_KEY, mutationVersion);
         copy.put(TOMBSTONE_KEY, tombstone);
         ItemSourceRef explicitSource = ItemSourceUtil.parse(copy.get(STATION_SOURCE_KEY));
@@ -494,7 +487,6 @@ final class StationStateFileStore {
             copy.putIfAbsent("y", coordinates.y());
             copy.putIfAbsent("z", coordinates.z());
         }
-        copy.putIfAbsent(FORMAT_VERSION_KEY, FORMAT_VERSION);
         copy.putIfAbsent(STATE_VERSION_KEY, 0L);
         copy.putIfAbsent(TOMBSTONE_KEY, false);
         return new MapYamlSection(copy);

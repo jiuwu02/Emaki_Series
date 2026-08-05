@@ -168,26 +168,12 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
             return Map.copyOf(config);
         }
         if (type == SkillParameterType.STRING || type == SkillParameterType.BOOLEAN) {
-            return firstNotBlank(
-                    section.getString("formula", ""),
-                    firstNotBlank(section.getString("expression", ""), section.getString("value", ""))
-            );
+            return section.getString("expression", "");
         }
         Map<String, Object> config = new LinkedHashMap<>(ConfigNodes.entries(section));
         config.put("type", type.configType());
         if (type == SkillParameterType.EXPRESSION) {
-            config.put("expression", firstNotBlank(
-                    section.getString("formula", ""),
-                    firstNotBlank(section.getString("expression", ""), section.getString("value", ""))
-            ));
-        } else if (type == SkillParameterType.CONSTANT && !config.containsKey("value")) {
-            String value = firstNotBlank(
-                    section.getString("formula", ""),
-                    firstNotBlank(section.getString("expression", ""), section.getString("default", ""))
-            );
-            if (Texts.isNotBlank(value)) {
-                config.put("value", value);
-            }
+            config.put("expression", section.getString("expression", ""));
         }
         config.entrySet().removeIf(entry -> entry.getValue() == null);
         return Map.copyOf(config);
@@ -469,7 +455,4 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         return fallback;
     }
 
-    private String firstNotBlank(String primary, String fallback) {
-        return Texts.isNotBlank(primary) ? primary : Texts.toStringSafe(fallback);
-    }
 }

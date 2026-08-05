@@ -145,8 +145,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final CustomBlockBridge oraxenBlockBridge = new OraxenBlockBridgeProvider(this);
     private final MythicMobBridge mythicMobBridge = new MythicMobBridgeProvider(this);
     private EmakiItemAssemblyService itemAssemblyService;
-    private final emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry layerMigrationRegistry
-            = new emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry();
     private final emaki.jiuwu.craft.corelib.event.EmakiEventBus eventBus
             = new emaki.jiuwu.craft.corelib.event.EmakiEventBus();
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
@@ -472,16 +470,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return bStatsService.register(plugin, pluginId);
     }
 
-    /**
-     * @return the bStats service
-     * @deprecated no in-tree caller remains; use {@link #registerBStats(Plugin, int)} instead.
-     *         Scheduled for removal in the next major version after one full minor cycle
-     */
-    @Deprecated(forRemoval = true)
-    public BStatsService bStatsService() {
-        return bStatsService;
-    }
-
     private void logStartupAudit() {
         if (economyManager == null) {
             return;
@@ -716,18 +704,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return textDisplayService;
     }
 
-    /** {@return CoreLib 的默认物品展示服务，语义同 {@link #textDisplayService()}} */
-    /**
-     * @return the item display service
-     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
-     *         cycle in case an external plugin compiled against it. Scheduled for removal in
-     *         the next major version; re-check source and binary usage before removing
-     */
-    @Deprecated(forRemoval = true)
-    public emaki.jiuwu.craft.corelib.display.ItemDisplayService itemDisplayService() {
-        return itemDisplayService;
-    }
-
     public CoreLibConfig configModel() {
         return configModel;
     }
@@ -770,18 +746,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return actionEngine;
     }
 
-    /** {@return the shared batch runner for configured pipeline lines} */
-    /**
-     * @return the pipeline batch runner
-     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
-     *         cycle in case an external plugin compiled against it. Scheduled for removal in
-     *         the next major version; re-check source and binary usage before removing
-     */
-    @Deprecated(forRemoval = true)
-    public PipelineBatchRunner pipelineBatchRunner() {
-        return pipelineBatchRunner;
-    }
-
     /**
      * Creates a runner a business module can hold for its lifetime.
      *
@@ -801,18 +765,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /** {@return the long-running task service, or {@code null} before the first reload} */
     public PipelineTaskService pipelineTaskService() {
         return pipelineTaskService;
-    }
-
-    /** {@return the compiled named sequences} */
-    /**
-     * @return the sequence repository
-     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
-     *         cycle in case an external plugin compiled against it. Scheduled for removal in
-     *         the next major version; re-check source and binary usage before removing
-     */
-    @Deprecated(forRemoval = true)
-    public ConfiguredSequenceRepository sequenceRepository() {
-        return sequenceRepository;
     }
 
     /**
@@ -918,17 +870,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
 
 
-    /**
-     * @return the gui backend registry
-     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
-     *         cycle in case an external plugin compiled against it. Scheduled for removal in
-     *         the next major version; re-check source and binary usage before removing
-     */
-    @Deprecated(forRemoval = true)
-    public emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry guiBackendRegistry() {
-        return guiBackendRegistry;
-    }
-
 
 
 
@@ -957,17 +898,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
     }
 
-    /**
-     * @return the async file service
-     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
-     *         cycle in case an external plugin compiled against it. Scheduled for removal in
-     *         the next major version; re-check source and binary usage before removing
-     */
-    @Deprecated(forRemoval = true)
-    public AsyncFileService asyncFileService() {
-        return asyncFileService;
-    }
-
     public AsyncYamlFiles asyncYamlFiles() {
         return asyncYamlFiles;
     }
@@ -988,34 +918,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return asyncFileService.openScope(ownerName);
     }
 
-    /**
-     * @return the platform capabilities
-     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
-     *         cycle in case an external plugin compiled against it. Scheduled for removal in
-     *         the next major version; re-check source and binary usage before removing
-     */
-    @Deprecated(forRemoval = true)
-    public CapabilityProbe platformCapabilities() {
-        return platformCapabilities;
-    }
-
     public ExecutionDispatcher executionDispatcher() {
         return executionDispatcher;
     }
 
     public ThreadOwnership threadOwnership() {
         return threadOwnership;
-    }
-
-    /**
-     * @return the core plugin lifecycle
-     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
-     *         cycle in case an external plugin compiled against it. Scheduled for removal in
-     *         the next major version; re-check source and binary usage before removing
-     */
-    @Deprecated(forRemoval = true)
-    public CorePluginLifecycle corePluginLifecycle() {
-        return corePluginLifecycle;
     }
 
     public boolean registerDependentShutdown(String ownerKey, CompletionStage<?> shutdown) {
@@ -1093,17 +1001,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return namespaceRegistry;
     }
 
-    /**
-     * @return the item layer codec registry
-     * @deprecated no in-tree caller remains; this accessor is retained for one full minor
-     *         cycle in case an external plugin compiled against it. Scheduled for removal in
-     *         the next major version; re-check source and binary usage before removing
-     */
-    @Deprecated(forRemoval = true)
-    public EmakiItemLayerCodecRegistry itemLayerCodecRegistry() {
-        return itemLayerCodecRegistry;
-    }
-
     public EmakiItemAssemblyService itemAssemblyService() {
         return itemAssemblyService;
     }
@@ -1164,7 +1061,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(OraxenBlockBridgeProvider.class, (OraxenBlockBridgeProvider) oraxenBlockBridge);
         registerService(MythicMobBridge.class, mythicMobBridge);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
-        registerService(emaki.jiuwu.craft.corelib.assembly.LayerMigrationRegistry.class, layerMigrationRegistry);
         registerService(emaki.jiuwu.craft.corelib.event.EmakiEventBus.class, eventBus);
     }
 

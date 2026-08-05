@@ -165,7 +165,6 @@ final class StorageLifecycleCoordinator
         StorageLayoutResolver.Layout layout =
                 plugin.layoutResolver().resolve(plugin.guiTemplateLoader(), config.gui().storageRows());
         plugin.storageGuiService().reconfigure(config, layout);
-        plugin.applyLayout(layout);
         for (String issue : plugin.guiTemplateLoader().issues()) {
             plugin.getLogger().warning("[storage] " + issue);
         }

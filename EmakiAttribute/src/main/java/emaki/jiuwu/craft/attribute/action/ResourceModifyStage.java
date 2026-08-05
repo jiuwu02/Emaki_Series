@@ -29,9 +29,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 /**
  * Adds to, sets, or subtracts from one of the target's resources.
  *
- * <p>Replaces the legacy {@code ResourceModifyAction} and {@code ResourceConsumeAction}. Those were two
- * classes in v1 although {@code consume} and {@code remove} computed the same value; they stay as separate
- * stage ids here because configuration refers to them by name, but they share one implementation.</p>
+ * <p>{@code consume} and {@code remove} compute the same value; they stay as separate stage ids because
+ * configuration refers to them by name, but they share one implementation.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's resource state.</p>
  */

@@ -34,8 +34,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 /**
  * Shows a client-side advancement toast without registering or granting an advancement.
  *
- * <p>Replaces the legacy {@code ShowAchievementToastAction}. The toast is a fake advancement pushed over the
- * wire and withdrawn again a moment later, so the removal is scheduled rather than immediate.</p>
+ * <p>The toast is a fake advancement pushed over the wire and withdrawn again a moment later, so the removal
+ * is scheduled rather than immediate.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: the packet goes to one player's connection. Despite touching the network
  * layer this is not global state, so it does not need the global domain.</p>

@@ -27,11 +27,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 /**
  * Grants, revokes, resyncs and resets EmakiCodex advancements on the target.
  *
- * <p>Replaces the module's five legacy advancement actions. One behavioural difference from v1: there is
- * no {@code target} argument. Naming the subject is the target flow's job in a pipeline, so
- * {@code player_by_name Steve | codex_grant_advancement advancement=x} replaces {@code target=Steve}, and the
- * v1 default of falling back to the context player is what an omitted source already does. That removes the
- * fourth copy of name-or-UUID resolution from this module.</p>
+ * <p>There is no {@code target} argument. Naming the subject is the target flow's job in a pipeline, so
+ * {@code player_by_name Steve | codex_grant_advancement advancement=x} addresses another player, while an
+ * omitted source falls back to the context player.</p>
  *
  * <p>Domain {@code CONTEXT_ENTITY}: every operation reads and writes one player's advancement progress.</p>
  */
