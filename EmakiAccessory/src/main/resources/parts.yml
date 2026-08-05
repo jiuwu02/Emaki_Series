@@ -1,0 +1,34 @@
+# EmakiAccessory 饰品部位定义
+#
+# 每个部位会展开成 count 个槽位实例，实例 id 为 <部位id>_<序号>，序号从 1 开始。
+# 例如下面的 ring 部位 count: 2，展开出 ring_1 和 ring_2。
+#
+# 部位 id 只能用小写字母、数字和下划线，且不能以 _<数字> 结尾 ——
+# 那种写法会和槽位实例 id 撞车（写 ring_2 会与 ring 部位的第二格同名）。
+# 不合法的 id 会被拒绝并记录警告，插件不会替你改名。
+#
+# 每个展开出来的槽位都要在 gui/accessory_gui.yml 里摆一格
+# type: "accessory_slot" 且键名相同的格子，否则该槽位玩家用不到。
+#
+# 缩减 count 或删除部位不会删数据：落在已消失槽位里的饰品会变成"孤儿"，
+# 显示在界面的 orphan_slot 区域供玩家取回，取走后不能再放回。
+parts:
+  necklace:
+    count: 1
+    display_name: "<gold>项链</gold>"
+    icon: "LIGHT_GRAY_STAINED_GLASS_PANE"
+
+  ring:
+    count: 2
+    display_name: "<gold>戒指</gold>"
+    icon: "LIGHT_GRAY_STAINED_GLASS_PANE"
+
+  belt:
+    count: 1
+    display_name: "<gold>腰带</gold>"
+    icon: "LIGHT_GRAY_STAINED_GLASS_PANE"
+
+  charm:
+    count: 2
+    display_name: "<gold>护符</gold>"
+    icon: "LIGHT_GRAY_STAINED_GLASS_PANE"

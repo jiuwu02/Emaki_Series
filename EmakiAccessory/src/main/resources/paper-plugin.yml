@@ -1,0 +1,38 @@
+name: EmakiAccessory
+main: emaki.jiuwu.craft.accessory.EmakiAccessoryPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    EmakiItem:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiAttribute:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiSkills:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakiaccessory.use:
+    default: true
+  emakiaccessory.reload:
+    default: op
+  emakiaccessory.debug:
+    default: op
+  emakiaccessory.admin:
+    default: op
+  emakiaccessory.admin.edit:
+    default: op

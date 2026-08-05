@@ -1,0 +1,66 @@
+# EmakiAccessory 简体中文语言文件
+#
+# 本文件的 version 必须与插件版本保持一致，插件会按 version 合并新增的默认键。
+version: "1.0.0"
+
+console:
+  plugin_starting: "正在启动 EmakiAccessory..."
+  plugin_started: "EmakiAccessory 已启动"
+  plugin_stopped: "EmakiAccessory 已停止"
+
+general:
+  no_permission: "<red>你没有权限执行这个操作</red>"
+  players_only: "<red>这个命令只能由玩家执行</red>"
+  data_loading: "<yellow>饰品数据还在加载，请稍后再试</yellow>"
+
+gui:
+  read_only: "<red>你只能查看，不能修改这些饰品</red>"
+  orphan_read_only: "<yellow>这件饰品所在的槽位已被移除，只能取出</yellow>"
+  orphan_hint: "<dark_gray>槽位已移除，取出后无法放回</dark_gray>"
+  click_unsupported: "<red>饰品栏不支持这种点击方式</red>"
+  transfer_unsupported: "<red>饰品栏不支持这种搬运方式，请逐格放取</red>"
+  slot_mismatch: "<red>这件饰品只能戴在 <white>%required%</white>，放不进 <white>%slot%</white></red>"
+  unique_conflict: "<red>你已经在 <white>%conflict%</white> 戴了同一件饰品</red>"
+
+command:
+  help: |
+    <gold>EmakiAccessory 指令</gold>
+    <yellow>/eacc open</yellow> <gray>- 打开自己的饰品栏</gray>
+    <yellow>/eacc list</yellow> <gray>- 列出自己的饰品槽</gray>
+    <yellow>/eacc reload</yellow> <gray>- 重载配置、部位与套装</gray>
+    <yellow>/eacc debug</yellow> <gray>- 调试开关</gray>
+    <yellow>/eacc admin</yellow> <gray>- 管理指令</gray>
+  admin_usage: |
+    <gold>管理指令</gold>
+    <yellow>/eacc admin view <玩家></yellow> <gray>- 查看饰品（只读）</gray>
+    <yellow>/eacc admin edit <玩家></yellow> <gray>- 编辑饰品（仅在线玩家）</gray>
+    <yellow>/eacc admin clear <玩家></yellow> <gray>- 清空饰品（不可撤销，会记入日志）</gray>
+    <yellow>/eacc admin save</yellow> <gray>- 立刻保存所有饰品数据</gray>
+  open_failed: "<red>无法打开饰品栏，请检查界面布局配置</red>"
+  list_header: "<gold>饰品槽</gold> <gray>已用 <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
+  list_entry_filled: "<gray>- <white>%slot%</white> <green>已装备</green></gray>"
+  list_entry_empty: "<gray>- <white>%slot%</white> <dark_gray>空</dark_gray></gray>"
+  reload_done: "<green>重载完成</green> <gray>槽位 <yellow>%slots%</yellow>，套装 <yellow>%sets%</yellow>，问题 <yellow>%issues%</yellow></gray>"
+  unknown_player: "<red>找不到玩家 <white>%player%</white></red>"
+  admin_target_offline: "<red>该玩家不在线，无法执行这个操作</red>"
+  admin_target_busy: "<red>已有其他人正在编辑这个玩家的饰品</red>"
+  admin_load_failed: "<red>读取 <white>%player%</white> 的饰品数据失败</red>"
+  admin_clear_done: "<green>已清空 <white>%player%</white> 的饰品</green> <gray>共 <yellow>%count%</yellow> 件</gray>"
+  admin_clear_failed: "<red>清空 <white>%player%</white> 的饰品失败，数据可能未加载</red>"
+  admin_save_done: "<green>已保存 <yellow>%count%</yellow> 份饰品数据</green>"
+  debug_unavailable: "<red>调试功能当前不可用</red>"
+
+accessory:
+  parts_load_failed: "读取 %file% 失败：%error%"
+  parts_section_missing: "%file% 缺少 parts 段，没有任何饰品部位生效"
+  part_id_illegal: "部位 id 不合法，已跳过：%part%（只能用小写字母、数字、下划线，且不能以 _<数字> 结尾）"
+  part_count_invalid: "部位 %part% 的 count 不合法（%count%），已跳过"
+  part_instance_conflict: "部位 %part% 展开出的槽位 %slot% 与已有槽位重名，该部位已跳过"
+  gui_template_missing: "缺少界面布局 %template%，饰品栏无法打开"
+  gui_slot_multi_cell: "槽位 %slot% 占了 %count% 格，只有第一格生效"
+  gui_cell_conflict: "槽位 %slot% 想占用第 %cell% 格，但该格已被占用，已跳过"
+  gui_slot_unplaced: "槽位 %slot% 没有在界面布局里摆放，玩家无法使用"
+  set_without_pieces: "%file% 里的套装 %set% 没有任何成员，已跳过"
+  set_piece_invalid: "%file% 里套装 %set% 的成员 %piece% 缺少 item，已跳过"
+  set_threshold_not_numeric: "%file% 里套装 %set% 的阈值 %threshold% 不是整数，已跳过"
+  set_threshold_out_of_range: "%file% 里套装 %set% 的阈值 %threshold% 超出范围（成员总数 %total%），已跳过"

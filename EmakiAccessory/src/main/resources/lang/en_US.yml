@@ -1,0 +1,66 @@
+# EmakiAccessory English language file
+#
+# The version here must match the plugin version; new default keys are merged by version.
+version: "1.0.0"
+
+console:
+  plugin_starting: "Starting EmakiAccessory..."
+  plugin_started: "EmakiAccessory started"
+  plugin_stopped: "EmakiAccessory stopped"
+
+general:
+  no_permission: "<red>You do not have permission to do that</red>"
+  players_only: "<red>This command can only be used by a player</red>"
+  data_loading: "<yellow>Your accessory data is still loading, try again shortly</yellow>"
+
+gui:
+  read_only: "<red>You can only view these accessories, not change them</red>"
+  orphan_read_only: "<yellow>This accessory's slot no longer exists; you can only take it out</yellow>"
+  orphan_hint: "<dark_gray>Slot removed; cannot be put back once taken</dark_gray>"
+  click_unsupported: "<red>The accessory window does not support that click</red>"
+  transfer_unsupported: "<red>The accessory window does not support that transfer; move items one slot at a time</red>"
+  slot_mismatch: "<red>This accessory only fits <white>%required%</white>, not <white>%slot%</white></red>"
+  unique_conflict: "<red>You already have the same accessory in <white>%conflict%</white></red>"
+
+command:
+  help: |
+    <gold>EmakiAccessory commands</gold>
+    <yellow>/eacc open</yellow> <gray>- Open your accessory window</gray>
+    <yellow>/eacc list</yellow> <gray>- List your accessory slots</gray>
+    <yellow>/eacc reload</yellow> <gray>- Reload config, parts and sets</gray>
+    <yellow>/eacc debug</yellow> <gray>- Debug toggles</gray>
+    <yellow>/eacc admin</yellow> <gray>- Admin commands</gray>
+  admin_usage: |
+    <gold>Admin commands</gold>
+    <yellow>/eacc admin view <player></yellow> <gray>- View accessories (read-only)</gray>
+    <yellow>/eacc admin edit <player></yellow> <gray>- Edit accessories (online players only)</gray>
+    <yellow>/eacc admin clear <player></yellow> <gray>- Clear accessories (irreversible, logged)</gray>
+    <yellow>/eacc admin save</yellow> <gray>- Save all accessory data now</gray>
+  open_failed: "<red>Could not open the accessory window; check the GUI layout</red>"
+  list_header: "<gold>Accessory slots</gold> <gray>used <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
+  list_entry_filled: "<gray>- <white>%slot%</white> <green>equipped</green></gray>"
+  list_entry_empty: "<gray>- <white>%slot%</white> <dark_gray>empty</dark_gray></gray>"
+  reload_done: "<green>Reload complete</green> <gray>slots <yellow>%slots%</yellow>, sets <yellow>%sets%</yellow>, issues <yellow>%issues%</yellow></gray>"
+  unknown_player: "<red>No such player: <white>%player%</white></red>"
+  admin_target_offline: "<red>That player is offline; this operation needs them online</red>"
+  admin_target_busy: "<red>Someone else is already editing that player's accessories</red>"
+  admin_load_failed: "<red>Failed to load accessory data for <white>%player%</white></red>"
+  admin_clear_done: "<green>Cleared <white>%player%</white>'s accessories</green> <gray><yellow>%count%</yellow> item(s)</gray>"
+  admin_clear_failed: "<red>Could not clear <white>%player%</white>'s accessories; data may not be loaded</red>"
+  admin_save_done: "<green>Saved <yellow>%count%</yellow> accessory record(s)</green>"
+  debug_unavailable: "<red>Debug features are unavailable right now</red>"
+
+accessory:
+  parts_load_failed: "Failed to read %file%: %error%"
+  parts_section_missing: "%file% has no parts section; no accessory parts are active"
+  part_id_illegal: "Illegal part id, skipped: %part% (lowercase letters, digits and underscores only, and must not end with _<number>)"
+  part_count_invalid: "Part %part% has an invalid count (%count%), skipped"
+  part_instance_conflict: "Part %part% expands to slot %slot% which already exists; the part was skipped"
+  gui_template_missing: "GUI layout %template% is missing; the accessory window cannot open"
+  gui_slot_multi_cell: "Slot %slot% claims %count% cells; only the first one is used"
+  gui_cell_conflict: "Slot %slot% wants cell %cell%, which is already taken; skipped"
+  gui_slot_unplaced: "Slot %slot% is not placed in the GUI layout and players cannot use it"
+  set_without_pieces: "Set %set% in %file% has no pieces, skipped"
+  set_piece_invalid: "Piece %piece% of set %set% in %file% has no item, skipped"
+  set_threshold_not_numeric: "Threshold %threshold% of set %set% in %file% is not an integer, skipped"
+  set_threshold_out_of_range: "Threshold %threshold% of set %set% in %file% is out of range (total pieces %total%), skipped"
