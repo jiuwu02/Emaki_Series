@@ -97,7 +97,49 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
                 ConditionBlock.fromRoot(configuration, true, false),
                 actions == null ? List.of() : actions.getStringList("pre"),
                 actions == null ? List.of() : actions.getStringList("success"),
-                actions == null ? List.of() : actions.getStringList("failure"));
+                actions == null ? List.of() : actions.getStringList("failure"),
+                parseCost(id, configuration),
+                configuration.getBoolean("visible", Boolean.TRUE),
+                ConditionBlock.fromConfig(configuration.getSection("display_condition"), true, false));
+    }
+
+    /**
+     * Reads the optional {@code cost.currency} block.
+     *
+     * <p>Fail-open by design: an unusable currency token or a non-positive amount records an issue and the
+     * recipe loads with no charge. Refusing the whole recipe would hide every other thing that recipe does
+     * behind one mistyped word, which is harder for an administrator to diagnose than a free craft plus a
+     * startup warning.
+     *
+     * @param recipeId      the recipe being parsed, for the issue message
+     * @param configuration the recipe root section
+     * @return the parsed cost, or {@link RecipeCost#none()}
+     */
+    private RecipeCost parseCost(String recipeId, YamlSection configuration) {
+        YamlSection cost = configuration.getSection("cost");
+        if (cost == null) {
+            return RecipeCost.none();
+        }
+        YamlSection currency = cost.getSection("currency");
+        if (currency == null) {
+            return RecipeCost.none();
+        }
+        String type = currency.getString("type", "");
+        long amount = readLong(currency.get("amount"), 0L);
+        if (type.isBlank() && amount <= 0L) {
+            return RecipeCost.none();
+        }
+        if (amount <= 0L) {
+            issue("station.recipe_bad_cost_amount", Map.of("recipe", recipeId,
+                    "amount", String.valueOf(amount)));
+            return RecipeCost.none();
+        }
+        RecipeCost parsed = RecipeCost.fromToken(type, amount);
+        if (parsed == null) {
+            issue("station.recipe_bad_currency", Map.of("recipe", recipeId, "type", type));
+            return RecipeCost.none();
+        }
+        return parsed;
     }
 
     private Set<String> parseTags(YamlSection configuration) {

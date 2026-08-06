@@ -9,10 +9,22 @@ tags:
   - "blacksmith"
 
 # 使用该配方需要的权限，留空表示不限制。
+# 没有该权限时配方【不出现在目录里】，不是显示为灰色。
 permission: ""
+
+# 是否出现在配方目录里。false 表示彻底不显示，通常配合 API 提交使用。
+visible: true
 
 # 单次合成耗时（秒）。填 0 或省略表示立即完成，不进队列。
 duration_seconds: 30
+
+# 每次合成额外收取的货币，按倍率乘算。省略或 amount 为 0 表示不收费。
+#   type: vault | excellent
+# 余额在扣材料之前先校验，扣款在扣材料之后执行；扣款失败会把材料原额退回。
+# 取消队列条目时按工作站的 cancel_refund_rate 折算退还。
+cost:
+  type: "vault"
+  amount: 0
 
 # 材料需求。
 #
@@ -41,9 +53,21 @@ result:
   # 结算后执行的动作行，语法与其他 Emaki 模块一致。
   actions: []
 
-# 提交前的条件门。
+# 提交前的条件门。不满足时配方仍在目录里，但点击会被拒绝。
 condition:
   invalid_as_failure: true
+  entries: []
+
+# 解锁条件。与上面的 condition 是两回事：
+#   condition          决定"能不能做"，不满足时配方照常显示，点了会被拒
+#   display_condition  决定"解锁没有"，不满足时配方显示为灰色占位、点击无反应
+#
+# 用灰色占位而不是隐藏，是为了让玩家知道后面还有内容。
+# 想彻底隐藏请用上面的 visible: false 或 permission。
+#
+# 这里的条件会在每次绘制目录页时求值，写得太重会拖慢界面。
+display_condition:
+  invalid_as_failure: false
   entries: []
 
 # 各阶段动作行。

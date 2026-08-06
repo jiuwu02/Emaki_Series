@@ -1,0 +1,173 @@
+# EmakiStation 界面布局：合成队列页（第三页）
+#
+# 在目录页点击 queue_open 进入本页。本页只读，不接受放入物品。
+#
+# 本页可用的 type：
+#   queue_view        - 列出队列条目（必需，否则布局校验不通过）
+#   capacity_display  - 显示已用 / 上限，以及上限的来源
+#   queue_purchase    - 购买额外队列位（左键买 1 个，Shift 买一整批）
+#   claim_all         - 领取全部待领取产物
+#   back              - 返回目录页（会停在原来那一页）
+#   prev_page/next_page/page_info - 队列翻页
+#   close             - 关闭界面
+#
+# 队列长度的三个来源：
+#   base_length       工作站配置的基础长度
+#   权限档            emakistation.queue.<数字>，取代基础长度而非叠加
+#   已购队列位        叠加在上面二者之上
+#   最终值再被工作站的 max_length 截断
+id: "station_queue"
+gui_type: CHEST
+title: "<dark_gray>%station_name% <gray>(%used%/%max%)</gray></dark_gray>"
+rows: 6
+
+slots:
+  frame:
+    slots: "0-8,45-53"
+    item:
+      source: "BLACK_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
+
+  queue_view:
+    slots: "9-17,18-26,27-35"
+    type: "queue_view"
+    item:
+      source: "CLOCK"
+      components:
+        custom_name: "<aqua>#%index% %recipe%</aqua>"
+
+  capacity_display:
+    slots: [4]
+    type: "capacity_display"
+    item:
+      source: "CHEST"
+      components:
+        custom_name: "<gold>队列容量</gold>"
+        lore:
+          - "<gray>已用: <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
+          - "<gray>基础: <white>%base%</white></gray>"
+          - "<gray>已购: <white>%purchased%</white></gray>"
+          - "<gray>上限: <white>%ceiling%</white></gray>"
+          - "<dark_gray>待领取 %pending% 项不占用队列</dark_gray>"
+
+  queue_purchase:
+    slots: [47]
+    type: "queue_purchase"
+    item:
+      source: "EMERALD"
+      components:
+        custom_name: "<green>购买队列位</green>"
+        lore:
+          - "<gray>数量: <yellow>%slots%</yellow></gray>"
+          - "<gray>价格: <yellow>%cost%</yellow> <dark_gray>(%currency%)</dark_gray></gray>"
+          - "<green>左键</green> <gray>买 1 个</gray>"
+          - "<green>Shift 左键</green> <gray>买一整批</gray>"
+    sounds:
+      click:
+        sound: "entity.experience_orb.pickup"
+        volume: 1.0
+        pitch: 1.0
+
+  claim_all:
+    slots: [48]
+    type: "claim_all"
+    item:
+      source: "CHEST_MINECART"
+      components:
+        custom_name: "<gold>领取全部</gold>"
+        lore:
+          - "<gray>待领取: <yellow>%pending%</yellow> 项</gray>"
+    sounds:
+      click:
+        sound: "entity.item.pickup"
+        volume: 1.0
+        pitch: 1.0
+
+  back:
+    slots: [45]
+    type: "back"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>返回配方列表</yellow>"
+
+  prev_page:
+    slots: [36]
+    type: "prev_page"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>上一页</yellow>"
+
+  page_info:
+    slots: [40]
+    type: "page_info"
+    item:
+      source: "BOOK"
+      components:
+        custom_name: "<gray>第 <yellow>%page%</yellow> / <yellow>%pages%</yellow> 页</gray>"
+        lore:
+          - "<dark_gray>共 %total% 个条目</dark_gray>"
+
+  next_page:
+    slots: [44]
+    type: "next_page"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>下一页</yellow>"
+
+  close:
+    slots: [53]
+    type: "close"
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<red>关闭</red>"
+
+# 以下两块由 EmakiStation 自己读取，CoreLib 的模板解析器不会处理它们。
+virtual_items:
+  queue_entry:
+    item:
+      components:
+        custom_name: "<aqua>#%index% %recipe%</aqua>"
+        lore:
+          - "<gray>倍率: x<yellow>%batch%</yellow></gray>"
+          - "<gray>剩余: <yellow>%remaining%</yellow></gray>"
+          - "<dark_gray>点击取消，按工作站的退还比例退回材料与货币</dark_gray>"
+
+  queue_pending:
+    item:
+      source: "CHEST_MINECART"
+      components:
+        custom_name: "<gold>#%index% 待领取</gold>"
+        lore:
+          - "<gray>产物没能送出</gray>"
+          - "<dark_gray>点击领取</dark_gray>"
+
+  # 无法购买时显示的图标。%reason_text% 取自下面 texts.purchase_reason。
+  purchase_unavailable:
+    item:
+      source: "GRAY_DYE"
+      components:
+        custom_name: "<gray>无法购买队列位</gray>"
+        lore:
+          - "<dark_gray>%reason_text%</dark_gray>"
+
+texts:
+  # 购买被拒的原因文案，键名对应插件内部的 rejection。
+  purchase_reason:
+    unavailable: "购买功能不可用"
+    purchase_disabled: "服务器已关闭队列购买"
+    no_permission: "你没有购买队列位的权限"
+    station_purchase_disabled: "这个工作站不出售队列位"
+    no_price_defined: "queue_costs.yml 没有可用价格"
+    max_length_reached: "已达到这个工作站的队列上限"
+    invalid_amount: "数量不合法"
+    price_overflow: "价格计算溢出，请检查 queue_costs.yml"
+    price_over_cap: "价格超过 max_amount 上限"
+    not_loaded: "数据尚未加载完成"
+    bad_request: "请求不合法"

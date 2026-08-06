@@ -1,0 +1,191 @@
+# EmakiStation 界面布局：材料预览页（第二页）
+#
+# 在目录页右键某个配方进入本页。本页只读，不接受放入物品。
+#
+# 本页可用的 type：
+#   material_list     - 列出所选配方的材料需求（必需，否则布局校验不通过）
+#   recipe_display    - 显示当前预览的配方
+#   cost_display      - 显示货币成本与玩家余额
+#   max_craftable     - 显示按材料与余额最多能做几次，点击直接拉满
+#   batch_multiplier  - 循环切换倍率
+#   confirm           - 提交
+#   back              - 返回目录页（会停在原来那一页）
+#   prev_page/next_page/page_info - 材料列表翻页
+#   close             - 关闭界面
+#
+# 材料数量的显示规则（重要）：
+#   需求 <= 99  图标上带真实数字，客户端直接画出来
+#   需求 >= 100 图标数量固定为 1，不画数字，真实数量只出现在 lore 的 %required_exact%
+# 因此 lore 里务必保留 %required_exact%，否则大额需求玩家将无从得知。
+# 65~99 超过多数物品的自然堆叠上限，插件会临时抬高被渲染图标的 max_stack_size 组件，
+# 这个改动只作用于界面里的展示图标，永远不会交给玩家。
+id: "station_preview"
+gui_type: CHEST
+title: "<dark_gray>%recipe_name%</dark_gray>"
+rows: 6
+
+slots:
+  frame:
+    slots: "0-8,45-53"
+    item:
+      source: "BLACK_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
+
+  material_list:
+    slots: "9-17,18-26,27-35"
+    type: "material_list"
+    item:
+      source: "PAPER"
+      components:
+        custom_name: "<gray>材料</gray>"
+
+  recipe_display:
+    slots: [4]
+    type: "recipe_display"
+    item:
+      source: "CRAFTING_TABLE"
+      components:
+        custom_name: "<aqua>%recipe_name%</aqua>"
+        lore:
+          - "<gray>产物: <white>%result_name%</white> x<yellow>%result_amount%</yellow></gray>"
+          - "<gray>耗时: <yellow>%duration%</yellow></gray>"
+          - "<gray>倍率: x<yellow>%batch%</yellow></gray>"
+
+  cost_display:
+    slots: [47]
+    type: "cost_display"
+    item:
+      source: "GOLD_INGOT"
+      components:
+        custom_name: "<gold>货币成本</gold>"
+        lore:
+          - "<gray>需要: <yellow>%cost_exact%</yellow> <dark_gray>(%currency%)</dark_gray></gray>"
+          - "<gray>余额: <yellow>%balance%</yellow></gray>"
+
+  batch_multiplier:
+    slots: [48]
+    type: "batch_multiplier"
+    item:
+      source: "COMPARATOR"
+      components:
+        custom_name: "<gold>倍率 <yellow>x%batch%</yellow></gold>"
+        lore:
+          - "<gray>左键 <white>递增</white> <dark_gray>|</dark_gray> 右键 <white>递减</white></gray>"
+
+  max_craftable:
+    slots: [49]
+    type: "max_craftable"
+    item:
+      source: "KNOWLEDGE_BOOK"
+      components:
+        custom_name: "<gold>最多可做</gold>"
+        lore:
+          - "<gray><yellow>%max_exact%</yellow> 次</gray>"
+          - "<dark_gray>点击直接拉满</dark_gray>"
+
+  confirm:
+    slots: [50]
+    type: "confirm"
+    item:
+      source: "ANVIL"
+      components:
+        custom_name: "<green>开始合成</green>"
+        lore:
+          - "<gray>倍率: x<yellow>%batch%</yellow></gray>"
+    sounds:
+      click:
+        sound: "block.anvil_use"
+        volume: 0.6
+        pitch: 1.4
+
+  back:
+    slots: [45]
+    type: "back"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>返回配方列表</yellow>"
+
+  prev_page:
+    slots: [36]
+    type: "prev_page"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>上一页</yellow>"
+
+  page_info:
+    slots: [40]
+    type: "page_info"
+    item:
+      source: "BOOK"
+      components:
+        custom_name: "<gray>第 <yellow>%page%</yellow> / <yellow>%pages%</yellow> 页</gray>"
+        lore:
+          - "<dark_gray>共 %total% 项材料</dark_gray>"
+
+  next_page:
+    slots: [44]
+    type: "next_page"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>下一页</yellow>"
+
+  close:
+    slots: [53]
+    type: "close"
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<red>关闭</red>"
+
+# 以下两块由 EmakiStation 自己读取，CoreLib 的模板解析器不会处理它们。
+virtual_items:
+  # 材料充足。图标是材料本身，数量按上面的规则由插件设置。
+  material_satisfied:
+    item:
+      components:
+        custom_name: "<green>%material%</green>"
+        lore:
+          - "<gray>需要 <yellow>%required_exact%</yellow></gray>"
+          - "<green>拥有 %owned_exact%</green>"
+          - "<dark_gray>背包与仓库合计</dark_gray>"
+
+  material_missing:
+    item:
+      components:
+        custom_name: "<red>%material%</red>"
+        lore:
+          - "<gray>需要 <yellow>%required_exact%</yellow></gray>"
+          - "<red>拥有 %owned_exact%</red>"
+          - "<dark_gray>背包与仓库合计</dark_gray>"
+
+  confirm_blocked:
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<red>无法合成</red>"
+        lore:
+          - "<gray>%block_text%</gray>"
+
+texts:
+  # confirm 被拦下时的原因文案，键名对应插件内部的 block_reason。
+  block_reason:
+    no_recipe: "没有选中配方"
+    insufficient_materials: "材料不足"
+    insufficient_currency: "货币不足"
+    queue_full: "队列已满"
+    station.queue_full: "队列已满"
+    station.recipe_no_permission: "你没有权限使用这个配方"
+    station.recipe_condition_failed: "不满足合成条件"
+    station.queue_not_loaded: "数据尚未加载完成"
+    station.pending_claim_limit: "待领取的产物太多了"
+  output_state:
+    storage_first: "<aqua>仓库优先</aqua>"
+    backpack_first: "<white>背包优先</white>"
+    storage_only: "<aqua>仅仓库</aqua>"
+    backpack_only: "<white>仅背包</white>"

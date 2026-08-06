@@ -145,6 +145,10 @@ public final class QueueStore {
             consumed.add(record);
         }
         values.put("consumed", consumed);
+        // Written unconditionally so a file always states the charge explicitly; a file from before currency
+        // costs existed simply has no key and parses as "charged nothing", which is correct for it.
+        values.put("cost_provider", entry.costProviderId());
+        values.put("cost_amount", entry.costAmount());
         List<Map<String, Object>> pending = new ArrayList<>();
         for (PendingOutput output : entry.pendingOutputs()) {
             Map<String, Object> record = new LinkedHashMap<>();
@@ -207,7 +211,9 @@ public final class QueueStore {
                 QueueEntryState.parse(asString(values.get("state")), QueueEntryState.WAITING),
                 asLong(values.get("started_at_ms"), 0L),
                 asLong(values.get("accumulated_ms"), 0L),
-                0L);
+                0L,
+                asString(values.get("cost_provider")),
+                asLong(values.get("cost_amount"), 0L));
         List<PendingOutput> pending = new ArrayList<>();
         for (Object element : asList(values.get("pending_outputs"))) {
             if (element instanceof Map<?, ?> record) {

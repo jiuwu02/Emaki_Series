@@ -7,24 +7,26 @@ import java.util.Map;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.station.api.model.ConsumedMaterial;
 import emaki.jiuwu.craft.station.api.model.MaterialChannel;
-import emaki.jiuwu.craft.station.recipe.MaterialRequirement;
-import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
 
 /**
- * Reads and consumes materials the player placed into a station's input slots.
+ * Reads and consumes materials directly from a player's own inventory.
  *
- * <p>Everything here runs on the owner thread: input slots are plain {@link ItemStack}s held in the GUI
- * session, and consumption uses CoreLib's plan/apply/rollback so a failure mid-way restores the exact
- * slot contents rather than leaving a half-consumed input area.
+ * <h2>Why this no longer works on GUI slots</h2>
+ * Materials used to live in a station window's input slots, which meant the whole class operated on a
+ * {@code Map<Integer, ItemStack>} the GUI owned, and the window teardown path had to hand those items back on
+ * close, on disconnect, and on disable. The catalog-style station never takes custody of anything: it reads
+ * the player's real inventory and debits it at submit time. There is consequently nothing to give back, and no
+ * window in which a rendered display stack could be mistaken for a real item.
  *
- * <p>Items in the input slots belong to the player. They are never destroyed on close or shutdown; the
- * session teardown path hands them back.
+ * <p>Everything here runs on the owner thread and uses CoreLib's plan/apply/rollback, so a shortfall part-way
+ * through restores the exact prior contents rather than leaving a half-consumed inventory.
  */
 public final class BackpackChannel {
 
@@ -40,82 +42,81 @@ public final class BackpackChannel {
     }
 
     /**
-     * Aggregates the identities and counts currently held in the input slots.
+     * Counts how many units of one identity a player is carrying.
      *
-     * <p><strong>Thread:</strong> the viewing player's owner thread.
+     * <p><strong>Thread:</strong> the target player's owner thread.
      *
-     * @param inputs the input slot contents keyed by inventory slot
-     * @return the available counts per identity; never {@code null}
+     * @param player the player to inspect
+     * @param source the identity to count
+     * @return the units carried; zero when the player or source is unusable
      */
-    public Map<ItemSourceRef, Long> available(Map<Integer, ItemStack> inputs) {
+    public long count(Player player, ItemSourceRef source) {
+        if (player == null || source == null || itemSourceService == null) {
+            return 0L;
+        }
+        return InventoryItemUtil.countItems(player, itemSourceService, source);
+    }
+
+    /**
+     * Counts every requested identity in one inventory pass.
+     *
+     * <p><strong>Thread:</strong> the target player's owner thread.
+     *
+     * @param player  the player to inspect
+     * @param sources the identities to count
+     * @return the counts per identity; identities absent from the inventory map to zero
+     */
+    public Map<ItemSourceRef, Long> countAll(Player player, Iterable<ItemSourceRef> sources) {
         Map<ItemSourceRef, Long> counts = new LinkedHashMap<>();
-        if (inputs == null || inputs.isEmpty() || itemSourceService == null) {
+        if (player == null || sources == null || itemSourceService == null) {
             return counts;
         }
-        for (ItemStack stack : inputs.values()) {
-            if (stack == null || stack.getType().isAir()) {
+        for (ItemSourceRef source : sources) {
+            if (source == null || counts.containsKey(source)) {
                 continue;
             }
-            ItemSourceRef ref = itemSourceService.identifyItem(stack);
-            if (ref == null) {
-                continue;
-            }
-            counts.merge(ref, (long) stack.getAmount(), Long::sum);
+            counts.put(source, InventoryItemUtil.countItems(player, itemSourceService, source));
         }
         return counts;
     }
 
     /**
-     * Consumes a recipe's requirements from the input slots.
+     * Debits an exact set of amounts from a player's inventory.
      *
-     * <p>All-or-nothing: every requirement is planned first, and a single shortfall rolls back every plan
-     * already applied. A caller therefore never has to compensate a partial consumption.
+     * <p>All-or-nothing: every removal is planned and applied in order, and a single shortfall rolls back
+     * every plan already applied. A caller therefore never has to compensate a partial debit.
      *
-     * <p><strong>Thread:</strong> the viewing player's owner thread.
+     * <p><strong>Thread:</strong> the target player's owner thread.
      *
-     * @param inputs the input slot contents, mutated in place on success
-     * @param recipe the recipe being crafted
-     * @param batch  how many times to apply the recipe
-     * @return the debited materials, or {@code null} when the inputs did not cover the recipe
+     * @param player  the player to debit
+     * @param amounts the units to take per identity
+     * @return the debited materials, or {@code null} when the inventory did not cover the request
      */
-    public List<ConsumedMaterial> consume(Map<Integer, ItemStack> inputs,
-            RecipeDefinition recipe,
-            long batch) {
-        if (inputs == null || recipe == null || itemSourceService == null) {
+    public List<ConsumedMaterial> consume(Player player, Map<ItemSourceRef, Long> amounts) {
+        if (player == null || amounts == null || itemSourceService == null) {
             return null;
         }
+        PlayerInventory inventory = player.getInventory();
         List<InventoryItemUtil.RemovalPlan> applied = new ArrayList<>();
         List<ConsumedMaterial> consumed = new ArrayList<>();
-        for (MaterialRequirement requirement : recipe.requirements()) {
-            long needed = requirement.totalFor(batch);
-            if (!requirement.consume()) {
-                if (!holds(inputs, requirement, needed)) {
-                    rollback(inputs, applied);
-                    return null;
-                }
+        for (Map.Entry<ItemSourceRef, Long> entry : amounts.entrySet()) {
+            ItemSourceRef source = entry.getKey();
+            long needed = entry.getValue() == null ? 0L : entry.getValue();
+            if (source == null || needed <= 0L) {
                 continue;
             }
-            for (ItemSourceRef source : requirement.sources()) {
-                if (needed <= 0L) {
-                    break;
-                }
-                InventoryItemUtil.RemovalPlan plan =
-                        InventoryItemUtil.planRemoval(inputs, itemSourceService, source, needed);
-                if (plan == null || plan.removedAmount() <= 0L) {
-                    continue;
-                }
-                if (!InventoryItemUtil.applyRemoval(inputs, plan)) {
-                    rollback(inputs, applied);
-                    return null;
-                }
-                applied.add(plan);
-                consumed.add(new ConsumedMaterial(source, plan.removedAmount(), MaterialChannel.BACKPACK));
-                needed -= plan.removedAmount();
-            }
-            if (needed > 0L) {
-                rollback(inputs, applied);
+            InventoryItemUtil.RemovalPlan plan =
+                    InventoryItemUtil.planRemoval(inventory, itemSourceService, source, needed);
+            if (plan == null || plan.removedAmount() < needed) {
+                rollback(inventory, applied);
                 return null;
             }
+            if (!InventoryItemUtil.applyRemoval(inventory, plan)) {
+                rollback(inventory, applied);
+                return null;
+            }
+            applied.add(plan);
+            consumed.add(new ConsumedMaterial(source, needed, MaterialChannel.BACKPACK));
         }
         return consumed;
     }
@@ -154,20 +155,9 @@ public final class BackpackChannel {
         return delivered;
     }
 
-    private boolean holds(Map<Integer, ItemStack> inputs, MaterialRequirement requirement, long needed) {
-        long total = 0L;
-        for (ItemSourceRef source : requirement.sources()) {
-            total += InventoryItemUtil.countItems(inputs, itemSourceService, source);
-            if (total >= needed) {
-                return true;
-            }
-        }
-        return total >= needed;
-    }
-
-    private void rollback(Map<Integer, ItemStack> inputs, List<InventoryItemUtil.RemovalPlan> applied) {
+    private void rollback(PlayerInventory inventory, List<InventoryItemUtil.RemovalPlan> applied) {
         for (int index = applied.size() - 1; index >= 0; index--) {
-            InventoryItemUtil.rollbackRemoval(inputs, applied.get(index));
+            InventoryItemUtil.rollbackRemoval(inventory, applied.get(index));
         }
         applied.clear();
     }

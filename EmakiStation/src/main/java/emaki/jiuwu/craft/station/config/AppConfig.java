@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 public final class AppConfig extends BaseAppConfig {
 
     /** The config version this build ships, matching the module POM. */
-    public static final String CURRENT_VERSION = "1.0.0";
+    public static final String CURRENT_VERSION = "1.0.1";
 
     private final boolean releaseDefaultData;
     private final QueueSettings queueSettings;
@@ -19,6 +19,7 @@ public final class AppConfig extends BaseAppConfig {
     private final StorageSettings storageSettings;
     private final PersistenceSettings persistenceSettings;
     private final GuiSettings guiSettings;
+    private final PurchaseSettings purchaseSettings;
 
     /**
      * Creates a configuration snapshot.
@@ -31,6 +32,7 @@ public final class AppConfig extends BaseAppConfig {
      * @param storageSettings     warehouse-channel settings
      * @param persistenceSettings save-timing settings
      * @param guiSettings         GUI timing settings
+     * @param purchaseSettings    paid queue-slot settings
      */
     public AppConfig(String language,
             String configVersion,
@@ -39,7 +41,8 @@ public final class AppConfig extends BaseAppConfig {
             LimitSettings limitSettings,
             StorageSettings storageSettings,
             PersistenceSettings persistenceSettings,
-            GuiSettings guiSettings) {
+            GuiSettings guiSettings,
+            PurchaseSettings purchaseSettings) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.queueSettings = queueSettings == null ? QueueSettings.defaults() : queueSettings.normalized();
@@ -49,6 +52,9 @@ public final class AppConfig extends BaseAppConfig {
                 ? PersistenceSettings.defaults()
                 : persistenceSettings.normalized();
         this.guiSettings = guiSettings == null ? GuiSettings.defaults() : guiSettings.normalized();
+        this.purchaseSettings = purchaseSettings == null
+                ? PurchaseSettings.defaults()
+                : purchaseSettings.normalized();
     }
 
     /** {@return the shipped defaults} */
@@ -60,7 +66,8 @@ public final class AppConfig extends BaseAppConfig {
                 LimitSettings.defaults(),
                 StorageSettings.defaults(),
                 PersistenceSettings.defaults(),
-                GuiSettings.defaults());
+                GuiSettings.defaults(),
+                PurchaseSettings.defaults());
     }
 
     /** {@return whether bundled example data is written on first run} */
@@ -91,5 +98,10 @@ public final class AppConfig extends BaseAppConfig {
     /** {@return GUI timing settings} */
     public GuiSettings guiSettings() {
         return guiSettings;
+    }
+
+    /** {@return paid queue-slot settings} */
+    public PurchaseSettings purchaseSettings() {
+        return purchaseSettings;
     }
 }

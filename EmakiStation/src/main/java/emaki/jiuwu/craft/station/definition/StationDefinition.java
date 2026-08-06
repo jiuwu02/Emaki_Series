@@ -18,7 +18,9 @@ import emaki.jiuwu.craft.station.config.QueueSettings;
  *
  * @param id               the station id, which is also its file name
  * @param displayName      the configured display name, unrendered
- * @param layoutId         the GUI layout to open
+ * @param layoutId         the catalog layout to open
+ * @param previewLayoutId  the material-preview layout
+ * @param queueLayoutId    the craft-queue layout
  * @param includeTags      recipe tags to include; empty means "no tag filter"
  * @param includeIds       recipe ids to include explicitly
  * @param excludeIds       recipe ids to exclude after including
@@ -35,6 +37,8 @@ import emaki.jiuwu.craft.station.config.QueueSettings;
 public record StationDefinition(String id,
         String displayName,
         String layoutId,
+        String previewLayoutId,
+        String queueLayoutId,
         Set<String> includeTags,
         Set<String> includeIds,
         Set<String> excludeIds,
@@ -48,12 +52,22 @@ public record StationDefinition(String id,
         boolean playerSwitchable,
         ConditionBlock condition) {
 
+    /** Layout id used when a station declares no {@code preview_layout}. */
+    public static final String DEFAULT_PREVIEW_LAYOUT = "station_preview";
+
+    /** Layout id used when a station declares no {@code queue_layout}. */
+    public static final String DEFAULT_QUEUE_LAYOUT = "station_queue";
+
     /**
      * Creates a station with defensively copied collections.
      *
      * @param id               the station id
      * @param displayName      the display name; {@code null} becomes the id
-     * @param layoutId         the GUI layout id; {@code null} becomes the id
+     * @param layoutId         the catalog layout id; {@code null} becomes the id
+     * @param previewLayoutId  the preview layout id; {@code null} becomes
+     *                         {@link #DEFAULT_PREVIEW_LAYOUT}
+     * @param queueLayoutId    the queue layout id; {@code null} becomes
+     *                         {@link #DEFAULT_QUEUE_LAYOUT}
      * @param includeTags      tags to include; {@code null} becomes empty
      * @param includeIds       ids to include; {@code null} becomes empty
      * @param excludeIds       ids to exclude; {@code null} becomes empty
@@ -72,6 +86,12 @@ public record StationDefinition(String id,
     public StationDefinition {
         displayName = displayName == null ? id : displayName;
         layoutId = layoutId == null || layoutId.isBlank() ? id : layoutId;
+        previewLayoutId = previewLayoutId == null || previewLayoutId.isBlank()
+                ? DEFAULT_PREVIEW_LAYOUT
+                : previewLayoutId;
+        queueLayoutId = queueLayoutId == null || queueLayoutId.isBlank()
+                ? DEFAULT_QUEUE_LAYOUT
+                : queueLayoutId;
         includeTags = includeTags == null ? Set.of() : Set.copyOf(includeTags);
         includeIds = includeIds == null ? Set.of() : Set.copyOf(includeIds);
         excludeIds = excludeIds == null ? Set.of() : Set.copyOf(excludeIds);

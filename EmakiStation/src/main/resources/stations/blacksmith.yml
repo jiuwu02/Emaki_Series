@@ -4,8 +4,14 @@
 id: "blacksmith"
 display_name: "<gold>铁匠工坊</gold>"
 
-# 使用哪个 gui/<layout>.yml。省略时按 id 查找。
-layout: "grid_3x3"
+# 三页界面各自的布局文件，都指向 gui/<名字>.yml。
+#   layout          配方目录页，省略时为 station_catalog
+#   preview_layout  材料预览页，省略时为 station_preview
+#   queue_layout    合成队列页，省略时为 station_queue
+# 三个文件都必须存在，缺任何一个都会在启动预检里报 missing_layout。
+layout: "station_catalog"
+preview_layout: "station_preview"
+queue_layout: "station_queue"
 
 # 打开该工作站需要的权限。留空则回落到 emakistation.access.<id>。
 permission: ""
@@ -26,14 +32,21 @@ queue:
   progress_mode: "offline"
   cancel_refund_rate: 1.0
   speed_multiplier: 1.0
+
+  # 本工作站是否出售额外队列位。还需要 config.yml 的 queue.purchase.enabled 为 true。
+  # 取消条目时，已付的货币按上面的 cancel_refund_rate 折算退还，与材料同一比例。
   allow_purchase: false
 
 # 材料来源通道。两个都关会导致该工作站被拒绝加载
 # （能打开但永远用不了，不如启动时就报错）。
+#
+# 两个都开时，材料来自"背包 + 仓库"的合并池，优先扣背包。
+# 玩家看不到通道切换按钮，也不需要切 —— 界面里显示的"拥有"就是两边的合计。
 channels:
   backpack: true
   storage: true
-  # 打开界面时默认停在哪个通道。若该通道不可用会自动落到另一个。
+  # 保留键，当前不再生效：合并通道之后没有"停在哪个通道"这回事。
+  # 留着是为了让旧配置文件不报未知键，后续版本可能移除。
   default: "backpack"
 
 # 产物去向。

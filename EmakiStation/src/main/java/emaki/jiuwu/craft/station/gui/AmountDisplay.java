@@ -81,6 +81,42 @@ public final class AmountDisplay {
         return (int) Math.min(amount, MAX_RENDERED_STACK);
     }
 
+    /**
+     * Chooses the stack size for a material-preview icon.
+     *
+     * <p><strong>This is not {@link #renderedStackSize(long)} and the two must not be merged.</strong> That
+     * method <em>clamps</em>: an amount of 5000 becomes a stack of 99, which reads as "99 needed" and is a
+     * lie. This method <em>branches</em>:
+     *
+     * <ul>
+     *   <li>at most {@link #MAX_RENDERED_STACK}, the icon carries the real count so the client draws it;</li>
+     *   <li>above that, the icon carries {@code 1} so no misleading number is drawn at all, and the real
+     *       figure is left to {@link #precise(long)} in lore.</li>
+     * </ul>
+     *
+     * <p>Both branches still require the exact amount to appear in lore; the stack number is an at-a-glance
+     * aid, never the authoritative figure.
+     *
+     * @param amount the real required amount
+     * @return the real count when it fits in a legal stack, otherwise {@code 1}
+     */
+    public static int previewStackSize(long amount) {
+        if (amount <= 1L) {
+            return 1;
+        }
+        return amount <= MAX_RENDERED_STACK ? (int) amount : 1;
+    }
+
+    /**
+     * Tests whether a preview icon will show a stack number for an amount.
+     *
+     * @param amount the real required amount
+     * @return whether the client will draw a count on the icon
+     */
+    public static boolean showsStackNumber(long amount) {
+        return amount > 1L && amount <= MAX_RENDERED_STACK;
+    }
+
     private static String scaled(long amount, long unit, String suffix) {
         double value = (double) amount / unit;
         if (value >= 100.0D) {

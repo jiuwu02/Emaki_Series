@@ -10,10 +10,12 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.api.action.ActionResult;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.station.api.event.StationCraftCancelEvent;
 import emaki.jiuwu.craft.station.api.event.StationCraftCompletedEvent;
@@ -26,6 +28,7 @@ import emaki.jiuwu.craft.station.api.model.SubmitOutcome;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
 import emaki.jiuwu.craft.station.definition.StationRegistry;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
+import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
 import emaki.jiuwu.craft.station.material.OutputDelivery;
 import emaki.jiuwu.craft.station.material.StorageChannel;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
@@ -34,9 +37,16 @@ import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
  * Orchestrates submission, settlement, cancellation, and claiming.
  *
  * <h2>Consume on submit</h2>
- * Materials are debited when the entry is created, not when it finishes. The queue entry is therefore the
- * player's receipt, and its {@code consumedMaterials} list is the single source of truth for refunds and for
- * reconciling a crash. A failed debit aborts the whole submission; nothing is ever partially taken.
+ * Materials and currency are debited when the entry is created, not when it finishes. The queue entry is
+ * therefore the player's receipt: its {@code consumedMaterials} list and its recorded currency charge are the
+ * single source of truth for refunds and for reconciling a crash. A failed debit aborts the whole submission;
+ * nothing is ever partially taken.
+ *
+ * <h2>One submission path</h2>
+ * There is no longer a separate inventory path and warehouse path. Materials come from a single merged pool
+ * spanning the player's inventory and their warehouse, so every submission enters through
+ * {@link #submitAsync}. The per-material {@code channel} on each {@code ConsumedMaterial} still records where
+ * that particular unit came from, which is what lets a refund put it back in the right place.
  *
  * <p>Every method here touches players, inventories, or GUIs and must run on the target player's owner
  * thread. Warehouse futures complete on unspecified threads, so their continuations hop back through the
@@ -49,7 +59,9 @@ public final class StationCraftService {
     private final QueueService queueService;
     private final BackpackChannel backpackChannel;
     private final StorageChannel storageChannel;
+    private final MergedMaterialChannel materialChannel;
     private final OutputDelivery outputDelivery;
+    private final EconomyManager economyManager;
     private final java.util.function.Supplier<StationRegistry> registrySupplier;
     private final java.util.function.Supplier<Integer> pendingClaimCeiling;
     private final java.util.function.Supplier<Boolean> saveOnSubmit;
@@ -60,9 +72,11 @@ public final class StationCraftService {
      * @param plugin              the owning plugin, used as the scheduling owner
      * @param dispatcher          CoreLib's execution dispatcher
      * @param queueService        the queue cache
-     * @param backpackChannel     the inventory channel
-     * @param storageChannel      the warehouse channel
+     * @param backpackChannel     the inventory side, used for refunds
+     * @param storageChannel      the warehouse side, used for refunds
+     * @param materialChannel     the merged material channel used for submissions
      * @param outputDelivery      the output router
+     * @param economyManager      CoreLib's economy manager, used for recipe currency costs
      * @param registrySupplier    supplies the current resolved registry, re-read per call so a reload is
      *                            picked up without re-wiring this service
      * @param pendingClaimCeiling supplies the pending-claim ceiling
@@ -73,7 +87,9 @@ public final class StationCraftService {
             QueueService queueService,
             BackpackChannel backpackChannel,
             StorageChannel storageChannel,
+            MergedMaterialChannel materialChannel,
             OutputDelivery outputDelivery,
+            EconomyManager economyManager,
             java.util.function.Supplier<StationRegistry> registrySupplier,
             java.util.function.Supplier<Integer> pendingClaimCeiling,
             java.util.function.Supplier<Boolean> saveOnSubmit) {
@@ -82,17 +98,32 @@ public final class StationCraftService {
         this.queueService = queueService;
         this.backpackChannel = backpackChannel;
         this.storageChannel = storageChannel;
+        this.materialChannel = materialChannel;
         this.outputDelivery = outputDelivery;
+        this.economyManager = economyManager;
         this.registrySupplier = registrySupplier;
         this.pendingClaimCeiling = pendingClaimCeiling;
         this.saveOnSubmit = saveOnSubmit;
     }
 
     /**
-     * Submits one craft from the warehouse channel.
+     * Submits one craft, taking its materials from wherever the player has them.
      *
-     * <p>The inventory channel is not reachable here because its materials live in a GUI session's input
-     * slots, which only the GUI layer owns; that path calls {@link #submitFromInputs} instead.
+     * <h2>Order of operations, and why</h2>
+     * <ol>
+     *   <li>validate everything that can be known without touching anything;</li>
+     *   <li>fire the cancellable event, so a veto costs nothing;</li>
+     *   <li>snapshot both material sources and plan the split;</li>
+     *   <li>check the currency balance <em>before</em> debiting materials, because a balance read is free
+     *       and rolling materials back is not;</li>
+     *   <li>debit materials through the merged channel, which is all-or-nothing across both backends;</li>
+     *   <li>charge currency, refunding materials if the charge fails;</li>
+     *   <li>enqueue.</li>
+     * </ol>
+     *
+     * <p>Currency is charged after materials rather than before because the material debit is the step most
+     * likely to fail, and an economy round trip that has to be reversed is the one this design most wants to
+     * avoid. The balance pre-check in step 4 makes a late currency failure rare rather than routine.
      *
      * <p><strong>Thread:</strong> any thread. The future carries no completion-thread guarantee.
      *
@@ -102,7 +133,7 @@ public final class StationCraftService {
      * @param batch     how many times to apply the recipe
      * @return a future carrying what the submission produced, or an explicit failure
      */
-    public CompletableFuture<EmakiResult<SubmitOutcome>> submitFromStorageAsync(UUID playerId,
+    public CompletableFuture<EmakiResult<SubmitOutcome>> submitAsync(UUID playerId,
             String stationId,
             String recipeId,
             long batch) {
@@ -117,46 +148,83 @@ public final class StationCraftService {
         if (gate.isFailure()) {
             return CompletableFuture.completedFuture(gate.retypeFailure());
         }
-        if (!station.storageChannel() || !storageChannel.usable()) {
-            return CompletableFuture.completedFuture(EmakiResult.rejected("station.storage_unavailable"));
-        }
         long safeBatch = Math.max(1L, batch);
-        if (!fireSubmitEvent(player, station, recipe, safeBatch, MaterialChannel.STORAGE)) {
+        MaterialChannel reported = station.storageChannel() && storageChannel.usable()
+                ? MaterialChannel.STORAGE
+                : MaterialChannel.BACKPACK;
+        if (!fireSubmitEvent(player, station, recipe, safeBatch, reported)) {
             return CompletableFuture.completedFuture(EmakiResult.failure(
                     emaki.jiuwu.craft.corelib.api.contract.FailureKind.CANCELLED, "station.submit_cancelled"));
         }
-        return storageChannel.consumeAsync(playerId, recipe, safeBatch).thenCompose(consumed -> {
-            if (consumed.isFailure()) {
-                return CompletableFuture.completedFuture(consumed.<SubmitOutcome>retypeFailure());
+        return materialChannel.snapshotAsync(player, station, recipe)
+                .thenCompose(availability -> onOwnerThread(player,
+                        () -> submitWithSnapshot(player, station, recipe, safeBatch, availability)));
+    }
+
+    /**
+     * Completes a submission once both material sources are known.
+     *
+     * <p><strong>Thread:</strong> the crafting player's owner thread.
+     *
+     * @param player       the crafting player
+     * @param station      the station
+     * @param recipe       the recipe
+     * @param batch        how many times to apply the recipe
+     * @param availability the material snapshot to spend against
+     * @return a future carrying what the submission produced
+     */
+    private CompletableFuture<EmakiResult<SubmitOutcome>> submitWithSnapshot(Player player,
+            StationDefinition station,
+            RecipeDefinition recipe,
+            long batch,
+            MergedMaterialChannel.Availability availability) {
+        MergedMaterialChannel.DebitPlan plan = materialChannel.plan(recipe, batch, availability);
+        if (plan == null) {
+            return CompletableFuture.completedFuture(
+                    EmakiResult.rejected("station.insufficient_materials"));
+        }
+        long charge = recipe.cost().totalFor(batch);
+        if (charge > 0L && !affordable(player, recipe.cost().providerId(), charge)) {
+            return CompletableFuture.completedFuture(
+                    EmakiResult.rejected("station.insufficient_currency"));
+        }
+        return materialChannel.debitAsync(player, plan).thenCompose(debited -> {
+            if (debited.isFailure()) {
+                return CompletableFuture.completedFuture(debited.<SubmitOutcome>retypeFailure());
             }
-            List<ConsumedMaterial> materials = consumed.orElse(List.of());
-            return onOwnerThread(player, () -> enqueue(player, station, recipe, safeBatch,
-                    MaterialChannel.STORAGE, materials));
+            List<ConsumedMaterial> materials = debited.orElse(List.of());
+            return onOwnerThread(player, () -> {
+                if (charge > 0L) {
+                    ActionResult removal = economyManager.remove(player, recipe.cost().providerId(),
+                            "", (double) charge);
+                    if (removal == null || !removal.success()) {
+                        // Materials are already gone, so they have to come back before reporting failure.
+                        return refundAsync(player, materials, 1.0D).thenCompose(shortfall ->
+                                CompletableFuture.completedFuture(
+                                        EmakiResult.<SubmitOutcome>rejected(
+                                                "station.insufficient_currency")));
+                    }
+                }
+                return enqueue(player, station, recipe, batch,
+                        plan.touchesStorage() ? MaterialChannel.STORAGE : MaterialChannel.BACKPACK,
+                        materials, recipe.cost().providerId(), charge);
+            });
         });
     }
 
     /**
-     * Submits one craft using materials already consumed from a GUI session's input slots.
+     * Reads whether a player can pay a currency charge.
      *
-     * <p>Consumption has already happened by the time this is called, which is why the caller passes the
-     * receipt in: the GUI owns the input slots and can apply plan/rollback synchronously, so splitting the
-     * debit from the enqueue keeps both halves on the same thread with no window between them.
-     *
-     * <p><strong>Thread:</strong> the crafting player's owner thread.
-     *
-     * @param player    the crafting player
-     * @param station   the station
-     * @param recipe    the recipe
-     * @param batch     how many times the recipe was applied
-     * @param consumed  the already-debited materials
-     * @return a future carrying what the submission produced
+     * @param player     the payer
+     * @param providerId the economy provider to read
+     * @param amount     the amount required
+     * @return whether the balance covers the amount
      */
-    public CompletableFuture<EmakiResult<SubmitOutcome>> submitFromInputs(Player player,
-            StationDefinition station,
-            RecipeDefinition recipe,
-            long batch,
-            List<ConsumedMaterial> consumed) {
-        return enqueue(player, station, recipe, Math.max(1L, batch), MaterialChannel.BACKPACK, consumed);
+    private boolean affordable(Player player, String providerId, long amount) {
+        if (economyManager == null || providerId == null || providerId.isEmpty()) {
+            return false;
+        }
+        return economyManager.getBalance(player, providerId, "") >= (double) amount;
     }
 
     /**
@@ -238,13 +306,16 @@ public final class StationCraftService {
             RecipeDefinition recipe,
             long batch,
             MaterialChannel channel,
-            List<ConsumedMaterial> consumed) {
+            List<ConsumedMaterial> consumed,
+            String costProviderId,
+            long costAmount) {
         PlayerQueues queues = queueService.cached(player.getUniqueId());
         if (queues == null) {
             return CompletableFuture.completedFuture(EmakiResult.rejected("station.queue_not_loaded"));
         }
         if (recipe.instant()) {
-            return settleImmediately(player, station, recipe, batch, channel, consumed, queues);
+            return settleImmediately(player, station, recipe, batch, channel, consumed, queues,
+                    costProviderId, costAmount);
         }
         CraftQueue queue = queues.queue(station.id());
         QueueEntry entry = new QueueEntry(recipe.id(),
@@ -255,7 +326,9 @@ public final class StationCraftService {
                 QueueEntryState.WAITING,
                 0L,
                 0L,
-                0L);
+                0L,
+                costProviderId,
+                costAmount);
         int index = queue.add(entry);
         queue.promoteHead(station.progressMode(), System.currentTimeMillis());
         queues.markDirty();
@@ -272,14 +345,16 @@ public final class StationCraftService {
             long batch,
             MaterialChannel channel,
             List<ConsumedMaterial> consumed,
-            PlayerQueues queues) {
+            PlayerQueues queues,
+            String costProviderId,
+            long costAmount) {
         List<PendingOutput> outputs = outputsOf(recipe, batch);
         return outputDelivery.deliverAsync(player, outputs, station.outputRouting())
                 .thenCompose(result -> onOwnerThread(player, () -> {
                     if (result.hasPending()) {
                         CraftQueue queue = queues.queue(station.id());
                         QueueEntry entry = new QueueEntry(recipe.id(), batch, channel, 0L, consumed,
-                                QueueEntryState.WAITING, 0L, 0L, 0L);
+                                QueueEntryState.WAITING, 0L, 0L, 0L, costProviderId, costAmount);
                         entry.markPendingClaim(result.pending());
                         queue.add(entry);
                         queues.markDirty();
@@ -376,12 +451,40 @@ public final class StationCraftService {
         queue.entries().remove(entry);
         queue.promoteHead(station.progressMode(), System.currentTimeMillis());
         queues.markDirty();
+        refundCurrency(player, entry, rate);
         return refundAsync(player, materials, rate).thenCompose(shortfall -> onOwnerThread(player, () -> {
             queueService.saveAsync(player.getUniqueId());
             return CompletableFuture.completedFuture(shortfall
                     ? EmakiResult.<Unit>partial(Unit.INSTANCE, "station.refund_partial")
                     : EmakiResult.ok());
         }));
+    }
+
+    /**
+     * Returns part of a cancelled entry's currency charge.
+     *
+     * <p>The same rate applies to currency as to materials, so a station configured to refund half gives back
+     * half the money too. Refunding at a different rate would need a second configuration key whose only
+     * purpose is to disagree with the first.
+     *
+     * <p>The charge is read from the entry rather than recomputed from the recipe: the recipe may have been
+     * re-priced or removed since the submission, and the player is owed what they actually paid.
+     *
+     * <p><strong>Thread:</strong> the owning player's owner thread.
+     *
+     * @param player the player being refunded
+     * @param entry  the cancelled entry
+     * @param rate   the station's refund rate
+     */
+    private void refundCurrency(Player player, QueueEntry entry, double rate) {
+        if (economyManager == null || !entry.charged()) {
+            return;
+        }
+        long refundable = (long) Math.floor(entry.costAmount() * Math.clamp(rate, 0.0D, 1.0D));
+        if (refundable <= 0L) {
+            return;
+        }
+        economyManager.add(player, entry.costProviderId(), "", (double) refundable);
     }
 
     /**

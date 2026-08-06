@@ -34,7 +34,31 @@ public final class AppConfigParser {
                 parseLimits(section.getSection("limits"), defaults.limitSettings()),
                 parseStorage(section.getSection("storage"), defaults.storageSettings()),
                 parsePersistence(section.getSection("persistence"), defaults.persistenceSettings()),
-                parseGui(section.getSection("gui"), defaults.guiSettings()));
+                parseGui(section.getSection("gui"), defaults.guiSettings()),
+                parsePurchase(section.getSection("queue"), defaults.purchaseSettings()));
+    }
+
+    /**
+     * Reads the {@code queue.purchase} block.
+     *
+     * <p>Nested under {@code queue} rather than given its own top-level section because it configures the
+     * same feature the surrounding block does, and a station opts in through its own {@code queue} block.
+     *
+     * @param queueSection the {@code queue} section; {@code null} yields the defaults
+     * @param defaults     the shipped defaults
+     * @return the parsed settings
+     */
+    private static PurchaseSettings parsePurchase(YamlSection queueSection, PurchaseSettings defaults) {
+        if (queueSection == null) {
+            return defaults;
+        }
+        YamlSection section = queueSection.getSection("purchase");
+        if (section == null) {
+            return defaults;
+        }
+        return new PurchaseSettings(
+                section.getBoolean("enabled", defaults.enabled()),
+                section.getString("cost_file", defaults.costFile()));
     }
 
     private static QueueSettings parseQueue(YamlSection section, QueueSettings defaults) {

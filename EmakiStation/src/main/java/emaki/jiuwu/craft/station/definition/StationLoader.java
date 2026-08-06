@@ -80,6 +80,8 @@ public final class StationLoader extends YamlDirectoryLoader<StationDefinition> 
         return new StationDefinition(id,
                 configuration.getString("display_name", id),
                 normalizeId(configuration.getString("layout")),
+                normalizeId(configuration.getString("preview_layout")),
+                normalizeId(configuration.getString("queue_layout")),
                 readLowerSet(configuration.getSection("recipes"), "include_tags"),
                 readLowerSet(configuration.getSection("recipes"), "include_ids"),
                 readLowerSet(configuration.getSection("recipes"), "exclude_ids"),

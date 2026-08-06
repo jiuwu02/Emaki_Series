@@ -52,6 +52,8 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private final StationLifecycleCoordinator lifecycleCoordinator = new StationLifecycleCoordinator();
     private final AtomicReference<StationRegistry> registry =
             new AtomicReference<>(StationRegistry.empty());
+    private final AtomicReference<emaki.jiuwu.craft.station.config.QueueCostConfig> queueCosts =
+            new AtomicReference<>(emaki.jiuwu.craft.station.config.QueueCostConfig.empty());
     private final AtomicBoolean shutdownStarted = new AtomicBoolean();
     private final AtomicBoolean apiInstalled = new AtomicBoolean();
 
@@ -113,17 +115,25 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         ConfigPrecheckLifecycleSupport.unregister(MODULE);
         HandlerList.unregisterAll(this);
         components.queueTicker().stop();
-        // Input slots hold player property, so windows close before anything else is released.
+        // Windows no longer hold player property, so closing them is only a state cleanup.
         components.stationGuiService().closeAll();
         components.guiService().closeAll();
-        components.queueService().flushAllAsync().whenComplete((ignored, failure) -> {
-            if (failure != null) {
-                getLogger().warning("Queue flush did not finish cleanly: " + failure.getMessage());
+        // Purchased slots flush before the queues so a shutdown that only half-completes loses the cheaper
+        // half: an unsaved queue entry can be reconciled from its receipt, unsaved paid capacity cannot.
+        components.unlockService().saveAllAsync().whenComplete((ignoredUnlocks, unlockFailure) -> {
+            if (unlockFailure != null) {
+                getLogger().warning("Queue unlock flush did not finish cleanly: "
+                        + unlockFailure.getMessage());
             }
-            registry.set(StationRegistry.empty());
-            runtimeInitialized = false;
-            components.messageService().info("console.plugin_stopped");
-            shutdownFuture.complete(null);
+            components.queueService().flushAllAsync().whenComplete((ignored, failure) -> {
+                if (failure != null) {
+                    getLogger().warning("Queue flush did not finish cleanly: " + failure.getMessage());
+                }
+                registry.set(StationRegistry.empty());
+                runtimeInitialized = false;
+                components.messageService().info("console.plugin_stopped");
+                shutdownFuture.complete(null);
+            });
         });
     }
 
@@ -142,6 +152,10 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         components.layoutLoader().load();
         components.stationLoader().load();
         components.recipeLoader().load();
+        // Re-read on every reload, and report an absent file this time: bootstrap has run by now, so a missing
+        // price file is a real omission rather than a first-launch ordering artefact.
+        queueCosts.set(emaki.jiuwu.craft.station.config.QueueCostLoader.load(
+                dataPath(appConfig().purchaseSettings().costFile()).toFile(), getLogger(), true));
         StationRegistry resolved = StationRegistry.resolve(components.stationLoader().all(),
                 components.recipeLoader().all());
         registry.set(resolved);
@@ -162,6 +176,16 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     /** {@return the currently active resolved registry} */
     public StationRegistry registry() {
         return registry.get();
+    }
+
+    /** {@return the currently active queue price table} */
+    public emaki.jiuwu.craft.station.config.QueueCostConfig queueCosts() {
+        return queueCosts.get();
+    }
+
+    /** {@return the purchased-slot cache, or {@code null} before enable completes} */
+    public emaki.jiuwu.craft.station.queue.QueueUnlockService queueUnlockService() {
+        return components == null ? null : components.unlockService();
     }
 
     /** {@return the message service, or {@code null} before enable completes} */
@@ -267,11 +291,20 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         getServer().getPluginManager().registerEvents(playerListener, this);
     }
 
+    /**
+     * Starts the periodic save.
+     *
+     * <p>Purchased slots ride the same timer rather than getting their own. A purchase already flushes
+     * immediately, so this pass only catches a record left dirty by something else; a second timer for that
+     * would be two schedules to reason about for no additional safety.
+     */
     private void scheduleAutoSave() {
         long intervalTicks = Math.max(100L,
                 appConfig().persistenceSettings().autosaveIntervalSeconds() * 20L);
-        autoSaveTask = components.executionDispatcher().runGlobalTimer(this,
-                () -> components.queueService().saveDirtyAsync(), intervalTicks, intervalTicks);
+        autoSaveTask = components.executionDispatcher().runGlobalTimer(this, () -> {
+            components.queueService().saveDirtyAsync();
+            components.unlockService().saveAllAsync();
+        }, intervalTicks, intervalTicks);
     }
 
     private void installPublicApi() {

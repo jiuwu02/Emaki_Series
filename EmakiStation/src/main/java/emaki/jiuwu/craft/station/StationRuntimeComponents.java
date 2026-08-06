@@ -15,13 +15,17 @@ import emaki.jiuwu.craft.station.config.AppConfig;
 import emaki.jiuwu.craft.station.definition.StationLoader;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
+import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
 import emaki.jiuwu.craft.station.material.OutputDelivery;
 import emaki.jiuwu.craft.station.material.StationCapabilities;
 import emaki.jiuwu.craft.station.material.StorageChannel;
 import emaki.jiuwu.craft.station.queue.QueueService;
 import emaki.jiuwu.craft.station.queue.QueueStore;
 import emaki.jiuwu.craft.station.queue.QueueTicker;
+import emaki.jiuwu.craft.station.queue.QueueUnlockService;
+import emaki.jiuwu.craft.station.queue.QueueUnlockStore;
 import emaki.jiuwu.craft.station.queue.StationCraftService;
+import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
 
 /**
@@ -40,9 +44,13 @@ import emaki.jiuwu.craft.station.recipe.RecipeLoader;
  * @param capabilities        the capability probe result
  * @param backpackChannel     the inventory channel
  * @param storageChannel      the warehouse channel
+ * @param materialChannel     the merged material channel
  * @param outputDelivery      the output router
  * @param queueStore          queue persistence
  * @param queueService        the queue cache
+ * @param unlockStore         purchased-slot persistence
+ * @param unlockService       the purchased-slot cache
+ * @param purchaseService     queue-slot pricing and charging
  * @param craftService        the submission orchestrator
  * @param stationGuiService   the window manager
  * @param queueTicker         the periodic settlement task
@@ -60,9 +68,13 @@ record StationRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         StationCapabilities capabilities,
         BackpackChannel backpackChannel,
         StorageChannel storageChannel,
+        MergedMaterialChannel materialChannel,
         OutputDelivery outputDelivery,
         QueueStore queueStore,
         QueueService queueService,
+        QueueUnlockStore unlockStore,
+        QueueUnlockService unlockService,
+        StationQueueUnlockService purchaseService,
         StationCraftService craftService,
         StationGuiService stationGuiService,
         QueueTicker queueTicker) implements RuntimeComponents {
@@ -79,6 +91,7 @@ record StationRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(StationLoader.class, stationLoader),
                 RuntimeComponents.component(RecipeLoader.class, recipeLoader),
                 RuntimeComponents.component(QueueService.class, queueService),
+                RuntimeComponents.component(QueueUnlockService.class, unlockService),
                 RuntimeComponents.component(StationCraftService.class, craftService),
                 RuntimeComponents.component(StationGuiService.class, stationGuiService));
     }

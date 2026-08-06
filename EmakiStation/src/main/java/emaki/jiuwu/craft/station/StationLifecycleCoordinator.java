@@ -22,13 +22,17 @@ import emaki.jiuwu.craft.station.definition.StationLoader;
 import emaki.jiuwu.craft.station.gui.ConfiguredGuiSupport;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
+import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
 import emaki.jiuwu.craft.station.material.OutputDelivery;
 import emaki.jiuwu.craft.station.material.StationCapabilities;
 import emaki.jiuwu.craft.station.material.StorageChannel;
 import emaki.jiuwu.craft.station.queue.QueueService;
 import emaki.jiuwu.craft.station.queue.QueueStore;
 import emaki.jiuwu.craft.station.queue.QueueTicker;
+import emaki.jiuwu.craft.station.queue.QueueUnlockService;
+import emaki.jiuwu.craft.station.queue.QueueUnlockStore;
 import emaki.jiuwu.craft.station.queue.StationCraftService;
+import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
 
 /**
@@ -44,8 +48,12 @@ final class StationLifecycleCoordinator
     private static final String DEFAULT_PREFIX = "<gray>[<aqua>EmakiStation</aqua>]</gray> ";
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of();
-    private static final List<String> DEFAULT_DATA_FILES =
-            List.of("stations/blacksmith.yml", "gui/grid_3x3.yml", "recipes/example_recipe.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("stations/blacksmith.yml",
+            "gui/station_catalog.yml",
+            "gui/station_preview.yml",
+            "gui/station_queue.yml",
+            "recipes/example_recipe.yml",
+            "queue_costs.yml");
     private static final List<String> EXTRA_DIRECTORIES =
             List.of("stations", "gui", "recipes", "data");
 
@@ -89,15 +97,32 @@ final class StationLifecycleCoordinator
         OutputDelivery outputDelivery =
                 new OutputDelivery(coreLibPlugin.itemSourceService(), storageChannel);
 
+        MergedMaterialChannel materialChannel = new MergedMaterialChannel(plugin,
+                executionDispatcher,
+                backpackChannel,
+                storageChannel,
+                () -> plugin.appConfig().storageSettings().enabled());
+
         AsyncYamlFiles queueFiles = coreLibPlugin.asyncYamlFiles(plugin);
         QueueStore queueStore = new QueueStore(plugin, () -> queueFiles);
         QueueService queueService = new QueueService(queueStore);
+        QueueUnlockStore unlockStore = new QueueUnlockStore(plugin, () -> queueFiles);
+        // The price table itself lives on the plugin behind an AtomicReference so a reload can swap it; this
+        // service only ever reads it through the supplier, never caches it.
+        StationQueueUnlockService purchaseService = new StationQueueUnlockService(
+                coreLibPlugin.economyManager(),
+                coreLibPlugin.itemSourceService(),
+                () -> plugin.appConfig().purchaseSettings(),
+                plugin::queueCosts);
+        QueueUnlockService unlockService = new QueueUnlockService(unlockStore, purchaseService);
         StationCraftService craftService = new StationCraftService(plugin,
                 executionDispatcher,
                 queueService,
                 backpackChannel,
                 storageChannel,
+                materialChannel,
                 outputDelivery,
+                coreLibPlugin.economyManager(),
                 plugin::registry,
                 () -> plugin.appConfig().limitSettings().maxPendingClaim(),
                 () -> plugin.appConfig().persistenceSettings().saveOnSubmit());
@@ -108,11 +133,16 @@ final class StationLifecycleCoordinator
                 threadOwnership,
                 () -> layoutLoader,
                 plugin::registry,
+                () -> plugin.appConfig().guiSettings(),
                 coreLibPlugin.itemSourceService(),
-                backpackChannel,
+                materialChannel,
                 storageChannel,
                 queueService,
+                unlockService,
+                purchaseService,
                 craftService,
+                coreLibPlugin.economyManager(),
+                StationLifecycleCoordinator::resolvePlaceholders,
                 guiSupport);
         QueueTicker queueTicker = new QueueTicker(plugin,
                 executionDispatcher,
@@ -134,11 +164,34 @@ final class StationLifecycleCoordinator
                 capabilities,
                 backpackChannel,
                 storageChannel,
+                materialChannel,
                 outputDelivery,
                 queueStore,
                 queueService,
+                unlockStore,
+                unlockService,
+                purchaseService,
                 craftService,
                 stationGuiService,
                 queueTicker);
+    }
+
+    /**
+     * Resolves PlaceholderAPI placeholders for one player, or returns the text unchanged.
+     *
+     * <p>Static so it can be handed to the GUI service as a plain function without exposing the coordinator.
+     *
+     * @param player the player to resolve against
+     * @param text   the text to resolve
+     * @return the resolved text
+     */
+    private static String resolvePlaceholders(org.bukkit.entity.Player player, String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        if (org.bukkit.Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text);
+        }
+        return text;
     }
 }

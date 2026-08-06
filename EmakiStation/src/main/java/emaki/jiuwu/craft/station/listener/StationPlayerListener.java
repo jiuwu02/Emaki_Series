@@ -36,13 +36,18 @@ public final class StationPlayerListener implements Listener {
     }
 
     /**
-     * Loads the joining player's queues and resumes their online progress.
+     * Loads the joining player's queues and purchased slots, then resumes their online progress.
      *
      * @param event the join event
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        // Purchased slots are loaded alongside the queues because the queue page reads both, and a page that
+        // rendered before the purchase record arrived would report a capacity the player did not have.
+        if (plugin.queueUnlockService() != null) {
+            plugin.queueUnlockService().loadAsync(player.getUniqueId());
+        }
         plugin.queueService().loadAsync(player.getUniqueId()).thenAccept(queues -> {
             if (queues == null) {
                 return;
@@ -55,16 +60,19 @@ public final class StationPlayerListener implements Listener {
     }
 
     /**
-     * Closes the leaving player's window, freezes progress, and flushes their queues.
+     * Discards the leaving player's window state, freezes progress, and flushes their data.
      *
      * @param event the quit event
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        // Closing first returns any items the player left in the input slots.
+        // Nothing is held on the player's behalf any more, so this only drops the page state.
         plugin.stationGuiService().close(player.getUniqueId());
         plugin.queueService().unloadAsync(player.getUniqueId());
+        if (plugin.queueUnlockService() != null) {
+            plugin.queueUnlockService().unloadAsync(player.getUniqueId());
+        }
     }
 
     private void resumeOnlineQueues(PlayerQueues queues) {

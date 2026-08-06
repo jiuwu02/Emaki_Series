@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.api.model.QueueEntryView;
 import emaki.jiuwu.craft.station.api.model.QueueSnapshot;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
-import emaki.jiuwu.craft.station.gui.StationGuiRenderer;
+import emaki.jiuwu.craft.station.gui.DurationDisplay;
 import emaki.jiuwu.craft.station.queue.PlayerQueues;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
 
@@ -178,7 +178,7 @@ public final class StationCommandRouter {
                         "recipe", entry.recipeId(),
                         "batch", String.valueOf(entry.batch()),
                         "state", entry.state().token(),
-                        "remaining", StationGuiRenderer.formatDuration(entry.remainingMillis())));
+                        "remaining", DurationDisplay.format(entry.remainingMillis())));
             }
         }
         return true;
@@ -337,7 +337,7 @@ public final class StationCommandRouter {
                             "recipe", entry.recipeId(),
                             "batch", String.valueOf(entry.batch()),
                             "state", entry.state().token(),
-                            "remaining", StationGuiRenderer.formatDuration(entry.remainingMillis())));
+                            "remaining", DurationDisplay.format(entry.remainingMillis())));
                 }
             }
         });

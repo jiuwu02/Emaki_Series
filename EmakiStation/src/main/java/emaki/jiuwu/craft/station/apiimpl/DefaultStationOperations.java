@@ -41,11 +41,11 @@ final class DefaultStationOperations implements StationOperations {
         if (batch <= 0L) {
             return CompletableFuture.completedFuture(EmakiResult.invalidInput("station.bad_batch"));
         }
-        if (channel == MaterialChannel.BACKPACK) {
-            return CompletableFuture.completedFuture(
-                    EmakiResult.rejected("station.api_backpack_unsupported"));
-        }
-        return plugin.craftService().submitFromStorageAsync(playerId, stationId, recipeId, batch);
+        // The channel argument no longer selects anything. Materials come from one merged pool spanning the
+        // player's inventory and their warehouse, so a caller cannot meaningfully ask for one side. The
+        // parameter is kept for source compatibility and ignored; BACKPACK used to be refused outright with
+        // station.api_backpack_unsupported, and that refusal no longer happens.
+        return plugin.craftService().submitAsync(playerId, stationId, recipeId, batch);
     }
 
     @Override

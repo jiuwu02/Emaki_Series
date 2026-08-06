@@ -5,7 +5,9 @@ import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeveri
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckContributor;
@@ -56,16 +58,37 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
         return new ConfigPrecheckResult(module(), issues);
     }
 
+    /**
+     * Validates every layout a station actually references, as the page it is referenced for.
+     *
+     * <p>A layout is only meaningful as one of the three pages, and which one it is comes from the station
+     * that names it. Layout files nothing references are therefore left alone rather than validated against
+     * a guessed page: that is what keeps a superseded file sitting in {@code gui/} from producing errors an
+     * administrator cannot act on.
+     *
+     * @param issues the issue list to append to
+     */
     private void checkLayouts(List<ConfigPrecheckIssue> issues) {
-        if (plugin.layoutLoader() == null) {
+        if (plugin.layoutLoader() == null || plugin.stationLoader() == null) {
             return;
         }
-        for (GuiTemplate template : plugin.layoutLoader().all().values()) {
-            for (StationLayoutValidator.LayoutIssue issue : StationLayoutValidator.validate(template)) {
+        Map<String, StationLayoutValidator.Page> pages = new LinkedHashMap<>();
+        plugin.stationLoader().all().values().forEach(station -> {
+            pages.putIfAbsent(station.layoutId(), StationLayoutValidator.Page.CATALOG);
+            pages.putIfAbsent(station.previewLayoutId(), StationLayoutValidator.Page.PREVIEW);
+            pages.putIfAbsent(station.queueLayoutId(), StationLayoutValidator.Page.QUEUE);
+        });
+        pages.forEach((layoutId, page) -> {
+            GuiTemplate template = plugin.layoutLoader().get(layoutId);
+            if (template == null) {
+                return;
+            }
+            for (StationLayoutValidator.LayoutIssue issue
+                    : StationLayoutValidator.validate(template, page)) {
                 addIssue("gui/" + issue.layoutId() + ".yml", ERROR,
                         issue.code() + (issue.detail().isEmpty() ? "" : ": " + issue.detail()), issues);
             }
-        }
+        });
     }
 
     private void checkStationLayoutLinks(List<ConfigPrecheckIssue> issues) {
@@ -73,10 +96,15 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
             return;
         }
         plugin.stationLoader().all().forEach((id, station) -> {
-            if (plugin.layoutLoader().get(station.layoutId()) == null) {
-                addIssue("stations/" + id + ".yml", ERROR,
-                        "missing_layout: " + station.layoutId(), issues);
-            }
+            reportMissingLayout(id, station.layoutId(), issues);
+            reportMissingLayout(id, station.previewLayoutId(), issues);
+            reportMissingLayout(id, station.queueLayoutId(), issues);
         });
+    }
+
+    private void reportMissingLayout(String stationId, String layoutId, List<ConfigPrecheckIssue> issues) {
+        if (plugin.layoutLoader().get(layoutId) == null) {
+            addIssue("stations/" + stationId + ".yml", ERROR, "missing_layout: " + layoutId, issues);
+        }
     }
 }

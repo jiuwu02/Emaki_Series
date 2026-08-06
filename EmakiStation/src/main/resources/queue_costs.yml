@@ -1,0 +1,53 @@
+# ============================================================
+# EmakiStation 付费队列位档位
+# ============================================================
+# 业务数据文件：release_default_data 只在文件缺失时释放一次，
+# 版本升级不会覆盖管理员已有内容。
+#
+# 计价规则：玩家购买第 N 个队列位时，用 N 落在哪个 count_range 决定价格。
+# N 是这个玩家在【这个工作站】已购数量 + 1，各工作站独立计数。
+# 越靠前的档优先；未匹配任何档则用 fallback。
+# 批量购买按【逐格计价再求和】结算，不是「单价 x 数量」——
+# 否则玩家可以一次性按最便宜那档买下一大批。
+#
+# 缺价即拒绝：某一格既没有匹配档也没有 fallback 时，购买被拒绝而不是免费放行。
+# 文件缺失或整体不可用时，付费队列位功能整体关闭。
+#
+# 另外两道开关，任一关闭都不能购买：
+#   config.yml   queue.purchase.enabled
+#   工作站配置    queue.allow_purchase
+#
+# 买到的队列位是【叠加】在基础长度或权限档之上的，但最终仍受工作站
+# queue.max_length 截断；插件会在报价阶段就拒绝会被截断吞掉的购买。
+# ============================================================
+
+tiers:
+  - count_range: "1-2"
+    currency:
+      type: vault # vault | excellent
+      amount: 5000
+  - count_range: "3-4"
+    currency:
+      type: vault
+      amount: 20000
+  - count_range: "5-6"
+    currency:
+      type: vault
+      amount: 50000
+    item:
+      source: "diamond" # CoreLib ItemSource token
+      amount: 8
+
+# 兜底档：超出所有 tiers 后的每一个队列位
+fallback:
+  currency:
+    type: vault
+    # %count% = 即将购买的第几个队列位，走 CoreLib ExpressionEngine
+    amount: "100000 * 1.15 ^ (%count% - 7)"
+  # 单个队列位的价格上限，防止指数表达式溢出为 Infinity。
+  # 这是必需项：缺失或非正数时兜底档整体失效，超出 tiers 的队列位将不可购买。
+  max_amount: 500000000
+
+batch:
+  enabled: true
+  options: [1, 2, 5]

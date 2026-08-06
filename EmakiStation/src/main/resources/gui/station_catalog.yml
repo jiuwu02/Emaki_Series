@@ -1,0 +1,180 @@
+# EmakiStation 界面布局：配方目录页（第一页）
+#
+# 三页结构：
+#   station_catalog  - 本文件。列出工作站的全部配方，左键直接提交，右键进入材料预览
+#   station_preview  - 材料预览页。列出所选配方的材料需求与货币成本
+#   station_queue    - 合成队列页。列出队列条目，可取消、领取、购买队列位
+#
+# 工作站通过 layout / preview_layout / queue_layout 三个键分别指定，缺省即为这三个 id。
+#
+# 重要：EmakiStation 的槽位必须显式写 type。CoreLib 的模板解析器只会为少数
+# Forge 专用键名自动推断类型，自定义键名不写 type 就只是纯装饰格。
+#
+# 本页可用的 type：
+#   recipe_list       - 列出配方（必需，否则布局校验不通过）
+#   queue_open        - 打开合成队列页
+#   batch_multiplier  - 循环切换倍率（左键递增、右键递减）
+#   output_toggle     - 切换产物去向
+#   prev_page/next_page/page_info - 翻页
+#   close             - 关闭界面
+#
+# 本页不再有 input 槽。玩家不放材料进界面，材料在提交时直接从背包与仓库合并扣除。
+id: "station_catalog"
+gui_type: CHEST
+title: "<dark_gray>%station_name%</dark_gray>"
+rows: 6
+
+slots:
+  frame:
+    slots: "0-8,45-53"
+    item:
+      source: "BLACK_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
+
+  # 配方列表。lore 里 %conditions% / %costs% / %materials% 三个占位符各自独占一行，
+  # CoreLib 会把这样的整行展开成多行 —— 有几个条件/成本/材料就有几行。
+  # 注意：只有 lore 支持这种整行展开，且该行必须只有一个占位符。
+  # 写成 "材料: %materials%" 不会展开，所以标题要单独成行。
+  recipe_list:
+    slots: "9-17,18-26,27-35"
+    type: "recipe_list"
+    item:
+      source: "PAPER"
+      components:
+        custom_name: "<aqua>%recipe_name%</aqua>"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0
+
+  queue_open:
+    slots: [49]
+    type: "queue_open"
+    item:
+      source: "CLOCK"
+      components:
+        custom_name: "<gold>合成队列</gold>"
+        lore:
+          - "<dark_gray>点击查看正在合成的内容</dark_gray>"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.2
+
+  batch_multiplier:
+    slots: [47]
+    type: "batch_multiplier"
+    item:
+      source: "COMPARATOR"
+      components:
+        custom_name: "<gold>倍率 <yellow>x%batch%</yellow></gold>"
+        lore:
+          - "<gray>左键 <white>递增</white> <dark_gray>|</dark_gray> 右键 <white>递减</white></gray>"
+          - "<dark_gray>想按材料上限拉满请进入材料预览页</dark_gray>"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0
+
+  output_toggle:
+    slots: [48]
+    type: "output_toggle"
+    item:
+      source: "HOPPER"
+      components:
+        custom_name: "<gold>产物去向</gold>"
+        lore:
+          - "<gray>当前: %output_state%</gray>"
+
+  prev_page:
+    slots: [45]
+    type: "prev_page"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>上一页</yellow>"
+
+  page_info:
+    slots: [46]
+    type: "page_info"
+    item:
+      source: "BOOK"
+      components:
+        custom_name: "<gray>第 <yellow>%page%</yellow> / <yellow>%pages%</yellow> 页</gray>"
+        lore:
+          - "<dark_gray>共 %total% 个配方</dark_gray>"
+
+  next_page:
+    slots: [53]
+    type: "next_page"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>下一页</yellow>"
+
+  close:
+    slots: [50]
+    type: "close"
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<red>关闭</red>"
+
+# 以下两块由 EmakiStation 自己读取，CoreLib 的模板解析器不会处理它们。
+virtual_items:
+  # 正常配方条目。图标取配方第一个产物，这里只覆盖名称与 lore。
+  recipe_entry:
+    item:
+      components:
+        custom_name: "<aqua>%recipe_name%</aqua>"
+        lore:
+          - "<gray>产物: <white>%result_name%</white> x<yellow>%result_amount%</yellow></gray>"
+          - "<gray>耗时: <yellow>%duration%</yellow></gray>"
+          - ""
+          - "<gold>条件</gold>"
+          - "%conditions%"
+          - ""
+          - "<gold>成本</gold>"
+          - "%costs%"
+          - ""
+          - "<gold>材料</gold>"
+          - "%materials%"
+          - ""
+          - "<green>左键</green> <gray>按当前倍率直接合成</gray>"
+          - "<green>右键</green> <gray>查看材料明细</gray>"
+
+  # 未解锁配方。仍然占位显示，让玩家知道后面还有内容。
+  recipe_locked:
+    item:
+      source: "GRAY_DYE"
+      components:
+        custom_name: "<dark_gray>%recipe_name%</dark_gray>"
+        lore:
+          - "<dark_gray>%lock_reason%</dark_gray>"
+          - ""
+          - "<gold>条件</gold>"
+          - "%conditions%"
+
+texts:
+  recipe:
+    condition_none: "<dark_gray>无</dark_gray>"
+    condition_permission: "<gray>需要权限 <dark_gray>%permission%</dark_gray></gray>"
+    condition_gate: "<gray>有合成条件限制</gray>"
+    condition_display: "<gray>有解锁条件</gray>"
+    locked: "尚未解锁"
+    cost_currency: "<gray>货币 <yellow>%amount%</yellow> <dark_gray>(%currency%)</dark_gray></gray>"
+    cost_duration: "<gray>耗时 <yellow>%duration%</yellow></gray>"
+    cost_keep: "<gray>需持有 <white>%material%</white> x<yellow>%amount%</yellow> <dark_gray>(不消耗)</dark_gray></gray>"
+    material_line: "<gray>- <white>%material%</white> x<yellow>%amount%</yellow></gray>"
+    material_none: "<dark_gray>无</dark_gray>"
+  output_state:
+    storage_first: "<aqua>仓库优先</aqua>"
+    backpack_first: "<white>背包优先</white>"
+    storage_only: "<aqua>仅仓库</aqua>"
+    backpack_only: "<white>仅背包</white>"

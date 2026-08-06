@@ -28,8 +28,9 @@ import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
  * @param atomicBatch whether the warehouse can apply a signed batch without routing items through the
  *                    player's inventory
  * @param batchCount  whether the warehouse can count several templates in one round trip
+ * @param reservation whether the warehouse can hold stock back without applying the withdrawal
  */
-public record StationCapabilities(boolean atomicBatch, boolean batchCount) {
+public record StationCapabilities(boolean atomicBatch, boolean batchCount, boolean reservation) {
 
     /** Warehouse capability for inventory-free atomic batches. */
     public static final String ATOMIC_BATCH_KEY = "emakistorage:atomic_batch";
@@ -37,9 +38,12 @@ public record StationCapabilities(boolean atomicBatch, boolean batchCount) {
     /** Warehouse capability for multi-template counting. */
     public static final String BATCH_COUNT_KEY = "emakistorage:batch_count";
 
+    /** Warehouse capability for holding stock without applying it. */
+    public static final String RESERVATION_KEY = "emakistorage:reservation";
+
     /** {@return a probe result with nothing available} */
     public static StationCapabilities none() {
-        return new StationCapabilities(false, false);
+        return new StationCapabilities(false, false, false);
     }
 
     /**
@@ -50,7 +54,8 @@ public record StationCapabilities(boolean atomicBatch, boolean batchCount) {
     public static StationCapabilities probe() {
         return new StationCapabilities(
                 EmakiCoreLibApi.hasCapability(ApiCapability.of(ATOMIC_BATCH_KEY)),
-                EmakiCoreLibApi.hasCapability(ApiCapability.of(BATCH_COUNT_KEY)));
+                EmakiCoreLibApi.hasCapability(ApiCapability.of(BATCH_COUNT_KEY)),
+                EmakiCoreLibApi.hasCapability(ApiCapability.of(RESERVATION_KEY)));
     }
 
     /**

@@ -37,13 +37,22 @@ public interface StationOperations {
      *
      * <p>Recipes with no duration settle immediately and never occupy the queue.
      *
+     * <h4>Behaviour change</h4>
+     * Materials now come from a single merged pool spanning the player's inventory and their warehouse, spent
+     * inventory-first. {@code channel} therefore no longer selects anything and is ignored.
+     *
+     * <p>Two consequences for existing callers: passing {@link MaterialChannel#BACKPACK} used to be refused with
+     * {@code station.api_backpack_unsupported} and now submits normally, so <strong>that reason key is no longer
+     * produced</strong>; and a submission may draw on the inventory even when {@link MaterialChannel#STORAGE} was
+     * requested. The parameter is retained for source compatibility.
+     *
      * <p><strong>Thread:</strong> any thread. Requires the target player to be online.
      *
      * @param playerId  the crafting player
      * @param stationId the station to submit at
      * @param recipeId  the recipe to craft
      * @param batch     how many times to apply the recipe; must be positive
-     * @param channel   where to take the materials from
+     * @param channel   ignored; retained for source compatibility
      * @return a future carrying what the submission produced, or an explicit failure
      */
     @NotNull

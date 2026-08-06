@@ -34,6 +34,8 @@ public final class QueueEntry {
     private final long durationMillis;
     private final List<ConsumedMaterial> consumedMaterials;
     private final List<PendingOutput> pendingOutputs = new ArrayList<>();
+    private final String costProviderId;
+    private final long costAmount;
 
     private QueueEntryState state;
     private long startedAtMs;
@@ -43,15 +45,23 @@ public final class QueueEntry {
     /**
      * Creates an entry.
      *
+     * <p>The currency fields exist for the same reason {@code consumedMaterials} does: the entry is the
+     * player's receipt. A cancellation after a restart can only refund what the entry itself remembers, so
+     * the charge is recorded rather than recomputed from the recipe — which may have been re-priced or
+     * deleted in the meantime.
+     *
      * @param recipeId          the recipe being crafted
      * @param batch             how many times the recipe is applied
-     * @param channel           where the materials came from
+     * @param channel           the primary material source; per-material truth lives in
+     *                          {@code consumedMaterials}, which may span both sides
      * @param durationMillis    the entry's total duration
      * @param consumedMaterials the materials already debited
      * @param state             the initial state
      * @param startedAtMs       the wall-clock start, or zero when not started
      * @param accumulatedMs     online progress accumulated so far
      * @param lastTickMs        the last online tick timestamp, or zero when frozen
+     * @param costProviderId    the economy provider already charged, or an empty string
+     * @param costAmount        the currency already charged; zero when nothing was
      */
     public QueueEntry(String recipeId,
             long batch,
@@ -61,7 +71,9 @@ public final class QueueEntry {
             QueueEntryState state,
             long startedAtMs,
             long accumulatedMs,
-            long lastTickMs) {
+            long lastTickMs,
+            String costProviderId,
+            long costAmount) {
         this.recipeId = recipeId;
         this.batch = Math.max(1L, batch);
         this.channel = channel == null ? MaterialChannel.BACKPACK : channel;
@@ -73,6 +85,10 @@ public final class QueueEntry {
         this.startedAtMs = Math.max(0L, startedAtMs);
         this.accumulatedMs = Math.max(0L, accumulatedMs);
         this.lastTickMs = Math.max(0L, lastTickMs);
+        String provider = costProviderId == null ? "" : costProviderId.trim();
+        long charged = Math.max(0L, costAmount);
+        this.costProviderId = provider.isEmpty() || charged == 0L ? "" : provider;
+        this.costAmount = this.costProviderId.isEmpty() ? 0L : charged;
     }
 
     /** {@return the recipe being crafted} */
@@ -123,6 +139,21 @@ public final class QueueEntry {
     /** {@return the last online tick timestamp, or zero when frozen} */
     public long lastTickMs() {
         return lastTickMs;
+    }
+
+    /** {@return the economy provider already charged, or an empty string when nothing was} */
+    public String costProviderId() {
+        return costProviderId;
+    }
+
+    /** {@return the currency already charged; zero when nothing was} */
+    public long costAmount() {
+        return costAmount;
+    }
+
+    /** {@return whether this entry carries a refundable currency charge} */
+    public boolean charged() {
+        return !costProviderId.isEmpty() && costAmount > 0L;
     }
 
     /**
