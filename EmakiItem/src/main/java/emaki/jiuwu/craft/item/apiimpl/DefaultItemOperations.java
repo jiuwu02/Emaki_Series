@@ -43,7 +43,10 @@ public final class DefaultItemOperations implements ItemOperations {
             return EmakiResult.invalidInput("item.create.amount_positive");
         }
         EmakiItemFactory factory = plugin.itemFactory();
-        if (factory == null || plugin.idResolver() == null || plugin.threadOwnership() == null) {
+        if (factory == null
+                || plugin.idResolver() == null
+                || plugin.threadOwnership() == null
+                || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
         if (!plugin.threadOwnership().isGlobalOwned()) {
@@ -107,7 +110,7 @@ public final class DefaultItemOperations implements ItemOperations {
             return playerCheck.retypeFailure();
         }
         EmakiItemUpdateService service = plugin.updateService();
-        if (service == null) {
+        if (service == null || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
         try {
@@ -127,7 +130,7 @@ public final class DefaultItemOperations implements ItemOperations {
             return playerCheck.retypeFailure();
         }
         EmakiItemSetService service = plugin.setService();
-        if (service == null || plugin.appConfig() == null) {
+        if (service == null || plugin.appConfig() == null || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
         if (!plugin.appConfig().setBonus().enabled()) {
@@ -169,7 +172,10 @@ public final class DefaultItemOperations implements ItemOperations {
         }
         EmakiItemUpdateService updateService = plugin.updateService();
         EmakiItemIdentifier identifier = plugin.identifier();
-        if (updateService == null || identifier == null || plugin.idResolver() == null) {
+        if (updateService == null
+                || identifier == null
+                || plugin.idResolver() == null
+                || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
         String id = identifier.identify(itemStack);

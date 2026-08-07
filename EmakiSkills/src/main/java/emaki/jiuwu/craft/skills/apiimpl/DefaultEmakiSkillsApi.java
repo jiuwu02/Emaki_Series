@@ -33,7 +33,8 @@ public final class DefaultEmakiSkillsApi implements EmakiSkillsApi.Bridge {
         }
         String pluginName = plugin.getName();
         String version = plugin.getPluginMeta().getVersion();
-        boolean ready = plugin.skillRegistryService() != null
+        boolean ready = plugin.contentReady()
+                && plugin.skillRegistryService() != null
                 && plugin.playerSkillDataStore() != null
                 && plugin.playerSkillStateService() != null
                 && plugin.castAttemptService() != null

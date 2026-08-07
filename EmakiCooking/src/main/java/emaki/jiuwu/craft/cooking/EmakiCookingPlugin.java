@@ -171,6 +171,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     @Override
     public void onDisable() {
         publicApiReady = false;
+        publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("cooking");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("cooking");
@@ -243,18 +244,53 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public void reloadPluginState() {
         publicApiReady = false;
+        publishLoading();
         lifecycleCoordinator.reload(this);
         logConfigPrecheckReport();
         publicApiReady = true;
+        publishReady();
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
         publicApiReady = false;
+        publishLoading();
         return lifecycleCoordinator.reloadAsync(this, null)
                 .thenRun(() -> {
                     logConfigPrecheckReport();
                     publicApiReady = true;
+                    publishReady();
                 });
+    }
+
+    /**
+     * Publishes "my data is loaded" to CoreLib's readiness registry.
+     *
+     * <p>This module sets {@code publicApiReady} in a plain method body with no lock held, so there is
+     * no monitor to leave before the waiting third-party callbacks run synchronously here.</p>
+     */
+    private void publishReady() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
+    }
+
+    private void publishLoading() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleLoading(getName()));
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiCooking readiness publication skipped: " + exception);
+        }
     }
 
     private void recoverCookingCompletions() {

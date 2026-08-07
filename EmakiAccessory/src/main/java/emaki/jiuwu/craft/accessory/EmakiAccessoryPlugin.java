@@ -78,6 +78,9 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
     private DebugCommand debugCommand;
     private TaskHandle autoSaveTask;
     private boolean runtimeInitialized;
+    // "Data is loaded", not "components exist": components is non-null from initialize() onward, so a
+    // null-check answered true while reloadContent() was still rebuilding parts, templates and sets.
+    private volatile boolean contentReady;
 
     /** Creates the plugin with its shipped configuration defaults. */
     public EmakiAccessoryPlugin() {
@@ -114,6 +117,10 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
         if (!shutdownStarted.compareAndSet(false, true)) {
             return;
         }
+        // Ahead of the runtimeInitialized guard: a partially enabled module may already have published
+        // "loading", and that has to be revoked even when the rest of the teardown is skipped.
+        contentReady = false;
+        publishAbsent();
         if (!runtimeInitialized || components == null) {
             return;
         }
@@ -148,7 +155,53 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
      * @return how many slot instances are active after the reload
      */
     public int reloadContent() {
-        return lifecycleCoordinator.reload(this);
+        contentReady = false;
+        publishLoading();
+        int result = lifecycleCoordinator.reload(this);
+        contentReady = true;
+        publishReady();
+        return result;
+    }
+
+    /**
+     * {@return whether this module's configured content has finished loading}
+     *
+     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the runtime
+     * components were constructed".</p>
+     */
+    public boolean contentReady() {
+        return contentReady;
+    }
+
+    /**
+     * Publishes "my data is loaded" to CoreLib's readiness registry.
+     *
+     * <p>Called from a plain method body with no lock held, so the waiting third-party callbacks that
+     * the registry runs synchronously cannot deadlock against this module's state.</p>
+     */
+    private void publishReady() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
+    }
+
+    private void publishLoading() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleLoading(getName()));
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiAccessory readiness publication skipped: " + exception);
+        }
     }
 
     /** {@return the active part configuration} */

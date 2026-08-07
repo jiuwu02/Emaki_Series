@@ -30,7 +30,10 @@ public final class DefaultEmakiLevelApi implements EmakiLevelApi.Bridge {
             return ApiStatus.notInstalled();
         }
         String version = plugin.getPluginMeta().getVersion();
-        return plugin.typeRegistry() != null && plugin.dataStore() != null && plugin.levelService() != null
+        return plugin.contentReady()
+                && plugin.typeRegistry() != null
+                && plugin.dataStore() != null
+                && plugin.levelService() != null
                 ? ApiStatus.ready(plugin.getName(), version, version)
                 : ApiStatus.loading(plugin.getName(), version, version);
     }

@@ -27,7 +27,8 @@ public final class DefaultEmakiStrengthenApi implements EmakiStrengthenApi.Bridg
             return ApiStatus.notInstalled();
         }
         String version = plugin.getPluginMeta().getVersion();
-        boolean ready = plugin.recipeLoader() != null
+        boolean ready = plugin.contentReady()
+                && plugin.recipeLoader() != null
                 && plugin.attemptService() != null
                 && plugin.transferService() != null
                 && plugin.refreshService() != null

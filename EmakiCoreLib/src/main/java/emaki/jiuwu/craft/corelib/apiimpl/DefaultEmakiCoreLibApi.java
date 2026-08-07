@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
+import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
@@ -49,9 +50,11 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         }
         String pluginName = plugin.getName();
         String version = plugin.getPluginMeta().getVersion();
-        return plugin.messageService() == null
-                ? ApiStatus.loading(pluginName, version, version)
-                : ApiStatus.ready(pluginName, version, version);
+        // Data criterion, not "one service exists": messageService is non-null from initializeServices()
+        // onward, so the old check reported ready while a reload was still swapping the stage table.
+        return plugin.contentReady()
+                ? ApiStatus.ready(pluginName, version, version)
+                : ApiStatus.loading(pluginName, version, version);
     }
 
     @Override
@@ -184,5 +187,17 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public Set<ApiCapability> capabilitiesOf(String pluginName) {
         return plugin.capabilityRegistry().ownedBy(pluginName);
+    }
+
+    @Override
+    public ReadinessRegistration whenReady(Plugin owner, String moduleName, Runnable callback) {
+        return plugin.moduleReadinessRegistry().whenReady(owner, moduleName, callback,
+                failure -> plugin.getLogger().warning("Readiness callback failed for " + failure.owner()
+                        + " waiting on " + failure.moduleName() + ": " + failure.error()));
+    }
+
+    @Override
+    public boolean isModuleReady(String moduleName) {
+        return plugin.moduleReadinessRegistry().isReady(moduleName);
     }
 }

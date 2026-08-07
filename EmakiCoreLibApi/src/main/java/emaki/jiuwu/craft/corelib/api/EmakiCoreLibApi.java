@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
+import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 
 /**
@@ -380,6 +381,66 @@ public final class EmakiCoreLibApi {
     }
 
     /**
+     * Runs {@code callback} once the named module has finished loading its data.
+     *
+     * <p>This exists because {@code softdepend} cannot express it. Plugin dependencies only order
+     * {@code onEnable} calls; a module that loads asynchronously and publishes its data through the
+     * scheduler finishes after the enable loop, so reading {@code status().usable()} from another
+     * plugin's {@code onEnable} observes {@code ready == false} structurally rather than
+     * occasionally. Waiting here is the supported way to observe the transition.</p>
+     *
+     * <p>When the module is already ready the callback runs <strong>synchronously, before this
+     * method returns</strong>, and the returned handle is already inactive. There is therefore no
+     * window in which a late registration silently misses the signal.</p>
+     *
+     * <p>The callback runs <strong>once</strong>. A module that reloads goes back to not-ready and
+     * becomes ready again, but an already-fired callback is not re-run; register again from inside the
+     * callback if you need to follow every reload, or simply re-check at the point of use. Registering
+     * the same owner twice adds a second callback rather than replacing the first.</p>
+     *
+     * <p><strong>Thread:</strong> callable from any thread. The callback runs on whichever thread
+     * marked the module ready, which is not guaranteed to be a Bukkit owner thread; schedule
+     * explicitly before touching players, inventories, worlds or GUIs.</p>
+     *
+     * @param owner      plugin that owns the callback lifecycle; its callbacks are dropped when it is
+     *                   disabled
+     * @param moduleName the watched module's plugin name, such as {@code "EmakiItem"}, matched
+     *                   case-insensitively. Pass a literal rather than a constant from that module's
+     *                   API jar, for the same class-loading reason documented on
+     *                   {@link ApiCapability#of(String)}
+     * @param callback   what to run once the module's data is loaded
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable, the arguments
+     *         are unusable, or the callback already ran synchronously
+     */
+    public static @NotNull ReadinessRegistration whenReady(@Nullable Plugin owner,
+            @Nullable String moduleName,
+            @Nullable Runnable callback) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? ReadinessRegistration.inactive()
+                : resolved.whenReady(owner, moduleName, callback);
+    }
+
+    /**
+     * Reports whether a module has finished loading its data right now.
+     *
+     * <p>This is the polling counterpart of {@link #whenReady(Plugin, String, Runnable)} and is meant
+     * for diagnostics or for a call site that can simply skip its work. Prefer {@code whenReady} for
+     * one-off initialisation, and prefer checking at the point of use over caching the answer, since
+     * a reload flips it back to {@code false} for the duration of the reload.</p>
+     *
+     * <p><strong>Thread:</strong> any thread.</p>
+     *
+     * @param moduleName the watched module's plugin name, matched case-insensitively
+     * @return whether that module has published a ready state; {@code false} when EmakiCoreLib is
+     *         unavailable or the module never published anything
+     */
+    public static boolean isModuleReady(@Nullable String moduleName) {
+        Bridge resolved = bridge;
+        return resolved != null && resolved.isModuleReady(moduleName);
+    }
+
+    /**
      * Bridge contract implemented by EmakiCoreLib. Third-party plugins must not implement it.
      */
     @ApiStatus.NonExtendable
@@ -549,5 +610,29 @@ public final class EmakiCoreLibApi {
          */
         @NotNull
         Set<ApiCapability> capabilitiesOf(@Nullable String pluginName);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#whenReady(Plugin, String, Runnable)} by delegating to the
+         * runtime readiness registry. Runs the callback synchronously and returns an inactive handle
+         * when the module is already ready.
+         *
+         * @param owner      plugin that owns the callback lifecycle
+         * @param moduleName the watched module's plugin name
+         * @param callback   what to run once that module's data is loaded
+         * @return a revocable handle
+         */
+        @NotNull
+        ReadinessRegistration whenReady(@Nullable Plugin owner,
+                @Nullable String moduleName,
+                @Nullable Runnable callback);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#isModuleReady(String)}, matching the plugin name
+         * case-insensitively. Callable from any thread.
+         *
+         * @param moduleName the watched module's plugin name
+         * @return whether that module has published a ready state
+         */
+        boolean isModuleReady(@Nullable String moduleName);
     }
 }

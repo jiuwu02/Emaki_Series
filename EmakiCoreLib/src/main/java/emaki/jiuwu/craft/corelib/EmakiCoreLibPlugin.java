@@ -47,6 +47,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.capability.CapabilityRegistry;
+import emaki.jiuwu.craft.corelib.readiness.ModuleReadinessRegistry;
 import emaki.jiuwu.craft.corelib.command.CoreLibBasicCommand;
 import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
@@ -130,6 +131,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     // Outlives every reload as well, but for the opposite reason: a published capability belongs to the
     // plugin that published it, so re-reading CoreLib's own config must not retract it.
     private final CapabilityRegistry capabilityRegistry = new CapabilityRegistry();
+    // Same lifetime rule as the capability registry: a waiting relationship belongs to the plugin that
+    // asked to wait, so a CoreLib reload must not cancel it.
+    private final ModuleReadinessRegistry moduleReadinessRegistry = new ModuleReadinessRegistry();
+    // "Data is loaded", not "services exist": the previous criterion was a non-null messageService,
+    // which is true from initializeServices() onward and therefore reported ready while a reload was
+    // still replacing the stage table.
+    private volatile boolean contentReady;
     private ConfigPrecheckService configPrecheckService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
@@ -219,6 +227,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         stageRebuildListeners.clear();
         capabilityRegistry.clear();
+        markModuleAbsent(getName());
+        moduleReadinessRegistry.clear();
         BuiltinStages.shutdown();
 
         // Bukkit registrations must be retired while the disable callback still owns the server thread.
@@ -322,6 +332,12 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             // Tasks reference the stage table that is about to be replaced, so they cannot outlive it.
             pipelineTaskService.stopAll();
         }
+        // Not-ready starts here rather than at method entry: everything above only builds candidates and
+        // returns false without touching live state, so the previous runtime is still fully usable while
+        // it runs. Announcing a loading window that a failed precheck never actually opens would make
+        // every consumer's gate flap for no reason.
+        contentReady = false;
+        moduleReadinessRegistry.markLoading(getName());
         configModel = candidateConfig;
         DebugLogger.setGlobalAllEnabled(configModel.debugConfig().globalAll());
         MiniMessages.configureDefaultNoItalic(configModel.miniMessageConfig().defaultNoItalic());
@@ -344,6 +360,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         installStageRuntime(candidateStageRegistry);
         buildSequenceRepository();
         refreshServiceRegistry();
+        contentReady = true;
+        // Outside any lock by construction: this method holds none. Waiters run synchronously here, so
+        // on the first enable there are none yet (the API bridge is installed later in onEnable, and no
+        // other plugin has run), and on a reload the consumers registered earlier are notified.
+        markModuleReady(getName());
         return true;
     }
 
@@ -739,6 +760,48 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /** {@return the cross-module capability registry; never {@code null} and never rebuilt by a reload} */
     public CapabilityRegistry capabilityRegistry() {
         return capabilityRegistry;
+    }
+
+    /** {@return the cross-module readiness registry; never {@code null} and never rebuilt by a reload} */
+    public ModuleReadinessRegistry moduleReadinessRegistry() {
+        return moduleReadinessRegistry;
+    }
+
+    /** {@return whether the action system, config and language data have finished loading} */
+    public boolean contentReady() {
+        return contentReady;
+    }
+
+    /**
+     * 报告某模块已完成数据装载，并同步通知其等待方。
+     *
+     * <p>必须在模块自身的就绪锁之外调用：回调在调用线程上同步运行，在同步块或 CAS 重试循环内
+     * 发布状态会让第三方回调在持有模块状态的情况下执行。</p>
+     *
+     * @param moduleName 模块插件名
+     */
+    public void markModuleReady(String moduleName) {
+        moduleReadinessRegistry.markReady(moduleName, failure -> getLogger().warning(
+                "Readiness callback failed for " + failure.owner()
+                        + " waiting on " + failure.moduleName() + ": " + failure.error()));
+    }
+
+    /**
+     * 报告某模块开始装载数据。已注册但未触发的等待方保留，等下一次就绪。
+     *
+     * @param moduleName 模块插件名
+     */
+    public void markModuleLoading(String moduleName) {
+        moduleReadinessRegistry.markLoading(moduleName);
+    }
+
+    /**
+     * 报告某模块已停用。其等待方保留，因为该模块可能在同一次服务器会话内重新启用。
+     *
+     * @param moduleName 模块插件名
+     */
+    public void markModuleAbsent(String moduleName) {
+        moduleReadinessRegistry.markAbsent(moduleName);
     }
 
     /** {@return the live pipeline engine, or {@code null} before the first successful reload} */

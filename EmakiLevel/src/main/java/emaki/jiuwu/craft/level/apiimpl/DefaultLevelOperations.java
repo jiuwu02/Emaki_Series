@@ -208,6 +208,16 @@ public final class DefaultLevelOperations implements LevelOperations {
         return ownedPlayer(Bukkit.getPlayer(uuid));
     }
 
+    /**
+     * {@return the validated owned player, or a failure describing why the call cannot proceed}
+     *
+     * <p>Every operation in this class funnels through here, which is why the readiness check lives
+     * here: all of them resolve a level type against the loaded type table and write through
+     * {@code levelService}, so running one mid-reload would apply a change against data that is about to
+     * be replaced.</p>
+     *
+     * @param player the target player
+     */
     private EmakiResult<Player> ownedPlayer(Player player) {
         if (player == null || !player.isOnline()) {
             return EmakiResult.targetOffline();
@@ -216,6 +226,9 @@ public final class DefaultLevelOperations implements LevelOperations {
                 || plugin.threadOwnership() == null
                 || !plugin.threadOwnership().isEntityOwned(player)) {
             return EmakiResult.wrongThread();
+        }
+        if (!plugin.contentReady()) {
+            return EmakiResult.unavailable();
         }
         return EmakiResult.success(player);
     }

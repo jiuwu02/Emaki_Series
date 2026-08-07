@@ -117,7 +117,9 @@ public final class DefaultCodexCatalog implements CodexCatalog {
             return EmakiResult.invalidInput("codex.error.no_advancement_id");
         }
         AdvancementRegistrar registrar = plugin.isEnabled() ? plugin.advancementRegistrar() : null;
-        if (registrar == null) {
+        // Ready, not just non-null: "unknown_advancement" below is judged against the registrar's
+        // contents, so answering it mid-reload would report a config error that is not one.
+        if (registrar == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         Player player = Bukkit.getPlayer(playerId);

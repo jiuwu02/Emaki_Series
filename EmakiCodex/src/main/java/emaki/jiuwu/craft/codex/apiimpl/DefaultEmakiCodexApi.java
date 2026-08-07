@@ -31,7 +31,8 @@ public final class DefaultEmakiCodexApi implements EmakiCodexApi.Bridge {
         }
         String pluginName = plugin.getName();
         String version = plugin.getPluginMeta().getVersion();
-        boolean ready = plugin.advancementRegistrar() != null
+        boolean ready = plugin.contentReady()
+                && plugin.advancementRegistrar() != null
                 && plugin.advancementService() != null
                 && plugin.advancementTriggerRegistry() != null
                 && plugin.threadOwnership() != null;

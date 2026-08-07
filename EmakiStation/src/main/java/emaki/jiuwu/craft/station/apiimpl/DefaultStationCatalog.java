@@ -24,6 +24,10 @@ import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
  *
  * <p>Every read goes through the plugin's current registry reference rather than a captured one, so a reload
  * is visible to API consumers immediately without re-installing the bridge.
+ *
+ * <p>These are plain queries whose return types cannot express "unavailable", so during a reload they may
+ * return stale or empty content instead of refusing. Callers that must act only on loaded content should
+ * wait via {@code EmakiCoreLibApi.whenReady} rather than reading an empty result as "no such station".
  */
 final class DefaultStationCatalog implements StationCatalog {
 

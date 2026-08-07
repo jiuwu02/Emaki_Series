@@ -83,6 +83,9 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private DebugCommand debugCommand;
     private CodexStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
+    // "Data is loaded", not "components exist": the runtime components are non-null from initialize()
+    // onward, so a component null-check reported ready for the whole duration of a reload.
+    private volatile boolean contentReady;
 
     private final EmakiCodexApi.Bridge apiBridge =
             new emaki.jiuwu.craft.codex.apiimpl.DefaultEmakiCodexApi(this);
@@ -115,6 +118,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     @Override
     public void onDisable() {
+        contentReady = false;
+        publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("codex");
         EmakiCodexApi.uninstall(apiBridge);
         if (gameplaySubscriber != null) {
@@ -129,7 +134,53 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     public void reloadPluginState() {
+        contentReady = false;
+        publishLoading();
         lifecycleCoordinator.reload(this);
+        contentReady = true;
+        publishReady();
+    }
+
+    /**
+     * {@return whether this module's configured content has finished loading}
+     *
+     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the components
+     * were constructed". The components are non-null from {@code initialize} onward, so gating on them
+     * alone reported ready throughout a reload.</p>
+     */
+    public boolean contentReady() {
+        return contentReady;
+    }
+
+    /**
+     * Publishes "my data is loaded" to CoreLib's readiness registry.
+     *
+     * <p>This module's flag is set in a plain method body with no lock held, so there is no monitor to
+     * leave before the waiting third-party callbacks run synchronously here.</p>
+     */
+    private void publishReady() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
+    }
+
+    private void publishLoading() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleLoading(getName()));
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(coreLib());
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiCodex readiness publication skipped: " + exception);
+        }
     }
 
     private void registerConfigPrecheckContributor() {

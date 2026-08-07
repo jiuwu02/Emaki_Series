@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 public final class AppConfig extends BaseAppConfig {
 
     /** The config version this build ships, matching the module POM. */
-    public static final String CURRENT_VERSION = "1.0.1";
+    public static final String CURRENT_VERSION = "1.0.2";
 
     private final boolean releaseDefaultData;
     private final QueueSettings queueSettings;

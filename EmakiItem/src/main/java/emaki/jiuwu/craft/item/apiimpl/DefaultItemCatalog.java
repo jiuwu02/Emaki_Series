@@ -29,6 +29,14 @@ public final class DefaultItemCatalog implements ItemCatalog {
         this.plugin = plugin;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Deliberately not gated on {@link EmakiItemPlugin#runtimeReady()}: a {@code Set} return type
+     * cannot express "not loaded yet", so gating would only turn one indistinguishable answer into
+     * another. An empty set during the loading window is therefore ambiguous by signature, which is
+     * why the API documentation tells callers to wait for readiness before enumerating.</p>
+     */
     @Override
     public @NotNull Set<String> definitionIds() {
         if (plugin.itemLoader() == null) {
@@ -42,7 +50,7 @@ public final class DefaultItemCatalog implements ItemCatalog {
         if (Texts.isBlank(id)) {
             return EmakiResult.invalidInput("item.definition.id_required");
         }
-        if (plugin.idResolver() == null) {
+        if (plugin.idResolver() == null || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
         EmakiItemDefinition definition = plugin.idResolver().resolveDefinition(id);
@@ -71,7 +79,7 @@ public final class DefaultItemCatalog implements ItemCatalog {
         if (Texts.isBlank(id)) {
             return EmakiResult.invalidInput("item.definition.id_required");
         }
-        if (plugin.idResolver() == null || plugin.itemFactory() == null) {
+        if (plugin.idResolver() == null || plugin.itemFactory() == null || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
         EmakiItemDefinition definition = plugin.idResolver().resolveDefinition(id);
@@ -88,6 +96,13 @@ public final class DefaultItemCatalog implements ItemCatalog {
                 : text);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Deliberately not gated on {@link EmakiItemPlugin#runtimeReady()}: a {@code boolean} cannot
+     * distinguish "no such id" from "not loaded yet". Callers that need that distinction should use
+     * {@link #definition(String)} and inspect the failure kind.</p>
+     */
     @Override
     public boolean exists(@Nullable String id) {
         return Texts.isNotBlank(id)
@@ -112,7 +127,10 @@ public final class DefaultItemCatalog implements ItemCatalog {
         if (!player.isOnline()) {
             return EmakiResult.targetOffline();
         }
-        if (plugin.threadOwnership() == null || plugin.idResolver() == null || plugin.conditionChecker() == null) {
+        if (plugin.threadOwnership() == null
+                || plugin.idResolver() == null
+                || plugin.conditionChecker() == null
+                || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
         if (!plugin.threadOwnership().isEntityOwned(player)) {

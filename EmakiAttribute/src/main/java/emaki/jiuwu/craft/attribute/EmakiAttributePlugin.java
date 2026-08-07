@@ -128,6 +128,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     @Override
     public void onDisable() {
+        publishAbsent();
         unregisterCoreLibActions();
         ConfigPrecheckLifecycleSupport.unregister("attribute");
         EmakiAttributeApi.uninstall(emakiAttributeBridge);
@@ -190,12 +191,24 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     public void reloadPluginState(boolean resyncPlayers) {
+        publishLoading();
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
         registerCoreLibActions();
         logConfigPrecheckReport();
+        syncReadiness();
     }
 
-    public synchronized CompletableFuture<Void> reloadPluginStateAsync(boolean resyncPlayers, Consumer<String> progressListener) {
+    public CompletableFuture<Void> reloadPluginStateAsync(boolean resyncPlayers, Consumer<String> progressListener) {
+        publishLoading();
+        CompletableFuture<Void> reload = startReloadAsync(resyncPlayers, progressListener);
+        // Appended outside the synchronized method on purpose: waiting third-party callbacks run
+        // synchronously wherever this stage executes, and the reload chain can complete inline on the
+        // calling thread, which would run them while this plugin's monitor is held.
+        return reload.whenComplete((ignored, throwable) -> syncReadiness());
+    }
+
+    private synchronized CompletableFuture<Void> startReloadAsync(boolean resyncPlayers,
+            Consumer<String> progressListener) {
         if (reloadFuture != null && !reloadFuture.isDone()) {
             if (progressListener != null) {
                 progressListener.accept(messageService.message("command.reload.in_progress"));
@@ -214,6 +227,51 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
                     }
                 });
         return reloadFuture;
+    }
+
+    /**
+     * Publishes the current registry load state to CoreLib's readiness registry.
+     *
+     * <p>Uses the same three-registry predicate the API bridge reports through {@code status()}, so the
+     * registry cannot disagree with it. Must be called outside this plugin's monitor: waiting
+     * third-party callbacks run synchronously on the calling thread.</p>
+     */
+    private void syncReadiness() {
+        boolean ready = attributeService != null
+                && attributeService.attributeRegistry() != null
+                && attributeService.attributeRegistry().loaded()
+                && attributeService.damageTypeRegistry() != null
+                && attributeService.damageTypeRegistry().loaded()
+                && attributeService.defaultProfileRegistry() != null
+                && attributeService.defaultProfileRegistry().loaded();
+        publishReadiness(coreLibPlugin -> {
+            if (ready) {
+                coreLibPlugin.markModuleReady(getName());
+            } else {
+                coreLibPlugin.markModuleLoading(getName());
+            }
+        });
+    }
+
+    private void publishLoading() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleLoading(getName()));
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(coreLib());
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiAttribute readiness publication skipped: " + exception);
+        }
     }
 
     private void logConfigPrecheckReport() {

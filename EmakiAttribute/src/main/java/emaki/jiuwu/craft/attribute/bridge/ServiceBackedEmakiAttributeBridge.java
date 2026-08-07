@@ -98,6 +98,9 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (Texts.isBlank(attributeId)) {
             return EmakiResult.invalidInput("attribute.attribute_id_invalid");
         }
+        if (!runtimeReady()) {
+            return EmakiResult.unavailable();
+        }
         if (attributeService.attributeRegistry().resolve(attributeId) == null) {
             return EmakiResult.notFound("attribute.attribute_not_found");
         }
@@ -133,6 +136,9 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (itemStack == null || itemStack.getType().isAir()) {
             return EmakiResult.invalidInput("attribute.item_invalid");
         }
+        if (!runtimeReady()) {
+            return EmakiResult.unavailable();
+        }
         try {
             AttributeSnapshot snapshot = attributeService.collectItemSnapshot(itemStack);
             return snapshot == null
@@ -148,6 +154,9 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         EmakiResult<Unit> entityCheck = validateOwnedEntity(entity, "attribute.entity_invalid");
         if (entityCheck.isFailure()) {
             return entityCheck.retypeFailure();
+        }
+        if (!runtimeReady()) {
+            return EmakiResult.unavailable();
         }
         try {
             AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(entity);
@@ -207,6 +216,9 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (Texts.isBlank(resourceId) || !Double.isFinite(amount) || amount < 0D) {
             return EmakiResult.invalidInput("attribute.resource_consume_invalid");
         }
+        if (!runtimeReady()) {
+            return EmakiResult.unavailable();
+        }
         String normalizedId = Texts.normalizeId(resourceId);
         ResourceDefinition definition = attributeService.resourceDefinitions().get(normalizedId);
         if (definition == null) {
@@ -250,6 +262,11 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         EmakiResult<Unit> playerCheck = validateOnlinePlayer(player);
         if (playerCheck.isFailure()) {
             return playerCheck;
+        }
+        // The scheduled sync recomputes from the definition tables, so accepting the request while they
+        // are loading would queue work against data that is about to be replaced.
+        if (!runtimeReady()) {
+            return EmakiResult.unavailable();
         }
         try {
             attributeService.scheduleEquipmentSync(player);
@@ -305,6 +322,9 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (playerCheck.isFailure()) {
             return playerCheck;
         }
+        if (!runtimeReady()) {
+            return EmakiResult.unavailable();
+        }
         try {
             attributeService.resyncPlayer(player);
             return EmakiResult.ok();
@@ -352,6 +372,12 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (Texts.isBlank(resourceId)) {
             return EmakiResult.invalidInput("attribute.resource_id_invalid");
         }
+        // Gates resourceCurrent and resourceMax: the definition table is what "not_found" is judged
+        // against, so answering it while that table is still loading reports a config error that is not
+        // one.
+        if (!runtimeReady()) {
+            return EmakiResult.unavailable();
+        }
         String normalizedId = Texts.normalizeId(resourceId);
         if (!attributeService.resourceDefinitions().containsKey(normalizedId)) {
             return EmakiResult.notFound("attribute.resource_not_found");
@@ -381,6 +407,10 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         }
         if (!isEntityOwned(target) || (attacker != null && !isEntityOwned(attacker))) {
             return EmakiResult.wrongThread();
+        }
+        // Gates calculateDamage and applyDamage: both resolve against the damage type registry below.
+        if (!runtimeReady()) {
+            return EmakiResult.unavailable();
         }
         String resolvedType = Texts.isBlank(damageTypeId) ? attributeService.defaultDamageTypeId() : damageTypeId;
         var definition = attributeService.damageTypeRegistry().resolve(resolvedType);

@@ -65,8 +65,16 @@ public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
         return operations;
     }
 
+    /**
+     * {@return whether the module can serve API calls right now}
+     *
+     * <p>{@code contentReady()} comes first on purpose: the services below are non-null from
+     * initialize() onward, so without it this returned true while a reload was rebuilding cost tiers
+     * and the GUI template.</p>
+     */
     private boolean isReady() {
         return plugin.isEnabled()
+                && plugin.contentReady()
                 && plugin.dataStore() != null
                 && plugin.transactionService() != null
                 && plugin.capacityService() != null

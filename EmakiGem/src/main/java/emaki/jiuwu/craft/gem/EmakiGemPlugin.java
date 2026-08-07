@@ -140,6 +140,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     @Override
     public void onDisable() {
         publicApiReady = false;
+        publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("gem");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -161,18 +162,53 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public void reloadPluginState(boolean closeOpenInventories) {
         publicApiReady = false;
+        publishLoading();
         lifecycleCoordinator.reload(this, closeOpenInventories);
         logConfigPrecheckReport();
         publicApiReady = true;
+        publishReady();
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
         publicApiReady = false;
+        publishLoading();
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
                 .thenRun(() -> {
                     logConfigPrecheckReport();
                     publicApiReady = true;
+                    publishReady();
                 });
+    }
+
+    /**
+     * Publishes "my data is loaded" to CoreLib's readiness registry.
+     *
+     * <p>This module sets {@code publicApiReady} in a plain method body with no lock held, so there is
+     * no monitor to leave before the waiting third-party callbacks run synchronously here.</p>
+     */
+    private void publishReady() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
+    }
+
+    private void publishLoading() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleLoading(getName()));
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(coreLib());
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiGem readiness publication skipped: " + exception);
+        }
     }
 
     private void logConfigPrecheckReport() {

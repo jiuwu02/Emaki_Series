@@ -45,7 +45,8 @@ public final class DefaultSkillOperations implements SkillOperations {
             return completed(EmakiResult.targetOffline());
         }
         CastAttemptService castService = plugin.castAttemptService();
-        if (!plugin.isEnabled() || castService == null || plugin.playerSkillStateService() == null) {
+        if (!plugin.isEnabled() || castService == null || plugin.playerSkillStateService() == null
+                || !plugin.contentReady()) {
             return completed(EmakiResult.unavailable());
         }
         CompletableFuture<EmakiResult<SkillCastOutcome>> result = new CompletableFuture<>();
@@ -97,7 +98,7 @@ public final class DefaultSkillOperations implements SkillOperations {
             return completed(EmakiResult.targetOffline());
         }
         CastAttemptService castService = plugin.castAttemptService();
-        if (!plugin.isEnabled() || castService == null) {
+        if (!plugin.isEnabled() || castService == null || !plugin.contentReady()) {
             return completed(EmakiResult.unavailable());
         }
         return castService.attemptCast(player, triggerId).thenApply(DefaultSkillOperations::toCastResult);
@@ -218,11 +219,20 @@ public final class DefaultSkillOperations implements SkillOperations {
         return EmakiResult.ok();
     }
 
+    /**
+     * {@return a failure to return immediately, or {@code null} when the call may proceed}
+     *
+     * <p>Every operation in this class funnels through here, which is why the readiness check lives
+     * here: all of them resolve a skill id against the loaded definition table and write player state,
+     * so running one mid-reload would apply a change against data that is about to be replaced.</p>
+     *
+     * @param player the target player
+     */
     private <T> EmakiResult<T> guardPlayer(Player player) {
         if (!plugin.isEnabled() || plugin.playerSkillDataStore() == null
                 || plugin.playerSkillStateService() == null || plugin.manualSkillSourceService() == null
                 || plugin.skillLevelService() == null || plugin.skillUpgradeService() == null
-                || plugin.castModeService() == null) {
+                || plugin.castModeService() == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         if (player == null) return EmakiResult.invalidInput("skills.player.required");

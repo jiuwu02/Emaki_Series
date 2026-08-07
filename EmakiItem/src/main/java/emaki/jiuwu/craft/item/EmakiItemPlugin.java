@@ -228,6 +228,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             runtimeReady = false;
             reloadTail = CompletableFuture.completedFuture(null);
         }
+        publishLoading();
     }
 
     private void invalidateLifecycleEpoch() {
@@ -241,9 +242,11 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             runtimeReady = false;
             reloadTail = CompletableFuture.completedFuture(null);
         }
+        publishAbsent();
     }
 
     private ReloadAttempt beginReloadAttempt() {
+        ReloadAttempt attempt;
         synchronized (readinessMonitor) {
             if (!lifecycleActive) {
                 return null;
@@ -251,8 +254,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             long generation = ++reloadGeneration;
             activeReloads++;
             runtimeReady = false;
-            return new ReloadAttempt(lifecycleEpoch, generation);
+            attempt = new ReloadAttempt(lifecycleEpoch, generation);
         }
+        publishLoading();
+        return attempt;
     }
 
     private CompletableFuture<Void> enqueueReloadAttempt(
@@ -290,6 +295,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         if (attempt == null) {
             return;
         }
+        // The transition is computed under the monitor but published outside it: publishing runs third
+        // party callbacks synchronously, and running them while holding readinessMonitor would let any
+        // callback that queries this plugin, or waits on another thread that does, deadlock.
+        boolean becameReady = false;
         synchronized (readinessMonitor) {
             if (attempt.lifecycleEpoch() != lifecycleEpoch) {
                 return;
@@ -302,10 +311,49 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             if (activeReloads == 0 && latestCompletedReloadGeneration == reloadGeneration) {
                 reloadQueueSucceeded = succeeded;
             }
+            boolean previouslyReady = runtimeReady;
             runtimeReady = lifecycleActive
                     && activeReloads == 0
                     && latestCompletedReloadGeneration == reloadGeneration
                     && reloadQueueSucceeded;
+            becameReady = runtimeReady && !previouslyReady;
+        }
+        if (becameReady) {
+            publishReady();
+        }
+    }
+
+    /**
+     * Publishes "my data is loaded" to CoreLib's readiness registry.
+     *
+     * <p>Must be called outside {@link #readinessMonitor}: waiting third-party callbacks run
+     * synchronously on the calling thread.</p>
+     */
+    private void publishReady() {
+        publishReadiness(coreLib -> coreLib.markModuleReady(getName()));
+    }
+
+    private void publishLoading() {
+        publishReadiness(coreLib -> coreLib.markModuleLoading(getName()));
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLib -> coreLib.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * <p>Shutdown ordering is the reason for the guard: this plugin's disable path publishes too, and a
+     * failure to tell CoreLib about it must never turn into an exception out of {@code onDisable}.</p>
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(coreLib());
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiItem readiness publication skipped: " + exception);
         }
     }
 

@@ -24,6 +24,11 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
  *
  * <p>Every returned item stack is cloned. Handing out the stored instance would let a caller mutate a
  * player's equipped accessory through a read-only query.
+ *
+ * <p>All methods here are plain queries whose return types have no way to say "unavailable", so during
+ * a reload they may return stale or empty content instead of refusing. Callers that must act only on
+ * loaded content should wait via {@code EmakiCoreLibApi.whenReady} rather than treating an empty
+ * result as "no such part".
  */
 final class DefaultAccessoryCatalog implements AccessoryCatalog {
 

@@ -39,7 +39,7 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             return EmakiResult.invalidInput("strengthen.error.no_target");
         }
         StrengthenAttemptService service = plugin.attemptService();
-        if (service == null) {
+        if (service == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         try {
@@ -76,7 +76,7 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             return EmakiResult.invalidInput("strengthen.transfer.invalid_items");
         }
         StrengthenTransferService service = plugin.transferService();
-        if (service == null) {
+        if (service == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         try {
@@ -102,7 +102,9 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             return EmakiResult.invalidInput("strengthen.error.no_target");
         }
         StrengthenAttemptService service = plugin.attemptService();
-        if (service == null) {
+        // Without the gate the recipeLoader().get miss below would surface as a permanent notFound
+        // rather than a retryable unavailable.
+        if (service == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         try {
@@ -129,7 +131,8 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
         if (validation != null) {
             return validation;
         }
-        if (plugin.strengthenGuiService() == null || plugin.attemptService() == null) {
+        if (plugin.strengthenGuiService() == null || plugin.attemptService() == null
+                || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         return plugin.strengthenGuiService().open(player)
@@ -143,7 +146,8 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             return EmakiResult.invalidInput("strengthen.error.no_target");
         }
         StrengthenRefreshService service = plugin.refreshService();
-        if (service == null) {
+        // Refresh delegates to attemptService.rebuild, which needs the recipe table.
+        if (service == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         try {
@@ -166,7 +170,7 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             return validation;
         }
         StrengthenRefreshService service = plugin.refreshService();
-        if (service == null) {
+        if (service == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         try {

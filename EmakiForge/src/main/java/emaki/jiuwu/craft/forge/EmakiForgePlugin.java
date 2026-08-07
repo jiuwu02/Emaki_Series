@@ -134,6 +134,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         if (!shutdownStarted.compareAndSet(false, true)) {
             return;
         }
+        publishAbsent();
         CompletableFuture<Void> shutdownFuture = new CompletableFuture<>();
         EmakiCoreLibPlugin coreLibPlugin = resolveCoreLibForShutdown();
         registerCoreShutdownBarrier(coreLibPlugin, shutdownFuture);
@@ -504,6 +505,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     void beginReload(long generation) {
+        applyReloadStart(generation);
+        syncReadiness();
+    }
+
+    private void applyReloadStart(long generation) {
         runtimeSnapshot.updateAndGet(current -> {
             if (shutdownStarted.get()
                     || current.status() == ForgeRuntimeStatus.CLOSING
@@ -595,6 +601,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             setDebugLogger(nextLogger);
             debugCommand = nextCommand;
             previousComponents.forgeService().close();
+            // The published snapshot is RELOADING, so this reports "loading" rather than ready; the
+            // ready transition belongs to completeCandidateInstallation.
+            syncReadiness();
         } catch (RuntimeException | Error failure) {
             boolean restored = !committed || runtimeSnapshot.compareAndSet(next, previous);
             if (restored) {
@@ -602,6 +611,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 setDebugLogger(previousLogger);
                 debugCommand = previousCommand;
             }
+            // A restored previous runtime can be ACTIVE and available again, and the caller never
+            // reaches completeCandidateInstallation on this path. Without this the registry would stay
+            // stuck reporting "loading" while status() reports ready.
+            syncReadiness();
             try {
                 nextForgeService.close();
                 ForgeRuntimeSnapshot active = runtimeSnapshot.get();
@@ -623,6 +636,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     boolean completeCandidateInstallation(long generation) {
+        boolean completed = installActiveGeneration(generation);
+        // Published outside the CAS loop above: waiting third-party callbacks run synchronously, so a
+        // retry iteration must never carry one, and no lock may be held while they run.
+        syncReadiness();
+        return completed;
+    }
+
+    private boolean installActiveGeneration(long generation) {
         while (true) {
             ForgeRuntimeSnapshot current = runtimeSnapshot.get();
             if (shutdownStarted.get()
@@ -738,6 +759,44 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void transitionRuntime(ForgeRuntimeStatus status, String detail) {
         runtimeSnapshot.updateAndGet(current -> current.withStatus(status));
+    }
+
+    /**
+     * Publishes the current runtime availability to CoreLib's readiness registry.
+     *
+     * <p>Derived from the snapshot rather than tracked separately so the registry cannot disagree with
+     * {@link #isRuntimeReady()}. Must be called outside any CAS retry loop: waiting third-party
+     * callbacks run synchronously on the calling thread.</p>
+     */
+    private void syncReadiness() {
+        boolean ready = runtimeSnapshot.get().available();
+        publishReadiness(coreLibPlugin -> {
+            if (ready) {
+                coreLibPlugin.markModuleReady(getName());
+            } else {
+                coreLibPlugin.markModuleLoading(getName());
+            }
+        });
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * <p>Shutdown ordering is the reason for the guard: the disable path publishes too, and failing to
+     * tell CoreLib about it must never turn into an exception out of {@code onDisable}.</p>
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(coreLib());
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiForge readiness publication skipped: " + exception);
+        }
     }
 
     private static final class PaperCommandAdapter implements BasicCommand {

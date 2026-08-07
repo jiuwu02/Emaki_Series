@@ -112,7 +112,9 @@ public final class DefaultItemMigration implements ItemMigration {
         if (Texts.isBlank(oldNormalized) || Texts.isBlank(newNormalized) || oldNormalized.equals(newNormalized)) {
             return EmakiResult.invalidInput("item.migration.ids_invalid");
         }
-        if (plugin.itemLoader() == null || plugin.aliasLoader() == null) {
+        // Gates preview and apply, the only two callers: both read the definition table, so answering
+        // "target_not_found" while it is still being loaded would report a config error that is not one.
+        if (plugin.itemLoader() == null || plugin.aliasLoader() == null || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
         if (requireTarget && plugin.itemLoader().get(newNormalized) == null) {

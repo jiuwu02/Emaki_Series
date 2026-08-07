@@ -56,7 +56,11 @@ public final class DefaultStationBridge implements EmakiStationApi.Bridge {
         if (plugin == null || !plugin.isEnabled() || plugin.isShutdownStarted()) {
             return ApiStatus.notInstalled();
         }
-        return ApiStatus.ready(plugin.getName(), plugin.getPluginMeta().getVersion(), API_VERSION);
+        // Previously an unconditional ready(): being installed and enabled says nothing about whether the
+        // station registry has been loaded, so a reload window reported ready with an empty registry.
+        return plugin.contentReady()
+                ? ApiStatus.ready(plugin.getName(), plugin.getPluginMeta().getVersion(), API_VERSION)
+                : ApiStatus.loading(plugin.getName(), plugin.getPluginMeta().getVersion(), API_VERSION);
     }
 
     @Override

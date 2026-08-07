@@ -100,6 +100,11 @@ public final class DefaultLevelCatalog implements LevelCatalog {
         if (uuid == null) {
             return CompletableFuture.completedFuture(EmakiResult.invalidInput("level.player_uuid_required"));
         }
+        // The load is seeded with the type table, so starting it mid-reload would materialise player
+        // entries against types that are about to be replaced.
+        if (plugin == null || plugin.typeRegistry() == null || plugin.dataStore() == null || !plugin.contentReady()) {
+            return CompletableFuture.completedFuture(EmakiResult.unavailable());
+        }
         try {
             return plugin.dataStore().getOrLoadAsync(uuid, plugin.typeRegistry().asMap())
                     .thenApply(data -> data == null
@@ -185,8 +190,17 @@ public final class DefaultLevelCatalog implements LevelCatalog {
                 : EmakiResult.success(entry);
     }
 
+    /**
+     * {@return the resolved level type, or a failure describing why it could not be resolved}
+     *
+     * <p>The readiness check gates every caller that reports {@code type_not_found}: that verdict is
+     * judged against the loaded type table, so answering it mid-reload would report a config error for
+     * a type that exists.</p>
+     *
+     * @param typeId the level type id
+     */
     private EmakiResult<LevelTypeConfig> typeConfig(String typeId) {
-        if (plugin == null || plugin.typeRegistry() == null) {
+        if (plugin == null || plugin.typeRegistry() == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
         if (Texts.isBlank(typeId)) {

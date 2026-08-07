@@ -82,6 +82,9 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private static final int BSTATS_PLUGIN_ID = 31768;
 
     private BStatsRegistration metrics;
+    // "Data is loaded", not "services exist": the services are non-null from initialize() onward, so a
+    // service null-check reported ready for the whole duration of a reload.
+    private volatile boolean contentReady;
 
     private static final Set<String> DEBUG_MODULES = Set.of("cast", "unlock", "upgrade", "slot");
 
@@ -160,6 +163,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     @Override
     public void onDisable() {
+        contentReady = false;
+        publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("skills");
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -186,13 +191,65 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {
+        contentReady = false;
+        publishLoading();
         lifecycleCoordinator.reload(this, closeOpenInventories);
         logConfigPrecheckReport();
+        contentReady = true;
+        publishReady();
     }
 
     public java.util.concurrent.CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories, java.util.function.Consumer<String> progressListener) {
+        contentReady = false;
+        publishLoading();
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener)
-                .thenRun(() -> logConfigPrecheckReport());
+                .thenRun(() -> {
+                    logConfigPrecheckReport();
+                    contentReady = true;
+                    publishReady();
+                });
+    }
+
+    /**
+     * {@return whether this module's configured content has finished loading}
+     *
+     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the services
+     * were constructed". The services are non-null from {@code initialize} onward, so gating on them
+     * alone reported ready throughout a reload.</p>
+     */
+    public boolean contentReady() {
+        return contentReady;
+    }
+
+    /**
+     * Publishes "my data is loaded" to CoreLib's readiness registry.
+     *
+     * <p>This module's flag is set in a plain method body with no lock held, so there is no monitor to
+     * leave before the waiting third-party callbacks run synchronously here.</p>
+     */
+    private void publishReady() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
+    }
+
+    private void publishLoading() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleLoading(getName()));
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(coreLib());
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiSkills readiness publication skipped: " + exception);
+        }
     }
 
     private void logConfigPrecheckReport() {

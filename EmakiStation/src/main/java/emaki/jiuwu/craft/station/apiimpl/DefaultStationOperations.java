@@ -41,6 +41,9 @@ final class DefaultStationOperations implements StationOperations {
         if (batch <= 0L) {
             return CompletableFuture.completedFuture(EmakiResult.invalidInput("station.bad_batch"));
         }
+        if (!plugin.contentReady()) {
+            return CompletableFuture.completedFuture(EmakiResult.unavailable());
+        }
         // The channel argument no longer selects anything. Materials come from one merged pool spanning the
         // player's inventory and their warehouse, so a caller cannot meaningfully ask for one side. The
         // parameter is kept for source compatibility and ignored; BACKPACK used to be refused outright with
@@ -57,6 +60,11 @@ final class DefaultStationOperations implements StationOperations {
         Player player = Bukkit.getPlayer(playerId);
         if (player == null || !player.isOnline()) {
             return CompletableFuture.completedFuture(EmakiResult.targetOffline());
+        }
+        // Ahead of the registry lookup: mid-reload the station is momentarily absent, and reporting that
+        // as notFound would tell the caller the station does not exist rather than "retry shortly".
+        if (!plugin.contentReady()) {
+            return CompletableFuture.completedFuture(EmakiResult.unavailable());
         }
         StationDefinition station = plugin.registry().station(stationId);
         if (station == null) {
@@ -85,6 +93,11 @@ final class DefaultStationOperations implements StationOperations {
         if (player == null || !player.isOnline()) {
             return CompletableFuture.completedFuture(EmakiResult.targetOffline());
         }
+        // Claiming resolves deliverable entries against the live registry, so an empty registry would
+        // silently report "nothing to claim" instead of refusing.
+        if (!plugin.contentReady()) {
+            return CompletableFuture.completedFuture(EmakiResult.unavailable());
+        }
         CompletableFuture<EmakiResult<Integer>> future = new CompletableFuture<>();
         plugin.executionDispatcher().runEntity(plugin, player,
                 () -> plugin.craftService().claimAsync(player).whenComplete((result, error) -> {
@@ -102,6 +115,9 @@ final class DefaultStationOperations implements StationOperations {
     public @NotNull EmakiResult<Unit> openGui(@Nullable Player player, @Nullable String stationId) {
         if (player == null || stationId == null) {
             return EmakiResult.invalidInput("station.open_bad_request");
+        }
+        if (!plugin.contentReady()) {
+            return EmakiResult.unavailable();
         }
         return plugin.stationGuiService().open(player, stationId);
     }

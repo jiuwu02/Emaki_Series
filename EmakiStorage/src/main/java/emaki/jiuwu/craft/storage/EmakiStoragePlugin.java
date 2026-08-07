@@ -117,6 +117,9 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private DebugCommand debugCommand;
     private BStatsRegistration metrics;
     private TaskHandle autosaveTask;
+    // "Data is loaded", not "components exist": every service below is non-null from initialize()
+    // onward, so a null-check answered true for the whole duration of a reload.
+    private volatile boolean contentReady;
 
     private final EmakiStorageApi.Bridge apiBridge = new DefaultStorageApi(this);
     private CapabilityRegistration capabilityRegistration;
@@ -174,6 +177,8 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
      */
     @Override
     public void onDisable() {
+        contentReady = false;
+        publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("storage");
         if (capabilityRegistration != null) {
             capabilityRegistration.close();
@@ -216,7 +221,53 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     /** Reloads configuration, language, cost tiers and the GUI template. */
     public int reloadPluginState() {
-        return lifecycleCoordinator.reload(this);
+        contentReady = false;
+        publishLoading();
+        int result = lifecycleCoordinator.reload(this);
+        contentReady = true;
+        publishReady();
+        return result;
+    }
+
+    /**
+     * {@return whether this module's configured content has finished loading}
+     *
+     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the services
+     * were constructed".</p>
+     */
+    public boolean contentReady() {
+        return contentReady;
+    }
+
+    /**
+     * Publishes "my data is loaded" to CoreLib's readiness registry.
+     *
+     * <p>Called from a plain method body with no lock held, so the waiting third-party callbacks that
+     * run synchronously inside the registry cannot deadlock against this module's state.</p>
+     */
+    private void publishReady() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
+    }
+
+    private void publishLoading() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleLoading(getName()));
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiStorage readiness publication skipped: " + exception);
+        }
     }
 
     private void registerConfigPrecheckContributor() {
