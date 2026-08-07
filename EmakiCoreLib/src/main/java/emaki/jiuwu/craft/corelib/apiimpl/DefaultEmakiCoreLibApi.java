@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
+import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessListener;
 import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -199,5 +200,12 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public boolean isModuleReady(String moduleName) {
         return plugin.moduleReadinessRegistry().isReady(moduleName);
+    }
+
+    @Override
+    public ReadinessRegistration addModuleListener(Plugin owner,
+            String moduleName,
+            ModuleReadinessListener listener) {
+        return plugin.moduleReadinessRegistry().addListener(owner, moduleName, listener);
     }
 }

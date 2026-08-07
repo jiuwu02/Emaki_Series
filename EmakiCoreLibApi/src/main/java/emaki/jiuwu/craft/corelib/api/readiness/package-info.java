@@ -33,15 +33,29 @@
  * once; re-check at the point of use rather than caching what it observed, because a reload replaces
  * the data it read.
  *
+ * <h2>Following every reload</h2>
+ * {@code whenReady} is one-shot, so it answers "has it loaded yet" but not "has it reloaded since".
+ * A consumer that caches another module's content wants both: call
+ * {@code EmakiCoreLibApi.addModuleListener(this, "EmakiItem", phase -> ...)} and switch on the
+ * {@link emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessPhase} &mdash; invalidate on
+ * {@code LOADING}, rebuild on {@code READY}. The listener stays registered until its handle is closed
+ * and is notified on every transition. Registering the same owner for the same module twice replaces
+ * the previous listener rather than adding a second one, so a plugin whose {@code onEnable} runs twice
+ * does not rebuild its cache twice. Unlike {@code whenReady}, registering while the module is already
+ * ready does <em>not</em> invoke the listener immediately: the immediate call exists to close
+ * {@code whenReady}'s missed-signal window, and a standing listener has no such window to close.
+ * <strong>Never re-register from inside a {@code whenReady} callback</strong> to emulate this; that
+ * recurses until the stack overflows.
+ *
  * <h2>Thread</h2>
  * The callback runs on whichever thread set the state. For a module that loads asynchronously and
  * publishes on the server thread that is the server thread; for a module that reloads synchronously
  * it is the thread that called reload. Schedule explicitly before touching Bukkit state.
  *
  * <h2>Degradation</h2>
- * With EmakiCoreLib absent, {@code whenReady} returns
- * {@link emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration#inactive()}, the callback
- * never runs and {@code isModuleReady} is {@code false}. Nothing returns {@code null} and nothing
+ * With EmakiCoreLib absent, {@code whenReady} and {@code addModuleListener} both return
+ * {@link emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration#inactive()}, neither callback
+ * ever runs and {@code isModuleReady} is {@code false}. Nothing returns {@code null} and nothing
  * throws.
  */
 package emaki.jiuwu.craft.corelib.api.readiness;

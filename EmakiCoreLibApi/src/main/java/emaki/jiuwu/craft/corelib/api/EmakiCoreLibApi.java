@@ -24,6 +24,8 @@ import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
+import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessListener;
+import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessPhase;
 import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 
@@ -394,9 +396,15 @@ public final class EmakiCoreLibApi {
      * window in which a late registration silently misses the signal.</p>
      *
      * <p>The callback runs <strong>once</strong>. A module that reloads goes back to not-ready and
-     * becomes ready again, but an already-fired callback is not re-run; register again from inside the
-     * callback if you need to follow every reload, or simply re-check at the point of use. Registering
-     * the same owner twice adds a second callback rather than replacing the first.</p>
+     * becomes ready again, but an already-fired callback is not re-run. To follow every reload use
+     * {@link #addModuleListener(Plugin, String, ModuleReadinessListener)}, or simply re-check at the
+     * point of use. Registering the same owner twice adds a second callback rather than replacing the
+     * first.</p>
+     *
+     * <p><strong>Do not re-register from inside the callback</strong> to emulate a standing listener.
+     * The module is already marked ready by the time callbacks run, so the re-registration takes the
+     * already-ready path, fires synchronously, registers again, and recurses until the stack
+     * overflows.</p>
      *
      * <p><strong>Thread:</strong> callable from any thread. The callback runs on whichever thread
      * marked the module ready, which is not guaranteed to be a Bukkit owner thread; schedule
@@ -438,6 +446,62 @@ public final class EmakiCoreLibApi {
     public static boolean isModuleReady(@Nullable String moduleName) {
         Bridge resolved = bridge;
         return resolved != null && resolved.isModuleReady(moduleName);
+    }
+
+    /**
+     * Registers a standing listener for one module's readiness transitions.
+     *
+     * <p>This is the "follow every reload" counterpart of
+     * {@link #whenReady(Plugin, String, Runnable)}. Use it when you cache another module's content:
+     * invalidate on {@link ModuleReadinessPhase#LOADING}, rebuild on
+     * {@link ModuleReadinessPhase#READY}.</p>
+     *
+     * <pre>{@code
+     * EmakiCoreLibApi.addModuleListener(this, "EmakiItem", phase -> {
+     *     switch (phase) {
+     *         case LOADING, ABSENT -> myCache.invalidate();
+     *         case READY -> myCache.rebuild();
+     *     }
+     * });
+     * }</pre>
+     *
+     * <p>The listener stays registered until the returned handle is closed, so unlike
+     * {@code whenReady} it is notified on every transition rather than once. Registering the same
+     * owner for the same module again <strong>replaces</strong> the previous listener instead of
+     * adding a second one, which keeps a plugin whose {@code onEnable} runs twice from rebuilding its
+     * cache twice.</p>
+     *
+     * <p>Registering while the module is already ready does <strong>not</strong> invoke the listener
+     * immediately. {@code whenReady} does that to close its missed-signal window; a standing listener
+     * has no such window, and an immediate call would make "registered" and "notified"
+     * indistinguishable. Query {@link #isModuleReady(String)} if you need the current state at
+     * registration time.</p>
+     *
+     * <p>Do <strong>not</strong> emulate this by re-registering from inside a {@code whenReady}
+     * callback: the module is already marked ready when callbacks run, so the re-registration fires
+     * synchronously and recurses until the stack overflows.</p>
+     *
+     * <p><strong>Thread:</strong> callable from any thread. The listener runs on whichever thread
+     * published the transition, which is not guaranteed to be a Bukkit owner thread; schedule
+     * explicitly before touching players, inventories, worlds or GUIs.</p>
+     *
+     * @param owner      plugin that owns the listener lifecycle; its listeners are dropped when it is
+     *                   disabled
+     * @param moduleName the watched module's plugin name, such as {@code "EmakiItem"}, matched
+     *                   case-insensitively. Pass a literal rather than a constant from that module's
+     *                   API jar, for the same class-loading reason documented on
+     *                   {@link ApiCapability#of(String)}
+     * @param listener   what to notify on every transition
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable or the arguments
+     *         are unusable
+     */
+    public static @NotNull ReadinessRegistration addModuleListener(@Nullable Plugin owner,
+            @Nullable String moduleName,
+            @Nullable ModuleReadinessListener listener) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? ReadinessRegistration.inactive()
+                : resolved.addModuleListener(owner, moduleName, listener);
     }
 
     /**
@@ -634,5 +698,20 @@ public final class EmakiCoreLibApi {
          * @return whether that module has published a ready state
          */
         boolean isModuleReady(@Nullable String moduleName);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#addModuleListener(Plugin, String, ModuleReadinessListener)} by
+         * delegating to the runtime readiness registry. Replaces that owner's previous listener for
+         * the same module and does not invoke it at registration time.
+         *
+         * @param owner      plugin that owns the listener lifecycle
+         * @param moduleName the watched module's plugin name
+         * @param listener   what to notify on every transition
+         * @return a revocable handle
+         */
+        @NotNull
+        ReadinessRegistration addModuleListener(@Nullable Plugin owner,
+                @Nullable String moduleName,
+                @Nullable ModuleReadinessListener listener);
     }
 }

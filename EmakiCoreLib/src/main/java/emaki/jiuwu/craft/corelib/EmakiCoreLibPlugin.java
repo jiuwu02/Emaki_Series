@@ -337,7 +337,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         // it runs. Announcing a loading window that a failed precheck never actually opens would make
         // every consumer's gate flap for no reason.
         contentReady = false;
-        moduleReadinessRegistry.markLoading(getName());
+        moduleReadinessRegistry.markLoading(getName(), this::logReadinessFailure);
         configModel = candidateConfig;
         DebugLogger.setGlobalAllEnabled(configModel.debugConfig().globalAll());
         MiniMessages.configureDefaultNoItalic(configModel.miniMessageConfig().defaultNoItalic());
@@ -781,9 +781,19 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
      * @param moduleName 模块插件名
      */
     public void markModuleReady(String moduleName) {
-        moduleReadinessRegistry.markReady(moduleName, failure -> getLogger().warning(
-                "Readiness callback failed for " + failure.owner()
-                        + " waiting on " + failure.moduleName() + ": " + failure.error()));
+        moduleReadinessRegistry.markReady(moduleName, this::logReadinessFailure);
+    }
+
+    /**
+     * 记录就绪回调或常驻监听器抛出的异常。
+     *
+     * <p>单个消费方的回调失败不影响其余消费方，因此这里只记录、不重抛。</p>
+     *
+     * @param failure 失败详情
+     */
+    private void logReadinessFailure(ModuleReadinessRegistry.Failure failure) {
+        getLogger().warning("Readiness callback failed for " + failure.owner()
+                + " waiting on " + failure.moduleName() + ": " + failure.error());
     }
 
     /**
@@ -792,7 +802,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
      * @param moduleName 模块插件名
      */
     public void markModuleLoading(String moduleName) {
-        moduleReadinessRegistry.markLoading(moduleName);
+        moduleReadinessRegistry.markLoading(moduleName, this::logReadinessFailure);
     }
 
     /**
@@ -801,7 +811,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
      * @param moduleName 模块插件名
      */
     public void markModuleAbsent(String moduleName) {
-        moduleReadinessRegistry.markAbsent(moduleName);
+        moduleReadinessRegistry.markAbsent(moduleName, this::logReadinessFailure);
     }
 
     /** {@return the live pipeline engine, or {@code null} before the first successful reload} */
