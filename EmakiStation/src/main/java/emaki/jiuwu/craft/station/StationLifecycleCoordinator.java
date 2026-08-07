@@ -45,7 +45,7 @@ import emaki.jiuwu.craft.station.recipe.RecipeLoader;
 final class StationLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStationPlugin, StationRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[<aqua>EmakiStation</aqua>]</gray> ";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#A3E635:#22D3EE>EmakiStation</gradient> ]</gray> ";
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of();
     private static final List<String> DEFAULT_DATA_FILES = List.of("stations/blacksmith.yml",

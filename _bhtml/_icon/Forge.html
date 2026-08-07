@@ -1,0 +1,136 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background: #0a0d12;
+      }
+      .icon {
+        position: relative;
+        width: 256px;
+        height: 256px;
+        overflow: hidden;
+      }
+      .plate {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            120% 120% at 26% 16%,
+            rgba(255, 255, 255, 0.05) 0%,
+            transparent 58%
+          ),
+          linear-gradient(146deg, #0b1018 0%, #070a0f 62%, #ef44441f 100%);
+      }
+      .wash {
+        position: absolute;
+        inset: 0;
+        mix-blend-mode: screen;
+        background: radial-gradient(
+          96% 96% at 78% 20%,
+          #f59e0b38 0%,
+          transparent 64%
+        );
+      }
+      .edge {
+        position: absolute;
+        inset: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+      }
+      svg {
+        position: absolute;
+        inset: 0;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="icon">
+      <div class="plate"></div>
+      <div class="wash"></div>
+      <svg
+        width="256"
+        height="256"
+        viewBox="0 0 256 256"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2.4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#glow)">
+          <path
+            d="M 26 158 L 76 146 L 196 146 L 196 174 L 174 174 L 158 200 L 158 216 L 186 226 L 186 240 L 70 240 L 70 226 L 98 216 L 98 200 L 82 174 L 60 174 Z"
+            fill="#F59E0B"
+            fill-opacity="0.20"
+            stroke="#F59E0B"
+            stroke-opacity="0.90"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <polygon
+            points="76,146 196,146 196,156 76,156"
+            fill="#F59E0B"
+            fill-opacity="0.46"
+          />
+          <rect
+            x="94"
+            y="130"
+            width="70"
+            height="16"
+            rx="4"
+            fill="#F59E0B"
+            fill-opacity="0.88"
+            stroke="#F59E0B"
+            stroke-opacity="0.95"
+            stroke-width="2"
+          />
+          <path
+            d="M 114,88 L 62,88 Q 56,88 56,94 L 56,96 Q 56,102 62,102 L 114,102"
+            fill="#F59E0B"
+            fill-opacity="0.24"
+            stroke="#F59E0B"
+            stroke-opacity="0.60"
+            stroke-width="2.2"
+            stroke-linejoin="round"
+          />
+          <rect
+            x="114"
+            y="60"
+            width="30"
+            height="70"
+            rx="5"
+            fill="#F59E0B"
+            fill-opacity="0.34"
+            stroke="#F59E0B"
+            stroke-opacity="0.82"
+            stroke-width="2.6"
+          />
+          <rect
+            x="114"
+            y="115"
+            width="30"
+            height="15"
+            rx="4"
+            fill="#F59E0B"
+            fill-opacity="0.55"
+          />
+        </g>
+      </svg>
+      <div class="edge"></div>
+    </div>
+  </body>
+</html>

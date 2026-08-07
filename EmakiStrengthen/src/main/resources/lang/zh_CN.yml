@@ -11,7 +11,7 @@
 version: "4.6.9"
 
 general:
-  prefix: "<gray>[ <gradient:#FACC15:#F97316>EmakiStrengthen</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此操作。</red>"
   player_only: "<red>此命令只能由玩家执行。</red>"
   player_not_found: "<red>未找到目标玩家。</red>"
@@ -34,7 +34,7 @@ command:
       refresh: "刷新玩家背包中的强化层"
       setstar: "直接设置主手物品星级"
       clearstate: "移除主手物品上的强化层"
-      clearcrack: "清除主手物品裂痕"
+      clearcrack: "清除主手物品强化值"
       givecatalyst: "发放强化材料"
       debug: "管理 Debug 追踪"
   inspect:
@@ -48,7 +48,7 @@ command:
     success: "<green>已清空主手物品上的强化层。</green>"
     no_layer: "<yellow>主手物品当前没有可移除的强化层。</yellow>"
   clearcrack:
-    success: "<green>主手物品的锻印已清零。</green>"
+    success: "<green>主手物品的强化值已清零。</green>"
   givecatalyst:
     success: "<green>已向 <aqua>%player%</aqua> 发放 <gold>%amount%</gold> 个
       %material%。</green>"
@@ -120,8 +120,8 @@ strengthen:
     economy_provider_unavailable: "<red>经济提供者当前不可用。</red>"
     rebuild_failed: "<red>强化结果写回失败，未执行本次强化。</red>"
   preview:
-    failure_keep: "<gray>失败后保留当前星级，并累积锻印。</gray>"
-    failure_drop: "<red>失败后掉落 1 星，并累积锻印。</red>"
+    failure_keep: "<gray>失败后保留当前星级，并累积强化值。</gray>"
+    failure_drop: "<red>失败后掉落 1 星，并累积强化值。</red>"
     failure_drop_protected: "<gold>失败后消耗保护材料，不会掉星。</gold>"
   broadcast:
     local_reach: "<aqua>%player%</aqua> <yellow>将 %show_item% 强化到
@@ -152,10 +152,10 @@ gui:
     delta_stats_header: "<gray>强化提升:</gray>"
     delta_stats_line: "<gold> - %id% +%value%</gold>"
   temper:
-    title: "<gold>锻印状态</gold>"
-    current: "<gray>当前锻印: <gold>%temper%/%max%</gold></gray>"
-    bonus: "<gray>本次额外锻印加成: <aqua>+%bonus%</aqua></gray>"
-    hint: "<gray>失败后会累积锻印，提高后续成功率</gray>"
+    title: "<gold>强化值状态</gold>"
+    current: "<gray>当前强化值: <gold>%temper%/%max%</gold></gray>"
+    bonus: "<gray>本次额外强化值加成: <aqua>+%bonus%</aqua></gray>"
+    hint: "<gray>失败后会累积强化值，提高后续成功率</gray>"
   confirm:
     title: "<green>确认强化</green>"
     ineligible_title: "<red>无法强化</red>"
@@ -298,10 +298,10 @@ debug:
     probability: "概率计算 | 基础=%base% | 加成=%bonus% | 最终=%final%"
     roll: "随机结果 | 随机值=%roll% | 阈值=%threshold% | 成功=%success%"
     success: "强化成功 | 新星级=%star%"
-    failed: "强化失败 | 类型=%type% | 裂纹=%crack%"
+    failed: "强化失败 | 类型=%type% | 强化值=%crack%"
     destroyed: "强化破碎 | 物品=%item%"
   state:
-    read: "读取强化状态 | 物品=%item% | 星级=%star% | 裂纹=%crack% | 配方=%recipe%"
+    read: "读取强化状态 | 物品=%item% | 星级=%star% | 强化值=%crack% | 配方=%recipe%"
     write: "写入强化状态 | 物品=%item% | 变更=%change%"
   gui:
     open: "打开 GUI | 玩家=%player%"

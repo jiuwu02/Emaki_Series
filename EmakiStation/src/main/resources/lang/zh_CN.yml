@@ -8,6 +8,7 @@ console:
   loader_config_load_error: "读取 config.yml 失败，已回退到默认配置"
 
 general:
+  prefix: "<gray>[ <gradient:#A3E635:#22D3EE>EmakiStation</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行该操作</red>"
   players_only: "<red>该指令只能由玩家执行</red>"
   unknown_command: "<red>未知子指令，使用 /emakistation help 查看帮助</red>"

@@ -96,7 +96,7 @@ slots:
     item:
       source: "INK_SAC"
       components:
-        custom_name: "<gold>锻印状态</gold>"
+        custom_name: "<gold>强化值状态</gold>"
         lore:
           # %temper_lines% 每项各占一行，文案见 lang 的 gui.temper.*
           - "%temper_lines%"
@@ -121,7 +121,7 @@ slots:
       components:
         custom_name: "<yellow>强化材料槽 II</yellow>"
         lore:
-          - "<gray>包括固定材料、保护材料和锻印材料"
+          - "<gray>包括固定材料、保护材料和强化值材料"
 
   material_input_3:
     slots:

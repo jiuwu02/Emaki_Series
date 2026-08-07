@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background: #0a0d12;
+      }
+      .icon {
+        position: relative;
+        width: 256px;
+        height: 256px;
+        overflow: hidden;
+      }
+      .plate {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            120% 120% at 26% 16%,
+            rgba(255, 255, 255, 0.05) 0%,
+            transparent 58%
+          ),
+          linear-gradient(146deg, #0b1018 0%, #070a0f 62%, #627df51f 100%);
+      }
+      .wash {
+        position: absolute;
+        inset: 0;
+        mix-blend-mode: screen;
+        background: radial-gradient(
+          96% 96% at 78% 20%,
+          #30f07d38 0%,
+          transparent 64%
+        );
+      }
+      .edge {
+        position: absolute;
+        inset: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+      }
+      svg {
+        position: absolute;
+        inset: 0;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="icon">
+      <div class="plate"></div>
+      <div class="wash"></div>
+      <svg
+        width="256"
+        height="256"
+        viewBox="0 0 256 256"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2.4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#glow)">
+          <path
+            d="M 128.0 26 L 150.0 74 L 150.0 168 L 128.0 190 L 106.0 168 L 106.0 74 Z"
+            fill="#30F07D"
+            fill-opacity="0.36"
+            stroke="#30F07D"
+            stroke-opacity="0.90"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <line
+            x1="128.0"
+            y1="44"
+            x2="128.0"
+            y2="172"
+            stroke="#30F07D"
+            stroke-opacity="0.45"
+            stroke-width="2"
+          />
+          <rect
+            x="70.0"
+            y="190"
+            width="116"
+            height="18"
+            rx="5"
+            fill="#30F07D"
+            fill-opacity="0.42"
+            stroke="#30F07D"
+            stroke-opacity="0.9"
+            stroke-width="2.6"
+          />
+          <rect
+            x="117.0"
+            y="208"
+            width="22"
+            height="30"
+            rx="5"
+            fill="#30F07D"
+            fill-opacity="0.28"
+            stroke="#30F07D"
+            stroke-opacity="0.72"
+            stroke-width="2.2"
+          />
+        </g>
+      </svg>
+      <div class="edge"></div>
+    </div>
+  </body>
+</html>

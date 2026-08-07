@@ -8,7 +8,7 @@
 version: "1.0.7"
 
 general:
-  prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to do that.</red>"
   player_only: "<red>This command can only be run by a player.</red>"
   player_not_found: "<red>Player %player% not found.</red>"

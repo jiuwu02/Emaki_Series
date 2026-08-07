@@ -188,7 +188,7 @@ final class StrengthenCommandRouter implements TabExecutor {
                 "value", Texts.isBlank(state.baseSource()) ? "-" : state.baseSource()
         )));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "star", "value", state.currentStar())));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "crack", "value", state.crackLevel())));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "temper", "value", state.crackLevel())));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of(
                 "key", "first_reach",
                 "value", state.firstReachFlags().isEmpty() ? "-" : state.firstReachFlags()

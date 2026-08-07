@@ -50,7 +50,7 @@ public final class LevelMessageService implements LogMessages {
     private String prefix() {
         String prefix = resolveText("general.prefix", null);
         if (Texts.isBlank(prefix)) {
-            prefix = resolveText("prefix", "<gray>[ <gradient:#7DD3FC:#C084FC>EmakiLevel</gradient> ]</gray>");
+            prefix = resolveText("prefix", "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>");
         }
         return Texts.toStringSafe(prefix);
     }

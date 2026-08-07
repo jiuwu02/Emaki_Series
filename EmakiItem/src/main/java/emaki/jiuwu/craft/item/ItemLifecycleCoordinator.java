@@ -54,7 +54,7 @@ import emaki.jiuwu.craft.item.service.ItemSetLoreRenderer;
 
 final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiItemPlugin, ItemRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#60A5FA:#34D399>EmakiItem</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "emakiitem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml", "sets/example_set.yml", "gui/repair_gui.yml", "id_aliases.yml");

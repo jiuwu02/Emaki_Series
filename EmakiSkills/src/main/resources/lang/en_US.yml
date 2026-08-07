@@ -11,7 +11,7 @@
 version: "2.6.14"
 
 general:
-  prefix: "<gray>[ <gradient:#38BDF8:#8B5CF6>EmakiSkills</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to perform this action.</red>"
   player_only: "<red>This command can only be executed by a player.</red>"
   player_not_found: "<red>Target player not found.</red>"

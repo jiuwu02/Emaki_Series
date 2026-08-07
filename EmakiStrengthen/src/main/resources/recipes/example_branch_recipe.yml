@@ -80,7 +80,7 @@ lore_actions:
   - action: "prepend"
     content:
       - "<gradient:#FFD700:#FF4500>精炼等级 +%star%</gradient>"
-      - "<gray>锻印: %temper_color%%temper%/%max_temper%</gray>"
+      - "<gray>强化值: %temper_color%%temper%/%max_temper%</gray>"
 
 # ============================================================
 # 分支树定义

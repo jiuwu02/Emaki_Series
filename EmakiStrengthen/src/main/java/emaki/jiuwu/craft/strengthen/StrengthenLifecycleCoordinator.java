@@ -41,7 +41,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 
 final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiStrengthenPlugin, StrengthenRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#FACC15:#F97316>EmakiStrengthen</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml");

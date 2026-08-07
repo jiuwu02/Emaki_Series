@@ -9,6 +9,7 @@ console:
   plugin_stopped: "EmakiAccessory stopped"
 
 general:
+  prefix: "<gray>[ <gradient:#F472B6:#C084FC>EmakiAccessory</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to do that</red>"
   players_only: "<red>This command can only be used by a player</red>"
   data_loading: "<yellow>Your accessory data is still loading, try again shortly</yellow>"

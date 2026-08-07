@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>banner</title>
+    <style>
+      @font-face {
+        font-family: "MSYH";
+        src: local("Microsoft YaHei");
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        background: #0a0d12;
+      }
+      .banner {
+        position: relative;
+        width: 1200px; /* 1:4 */
+        height: 300px;
+        overflow: hidden;
+        font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+        isolation: isolate;
+      }
+      /* AI artwork sits underneath, desaturated and darkened so type stays legible. */
+      .art {
+        position: absolute;
+        inset: 0;
+        filter: saturate(0.85) contrast(1.05);
+      }
+      .art svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      /* Directional scrim: dense behind the text, clearing toward the artwork side. */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            100deg,
+            rgba(6, 9, 14, 0.96) 0%,
+            rgba(6, 9, 14, 0.92) 34%,
+            rgba(6, 9, 14, 0.74) 48%,
+            rgba(6, 9, 14, 0.3) 62%,
+            rgba(6, 9, 14, 0.1) 78%,
+            rgba(6, 9, 14, 0.26) 100%
+          ),
+          radial-gradient(
+            90% 120% at 6% 50%,
+            rgba(6, 9, 14, 0.55) 0%,
+            transparent 60%
+          );
+      }
+      /* Accent wash keyed per module, kept low so it reads as light not as a filter. */
+      .wash {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          120% 150% at 88% 18%,
+          var(--accent-glow) 0%,
+          transparent 62%
+        );
+        mix-blend-mode: screen;
+      }
+      .edge {
+        position: absolute;
+        inset: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+      }
+      /* English subtitles run 87-115 characters against 20-39 for Chinese, so
+         the text column and subtitle size are set per language by the builder
+         rather than shared. */
+      .content {
+        position: relative;
+        height: 100%;
+        padding: 0 72px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: var(--gap, 18px);
+        max-width: var(--col, 700px);
+      }
+      /* Rule carries the same two stops as the title, so the accent reads as
+         one gradient across the whole composition. */
+      .rule {
+        width: 46px;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          var(--accent) 0%,
+          var(--accent-2) 100%
+        );
+        box-shadow: 0 0 18px var(--accent-glow);
+      }
+      /* One continuous gradient over "Emaki" + suffix, matching the
+         <gradient:a:b> prefix each plugin renders in chat. The drop shadow has
+         to move to a wrapper: background-clip:text clips text-shadow too. */
+      .name {
+        font-size: var(--name-size, 62px);
+        font-weight: 700;
+        letter-spacing: -0.022em;
+        line-height: 0.98;
+        filter:
+          drop-shadow(0 2px 14px rgba(0, 0, 0, 0.8))
+          drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+      }
+      .name .ink {
+        background: linear-gradient(
+          96deg,
+          var(--accent) 0%,
+          var(--accent-2) 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .desc {
+        font-size: var(--desc-size, 24px);
+        font-weight: 400;
+        line-height: 1.42;
+        color: #c3cfdd;
+        letter-spacing: 0.005em;
+        text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+        text-wrap: balance;
+        /* Chinese has no spaces, so the default rules allow a break between any
+           two characters and split words like "结果" across lines. keep-all
+           confines breaks to the punctuation, which is where a reader expects
+           them. Harmless for English, which breaks at spaces either way.
+           The cost is that a run between two punctuation marks can no longer
+           wrap, so an over-long run would overflow instead; _brender guards
+           that on every build. */
+        word-break: keep-all;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner" id="b" style="--accent:#22D3EE;--accent-2:#A855F7;--accent-glow:rgba(168,85,247,0.42);--name-size:74px;--col:748px;--desc-size:20px;--gap:16px">
+      <div class="art"><svg width="1200" height="300" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#070a0f"/><stop offset="0.55" stop-color="#0b1018"/><stop offset="1" stop-color="#22D3EE" stop-opacity="0.20"/></linearGradient><radialGradient id="glow" cx="0.80" cy="0.24" r="0.62"><stop offset="0" stop-color="#22D3EE" stop-opacity="0.30"/><stop offset="1" stop-color="#22D3EE" stop-opacity="0"/></radialGradient><filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.6"/></filter></defs><rect width="1200" height="300" fill="url(#bg)"/><rect width="1200" height="300" fill="url(#glow)"/><g transform="translate(200,0)" filter="url(#soft)"><circle cx="800" cy="132" r="88" fill="none" stroke="#22D3EE" stroke-opacity="0.26" stroke-width="1" stroke-dasharray="6 8"/><circle cx="800" cy="132" r="114" fill="none" stroke="#22D3EE" stroke-opacity="0.19" stroke-width="1" stroke-dasharray="10 11"/><circle cx="800" cy="132" r="140" fill="none" stroke="#22D3EE" stroke-opacity="0.12" stroke-width="1" stroke-dasharray="14 14"/><polygon points="734.0,132.0 746.6,107.9 779.6,93.1 820.4,93.1 853.4,107.9 866.0,132.0 800.0,208.6" fill="#22D3EE" fill-opacity="0.26" stroke="#22D3EE" stroke-opacity="0.88" stroke-width="2.4"/><polygon points="734.0,132.0 746.6,107.9 779.6,93.1 820.4,93.1 853.4,107.9 866.0,132.0" fill="#22D3EE" fill-opacity="0.20" stroke="#22D3EE" stroke-opacity="0.55" stroke-width="1.4"/><line x1="734.0" y1="132.0" x2="800.0" y2="208.6" stroke="#22D3EE" stroke-opacity="0.42" stroke-width="1"/><line x1="746.6" y1="107.9" x2="800.0" y2="208.6" stroke="#22D3EE" stroke-opacity="0.42" stroke-width="1"/><line x1="779.6" y1="93.1" x2="800.0" y2="208.6" stroke="#22D3EE" stroke-opacity="0.42" stroke-width="1"/><line x1="820.4" y1="93.1" x2="800.0" y2="208.6" stroke="#22D3EE" stroke-opacity="0.42" stroke-width="1"/><line x1="853.4" y1="107.9" x2="800.0" y2="208.6" stroke="#22D3EE" stroke-opacity="0.42" stroke-width="1"/><line x1="866.0" y1="132.0" x2="800.0" y2="208.6" stroke="#22D3EE" stroke-opacity="0.42" stroke-width="1"/><line x1="734.0" y1="132.0" x2="866.0" y2="132.0" stroke="#22D3EE" stroke-opacity="0.5" stroke-width="1.2"/><circle cx="636" cy="264" r="13" fill="#22D3EE" fill-opacity="0.42" stroke="#22D3EE" stroke-opacity="0.75" stroke-width="1.6" stroke-dasharray=""/><circle cx="718" cy="264" r="13" fill="#22D3EE" fill-opacity="0.05" stroke="#22D3EE" stroke-opacity="0.30" stroke-width="1.6" stroke-dasharray="3 3"/><circle cx="800" cy="264" r="13" fill="#22D3EE" fill-opacity="0.42" stroke="#22D3EE" stroke-opacity="0.75" stroke-width="1.6" stroke-dasharray=""/><circle cx="882" cy="264" r="13" fill="#22D3EE" fill-opacity="0.42" stroke="#22D3EE" stroke-opacity="0.75" stroke-width="1.6" stroke-dasharray=""/><circle cx="964" cy="264" r="13" fill="#22D3EE" fill-opacity="0.05" stroke="#22D3EE" stroke-opacity="0.30" stroke-width="1.6" stroke-dasharray="3 3"/></g><circle cx="928" cy="128" r="1.0" fill="#cfe0f0" fill-opacity="0.13"/><circle cx="844" cy="109" r="0.6" fill="#cfe0f0" fill-opacity="0.24"/><circle cx="785" cy="102" r="1.2" fill="#cfe0f0" fill-opacity="0.17"/><circle cx="721" cy="236" r="0.8" fill="#cfe0f0" fill-opacity="0.29"/><circle cx="833" cy="217" r="1.0" fill="#cfe0f0" fill-opacity="0.29"/><circle cx="1107" cy="83" r="0.9" fill="#cfe0f0" fill-opacity="0.26"/><circle cx="1129" cy="91" r="0.6" fill="#cfe0f0" fill-opacity="0.06"/><circle cx="821" cy="96" r="1.4" fill="#cfe0f0" fill-opacity="0.18"/><circle cx="959" cy="281" r="0.8" fill="#cfe0f0" fill-opacity="0.24"/><circle cx="768" cy="205" r="0.9" fill="#cfe0f0" fill-opacity="0.20"/><circle cx="1120" cy="284" r="1.3" fill="#cfe0f0" fill-opacity="0.26"/><circle cx="1133" cy="56" r="1.2" fill="#cfe0f0" fill-opacity="0.10"/><circle cx="1134" cy="137" r="1.1" fill="#cfe0f0" fill-opacity="0.20"/><circle cx="1106" cy="282" r="1.1" fill="#cfe0f0" fill-opacity="0.15"/><circle cx="937" cy="137" r="1.4" fill="#cfe0f0" fill-opacity="0.30"/><circle cx="728" cy="129" r="1.5" fill="#cfe0f0" fill-opacity="0.11"/><circle cx="1163" cy="30" r="1.1" fill="#cfe0f0" fill-opacity="0.26"/><circle cx="1075" cy="85" r="0.8" fill="#cfe0f0" fill-opacity="0.23"/><circle cx="885" cy="29" r="0.6" fill="#cfe0f0" fill-opacity="0.08"/><circle cx="849" cy="262" r="1.1" fill="#cfe0f0" fill-opacity="0.10"/><circle cx="1133" cy="237" r="0.9" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="895" cy="92" r="1.1" fill="#cfe0f0" fill-opacity="0.29"/><circle cx="1054" cy="146" r="0.6" fill="#cfe0f0" fill-opacity="0.10"/><circle cx="734" cy="198" r="1.2" fill="#cfe0f0" fill-opacity="0.16"/><circle cx="980" cy="237" r="0.7" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="921" cy="200" r="1.1" fill="#cfe0f0" fill-opacity="0.07"/><circle cx="1105" cy="110" r="1.3" fill="#cfe0f0" fill-opacity="0.25"/><circle cx="980" cy="11" r="1.0" fill="#cfe0f0" fill-opacity="0.26"/><circle cx="926" cy="10" r="1.5" fill="#cfe0f0" fill-opacity="0.21"/><circle cx="815" cy="132" r="1.4" fill="#cfe0f0" fill-opacity="0.10"/><circle cx="820" cy="271" r="0.6" fill="#cfe0f0" fill-opacity="0.26"/><circle cx="748" cy="219" r="1.3" fill="#cfe0f0" fill-opacity="0.20"/><circle cx="1043" cy="112" r="0.5" fill="#cfe0f0" fill-opacity="0.26"/><circle cx="933" cy="263" r="1.1" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="761" cy="94" r="1.3" fill="#cfe0f0" fill-opacity="0.19"/><circle cx="1065" cy="43" r="1.4" fill="#cfe0f0" fill-opacity="0.13"/><circle cx="671" cy="175" r="1.0" fill="#cfe0f0" fill-opacity="0.23"/><circle cx="937" cy="198" r="1.3" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="966" cy="268" r="1.3" fill="#cfe0f0" fill-opacity="0.13"/><circle cx="1106" cy="78" r="1.2" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="1018" cy="66" r="1.1" fill="#cfe0f0" fill-opacity="0.14"/><circle cx="674" cy="250" r="1.1" fill="#cfe0f0" fill-opacity="0.15"/><circle cx="1177" cy="15" r="0.6" fill="#cfe0f0" fill-opacity="0.26"/><circle cx="878" cy="170" r="1.2" fill="#cfe0f0" fill-opacity="0.19"/><circle cx="1037" cy="250" r="1.0" fill="#cfe0f0" fill-opacity="0.15"/><circle cx="1141" cy="256" r="1.3" fill="#cfe0f0" fill-opacity="0.25"/><circle cx="1063" cy="46" r="0.8" fill="#cfe0f0" fill-opacity="0.29"/><circle cx="736" cy="231" r="1.0" fill="#cfe0f0" fill-opacity="0.19"/><circle cx="777" cy="185" r="1.4" fill="#cfe0f0" fill-opacity="0.12"/><circle cx="906" cy="258" r="0.9" fill="#cfe0f0" fill-opacity="0.20"/><circle cx="787" cy="156" r="1.0" fill="#cfe0f0" fill-opacity="0.25"/><circle cx="855" cy="111" r="1.1" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="1076" cy="281" r="1.3" fill="#cfe0f0" fill-opacity="0.22"/><circle cx="733" cy="185" r="1.3" fill="#cfe0f0" fill-opacity="0.20"/></svg></div>
+      <div class="scrim"></div>
+      <div class="wash"></div>
+      <div class="edge"></div>
+      <div class="content">
+        <div class="rule"></div>
+        <div class="name"><span class="ink">Emaki<span id="suffix">Gem</span></span></div>
+        <div class="desc" id="desc">Open sockets, inlay gems, and trigger resonance from the combination rather than the count.</div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -9,7 +9,7 @@
 
 version: "2.6.12"
 general:
-  prefix: "<gray>[ <gradient:#60A5FA:#34D399>EmakiItem</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行这个命令。</red>"
   player_only: "<red>这个命令只能由玩家执行。</red>"
   player_not_found: "<red>找不到目标玩家。</red>"

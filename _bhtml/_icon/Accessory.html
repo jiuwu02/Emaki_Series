@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background: #0a0d12;
+      }
+      .icon {
+        position: relative;
+        width: 256px;
+        height: 256px;
+        overflow: hidden;
+      }
+      .plate {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            120% 120% at 26% 16%,
+            rgba(255, 255, 255, 0.05) 0%,
+            transparent 58%
+          ),
+          linear-gradient(146deg, #0b1018 0%, #070a0f 62%, #c084fc1f 100%);
+      }
+      .wash {
+        position: absolute;
+        inset: 0;
+        mix-blend-mode: screen;
+        background: radial-gradient(
+          96% 96% at 78% 20%,
+          #f472b638 0%,
+          transparent 64%
+        );
+      }
+      .edge {
+        position: absolute;
+        inset: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+      }
+      svg {
+        position: absolute;
+        inset: 0;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="icon">
+      <div class="plate"></div>
+      <div class="wash"></div>
+      <svg
+        width="256"
+        height="256"
+        viewBox="0 0 256 256"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2.4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#glow)">
+          <circle
+            cx="128.0"
+            cy="144.0"
+            r="66"
+            fill="none"
+            stroke="#F472B6"
+            stroke-opacity="0.85"
+            stroke-width="15"
+          />
+          <circle
+            cx="128.0"
+            cy="144.0"
+            r="66"
+            fill="none"
+            stroke="#F472B6"
+            stroke-opacity="0.35"
+            stroke-width="4"
+          />
+          <polygon
+            points="128.0,32.0 158.0,66.0 128.0,102.0 98.0,66.0"
+            fill="#F472B6"
+            fill-opacity="0.55"
+            stroke="#F472B6"
+            stroke-opacity="0.95"
+            stroke-width="3"
+          />
+          <line
+            x1="98.0"
+            y1="66.0"
+            x2="158.0"
+            y2="66.0"
+            stroke="#F472B6"
+            stroke-opacity="0.6"
+            stroke-width="2"
+          />
+        </g>
+      </svg>
+      <div class="edge"></div>
+    </div>
+  </body>
+</html>

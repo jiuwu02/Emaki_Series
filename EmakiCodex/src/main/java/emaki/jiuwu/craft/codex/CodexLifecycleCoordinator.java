@@ -32,7 +32,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of();
     private static final List<String> DEFAULT_DATA_FILES = List.of("advancements/example_page.yml");

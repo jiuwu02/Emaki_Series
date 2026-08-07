@@ -9,7 +9,7 @@
 
 version: "2.6.12"
 general:
-  prefix: "<gray>[ <gradient:#60A5FA:#34D399>EmakiItem</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>You do not have permission.</red>"
   player_only: "<red>This command can only be used by a player.</red>"
   player_not_found: "<red>Player not found.</red>"

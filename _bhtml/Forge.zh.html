@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>banner</title>
+    <style>
+      @font-face {
+        font-family: "MSYH";
+        src: local("Microsoft YaHei");
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        background: #0a0d12;
+      }
+      .banner {
+        position: relative;
+        width: 1200px; /* 1:4 */
+        height: 300px;
+        overflow: hidden;
+        font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+        isolation: isolate;
+      }
+      /* AI artwork sits underneath, desaturated and darkened so type stays legible. */
+      .art {
+        position: absolute;
+        inset: 0;
+        filter: saturate(0.85) contrast(1.05);
+      }
+      .art svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      /* Directional scrim: dense behind the text, clearing toward the artwork side. */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            100deg,
+            rgba(6, 9, 14, 0.96) 0%,
+            rgba(6, 9, 14, 0.92) 34%,
+            rgba(6, 9, 14, 0.74) 48%,
+            rgba(6, 9, 14, 0.3) 62%,
+            rgba(6, 9, 14, 0.1) 78%,
+            rgba(6, 9, 14, 0.26) 100%
+          ),
+          radial-gradient(
+            90% 120% at 6% 50%,
+            rgba(6, 9, 14, 0.55) 0%,
+            transparent 60%
+          );
+      }
+      /* Accent wash keyed per module, kept low so it reads as light not as a filter. */
+      .wash {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          120% 150% at 88% 18%,
+          var(--accent-glow) 0%,
+          transparent 62%
+        );
+        mix-blend-mode: screen;
+      }
+      .edge {
+        position: absolute;
+        inset: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+      }
+      /* English subtitles run 87-115 characters against 20-39 for Chinese, so
+         the text column and subtitle size are set per language by the builder
+         rather than shared. */
+      .content {
+        position: relative;
+        height: 100%;
+        padding: 0 72px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: var(--gap, 18px);
+        max-width: var(--col, 700px);
+      }
+      /* Rule carries the same two stops as the title, so the accent reads as
+         one gradient across the whole composition. */
+      .rule {
+        width: 46px;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          var(--accent) 0%,
+          var(--accent-2) 100%
+        );
+        box-shadow: 0 0 18px var(--accent-glow);
+      }
+      /* One continuous gradient over "Emaki" + suffix, matching the
+         <gradient:a:b> prefix each plugin renders in chat. The drop shadow has
+         to move to a wrapper: background-clip:text clips text-shadow too. */
+      .name {
+        font-size: var(--name-size, 62px);
+        font-weight: 700;
+        letter-spacing: -0.022em;
+        line-height: 0.98;
+        filter:
+          drop-shadow(0 2px 14px rgba(0, 0, 0, 0.8))
+          drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
+      }
+      .name .ink {
+        background: linear-gradient(
+          96deg,
+          var(--accent) 0%,
+          var(--accent-2) 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .desc {
+        font-size: var(--desc-size, 24px);
+        font-weight: 400;
+        line-height: 1.42;
+        color: #c3cfdd;
+        letter-spacing: 0.005em;
+        text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+        text-wrap: balance;
+        /* Chinese has no spaces, so the default rules allow a break between any
+           two characters and split words like "结果" across lines. keep-all
+           confines breaks to the punctuation, which is where a reader expects
+           them. Harmless for English, which breaks at spaces either way.
+           The cost is that a run between two punctuation marks can no longer
+           wrap, so an over-long run would overflow instead; _brender guards
+           that on every build. */
+        word-break: keep-all;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner" id="b" style="--accent:#F59E0B;--accent-2:#EF4444;--accent-glow:rgba(239,68,68,0.42);--name-size:74px;--col:700px;--desc-size:24px;--gap:18px">
+      <div class="art"><svg width="1200" height="300" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#070a0f"/><stop offset="0.55" stop-color="#0b1018"/><stop offset="1" stop-color="#F59E0B" stop-opacity="0.20"/></linearGradient><radialGradient id="glow" cx="0.80" cy="0.24" r="0.62"><stop offset="0" stop-color="#F59E0B" stop-opacity="0.30"/><stop offset="1" stop-color="#F59E0B" stop-opacity="0"/></radialGradient><filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.6"/></filter></defs><rect width="1200" height="300" fill="url(#bg)"/><rect width="1200" height="300" fill="url(#glow)"/><g transform="translate(200,0)" filter="url(#soft)"><polygon points="612,164 690,150 880,150 880,178 848,178 826,206 826,226 864,236 864,252 698,252 698,236 736,226 736,206 714,178 690,178" fill="#F59E0B" fill-opacity="0.17" stroke="#F59E0B" stroke-opacity="0.66" stroke-width="2"/><polygon points="690,150 880,150 880,159 690,159" fill="#F59E0B" fill-opacity="0.44"/><polygon points="698,252 864,252 864,258 698,258" fill="#000" fill-opacity="0.45"/><rect x="750" y="136" width="76" height="14" rx="3" fill="#F59E0B" fill-opacity="0.88" stroke="#F59E0B" stroke-opacity="0.95" stroke-width="1.4"/><path d="M 772,91 L 687,91 Q 682,91 682,96 L 682,100 Q 682,105 687,105 L 772,105" fill="#F59E0B" fill-opacity="0.20" stroke="#F59E0B" stroke-opacity="0.55" stroke-width="1.6" stroke-linejoin="round"/><rect x="772" y="60" width="32" height="76" rx="4" fill="#F59E0B" fill-opacity="0.30" stroke="#F59E0B" stroke-opacity="0.78" stroke-width="2"/><rect x="772" y="121" width="32" height="15" rx="3" fill="#F59E0B" fill-opacity="0.5"/><circle cx="768" cy="89" r="2.2" fill="#F59E0B" fill-opacity="0.64"/><circle cx="732" cy="131" r="1.0" fill="#F59E0B" fill-opacity="0.85"/><circle cx="776" cy="75" r="1.5" fill="#F59E0B" fill-opacity="0.60"/><circle cx="685" cy="65" r="1.1" fill="#F59E0B" fill-opacity="0.53"/><circle cx="824" cy="114" r="2.3" fill="#F59E0B" fill-opacity="0.74"/><circle cx="797" cy="65" r="2.0" fill="#F59E0B" fill-opacity="0.58"/><circle cx="776" cy="133" r="2.0" fill="#F59E0B" fill-opacity="0.80"/><circle cx="822" cy="93" r="1.2" fill="#F59E0B" fill-opacity="0.66"/><circle cx="798" cy="99" r="2.2" fill="#F59E0B" fill-opacity="0.72"/><circle cx="859" cy="47" r="1.6" fill="#F59E0B" fill-opacity="0.45"/><circle cx="735" cy="138" r="1.1" fill="#F59E0B" fill-opacity="0.84"/><circle cx="846" cy="80" r="2.2" fill="#F59E0B" fill-opacity="0.58"/><circle cx="804" cy="112" r="1.7" fill="#F59E0B" fill-opacity="0.76"/><circle cx="815" cy="135" r="2.3" fill="#F59E0B" fill-opacity="0.84"/><circle cx="730" cy="97" r="1.0" fill="#F59E0B" fill-opacity="0.66"/><circle cx="826" cy="84" r="2.3" fill="#F59E0B" fill-opacity="0.59"/><circle cx="751" cy="123" r="1.1" fill="#F59E0B" fill-opacity="0.83"/><circle cx="934" cy="104" r="1.1" fill="#F59E0B" fill-opacity="0.73"/><circle cx="835" cy="60" r="1.8" fill="#F59E0B" fill-opacity="0.53"/><circle cx="760" cy="137" r="1.8" fill="#F59E0B" fill-opacity="0.83"/><circle cx="844" cy="58" r="2.2" fill="#F59E0B" fill-opacity="0.50"/><circle cx="730" cy="76" r="2.4" fill="#F59E0B" fill-opacity="0.59"/><circle cx="894" cy="76" r="1.4" fill="#F59E0B" fill-opacity="0.59"/><circle cx="801" cy="97" r="1.4" fill="#F59E0B" fill-opacity="0.65"/><circle cx="778" cy="120" r="2.1" fill="#F59E0B" fill-opacity="0.81"/><circle cx="798" cy="115" r="1.6" fill="#F59E0B" fill-opacity="0.84"/><circle cx="789" cy="74" r="1.5" fill="#F59E0B" fill-opacity="0.53"/><circle cx="827" cy="107" r="1.5" fill="#F59E0B" fill-opacity="0.75"/><circle cx="711" cy="55" r="1.2" fill="#F59E0B" fill-opacity="0.46"/><circle cx="787" cy="50" r="2.4" fill="#F59E0B" fill-opacity="0.47"/><circle cx="887" cy="107" r="1.8" fill="#F59E0B" fill-opacity="0.77"/><circle cx="805" cy="133" r="1.5" fill="#F59E0B" fill-opacity="0.84"/><circle cx="844" cy="69" r="1.1" fill="#F59E0B" fill-opacity="0.57"/><circle cx="804" cy="78" r="1.7" fill="#F59E0B" fill-opacity="0.60"/><circle cx="735" cy="131" r="1.5" fill="#F59E0B" fill-opacity="0.66"/><circle cx="901" cy="123" r="1.5" fill="#F59E0B" fill-opacity="0.46"/><circle cx="874" cy="120" r="1.1" fill="#F59E0B" fill-opacity="0.40"/><circle cx="724" cy="123" r="1.7" fill="#F59E0B" fill-opacity="0.43"/><circle cx="886" cy="129" r="1.2" fill="#F59E0B" fill-opacity="0.42"/><circle cx="902" cy="136" r="0.9" fill="#F59E0B" fill-opacity="0.61"/><circle cx="896" cy="129" r="1.3" fill="#F59E0B" fill-opacity="0.71"/><circle cx="642" cy="128" r="1.8" fill="#F59E0B" fill-opacity="0.38"/><circle cx="660" cy="140" r="1.5" fill="#F59E0B" fill-opacity="0.53"/><circle cx="935" cy="125" r="1.5" fill="#F59E0B" fill-opacity="0.36"/><circle cx="642" cy="136" r="1.6" fill="#F59E0B" fill-opacity="0.64"/><circle cx="934" cy="141" r="1.4" fill="#F59E0B" fill-opacity="0.60"/></g><circle cx="670" cy="195" r="1.2" fill="#cfe0f0" fill-opacity="0.27"/><circle cx="889" cy="176" r="1.0" fill="#cfe0f0" fill-opacity="0.19"/><circle cx="1002" cy="53" r="1.3" fill="#cfe0f0" fill-opacity="0.27"/><circle cx="1124" cy="273" r="1.4" fill="#cfe0f0" fill-opacity="0.29"/><circle cx="936" cy="26" r="0.7" fill="#cfe0f0" fill-opacity="0.19"/><circle cx="1013" cy="223" r="0.7" fill="#cfe0f0" fill-opacity="0.15"/><circle cx="1056" cy="194" r="1.2" fill="#cfe0f0" fill-opacity="0.17"/><circle cx="881" cy="234" r="1.3" fill="#cfe0f0" fill-opacity="0.27"/><circle cx="705" cy="17" r="0.9" fill="#cfe0f0" fill-opacity="0.16"/><circle cx="974" cy="207" r="1.1" fill="#cfe0f0" fill-opacity="0.29"/><circle cx="832" cy="149" r="0.7" fill="#cfe0f0" fill-opacity="0.25"/><circle cx="727" cy="221" r="0.8" fill="#cfe0f0" fill-opacity="0.23"/><circle cx="699" cy="195" r="0.8" fill="#cfe0f0" fill-opacity="0.06"/><circle cx="946" cy="255" r="1.5" fill="#cfe0f0" fill-opacity="0.20"/><circle cx="706" cy="282" r="0.9" fill="#cfe0f0" fill-opacity="0.30"/><circle cx="669" cy="161" r="1.3" fill="#cfe0f0" fill-opacity="0.08"/><circle cx="1087" cy="83" r="0.9" fill="#cfe0f0" fill-opacity="0.11"/><circle cx="698" cy="26" r="1.2" fill="#cfe0f0" fill-opacity="0.14"/><circle cx="967" cy="128" r="0.8" fill="#cfe0f0" fill-opacity="0.25"/><circle cx="714" cy="90" r="1.1" fill="#cfe0f0" fill-opacity="0.13"/><circle cx="1146" cy="145" r="0.6" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="732" cy="156" r="0.6" fill="#cfe0f0" fill-opacity="0.18"/><circle cx="988" cy="152" r="1.1" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="1113" cy="283" r="0.7" fill="#cfe0f0" fill-opacity="0.19"/><circle cx="1003" cy="209" r="1.1" fill="#cfe0f0" fill-opacity="0.19"/><circle cx="763" cy="38" r="1.1" fill="#cfe0f0" fill-opacity="0.07"/><circle cx="855" cy="117" r="1.5" fill="#cfe0f0" fill-opacity="0.25"/><circle cx="876" cy="179" r="1.4" fill="#cfe0f0" fill-opacity="0.17"/><circle cx="1075" cy="197" r="1.0" fill="#cfe0f0" fill-opacity="0.07"/><circle cx="1071" cy="177" r="1.0" fill="#cfe0f0" fill-opacity="0.07"/><circle cx="835" cy="286" r="1.1" fill="#cfe0f0" fill-opacity="0.07"/><circle cx="875" cy="196" r="0.6" fill="#cfe0f0" fill-opacity="0.07"/><circle cx="735" cy="93" r="0.8" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="1071" cy="99" r="1.5" fill="#cfe0f0" fill-opacity="0.08"/><circle cx="1024" cy="101" r="1.0" fill="#cfe0f0" fill-opacity="0.23"/><circle cx="877" cy="164" r="1.2" fill="#cfe0f0" fill-opacity="0.29"/><circle cx="980" cy="179" r="0.8" fill="#cfe0f0" fill-opacity="0.06"/><circle cx="773" cy="28" r="1.0" fill="#cfe0f0" fill-opacity="0.16"/><circle cx="822" cy="20" r="1.1" fill="#cfe0f0" fill-opacity="0.13"/><circle cx="1027" cy="249" r="1.0" fill="#cfe0f0" fill-opacity="0.28"/><circle cx="1132" cy="95" r="0.9" fill="#cfe0f0" fill-opacity="0.07"/><circle cx="1030" cy="57" r="0.6" fill="#cfe0f0" fill-opacity="0.11"/><circle cx="1139" cy="118" r="0.7" fill="#cfe0f0" fill-opacity="0.27"/><circle cx="925" cy="278" r="1.4" fill="#cfe0f0" fill-opacity="0.15"/><circle cx="1083" cy="87" r="1.0" fill="#cfe0f0" fill-opacity="0.25"/><circle cx="722" cy="252" r="1.1" fill="#cfe0f0" fill-opacity="0.19"/><circle cx="721" cy="78" r="1.2" fill="#cfe0f0" fill-opacity="0.16"/><circle cx="799" cy="268" r="0.5" fill="#cfe0f0" fill-opacity="0.06"/><circle cx="956" cy="212" r="0.8" fill="#cfe0f0" fill-opacity="0.16"/><circle cx="1085" cy="73" r="0.7" fill="#cfe0f0" fill-opacity="0.14"/><circle cx="1076" cy="148" r="1.4" fill="#cfe0f0" fill-opacity="0.20"/><circle cx="664" cy="51" r="0.9" fill="#cfe0f0" fill-opacity="0.13"/><circle cx="1002" cy="129" r="1.0" fill="#cfe0f0" fill-opacity="0.22"/><circle cx="1171" cy="69" r="0.7" fill="#cfe0f0" fill-opacity="0.14"/></svg></div>
+      <div class="scrim"></div>
+      <div class="wash"></div>
+      <div class="edge"></div>
+      <div class="content">
+        <div class="rule"></div>
+        <div class="name"><span class="ink">Emaki<span id="suffix">Forge</span></span></div>
+        <div class="desc" id="desc">以图纸驱动的锻造：材料组合决定成品数值，品质按权重随机抽取并带保底计数</div>
+      </div>
+    </div>
+  </body>
+</html>

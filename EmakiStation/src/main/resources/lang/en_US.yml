@@ -8,6 +8,7 @@ console:
   loader_config_load_error: "Failed to read config.yml, falling back to defaults"
 
 general:
+  prefix: "<gray>[ <gradient:#A3E635:#22D3EE>EmakiStation</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to do that</red>"
   players_only: "<red>That command can only be run by a player</red>"
   unknown_command: "<red>Unknown subcommand, use /emakistation help</red>"

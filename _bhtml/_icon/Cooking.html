@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background: #0a0d12;
+      }
+      .icon {
+        position: relative;
+        width: 256px;
+        height: 256px;
+        overflow: hidden;
+      }
+      .plate {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            120% 120% at 26% 16%,
+            rgba(255, 255, 255, 0.05) 0%,
+            transparent 58%
+          ),
+          linear-gradient(146deg, #0b1018 0%, #070a0f 62%, #facc151f 100%);
+      }
+      .wash {
+        position: absolute;
+        inset: 0;
+        mix-blend-mode: screen;
+        background: radial-gradient(
+          96% 96% at 78% 20%,
+          #22c55e38 0%,
+          transparent 64%
+        );
+      }
+      .edge {
+        position: absolute;
+        inset: 0;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.1),
+          inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+      }
+      svg {
+        position: absolute;
+        inset: 0;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="icon">
+      <div class="plate"></div>
+      <div class="wash"></div>
+      <svg
+        width="256"
+        height="256"
+        viewBox="0 0 256 256"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="2.4" result="b" />
+            <feMerge>
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <g filter="url(#glow)">
+          <path
+            d="M 32 158.0 C 36 196.0 70 214.0 108 214.0 C 146 214.0 180 196.0 184 158.0 Z"
+            fill="#22C55E"
+            fill-opacity="0.18"
+            stroke="#22C55E"
+            stroke-opacity="0.90"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <ellipse
+            cx="108"
+            cy="158.0"
+            rx="76"
+            ry="22"
+            fill="#22C55E"
+            fill-opacity="0.12"
+            stroke="#22C55E"
+            stroke-opacity="0.82"
+            stroke-width="3"
+          />
+          <rect
+            x="178"
+            y="150.0"
+            width="64"
+            height="16"
+            rx="8"
+            fill="#22C55E"
+            fill-opacity="0.24"
+            stroke="#22C55E"
+            stroke-opacity="0.62"
+            stroke-width="2.4"
+            transform="rotate(-30 178 158.0)"
+          />
+          <g transform="rotate(-18 112 74)">
+            <path
+              d="M 70 71 C 72 49 93 40 115 43 C 143 47 156 59 154 77 C 152 96 130 106 105 102 C 82 99 68 88 70 71 Z"
+              fill="#22C55E"
+              fill-opacity="0.50"
+              stroke="#22C55E"
+              stroke-opacity="0.92"
+              stroke-width="3"
+            />
+            <path
+              d="M 85 72 C 87 59 102 53 117 56 C 134 58 141 66 139 76"
+              fill="none"
+              stroke="#22C55E"
+              stroke-opacity="0.42"
+              stroke-width="2"
+            />
+          </g>
+          <line
+            x1="68"
+            y1="222.0"
+            x2="68"
+            y2="238.0"
+            stroke="#22C55E"
+            stroke-opacity="0.18"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+          <line
+            x1="88"
+            y1="222.0"
+            x2="88"
+            y2="238.0"
+            stroke="#22C55E"
+            stroke-opacity="0.34"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+          <line
+            x1="108"
+            y1="222.0"
+            x2="108"
+            y2="238.0"
+            stroke="#22C55E"
+            stroke-opacity="0.18"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+          <line
+            x1="128"
+            y1="222.0"
+            x2="128"
+            y2="238.0"
+            stroke="#22C55E"
+            stroke-opacity="0.34"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+          <line
+            x1="148"
+            y1="222.0"
+            x2="148"
+            y2="238.0"
+            stroke="#22C55E"
+            stroke-opacity="0.18"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+        </g>
+      </svg>
+      <div class="edge"></div>
+    </div>
+  </body>
+</html>
