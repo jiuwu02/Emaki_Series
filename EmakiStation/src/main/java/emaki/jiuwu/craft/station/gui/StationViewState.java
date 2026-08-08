@@ -29,7 +29,7 @@ import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
  */
 public final class StationViewState {
 
-    /** Which of the three pages the viewer is currently looking at. */
+    /** Which of the four pages the viewer is currently looking at. */
     public enum Page {
 
         /** The recipe catalog. */
@@ -39,7 +39,10 @@ public final class StationViewState {
         PREVIEW,
 
         /** The craft queue. */
-        QUEUE
+        QUEUE,
+
+        /** The dismantle page. */
+        DISMANTLE
     }
 
     private final Player viewer;

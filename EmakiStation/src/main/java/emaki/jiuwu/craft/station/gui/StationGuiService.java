@@ -32,6 +32,11 @@ import emaki.jiuwu.craft.station.api.model.OutputRouting;
 import emaki.jiuwu.craft.station.config.GuiSettings;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
 import emaki.jiuwu.craft.station.definition.StationRegistry;
+import emaki.jiuwu.craft.station.dismantle.DismantleGuiInteractionController;
+import emaki.jiuwu.craft.station.dismantle.DismantleGuiRenderer;
+import emaki.jiuwu.craft.station.dismantle.DismantleRecipeDefinition;
+import emaki.jiuwu.craft.station.dismantle.DismantleService;
+import emaki.jiuwu.craft.station.dismantle.DismantleViewState;
 import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
 import emaki.jiuwu.craft.station.material.StorageChannel;
 import emaki.jiuwu.craft.station.queue.CraftQueue;
@@ -78,7 +83,12 @@ public final class StationGuiService {
     private final StationCatalogRenderer catalogRenderer;
     private final StationPreviewRenderer previewRenderer;
     private final StationQueueRenderer queueRenderer;
+    private final DismantleGuiRenderer dismantleRenderer;
+    private final DismantleGuiInteractionController dismantleController;
+    private final DismantleService dismantleService;
+    private final ItemSourceService itemSourceService;
     private final Map<UUID, StationViewState> states = new ConcurrentHashMap<>();
+    private final Map<UUID, DismantleViewState> dismantleStates = new ConcurrentHashMap<>();
 
     /**
      * Creates the service.
@@ -99,6 +109,7 @@ public final class StationGuiService {
      * @param economyManager      CoreLib's economy manager, read for balance display
      * @param placeholders        resolves placeholders for one player, used by display conditions
      * @param guiSupport          reads each layout's virtual items and texts
+     * @param dismantleService    the dismantle loot-roll service
      */
     public StationGuiService(Plugin plugin,
             GuiService guiService,
@@ -115,7 +126,8 @@ public final class StationGuiService {
             StationCraftService craftService,
             EconomyManager economyManager,
             java.util.function.BiFunction<Player, String, String> placeholders,
-            ConfiguredGuiSupport guiSupport) {
+            ConfiguredGuiSupport guiSupport,
+            DismantleService dismantleService) {
         this.plugin = plugin;
         this.guiService = guiService;
         this.threadOwnership = threadOwnership;
@@ -129,6 +141,7 @@ public final class StationGuiService {
         this.purchaseService = purchaseService;
         this.craftService = craftService;
         this.economyManager = economyManager;
+        this.itemSourceService = itemSourceService;
         this.placeholders = placeholders == null ? (player, text) -> text : placeholders;
         this.catalogRenderer = new StationCatalogRenderer(itemSourceService,
                 () -> guiService.configuredItemService(), guiSupport);
@@ -136,6 +149,12 @@ public final class StationGuiService {
                 () -> guiService.configuredItemService(), guiSupport);
         this.queueRenderer = new StationQueueRenderer(
                 () -> guiService.configuredItemService(), guiSupport);
+        this.dismantleService = dismantleService;
+        this.dismantleRenderer = new DismantleGuiRenderer(itemSourceService,
+                () -> guiService.configuredItemService(), guiSupport);
+        this.dismantleController = new DismantleGuiInteractionController(dismantleService,
+                new emaki.jiuwu.craft.station.material.OutputDelivery(itemSourceService, storageChannel),
+                itemSourceService);
     }
 
     /**
@@ -288,6 +307,87 @@ public final class StationGuiService {
     }
 
     /**
+     * Opens the dismantle page for a player at a specific station.
+     *
+     * <p>Scans the player's inventory for the first item that matches any registered dismantle recipe
+     * for the station. Returns {@code notFound} when the station has no matching recipe for anything
+     * the player currently carries.
+     *
+     * @param player    the viewer
+     * @param stationId the station to open
+     * @return success when the window opened, otherwise the reason it did not
+     */
+    public EmakiResult<Unit> openDismantle(Player player, String stationId) {
+        if (player == null || stationId == null) {
+            return EmakiResult.invalidInput("station.open_bad_request");
+        }
+        if (threadOwnership != null && !threadOwnership.isEntityOwned(player)) {
+            return EmakiResult.wrongThread();
+        }
+        StationDefinition station = registrySupplier.get().station(stationId);
+        if (station == null) {
+            return EmakiResult.notFound("station.unknown_station");
+        }
+        // Find the first item in the player's inventory that matches a dismantle recipe.
+        DismantleRecipeDefinition recipe = null;
+        for (org.bukkit.inventory.ItemStack item : player.getInventory().getStorageContents()) {
+            if (item == null || item.getType().isAir()) {
+                continue;
+            }
+            emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef ref = itemSourceService.identifyItem(item);
+            if (ref == null) {
+                continue;
+            }
+            List<DismantleRecipeDefinition> matches = dismantleService.findMatching(ref, station.id());
+            if (!matches.isEmpty()) {
+                recipe = matches.getFirst();
+                break;
+            }
+        }
+        if (recipe == null) {
+            return EmakiResult.notFound("station.dismantle_no_matching_item");
+        }
+        DismantleViewState state = new DismantleViewState(player, station);
+        state.selectedRecipe(recipe);
+        dismantleStates.put(player.getUniqueId(), state);
+        return openDismantlePage(state);
+    }
+
+    /**
+     * Opens or reopens the dismantle page for an existing state.
+     *
+     * @param state the viewer's dismantle state
+     * @return success when the window opened
+     */
+    private EmakiResult<Unit> openDismantlePage(DismantleViewState state) {
+        GuiTemplate template = templateOf(state.station().dismantleLayoutId());
+        if (template == null) {
+            return EmakiResult.notFound("station.missing_layout");
+        }
+        Player viewer = state.viewer();
+        state.beginNavigation();
+        GuiSession guiSession = guiService.open(new GuiOpenRequest(plugin,
+                viewer,
+                template,
+                dismantleRenderer.titleReplacements(state),
+                (ignored, slot) -> dismantleRenderer.render(state, slot),
+                new DismantleSessionHandler(state)));
+        if (guiSession == null) {
+            state.consumeNavigation();
+            dismantleStates.remove(viewer.getUniqueId());
+            return EmakiResult.internalError("station.open_failed");
+        }
+        if (viewer.getOpenInventory().getTopInventory() != guiSession.getInventory()) {
+            state.consumeNavigation();
+            dismantleStates.remove(viewer.getUniqueId());
+            viewer.closeInventory();
+            return EmakiResult.internalError("station.open_mismatch");
+        }
+        state.attach(guiSession);
+        return EmakiResult.ok();
+    }
+
+    /**
      * Discards a viewer's page state.
      *
      * <p>No items are returned because none were ever held.
@@ -296,11 +396,13 @@ public final class StationGuiService {
      */
     public void close(UUID playerId) {
         states.remove(playerId);
+        dismantleStates.remove(playerId);
     }
 
     /** Discards every viewer's page state. Used by the disable path. */
     public void closeAll() {
         states.clear();
+        dismantleStates.clear();
     }
 
     /** Redraws every open window, which is how the ticker advances visible progress. */
@@ -499,6 +601,16 @@ public final class StationGuiService {
         }
     }
 
+    private void redrawDismantle(DismantleViewState state) {
+        GuiSession guiSession = state.guiSession();
+        if (guiSession == null) {
+            return;
+        }
+        if (threadOwnership == null || threadOwnership.isEntityOwned(state.viewer())) {
+            guiSession.refresh();
+        }
+    }
+
     /**
      * Handles every interaction for one open page.
      *
@@ -538,6 +650,9 @@ public final class StationGuiService {
                 case CATALOG -> onCatalogClick(type, click, slot);
                 case PREVIEW -> onPreviewClick(type, click);
                 case QUEUE -> onQueueClick(type, click, slot);
+                case DISMANTLE -> {
+                    // Dismantle page is managed by DismantleSessionHandler; this branch is unreachable.
+                }
             }
         }
 
@@ -832,8 +947,76 @@ public final class StationGuiService {
                     state.queuePage(state.queuePage() + delta, GuiPagination.totalPages(
                             queue == null ? 0 : queue.entries().size(), pageSize));
                 }
+                case DISMANTLE -> {
+                    // Dismantle pagination is managed by DismantleGuiInteractionController.
+                }
             }
             redraw(state);
+        }
+    }
+
+    /**
+     * Handles every interaction for one open dismantle page.
+     *
+     * <p>One instance per opened dismantle page, closing over the dismantle view state.
+     */
+    private final class DismantleSessionHandler implements GuiSessionHandler {
+
+        private final DismantleViewState state;
+
+        private DismantleSessionHandler(DismantleViewState state) {
+            this.state = state;
+        }
+
+        @Override
+        public void onSlotClick(GuiSession guiSession,
+                GuiClickContext click,
+                GuiTemplate.ResolvedSlot slot) {
+            click.setCancelled(true);
+            if (slot == null || slot.definition() == null || state.processing()) {
+                return;
+            }
+            if (click.isUnsupportedKeyboardClick()
+                    || click.clickType() == GuiClickType.NUMBER_KEY
+                    || click.clickType() == GuiClickType.SWAP_OFFHAND) {
+                return;
+            }
+            if (!state.acceptClick(System.currentTimeMillis(), clickThrottleMs())) {
+                return;
+            }
+            String type = StationSlotType.normalize(slot.definition().type());
+            if (type.isEmpty()) {
+                type = StationSlotType.normalize(slot.definition().key());
+            }
+            dismantleController.onClick(state, type, click.isRightClick(), slot,
+                    () -> redrawDismantle(state),
+                    () -> openDismantle(state.viewer(), state.station().id()));
+        }
+
+        @Override
+        public void onPlayerInventoryClick(GuiSession guiSession, GuiClickContext click) {
+            if (click.isBlockedTransfer()) {
+                click.setCancelled(true);
+            }
+        }
+
+        @Override
+        public void onDrag(GuiSession guiSession, GuiDragContext drag) {
+            int topSize = guiSession.template().slotCount();
+            for (Integer rawSlot : drag.rawSlots()) {
+                if (rawSlot != null && rawSlot < topSize) {
+                    drag.setCursor(drag.oldCursor());
+                    return;
+                }
+            }
+        }
+
+        @Override
+        public void onClose(GuiSession guiSession, GuiCloseContext close) {
+            if (state.consumeNavigation()) {
+                return;
+            }
+            dismantleStates.remove(state.viewer().getUniqueId(), state);
         }
     }
 }

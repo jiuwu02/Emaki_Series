@@ -1,0 +1,57 @@
+# EmakiStation 分解配方示例
+#
+# 分解配方：玩家将符合 input_source 的物品放入分解槽，
+# 点击确认后按 rolls 次从 pool 中随机抽取产物。
+#
+# 一个文件只放一条配方，文件名不影响加载，配方 ID 由文件内的 id 字段决定。
+id: "example_dismantle"
+display_name: "<yellow>铁块分解示例</yellow>"
+
+# 工作站通过 station_id 直接绑定，或通过 tags 让工作站按标签引用。
+# 留空则需要工作站的 recipe_tags/recipe_ids 显式引用。
+station_id: ""
+tags:
+  - "blacksmith"
+
+# 使用该配方需要的权限，留空表示不限制。
+permission: ""
+
+# 输入物品——放入分解格的物品必须匹配此来源。
+# 格式与普通配方的 item_source 一致。
+input_source: "minecraft:iron_block"
+
+# 每次分解的投掷次数。
+# 写法一：固定次数
+#   rolls: 3
+# 写法二：范围（含两端）
+#   rolls:
+#     min: 2
+#     max: 4
+rolls:
+  min: 2
+  max: 3
+
+# 产物概率池。每次投掷从这里随机选一项。
+# weight 是相对权重（默认 1.0，必须 > 0）。
+# amount 支持固定值或范围。
+pool:
+  - item_source: "minecraft:iron_ingot"
+    amount:
+      min: 2
+      max: 4
+    weight: 6.0
+
+  - item_source: "minecraft:nugget"
+    amount: 3
+    weight: 3.0
+
+  - item_source: "minecraft:iron_nugget"
+    amount:
+      min: 5
+      max: 9
+    weight: 1.0
+
+# 提交前的条件门，与普通配方一致。不满足时分解按钮被拒绝。
+condition:
+  invalid_as_failure: true
+  entries: []

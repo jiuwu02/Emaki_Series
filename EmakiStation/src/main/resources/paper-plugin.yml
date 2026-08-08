@@ -27,6 +27,9 @@ permissions:
   # （emakistation.queue.16 这类）占用，混在一起会让两种含义难以分辨。
   emakistation.purchase:
     default: true
+  # 使用分解界面（/emakistation dismantle <工作站>）。
+  emakistation.dismantle:
+    default: true
   emakistation.reload:
     default: op
   emakistation.debug:

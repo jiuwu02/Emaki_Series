@@ -41,6 +41,23 @@ public final class StationSlotType {
     /** Slot submitting the previewed recipe. */
     public static final String CONFIRM = "confirm";
 
+    // --- Dismantle page -----------------------------------------------------
+
+    /** Slot holding the item the player wants to dismantle. */
+    public static final String DISMANTLE_INPUT = "dismantle_input";
+
+    /** Slot confirming the dismantle and rolling the output. */
+    public static final String DISMANTLE_CONFIRM = "dismantle_confirm";
+
+    /** Slots listing the possible output entries from the recipe pool. */
+    public static final String DISMANTLE_OUTPUT_LIST = "dismantle_output_list";
+
+    /** Slot showing the target item being dismantled. */
+    public static final String DISMANTLE_ITEM_DISPLAY = "dismantle_item_display";
+
+    /** Slot showing how many rolls this dismantle will perform. */
+    public static final String DISMANTLE_ROLLS_DISPLAY = "dismantle_rolls_display";
+
     // --- Queue page ---------------------------------------------------------
 
     /** Slots listing queue entries. */
@@ -93,6 +110,10 @@ public final class StationSlotType {
     private static final Set<String> QUEUE_ONLY = Set.of(QUEUE_VIEW, CLAIM_ALL,
             QUEUE_PURCHASE, CAPACITY_DISPLAY);
 
+    /** Types the dismantle page accepts on top of {@link #SHARED}. */
+    private static final Set<String> DISMANTLE_ONLY = Set.of(DISMANTLE_INPUT, DISMANTLE_CONFIRM,
+            DISMANTLE_OUTPUT_LIST, DISMANTLE_ITEM_DISPLAY, DISMANTLE_ROLLS_DISPLAY);
+
     private StationSlotType() {
     }
 
@@ -117,7 +138,8 @@ public final class StationSlotType {
         return SHARED.contains(type)
                 || CATALOG_ONLY.contains(type)
                 || PREVIEW_ONLY.contains(type)
-                || QUEUE_ONLY.contains(type);
+                || QUEUE_ONLY.contains(type)
+                || DISMANTLE_ONLY.contains(type);
     }
 
     /** {@return the types the catalog page accepts} */
@@ -133,6 +155,11 @@ public final class StationSlotType {
     /** {@return the types the queue page accepts} */
     public static Set<String> queueTypes() {
         return union(QUEUE_ONLY);
+    }
+
+    /** {@return the types the dismantle page accepts} */
+    public static Set<String> dismantleTypes() {
+        return union(DISMANTLE_ONLY);
     }
 
     private static Set<String> union(Set<String> pageTypes) {

@@ -33,7 +33,10 @@ public final class StationLayoutValidator {
         PREVIEW(StationSlotType.MATERIAL_LIST, "missing_material_list"),
 
         /** The craft queue. */
-        QUEUE(StationSlotType.QUEUE_VIEW, "missing_queue_view");
+        QUEUE(StationSlotType.QUEUE_VIEW, "missing_queue_view"),
+
+        /** The dismantle page. */
+        DISMANTLE(StationSlotType.DISMANTLE_CONFIRM, "missing_dismantle_confirm");
 
         private final String requiredType;
         private final String missingCode;
@@ -59,6 +62,7 @@ public final class StationLayoutValidator {
                 case CATALOG -> StationSlotType.catalogTypes();
                 case PREVIEW -> StationSlotType.previewTypes();
                 case QUEUE -> StationSlotType.queueTypes();
+                case DISMANTLE -> StationSlotType.dismantleTypes();
             };
         }
     }

@@ -42,6 +42,7 @@ command:
   help: |-
     <gray>=== <aqua>EmakiStation</aqua> ===</gray>
     <gray>/emakistation open <station></gray> <dark_gray>-</dark_gray> <white>Open a station</white>
+    <gray>/emakistation dismantle <station></gray> <dark_gray>-</dark_gray> <white>Open the dismantle interface</white>
     <gray>/emakistation queue</gray> <dark_gray>-</dark_gray> <white>View your queues</white>
     <gray>/emakistation claim</gray> <dark_gray>-</dark_gray> <white>Claim finished outputs</white>
     <gray>/emakistation cancel <station> <index></gray> <dark_gray>-</dark_gray> <white>Cancel a queued craft</white>
@@ -49,6 +50,8 @@ command:
     <gray>/emakistation reload</gray> <dark_gray>-</dark_gray> <white>Reload configuration</white>
   open_usage: "<red>Usage: /emakistation open <station></red>"
   open_failed: "<red>Could not open the station: <gray>%reason%</gray></red>"
+  dismantle_usage: "<red>Usage: /emakistation dismantle <station></red>"
+  dismantle_failed: "<red>Could not open the dismantle interface: <gray>%reason%</gray></red>"
   cancel_usage: "<red>Usage: /emakistation cancel <station> <index></red>"
   cancel_done: "<green>Cancelled queue entry <yellow>%index%</yellow></green>"
   cancel_failed: "<red>Cancellation failed: <gray>%reason%</gray></red>"
@@ -76,6 +79,11 @@ station:
   recipe_bad_amount: "<yellow>Recipe %recipe% has an invalid amount %amount%, entry skipped</yellow>"
   recipe_bad_source: "<yellow>Recipe %recipe% has an unresolvable item source %source% (%file%)</yellow>"
   recipe_many_materials: "<yellow>Recipe %recipe% has %count% material types, above the warning threshold %limit%</yellow>"
+  dismantle_recipe_missing_id: "<yellow>Dismantle recipe file is missing its id: %file%</yellow>"
+  dismantle_recipe_no_input: "<yellow>Dismantle recipe %recipe% has no input_source, skipped (%file%)</yellow>"
+  dismantle_recipe_bad_input: "<yellow>Dismantle recipe %recipe% has an unresolvable input_source %source% (%file%)</yellow>"
+  dismantle_recipe_bad_source: "<yellow>Dismantle recipe %recipe% has an unresolvable pool item source %source% (%file%)</yellow>"
+  dismantle_recipe_empty_pool: "<yellow>Dismantle recipe %recipe% has no usable pool entries, skipped (%file%)</yellow>"
 
   # Runtime rejections
   unknown_station: "That station does not exist"
@@ -110,6 +118,8 @@ station:
   cancel_failed: "The cancellation failed"
   snapshot_bad_request: "Invalid query"
   api_backpack_unsupported: "The API does not support the backpack channel; materials must be placed by the player"
+  no_recipe_selected: "No dismantle recipe selected"
+  dismantle_no_matching_item: "The placed item does not match any dismantle recipe"
 
 precheck:
   passed: "Configuration check passed"

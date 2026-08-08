@@ -181,6 +181,9 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         components.layoutLoader().load();
         components.stationLoader().load();
         components.recipeLoader().load();
+        components.dismantleRecipeLoader().load();
+        components.dismantleService().reload(
+                java.util.List.copyOf(components.dismantleRecipeLoader().all().values()));
         // Re-read on every reload, and report an absent file this time: bootstrap has run by now, so a missing
         // price file is a real omission rather than a first-launch ordering artefact.
         queueCosts.set(emaki.jiuwu.craft.station.config.QueueCostLoader.load(
@@ -312,6 +315,16 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     /** {@return the recipe loader, or {@code null} before enable completes} */
     public emaki.jiuwu.craft.station.recipe.RecipeLoader recipeLoader() {
         return components == null ? null : components.recipeLoader();
+    }
+
+    /** {@return the dismantle recipe loader, or {@code null} before enable completes} */
+    public emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader dismantleRecipeLoader() {
+        return components == null ? null : components.dismantleRecipeLoader();
+    }
+
+    /** {@return the dismantle service, or {@code null} before enable completes} */
+    public emaki.jiuwu.craft.station.dismantle.DismantleService dismantleService() {
+        return components == null ? null : components.dismantleService();
     }
 
     /** {@return the warehouse channel, or {@code null} before enable completes} */

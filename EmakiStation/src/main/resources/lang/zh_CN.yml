@@ -42,6 +42,7 @@ command:
   help: |-
     <gray>=== <aqua>EmakiStation</aqua> ===</gray>
     <gray>/emakistation open <工作站></gray> <dark_gray>-</dark_gray> <white>打开工作站界面</white>
+    <gray>/emakistation dismantle <工作站></gray> <dark_gray>-</dark_gray> <white>打开分解界面</white>
     <gray>/emakistation queue</gray> <dark_gray>-</dark_gray> <white>查看自己的队列</white>
     <gray>/emakistation claim</gray> <dark_gray>-</dark_gray> <white>领取待领取的产物</white>
     <gray>/emakistation cancel <工作站> <序号></gray> <dark_gray>-</dark_gray> <white>取消队列条目</white>
@@ -49,6 +50,8 @@ command:
     <gray>/emakistation reload</gray> <dark_gray>-</dark_gray> <white>重载配置</white>
   open_usage: "<red>用法：/emakistation open <工作站></red>"
   open_failed: "<red>无法打开工作站：<gray>%reason%</gray></red>"
+  dismantle_usage: "<red>用法：/emakistation dismantle <工作站></red>"
+  dismantle_failed: "<red>无法打开分解界面：<gray>%reason%</gray></red>"
   cancel_usage: "<red>用法：/emakistation cancel <工作站> <序号></red>"
   cancel_done: "<green>已取消第 <yellow>%index%</yellow> 条队列</green>"
   cancel_failed: "<red>取消失败：<gray>%reason%</gray></red>"
@@ -75,6 +78,13 @@ station:
   recipe_bad_amount: "<yellow>配方 %recipe% 的数量 %amount% 无效，已跳过该条</yellow>"
   recipe_bad_source: "<yellow>配方 %recipe% 的物品源 %source% 无法解析（%file%）</yellow>"
   recipe_many_materials: "<yellow>配方 %recipe% 有 %count% 种材料，超过警告阈值 %limit%</yellow>"
+
+  # 分解配方加载期问题
+  dismantle_recipe_missing_id: "<yellow>分解配方文件缺少 id：%file%</yellow>"
+  dismantle_recipe_no_input: "<yellow>分解配方 %recipe% 缺少 input_source，已跳过（%file%）</yellow>"
+  dismantle_recipe_bad_input: "<yellow>分解配方 %recipe% 的 input_source %source% 无法解析（%file%）</yellow>"
+  dismantle_recipe_bad_source: "<yellow>分解配方 %recipe% 的 pool 物品源 %source% 无法解析（%file%）</yellow>"
+  dismantle_recipe_empty_pool: "<yellow>分解配方 %recipe% 的 pool 为空或全部无效，已跳过（%file%）</yellow>"
 
   # 运行期拒绝原因
   unknown_station: "工作站不存在"
@@ -109,6 +119,8 @@ station:
   cancel_failed: "取消过程出错"
   snapshot_bad_request: "查询参数无效"
   api_backpack_unsupported: "API 不支持背包通道，材料只能由玩家在界面中放入"
+  no_recipe_selected: "没有选中的分解配方"
+  dismantle_no_matching_item: "放入的物品没有匹配的分解配方"
 
 precheck:
   passed: "配置检查通过"

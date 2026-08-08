@@ -82,6 +82,7 @@ public final class StationLoader extends YamlDirectoryLoader<StationDefinition> 
                 normalizeId(configuration.getString("layout")),
                 normalizeId(configuration.getString("preview_layout")),
                 normalizeId(configuration.getString("queue_layout")),
+                normalizeId(configuration.getString("dismantle_layout")),
                 readLowerSet(configuration.getSection("recipes"), "include_tags"),
                 readLowerSet(configuration.getSection("recipes"), "include_ids"),
                 readLowerSet(configuration.getSection("recipes"), "exclude_ids"),

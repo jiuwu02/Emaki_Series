@@ -45,11 +45,14 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
         checkFile(new File(dataFolder, "config.yml"), "config.yml", issues);
         checkDirectory(new File(dataFolder, "stations"), "stations", issues);
         checkDirectory(new File(dataFolder, "recipes"), "recipes", issues);
+        checkDirectory(new File(dataFolder, "recipes_dismantle"), "recipes_dismantle", issues);
         checkDirectory(new File(dataFolder, "gui"), "gui", issues);
         addLoaderIssues("stations",
                 plugin.stationLoader() == null ? null : plugin.stationLoader().issues(), issues);
         addLoaderIssues("recipes",
                 plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
+        addLoaderIssues("recipes_dismantle",
+                plugin.dismantleRecipeLoader() == null ? null : plugin.dismantleRecipeLoader().issues(), issues);
         checkLayouts(issues);
         checkStationLayoutLinks(issues);
         if (issues.isEmpty()) {
@@ -77,6 +80,7 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
             pages.putIfAbsent(station.layoutId(), StationLayoutValidator.Page.CATALOG);
             pages.putIfAbsent(station.previewLayoutId(), StationLayoutValidator.Page.PREVIEW);
             pages.putIfAbsent(station.queueLayoutId(), StationLayoutValidator.Page.QUEUE);
+            pages.putIfAbsent(station.dismantleLayoutId(), StationLayoutValidator.Page.DISMANTLE);
         });
         pages.forEach((layoutId, page) -> {
             GuiTemplate template = plugin.layoutLoader().get(layoutId);
@@ -99,6 +103,7 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
             reportMissingLayout(id, station.layoutId(), issues);
             reportMissingLayout(id, station.previewLayoutId(), issues);
             reportMissingLayout(id, station.queueLayoutId(), issues);
+            reportMissingLayout(id, station.dismantleLayoutId(), issues);
         });
     }
 

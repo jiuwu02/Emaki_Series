@@ -4,14 +4,16 @@
 id: "blacksmith"
 display_name: "<gold>铁匠工坊</gold>"
 
-# 三页界面各自的布局文件，都指向 gui/<名字>.yml。
-#   layout          配方目录页，省略时为 station_catalog
-#   preview_layout  材料预览页，省略时为 station_preview
-#   queue_layout    合成队列页，省略时为 station_queue
-# 三个文件都必须存在，缺任何一个都会在启动预检里报 missing_layout。
+# 四页界面各自的布局文件，都指向 gui/<名字>.yml。
+#   layout            配方目录页，省略时为 station_catalog
+#   preview_layout    材料预览页，省略时为 station_preview
+#   queue_layout      合成队列页，省略时为 station_queue
+#   dismantle_layout  物品分解页，省略时为 station_dismantle
+# 四个文件都必须存在，缺任何一个都会在启动预检里报 missing_layout。
 layout: "station_catalog"
 preview_layout: "station_preview"
 queue_layout: "station_queue"
+dismantle_layout: "station_dismantle"
 
 # 打开该工作站需要的权限。留空则回落到 emakistation.access.<id>。
 permission: ""

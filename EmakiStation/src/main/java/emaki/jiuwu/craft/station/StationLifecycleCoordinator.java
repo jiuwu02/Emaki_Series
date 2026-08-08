@@ -19,6 +19,8 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.station.config.AppConfig;
 import emaki.jiuwu.craft.station.config.AppConfigParser;
 import emaki.jiuwu.craft.station.definition.StationLoader;
+import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
+import emaki.jiuwu.craft.station.dismantle.DismantleService;
 import emaki.jiuwu.craft.station.gui.ConfiguredGuiSupport;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
@@ -52,10 +54,12 @@ final class StationLifecycleCoordinator
             "gui/station_catalog.yml",
             "gui/station_preview.yml",
             "gui/station_queue.yml",
+            "gui/station_dismantle.yml",
             "recipes/example_recipe.yml",
+            "recipes_dismantle/example_dismantle_recipe.yml",
             "queue_costs.yml");
     private static final List<String> EXTRA_DIRECTORIES =
-            List.of("stations", "gui", "recipes", "data");
+            List.of("stations", "gui", "recipes", "recipes_dismantle", "data");
 
     @Override
     public StationRuntimeComponents initialize(EmakiStationPlugin plugin) {
@@ -89,6 +93,8 @@ final class StationLifecycleCoordinator
         GuiTemplateLoader layoutLoader = new GuiTemplateLoader(plugin);
         StationLoader stationLoader = new StationLoader(plugin, config.queueSettings());
         RecipeLoader recipeLoader = new RecipeLoader(plugin, config.limitSettings().warnMaterialTypes());
+        DismantleRecipeLoader dismantleRecipeLoader = new DismantleRecipeLoader(plugin);
+        DismantleService dismantleService = new DismantleService();
 
         StationCapabilities capabilities = StationCapabilities.probe();
         BackpackChannel backpackChannel = new BackpackChannel(coreLibPlugin.itemSourceService());
@@ -144,7 +150,8 @@ final class StationLifecycleCoordinator
                 craftService,
                 coreLibPlugin.economyManager(),
                 StationLifecycleCoordinator::resolvePlaceholders,
-                guiSupport);
+                guiSupport,
+                dismantleService);
         QueueTicker queueTicker = new QueueTicker(plugin,
                 executionDispatcher,
                 queueService,
@@ -162,6 +169,8 @@ final class StationLifecycleCoordinator
                 layoutLoader,
                 stationLoader,
                 recipeLoader,
+                dismantleRecipeLoader,
+                dismantleService,
                 capabilities,
                 backpackChannel,
                 storageChannel,

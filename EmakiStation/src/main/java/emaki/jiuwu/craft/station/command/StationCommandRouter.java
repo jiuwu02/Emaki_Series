@@ -32,12 +32,13 @@ public final class StationCommandRouter {
 
     private static final String PERMISSION_ROOT = "emakistation";
     private static final String PERMISSION_USE = PERMISSION_ROOT + ".use";
+    private static final String PERMISSION_DISMANTLE = PERMISSION_ROOT + ".dismantle";
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
     private static final String PERMISSION_ACCESS_PREFIX = PERMISSION_ROOT + ".access.";
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "open", "queue", "claim", "cancel", "list", "reload", "debug", "admin");
+            List.of("help", "open", "dismantle", "queue", "claim", "cancel", "list", "reload", "debug", "admin");
 
     private final EmakiStationPlugin plugin;
 
@@ -65,6 +66,7 @@ public final class StationCommandRouter {
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "open" -> handleOpen(sender, args);
+            case "dismantle" -> handleDismantle(sender, args);
             case "queue" -> handleQueue(sender);
             case "claim" -> handleClaim(sender);
             case "cancel" -> handleCancel(sender, args);
@@ -103,7 +105,9 @@ public final class StationCommandRouter {
                     ? List.of()
                     : plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
-        if (("open".equals(head) || "cancel".equals(head) || "list".equals(head)) && args.length == 2) {
+        boolean stationArgument = "open".equals(head) || "dismantle".equals(head)
+                || "cancel".equals(head) || "list".equals(head);
+        if (stationArgument && args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             for (StationDefinition station : plugin.registry().stations()) {
                 if (station.id().startsWith(prefix)) {
@@ -112,6 +116,40 @@ public final class StationCommandRouter {
             }
         }
         return result;
+    }
+
+    private boolean handleDismantle(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            message(sender, "general.players_only");
+            return true;
+        }
+        if (!player.hasPermission(PERMISSION_DISMANTLE)) {
+            message(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2) {
+            message(sender, "command.dismantle_usage");
+            return true;
+        }
+        StationDefinition station = plugin.registry().station(args[1]);
+        if (station == null) {
+            message(sender, "command.unknown_station", Map.of("station", args[1]));
+            return true;
+        }
+        String required = station.effectivePermission(PERMISSION_ACCESS_PREFIX + station.id());
+        if (!required.isBlank() && !player.hasPermission(required)) {
+            message(sender, "general.no_permission");
+            return true;
+        }
+        plugin.executionDispatcher().runEntity(plugin, player, () -> {
+            EmakiResult<Unit> result = plugin.stationGuiService().openDismantle(player, station.id());
+            if (result.isFailure()) {
+                message(player, "command.dismantle_failed", Map.of("reason", result.reasonKey()));
+            }
+        }, () -> {
+            // The player left before the window could open; nothing to clean up.
+        });
+        return true;
     }
 
     private boolean handleOpen(CommandSender sender, String[] args) {

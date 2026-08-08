@@ -1,0 +1,162 @@
+# EmakiStation 界面布局：分解页
+#
+# 通过 /emakistation dismantle <station> 进入本页。
+#
+# 本页可用的 type：
+#   dismantle_input        - 展示配方所需物品（当前选中配方的输入图标）
+#   dismantle_item_display - 同 dismantle_input，别名
+#   dismantle_rolls_display- 显示投掷次数范围（%rolls_min% / %rolls_max%）
+#   dismantle_output_list  - 分解产物列表（多格分页，含 pool_entry / rolled_output 虚拟物品）
+#   dismantle_confirm      - 确认执行分解 / 领取已投掷产物
+#   prev_page / next_page / page_info - 分页控件（产物列表翻页）
+#   back                   - 返回目录页
+#   close                  - 关闭界面
+#
+id: "station_dismantle"
+gui_type: CHEST
+title: "<dark_gray>%station_name% <gray>分解</gray></dark_gray>"
+rows: 6
+
+slots:
+  frame:
+    slots: "0-8,45-53"
+    item:
+      source: "BLACK_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
+
+  dismantle_input:
+    slots: [20]
+    type: "dismantle_input"
+    item:
+      source: "GRAY_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<gray>选中的配方输入</gray>"
+
+  dismantle_rolls_display:
+    slots: [22]
+    type: "dismantle_rolls_display"
+    item:
+      source: "DICE"
+      components:
+        custom_name: "<aqua>投掷次数</aqua>"
+        lore:
+          - "<gray>最少: <yellow>%rolls_min%</yellow></gray>"
+          - "<gray>最多: <yellow>%rolls_max%</yellow></gray>"
+
+  dismantle_confirm:
+    slots: [24]
+    type: "dismantle_confirm"
+    item:
+      source: "GREEN_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<green>确认分解</green>"
+        lore:
+          - "<dark_gray>点击执行分解</dark_gray>"
+    sounds:
+      click:
+        sound: "block.anvil.use"
+        volume: 1.0
+        pitch: 1.2
+
+  dismantle_output_list:
+    slots: "9-17,27-35"
+    type: "dismantle_output_list"
+    item:
+      source: "PAPER"
+      components:
+        custom_name: "<yellow>%item%</yellow>"
+
+  prev_page:
+    slots: [36]
+    type: "prev_page"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>上一页</yellow>"
+
+  page_info:
+    slots: [40]
+    type: "page_info"
+    item:
+      source: "BOOK"
+      components:
+        custom_name: "<gray>第 <yellow>%page%</yellow> / <yellow>%pages%</yellow> 页</gray>"
+        lore:
+          - "<dark_gray>共 %total% 项</dark_gray>"
+
+  next_page:
+    slots: [44]
+    type: "next_page"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>下一页</yellow>"
+
+  back:
+    slots: [45]
+    type: "back"
+    item:
+      source: "ARROW"
+      components:
+        custom_name: "<yellow>返回配方列表</yellow>"
+
+  close:
+    slots: [53]
+    type: "close"
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<red>关闭</red>"
+
+# 以下由 EmakiStation 自己读取，CoreLib 的模板解析器不会处理。
+virtual_items:
+  # 没有匹配配方时，dismantle_input 格显示的图标
+  no_recipe:
+    item:
+      source: "BARRIER"
+      components:
+        custom_name: "<red>无可用分解配方</red>"
+        lore:
+          - "<dark_gray>放入物品后若有配方将自动匹配</dark_gray>"
+
+  # dismantle_input 有配方时的图标覆盖（%recipe%/%recipe_name%/%input%）
+  dismantle_input:
+    item:
+      components:
+        custom_name: "<aqua>%recipe_name%</aqua>"
+        lore:
+          - "<gray>输入: <white>%input%</white></gray>"
+          - "<dark_gray>配方 ID: %recipe%</dark_gray>"
+
+  # 分解产物列表——预览阶段显示概率池条目
+  pool_entry:
+    item:
+      components:
+        custom_name: "<yellow>%item%</yellow>"
+        lore:
+          - "<gray>数量: <white>%amount_min%</white> ~ <white>%amount_max%</white></gray>"
+          - "<gray>概率: <aqua>%chance%%</aqua> <dark_gray>(权重 %weight%)</dark_gray></gray>"
+          - "<dark_gray>#%index%</dark_gray>"
+
+  # 分解产物列表——已投掷后显示实际产物
+  rolled_output:
+    item:
+      components:
+        custom_name: "<yellow>%item%</yellow>"
+        lore:
+          - "<gray>数量: <white>%amount%</white></gray>"
+          - "<dark_gray>#%index% / %total%</dark_gray>"
+
+  # 确认槽位——已投掷后切换为领取按钮
+  dismantle_claim:
+    item:
+      source: "CHEST"
+      components:
+        custom_name: "<gold>领取产物</gold>"
+        lore:
+          - "<gray>配方: <white>%recipe_name%</white></gray>"
+          - "<gray>产物共 <yellow>%output_count%</yellow> 项</gray>"
+          - "<dark_gray>点击领取全部</dark_gray>"

@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.station.config.QueueSettings;
  * @param layoutId         the catalog layout to open
  * @param previewLayoutId  the material-preview layout
  * @param queueLayoutId    the craft-queue layout
+ * @param dismantleLayoutId the dismantle layout; empty string means no dismantle page
  * @param includeTags      recipe tags to include; empty means "no tag filter"
  * @param includeIds       recipe ids to include explicitly
  * @param excludeIds       recipe ids to exclude after including
@@ -39,6 +40,7 @@ public record StationDefinition(String id,
         String layoutId,
         String previewLayoutId,
         String queueLayoutId,
+        String dismantleLayoutId,
         Set<String> includeTags,
         Set<String> includeIds,
         Set<String> excludeIds,
@@ -58,30 +60,35 @@ public record StationDefinition(String id,
     /** Layout id used when a station declares no {@code queue_layout}. */
     public static final String DEFAULT_QUEUE_LAYOUT = "station_queue";
 
+    /** Layout id used when a station declares no {@code dismantle_layout}. */
+    public static final String DEFAULT_DISMANTLE_LAYOUT = "station_dismantle";
+
     /**
      * Creates a station with defensively copied collections.
      *
-     * @param id               the station id
-     * @param displayName      the display name; {@code null} becomes the id
-     * @param layoutId         the catalog layout id; {@code null} becomes the id
-     * @param previewLayoutId  the preview layout id; {@code null} becomes
-     *                         {@link #DEFAULT_PREVIEW_LAYOUT}
-     * @param queueLayoutId    the queue layout id; {@code null} becomes
-     *                         {@link #DEFAULT_QUEUE_LAYOUT}
-     * @param includeTags      tags to include; {@code null} becomes empty
-     * @param includeIds       ids to include; {@code null} becomes empty
-     * @param excludeIds       ids to exclude; {@code null} becomes empty
-     * @param permission       the access permission; {@code null} becomes an empty string
-     * @param queueSettings    the queue parameters; {@code null} becomes the shipped defaults
-     * @param allowPurchase    whether currency may extend the queue
-     * @param backpackChannel  whether the inventory channel is enabled
-     * @param storageChannel   whether the warehouse channel is enabled
-     * @param defaultChannel   the starting channel; {@code null} becomes
-     *                         {@link MaterialChannel#BACKPACK}
-     * @param outputRouting    the default output destination; {@code null} becomes
-     *                         {@link OutputRouting#STORAGE_FIRST}
-     * @param playerSwitchable whether players may change the output destination
-     * @param condition        the open gate; {@code null} becomes an empty block
+     * @param id                the station id
+     * @param displayName       the display name; {@code null} becomes the id
+     * @param layoutId          the catalog layout id; {@code null} becomes the id
+     * @param previewLayoutId   the preview layout id; {@code null} becomes
+     *                          {@link #DEFAULT_PREVIEW_LAYOUT}
+     * @param queueLayoutId     the queue layout id; {@code null} becomes
+     *                          {@link #DEFAULT_QUEUE_LAYOUT}
+     * @param dismantleLayoutId the dismantle layout id; {@code null} becomes
+     *                          {@link #DEFAULT_DISMANTLE_LAYOUT}
+     * @param includeTags       tags to include; {@code null} becomes empty
+     * @param includeIds        ids to include; {@code null} becomes empty
+     * @param excludeIds        ids to exclude; {@code null} becomes empty
+     * @param permission        the access permission; {@code null} becomes an empty string
+     * @param queueSettings     the queue parameters; {@code null} becomes the shipped defaults
+     * @param allowPurchase     whether currency may extend the queue
+     * @param backpackChannel   whether the inventory channel is enabled
+     * @param storageChannel    whether the warehouse channel is enabled
+     * @param defaultChannel    the starting channel; {@code null} becomes
+     *                          {@link MaterialChannel#BACKPACK}
+     * @param outputRouting     the default output destination; {@code null} becomes
+     *                          {@link OutputRouting#STORAGE_FIRST}
+     * @param playerSwitchable  whether players may change the output destination
+     * @param condition         the open gate; {@code null} becomes an empty block
      */
     public StationDefinition {
         displayName = displayName == null ? id : displayName;
@@ -92,6 +99,9 @@ public record StationDefinition(String id,
         queueLayoutId = queueLayoutId == null || queueLayoutId.isBlank()
                 ? DEFAULT_QUEUE_LAYOUT
                 : queueLayoutId;
+        dismantleLayoutId = dismantleLayoutId == null || dismantleLayoutId.isBlank()
+                ? DEFAULT_DISMANTLE_LAYOUT
+                : dismantleLayoutId;
         includeTags = includeTags == null ? Set.of() : Set.copyOf(includeTags);
         includeIds = includeIds == null ? Set.of() : Set.copyOf(includeIds);
         excludeIds = excludeIds == null ? Set.of() : Set.copyOf(excludeIds);
