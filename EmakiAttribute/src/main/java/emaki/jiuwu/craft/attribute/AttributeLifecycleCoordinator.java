@@ -44,7 +44,7 @@ import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
-import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
@@ -68,7 +68,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         LanguageLoader languageLoader = new LanguageLoader(plugin);
-        MessageService messageService = new MessageService(plugin, languageLoader, plugin::configModel);
+        MessageService messageService = new MessageService(plugin, languageLoader,
+                "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>", true);
         AttributeRegistry attributeRegistry = new AttributeRegistry(plugin);
         AttributeBalanceRegistry attributeBalanceRegistry = new AttributeBalanceRegistry(plugin, attributeRegistry);
         DamageTypeRegistry damageTypeRegistry = new DamageTypeRegistry(plugin, attributeRegistry);

@@ -32,7 +32,6 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
-import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
@@ -43,7 +42,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
 
 public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
-        implements LogMessagesProvider, EmakiServiceRegistry {
+        implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "codex";
     private static final Set<String> DEBUG_MODULES = Set.of("advancement");

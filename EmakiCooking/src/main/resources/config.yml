@@ -360,7 +360,6 @@ stations:
     default_serving_ml: 250
     container_item_sources:
       - minecraft-glass_bottle
-    drop_completed_result_on_break: false
     actions:
       press:
         - "play_sound sound=block.piston.extend volume=0.6 pitch=1.2"
@@ -384,7 +383,6 @@ stations:
       serve: shift_left_click
     drop_result: true
     pause_when_open: true
-    require_sealed: true
     only_recipe_items: true
     actions:
       start:

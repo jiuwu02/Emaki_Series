@@ -52,13 +52,11 @@ public final class LegacyConfiguredItemConverter {
             patches.put("minecraft:lore", ItemComponentPatch.set(resolvedLore == null ? List.of() : resolvedLore));
         }
 
-        String itemModel = legacyString(raw, "item_model", legacyString(raw, "item-model", null));
+        String itemModel = legacyString(raw, "item_model", null);
         if (Texts.isNotBlank(itemModel)) {
             patches.put("minecraft:item_model", ItemComponentPatch.set(Texts.formatTemplate(itemModel, safeReplacements)));
         } else {
-            Object customModelDataRaw = legacyContains(raw, "custom_model_data")
-                    ? legacyValue(raw, "custom_model_data")
-                    : legacyValue(raw, "custommodeldata");
+            Object customModelDataRaw = legacyValue(raw, "custom_model_data");
             Integer customModelData = Numbers.tryParseInt(customModelDataRaw, null);
             if (customModelData != null) {
                 patches.put("minecraft:custom_model_data", ItemComponentPatch.set(Map.of(
@@ -77,9 +75,7 @@ public final class LegacyConfiguredItemConverter {
                 ? plainMap(tooltipDisplayRaw)
                 : new LinkedHashMap<>();
         List<String> hiddenComponents = normalizeHiddenComponents(legacyValue(raw, "hidden_components"));
-        boolean hideTooltip = legacyBoolean(raw, "hide_tooltip", false)
-                || legacyBoolean(raw, "hide-tooltip", false)
-                || Boolean.TRUE.equals(tooltipDisplayRaw);
+        boolean hideTooltip = legacyBoolean(raw, "hide_tooltip", false);
         if (hiddenComponents.remove("minecraft:tooltip")) {
             hideTooltip = true;
         }
@@ -116,24 +112,17 @@ public final class LegacyConfiguredItemConverter {
 
     private boolean isLegacyOnlyComponentKey(String key) {
         return switch (key.toLowerCase(Locale.ROOT)) {
-            case "display_name", "item-model", "custommodeldata", "hidden_components", "hide_tooltip", "hide-tooltip" -> true;
+            case "display_name", "hidden_components", "hide_tooltip" -> true;
             default -> false;
         };
     }
 
     private Object legacyValue(Object raw, String key) {
-        if (ConfigNodes.contains(raw, key)) {
-            return ConfigNodes.get(raw, key);
-        }
-        Object nested = ConfigNodes.get(raw, "components");
-        return ConfigNodes.get(nested, key);
+        return ConfigNodes.get(raw, key);
     }
 
     private boolean legacyContains(Object raw, String key) {
-        if (ConfigNodes.contains(raw, key)) {
-            return true;
-        }
-        return ConfigNodes.contains(ConfigNodes.get(raw, "components"), key);
+        return ConfigNodes.contains(raw, key);
     }
 
     private String legacyString(Object raw, String key, String fallback) {

@@ -57,18 +57,9 @@ daily_caps:
     cooking: -1
     forging: -1
 
-storage:
-  type: "yaml"
-  save_on_quit: true
-  save_on_shutdown: true
-
 pdc:
   enabled: true
   namespace: "emakilevel"
-  sync_on_join: true
-  sync_on_exp_change: true
-  sync_on_level_change: true
-  sync_on_reload: true
 
 attribute:
   enabled: true

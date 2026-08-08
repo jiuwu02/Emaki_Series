@@ -1,15 +1,12 @@
 package emaki.jiuwu.craft.gem.service;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
-import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
@@ -167,26 +164,10 @@ final class GemOpenGuiRenderer {
     private ItemStack buildConfiguredItem(GuiSlot slot, Material material, String name, List<String> lore) {
         String item = Texts.isBlank(slot == null ? null : slot.item()) ? material.name() : slot.item();
         return GuiItemBuilder.build(
-                configuredDefinition(slot, item, name, lore),
+                GemGuiTemplates.configuredDefinition(slot, item, name, lore),
                 Map.of(),
                 plugin.coreLib().configuredItemService()
         );
-    }
-
-    /**
-     * Merges the slot's configured components with the code-side fallback per field, so a template that
-     * styles only the lore still gets the fallback display name.
-     */
-    private ConfiguredItemDefinition configuredDefinition(GuiSlot slot, String item, String name, List<String> lore) {
-        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>(
-                slot == null ? Map.of() : slot.itemDefinition().components());
-        if (Texts.isNotBlank(name)) {
-            patches.putIfAbsent("minecraft:custom_name", ItemComponentPatch.set(name));
-        }
-        if (lore != null) {
-            patches.putIfAbsent("minecraft:lore", ItemComponentPatch.set(List.copyOf(lore)));
-        }
-        return new ConfiguredItemDefinition(item, 1, patches);
     }
 
     private Material baseSocketMaterial(String type) {

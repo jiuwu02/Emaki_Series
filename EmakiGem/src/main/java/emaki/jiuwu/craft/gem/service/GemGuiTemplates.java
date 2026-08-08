@@ -1,5 +1,12 @@
 package emaki.jiuwu.craft.gem.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
+import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -36,5 +43,21 @@ final class GemGuiTemplates {
             }
         }
         return loader.get(defaultId);
+    }
+
+    /**
+     * Merges the slot's configured components with the code-side fallback per field, so a template that
+     * styles only the lore still gets the fallback display name.
+     */
+    static ConfiguredItemDefinition configuredDefinition(GuiSlot slot, String item, String name, List<String> lore) {
+        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>(
+                slot == null ? Map.of() : slot.itemDefinition().components());
+        if (Texts.isNotBlank(name)) {
+            patches.putIfAbsent("minecraft:custom_name", ItemComponentPatch.set(name));
+        }
+        if (lore != null) {
+            patches.putIfAbsent("minecraft:lore", ItemComponentPatch.set(List.copyOf(lore)));
+        }
+        return new ConfiguredItemDefinition(item, 1, patches);
     }
 }
