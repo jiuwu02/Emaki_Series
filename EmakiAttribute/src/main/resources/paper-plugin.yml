@@ -21,6 +21,10 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
+    BetterHUD:
+      load: BEFORE
+      required: false
+      join-classpath: true
 permissions:
   emakiattribute.use:
     default: true

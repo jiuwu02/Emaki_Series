@@ -65,11 +65,11 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
         <emaki.corelib.version>4.6.22</emaki.corelib.version>
-        <emaki.attribute.version>4.6.17</emaki.attribute.version>
+        <emaki.attribute.version>4.6.18</emaki.attribute.version>
         <emaki.item.version>2.6.14</emaki.item.version>
         <emaki.skills.version>2.6.16</emaki.skills.version>
         <emaki.corelib.api.version>4.6.22</emaki.corelib.api.version>
-        <emaki.attribute.api.version>4.6.17</emaki.attribute.api.version>
+        <emaki.attribute.api.version>4.6.18</emaki.attribute.api.version>
         <emaki.item.api.version>2.6.14</emaki.item.api.version>
         <emaki.skills.api.version>2.6.16</emaki.skills.api.version>
         <emaki.forge.api.version>4.6.11</emaki.forge.api.version>
@@ -107,6 +107,7 @@
         <packetevents.version>2.13.0</packetevents.version>
         <bstats.version>3.2.1</bstats.version>
         <caffeine.version>3.2.4</caffeine.version>
+        <betterhud.version>2.0.0</betterhud.version>
     </properties>
 
     <dependencyManagement>
@@ -333,6 +334,12 @@
                 <groupId>org.bstats</groupId>
                 <artifactId>bstats-bukkit</artifactId>
                 <version>${bstats.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.toxicity188</groupId>
+                <artifactId>BetterHud-bukkit-api</artifactId>
+                <version>${betterhud.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

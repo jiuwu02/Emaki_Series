@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 
 import emaki.jiuwu.craft.attribute.action.AttributeStageRegistrar;
+import emaki.jiuwu.craft.attribute.bridge.BetterHudBridge;
 import emaki.jiuwu.craft.attribute.bridge.MmoItemsBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
@@ -98,6 +99,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private AttributeCommand command;
     private MythicBridge mythicBridge;
     private boolean mythicBridgeRegistered;
+    private BetterHudBridge betterHudBridge;
+    private boolean betterHudBridgeRegistered;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
     private TaskHandle regenTask;
@@ -118,6 +121,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         );
         reloadPluginState(true);
         ensureMmoItemsBridge();
+        ensureBetterHudBridge();
         lifecycleCoordinator.registerCommand(this);
         lifecycleCoordinator.registerListener(this);
         ensurePlaceholderExpansion();
@@ -142,6 +146,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         // 避免旧 bridge 实例与「已注册」状态跨 reload 泄漏到下一次 enable。
         mythicBridge = null;
         mythicBridgeRegistered = false;
+        betterHudBridge = null;
+        betterHudBridgeRegistered = false;
     }
 
     /**
@@ -175,6 +181,21 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         mmoItemsBridge = new MmoItemsBridge(this, attributeService, executionDispatcher);
         getServer().getPluginManager().registerEvents(mmoItemsBridge, this);
         attributeService.resyncAllPlayers();
+    }
+
+    public void ensureBetterHudBridge() {
+        if (betterHudBridgeRegistered) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("BetterHUD")) {
+            return;
+        }
+        if (betterHudBridge == null) {
+            betterHudBridge = new BetterHudBridge(this);
+        }
+        betterHudBridge.registerTriggers();
+        getServer().getPluginManager().registerEvents(betterHudBridge, this);
+        betterHudBridgeRegistered = true;
     }
 
     public void ensurePlaceholderExpansion() {
