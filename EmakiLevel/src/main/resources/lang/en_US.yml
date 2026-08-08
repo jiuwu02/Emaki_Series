@@ -1,4 +1,4 @@
-version: "1.4.8"
+version: "1.4.10"
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
@@ -30,7 +30,7 @@ console:
   attribute_bridge_ready: "<gray>EmakiAttribute contribution bridge connected</gray>"
   attribute_bridge_unavailable: "<gray>EmakiAttribute contribution bridge unavailable, skipped</gray>"
   mythic_drops_registered: "<gray>MythicMobs drops registered</gray>"
-  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_start: "<gray>Checking default files...</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data file generation.</gray>"

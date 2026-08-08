@@ -1,7 +1,7 @@
 # EmakiAccessory - 饰品栏
 #
 # 本文件的 version 必须与插件版本保持一致，插件会按 version 合并新增的默认键。
-version: "1.0.1"
+version: "1.0.2"
 
 # 语言文件名，对应 lang/<language>.yml
 language: "zh_CN"

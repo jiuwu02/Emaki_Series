@@ -62,8 +62,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
    \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/\\/_/  \\/_/    \\/_/  \\/_/ /_/\\/_/\\/_____/\\/_____/  \\/_/  \\/_____/
                                                                                                                 
 """;
-    private static final int STARTUP_ASCII_START_COLOR = 0xFB7185;
-    private static final int STARTUP_ASCII_END_COLOR = 0xA78BFA;
+    private static final int STARTUP_ASCII_START_COLOR = 0xF43F5E;
+    private static final int STARTUP_ASCII_END_COLOR = 0xFB923C;
     private static final int BSTATS_PLUGIN_ID = 31764;
 
     private BStatsRegistration metrics;
@@ -194,7 +194,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         publishLoading();
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
         registerCoreLibActions();
-        logConfigPrecheckReport();
         syncReadiness();
     }
 
@@ -219,7 +218,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
                 .thenAccept(task -> {
                     regenTask = task;
                     registerCoreLibActions();
-                    logConfigPrecheckReport();
                 })
                 .whenComplete((_, throwable) -> {
                     synchronized (this) {
@@ -272,10 +270,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiAttribute readiness publication skipped: " + exception);
         }
-    }
-
-    private void logConfigPrecheckReport() {
-        ConfigPrecheckLifecycleSupport.logReport(messageService(), "attribute");
     }
 
     private void registerConfigPrecheckContributor() {

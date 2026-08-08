@@ -100,7 +100,8 @@ final class StorageLifecycleCoordinator
 
         StorageCapacityService capacityService = new StorageCapacityService(config);
         StorageTransactionService transactionService = new StorageTransactionService(
-                coreLib.itemSourceService(), capacityService, textIndexer, operationLog, config);
+                coreLib.itemSourceService(), capacityService, textIndexer, operationLog, config,
+                plugin::debugLogger);
         StorageSearchService searchService = new StorageSearchService();
         StorageSortService sortService = new StorageSortService();
         StorageOverflowService overflowService =

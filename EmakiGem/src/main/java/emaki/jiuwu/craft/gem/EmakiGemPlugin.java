@@ -164,7 +164,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         publicApiReady = false;
         publishLoading();
         lifecycleCoordinator.reload(this, closeOpenInventories);
-        logConfigPrecheckReport();
         publicApiReady = true;
         publishReady();
     }
@@ -174,7 +173,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
                 .thenRun(() -> {
-                    logConfigPrecheckReport();
                     publicApiReady = true;
                     publishReady();
                 });
@@ -209,10 +207,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiGem readiness publication skipped: " + exception);
         }
-    }
-
-    private void logConfigPrecheckReport() {
-        ConfigPrecheckLifecycleSupport.logReport(messageService(), "gem");
     }
 
     private void registerConfigPrecheckContributor() {

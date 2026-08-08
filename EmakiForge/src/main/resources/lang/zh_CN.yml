@@ -90,7 +90,7 @@ console:
   listeners_registered: "<green>事件监听器注册完成。</green>"
   saving_player_data: "<white>正在保存玩家数据...</white>"
   player_data_saved: "<gray>已保存 %count% 份玩家数据</gray>"
-  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_skip: "<gray>release_default_data=false，已跳过默认数据生成</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"

@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "2.6.14"
+version: "2.6.16"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -51,7 +51,7 @@ console:
   reload_loading_configs: "<gray>Loading configs...</gray>"
   reload_applying: "<gray>Applying configuration...</gray>"
   reload_complete: "<green>Reload complete.</green>"
-  bootstrap_start: "Checking default files..."
+  bootstrap_start: "<gray>Checking default files...</gray>"
   bootstrap_complete: "Default file check complete."
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "Skipped default data generation."

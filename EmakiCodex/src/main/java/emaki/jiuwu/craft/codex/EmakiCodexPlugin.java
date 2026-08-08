@@ -56,8 +56,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\ \\____-\\ \\_____\\/\\_\\/\\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/____/ \\/_____/\\/_/\\/_/
 """;
-    private static final int STARTUP_ASCII_START_COLOR = 0xF59E0B;
-    private static final int STARTUP_ASCII_END_COLOR = 0xEC4899;
+    private static final int STARTUP_ASCII_START_COLOR = 0xD946EF;
+    private static final int STARTUP_ASCII_END_COLOR = 0xF59E0B;
 
     private final CodexLifecycleCoordinator lifecycleCoordinator = new CodexLifecycleCoordinator();
     private final CodexCommandRouter commandRouter = new CodexCommandRouter(this);

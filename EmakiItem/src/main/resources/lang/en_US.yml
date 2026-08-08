@@ -7,7 +7,7 @@
 # 文件放置位置: plugins/EmakiItem/lang/
 # ============================================================
 
-version: "2.6.12"
+version: "2.6.14"
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>You do not have permission.</red>"
@@ -48,7 +48,7 @@ console:
       directory_not_readable: "Directory is not readable."
   items_loaded: "<gray>Loaded <yellow>%count%</yellow> item(s)</gray>"
   sets_loaded: "<gray>Loaded <yellow>%count%</yellow> set(s)</gray>"
-  bootstrap_start: "Syncing bundled resources..."
+  bootstrap_start: "<gray>Syncing bundled resources...</gray>"
   bootstrap_complete: "Bundled resources synced."
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "Skipped default data release by config."

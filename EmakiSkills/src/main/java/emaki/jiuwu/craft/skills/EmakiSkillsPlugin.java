@@ -77,8 +77,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\_\\ \\_\\\\ \\_\\ \\_____\\ \\_____\\/\\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/\\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/
 """;
-    private static final int STARTUP_ASCII_START_COLOR = 0x38BDF8;
-    private static final int STARTUP_ASCII_END_COLOR = 0x8B5CF6;
+    private static final int STARTUP_ASCII_START_COLOR = 0x3B82F6;
+    private static final int STARTUP_ASCII_END_COLOR = 0x7C3AED;
     private static final int BSTATS_PLUGIN_ID = 31768;
 
     private BStatsRegistration metrics;
@@ -194,7 +194,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         contentReady = false;
         publishLoading();
         lifecycleCoordinator.reload(this, closeOpenInventories);
-        logConfigPrecheckReport();
         contentReady = true;
         publishReady();
     }
@@ -204,7 +203,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener)
                 .thenRun(() -> {
-                    logConfigPrecheckReport();
                     contentReady = true;
                     publishReady();
                 });
@@ -250,10 +248,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiSkills readiness publication skipped: " + exception);
         }
-    }
-
-    private void logConfigPrecheckReport() {
-        ConfigPrecheckLifecycleSupport.logReport(messageService(), "skills");
     }
 
     private void registerConfigPrecheckContributor() {

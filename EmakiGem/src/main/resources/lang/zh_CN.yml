@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.6.9"
+version: "2.6.11"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -42,7 +42,7 @@ console:
       required_directory_missing: "缺少必需目录。"
       path_not_directory: "指定路径不是目录。"
       directory_not_readable: "目录不可读。"
-  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"

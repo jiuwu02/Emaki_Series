@@ -100,7 +100,8 @@ final class AccessoryLifecycleCoordinator
 
         AccessoryUniqueService uniqueService = new AccessoryUniqueService(appConfig.unique());
         AccessorySetService setService = new AccessorySetService();
-        AccessoryContributionService contributionService = new AccessoryContributionService(setService);
+        AccessoryContributionService contributionService = new AccessoryContributionService(setService,
+                plugin::debugLogger);
         AccessoryGuiService accessoryGuiService = new AccessoryGuiService(guiService, messageService);
         AccessoryWriteSessionRegistry writeSessions = new AccessoryWriteSessionRegistry();
         AccessoryAdminService adminService = new AccessoryAdminService(plugin.getLogger(), accessoryStore);

@@ -1,12 +1,38 @@
 # EmakiAccessory English language file
 #
 # The version here must match the plugin version; new default keys are merged by version.
-version: "1.0.0"
+version: "1.0.2"
 
 console:
-  plugin_starting: "Starting EmakiAccessory..."
-  plugin_started: "EmakiAccessory started"
-  plugin_stopped: "EmakiAccessory stopped"
+  plugin_starting: "<gray>Starting EmakiAccessory...</gray>"
+  plugin_started: "<green>EmakiAccessory started</green>"
+  plugin_stopped: "<yellow>EmakiAccessory stopped</yellow>"
+  bootstrap_start: "<gray>Checking configuration files...</gray>"
+  bootstrap_complete: "<green>Default file check complete.</green>"
+  bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "EmakiAccessory configuration precheck passed."
+      required_file_missing: "The required file is missing."
+      path_not_file: "The specified path is not a file."
+      file_not_readable: "The file is not readable."
+      required_directory_missing: "The required directory is missing."
+      path_not_directory: "The specified path is not a directory."
+      directory_not_readable: "The directory is not readable."
 
 general:
   prefix: "<gray>[ <gradient:#F472B6:#C084FC>EmakiAccessory</gradient> ]</gray>"
@@ -65,3 +91,7 @@ accessory:
   set_piece_invalid: "Piece %piece% of set %set% in %file% has no item, skipped"
   set_threshold_not_numeric: "Threshold %threshold% of set %set% in %file% is not an integer, skipped"
   set_threshold_out_of_range: "Threshold %threshold% of set %set% in %file% is out of range (total pieces %total%), skipped"
+
+debug:
+  accessory:
+    recompute: "<gray>[DEBUG][Accessory] Player <player> accessory contribution recomputed: <attributes> attribute(s), <skills> skill(s), <sets> set(s)</gray>"

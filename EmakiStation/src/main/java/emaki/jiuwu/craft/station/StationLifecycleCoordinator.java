@@ -125,7 +125,8 @@ final class StationLifecycleCoordinator
                 coreLibPlugin.economyManager(),
                 plugin::registry,
                 () -> plugin.appConfig().limitSettings().maxPendingClaim(),
-                () -> plugin.appConfig().persistenceSettings().saveOnSubmit());
+                () -> plugin.appConfig().persistenceSettings().saveOnSubmit(),
+                plugin::debugLogger);
         ConfiguredGuiSupport guiSupport =
                 new ConfiguredGuiSupport(() -> layoutLoader, guiService::configuredItemService);
         StationGuiService stationGuiService = new StationGuiService(plugin,

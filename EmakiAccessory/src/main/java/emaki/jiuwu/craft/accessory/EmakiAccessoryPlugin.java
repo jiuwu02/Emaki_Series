@@ -33,6 +33,8 @@ import emaki.jiuwu.craft.accessory.service.AccessoryUniqueService;
 import emaki.jiuwu.craft.accessory.service.AccessoryWriteSessionRegistry;
 import emaki.jiuwu.craft.accessory.service.PlayerAccessoryStore;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -65,6 +67,16 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
     private static final String ROOT_COMMAND = "emakiaccessory";
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
 
+    private static final String STARTUP_ASCII = """
+ ______  __    __  ______  __  __   __  ______  ______  ______  ______  ______  ______  ______  ______  __  __    \s
+/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  __ \\/\\  ___\\/\\  ___\\/\\  ___\\/\\  ___\\/\\  ___\\/\\  __ \\/\\  == \\/\\ \\_\\ \\  \s
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\  __ \\ \\ \\___\\ \\ \\___\\ \\  __\\\\ \\___  \\ \\___  \\ \\ \\/\\ \\ \\  __<\\ \\____ \\ \s
+ \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\_____\\/\\_____\\/\\_____\\ \\_____\\ \\_\\ \\_\\/\\_____\\
+  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/\\/_/\\/_____/\\/_____/\\/_____/\\/_____/\\/_____/\\/_____/\\/_/ /_/\\/_____/
+""";
+    private static final int STARTUP_ASCII_START_COLOR = 0xF472B6;
+    private static final int STARTUP_ASCII_END_COLOR = 0xC084FC;
+
     private final AccessoryLifecycleCoordinator lifecycleCoordinator = new AccessoryLifecycleCoordinator();
     private final AtomicReference<AccessoryPartRegistry> partRegistry =
             new AtomicReference<>(AccessoryPartRegistry.empty());
@@ -94,6 +106,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
 
     @Override
     public void onEnable() {
+        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         shutdownStarted.set(false);
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
@@ -158,6 +171,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
         contentReady = false;
         publishLoading();
         int result = lifecycleCoordinator.reload(this);
+        ConfigCommitGate.evaluate(components.messageService(), MODULE);
         contentReady = true;
         publishReady();
         return result;

@@ -79,7 +79,7 @@ console:
       station_storage_inspect_anchor: "后端取决于实际锚点 BlockState；请检查已放置的工位。"
       station_storage_block_pdc: "已放置的原版 %material% 支持 BLOCK_PDC。"
       station_storage_yaml_fallback: "除非已放置方块是 TileState，否则回退到 YAML。"
-  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"

@@ -1,11 +1,36 @@
-version: "1.0.0"
+version: "1.0.3"
 
 console:
   plugin_starting: "Starting EmakiStation..."
   plugin_started: "EmakiStation started"
   plugin_stopped: "EmakiStation stopped"
-  bootstrap_start: "Checking configuration files..."
-  loader_config_load_error: "Failed to read config.yml, falling back to defaults"
+  bootstrap_start: "<gray>Checking configuration files...</gray>"
+  bootstrap_complete: "<green>Default file check complete.</green>"
+  bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
+  loader_config_load_error: "<yellow>Failed to read config.yml, falling back to defaults</yellow>"
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "EmakiStation configuration precheck passed."
+      required_file_missing: "The required file is missing."
+      path_not_file: "The specified path is not a file."
+      file_not_readable: "The file is not readable."
+      required_directory_missing: "The required directory is missing."
+      path_not_directory: "The specified path is not a directory."
+      directory_not_readable: "The directory is not readable."
 
 general:
   prefix: "<gray>[ <gradient:#A3E635:#22D3EE>EmakiStation</gradient> ]</gray>"
@@ -42,14 +67,15 @@ command:
 
 station:
   # Load-time problems
-  station_missing_id: "Station file is missing its id: %file%"
-  station_no_channel: "Station %station% has both material channels disabled, skipped (%file%)"
-  recipe_missing_id: "Recipe file is missing its id: %file%"
-  recipe_no_materials: "Recipe %recipe% has no usable materials, skipped (%file%)"
-  recipe_no_outputs: "Recipe %recipe% has no outputs, skipped (%file%)"
-  recipe_bad_amount: "Recipe %recipe% has an invalid amount %amount%, entry skipped"
-  recipe_bad_source: "Recipe %recipe% has an unresolvable item source %source% (%file%)"
-  recipe_many_materials: "Recipe %recipe% has %count% material types, above the warning threshold %limit%"
+  # Load-time issues
+  station_missing_id: "<yellow>Station file is missing its id: %file%</yellow>"
+  station_no_channel: "<yellow>Station %station% has both material channels disabled, skipped (%file%)</yellow>"
+  recipe_missing_id: "<yellow>Recipe file is missing its id: %file%</yellow>"
+  recipe_no_materials: "<yellow>Recipe %recipe% has no usable materials, skipped (%file%)</yellow>"
+  recipe_no_outputs: "<yellow>Recipe %recipe% has no outputs, skipped (%file%)</yellow>"
+  recipe_bad_amount: "<yellow>Recipe %recipe% has an invalid amount %amount%, entry skipped</yellow>"
+  recipe_bad_source: "<yellow>Recipe %recipe% has an unresolvable item source %source% (%file%)</yellow>"
+  recipe_many_materials: "<yellow>Recipe %recipe% has %count% material types, above the warning threshold %limit%</yellow>"
 
   # Runtime rejections
   unknown_station: "That station does not exist"
@@ -89,3 +115,7 @@ precheck:
   passed: "Configuration check passed"
   required_file_missing: "Required file is missing"
   required_directory_missing: "Required directory is missing"
+
+debug:
+  station:
+    submit: "<gray>[DEBUG][Station] Player <player> submitted recipe <recipe> at station <station>, batch <batch>, queue index <queue_index></gray>"

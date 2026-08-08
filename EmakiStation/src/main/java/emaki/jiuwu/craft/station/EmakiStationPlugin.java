@@ -12,7 +12,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -49,6 +51,16 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private static final String ROOT_COMMAND = "emakistation";
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
 
+    private static final String STARTUP_ASCII = """
+ ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __   __    \s
+/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\__  _\\/\\  __ \\/\\__  _\\/\\ \\/\\  __ \\/\\ "-.\\  \\ \s
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\___  \\/_/\\ \\/\\ \\  __ \\/_/\\ \\/\\ \\ \\ \\ \\/\\ \\ \\ \\-.  \\ \s
+ \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\ \\_\\ \\ \\_\\ \\_____\\ \\_\\\\"\\._\\
+  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/\\/_/  \\/_/  \\/_/\\/_____/\\/_/ \\/_/
+""";
+    private static final int STARTUP_ASCII_START_COLOR = 0xA3E635;
+    private static final int STARTUP_ASCII_END_COLOR = 0x22D3EE;
+
     private final StationLifecycleCoordinator lifecycleCoordinator = new StationLifecycleCoordinator();
     private final AtomicReference<StationRegistry> registry =
             new AtomicReference<>(StationRegistry.empty());
@@ -79,6 +91,7 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     @Override
     public void onEnable() {
+        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         shutdownStarted.set(false);
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
@@ -175,6 +188,7 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         StationRegistry resolved = StationRegistry.resolve(components.stationLoader().all(),
                 components.recipeLoader().all());
         registry.set(resolved);
+        ConfigCommitGate.evaluate(components.messageService(), MODULE);
         return new ReloadSummary(resolved.stationCount(), resolved.recipeCount(),
                 components.stationLoader().issues().size() + components.recipeLoader().issues().size());
     }

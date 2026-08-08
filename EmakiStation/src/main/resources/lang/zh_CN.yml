@@ -1,11 +1,36 @@
-version: "1.0.0"
+version: "1.0.3"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
   plugin_started: "EmakiStation 启动完成"
   plugin_stopped: "EmakiStation 已停止"
-  bootstrap_start: "正在检查配置文件..."
-  loader_config_load_error: "读取 config.yml 失败，已回退到默认配置"
+  bootstrap_start: "<gray>正在检查配置文件...</gray>"
+  bootstrap_complete: "<green>默认文件检查完成。</green>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  loader_config_load_error: "<yellow>读取 config.yml 失败，已回退到默认配置</yellow>"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "致命"
+      error: "错误"
+      warn: "警告"
+      info: "信息"
+    hint: " <dark_gray>（%hint%）</dark_gray>"
+    messages:
+      passed: "EmakiStation 配置预检通过。"
+      required_file_missing: "缺少必需文件。"
+      path_not_file: "指定路径不是文件。"
+      file_not_readable: "文件不可读。"
+      required_directory_missing: "缺少必需目录。"
+      path_not_directory: "指定路径不是目录。"
+      directory_not_readable: "目录不可读。"
 
 general:
   prefix: "<gray>[ <gradient:#A3E635:#22D3EE>EmakiStation</gradient> ]</gray>"
@@ -42,14 +67,14 @@ command:
 
 station:
   # 加载期问题
-  station_missing_id: "工作站文件缺少 id：%file%"
-  station_no_channel: "工作站 %station% 的两个材料通道都被关闭，已跳过（%file%）"
-  recipe_missing_id: "配方文件缺少 id：%file%"
-  recipe_no_materials: "配方 %recipe% 没有任何可用材料，已跳过（%file%）"
-  recipe_no_outputs: "配方 %recipe% 没有任何产物，已跳过（%file%）"
-  recipe_bad_amount: "配方 %recipe% 的数量 %amount% 无效，已跳过该条"
-  recipe_bad_source: "配方 %recipe% 的物品源 %source% 无法解析（%file%）"
-  recipe_many_materials: "配方 %recipe% 有 %count% 种材料，超过警告阈值 %limit%"
+  station_missing_id: "<yellow>工作站文件缺少 id：%file%</yellow>"
+  station_no_channel: "<yellow>工作站 %station% 的两个材料通道都被关闭，已跳过（%file%）</yellow>"
+  recipe_missing_id: "<yellow>配方文件缺少 id：%file%</yellow>"
+  recipe_no_materials: "<yellow>配方 %recipe% 没有任何可用材料，已跳过（%file%）</yellow>"
+  recipe_no_outputs: "<yellow>配方 %recipe% 没有任何产物，已跳过（%file%）</yellow>"
+  recipe_bad_amount: "<yellow>配方 %recipe% 的数量 %amount% 无效，已跳过该条</yellow>"
+  recipe_bad_source: "<yellow>配方 %recipe% 的物品源 %source% 无法解析（%file%）</yellow>"
+  recipe_many_materials: "<yellow>配方 %recipe% 有 %count% 种材料，超过警告阈值 %limit%</yellow>"
 
   # 运行期拒绝原因
   unknown_station: "工作站不存在"
@@ -89,3 +114,7 @@ precheck:
   passed: "配置检查通过"
   required_file_missing: "缺少必需文件"
   required_directory_missing: "缺少必需目录"
+
+debug:
+  station:
+    submit: "<gray>[DEBUG][Station] 玩家 <player> 在工作站 <station> 提交配方 <recipe>，批量 <batch>，队列位置 <queue_index></gray>"

@@ -82,8 +82,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
              \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\ \\_\\ \\ \\_____\\ \\_\\ \\ \\_\\/\\_____\\
               \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/  \\/_/  \\/_____/\\/_/  \\/_/\\/_____/
             """;
-    private static final int STARTUP_ASCII_START_COLOR = 0x60A5FA;
-    private static final int STARTUP_ASCII_END_COLOR = 0x34D399;
+    private static final int STARTUP_ASCII_START_COLOR = 0x30F07D;
+    private static final int STARTUP_ASCII_END_COLOR = 0x627DF5;
     private static final int BSTATS_PLUGIN_ID = 31770;
 
     private BStatsRegistration metrics;
@@ -195,9 +195,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         observeReload(enqueueReloadAttempt(attempt, () -> lifecycleCoordinator
                 .reloadAsync(this, null, () -> isReloadAttemptCurrent(attempt))
                 .thenRun(() -> {
-                    if (isReloadAttemptCurrent(attempt)) {
-                        logConfigPrecheckReport();
-                    }
                 })));
     }
 
@@ -209,9 +206,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         CompletableFuture<Void> reload = enqueueReloadAttempt(attempt, () -> lifecycleCoordinator
                 .reloadAsync(this, null, () -> isReloadAttemptCurrent(attempt))
                 .thenRun(() -> {
-                    if (isReloadAttemptCurrent(attempt)) {
-                        logConfigPrecheckReport();
-                    }
                 }));
         observeReload(reload);
         return reload;
@@ -390,10 +384,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         synchronized (readinessMonitor) {
             return runtimeReady;
         }
-    }
-
-    private void logConfigPrecheckReport() {
-        ConfigPrecheckLifecycleSupport.logReport(messageService(), "item");
     }
 
     private void registerConfigPrecheckContributor() {

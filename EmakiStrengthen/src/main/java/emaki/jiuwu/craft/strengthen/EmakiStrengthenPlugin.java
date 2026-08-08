@@ -63,8 +63,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\ \\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/ /_/\\/_____/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/\\/_/\\/_____/\\/_/ \\/_/
 """;
-    private static final int STARTUP_ASCII_START_COLOR = 0xFACC15;
-    private static final int STARTUP_ASCII_END_COLOR = 0xF97316;
+    private static final int STARTUP_ASCII_START_COLOR = 0x3636F5;
+    private static final int STARTUP_ASCII_END_COLOR = 0xE02492;
     private static final int BSTATS_PLUGIN_ID = 31769;
 
     private BStatsRegistration metrics;
@@ -160,7 +160,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         contentReady = false;
         publishLoading();
         lifecycleCoordinator.reload(this, closeOpenInventories);
-        logConfigPrecheckReport();
         contentReady = true;
         publishReady();
     }
@@ -170,7 +169,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
                 .thenRun(() -> {
-                    logConfigPrecheckReport();
                     contentReady = true;
                     publishReady();
                 });
@@ -217,10 +215,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiStrengthen readiness publication skipped: " + exception);
         }
-    }
-
-    private void logConfigPrecheckReport() {
-        ConfigPrecheckLifecycleSupport.logReport(messageService(), "strengthen");
     }
 
     private void registerConfigPrecheckContributor() {

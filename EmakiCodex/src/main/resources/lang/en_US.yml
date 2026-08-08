@@ -5,7 +5,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "1.0.7"
+version: "1.0.9"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -38,9 +38,14 @@ command:
 console:
   plugin_starting: "Starting EmakiCodex..."
   plugin_started: "EmakiCodex started."
-  bootstrap_start: "Releasing default resources..."
-  bootstrap_skip: "Skipped default sample data release."
-  bootstrap_complete: "Default resources ready."
+  bootstrap_start: "<gray>Releasing default resources...</gray>"
+  bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
+  bootstrap_complete: "<green>Default file check complete.</green>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
   advancements_registered: "Registered %count% advancements."
   advancements_resynced: "Re-pushed advancements to %count% online player(s) via PacketEvents; no relog needed."
   advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen."

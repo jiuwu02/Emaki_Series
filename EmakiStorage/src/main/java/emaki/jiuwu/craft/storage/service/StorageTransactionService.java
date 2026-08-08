@@ -10,11 +10,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -56,6 +58,7 @@ public final class StorageTransactionService {
     private final StorageCapacityService capacityService;
     private final StorageTextIndexer textIndexer;
     private final StorageOperationLog operationLog;
+    private final Supplier<DebugLogger> debugLoggerSupplier;
 
     private volatile AppConfig config;
 
@@ -63,12 +66,14 @@ public final class StorageTransactionService {
             StorageCapacityService capacityService,
             StorageTextIndexer textIndexer,
             StorageOperationLog operationLog,
-            AppConfig config) {
+            AppConfig config,
+            Supplier<DebugLogger> debugLoggerSupplier) {
         this.itemSourceService = itemSourceService;
         this.capacityService = capacityService;
         this.textIndexer = textIndexer;
         this.operationLog = operationLog;
         this.config = config;
+        this.debugLoggerSupplier = debugLoggerSupplier;
     }
 
     public void reconfigure(AppConfig config) {
@@ -745,6 +750,14 @@ public final class StorageTransactionService {
         operationLog.record(StorageLogEntry.of(storage.playerId(), StorageOperationType.WITHDRAW,
                 textIndexer.identifierOf(key), -applied,
                 entry == null ? 0L : entry.amount(), source, uniqueNote(key)));
+        DebugLogger dl = debugLoggerSupplier == null ? null : debugLoggerSupplier.get();
+        if (dl != null) {
+            dl.log("storage", storage.playerId(), "common.storage.withdraw", Map.of(
+                    "player", storage.playerId().toString(),
+                    "item", textIndexer.identifierOf(key),
+                    "amount", String.valueOf(applied),
+                    "balance", String.valueOf(entry == null ? 0L : entry.amount())));
+        }
     }
 
     /**
@@ -899,5 +912,13 @@ public final class StorageTransactionService {
         operationLog.record(StorageLogEntry.of(storage.playerId(), StorageOperationType.DEPOSIT,
                 textIndexer.identifierOf(key), applied,
                 entry == null ? 0L : entry.amount(), source, uniqueNote(key)));
+        DebugLogger dl = debugLoggerSupplier == null ? null : debugLoggerSupplier.get();
+        if (dl != null) {
+            dl.log("storage", storage.playerId(), "common.storage.deposit", Map.of(
+                    "player", storage.playerId().toString(),
+                    "item", textIndexer.identifierOf(key),
+                    "amount", String.valueOf(applied),
+                    "balance", String.valueOf(entry == null ? 0L : entry.amount())));
+        }
     }
 }

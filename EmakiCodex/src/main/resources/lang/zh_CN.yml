@@ -5,7 +5,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.7"
+version: "1.0.9"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -38,9 +38,14 @@ command:
 console:
   plugin_starting: "正在启动 EmakiCodex..."
   plugin_started: "EmakiCodex 已启动。"
-  bootstrap_start: "正在释放默认资源..."
-  bootstrap_skip: "已跳过默认示例数据释放。"
-  bootstrap_complete: "默认资源就绪。"
+  bootstrap_start: "<gray>正在释放默认资源...</gray>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
+  bootstrap_complete: "<green>默认文件检查完成。</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
   advancements_registered: "已注册成就 %count% 个。"
   advancements_resynced: "已向 %count% 名在线玩家重新推送成就（PacketEvents），无需重连。"
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"

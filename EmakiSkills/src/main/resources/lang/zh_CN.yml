@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "2.6.14"
+version: "2.6.16"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -51,7 +51,7 @@ console:
   reload_loading_configs: "<gray>正在读取配置...</gray>"
   reload_applying: "<gray>正在应用配置...</gray>"
   reload_complete: "<green>重载完成。</green>"
-  bootstrap_start: "开始检查默认文件..."
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_complete: "默认文件检查完成。"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "已跳过默认数据写入。"

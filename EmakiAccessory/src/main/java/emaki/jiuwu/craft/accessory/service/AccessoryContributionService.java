@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import org.bukkit.inventory.ItemStack;
 
@@ -14,6 +15,7 @@ import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.api.model.PdcAttributePayload;
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPayload;
 import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
 
@@ -45,16 +47,20 @@ public final class AccessoryContributionService {
     public static final String SOURCE_SET = "emakiaccessory:set";
 
     private final AccessorySetService setService;
+    private final Supplier<DebugLogger> debugLoggerSupplier;
     private final Map<UUID, AccessoryContributionSnapshot> snapshots = new ConcurrentHashMap<>();
     private volatile AccessoryPartRegistry registry = AccessoryPartRegistry.empty();
 
     /**
      * Creates the service.
      *
-     * @param setService the accessory set evaluator whose bonuses are folded in
+     * @param setService          the accessory set evaluator whose bonuses are folded in
+     * @param debugLoggerSupplier supplies the debug logger; may supply {@code null} when debug is off
      */
-    public AccessoryContributionService(AccessorySetService setService) {
+    public AccessoryContributionService(AccessorySetService setService,
+            Supplier<DebugLogger> debugLoggerSupplier) {
         this.setService = setService;
+        this.debugLoggerSupplier = debugLoggerSupplier;
     }
 
     /**
@@ -135,6 +141,14 @@ public final class AccessoryContributionService {
         AccessoryContributionSnapshot snapshot =
                 new AccessoryContributionSnapshot(attributes, skills, setPieces);
         snapshots.put(accessories.playerId(), snapshot);
+        DebugLogger dl = debugLoggerSupplier == null ? null : debugLoggerSupplier.get();
+        if (dl != null) {
+            dl.log("accessory", accessories.playerId(), "accessory.recompute", Map.of(
+                    "player", accessories.playerId().toString(),
+                    "attributes", String.valueOf(attributes.size()),
+                    "skills", String.valueOf(skills.size()),
+                    "sets", String.valueOf(setPieces.size())));
+        }
         return snapshot;
     }
 

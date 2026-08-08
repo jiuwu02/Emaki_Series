@@ -79,7 +79,7 @@ console:
       station_storage_inspect_anchor: "Backend depends on the actual anchor BlockState; inspect a placed station."
       station_storage_block_pdc: "Placed vanilla %material% supports BLOCK_PDC."
       station_storage_yaml_fallback: "YAML fallback unless the placed block is TileState."
-  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_start: "<gray>Checking default files...</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"

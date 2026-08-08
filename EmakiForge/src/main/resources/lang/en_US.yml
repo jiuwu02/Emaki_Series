@@ -90,7 +90,7 @@ console:
   listeners_registered: "<green>Event listeners registered.</green>"
   saving_player_data: "<white>Saving player data...</white>"
   player_data_saved: "<gray>Saved %count% player data entries</gray>"
-  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_start: "<gray>Checking default files...</gray>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data generation</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"

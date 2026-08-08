@@ -1,4 +1,4 @@
-version: "1.4.8"
+version: "1.4.10"
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
@@ -30,7 +30,7 @@ console:
   attribute_bridge_ready: "<gray>EmakiAttribute 属性贡献已接入</gray>"
   attribute_bridge_unavailable: "<gray>EmakiAttribute 属性贡献不可用，已跳过</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
-  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"

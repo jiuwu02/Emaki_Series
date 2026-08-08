@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -15,6 +16,7 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.station.api.event.StationCraftCancelEvent;
@@ -62,9 +64,10 @@ public final class StationCraftService {
     private final MergedMaterialChannel materialChannel;
     private final OutputDelivery outputDelivery;
     private final EconomyManager economyManager;
-    private final java.util.function.Supplier<StationRegistry> registrySupplier;
-    private final java.util.function.Supplier<Integer> pendingClaimCeiling;
-    private final java.util.function.Supplier<Boolean> saveOnSubmit;
+    private final Supplier<StationRegistry> registrySupplier;
+    private final Supplier<Integer> pendingClaimCeiling;
+    private final Supplier<Boolean> saveOnSubmit;
+    private final Supplier<DebugLogger> debugLoggerSupplier;
 
     /**
      * Creates the service.
@@ -81,6 +84,7 @@ public final class StationCraftService {
      *                            picked up without re-wiring this service
      * @param pendingClaimCeiling supplies the pending-claim ceiling
      * @param saveOnSubmit        supplies whether a successful submission flushes immediately
+     * @param debugLoggerSupplier supplies the debug logger; may supply {@code null} when debug is off
      */
     public StationCraftService(org.bukkit.plugin.Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -90,9 +94,10 @@ public final class StationCraftService {
             MergedMaterialChannel materialChannel,
             OutputDelivery outputDelivery,
             EconomyManager economyManager,
-            java.util.function.Supplier<StationRegistry> registrySupplier,
-            java.util.function.Supplier<Integer> pendingClaimCeiling,
-            java.util.function.Supplier<Boolean> saveOnSubmit) {
+            Supplier<StationRegistry> registrySupplier,
+            Supplier<Integer> pendingClaimCeiling,
+            Supplier<Boolean> saveOnSubmit,
+            Supplier<DebugLogger> debugLoggerSupplier) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.queueService = queueService;
@@ -104,6 +109,7 @@ public final class StationCraftService {
         this.registrySupplier = registrySupplier;
         this.pendingClaimCeiling = pendingClaimCeiling;
         this.saveOnSubmit = saveOnSubmit;
+        this.debugLoggerSupplier = debugLoggerSupplier;
     }
 
     /**
@@ -334,6 +340,15 @@ public final class StationCraftService {
         queues.markDirty();
         if (Boolean.TRUE.equals(saveOnSubmit.get())) {
             queueService.saveAsync(player.getUniqueId());
+        }
+        DebugLogger dl = debugLoggerSupplier == null ? null : debugLoggerSupplier.get();
+        if (dl != null) {
+            dl.log("station", player.getUniqueId(), "station.submit", Map.of(
+                    "player", player.getName(),
+                    "station", station.id(),
+                    "recipe", recipe.id(),
+                    "batch", String.valueOf(batch),
+                    "queue_index", String.valueOf(index)));
         }
         return CompletableFuture.completedFuture(EmakiResult.success(
                 new SubmitOutcome(recipe.id(), batch, true, index, consumed, List.of())));
