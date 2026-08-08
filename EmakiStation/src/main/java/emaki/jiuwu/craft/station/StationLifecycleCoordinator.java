@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.station.config.AppConfigParser;
 import emaki.jiuwu.craft.station.definition.StationLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleService;
+import emaki.jiuwu.craft.station.dismantle.DismantleStationLoader;
 import emaki.jiuwu.craft.station.gui.ConfiguredGuiSupport;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
@@ -57,9 +58,10 @@ final class StationLifecycleCoordinator
             "gui/station_dismantle.yml",
             "recipes/example_recipe.yml",
             "recipes_dismantle/example_dismantle_recipe.yml",
+            "stations_dismantle/example_dismantle_station.yml",
             "queue_costs.yml");
     private static final List<String> EXTRA_DIRECTORIES =
-            List.of("stations", "gui", "recipes", "recipes_dismantle", "data");
+            List.of("stations", "stations_dismantle", "gui", "recipes", "recipes_dismantle", "data");
 
     @Override
     public StationRuntimeComponents initialize(EmakiStationPlugin plugin) {
@@ -93,6 +95,7 @@ final class StationLifecycleCoordinator
         GuiTemplateLoader layoutLoader = new GuiTemplateLoader(plugin);
         StationLoader stationLoader = new StationLoader(plugin, config.queueSettings());
         RecipeLoader recipeLoader = new RecipeLoader(plugin, config.limitSettings().warnMaterialTypes());
+        DismantleStationLoader dismantleStationLoader = new DismantleStationLoader(plugin);
         DismantleRecipeLoader dismantleRecipeLoader = new DismantleRecipeLoader(plugin);
         DismantleService dismantleService = new DismantleService();
 
@@ -151,7 +154,8 @@ final class StationLifecycleCoordinator
                 coreLibPlugin.economyManager(),
                 StationLifecycleCoordinator::resolvePlaceholders,
                 guiSupport,
-                dismantleService);
+                dismantleService,
+                plugin::dismantleRegistry);
         QueueTicker queueTicker = new QueueTicker(plugin,
                 executionDispatcher,
                 queueService,
@@ -169,6 +173,7 @@ final class StationLifecycleCoordinator
                 layoutLoader,
                 stationLoader,
                 recipeLoader,
+                dismantleStationLoader,
                 dismantleRecipeLoader,
                 dismantleService,
                 capabilities,

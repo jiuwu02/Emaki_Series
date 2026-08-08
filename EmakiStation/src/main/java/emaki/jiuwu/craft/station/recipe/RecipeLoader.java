@@ -89,6 +89,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
         return new RecipeDefinition(id,
                 configuration.getString("display_name", id),
                 parseTags(configuration),
+                parseStationIds(configuration),
                 requirements,
                 duration,
                 outputs,
@@ -150,6 +151,25 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
             }
         }
         return tags;
+    }
+
+    /**
+     * Reads the {@code station_ids} list declaring which stations this recipe belongs to.
+     *
+     * <p>An empty list means the recipe is available in every station, preserving backward compatibility:
+     * any recipe that does not declare {@code station_ids} continues to appear in all stations as before.
+     *
+     * @param configuration the recipe root section
+     * @return the lower-cased station ids, possibly empty
+     */
+    private Set<String> parseStationIds(YamlSection configuration) {
+        Set<String> stationIds = new LinkedHashSet<>();
+        for (String stationId : configuration.getStringList("station_ids")) {
+            if (stationId != null && !stationId.isBlank()) {
+                stationIds.add(stationId.trim().toLowerCase(Locale.ROOT));
+            }
+        }
+        return stationIds;
     }
 
     private List<MaterialRequirement> parseRequirements(File file, String recipeId, YamlSection configuration) {

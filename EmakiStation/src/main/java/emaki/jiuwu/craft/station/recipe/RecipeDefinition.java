@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.station.recipe;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
@@ -14,6 +15,7 @@ import emaki.jiuwu.craft.station.api.model.RecipeView;
  * @param id               the recipe id, unique across the recipe directory
  * @param displayName      the configured display name, unrendered
  * @param tags             lower-cased tags used by station include/exclude rules
+ * @param stationIds       lower-cased station ids this recipe belongs to; empty means no restriction
  * @param requirements     the material requirements, matched as an unordered set
  * @param durationSeconds  how long one submission takes; zero settles immediately
  * @param outputs          what one batch produces
@@ -30,6 +32,7 @@ import emaki.jiuwu.craft.station.api.model.RecipeView;
 public record RecipeDefinition(String id,
         String displayName,
         Set<String> tags,
+        Set<String> stationIds,
         List<MaterialRequirement> requirements,
         long durationSeconds,
         List<RecipeOutput> outputs,
@@ -49,6 +52,7 @@ public record RecipeDefinition(String id,
      * @param id               the recipe id
      * @param displayName      the display name; {@code null} becomes the id
      * @param tags             the tags; {@code null} becomes empty
+     * @param stationIds       the owning station ids; {@code null} becomes empty
      * @param requirements     the material requirements; {@code null} becomes empty
      * @param durationSeconds  the craft duration; negatives are clamped to zero
      * @param outputs          the produced items; {@code null} becomes empty
@@ -65,6 +69,7 @@ public record RecipeDefinition(String id,
     public RecipeDefinition {
         displayName = displayName == null ? id : displayName;
         tags = tags == null ? Set.of() : Set.copyOf(tags);
+        stationIds = stationIds == null ? Set.of() : Set.copyOf(stationIds);
         requirements = requirements == null ? List.of() : List.copyOf(requirements);
         outputs = outputs == null ? List.of() : List.copyOf(outputs);
         resultActions = resultActions == null ? List.of() : List.copyOf(resultActions);
@@ -76,6 +81,23 @@ public record RecipeDefinition(String id,
         durationSeconds = Math.max(0L, durationSeconds);
         cost = cost == null ? RecipeCost.none() : cost;
         displayCondition = displayCondition == null ? ConditionBlock.empty() : displayCondition;
+    }
+
+    /**
+     * Tests whether this recipe is offered by one station.
+     *
+     * <p>Declaring no {@code station_ids} means "every station", which keeps a recipe usable without
+     * having to name each station that should carry it.
+     *
+     * @param stationId the station id; matched case-insensitively
+     * @return whether the station offers this recipe
+     */
+    public boolean belongsTo(String stationId) {
+        if (stationIds.isEmpty()) {
+            return true;
+        }
+        return stationId != null
+                && stationIds.contains(stationId.trim().toLowerCase(Locale.ROOT));
     }
 
     /** {@return whether this recipe settles immediately instead of entering a timed queue} */

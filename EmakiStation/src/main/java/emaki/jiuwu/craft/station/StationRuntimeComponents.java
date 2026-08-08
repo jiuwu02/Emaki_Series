@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.station.config.AppConfig;
 import emaki.jiuwu.craft.station.definition.StationLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleService;
+import emaki.jiuwu.craft.station.dismantle.DismantleStationLoader;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
 import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
@@ -43,6 +44,7 @@ import emaki.jiuwu.craft.station.recipe.RecipeLoader;
  * @param layoutLoader        the station layout loader
  * @param stationLoader       the station definition loader
  * @param recipeLoader        the recipe loader
+ * @param dismantleStationLoader the dismantle station loader
  * @param dismantleRecipeLoader the dismantle recipe loader
  * @param dismantleService    the dismantle loot-roll service
  * @param capabilities        the capability probe result
@@ -69,6 +71,7 @@ record StationRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         GuiTemplateLoader layoutLoader,
         StationLoader stationLoader,
         RecipeLoader recipeLoader,
+        DismantleStationLoader dismantleStationLoader,
         DismantleRecipeLoader dismantleRecipeLoader,
         DismantleService dismantleService,
         StationCapabilities capabilities,

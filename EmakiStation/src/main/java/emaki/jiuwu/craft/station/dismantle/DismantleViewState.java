@@ -5,7 +5,6 @@ import java.util.List;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
-import emaki.jiuwu.craft.station.definition.StationDefinition;
 
 /**
  * One viewer's state on the dismantle page.
@@ -18,7 +17,7 @@ import emaki.jiuwu.craft.station.definition.StationDefinition;
 public final class DismantleViewState {
 
     private final Player viewer;
-    private final StationDefinition station;
+    private final DismantleStationDefinition station;
 
     private GuiSession guiSession;
     private DismantleRecipeDefinition selectedRecipe;
@@ -34,7 +33,7 @@ public final class DismantleViewState {
      * @param viewer  the viewing player
      * @param station the station being viewed
      */
-    public DismantleViewState(Player viewer, StationDefinition station) {
+    public DismantleViewState(Player viewer, DismantleStationDefinition station) {
         this.viewer = viewer;
         this.station = station;
     }
@@ -44,8 +43,8 @@ public final class DismantleViewState {
         return viewer;
     }
 
-    /** {@return the station being viewed} */
-    public StationDefinition station() {
+    /** {@return the dismantle station being viewed} */
+    public DismantleStationDefinition station() {
         return station;
     }
 

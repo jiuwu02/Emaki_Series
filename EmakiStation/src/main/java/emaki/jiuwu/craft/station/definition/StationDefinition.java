@@ -1,7 +1,6 @@
 package emaki.jiuwu.craft.station.definition;
 
 import java.util.List;
-import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.station.api.model.MaterialChannel;
@@ -13,18 +12,14 @@ import emaki.jiuwu.craft.station.config.QueueSettings;
 /**
  * One loaded crafting station.
  *
- * <p>The recipe set is stored as include/exclude rules rather than a resolved list because recipes and
- * stations load independently; {@link StationRegistry} resolves the rules once both are loaded.
+ * <p>A station carries no recipe set of its own: membership is declared on the recipe side via
+ * {@code station_ids}, and {@link StationRegistry} resolves it once both directories are loaded.
  *
  * @param id               the station id, which is also its file name
  * @param displayName      the configured display name, unrendered
  * @param layoutId         the catalog layout to open
  * @param previewLayoutId  the material-preview layout
  * @param queueLayoutId    the craft-queue layout
- * @param dismantleLayoutId the dismantle layout; empty string means no dismantle page
- * @param includeTags      recipe tags to include; empty means "no tag filter"
- * @param includeIds       recipe ids to include explicitly
- * @param excludeIds       recipe ids to exclude after including
  * @param permission       the access permission, or an empty string to inherit the base node
  * @param queueSettings    the effective queue parameters for this station
  * @param allowPurchase    whether currency may extend this station's queue
@@ -40,10 +35,6 @@ public record StationDefinition(String id,
         String layoutId,
         String previewLayoutId,
         String queueLayoutId,
-        String dismantleLayoutId,
-        Set<String> includeTags,
-        Set<String> includeIds,
-        Set<String> excludeIds,
         String permission,
         QueueSettings queueSettings,
         boolean allowPurchase,
@@ -60,9 +51,6 @@ public record StationDefinition(String id,
     /** Layout id used when a station declares no {@code queue_layout}. */
     public static final String DEFAULT_QUEUE_LAYOUT = "station_queue";
 
-    /** Layout id used when a station declares no {@code dismantle_layout}. */
-    public static final String DEFAULT_DISMANTLE_LAYOUT = "station_dismantle";
-
     /**
      * Creates a station with defensively copied collections.
      *
@@ -73,11 +61,6 @@ public record StationDefinition(String id,
      *                          {@link #DEFAULT_PREVIEW_LAYOUT}
      * @param queueLayoutId     the queue layout id; {@code null} becomes
      *                          {@link #DEFAULT_QUEUE_LAYOUT}
-     * @param dismantleLayoutId the dismantle layout id; {@code null} becomes
-     *                          {@link #DEFAULT_DISMANTLE_LAYOUT}
-     * @param includeTags       tags to include; {@code null} becomes empty
-     * @param includeIds        ids to include; {@code null} becomes empty
-     * @param excludeIds        ids to exclude; {@code null} becomes empty
      * @param permission        the access permission; {@code null} becomes an empty string
      * @param queueSettings     the queue parameters; {@code null} becomes the shipped defaults
      * @param allowPurchase     whether currency may extend the queue
@@ -99,12 +82,6 @@ public record StationDefinition(String id,
         queueLayoutId = queueLayoutId == null || queueLayoutId.isBlank()
                 ? DEFAULT_QUEUE_LAYOUT
                 : queueLayoutId;
-        dismantleLayoutId = dismantleLayoutId == null || dismantleLayoutId.isBlank()
-                ? DEFAULT_DISMANTLE_LAYOUT
-                : dismantleLayoutId;
-        includeTags = includeTags == null ? Set.of() : Set.copyOf(includeTags);
-        includeIds = includeIds == null ? Set.of() : Set.copyOf(includeIds);
-        excludeIds = excludeIds == null ? Set.of() : Set.copyOf(excludeIds);
         permission = permission == null ? "" : permission;
         queueSettings = queueSettings == null ? QueueSettings.defaults() : queueSettings.normalized();
         defaultChannel = defaultChannel == null ? MaterialChannel.BACKPACK : defaultChannel;

@@ -36,6 +36,8 @@ import emaki.jiuwu.craft.station.dismantle.DismantleGuiInteractionController;
 import emaki.jiuwu.craft.station.dismantle.DismantleGuiRenderer;
 import emaki.jiuwu.craft.station.dismantle.DismantleRecipeDefinition;
 import emaki.jiuwu.craft.station.dismantle.DismantleService;
+import emaki.jiuwu.craft.station.dismantle.DismantleStationDefinition;
+import emaki.jiuwu.craft.station.dismantle.DismantleStationRegistry;
 import emaki.jiuwu.craft.station.dismantle.DismantleViewState;
 import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
 import emaki.jiuwu.craft.station.material.StorageChannel;
@@ -86,6 +88,7 @@ public final class StationGuiService {
     private final DismantleGuiRenderer dismantleRenderer;
     private final DismantleGuiInteractionController dismantleController;
     private final DismantleService dismantleService;
+    private final Supplier<DismantleStationRegistry> dismantleRegistrySupplier;
     private final ItemSourceService itemSourceService;
     private final Map<UUID, StationViewState> states = new ConcurrentHashMap<>();
     private final Map<UUID, DismantleViewState> dismantleStates = new ConcurrentHashMap<>();
@@ -110,6 +113,7 @@ public final class StationGuiService {
      * @param placeholders        resolves placeholders for one player, used by display conditions
      * @param guiSupport          reads each layout's virtual items and texts
      * @param dismantleService    the dismantle loot-roll service
+     * @param dismantleRegistrySupplier supplies the current dismantle station registry
      */
     public StationGuiService(Plugin plugin,
             GuiService guiService,
@@ -127,7 +131,8 @@ public final class StationGuiService {
             EconomyManager economyManager,
             java.util.function.BiFunction<Player, String, String> placeholders,
             ConfiguredGuiSupport guiSupport,
-            DismantleService dismantleService) {
+            DismantleService dismantleService,
+            Supplier<DismantleStationRegistry> dismantleRegistrySupplier) {
         this.plugin = plugin;
         this.guiService = guiService;
         this.threadOwnership = threadOwnership;
@@ -150,6 +155,7 @@ public final class StationGuiService {
         this.queueRenderer = new StationQueueRenderer(
                 () -> guiService.configuredItemService(), guiSupport);
         this.dismantleService = dismantleService;
+        this.dismantleRegistrySupplier = dismantleRegistrySupplier;
         this.dismantleRenderer = new DismantleGuiRenderer(itemSourceService,
                 () -> guiService.configuredItemService(), guiSupport);
         this.dismantleController = new DismantleGuiInteractionController(dismantleService,
@@ -324,7 +330,7 @@ public final class StationGuiService {
         if (threadOwnership != null && !threadOwnership.isEntityOwned(player)) {
             return EmakiResult.wrongThread();
         }
-        StationDefinition station = registrySupplier.get().station(stationId);
+        DismantleStationDefinition station = dismantleRegistrySupplier.get().find(stationId);
         if (station == null) {
             return EmakiResult.notFound("station.unknown_station");
         }
@@ -360,7 +366,7 @@ public final class StationGuiService {
      * @return success when the window opened
      */
     private EmakiResult<Unit> openDismantlePage(DismantleViewState state) {
-        GuiTemplate template = templateOf(state.station().dismantleLayoutId());
+        GuiTemplate template = templateOf(state.station().layoutId());
         if (template == null) {
             return EmakiResult.notFound("station.missing_layout");
         }

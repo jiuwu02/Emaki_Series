@@ -4,7 +4,13 @@
 id: "iron_ingot_block"
 display_name: "<white>铁块压制</white>"
 
-# 工作站通过 tags 或 id 引用配方。
+# 声明此配方属于哪些工作站。留空表示对所有工作站开放。
+# 工作站文件的 recipes 段（include_tags / include_ids / exclude_ids）已废弃，
+# 归属关系现在由此字段在配方侧声明。
+station_ids:
+  - "blacksmith"
+
+# tags 仍可用于其他用途（如 API 查询），但不再驱动工作站归属逻辑。
 tags:
   - "blacksmith"
 

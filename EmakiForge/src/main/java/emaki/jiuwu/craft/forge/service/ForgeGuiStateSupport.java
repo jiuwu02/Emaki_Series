@@ -30,6 +30,12 @@ final class ForgeGuiStateSupport {
     }
 
     public String resolveTemplateId(Recipe recipe) {
+        if (recipe != null) {
+            String t = recipe.guiTemplate();
+            if (t != null && !t.isBlank()) {
+                return t;
+            }
+        }
         return "forge_gui";
     }
 

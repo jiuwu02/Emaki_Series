@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.api.model.QueueEntryView;
 import emaki.jiuwu.craft.station.api.model.QueueSnapshot;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
+import emaki.jiuwu.craft.station.dismantle.DismantleStationDefinition;
 import emaki.jiuwu.craft.station.gui.DurationDisplay;
 import emaki.jiuwu.craft.station.queue.PlayerQueues;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
@@ -37,6 +38,7 @@ public final class StationCommandRouter {
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
     private static final String PERMISSION_ACCESS_PREFIX = PERMISSION_ROOT + ".access.";
+    private static final String PERMISSION_DISMANTLE_ACCESS_PREFIX = PERMISSION_ROOT + ".dismantle.access.";
     private static final List<String> SUBCOMMANDS =
             List.of("help", "open", "dismantle", "queue", "claim", "cancel", "list", "reload", "debug", "admin");
 
@@ -105,8 +107,16 @@ public final class StationCommandRouter {
                     ? List.of()
                     : plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
-        boolean stationArgument = "open".equals(head) || "dismantle".equals(head)
-                || "cancel".equals(head) || "list".equals(head);
+        if ("dismantle".equals(head) && args.length == 2) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            for (DismantleStationDefinition station : plugin.dismantleRegistry().all()) {
+                if (station.id().startsWith(prefix)) {
+                    result.add(station.id());
+                }
+            }
+            return result;
+        }
+        boolean stationArgument = "open".equals(head) || "cancel".equals(head) || "list".equals(head);
         if (stationArgument && args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             for (StationDefinition station : plugin.registry().stations()) {
@@ -131,12 +141,13 @@ public final class StationCommandRouter {
             message(sender, "command.dismantle_usage");
             return true;
         }
-        StationDefinition station = plugin.registry().station(args[1]);
+        DismantleStationDefinition station = plugin.dismantleRegistry().find(args[1]);
         if (station == null) {
             message(sender, "command.unknown_station", Map.of("station", args[1]));
             return true;
         }
-        String required = station.effectivePermission(PERMISSION_ACCESS_PREFIX + station.id());
+        String required =
+                station.effectivePermission(PERMISSION_DISMANTLE_ACCESS_PREFIX + station.id());
         if (!required.isBlank() && !player.hasPermission(required)) {
             message(sender, "general.no_permission");
             return true;

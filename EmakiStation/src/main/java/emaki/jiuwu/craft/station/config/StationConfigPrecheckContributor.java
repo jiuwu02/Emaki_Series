@@ -44,17 +44,22 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
         File dataFolder = plugin.getDataFolder();
         checkFile(new File(dataFolder, "config.yml"), "config.yml", issues);
         checkDirectory(new File(dataFolder, "stations"), "stations", issues);
+        checkDirectory(new File(dataFolder, "stations_dismantle"), "stations_dismantle", issues);
         checkDirectory(new File(dataFolder, "recipes"), "recipes", issues);
         checkDirectory(new File(dataFolder, "recipes_dismantle"), "recipes_dismantle", issues);
         checkDirectory(new File(dataFolder, "gui"), "gui", issues);
         addLoaderIssues("stations",
                 plugin.stationLoader() == null ? null : plugin.stationLoader().issues(), issues);
+        addLoaderIssues("stations_dismantle",
+                plugin.dismantleStationLoader() == null ? null : plugin.dismantleStationLoader().issues(),
+                issues);
         addLoaderIssues("recipes",
                 plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
         addLoaderIssues("recipes_dismantle",
                 plugin.dismantleRecipeLoader() == null ? null : plugin.dismantleRecipeLoader().issues(), issues);
         checkLayouts(issues);
         checkStationLayoutLinks(issues);
+        checkDismantleStationLayoutLinks(issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }
@@ -80,8 +85,11 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
             pages.putIfAbsent(station.layoutId(), StationLayoutValidator.Page.CATALOG);
             pages.putIfAbsent(station.previewLayoutId(), StationLayoutValidator.Page.PREVIEW);
             pages.putIfAbsent(station.queueLayoutId(), StationLayoutValidator.Page.QUEUE);
-            pages.putIfAbsent(station.dismantleLayoutId(), StationLayoutValidator.Page.DISMANTLE);
         });
+        if (plugin.dismantleStationLoader() != null) {
+            plugin.dismantleStationLoader().all().values().forEach(station ->
+                    pages.putIfAbsent(station.layoutId(), StationLayoutValidator.Page.DISMANTLE));
+        }
         pages.forEach((layoutId, page) -> {
             GuiTemplate template = plugin.layoutLoader().get(layoutId);
             if (template == null) {
@@ -100,16 +108,24 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
             return;
         }
         plugin.stationLoader().all().forEach((id, station) -> {
-            reportMissingLayout(id, station.layoutId(), issues);
-            reportMissingLayout(id, station.previewLayoutId(), issues);
-            reportMissingLayout(id, station.queueLayoutId(), issues);
-            reportMissingLayout(id, station.dismantleLayoutId(), issues);
+            reportMissingLayout("stations", id, station.layoutId(), issues);
+            reportMissingLayout("stations", id, station.previewLayoutId(), issues);
+            reportMissingLayout("stations", id, station.queueLayoutId(), issues);
         });
     }
 
-    private void reportMissingLayout(String stationId, String layoutId, List<ConfigPrecheckIssue> issues) {
+    private void checkDismantleStationLayoutLinks(List<ConfigPrecheckIssue> issues) {
+        if (plugin.dismantleStationLoader() == null || plugin.layoutLoader() == null) {
+            return;
+        }
+        plugin.dismantleStationLoader().all().forEach((id, station) ->
+                reportMissingLayout("stations_dismantle", id, station.layoutId(), issues));
+    }
+
+    private void reportMissingLayout(String dir, String stationId, String layoutId,
+            List<ConfigPrecheckIssue> issues) {
         if (plugin.layoutLoader().get(layoutId) == null) {
-            addIssue("stations/" + stationId + ".yml", ERROR, "missing_layout: " + layoutId, issues);
+            addIssue(dir + "/" + stationId + ".yml", ERROR, "missing_layout: " + layoutId, issues);
         }
     }
 }

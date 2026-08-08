@@ -4,28 +4,21 @@
 id: "blacksmith"
 display_name: "<gold>铁匠工坊</gold>"
 
-# 四页界面各自的布局文件，都指向 gui/<名字>.yml。
+# 三页界面各自的布局文件，都指向 gui/<名字>.yml。
 #   layout            配方目录页，省略时为 station_catalog
 #   preview_layout    材料预览页，省略时为 station_preview
 #   queue_layout      合成队列页，省略时为 station_queue
-#   dismantle_layout  物品分解页，省略时为 station_dismantle
-# 四个文件都必须存在，缺任何一个都会在启动预检里报 missing_layout。
+# 三个文件都必须存在，缺任何一个都会在启动预检里报 missing_layout。
+# 物品分解页不再属于工作站：分解站是独立配置，见 stations_dismantle/ 目录。
 layout: "station_catalog"
 preview_layout: "station_preview"
 queue_layout: "station_queue"
-dismantle_layout: "station_dismantle"
 
 # 打开该工作站需要的权限。留空则回落到 emakistation.access.<id>。
 permission: ""
 
-# 该工作站开放哪些配方。
-#   include_tags / include_ids 都为空时表示"全部配方"
-#   两者是并集关系，exclude_ids 最后生效
-recipes:
-  include_tags:
-    - "blacksmith"
-  include_ids: []
-  exclude_ids: []
+# 该工作站开放哪些配方，由配方侧决定：在 recipes/<配方>.yml 里用 station_ids 列出所属工作站。
+# 配方不写 station_ids 表示它对所有工作站开放。工作站文件不再有 recipes 段。
 
 # 队列参数，省略的键继承 config.yml 的 queue 段。
 queue:

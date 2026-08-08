@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.station.command.StationCommandRouter;
 import emaki.jiuwu.craft.station.config.AppConfig;
 import emaki.jiuwu.craft.station.config.StationConfigPrecheckContributor;
 import emaki.jiuwu.craft.station.definition.StationRegistry;
+import emaki.jiuwu.craft.station.dismantle.DismantleStationRegistry;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.listener.StationPlayerListener;
 import emaki.jiuwu.craft.station.queue.QueueService;
@@ -64,6 +65,8 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private final StationLifecycleCoordinator lifecycleCoordinator = new StationLifecycleCoordinator();
     private final AtomicReference<StationRegistry> registry =
             new AtomicReference<>(StationRegistry.empty());
+    private final AtomicReference<DismantleStationRegistry> dismantleRegistry =
+            new AtomicReference<>(DismantleStationRegistry.empty());
     private final AtomicReference<emaki.jiuwu.craft.station.config.QueueCostConfig> queueCosts =
             new AtomicReference<>(emaki.jiuwu.craft.station.config.QueueCostConfig.empty());
     private final AtomicBoolean shutdownStarted = new AtomicBoolean();
@@ -150,6 +153,7 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
                     getLogger().warning("Queue flush did not finish cleanly: " + failure.getMessage());
                 }
                 registry.set(StationRegistry.empty());
+                dismantleRegistry.set(DismantleStationRegistry.empty());
                 runtimeInitialized = false;
                 components.messageService().info("console.plugin_stopped");
                 shutdownFuture.complete(null);
@@ -181,9 +185,12 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         components.layoutLoader().load();
         components.stationLoader().load();
         components.recipeLoader().load();
+        components.dismantleStationLoader().load();
         components.dismantleRecipeLoader().load();
         components.dismantleService().reload(
                 java.util.List.copyOf(components.dismantleRecipeLoader().all().values()));
+        dismantleRegistry.set(DismantleStationRegistry.build(
+                components.dismantleStationLoader().all().values()));
         // Re-read on every reload, and report an absent file this time: bootstrap has run by now, so a missing
         // price file is a real omission rather than a first-launch ordering artefact.
         queueCosts.set(emaki.jiuwu.craft.station.config.QueueCostLoader.load(
@@ -252,6 +259,11 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return registry.get();
     }
 
+    /** {@return the currently active dismantle station registry} */
+    public DismantleStationRegistry dismantleRegistry() {
+        return dismantleRegistry.get();
+    }
+
     /** {@return the currently active queue price table} */
     public emaki.jiuwu.craft.station.config.QueueCostConfig queueCosts() {
         return queueCosts.get();
@@ -315,6 +327,11 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     /** {@return the recipe loader, or {@code null} before enable completes} */
     public emaki.jiuwu.craft.station.recipe.RecipeLoader recipeLoader() {
         return components == null ? null : components.recipeLoader();
+    }
+
+    /** {@return the dismantle station loader, or {@code null} before enable completes} */
+    public emaki.jiuwu.craft.station.dismantle.DismantleStationLoader dismantleStationLoader() {
+        return components == null ? null : components.dismantleStationLoader();
     }
 
     /** {@return the dismantle recipe loader, or {@code null} before enable completes} */

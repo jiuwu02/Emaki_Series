@@ -247,7 +247,7 @@ public final class DismantleGuiRenderer {
     }
 
     private static String layoutId(DismantleViewState state) {
-        return state.station().dismantleLayoutId();
+        return state.station().layoutId();
     }
 
     private static ConfiguredItemDefinition fallbackNoRecipe() {

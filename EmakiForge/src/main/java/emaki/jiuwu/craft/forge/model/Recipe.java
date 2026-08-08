@@ -52,6 +52,7 @@ public final class Recipe {
 
     private final String id;
     private final String displayName;
+    private final String guiTemplate;
     private final List<BlueprintRequirement> blueprintRequirements;
     private final List<ForgeMaterial> materials;
     private final int forgeCapacity;
@@ -79,7 +80,7 @@ public final class Recipe {
             ResultConfig result,
             ActionPhases action,
             String permission) {
-        this(id, displayName, blueprintRequirements, materials, forgeCapacity, optionalMaterialLimit,
+        this(id, displayName, null, blueprintRequirements, materials, forgeCapacity, optionalMaterialLimit,
                 conditionType, conditionRequiredCount, conditions, quality, result, action, permission, 100D, List.of());
     }
 
@@ -98,8 +99,29 @@ public final class Recipe {
             String permission,
             double successRate,
             List<FailureOutcome> failureOutcomes) {
+        this(id, displayName, null, blueprintRequirements, materials, forgeCapacity, optionalMaterialLimit,
+                conditionType, conditionRequiredCount, conditions, quality, result, action, permission, successRate, failureOutcomes);
+    }
+
+    public Recipe(String id,
+            String displayName,
+            String guiTemplate,
+            List<BlueprintRequirement> blueprintRequirements,
+            List<ForgeMaterial> materials,
+            int forgeCapacity,
+            int optionalMaterialLimit,
+            String conditionType,
+            int conditionRequiredCount,
+            ConditionGroup conditions,
+            QualityConfig quality,
+            ResultConfig result,
+            ActionPhases action,
+            String permission,
+            double successRate,
+            List<FailureOutcome> failureOutcomes) {
         this.id = id;
         this.displayName = displayName;
+        this.guiTemplate = Texts.isBlank(guiTemplate) ? null : guiTemplate;
         this.blueprintRequirements = List.copyOf(blueprintRequirements);
         this.materials = List.copyOf(materials);
         this.forgeCapacity = forgeCapacity;
@@ -140,6 +162,7 @@ public final class Recipe {
         return new Recipe(
                 id,
                 section.getString("display_name", id),
+                section.getString("gui_template"),
                 blueprintRequirements,
                 materials,
                 Math.max(0, Numbers.tryParseInt(section.get("forge_capacity"), 0)),
@@ -342,6 +365,10 @@ public final class Recipe {
 
     public String displayName() {
         return displayName;
+    }
+
+    public String guiTemplate() {
+        return guiTemplate;
     }
 
     public int forgeCapacity() {

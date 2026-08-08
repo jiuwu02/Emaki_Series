@@ -1,0 +1,26 @@
+# EmakiStation 分解站示例
+#
+# 文件名与 id 一致。每个分解站有自己的布局、权限和产物路由。
+# 分解站完全独立于合成站——两者 ID 互不关联，分别在各自目录加载。
+id: "example_dismantle"
+display_name: "<aqua>示例分解台</aqua>"
+
+# 界面布局，指向 gui/<名字>.yml。省略时自动使用 station_dismantle。
+layout: "station_dismantle"
+
+# 打开该分解站需要的权限。
+# 留空则回落到 emakistation.dismantle.access.<id>。
+permission: ""
+
+# 产物去向。
+#   storage_first / backpack_first - 首选目标满了会退到另一个
+#   storage_only / backpack_only   - 只用一个目标
+#
+# 所有目标都放不下时，分解产物进入"待领取"状态，不会掉落也不会销毁。
+output:
+  default: "storage_first"
+
+# 打开界面前的条件门。语法与其他 Emaki 模块一致。
+condition:
+  invalid_as_failure: true
+  entries: []

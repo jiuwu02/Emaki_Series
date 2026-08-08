@@ -14,9 +14,8 @@ import emaki.jiuwu.craft.station.recipe.RecipeIndex;
 /**
  * Immutable resolved view of every station together with its recipe set.
  *
- * <p>Stations and recipes load from separate directories, so the include/exclude rules can only be
- * resolved once both are present. Doing it here, once per load, keeps the per-click path free of any
- * tag matching.
+ * <p>Stations and recipes load from separate directories, so recipe membership can only be resolved once
+ * both are present. Doing it here, once per load, keeps the per-click path free of any matching.
  *
  * <p>A reload builds a whole new registry and swaps it in atomically. Nothing mutates in place, so a GUI
  * session that captured the previous registry keeps seeing a self-consistent station and recipe set for
@@ -50,8 +49,8 @@ public final class StationRegistry {
     /**
      * Resolves loaded stations against loaded recipes.
      *
-     * <p>Resolution order per station: start from {@code include_tags} matches plus {@code include_ids},
-     * or from every recipe when neither is declared, then subtract {@code exclude_ids}.
+     * <p>Membership is declared on the recipe side: a recipe listing {@code station_ids} belongs only to
+     * those stations, and a recipe declaring none belongs to every station.
      *
      * @param loadedStations the loaded stations keyed by id
      * @param loadedRecipes  the loaded recipes keyed by id
@@ -83,30 +82,15 @@ public final class StationRegistry {
     private static Set<String> resolveRecipeIds(StationDefinition station,
             Map<String, RecipeDefinition> recipes) {
         Set<String> resolved = new LinkedHashSet<>();
-        boolean unfiltered = station.includeTags().isEmpty() && station.includeIds().isEmpty();
         for (RecipeDefinition recipe : recipes.values()) {
             if (recipe == null) {
                 continue;
             }
-            if (unfiltered || station.includeIds().contains(recipe.id())
-                    || matchesAnyTag(station.includeTags(), recipe)) {
+            if (recipe.belongsTo(station.id())) {
                 resolved.add(recipe.id());
             }
         }
-        resolved.removeAll(station.excludeIds());
         return Set.copyOf(resolved);
-    }
-
-    private static boolean matchesAnyTag(Set<String> includeTags, RecipeDefinition recipe) {
-        if (includeTags.isEmpty()) {
-            return false;
-        }
-        for (String tag : recipe.tags()) {
-            if (includeTags.contains(tag)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

@@ -1,10 +1,8 @@
 package emaki.jiuwu.craft.station.definition;
 
 import java.io.File;
-import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -82,10 +80,6 @@ public final class StationLoader extends YamlDirectoryLoader<StationDefinition> 
                 normalizeId(configuration.getString("layout")),
                 normalizeId(configuration.getString("preview_layout")),
                 normalizeId(configuration.getString("queue_layout")),
-                normalizeId(configuration.getString("dismantle_layout")),
-                readLowerSet(configuration.getSection("recipes"), "include_tags"),
-                readLowerSet(configuration.getSection("recipes"), "include_ids"),
-                readLowerSet(configuration.getSection("recipes"), "exclude_ids"),
                 configuration.getString("permission", ""),
                 parseQueue(queue),
                 queue != null && queue.getBoolean("allow_purchase", Boolean.FALSE),
@@ -111,19 +105,6 @@ public final class StationLoader extends YamlDirectoryLoader<StationDefinition> 
                 queue.getDouble("cancel_refund_rate", globalQueueDefaults.cancelRefundRate()),
                 globalQueueDefaults.tickIntervalTicks(),
                 queue.getDouble("speed_multiplier", globalQueueDefaults.speedMultiplier()));
-    }
-
-    private static Set<String> readLowerSet(YamlSection section, String path) {
-        if (section == null) {
-            return Set.of();
-        }
-        Set<String> values = new LinkedHashSet<>();
-        for (String raw : section.getStringList(path)) {
-            if (raw != null && !raw.isBlank()) {
-                values.add(raw.trim().toLowerCase(Locale.ROOT));
-            }
-        }
-        return values;
     }
 
     private static String normalizeId(String raw) {
