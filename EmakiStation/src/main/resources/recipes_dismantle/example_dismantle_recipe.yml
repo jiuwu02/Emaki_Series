@@ -18,7 +18,7 @@ permission: ""
 
 # 输入物品——放入分解格的物品必须匹配此来源。
 # 格式与普通配方的 item_source 一致。
-input_source: "minecraft:iron_block"
+input_source: "minecraft-iron_block"
 
 # 每次分解的投掷次数。
 # 写法一：固定次数
@@ -35,17 +35,17 @@ rolls:
 # weight 是相对权重（默认 1.0，必须 > 0）。
 # amount 支持固定值或范围。
 pool:
-  - item_source: "minecraft:iron_ingot"
+  - item_source: "minecraft-iron_ingot"
     amount:
       min: 2
       max: 4
     weight: 6.0
 
-  - item_source: "minecraft:nugget"
+  - item_source: "minecraft-nugget"
     amount: 3
     weight: 3.0
 
-  - item_source: "minecraft:iron_nugget"
+  - item_source: "minecraft-iron_nugget"
     amount:
       min: 5
       max: 9

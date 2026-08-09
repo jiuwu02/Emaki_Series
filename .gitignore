@@ -25,3 +25,6 @@ release version/
 emaki_manager.py
 
 !README_EN.md
+
+*.html
+*.png

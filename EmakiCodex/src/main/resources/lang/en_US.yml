@@ -36,8 +36,8 @@ command:
     failed: "<red>Advancement %advancement% is not registered or unchanged.</red>"
 
 console:
-  plugin_starting: "Starting EmakiCodex..."
-  plugin_started: "EmakiCodex started."
+  plugin_starting: "<gray>Starting EmakiCodex...</gray>"
+  plugin_started: "<green>EmakiCodex started.</green>"
   bootstrap_start: "<gray>Releasing default resources...</gray>"
   bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
   bootstrap_complete: "<green>Default file check complete.</green>"
@@ -51,6 +51,24 @@ console:
   advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen."
   advancement_packet_enabled: "Advancement packet coordinate injection enabled (PacketEvents)."
   advancement_packet_absent: "PacketEvents not detected; advancement x/y coordinates are ignored and the client auto-lays-out nodes."
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> hint(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "EmakiCodex configuration precheck passed."
+      required_file_missing: "The required file is missing."
+      path_not_file: "The specified path is not a file."
+      file_not_readable: "The file is not readable."
+      required_directory_missing: "The required directory is missing."
+      path_not_directory: "The specified path is not a directory."
+      directory_not_readable: "The directory is not readable."
 
 debug:
   common:

@@ -36,8 +36,8 @@ command:
     failed: "<red>成就 %advancement% 未注册或状态无变化。</red>"
 
 console:
-  plugin_starting: "正在启动 EmakiCodex..."
-  plugin_started: "EmakiCodex 已启动。"
+  plugin_starting: "<gray>正在启动 EmakiCodex...</gray>"
+  plugin_started: "<green>EmakiCodex 已启动。</green>"
   bootstrap_start: "<gray>正在释放默认资源...</gray>"
   bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
@@ -51,6 +51,24 @@ console:
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"
   advancement_packet_enabled: "成就发包坐标注入已启用（PacketEvents）。"
   advancement_packet_absent: "未检测到 PacketEvents，成就 x/y 坐标不生效，节点位置由客户端自动排布。"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck:
+    severity:
+      fatal: "致命"
+      error: "错误"
+      warn: "警告"
+      info: "信息"
+    hint: " <dark_gray>（%hint%）</dark_gray>"
+    messages:
+      passed: "EmakiCodex 配置预检通过。"
+      required_file_missing: "缺少必需文件。"
+      path_not_file: "指定路径不是文件。"
+      file_not_readable: "文件不可读。"
+      required_directory_missing: "缺少必需目录。"
+      path_not_directory: "指定路径不是目录。"
+      directory_not_readable: "目录不可读。"
 
 debug:
   common:

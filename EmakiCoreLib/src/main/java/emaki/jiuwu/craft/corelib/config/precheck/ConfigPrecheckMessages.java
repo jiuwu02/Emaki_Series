@@ -83,9 +83,12 @@ public final class ConfigPrecheckMessages {
     }
 
     private static Map<String, Object> summaryReplacements(String module, ConfigPrecheckReport report) {
+        long count = report.success()
+                ? (long) report.issues().size()
+                : report.issues().stream().filter(i -> i.severity().blocking()).count();
         return Map.of(
                 "module", Texts.isBlank(module) ? "corelib" : Texts.lower(module),
-                "issues", report.issues().size()
+                "issues", count
         );
     }
 
