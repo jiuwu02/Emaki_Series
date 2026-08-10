@@ -55,20 +55,21 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
     /**
      * Reloads configured pages while preserving third-party registrations.
      *
-     * <p>Verifies the result against the server after {@code reloadData()} rather than trusting the
-     * per-node return value. {@code reloadData()} rebuilds the advancement tree from what is on disk, so a
-     * node that {@code platform.register} accepted can still be absent afterwards. Without this check the
-     * registry reported N registered while the server had none, and the only symptom was every later grant
-     * failing with {@code missing_on_server} — a state the operator had no way to see.</p>
+     * <p>Deliberately does <strong>not</strong> reload data after registering. {@code loadAdvancement} is
+     * documented to persist on its own ("stored and persisted across server restarts and reloads"), while
+     * {@code reloadData()} is the documented companion of <em>removal</em>. Reloading here rebuilt the
+     * advancement tree from disk and discarded everything just registered in memory: the server logged
+     * {@code 3 of 3 configured advancement(s) are absent}, reported {@code 0} registered, and every later
+     * grant failed with {@code missing_on_server}. The reload that removal genuinely needs now happens in
+     * {@link #unregisterConfigured(boolean)}, before re-registration rather than after it.</p>
      *
-     * @return how many configured advancements the server actually has after the reload
+     * @return how many configured advancements the server actually exposes
      */
     public synchronized int registerAll() {
-        unregisterConfigured(false);
+        unregisterConfigured(true);
         for (AdvancementPage page : pageLoader.all().values()) {
             registerPage(page);
         }
-        platform.reloadData();
         return verifyConfigured();
     }
 
@@ -94,9 +95,9 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
             return configuredKeys.size();
         }
         plugin.getLogger().warning("[Codex] " + missing.size() + " of " + configuredKeys.size()
-                + " configured advancement(s) are absent from the server after reloadData and cannot be"
-                + " granted; platform '" + platform.id() + "' registered them but they did not survive the"
-                + " data reload. Affected: " + describeMissing(missing));
+                + " configured advancement(s) were accepted by platform '" + platform.id() + "' but are absent"
+                + " from the server and cannot be granted; something rebuilt the advancement tree from disk"
+                + " after registration. Affected: " + describeMissing(missing));
         return configuredKeys.size() - missing.size();
     }
 
@@ -152,7 +153,9 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         ExternalKey externalKey = new ExternalKey(owner, path);
         ExternalRegistration previous = externalRegistrations.remove(externalKey);
         if (previous != null) {
-            removeExternalNode(previous, false);
+            // Reload here, not after registering: removal only deletes the file, so without this the key
+            // stays live and the loadAdvancement below would be re-registering something still present.
+            removeExternalNode(previous, true);
         } else if (byKey.containsKey(key.toString())) {
             return AdvancementRegistration.noop();
         }
@@ -165,7 +168,8 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         ExternalRegistration registration = new ExternalRegistration(key, definition, parentKey, generation);
         externalRegistrations.put(externalKey, registration);
         addNode(key, null, definition, parentKey);
-        platform.reloadData();
+        // No reload after registering: it would rebuild the tree from disk and discard what was just
+        // registered, exactly as it did for configured pages. See registerAll for the full reasoning.
         return new RegistrationHandle(this, externalKey, key, generation);
     }
 
@@ -183,13 +187,28 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         unregisterConfigured(true);
     }
 
-    private void unregisterConfigured(boolean reload) {
+    /**
+     * Drops every configured registration.
+     *
+     * <p>{@code reloadIfRemoved} exists because {@code removeAdvancement} is documented to remove the
+     * advancement from persistent storage only and "should be accompanied by a call to
+     * {@code Server#reloadData()} in order to fully remove it from the running instance". Skipping that
+     * reload leaves the file deleted while the key is still live, so the following {@code loadAdvancement}
+     * would be handed a key the server still holds. Callers that reload themselves right afterwards pass
+     * {@code false} to avoid reloading twice.</p>
+     *
+     * @param reloadIfRemoved reload the server data, but only when something was actually removed, so a
+     *        first startup with nothing registered yet does not pay for a reload
+     */
+    private void unregisterConfigured(boolean reloadIfRemoved) {
+        boolean removedAny = false;
         for (NamespacedKey key : List.copyOf(configuredKeys)) {
             platform.remove(key);
             removeNode(key);
+            removedAny = true;
         }
         configuredKeys.clear();
-        if (reload) {
+        if (reloadIfRemoved && removedAny) {
             platform.reloadData();
         }
     }
