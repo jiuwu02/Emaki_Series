@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -299,7 +300,7 @@ public final class ItemComponentInspector {
         }
         try {
             List<DataComponentType> types = new ArrayList<>(itemStack.getDataTypes());
-            types.sort(java.util.Comparator.comparing(type -> type.getKey().toString()));
+            types.sort(Comparator.comparing(type -> type.getKey().toString()));
             for (DataComponentType type : types) {
                 if (type == null) {
                     continue;

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.item.model;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -37,7 +38,7 @@ public record EquippedSetState(ItemSetDefinition definition, Set<String> equippe
     }
 
     public Object mergedNameActions() {
-        List<Object> actions = new java.util.ArrayList<>();
+        List<Object> actions = new ArrayList<>();
         for (ItemSetThreshold threshold : activeThresholds()) {
             appendActions(actions, threshold.nameActions());
         }
@@ -45,7 +46,7 @@ public record EquippedSetState(ItemSetDefinition definition, Set<String> equippe
     }
 
     public Object mergedLoreActions() {
-        List<Object> actions = new java.util.ArrayList<>();
+        List<Object> actions = new ArrayList<>();
         for (ItemSetThreshold threshold : activeThresholds()) {
             appendActions(actions, threshold.loreActions());
         }

@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -128,7 +130,7 @@ public final class StorageAutoPickupService {
      * 又进了仓库的窗口。
      */
     private void collectNearby(Player player, double radius) {
-        for (org.bukkit.entity.Entity entity : player.getNearbyEntities(radius, radius, radius)) {
+        for (Entity entity : player.getNearbyEntities(radius, radius, radius)) {
             if (!(entity instanceof Item item)) {
                 continue;
             }
@@ -150,7 +152,7 @@ public final class StorageAutoPickupService {
         if (stack.getType().isAir() || stack.getAmount() <= 0) {
             return;
         }
-        org.bukkit.Location dropLocation = item.getLocation().clone();
+        Location dropLocation = item.getLocation().clone();
         item.remove();
         plugin.executionDispatcher().runEntity(plugin, player, () -> {
             if (!tryDepositAll(player, stack)) {
@@ -160,7 +162,7 @@ public final class StorageAutoPickupService {
     }
 
     /** 入库失败时把物品掉回原处，保证零损失。 */
-    private void restore(org.bukkit.Location location, ItemStack stack) {
+    private void restore(Location location, ItemStack stack) {
         if (location == null || location.getWorld() == null) {
             return;
         }

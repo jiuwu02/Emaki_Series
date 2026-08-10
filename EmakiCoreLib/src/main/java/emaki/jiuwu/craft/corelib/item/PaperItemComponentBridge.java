@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -83,7 +84,7 @@ final class PaperItemComponentBridge {
                     entry == null ? "Vanilla component syntax" : entry.valueFormat()
             ));
         }
-        result.sort(java.util.Comparator.comparing(ItemComponentCapability::componentId));
+        result.sort(Comparator.comparing(ItemComponentCapability::componentId));
         return List.copyOf(result);
     }
 

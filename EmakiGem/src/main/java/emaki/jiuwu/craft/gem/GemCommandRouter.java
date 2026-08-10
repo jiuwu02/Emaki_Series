@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
@@ -39,7 +40,7 @@ final class GemCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+        return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -61,7 +62,7 @@ final class GemCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "gui", "reload", "inspect", "clearstate", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
+                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -71,10 +72,10 @@ final class GemCommandRouter implements TabExecutor {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
-            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+            switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "gui" -> {
                     for (String sub : List.of("inlay", "open")) {
-                        if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                        if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                             result.add(sub);
                         }
                     }
@@ -134,7 +135,7 @@ final class GemCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        return switch (args[1].toLowerCase(java.util.Locale.ROOT)) {
+        return switch (args[1].toLowerCase(Locale.ROOT)) {
             case "inlay" -> handleGui(sender, GemGuiMode.INLAY);
             case "open" -> handleGui(sender, GemGuiMode.OPEN_SOCKET);
             default -> {

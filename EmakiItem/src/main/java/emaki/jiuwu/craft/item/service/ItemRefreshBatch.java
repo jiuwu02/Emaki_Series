@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item.service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -78,7 +79,7 @@ public final class ItemRefreshBatch {
     record SlotSnapshot(int slot, ItemStack expected, ItemOperationLedger.ReadResult ledgerRead) {
 
         SlotSnapshot {
-            ledgerRead = ledgerRead == null ? ItemOperationLedger.ReadResult.corrupt(java.util.List.of()) : ledgerRead;
+            ledgerRead = ledgerRead == null ? ItemOperationLedger.ReadResult.corrupt(List.of()) : ledgerRead;
         }
     }
 }

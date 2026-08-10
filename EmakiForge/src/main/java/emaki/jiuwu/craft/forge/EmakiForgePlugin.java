@@ -1,13 +1,19 @@
 package emaki.jiuwu.craft.forge;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -46,6 +52,7 @@ import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
+import emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi;
 
 public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -96,7 +103,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private DebugCommand debugCommand;
     private ForgeStageRegistrar stageRegistrar;
     private final EmakiForgeApi.Bridge forgeApiBridge =
-            new emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi(this);
+            new DefaultEmakiForgeApi(this);
 
     private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "pdc");
 
@@ -265,7 +272,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                     }
                     logConfigPrecheckReport();
                     if (debugLogger() != null) {
-                        debugLogger().log("forge", (java.util.UUID) null, "forge.runtime_metrics",
+                        debugLogger().log("forge", (UUID) null, "forge.runtime_metrics",
                                 runtimeMetrics.snapshot().debugValues(runtimeStatus(), runtimeSnapshot().guiState()));
                     }
                     return result;
@@ -310,7 +317,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerCommand(
                 ROOT_COMMAND,
                 "emakiforge command",
-                java.util.List.of("eforge", "ef"),
+                List.of("eforge", "ef"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiforge.use", commandRouter, commandRouter)
         );
     }
@@ -790,7 +797,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
      *
      * @param action what to publish
      */
-    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
@@ -802,13 +809,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                                     String permission,
-                                    org.bukkit.command.CommandExecutor executor,
-                                    org.bukkit.command.TabCompleter tabCompleter) {
+                                    CommandExecutor executor,
+                                    TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -821,10 +828,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[]{""} : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

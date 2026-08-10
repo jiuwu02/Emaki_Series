@@ -2,15 +2,21 @@ package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -41,6 +47,7 @@ import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.LedgerFacts;
 import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.SetItemMutation;
 import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.SetPresentationInspection;
 import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.SetPresentationTarget;
+import emaki.jiuwu.craft.item.api.event.ItemSetBonusChangeEvent;
 
 /**
  * 监听域刷新职责：决定刷新范围、扫描槽位、维护玩家维度缓存、把计算结果写回背包并派发
@@ -57,11 +64,11 @@ final class ItemSetListenerScopeRefresher {
     private final Supplier<DebugLogger> debugLoggerSupplier;
     private final Logger logger;
     private final ThreadOwnership threadOwnership;
-    private final Set<String> warnedMissingSetDefinitions = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<String> warnedMissingSetDefinitions = ConcurrentHashMap.newKeySet();
     private final ItemSetRefreshPlanner refreshPlanner = new ItemSetRefreshPlanner();
 
-    private final Map<java.util.UUID, Map<String, Integer>> lastActiveCounts = new java.util.concurrent.ConcurrentHashMap<>();
-    private final Map<java.util.UUID, ListenerSetCache> listenerCaches = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<UUID, Map<String, Integer>> lastActiveCounts = new ConcurrentHashMap<>();
+    private final Map<UUID, ListenerSetCache> listenerCaches = new ConcurrentHashMap<>();
 
     ItemSetListenerScopeRefresher(EmakiItemLoader itemLoader,
                                   EmakiItemSetLoader setLoader,
@@ -185,7 +192,7 @@ final class ItemSetListenerScopeRefresher {
         }
         String contributionSignature = contributionSignature(capture.facts(), contributionSlots);
         if (decision.scope() == RefreshScope.LOCAL) {
-            ListenerSetCache localCache = java.util.Objects.requireNonNull(cached, "local refresh cache");
+            ListenerSetCache localCache = Objects.requireNonNull(cached, "local refresh cache");
             decision = refreshPlanner.decideContribution(
                     decision,
                     localCache.contributionSignature(),
@@ -209,7 +216,7 @@ final class ItemSetListenerScopeRefresher {
         );
         LinkedHashMap<String, CompiledSetState> compiledStates = new LinkedHashMap<>();
         if (decision.scope() == RefreshScope.LOCAL) {
-            compiledStates.putAll(java.util.Objects.requireNonNull(cached, "local refresh cache").compiledStates());
+            compiledStates.putAll(Objects.requireNonNull(cached, "local refresh cache").compiledStates());
         }
         LinkedHashSet<String> visibleSetIds = collectVisibleSetIds(capture.facts().values());
         if (decision.scope() == RefreshScope.LOCAL) {
@@ -369,10 +376,10 @@ final class ItemSetListenerScopeRefresher {
     private Set<Integer> unionSlots(Set<Integer> first, Set<Integer> second) {
         LinkedHashSet<Integer> slots = new LinkedHashSet<>();
         if (first != null) {
-            first.stream().filter(java.util.Objects::nonNull).forEach(slots::add);
+            first.stream().filter(Objects::nonNull).forEach(slots::add);
         }
         if (second != null) {
-            second.stream().filter(java.util.Objects::nonNull).forEach(slots::add);
+            second.stream().filter(Objects::nonNull).forEach(slots::add);
         }
         return slots;
     }
@@ -761,10 +768,10 @@ final class ItemSetListenerScopeRefresher {
         if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
             return;
         }
-        Map<ItemSetRefreshPlanner.SlotAction, Long> planCounts = plans.stream().collect(java.util.stream.Collectors.groupingBy(
+        Map<ItemSetRefreshPlanner.SlotAction, Long> planCounts = plans.stream().collect(Collectors.groupingBy(
                 SlotPlan::action,
-                () -> new java.util.EnumMap<>(ItemSetRefreshPlanner.SlotAction.class),
-                java.util.stream.Collectors.counting()
+                () -> new EnumMap<>(ItemSetRefreshPlanner.SlotAction.class),
+                Collectors.counting()
         ));
         debugLogger.log("set", player, "set.refresh_plan", Map.ofEntries(
                 Map.entry("trigger", Texts.toStringSafe(trigger)),
@@ -789,7 +796,7 @@ final class ItemSetListenerScopeRefresher {
         if (player == null || threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return;
         }
-        java.util.UUID uuid = player.getUniqueId();
+        UUID uuid = player.getUniqueId();
         Map<String, Integer> previous = lastActiveCounts.getOrDefault(uuid, Map.of());
         Map<String, Integer> current = new LinkedHashMap<>();
         for (Map.Entry<String, EquippedSetState> entry : states.entrySet()) {
@@ -820,7 +827,7 @@ final class ItemSetListenerScopeRefresher {
                 List<Integer> activeThresholds = state == null
                         ? List.of()
                         : state.activeThresholds().stream().map(ItemSetThreshold::requiredPieces).toList();
-                org.bukkit.Bukkit.getPluginManager().callEvent(new emaki.jiuwu.craft.item.api.event.ItemSetBonusChangeEvent(
+                Bukkit.getPluginManager().callEvent(new ItemSetBonusChangeEvent(
                         player, setId, oldCount, newCount, totalPieces, activeThresholds, trigger));
             }
         }
@@ -831,14 +838,14 @@ final class ItemSetListenerScopeRefresher {
         }
     }
 
-    public void clearCachedState(java.util.UUID uuid) {
+    public void clearCachedState(UUID uuid) {
         if (uuid != null) {
             lastActiveCounts.remove(uuid);
             listenerCaches.remove(uuid);
         }
     }
 
-    public void invalidateCachedState(java.util.UUID uuid) {
+    public void invalidateCachedState(UUID uuid) {
         if (uuid != null) {
             listenerCaches.remove(uuid);
         }

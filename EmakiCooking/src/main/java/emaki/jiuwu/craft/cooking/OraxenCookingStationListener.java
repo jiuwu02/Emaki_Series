@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.cooking;
 
+import java.util.function.Consumer;
+
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
@@ -100,7 +102,7 @@ final class OraxenCookingStationListener implements Listener {
             Block block,
             Action action,
             EquipmentSlot hand,
-            java.util.function.Consumer<Boolean> cancelConsumer,
+            Consumer<Boolean> cancelConsumer,
             ItemSourceRef source) {
         if (player == null || block == null) {
             return;
@@ -118,7 +120,7 @@ final class OraxenCookingStationListener implements Listener {
 
     private void dispatchBlockBreak(Player player,
             Block block,
-            java.util.function.Consumer<Boolean> cancelConsumer,
+            Consumer<Boolean> cancelConsumer,
             ItemSourceRef source) {
         if (player == null || block == null) {
             return;

@@ -44,6 +44,7 @@ import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionGroup;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
+import emaki.jiuwu.craft.corelib.condition.ConditionNode;
 
 public final class StrengthenAttemptService {
 
@@ -243,7 +244,7 @@ public final class StrengthenAttemptService {
                     text -> PlaceholderRenderer.renderPapi(player, text, null, "strengthen_attempt"),
                     true,
                     ConditionContext.of(player, context.targetItem(),
-                            java.util.Map.of(
+                            Map.of(
                                     "operationId", operationId,
                                     "recipeId", recipe.id(),
                                     "currentStar", preview.currentStar(),
@@ -445,7 +446,7 @@ public final class StrengthenAttemptService {
     }
 
     private void logOperation(Player player, String operationId, String phase, AttemptOutcome outcome) {
-        java.util.UUID playerId = player == null ? null : player.getUniqueId();
+        UUID playerId = player == null ? null : player.getUniqueId();
         if (plugin.debugLogger() != null && plugin.debugLogger().shouldLog("attempt", playerId)) {
             plugin.debugLogger().log("attempt", playerId, "attempt.operation", Map.of(
                     "operation_id", Texts.toStringSafe(operationId),
@@ -786,9 +787,9 @@ public final class StrengthenAttemptService {
         if (group == null) {
             return ConditionGroup.empty();
         }
-        List<emaki.jiuwu.craft.corelib.condition.ConditionNode> nodes = new ArrayList<>();
+        List<ConditionNode> nodes = new ArrayList<>();
         for (StrengthenConditionNode node : group.conditions()) {
-            emaki.jiuwu.craft.corelib.condition.ConditionNode converted = toCoreConditionNode(node);
+            ConditionNode converted = toCoreConditionNode(node);
             if (converted != null) {
                 nodes.add(converted);
             }
@@ -796,14 +797,14 @@ public final class StrengthenAttemptService {
         return new ConditionGroup(group.conditionType(), group.requiredCount(), nodes);
     }
 
-    private static emaki.jiuwu.craft.corelib.condition.ConditionNode toCoreConditionNode(StrengthenConditionNode node) {
+    private static ConditionNode toCoreConditionNode(StrengthenConditionNode node) {
         if (node == null) {
             return null;
         }
         if (node.groupNode()) {
-            return emaki.jiuwu.craft.corelib.condition.ConditionNode.group(toCoreConditionGroup(node.group()));
+            return ConditionNode.group(toCoreConditionGroup(node.group()));
         }
-        return new emaki.jiuwu.craft.corelib.condition.ConditionNode(node.type(), node.expression(), null, node.data());
+        return new ConditionNode(node.type(), node.expression(), null, node.data());
     }
 
     private record StoredState(boolean hasLayer,
@@ -825,7 +826,7 @@ public final class StrengthenAttemptService {
 
         private StoredState withBaseSourceSignature(String fallbackSignature) {
             String resolvedSignature = Texts.isBlank(baseSourceSignature) ? fallbackSignature : baseSourceSignature;
-            if (java.util.Objects.equals(baseSourceSignature, resolvedSignature)) {
+            if (Objects.equals(baseSourceSignature, resolvedSignature)) {
                 return this;
             }
             return new StoredState(

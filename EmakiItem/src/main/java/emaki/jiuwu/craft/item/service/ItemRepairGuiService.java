@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.item.service;
 
+import java.util.Map;
+
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
@@ -36,7 +38,7 @@ public final class ItemRepairGuiService {
                 plugin,
                 player,
                 template,
-                java.util.Map.of(),
+                Map.of(),
                 (guiSession, slot) -> renderer.renderSlot(state, slot),
                 interactionController.createSessionHandler(state)
         ));

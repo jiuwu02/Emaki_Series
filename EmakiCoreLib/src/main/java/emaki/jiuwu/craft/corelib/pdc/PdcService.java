@@ -1,9 +1,11 @@
 package emaki.jiuwu.craft.corelib.pdc;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 import org.bukkit.NamespacedKey;
@@ -249,7 +251,7 @@ public final class PdcService {
     }
 
     private boolean isDebugEnabled() {
-        return debugLogger != null && debugLogger.shouldLog(debugModule, (java.util.UUID) null);
+        return debugLogger != null && debugLogger.shouldLog(debugModule, (UUID) null);
     }
 
     private void logSkipped(@Nullable ItemStack itemStack,
@@ -288,7 +290,7 @@ public final class PdcService {
         replacements.put("changed", delta.changed());
         replacements.put("committed", committed);
         replacements.put("reason", reason);
-        debugLogger.log(debugModule, (java.util.UUID) null, "pdc.mutation", replacements);
+        debugLogger.log(debugModule, (UUID) null, "pdc.mutation", replacements);
     }
 
     private Map<String, String> snapshot(PersistentDataContainer container) {
@@ -297,7 +299,7 @@ public final class PdcService {
         }
         Map<String, String> values = new LinkedHashMap<>();
         container.getKeys().stream()
-                .sorted(java.util.Comparator.comparing(NamespacedKey::toString))
+                .sorted(Comparator.comparing(NamespacedKey::toString))
                 .forEach(key -> values.put(key.toString(), readValue(container, key)));
         return Map.copyOf(values);
     }

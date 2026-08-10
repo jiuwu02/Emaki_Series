@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -9,6 +11,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegisteredStage;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageLookup;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
@@ -35,7 +38,7 @@ public final class RegistryStageInvoker implements StageInvoker {
      * @param registry the live registry
      */
     public RegistryStageInvoker(@NotNull StageRegistry registry) {
-        this.registry = java.util.Objects.requireNonNull(registry, "registry");
+        this.registry = Objects.requireNonNull(registry, "registry");
     }
 
     @Override
@@ -68,7 +71,7 @@ public final class RegistryStageInvoker implements StageInvoker {
     public @NotNull ExecutionDomain domainOf(@NotNull Handle handle,
             @NotNull CoreStageContext context,
             @NotNull CoreActionSubject target,
-            @NotNull java.util.Map<String, String> rawArguments) {
+            @NotNull Map<String, String> rawArguments) {
         RegisteredStage entry = live(handle.id());
         if (entry == null) {
             return ExecutionDomain.SERVER_GLOBAL;
@@ -118,7 +121,7 @@ public final class RegistryStageInvoker implements StageInvoker {
         RegisteredStage entry = live(handle.id());
         if (entry == null || entry.kind() != CoreStageKind.ACTION) {
             return CoreActionOutcome.failure(
-                    emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind.OWNER_DISABLED,
+                    CoreActionFailureKind.OWNER_DISABLED,
                     "action.run.stage_unavailable");
         }
         return ((CoreActionStage) entry.stage()).execute(context, arguments);

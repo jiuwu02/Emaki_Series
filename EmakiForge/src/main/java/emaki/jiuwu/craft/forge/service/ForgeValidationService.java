@@ -58,7 +58,7 @@ final class ForgeValidationService {
                     text -> replacePlaceholders(player, text),
                     config.invalidAsFailure(),
                     ConditionContext.of(player, guiItems == null ? null : guiItems.targetItem(),
-                            java.util.Map.of("recipeId", recipe.id()))
+                            Map.of("recipeId", recipe.id()))
             );
             if (!conditionsPassed) {
                 return ValidationResult.fail("forge.error.condition_not_met");

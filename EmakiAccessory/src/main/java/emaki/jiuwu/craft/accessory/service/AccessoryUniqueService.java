@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.accessory.service;
 
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
@@ -64,7 +65,7 @@ public final class AccessoryUniqueService {
                 return "emakiitem:" + definitionId;
             }
         }
-        return "material:" + item.getType().name().toLowerCase(java.util.Locale.ROOT);
+        return "material:" + item.getType().name().toLowerCase(Locale.ROOT);
     }
 
     /**

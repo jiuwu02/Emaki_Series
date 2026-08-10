@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.action.pipeline.registry;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -198,7 +199,7 @@ public final class StageRegistry {
         return CoreStageRegistration.unavailable(kind, reasonKey);
     }
 
-    private static CoreActionExecutionTarget safeTarget(java.util.function.Supplier<CoreActionExecutionTarget> supplier) {
+    private static CoreActionExecutionTarget safeTarget(Supplier<CoreActionExecutionTarget> supplier) {
         try {
             return supplier.get();
         } catch (RuntimeException exception) {

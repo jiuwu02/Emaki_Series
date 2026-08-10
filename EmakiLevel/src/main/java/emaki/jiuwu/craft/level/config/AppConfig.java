@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.level.config;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -152,7 +153,7 @@ public record AppConfig(String version,
         }
         Map<String, Double> values = new LinkedHashMap<>();
         for (String key : section.getKeys(false)) {
-            values.put(key == null ? "" : key.trim().toLowerCase(java.util.Locale.ROOT), section.getDouble(key, 0D));
+            values.put(key == null ? "" : key.trim().toLowerCase(Locale.ROOT), section.getDouble(key, 0D));
         }
         return values;
     }

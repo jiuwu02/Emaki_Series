@@ -20,6 +20,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
@@ -251,15 +252,15 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         Transformation transformation = display.spec.transformation();
         org.joml.Vector3f originalTranslation = transformation.getTranslation();
         org.joml.Vector3f scale = transformation.getScale();
-        org.joml.Quaternionf rightRotation = transformation.getRightRotation();
+        Quaternionf rightRotation = transformation.getRightRotation();
 
         Vector3f animatedTranslation = new Vector3f(
                 originalTranslation.x(),
                 originalTranslation.y() + (float) heightOffset,
                 originalTranslation.z()
         );
-        org.joml.Quaternionf animatedLeftRotation =
-                new org.joml.Quaternionf(transformation.getLeftRotation());
+        Quaternionf animatedLeftRotation =
+                new Quaternionf(transformation.getLeftRotation());
         animatedLeftRotation.mul(buildAxisRotation(rotationAxis, rotationDegrees));
 
         List<EntityData<?>> metadata = new ArrayList<>();
@@ -284,12 +285,12 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         }
     }
 
-    private org.joml.Quaternionf buildAxisRotation(String axis, double degrees) {
+    private Quaternionf buildAxisRotation(String axis, double degrees) {
         float radians = (float) Math.toRadians(degrees);
         return switch (axis == null ? "x" : axis) {
-            case "y" -> new org.joml.Quaternionf().rotateY(radians);
-            case "z" -> new org.joml.Quaternionf().rotateZ(radians);
-            default -> new org.joml.Quaternionf().rotateX(radians);
+            case "y" -> new Quaternionf().rotateY(radians);
+            case "z" -> new Quaternionf().rotateZ(radians);
+            default -> new Quaternionf().rotateX(radians);
         };
     }
 
@@ -482,7 +483,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         return metadata;
     }
 
-    private Quaternion4f quaternion(org.joml.Quaternionf quaternion) {
+    private Quaternion4f quaternion(Quaternionf quaternion) {
         return new Quaternion4f(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
     }
 

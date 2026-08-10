@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +42,8 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class OvenRuntimeService implements Listener {
 
@@ -115,10 +119,10 @@ public final class OvenRuntimeService implements Listener {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
-                OvenState state = codec.readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(committedState));
+            public CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
+                OvenState state = codec.readState(new MapYamlSection(committedState));
                 if (state == null || state.isCompletelyEmpty()) {
-                    return java.util.concurrent.CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed oven state"));
+                    return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed oven state"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -139,7 +143,7 @@ public final class OvenRuntimeService implements Listener {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+            public CompletionStage<Void> delete(StationCoordinates coordinates) {
                 return stateStore.deleteAsync(coordinates)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
                         .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
@@ -175,7 +179,7 @@ public final class OvenRuntimeService implements Listener {
         ensureTicker();
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
@@ -676,7 +680,7 @@ public final class OvenRuntimeService implements Listener {
             textDisplayService.removeStation(StationType.OVEN, coordinates);
             return;
         }
-        org.bukkit.Location baseLocation = coordinates.location(0D, 0D, 0D);
+        Location baseLocation = coordinates.location(0D, 0D, 0D);
         if (baseLocation == null || baseLocation.getWorld() == null) {
             textDisplayService.removeStation(StationType.OVEN, coordinates);
             return;

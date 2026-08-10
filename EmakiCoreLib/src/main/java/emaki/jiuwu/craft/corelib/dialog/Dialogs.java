@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.dialog;
 
 import java.util.List;
 import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
+import java.util.ArrayList;
 
 /**
  * 常用程序化对话框的构造快捷方式。
@@ -38,7 +39,7 @@ public final class Dialogs {
             String initialValue,
             int maxLength,
             String confirmLabel) {
-        List<DialogDefinition.Body> body = new java.util.ArrayList<>();
+        List<DialogDefinition.Body> body = new ArrayList<>();
         if (bodyLines != null) {
             for (String line : bodyLines) {
                 if (line != null && !line.isBlank()) {

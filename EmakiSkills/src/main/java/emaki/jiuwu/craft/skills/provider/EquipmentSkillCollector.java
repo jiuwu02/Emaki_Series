@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -298,7 +299,7 @@ public final class EquipmentSkillCollector {
     }
 
     private String slotName(EquipmentSlot slot) {
-        return SLOT_NAMES.getOrDefault(slot, slot.name().toLowerCase(java.util.Locale.ROOT));
+        return SLOT_NAMES.getOrDefault(slot, slot.name().toLowerCase(Locale.ROOT));
     }
 
     private void logSourceResolution(UUID playerId,

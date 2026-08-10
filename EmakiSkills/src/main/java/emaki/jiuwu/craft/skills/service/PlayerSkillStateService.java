@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -152,7 +153,7 @@ public final class PlayerSkillStateService {
             String triggerId,
             PlayerSkillSlotChangeEvent.Action action) {
         PlayerSkillSlotChangeEvent event = new PlayerSkillSlotChangeEvent(player, slotIndex, skillId, triggerId, action);
-        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        Bukkit.getPluginManager().callEvent(event);
         return event.isCancelled();
     }
 

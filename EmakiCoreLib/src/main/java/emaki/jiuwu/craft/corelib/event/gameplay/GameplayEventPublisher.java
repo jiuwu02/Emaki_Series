@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.event.gameplay;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -77,10 +78,10 @@ public final class GameplayEventPublisher implements Listener {
             Supplier<CoreLibConfig.GameplayEventConfig> configSupplier,
             MythicMobBridge mythicMobBridge) {
         this.plugin = plugin;
-        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
+        this.executionDispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
         this.eventBus = eventBus;
         this.configSupplier = configSupplier;
-        this.mythicMobBridge = java.util.Objects.requireNonNull(mythicMobBridge, "mythicMobBridge");
+        this.mythicMobBridge = Objects.requireNonNull(mythicMobBridge, "mythicMobBridge");
     }
 
     private CoreLibConfig.GameplayEventConfig config() {

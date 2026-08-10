@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.debug;
 
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -150,7 +151,7 @@ public final class DebugLogger {
         if (Texts.isBlank(module)) {
             return false;
         }
-        boolean added = enabledModules.add(module.toLowerCase(java.util.Locale.ROOT));
+        boolean added = enabledModules.add(module.toLowerCase(Locale.ROOT));
         refreshGlobalState();
         return added;
     }
@@ -159,7 +160,7 @@ public final class DebugLogger {
         if (Texts.isBlank(module)) {
             return false;
         }
-        boolean removed = enabledModules.remove(module.toLowerCase(java.util.Locale.ROOT));
+        boolean removed = enabledModules.remove(module.toLowerCase(Locale.ROOT));
         refreshGlobalState();
         return removed;
     }
@@ -168,7 +169,7 @@ public final class DebugLogger {
         if (Texts.isBlank(module)) {
             return false;
         }
-        String normalized = module.toLowerCase(java.util.Locale.ROOT);
+        String normalized = module.toLowerCase(Locale.ROOT);
         if (enabledModules.remove(normalized)) {
             refreshGlobalState();
             return false;

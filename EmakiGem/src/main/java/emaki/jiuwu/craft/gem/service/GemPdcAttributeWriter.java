@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.gem.service;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
 
@@ -65,10 +66,10 @@ public final class GemPdcAttributeWriter {
         if (plugin == null
                 || plugin.debugLogger() == null
                 || mutation == null
-                || !plugin.debugLogger().shouldLog("pdc", (java.util.UUID) null)) {
+                || !plugin.debugLogger().shouldLog("pdc", (UUID) null)) {
             return;
         }
-        plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+        plugin.debugLogger().log("pdc", (UUID) null, "pdc.skill_payload", Map.of(
                 "operation", mutation.operation(),
                 "item", itemStack == null ? "null" : itemStack.getType(),
                 "amount", itemStack == null ? 0 : itemStack.getAmount(),

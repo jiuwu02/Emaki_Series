@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.codex;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.codex.advancement.AdvancementJsonBuilder;
@@ -130,7 +131,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
 
     private void resyncAdvancements(EmakiCodexPlugin plugin, int registered) {
-        if (registered <= 0 || org.bukkit.Bukkit.getOnlinePlayers().isEmpty()) {
+        if (registered <= 0 || Bukkit.getOnlinePlayers().isEmpty()) {
             return;
         }
         plugin.advancementPacketGateway().resyncAll().thenAccept(result -> {

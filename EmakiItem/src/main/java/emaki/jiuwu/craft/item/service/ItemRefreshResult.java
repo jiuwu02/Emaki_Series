@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.item.service;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -29,7 +30,7 @@ public record ItemRefreshResult(
         actualSetScope = actualSetScope == null ? RefreshScope.SKIP : actualSetScope;
         fullReasons = fullReasons == null || fullReasons.isEmpty()
                 ? Set.of()
-                : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(fullReasons));
+                : Collections.unmodifiableSet(new LinkedHashSet<>(fullReasons));
         updateScannedSlots = Math.max(0, updateScannedSlots);
         setScannedSlots = Math.max(0, setScannedSlots);
         changed = Math.max(0, changed);

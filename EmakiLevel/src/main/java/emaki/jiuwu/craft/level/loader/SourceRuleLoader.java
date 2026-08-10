@@ -2,8 +2,11 @@ package emaki.jiuwu.craft.level.loader;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -26,7 +29,7 @@ public final class SourceRuleLoader {
         List<SourceRuleConfig> loaded = new ArrayList<>();
         File[] files = directory.listFiles((_, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
         if (files != null) {
-            java.util.Arrays.sort(files, java.util.Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
+            Arrays.sort(files, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
             for (File file : files) {
                 YamlSection root = YamlFiles.load(file);
                 if (!root.getBoolean("enabled", true)) {
@@ -38,7 +41,7 @@ public final class SourceRuleLoader {
                 }
                 for (String key : sources.getKeys(false)) {
                     Object raw = sources.get(key);
-                    if (raw instanceof java.util.Map<?, ?> map) {
+                    if (raw instanceof Map<?, ?> map) {
                         SourceRuleConfig rule = SourceRuleConfig.parse(Texts.normalizeId(key), map);
                         if (rule.enabled()) {
                             loaded.add(rule);

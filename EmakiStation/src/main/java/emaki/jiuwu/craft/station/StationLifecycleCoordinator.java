@@ -2,6 +2,9 @@ package emaki.jiuwu.craft.station;
 
 import java.util.List;
 
+import me.clip.placeholderapi.PlaceholderAPI;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -200,12 +203,12 @@ final class StationLifecycleCoordinator
      * @param text   the text to resolve
      * @return the resolved text
      */
-    private static String resolvePlaceholders(org.bukkit.entity.Player player, String text) {
+    private static String resolvePlaceholders(Player player, String text) {
         if (text == null || text.isEmpty()) {
             return "";
         }
-        if (org.bukkit.Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text);
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return PlaceholderAPI.setPlaceholders(player, text);
         }
         return text;
     }

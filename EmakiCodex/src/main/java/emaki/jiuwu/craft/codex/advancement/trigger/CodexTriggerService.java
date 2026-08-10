@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
@@ -98,7 +99,7 @@ public final class CodexTriggerService {
             return replaced;
         }
         try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, replaced));
+            return Texts.toStringSafe(PlaceholderAPI.setPlaceholders(player, replaced));
         } catch (Exception | NoClassDefFoundError _) {
             return replaced;
         }

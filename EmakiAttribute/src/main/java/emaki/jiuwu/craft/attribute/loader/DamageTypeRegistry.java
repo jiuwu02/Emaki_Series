@@ -131,7 +131,7 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
                 rebuildIndexes();
                 return;
             }
-            for (String id : java.util.List.copyOf(runtimeSources.keySet())) {
+            for (String id : List.copyOf(runtimeSources.keySet())) {
                 if (safeSource.equals(runtimeSources.get(id))) {
                     runtimeSources.remove(id);
                     runtimeDefinitions.remove(id);

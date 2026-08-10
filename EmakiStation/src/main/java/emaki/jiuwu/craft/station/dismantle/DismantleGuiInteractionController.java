@@ -1,5 +1,12 @@
 package emaki.jiuwu.craft.station.dismantle;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -118,7 +125,7 @@ public final class DismantleGuiInteractionController {
             redrawFn.run();
             return;
         }
-        java.util.List<DismantleOutput> outputs = dismantleService.roll(recipe);
+        List<DismantleOutput> outputs = dismantleService.roll(recipe);
         state.rolledOutputs(outputs);
         redrawFn.run();
     }
@@ -130,14 +137,14 @@ public final class DismantleGuiInteractionController {
      * @param redrawFn called after state mutation
      */
     private void claimOutputs(DismantleViewState state, Runnable redrawFn) {
-        java.util.List<DismantleOutput> outputs = state.rolledOutputs();
+        List<DismantleOutput> outputs = state.rolledOutputs();
         if (outputs.isEmpty()) {
             state.rolledOutputs(null);
             redrawFn.run();
             return;
         }
         // Convert DismantleOutput → PendingOutput for the delivery API.
-        java.util.List<PendingOutput> pending = new java.util.ArrayList<>();
+        List<PendingOutput> pending = new ArrayList<>();
         for (DismantleOutput output : outputs) {
             pending.add(new PendingOutput(output.source(), output.amount()));
         }
@@ -160,11 +167,11 @@ public final class DismantleGuiInteractionController {
      * @return {@code true} when the item was found and consumed
      */
     private boolean consumeInput(DismantleViewState state, DismantleRecipeDefinition recipe) {
-        org.bukkit.entity.Player player = state.viewer();
-        org.bukkit.inventory.PlayerInventory inv = player.getInventory();
+        Player player = state.viewer();
+        PlayerInventory inv = player.getInventory();
         ItemSourceRef target = recipe.inputSource();
         for (int i = 0; i < inv.getSize(); i++) {
-            org.bukkit.inventory.ItemStack item = inv.getItem(i);
+            ItemStack item = inv.getItem(i);
             if (item == null || item.getType().isAir()) {
                 continue;
             }

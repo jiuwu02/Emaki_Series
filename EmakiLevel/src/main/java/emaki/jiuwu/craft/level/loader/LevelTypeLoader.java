@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.level.loader;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
@@ -24,9 +27,9 @@ public final class LevelTypeLoader {
     public void load(AppConfig config) {
         File directory = plugin.getDataFolder().toPath().resolve("types").toFile();
         Map<String, LevelTypeConfig> loaded = new LinkedHashMap<>();
-        File[] files = directory.listFiles((_, name) -> name.toLowerCase(java.util.Locale.ROOT).endsWith(".yml"));
+        File[] files = directory.listFiles((_, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
         if (files != null) {
-            java.util.Arrays.sort(files, java.util.Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
+            Arrays.sort(files, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
             for (File file : files) {
                 YamlSection section = YamlFiles.load(file);
                 String fallbackId = file.getName().substring(0, file.getName().length() - 4);

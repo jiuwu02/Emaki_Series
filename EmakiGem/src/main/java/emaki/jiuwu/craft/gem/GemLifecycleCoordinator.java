@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.gem;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -398,7 +399,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
             return defaults;
         }
         String configuredMode = section.getString("default_mode", defaults.defaultMode().name());
-        GemGuiMode defaultMode = switch (configuredMode == null ? "" : configuredMode.toLowerCase(java.util.Locale.ROOT)) {
+        GemGuiMode defaultMode = switch (configuredMode == null ? "" : configuredMode.toLowerCase(Locale.ROOT)) {
             case "open", "open_socket", "socket_open" -> GemGuiMode.OPEN_SOCKET;
             default -> GemGuiMode.INLAY;
         };

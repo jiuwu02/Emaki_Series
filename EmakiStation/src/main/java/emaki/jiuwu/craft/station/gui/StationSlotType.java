@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.station.gui;
 
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Set;
 
@@ -163,7 +164,7 @@ public final class StationSlotType {
     }
 
     private static Set<String> union(Set<String> pageTypes) {
-        Set<String> combined = new java.util.LinkedHashSet<>(pageTypes);
+        Set<String> combined = new LinkedHashSet<>(pageTypes);
         combined.addAll(SHARED);
         return Set.copyOf(combined);
     }

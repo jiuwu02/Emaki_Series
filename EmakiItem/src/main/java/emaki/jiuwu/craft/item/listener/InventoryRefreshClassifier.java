@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.item.listener;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -162,10 +163,10 @@ public final class InventoryRefreshClassifier {
             scope = scope == null ? RefreshScope.SKIP : scope;
             dirtySlots = dirtySlots == null || dirtySlots.isEmpty()
                     ? Set.of()
-                    : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(dirtySlots));
+                    : Collections.unmodifiableSet(new LinkedHashSet<>(dirtySlots));
             fullReasons = fullReasons == null || fullReasons.isEmpty()
                     ? Set.of()
-                    : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(fullReasons));
+                    : Collections.unmodifiableSet(new LinkedHashSet<>(fullReasons));
         }
 
         public static Result skip() {

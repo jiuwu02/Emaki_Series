@@ -1,12 +1,17 @@
 package emaki.jiuwu.craft.level;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -143,7 +148,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     };
     private Runnable attributeRefreshAll = () -> {
     };
-    private java.util.function.Consumer<Player> attributeRefreshPlayer = player -> {
+    private Consumer<Player> attributeRefreshPlayer = player -> {
     };
 
     @Override
@@ -260,11 +265,11 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         levelService.config(appConfig);
         dataStore.ensureTypesForCached(typeRegistry.asMap());
         registerAttributeBridge();
-        for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
             playerDataListener.ensureSession(player);
         }
         topService.rebuildAsync().exceptionally(throwable -> {
-            getLogger().log(java.util.logging.Level.WARNING, "Failed to rebuild level leaderboard", throwable);
+            getLogger().log(Level.WARNING, "Failed to rebuild level leaderboard", throwable);
             return null;
         });
         levelService.syncAllOnline();
@@ -308,7 +313,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
      *
      * @param action what to publish
      */
-    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
@@ -396,7 +401,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         registerCommand(
                 "emakilevel",
                 "emakilevel command",
-                java.util.List.of("elv", "elevel"),
+                List.of("elv", "elevel"),
                 new PaperCommandAdapter("emakilevel", "emakilevel.use", command, command)
         );
     }
@@ -469,7 +474,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             attributeRefreshPlayer = bridge::resync;
             messages.info("console.attribute_bridge_ready");
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().log(java.util.logging.Level.WARNING,
+            getLogger().log(Level.WARNING,
                     "EmakiAttribute bridge registration failed: provider=EmakiAttribute,"
                             + " operation=register_attribute_bridge, cause=" + exception,
                     exception);
@@ -595,13 +600,13 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                 String permission,
-                org.bukkit.command.CommandExecutor executor,
-                org.bukkit.command.TabCompleter tabCompleter) {
+                CommandExecutor executor,
+                TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -614,10 +619,10 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

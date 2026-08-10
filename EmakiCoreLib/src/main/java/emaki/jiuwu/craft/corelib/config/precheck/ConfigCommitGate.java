@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.config.precheck;
 
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.bukkit.plugin.java.JavaPlugin;
@@ -79,7 +80,7 @@ public final class ConfigCommitGate {
             String moduleId,
             Supplier<T> currentReader,
             Supplier<T> candidateLoader,
-            java.util.function.Consumer<T> restorer) {
+            Consumer<T> restorer) {
         if (candidateLoader == null) {
             return new Result(false, moduleId, List.of("config commit gate received no candidate loader"));
         }

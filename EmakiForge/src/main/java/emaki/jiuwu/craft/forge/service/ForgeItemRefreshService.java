@@ -556,7 +556,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (allNameActions.isEmpty() && allLoreActions.isEmpty()) {
             return;
         }
-        java.util.Map<String, Object> variables = buildOperationVariables(plan);
+        Map<String, Object> variables = buildOperationVariables(plan);
 
         String operationId = "forge:" + recipe.id();
         Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
@@ -567,10 +567,10 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 variables);
     }
 
-    private java.util.Map<String, Object> buildOperationVariables(RefreshPlan plan) {
+    private Map<String, Object> buildOperationVariables(RefreshPlan plan) {
         double multiplier = plan == null ? 1D : plan.multiplier();
-        java.util.Map<String, Object> variables = new java.util.LinkedHashMap<>(snapshotBuilder.buildDisplayVariables(
-                plan == null ? java.util.List.of() : plan.materials(),
+        Map<String, Object> variables = new LinkedHashMap<>(snapshotBuilder.buildDisplayVariables(
+                plan == null ? List.of() : plan.materials(),
                 multiplier,
                 plugin.appConfig().defaultNumberFormat()
         ));

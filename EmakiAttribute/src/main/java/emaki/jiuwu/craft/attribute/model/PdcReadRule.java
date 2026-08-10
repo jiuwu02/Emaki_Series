@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
@@ -21,7 +22,7 @@ public record PdcReadRule(String sourceId,
     public PdcReadRule {
         sourceId = Texts.normalizeId(sourceId);
         conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
-        conditions = conditions == null ? List.of() : List.copyOf(conditions.stream().filter(java.util.Objects::nonNull).toList());
+        conditions = conditions == null ? List.of() : List.copyOf(conditions.stream().filter(Objects::nonNull).toList());
         schemaVersion = schemaVersion <= 0 ? CURRENT_SCHEMA_VERSION : schemaVersion;
     }
 

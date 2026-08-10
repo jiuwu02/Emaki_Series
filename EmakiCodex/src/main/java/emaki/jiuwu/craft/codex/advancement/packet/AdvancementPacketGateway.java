@@ -1,8 +1,10 @@
 package emaki.jiuwu.craft.codex.advancement.packet;
 
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.retrooper.packetevents.PacketEvents;
@@ -73,7 +75,7 @@ public final class AdvancementPacketGateway {
             return false;
         }
         try {
-            String namespace = plugin.getName().toLowerCase(java.util.Locale.ROOT);
+            String namespace = plugin.getName().toLowerCase(Locale.ROOT);
             AdvancementPacketCoordinateChannel listener =
                     new AdvancementPacketCoordinateChannel(registrar, namespace, plugin.getLogger());
             registeredListener = PacketEvents.getAPI().getEventManager().registerListener(listener);
@@ -138,7 +140,7 @@ public final class AdvancementPacketGateway {
 
 
 
-    public boolean resync(org.bukkit.entity.Player player) {
+    public boolean resync(Player player) {
         if (player == null || !isPacketEventsPresent()
                 || threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return false;

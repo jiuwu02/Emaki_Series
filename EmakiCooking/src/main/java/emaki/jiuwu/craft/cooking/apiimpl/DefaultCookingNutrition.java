@@ -4,6 +4,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -157,7 +158,7 @@ public final class DefaultCookingNutrition implements CookingNutrition {
 
     private EmakiResult<NutritionChange> applyChange(UUID playerId,
             String typeId,
-            java.util.function.Function<NutritionService, NutritionOperationResult> action) {
+            Function<NutritionService, NutritionOperationResult> action) {
         if (playerId == null) {
             return EmakiResult.invalidInput("cooking.input.player_id_missing");
         }

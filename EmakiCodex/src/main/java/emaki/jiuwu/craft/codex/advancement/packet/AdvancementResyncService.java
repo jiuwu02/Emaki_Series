@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -211,7 +212,7 @@ public final class AdvancementResyncService {
             }
         }
         if (bukkitIcon == null) {
-            bukkitIcon = new ItemStack(org.bukkit.Material.BOOK);
+            bukkitIcon = new ItemStack(Material.BOOK);
         }
         return SpigotConversionUtil.fromBukkitItemStack(bukkitIcon);
     }

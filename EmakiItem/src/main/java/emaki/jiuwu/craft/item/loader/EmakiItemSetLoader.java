@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
@@ -184,7 +185,7 @@ public final class EmakiItemSetLoader {
     }
 
     private List<String> thresholdSkills(YamlSection threshold, List<Map<?, ?>> effects) {
-        java.util.LinkedHashSet<String> result = new java.util.LinkedHashSet<>(normalizedList(threshold.get("es_skills")));
+        LinkedHashSet<String> result = new LinkedHashSet<>(normalizedList(threshold.get("es_skills")));
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;

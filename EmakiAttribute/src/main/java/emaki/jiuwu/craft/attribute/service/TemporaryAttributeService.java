@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -309,7 +310,7 @@ public final class TemporaryAttributeService implements AutoCloseable {
     }
 
     private String normalizeTag(String tag) {
-        return Texts.isBlank(tag) ? "" : tag.trim().toLowerCase(java.util.Locale.ROOT);
+        return Texts.isBlank(tag) ? "" : tag.trim().toLowerCase(Locale.ROOT);
     }
 
     private void cleanupExpiredSafely() {

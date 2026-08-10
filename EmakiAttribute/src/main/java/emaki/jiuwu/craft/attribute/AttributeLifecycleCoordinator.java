@@ -2,21 +2,27 @@ package emaki.jiuwu.craft.attribute;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -116,7 +122,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 new CombatDamageListener(plugin, attributeService, combatDebugHandler, executionDispatcher),
                 attributeService.perfectTakeoverCoordinator(),
                 new CombatDebugListener(attributeService),
-                new emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener(
+                new DamageIndicatorListener(
                         plugin::damageIndicatorService,
                         () -> plugin.configModel() == null ? null : plugin.configModel().damageIndicator()),
                 itemContributionGateRegistry,
@@ -162,7 +168,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         plugin.registerCommand(
                 "emakiattribute",
                 "emakiattribute command",
-                java.util.List.of("eattribute", "ea"),
+                List.of("eattribute", "ea"),
                 new PaperCommandAdapter("emakiattribute", "emakiattribute.use", plugin.command(), plugin.command())
         );
     }
@@ -402,7 +408,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         plugin.guiTemplateLoader().load();
     }
 
-    private java.util.function.BiConsumer<String, Exception> failureHandler(EmakiAttributePlugin plugin) {
+    private BiConsumer<String, Exception> failureHandler(EmakiAttributePlugin plugin) {
         return (stageName, exception) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
                 "stage", stageName,
                 "error", String.valueOf(exception.getMessage())
@@ -465,8 +471,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ));
     }
 
-    private void mergeBundledConfig(emaki.jiuwu.craft.corelib.api.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.api.yaml.YamlSection bundled) {
+    private void mergeBundledConfig(YamlSection runtime,
+            YamlSection bundled) {
         boolean changed = mergeDefaultProfile(runtime, bundled);
         if (mergeAllowedDamageCauses(runtime, bundled)) {
             changed = true;
@@ -476,8 +482,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-    private boolean mergeDefaultProfile(emaki.jiuwu.craft.corelib.api.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.api.yaml.YamlSection bundled) {
+    private boolean mergeDefaultProfile(YamlSection runtime,
+            YamlSection bundled) {
         if (runtime == null || bundled == null || runtime.contains("default_profile")) {
             return false;
         }
@@ -489,8 +495,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         return true;
     }
 
-    private boolean mergeAllowedDamageCauses(emaki.jiuwu.craft.corelib.api.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.api.yaml.YamlSection bundled) {
+    private boolean mergeAllowedDamageCauses(YamlSection runtime,
+            YamlSection bundled) {
         if (runtime == null || bundled == null) {
             return false;
         }
@@ -536,13 +542,13 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                 String permission,
-                org.bukkit.command.CommandExecutor executor,
-                org.bukkit.command.TabCompleter tabCompleter) {
+                CommandExecutor executor,
+                TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -555,10 +561,10 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

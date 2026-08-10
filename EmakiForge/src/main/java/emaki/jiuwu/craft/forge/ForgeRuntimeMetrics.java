@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.forge;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
@@ -111,7 +112,7 @@ public final class ForgeRuntimeMetrics {
                     Map.entry("gui_stale", guiStale),
                     Map.entry("execution_stale", executionStale),
                     Map.entry("settlement_failures", guiSettlementFailures),
-                    Map.entry("last_ms", String.format(java.util.Locale.ROOT, "%.3f", lastReloadNanos / 1_000_000D))
+                    Map.entry("last_ms", String.format(Locale.ROOT, "%.3f", lastReloadNanos / 1_000_000D))
             );
         }
     }

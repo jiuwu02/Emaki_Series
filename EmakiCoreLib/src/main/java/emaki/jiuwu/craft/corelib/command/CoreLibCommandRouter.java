@@ -3,7 +3,9 @@ package emaki.jiuwu.craft.corelib.command;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.bukkit.Bukkit;
@@ -42,7 +44,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
 
     public CoreLibCommandRouter(EmakiCoreLibPlugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
-        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
+        this.executionDispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
     }
 
     @Override
@@ -51,7 +53,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendHelp(sender, label);
             return true;
         }
-        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+        return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender, label);
                 yield true;
@@ -71,7 +73,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            String prefix = args[0].toLowerCase(java.util.Locale.ROOT);
+            String prefix = args[0].toLowerCase(Locale.ROOT);
             for (String subCommand : SUB_COMMANDS) {
                 if (subCommand.startsWith(prefix)) {
                     result.add(subCommand);
@@ -92,9 +94,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1])) {
             complete(args[2], LOOP_DEBUG_MODES, result);
         } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1]) && "player".equalsIgnoreCase(args[2])) {
-            String prefix = args[3].toLowerCase(java.util.Locale.ROOT);
+            String prefix = args[3].toLowerCase(Locale.ROOT);
             for (Player player : Bukkit.getOnlinePlayers()) {
-                if (player.getName().toLowerCase(java.util.Locale.ROOT).startsWith(prefix)) {
+                if (player.getName().toLowerCase(Locale.ROOT).startsWith(prefix)) {
                     result.add(player.getName());
                 }
             }
@@ -325,7 +327,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             sendLang(sender, "command.action_unavailable");
             return true;
         }
-        String mode = args.length >= 3 ? args[2].toLowerCase(java.util.Locale.ROOT) : "list";
+        String mode = args.length >= 3 ? args[2].toLowerCase(Locale.ROOT) : "list";
         switch (mode) {
             case "player" -> {
                 Player player = args.length >= 4 ? Bukkit.getPlayerExact(args[3]) : null;
@@ -362,7 +364,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
     }
 
     private boolean handleGlobalDebug(CommandSender sender, String[] args) {
-        String mode = args.length >= 3 ? args[2].toLowerCase(java.util.Locale.ROOT) : "status";
+        String mode = args.length >= 3 ? args[2].toLowerCase(Locale.ROOT) : "status";
         switch (mode) {
             case "on" -> {
                 plugin.setGlobalDebugEnabled(true);
@@ -414,7 +416,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
     }
 
     private void complete(String rawPrefix, List<String> options, List<String> result) {
-        String prefix = rawPrefix.toLowerCase(java.util.Locale.ROOT);
+        String prefix = rawPrefix.toLowerCase(Locale.ROOT);
         for (String option : options) {
             if (option.startsWith(prefix)) {
                 result.add(option);

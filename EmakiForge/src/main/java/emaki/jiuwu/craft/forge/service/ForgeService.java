@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.forge.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -41,7 +42,7 @@ public final class ForgeService {
     public record PreparedForge(EmakiItemAssemblyRequest request,
                                 QualitySettings.QualityTier rolledQualityTier,
                                 boolean forceQualityApplied,
-                                emaki.jiuwu.craft.forge.model.QualitySettings.QualityTier qualityTier,
+                                QualitySettings.QualityTier qualityTier,
                                 String quality,
                                 double multiplier,
                                 ItemStack previewItem) {
@@ -273,7 +274,7 @@ public final class ForgeService {
     public ValidationResult canForge(Player player, Recipe recipe, GuiItems guiItems) {
         if (!accepting.get() || !plugin.isRuntimeReady()) {
             return ValidationResult.fail("forge.error.runtime_unavailable", Map.of(
-                    "state", plugin.runtimeStatus().name().toLowerCase(java.util.Locale.ROOT)));
+                    "state", plugin.runtimeStatus().name().toLowerCase(Locale.ROOT)));
         }
         return validationService.canForge(player, recipe, guiItems);
     }
@@ -518,7 +519,7 @@ public final class ForgeService {
         ForgeResult result = new ForgeResult();
         result.setErrorKey("forge.error.runtime_unavailable");
         result.setReplacements(Map.of("reason", reason, "state",
-                plugin.runtimeStatus().name().toLowerCase(java.util.Locale.ROOT)));
+                plugin.runtimeStatus().name().toLowerCase(Locale.ROOT)));
         return result;
     }
 

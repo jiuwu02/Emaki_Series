@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.dialog;
 
 import java.util.Collection;
+import java.util.List;
 
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -27,7 +28,7 @@ public final class DialogApiBridge implements CoreLibDialogs {
 
     @Override
     public @NotNull Collection<String> dialogIds() {
-        return service == null ? java.util.List.of() : service.dialogIds();
+        return service == null ? List.of() : service.dialogIds();
     }
 
     @Override

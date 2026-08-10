@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -37,6 +38,8 @@ import emaki.jiuwu.craft.storage.service.StorageSortService;
 import emaki.jiuwu.craft.storage.service.StorageTextIndexer;
 import emaki.jiuwu.craft.storage.service.StorageTransactionService;
 import emaki.jiuwu.craft.storage.service.StorageUnlockService;
+import emaki.jiuwu.craft.storage.config.AutoPickupConfig;
+import emaki.jiuwu.craft.storage.config.InputModeConfig;
 
 /**
  * Assembles, reloads and tears down the module's runtime.
@@ -184,7 +187,7 @@ final class StorageLifecycleCoordinator
         if (configuration == null || configuration.getKeys(false).isEmpty()) {
             return AppConfig.defaults();
         }
-        java.util.function.Consumer<String> issues =
+        Consumer<String> issues =
                 issue -> plugin.getLogger().warning("[config] " + issue);
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
@@ -196,7 +199,7 @@ final class StorageLifecycleCoordinator
                 parseUnlock(configuration.getSection("unlock")),
                 parseDisplay(configuration.getSection("display")),
                 parseBehavior(configuration.getSection("behavior"), issues),
-                emaki.jiuwu.craft.storage.config.AutoPickupConfig.fromConfig(
+                AutoPickupConfig.fromConfig(
                         configuration.getSection("auto_pickup")),
                 parseSearch(configuration.getSection("search"), issues),
                 parsePersistence(configuration.getSection("persistence")),
@@ -258,7 +261,7 @@ final class StorageLifecycleCoordinator
     }
 
     private AppConfig.BehaviorConfig parseBehavior(YamlSection section,
-            java.util.function.Consumer<String> issues) {
+            Consumer<String> issues) {
         AppConfig.BehaviorConfig defaults = AppConfig.BehaviorConfig.defaults();
         if (section == null) {
             return defaults;
@@ -291,7 +294,7 @@ final class StorageLifecycleCoordinator
                         defaults.overflowOnWithdraw()),
                 withdrawAmounts,
                 withdrawPromptEnabled,
-                emaki.jiuwu.craft.storage.config.InputModeConfig.fromConfig(withdrawPrompt,
+                InputModeConfig.fromConfig(withdrawPrompt,
                         "emakistorage/withdraw_amount", AppConfig.WITHDRAW_INPUT_KEY, issues),
                 depositFilter,
                 bool(section, "allow_unique_items", defaults.allowUniqueItems()),
@@ -302,7 +305,7 @@ final class StorageLifecycleCoordinator
     }
 
     private AppConfig.SearchConfig parseSearch(YamlSection section,
-            java.util.function.Consumer<String> issues) {
+            Consumer<String> issues) {
         AppConfig.SearchConfig defaults = AppConfig.SearchConfig.defaults();
         if (section == null) {
             return defaults;
@@ -323,7 +326,7 @@ final class StorageLifecycleCoordinator
         return new AppConfig.SearchConfig(
                 bool(section, "enabled", defaults.enabled()),
                 parsedOperators,
-                emaki.jiuwu.craft.storage.config.InputModeConfig.fromConfig(input,
+                InputModeConfig.fromConfig(input,
                         "emakistorage/search", AppConfig.SEARCH_INPUT_KEY, issues),
                 Math.max(0L, timeout),
                 cancelKeywords == null || cancelKeywords.isEmpty()

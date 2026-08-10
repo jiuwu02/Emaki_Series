@@ -23,6 +23,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Lightable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 
 final class SteamerTickProcessor {
 
@@ -240,7 +241,7 @@ final class SteamerTickProcessor {
     }
 
     private SteamerState copyState(StationCoordinates coordinates, SteamerState state) {
-        return codec.readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
+        return codec.readState(new MapYamlSection(codec.serializeState(coordinates, state)));
     }
 
     boolean canStoreOutcomeInSlot(List<Map<String, Object>> outputs) {

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -249,8 +250,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         plugin.itemFactory().clearCache();
         plugin.setService().clearAllCachedState();
         if (plugin.messageService() != null && reloadAllowed(allowed)) {
-            plugin.messageService().info("console.items_loaded", java.util.Map.of("count", loadedItems));
-            plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", loadedSets));
+            plugin.messageService().info("console.items_loaded", Map.of("count", loadedItems));
+            plugin.messageService().info("console.sets_loaded", Map.of("count", loadedSets));
             plugin.getLogger().info("Loaded " + loadedAliases + " EmakiItem ID aliases.");
         }
     }
@@ -336,8 +337,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin.itemFactory().clearCache();
                 plugin.setService().clearAllCachedState();
                 if (plugin.messageService() != null && reloadAllowed(allowed)) {
-                    plugin.messageService().info("console.items_loaded", java.util.Map.of("count", plugin.itemLoader().all().size()));
-                    plugin.messageService().info("console.sets_loaded", java.util.Map.of("count", plugin.setLoader().all().size()));
+                    plugin.messageService().info("console.items_loaded", Map.of("count", plugin.itemLoader().all().size()));
+                    plugin.messageService().info("console.sets_loaded", Map.of("count", plugin.setLoader().all().size()));
                 }
                 if (reloadAllowed(allowed)) {
                     notifyProgress(progressListener, "Reload complete.");

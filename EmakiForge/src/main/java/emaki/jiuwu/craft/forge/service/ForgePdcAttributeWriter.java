@@ -1,8 +1,10 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
 
@@ -34,7 +36,7 @@ final class ForgePdcAttributeWriter {
         ForgeAttributeBridge gateway = plugin.pdcAttributeGateway();
         Map<String, Double> attributes = new LinkedHashMap<>();
         Map<String, String> meta = new LinkedHashMap<>();
-        java.util.List<String> skillIds = new java.util.ArrayList<>();
+        List<String> skillIds = new ArrayList<>();
         if (materials != null) {
             for (ForgeMaterialContribution contribution : materials) {
                 if (contribution == null || contribution.material() == null || contribution.amount() <= 0) {
@@ -74,10 +76,10 @@ final class ForgePdcAttributeWriter {
         if (plugin == null
                 || plugin.debugLogger() == null
                 || mutation == null
-                || !plugin.debugLogger().shouldLog("pdc", (java.util.UUID) null)) {
+                || !plugin.debugLogger().shouldLog("pdc", (UUID) null)) {
             return;
         }
-        plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+        plugin.debugLogger().log("pdc", (UUID) null, "pdc.skill_payload", Map.of(
                 "operation", mutation.operation(),
                 "item", itemStack == null ? "null" : itemStack.getType(),
                 "amount", itemStack == null ? 0 : itemStack.getAmount(),

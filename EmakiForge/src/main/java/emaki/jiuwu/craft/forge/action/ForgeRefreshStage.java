@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.forge.action;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -181,7 +182,7 @@ public final class ForgeRefreshStage implements CoreActionStage {
         } catch (TimeoutException exception) {
             return CoreActionOutcome.failure(CoreActionFailureKind.TIMEOUT,
                     "action.stage.forge.refresh_timeout");
-        } catch (CompletionException | java.util.concurrent.ExecutionException exception) {
+        } catch (CompletionException | ExecutionException exception) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.stage.forge.refresh_failed",
                     Map.of("error", String.valueOf(exception.getCause() == null

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.action.builtin.source;
 
 import java.util.List;
 
+import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
@@ -27,7 +28,7 @@ public final class OriginSource extends BaseSource {
     @Override
     public @NotNull CoreSourceResult select(@NotNull CoreStageContext context,
             @NotNull CoreResolvedArguments arguments) {
-        org.bukkit.Location origin;
+        Location origin;
         try {
             origin = context.origin();
         } catch (IllegalStateException exception) {

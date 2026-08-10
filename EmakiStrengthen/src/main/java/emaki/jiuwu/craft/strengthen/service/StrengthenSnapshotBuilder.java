@@ -76,7 +76,7 @@ public final class StrengthenSnapshotBuilder {
             return stats;
         }
         double decayFactor = Math.max(0D, 1D - fractureLevel * FRACTURE_PENALTY_RATE);
-        Map<String, Double> decayed = new java.util.LinkedHashMap<>();
+        Map<String, Double> decayed = new LinkedHashMap<>();
         for (Map.Entry<String, Double> entry : stats.entrySet()) {
             decayed.put(entry.getKey(), entry.getValue() * decayFactor);
         }

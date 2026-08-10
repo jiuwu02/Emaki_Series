@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
@@ -94,7 +95,7 @@ public record EmakiItemAssemblyRequest(ItemSourceRef baseSource,
         if (removedNamespaceIds == null || removedNamespaceIds.isEmpty()) {
             return List.of();
         }
-        Map<String, String> unique = new java.util.TreeMap<>();
+        Map<String, String> unique = new TreeMap<>();
         for (String namespaceId : removedNamespaceIds) {
             String normalized = normalizeNamespace(namespaceId);
             if (!normalized.isBlank()) {

@@ -13,6 +13,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -217,9 +219,9 @@ public final class YamlFiles {
         }
     }
 
-    public static java.util.List<String> listResourcePaths(JavaPlugin plugin, String resourceDirectory) {
+    public static List<String> listResourcePaths(JavaPlugin plugin, String resourceDirectory) {
         if (plugin == null || Texts.isBlank(resourceDirectory)) {
-            return java.util.List.of();
+            return List.of();
         }
         String normalizedDirectory = normalizeResourceDirectory(resourceDirectory);
         LinkedHashSet<String> resourcePaths = new LinkedHashSet<>();
@@ -237,11 +239,11 @@ public final class YamlFiles {
                 }
             }
         } catch (Exception _) {
-            return java.util.List.of();
+            return List.of();
         }
         ArrayList<String> ordered = new ArrayList<>(resourcePaths);
         ordered.sort(String::compareToIgnoreCase);
-        return java.util.List.copyOf(ordered);
+        return List.copyOf(ordered);
     }
 
     public static boolean ensureDirectory(Path path) throws IOException {
@@ -353,7 +355,7 @@ public final class YamlFiles {
         if (location == null || resourcePaths == null || Texts.isBlank(normalizedDirectory)) {
             return;
         }
-        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase(java.util.Locale.ROOT);
+        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase(Locale.ROOT);
         if ("file".equals(protocol)) {
             Path root = Path.of(location.toURI());
             scanFileTree(root, normalizedDirectory, resourcePaths);
@@ -368,14 +370,14 @@ public final class YamlFiles {
         if (location == null || resourcePaths == null || Texts.isBlank(normalizedDirectory)) {
             return;
         }
-        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase(java.util.Locale.ROOT);
+        String protocol = Texts.toStringSafe(location.getProtocol()).trim().toLowerCase(Locale.ROOT);
         if ("file".equals(protocol)) {
             Path root = Path.of(location.toURI());
             if (Files.isDirectory(root)) {
                 scanFileTree(root.resolve(normalizedDirectory), normalizedDirectory, resourcePaths);
                 return;
             }
-            if (root.toString().toLowerCase(java.util.Locale.ROOT).endsWith(".jar")) {
+            if (root.toString().toLowerCase(Locale.ROOT).endsWith(".jar")) {
                 scanJarFile(root, normalizedDirectory, resourcePaths);
             }
             return;
@@ -444,7 +446,7 @@ public final class YamlFiles {
         if (Texts.isBlank(path)) {
             return false;
         }
-        String lower = path.trim().toLowerCase(java.util.Locale.ROOT);
+        String lower = path.trim().toLowerCase(Locale.ROOT);
         return lower.endsWith(".yml") || lower.endsWith(".yaml");
     }
 

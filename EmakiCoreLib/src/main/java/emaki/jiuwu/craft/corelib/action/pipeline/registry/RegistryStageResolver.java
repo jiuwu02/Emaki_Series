@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.action.pipeline.registry;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +31,7 @@ public final class RegistryStageResolver implements StageResolver {
      * @param registry the live registry
      */
     public RegistryStageResolver(@NotNull StageRegistry registry) {
-        this.registry = java.util.Objects.requireNonNull(registry, "registry");
+        this.registry = Objects.requireNonNull(registry, "registry");
     }
 
     @Override

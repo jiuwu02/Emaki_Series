@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 
 final class ResourceManagementService {
 
@@ -270,7 +271,7 @@ final class ResourceManagementService {
             currentValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
         }
         currentValue = Math.max(0D, Math.min(currentValue, currentMax));
-        String sourceSignature = emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil.combine(
+        String sourceSignature = SignatureUtil.combine(
                 service.defaultProfileSignature(),
                 snapshot == null ? "" : snapshot.sourceSignature(),
                 resourceDefinition.id(),

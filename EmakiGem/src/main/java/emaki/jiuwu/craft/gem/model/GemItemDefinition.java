@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
@@ -183,9 +184,9 @@ public final class GemItemDefinition {
 
     private static List<SocketSlot> parseSlots(YamlSection section) {
         List<SocketSlot> slots = new ArrayList<>();
-        List<java.util.Map<?, ?>> mapList = section.getMapList("slots");
+        List<Map<?, ?>> mapList = section.getMapList("slots");
         if (!mapList.isEmpty()) {
-            for (java.util.Map<?, ?> map : mapList) {
+            for (Map<?, ?> map : mapList) {
                 SocketSlot slot = SocketSlot.fromConfig(map);
                 if (slot != null) {
                     slots.add(slot);

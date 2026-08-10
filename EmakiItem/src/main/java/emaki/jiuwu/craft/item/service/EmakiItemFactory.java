@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 
 public final class EmakiItemFactory {
 
@@ -68,7 +69,7 @@ public final class EmakiItemFactory {
             EmakiItemIdResolver idResolver,
             EmakiItemPdcWriter pdcWriter,
             ThreadOwnership threadOwnership,
-            emaki.jiuwu.craft.corelib.debug.DebugLogger debugLogger) {
+            DebugLogger debugLogger) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;

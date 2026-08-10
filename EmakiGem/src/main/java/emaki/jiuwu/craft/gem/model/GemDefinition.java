@@ -314,7 +314,7 @@ public final class GemDefinition {
             if (Texts.isBlank(costFormula)) {
                 return baseCost;
             }
-            return Math.max(0D, emaki.jiuwu.craft.corelib.expression.ExpressionEngine.evaluate(costFormula, evaluationContext));
+            return Math.max(0D, ExpressionEngine.evaluate(costFormula, evaluationContext));
         }
 
         public CurrencyCost resolve(Map<String, ?> variables) {

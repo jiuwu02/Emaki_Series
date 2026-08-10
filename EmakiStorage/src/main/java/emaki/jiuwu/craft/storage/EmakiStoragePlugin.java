@@ -1,6 +1,11 @@
 package emaki.jiuwu.craft.storage;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,10 +13,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -60,6 +68,10 @@ import emaki.jiuwu.craft.storage.service.StorageTextIndexer;
 import emaki.jiuwu.craft.storage.service.StorageTransactionService;
 import emaki.jiuwu.craft.storage.service.StorageUnlockService;
 import emaki.jiuwu.craft.storage.session.StorageSessionManager;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.storage.listener.StorageAutoPickupListener;
+import emaki.jiuwu.craft.storage.service.StorageAutoPickupService;
 
 /**
  * EmakiStorage runtime entry point.
@@ -90,7 +102,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private MessageService messageService;
-    private emaki.jiuwu.craft.corelib.bootstrap.BootstrapService bootstrapService;
+    private BootstrapService bootstrapService;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
     private GuiService guiService;
@@ -110,7 +122,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private StorageSessionManager sessionManager;
     private StoragePlayerListener playerListener;
-    private emaki.jiuwu.craft.storage.service.StorageAutoPickupService autoPickupService;
+    private StorageAutoPickupService autoPickupService;
     private StorageStageRegistrar stageRegistrar;
     private StoragePlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
@@ -261,7 +273,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
      *
      * @param action what to publish
      */
-    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
@@ -321,10 +333,10 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         getServer().getPluginManager().registerEvents(chatInputService, this);
         playerListener = new StoragePlayerListener(this);
         getServer().getPluginManager().registerEvents(playerListener, this);
-        autoPickupService = new emaki.jiuwu.craft.storage.service.StorageAutoPickupService(this);
+        autoPickupService = new StorageAutoPickupService(this);
         autoPickupService.configure();
         getServer().getPluginManager().registerEvents(
-                new emaki.jiuwu.craft.storage.listener.StorageAutoPickupListener(this), this);
+                new StorageAutoPickupListener(this), this);
     }
 
     private void registerPlaceholders() {
@@ -380,7 +392,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return languageLoader;
     }
 
-    public emaki.jiuwu.craft.corelib.bootstrap.BootstrapService bootstrapService() {
+    public BootstrapService bootstrapService() {
         return bootstrapService;
     }
 
@@ -413,7 +425,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     /** {@return 自动拾取服务，未启用时仍返回实例但不会转入任何物品} */
-    public emaki.jiuwu.craft.storage.service.StorageAutoPickupService autoPickupService() {
+    public StorageAutoPickupService autoPickupService() {
         return autoPickupService;
     }
 
@@ -534,7 +546,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             Map<String, Object> dump = new LinkedHashMap<>();
             dump.put("player_uuid", playerId.toString());
             dump.put("player_name", playerName);
-            dump.put("exported_at", java.time.LocalDateTime.now().toString());
+            dump.put("exported_at", LocalDateTime.now().toString());
             dump.put("used_slots", snapshot.capacity().usedSlots());
             dump.put("total_slots", snapshot.capacity().effectiveSlots());
             dump.put("base_slots", snapshot.capacity().baseSlots());
@@ -556,12 +568,12 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             dump.put("entries", entries);
 
             String fileName = "export-" + playerId + ".yml";
-            java.nio.file.Path target = dataPath("exports", fileName);
+            Path target = dataPath("exports", fileName);
             try {
-                java.nio.file.Files.createDirectories(target.getParent());
-                emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.save(target.toFile(), dump);
+                Files.createDirectories(target.getParent());
+                YamlFiles.save(target.toFile(), dump);
                 return "exports/" + fileName;
-            } catch (java.io.IOException failure) {
+            } catch (IOException failure) {
                 getLogger().warning("[storage] Failed to export storage for " + playerId
                         + ": " + failure.getMessage());
                 return null;
@@ -573,13 +585,13 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                 String permission,
-                org.bukkit.command.CommandExecutor executor,
-                org.bukkit.command.TabCompleter tabCompleter) {
+                CommandExecutor executor,
+                TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -592,7 +604,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
             List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null,
                     rootLabel, completionArgs);

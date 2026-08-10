@@ -8,6 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -186,7 +187,7 @@ public final class SkillUpgradeService {
                     definition.conditions(),
                     text -> PlaceholderRenderer.renderPapi(player, text, null, "skill_upgrade"),
                     true,
-                    ConditionContext.of(player, null, java.util.Map.of(
+                    ConditionContext.of(player, null, Map.of(
                             "skillId", definition.id(),
                             "currentLevel", currentLevel,
                             "targetLevel", targetLevel,
@@ -211,7 +212,7 @@ public final class SkillUpgradeService {
 
         SkillPreUpgradeEvent preUpgradeEvent = new SkillPreUpgradeEvent(
                 player, definition.id(), currentLevel, targetLevel, maxLevel, successRate);
-        org.bukkit.Bukkit.getPluginManager().callEvent(preUpgradeEvent);
+        Bukkit.getPluginManager().callEvent(preUpgradeEvent);
         if (preUpgradeEvent.isCancelled()) {
             return UpgradeResult.fail("upgrade.cancelled", placeholders, preview);
         }
@@ -279,7 +280,7 @@ public final class SkillUpgradeService {
             boolean success,
             boolean downgraded) {
 
-        org.bukkit.Bukkit.getPluginManager().callEvent(new SkillUpgradeEvent(
+        Bukkit.getPluginManager().callEvent(new SkillUpgradeEvent(
                 player, definition.id(), fromLevel, toLevel, successRate, success, downgraded));
     }
 

@@ -2,13 +2,17 @@ package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.bukkit.Location;
@@ -36,7 +40,7 @@ public final class StageDispatcher implements AutoCloseable {
     private final boolean inline;
     private final Map<Plugin, Set<TaskHandle>> handlesByOwner = new ConcurrentHashMap<>();
     private final Map<Plugin, Set<CancellationSignal>> signalsByOwner = new ConcurrentHashMap<>();
-    private final java.util.function.Consumer<String> dispatchObserver;
+    private final Consumer<String> dispatchObserver;
 
     /**
      * Creates the production dispatcher.
@@ -46,13 +50,13 @@ public final class StageDispatcher implements AutoCloseable {
      */
     public StageDispatcher(@NotNull ExecutionDispatcher dispatcher,
             @NotNull CapabilityProbe capabilities) {
-        this.dispatcher = java.util.Objects.requireNonNull(dispatcher, "dispatcher");
-        this.capabilities = java.util.Objects.requireNonNull(capabilities, "capabilities");
+        this.dispatcher = Objects.requireNonNull(dispatcher, "dispatcher");
+        this.capabilities = Objects.requireNonNull(capabilities, "capabilities");
         this.inline = false;
         this.dispatchObserver = null;
     }
 
-    private StageDispatcher(java.util.function.Consumer<String> dispatchObserver) {
+    private StageDispatcher(Consumer<String> dispatchObserver) {
         this.dispatcher = null;
         this.capabilities = null;
         this.inline = true;
@@ -80,8 +84,8 @@ public final class StageDispatcher implements AutoCloseable {
      * @param observer receives the task name of every dispatch
      * @return the observing dispatcher
      */
-    public static @NotNull StageDispatcher counting(@NotNull java.util.function.Consumer<String> observer) {
-        return new StageDispatcher(java.util.Objects.requireNonNull(observer, "observer"));
+    public static @NotNull StageDispatcher counting(@NotNull Consumer<String> observer) {
+        return new StageDispatcher(Objects.requireNonNull(observer, "observer"));
     }
 
     /**
@@ -104,10 +108,10 @@ public final class StageDispatcher implements AutoCloseable {
             long timeoutMillis,
             @NotNull CancellationSignal cancellation,
             @NotNull Supplier<T> task) {
-        java.util.Objects.requireNonNull(owner, "owner");
-        java.util.Objects.requireNonNull(target, "target");
-        java.util.Objects.requireNonNull(cancellation, "cancellation");
-        java.util.Objects.requireNonNull(task, "task");
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(target, "target");
+        Objects.requireNonNull(cancellation, "cancellation");
+        Objects.requireNonNull(task, "task");
 
         if (!owner.isEnabled()) {
             cancellation.cancel();
@@ -272,8 +276,8 @@ public final class StageDispatcher implements AutoCloseable {
 
     private static Throwable unwrap(Throwable throwable) {
         Throwable current = throwable;
-        while (current != null && (current instanceof java.util.concurrent.CompletionException
-                || current instanceof java.util.concurrent.ExecutionException)) {
+        while (current != null && (current instanceof CompletionException
+                || current instanceof ExecutionException)) {
             current = current.getCause();
         }
         return current;

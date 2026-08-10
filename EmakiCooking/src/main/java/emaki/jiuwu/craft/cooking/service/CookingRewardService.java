@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -470,7 +471,7 @@ public final class CookingRewardService {
     }
 
     private String stableUnitId(String operationId, int sequence) {
-        return operationId + ":reward:" + String.format(java.util.Locale.ROOT, "%04d", Math.max(0, sequence));
+        return operationId + ":reward:" + String.format(Locale.ROOT, "%04d", Math.max(0, sequence));
     }
 
     private Map<String, Object> targetPayload(Player player, Location location) {

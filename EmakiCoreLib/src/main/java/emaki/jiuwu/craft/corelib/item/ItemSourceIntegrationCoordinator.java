@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
@@ -230,7 +231,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
 
     private void closeInternal(boolean unregisterBukkitListeners) {
         if (unregisterBukkitListeners) {
-            org.bukkit.event.HandlerList.unregisterAll(this);
+            HandlerList.unregisterAll(this);
         }
         for (ItemSourceRegistration registration : List.copyOf(registrations.values())) {
             registration.close();

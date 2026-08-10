@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.pdc;
 
+import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -45,13 +46,13 @@ public record PdcPartition(String namespace, String path) {
     }
 
     private static String normalizeNamespace(String value) {
-        String result = Objects.requireNonNullElse(value, "").trim().toLowerCase(java.util.Locale.ROOT);
+        String result = Objects.requireNonNullElse(value, "").trim().toLowerCase(Locale.ROOT);
         result = NAMESPACE_PATTERN.matcher(result).replaceAll("_");
         return result.isBlank() ? "emaki" : result;
     }
 
     private static String normalizePath(String value) {
-        String result = Objects.requireNonNullElse(value, "").trim().toLowerCase(java.util.Locale.ROOT);
+        String result = Objects.requireNonNullElse(value, "").trim().toLowerCase(Locale.ROOT);
         result = KEY_PATTERN.matcher(result).replaceAll("_");
         while (result.contains("..")) {
             result = result.replace("..", ".");

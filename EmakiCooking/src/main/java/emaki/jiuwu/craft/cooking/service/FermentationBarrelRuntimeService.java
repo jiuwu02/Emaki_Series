@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.cooking.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -43,6 +45,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class FermentationBarrelRuntimeService implements Listener {
 
@@ -146,7 +149,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         };
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
@@ -424,7 +427,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         long total = Math.max(1L, state.finishAtMs() - state.startedAtMs());
         long done = Math.max(0L, now - state.startedAtMs());
-        return String.format(java.util.Locale.ROOT, "%.2f%%", Math.min(100D, (double) done * 100D / (double) total));
+        return String.format(Locale.ROOT, "%.2f%%", Math.min(100D, (double) done * 100D / (double) total));
     }
 
     private void tick() {
@@ -517,11 +520,11 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.fermentationOutcomeForStage(recipe, stage);
-        List<CookingInputIngredient> inputs = new java.util.ArrayList<>();
+        List<CookingInputIngredient> inputs = new ArrayList<>();
         for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
             inputs.add(new CookingInputIngredient(entry.getValue(), state.slotAmounts().getOrDefault(entry.getKey(), 1)));
         }
-        String stageName = stage.name().toLowerCase(java.util.Locale.ROOT);
+        String stageName = stage.name().toLowerCase(Locale.ROOT);
         boolean accepted = completionCoordinator.submit(new CookingCompletionRequest(
                 "ferment:" + state.startedAtMs() + ":" + stageName,
                 StationType.FERMENTATION_BARREL,

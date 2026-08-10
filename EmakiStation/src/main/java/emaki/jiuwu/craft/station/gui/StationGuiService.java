@@ -5,9 +5,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
@@ -49,6 +51,9 @@ import emaki.jiuwu.craft.station.queue.QueueUnlockService;
 import emaki.jiuwu.craft.station.queue.StationCraftService;
 import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.station.api.model.QueueEntryState;
+import emaki.jiuwu.craft.station.material.OutputDelivery;
 
 /**
  * Opens the three station pages and routes their clicks.
@@ -81,7 +86,7 @@ public final class StationGuiService {
     private final StationQueueUnlockService purchaseService;
     private final StationCraftService craftService;
     private final EconomyManager economyManager;
-    private final java.util.function.BiFunction<Player, String, String> placeholders;
+    private final BiFunction<Player, String, String> placeholders;
     private final StationCatalogRenderer catalogRenderer;
     private final StationPreviewRenderer previewRenderer;
     private final StationQueueRenderer queueRenderer;
@@ -129,7 +134,7 @@ public final class StationGuiService {
             StationQueueUnlockService purchaseService,
             StationCraftService craftService,
             EconomyManager economyManager,
-            java.util.function.BiFunction<Player, String, String> placeholders,
+            BiFunction<Player, String, String> placeholders,
             ConfiguredGuiSupport guiSupport,
             DismantleService dismantleService,
             Supplier<DismantleStationRegistry> dismantleRegistrySupplier) {
@@ -159,7 +164,7 @@ public final class StationGuiService {
         this.dismantleRenderer = new DismantleGuiRenderer(itemSourceService,
                 () -> guiService.configuredItemService(), guiSupport);
         this.dismantleController = new DismantleGuiInteractionController(dismantleService,
-                new emaki.jiuwu.craft.station.material.OutputDelivery(itemSourceService, storageChannel),
+                new OutputDelivery(itemSourceService, storageChannel),
                 itemSourceService);
     }
 
@@ -309,7 +314,7 @@ public final class StationGuiService {
          * @param slot the resolved slot
          * @return the stack to place, or {@code null} for the layout's own definition
          */
-        org.bukkit.inventory.ItemStack render(GuiTemplate.ResolvedSlot slot);
+        ItemStack render(GuiTemplate.ResolvedSlot slot);
     }
 
     /**
@@ -336,11 +341,11 @@ public final class StationGuiService {
         }
         // Find the first item in the player's inventory that matches a dismantle recipe.
         DismantleRecipeDefinition recipe = null;
-        for (org.bukkit.inventory.ItemStack item : player.getInventory().getStorageContents()) {
+        for (ItemStack item : player.getInventory().getStorageContents()) {
             if (item == null || item.getType().isAir()) {
                 continue;
             }
-            emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef ref = itemSourceService.identifyItem(item);
+            ItemSourceRef ref = itemSourceService.identifyItem(item);
             if (ref == null) {
                 continue;
             }
@@ -804,7 +809,7 @@ public final class StationGuiService {
                 return;
             }
             if (queue.entries().get(index).state()
-                    == emaki.jiuwu.craft.station.api.model.QueueEntryState.PENDING_CLAIM) {
+                    == QueueEntryState.PENDING_CLAIM) {
                 claimAll();
                 return;
             }

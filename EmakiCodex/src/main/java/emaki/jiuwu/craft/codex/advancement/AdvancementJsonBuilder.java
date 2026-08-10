@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.codex.advancement;
 
+import java.util.Locale;
+
 import org.bukkit.inventory.ItemStack;
 
 import com.google.gson.JsonArray;
@@ -86,7 +88,7 @@ public final class AdvancementJsonBuilder {
         display.add("icon", buildIcon(spec.icon()));
         display.add("title", textComponent(spec.title()));
         display.add("description", textComponent(spec.description()));
-        display.addProperty("frame", spec.frame().name().toLowerCase(java.util.Locale.ROOT));
+        display.addProperty("frame", spec.frame().name().toLowerCase(Locale.ROOT));
         display.addProperty("show_toast", spec.showToast());
         display.addProperty("announce_to_chat", spec.announce());
         display.addProperty("hidden", spec.hidden());

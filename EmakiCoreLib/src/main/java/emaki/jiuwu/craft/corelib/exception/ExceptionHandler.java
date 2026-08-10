@@ -1,8 +1,10 @@
 package emaki.jiuwu.craft.corelib.exception;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import org.bukkit.plugin.Plugin;
 
@@ -57,7 +59,7 @@ public final class ExceptionHandler {
         if (messages == null) {
             return;
         }
-        String messageKey = "error." + exception.errorCode().toLowerCase(java.util.Locale.ROOT).replace("_", ".");
+        String messageKey = "error." + exception.errorCode().toLowerCase(Locale.ROOT).replace("_", ".");
         String userMessage = messages.message(messageKey, toPlaceholderMap(exception.context()));
         if (Texts.isBlank(userMessage) || userMessage.equals(messageKey)) {
             userMessage = messages.message("error.generic", toPlaceholderMap(exception.context()));
@@ -69,7 +71,7 @@ public final class ExceptionHandler {
 
     private Map<String, String> toPlaceholderMap(Map<String, Object> context) {
         return context.entrySet().stream()
-                .collect(java.util.stream.Collectors.toMap(
+                .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         e -> String.valueOf(e.getValue())
                 ));

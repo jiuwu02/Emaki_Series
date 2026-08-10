@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.skills.script;
 
+import java.util.Locale;
+
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public enum SkillScriptPhase {
@@ -9,7 +11,7 @@ public enum SkillScriptPhase {
     FAIL;
 
     public String configKey() {
-        return name().toLowerCase(java.util.Locale.ROOT);
+        return name().toLowerCase(Locale.ROOT);
     }
 
     public static SkillScriptPhase fromString(String value) {

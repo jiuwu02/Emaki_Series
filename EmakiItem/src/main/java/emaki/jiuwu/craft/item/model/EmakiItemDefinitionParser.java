@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.item.model;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -484,7 +485,7 @@ public final class EmakiItemDefinitionParser {
     }
 
     private List<String> parseSkills(YamlSection root, List<Map<?, ?>> effects) {
-        java.util.LinkedHashSet<String> result = new java.util.LinkedHashSet<>(normalizedList(root.get("es_skills")));
+        LinkedHashSet<String> result = new LinkedHashSet<>(normalizedList(root.get("es_skills")));
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;

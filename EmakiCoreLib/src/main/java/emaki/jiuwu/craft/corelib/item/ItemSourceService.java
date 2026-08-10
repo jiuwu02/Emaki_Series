@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.bukkit.Material;
@@ -411,8 +413,8 @@ public final class ItemSourceService {
         }
 
         @Override
-        public java.util.Set<String> shorthandPrefixes() {
-            return java.util.Set.of("minecraft-", "mc-", "v-");
+        public Set<String> shorthandPrefixes() {
+            return Set.of("minecraft-", "mc-", "v-");
         }
 
         @Override
@@ -436,7 +438,7 @@ public final class ItemSourceService {
                 return null;
             }
             return ItemSourceRef.orNull(ItemSourceKind.VANILLA,
-                    itemStack.getType().name().toLowerCase(java.util.Locale.ROOT));
+                    itemStack.getType().name().toLowerCase(Locale.ROOT));
         }
 
         @Override

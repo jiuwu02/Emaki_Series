@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.gem.service;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -150,7 +151,7 @@ public final class GemStateService {
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
         pdcAttributeWriter.copyOtherSources(itemStack, rebuilt);
         pdcAttributeWriter.clear(rebuilt);
-        pdcAttributeWriter.applySkills(rebuilt, java.util.List.of());
+        pdcAttributeWriter.applySkills(rebuilt, List.of());
         return rebuilt;
     }
 

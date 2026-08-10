@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
@@ -44,6 +46,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class ChoppingBoardRuntimeService {
 
@@ -104,12 +107,12 @@ public final class ChoppingBoardRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> replace(
+            public CompletionStage<Void> replace(
                     StationCoordinates coordinates,
                     Map<String, Object> committedState) {
                 ChoppingBoardState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
-                    return java.util.concurrent.CompletableFuture.failedFuture(
+                    return CompletableFuture.failedFuture(
                             new IllegalArgumentException("Invalid committed chopping-board state"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
@@ -121,7 +124,7 @@ public final class ChoppingBoardRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+            public CompletionStage<Void> delete(StationCoordinates coordinates) {
                 ChoppingBoardState state = readState(stateStore.load(coordinates));
                 return stateStore.deleteAsync(coordinates)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -139,7 +142,7 @@ public final class ChoppingBoardRuntimeService {
         stateStore.forEachLoadedState(StationType.CHOPPING_BOARD, this::restoreStoredState);
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
@@ -744,7 +747,7 @@ public final class ChoppingBoardRuntimeService {
         return root;
     }
 
-    private ChoppingBoardState readState(emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    private ChoppingBoardState readState(YamlSection section) {
         if (section == null || !StationType.CHOPPING_BOARD.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
             return null;
         }

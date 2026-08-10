@@ -977,7 +977,7 @@ final class DamageCalculationService {
         if (damageType == null || (allowCritical && calculateTargetDefense)) {
             return damageType;
         }
-        List<emaki.jiuwu.craft.attribute.model.DamageStageDefinition> filteredStages = new ArrayList<>();
+        List<DamageStageDefinition> filteredStages = new ArrayList<>();
         for (var stage : damageType.stages()) {
             if (stage == null) {
                 continue;
@@ -1202,7 +1202,7 @@ final class DamageCalculationService {
         };
     }
 
-    private double sumAttributes(AttributeSnapshot snapshot, Map<String, ?> context, java.util.List<String> ids) {
+    private double sumAttributes(AttributeSnapshot snapshot, Map<String, ?> context, List<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return 0D;
         }

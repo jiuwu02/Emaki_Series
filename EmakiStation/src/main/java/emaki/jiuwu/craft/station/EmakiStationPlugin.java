@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -35,6 +36,18 @@ import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.listener.StationPlayerListener;
 import emaki.jiuwu.craft.station.queue.QueueService;
 import emaki.jiuwu.craft.station.queue.StationCraftService;
+import emaki.jiuwu.craft.station.api.EmakiStationApi;
+import emaki.jiuwu.craft.station.apiimpl.DefaultStationBridge;
+import emaki.jiuwu.craft.station.config.QueueCostConfig;
+import emaki.jiuwu.craft.station.config.QueueCostLoader;
+import emaki.jiuwu.craft.station.definition.StationLoader;
+import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
+import emaki.jiuwu.craft.station.dismantle.DismantleService;
+import emaki.jiuwu.craft.station.dismantle.DismantleStationLoader;
+import emaki.jiuwu.craft.station.material.StationCapabilities;
+import emaki.jiuwu.craft.station.material.StorageChannel;
+import emaki.jiuwu.craft.station.queue.QueueUnlockService;
+import emaki.jiuwu.craft.station.recipe.RecipeLoader;
 
 /**
  * EmakiStation's entry point.
@@ -67,8 +80,8 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
             new AtomicReference<>(StationRegistry.empty());
     private final AtomicReference<DismantleStationRegistry> dismantleRegistry =
             new AtomicReference<>(DismantleStationRegistry.empty());
-    private final AtomicReference<emaki.jiuwu.craft.station.config.QueueCostConfig> queueCosts =
-            new AtomicReference<>(emaki.jiuwu.craft.station.config.QueueCostConfig.empty());
+    private final AtomicReference<QueueCostConfig> queueCosts =
+            new AtomicReference<>(QueueCostConfig.empty());
     private final AtomicBoolean shutdownStarted = new AtomicBoolean();
     private final AtomicBoolean apiInstalled = new AtomicBoolean();
 
@@ -188,12 +201,12 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         components.dismantleStationLoader().load();
         components.dismantleRecipeLoader().load();
         components.dismantleService().reload(
-                java.util.List.copyOf(components.dismantleRecipeLoader().all().values()));
+                List.copyOf(components.dismantleRecipeLoader().all().values()));
         dismantleRegistry.set(DismantleStationRegistry.build(
                 components.dismantleStationLoader().all().values()));
         // Re-read on every reload, and report an absent file this time: bootstrap has run by now, so a missing
         // price file is a real omission rather than a first-launch ordering artefact.
-        queueCosts.set(emaki.jiuwu.craft.station.config.QueueCostLoader.load(
+        queueCosts.set(QueueCostLoader.load(
                 dataPath(appConfig().purchaseSettings().costFile()).toFile(), getLogger(), true));
         StationRegistry resolved = StationRegistry.resolve(components.stationLoader().all(),
                 components.recipeLoader().all());
@@ -236,7 +249,7 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
      *
      * @param action what to publish
      */
-    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
@@ -265,12 +278,12 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     /** {@return the currently active queue price table} */
-    public emaki.jiuwu.craft.station.config.QueueCostConfig queueCosts() {
+    public QueueCostConfig queueCosts() {
         return queueCosts.get();
     }
 
     /** {@return the purchased-slot cache, or {@code null} before enable completes} */
-    public emaki.jiuwu.craft.station.queue.QueueUnlockService queueUnlockService() {
+    public QueueUnlockService queueUnlockService() {
         return components == null ? null : components.unlockService();
     }
 
@@ -320,39 +333,39 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     /** {@return the station loader, or {@code null} before enable completes} */
-    public emaki.jiuwu.craft.station.definition.StationLoader stationLoader() {
+    public StationLoader stationLoader() {
         return components == null ? null : components.stationLoader();
     }
 
     /** {@return the recipe loader, or {@code null} before enable completes} */
-    public emaki.jiuwu.craft.station.recipe.RecipeLoader recipeLoader() {
+    public RecipeLoader recipeLoader() {
         return components == null ? null : components.recipeLoader();
     }
 
     /** {@return the dismantle station loader, or {@code null} before enable completes} */
-    public emaki.jiuwu.craft.station.dismantle.DismantleStationLoader dismantleStationLoader() {
+    public DismantleStationLoader dismantleStationLoader() {
         return components == null ? null : components.dismantleStationLoader();
     }
 
     /** {@return the dismantle recipe loader, or {@code null} before enable completes} */
-    public emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader dismantleRecipeLoader() {
+    public DismantleRecipeLoader dismantleRecipeLoader() {
         return components == null ? null : components.dismantleRecipeLoader();
     }
 
     /** {@return the dismantle service, or {@code null} before enable completes} */
-    public emaki.jiuwu.craft.station.dismantle.DismantleService dismantleService() {
+    public DismantleService dismantleService() {
         return components == null ? null : components.dismantleService();
     }
 
     /** {@return the warehouse channel, or {@code null} before enable completes} */
-    public emaki.jiuwu.craft.station.material.StorageChannel storageChannel() {
+    public StorageChannel storageChannel() {
         return components == null ? null : components.storageChannel();
     }
 
     /** {@return the capability probe result, or an empty set before enable completes} */
-    public emaki.jiuwu.craft.station.material.StationCapabilities capabilities() {
+    public StationCapabilities capabilities() {
         return components == null
-                ? emaki.jiuwu.craft.station.material.StationCapabilities.none()
+                ? StationCapabilities.none()
                 : components.capabilities();
     }
 
@@ -410,14 +423,14 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void installPublicApi() {
         if (apiInstalled.compareAndSet(false, true)) {
-            emaki.jiuwu.craft.station.api.EmakiStationApi.install(
-                    new emaki.jiuwu.craft.station.apiimpl.DefaultStationBridge(this));
+            EmakiStationApi.install(
+                    new DefaultStationBridge(this));
         }
     }
 
     private void uninstallPublicApi() {
         if (apiInstalled.compareAndSet(true, false)) {
-            emaki.jiuwu.craft.station.apiimpl.DefaultStationBridge.uninstallActive();
+            DefaultStationBridge.uninstallActive();
         }
     }
 }

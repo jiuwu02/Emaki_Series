@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.condition;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
@@ -78,7 +79,7 @@ public record ConditionGroup(String conditionType,
     static List<ConditionNode> parseNodes(Object raw) {
         return ConfigNodes.asObjectList(raw).stream()
                 .map(ConditionNode::fromConfig)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .toList();
     }
 

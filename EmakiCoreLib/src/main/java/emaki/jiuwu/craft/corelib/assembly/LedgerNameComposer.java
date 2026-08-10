@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -101,7 +102,7 @@ final class LedgerNameComposer {
                 case "regex_replace" -> state.applyRegexReplace(
                         record.regexPattern(),
                         value,
-                        java.util.Map.of()
+                        Map.of()
                 );
                 default -> {
                 }

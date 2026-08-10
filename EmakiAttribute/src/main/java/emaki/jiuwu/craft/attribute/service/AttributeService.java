@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.LivingEntity;
@@ -276,7 +277,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         temporaryAttributeService.close();
     }
 
-    public void cleanupEntityState(java.util.UUID entityId) {
+    public void cleanupEntityState(UUID entityId) {
         stateRepository.cleanupEntity(entityId);
         attackBatchInvulnerabilityGate.reset(entityId);
     }

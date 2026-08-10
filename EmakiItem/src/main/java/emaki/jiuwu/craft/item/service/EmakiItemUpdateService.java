@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -35,6 +36,7 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 import emaki.jiuwu.craft.item.model.RefreshFullReason;
 import emaki.jiuwu.craft.item.model.RefreshScope;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 
 public final class EmakiItemUpdateService {
 
@@ -71,7 +73,7 @@ public final class EmakiItemUpdateService {
             EmakiItemIdentifier identifier,
             PdcAttributeGatewayAdapter attributeGateway,
             EmakiItemAssemblyService assemblyService,
-            emaki.jiuwu.craft.corelib.debug.DebugLogger debugLogger) {
+            DebugLogger debugLogger) {
         this.itemLoader = itemLoader;
         this.idResolver = idResolver;
         this.itemFactory = itemFactory;
@@ -228,7 +230,7 @@ public final class EmakiItemUpdateService {
                 slots.add(slot);
             }
         } else {
-            dirtySlots.stream().filter(java.util.Objects::nonNull).forEach(slots::add);
+            dirtySlots.stream().filter(Objects::nonNull).forEach(slots::add);
         }
         EmakiItemLoader.Snapshot definitions = itemLoader.snapshot();
         int scanned = 0;

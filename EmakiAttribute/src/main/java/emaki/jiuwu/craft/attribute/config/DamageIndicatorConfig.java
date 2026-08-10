@@ -1,10 +1,12 @@
 package emaki.jiuwu.craft.attribute.config;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.event.entity.EntityDamageEvent;
 
@@ -123,7 +125,7 @@ public record DamageIndicatorConfig(boolean enabled,
         if (raw == null || raw.isEmpty()) {
             return fallback;
         }
-        java.util.Set<String> result = new java.util.LinkedHashSet<>();
+        Set<String> result = new LinkedHashSet<>();
         for (String entry : raw) {
             if (entry != null && !entry.isBlank()) {
                 result.add(entry.trim().toUpperCase(Locale.ROOT));
@@ -344,7 +346,7 @@ public record DamageIndicatorConfig(boolean enabled,
 
         /** {@return 本次取用的值；区间为单点时直接返回该点} */
         public double resolve() {
-            return min == max ? min : java.util.concurrent.ThreadLocalRandom.current().nextDouble(min, max);
+            return min == max ? min : ThreadLocalRandom.current().nextDouble(min, max);
         }
     }
 }

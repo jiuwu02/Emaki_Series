@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
+import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
@@ -84,7 +85,7 @@ final class AttributeRegistryService {
                 continue;
             }
             String targetId = Texts.normalizeId(definition.targetId());
-            if (definition.targetType() == emaki.jiuwu.craft.attribute.model.AttributeTargetType.RESOURCE && !targetId.isBlank()) {
+            if (definition.targetType() == AttributeTargetType.RESOURCE && !targetId.isBlank()) {
                 resourceBuckets.computeIfAbsent(targetId, key -> new ArrayList<>()).add(definition);
                 if (definition.valueKind() == AttributeValueKind.REGEN) {
                     resourceRegenBuckets.computeIfAbsent(targetId, key -> new ArrayList<>()).add(definition);
@@ -99,7 +100,7 @@ final class AttributeRegistryService {
             if (Texts.isNotBlank(definition.mmoItemsStatId())) {
                 mmoItemsDefinitions.add(definition);
             }
-            if (definition.targetType() == emaki.jiuwu.craft.attribute.model.AttributeTargetType.GENERIC) {
+            if (definition.targetType() == AttributeTargetType.GENERIC) {
                 if ("speed".equals(targetId) || "movement_speed".equals(targetId)) {
                     speedDefinitions.add(definition);
                 }

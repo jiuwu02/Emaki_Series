@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking.service;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -448,7 +449,7 @@ public final class CookingCompletionJournalStore {
     private static void moveReplacing(Path source, Path target) throws IOException {
         try {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (java.nio.file.AtomicMoveNotSupportedException _) {
+        } catch (AtomicMoveNotSupportedException _) {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }

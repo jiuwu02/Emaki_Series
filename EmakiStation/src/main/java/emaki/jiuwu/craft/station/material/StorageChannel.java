@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.station.recipe.MaterialRequirement;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
 import emaki.jiuwu.craft.storage.api.EmakiStorageApi;
 import emaki.jiuwu.craft.storage.api.model.ReservationHandle;
+import emaki.jiuwu.craft.storage.api.model.StorageAmount;
 import emaki.jiuwu.craft.storage.api.model.StorageBatchOp;
 import emaki.jiuwu.craft.storage.api.model.StorageBatchRequest;
 import emaki.jiuwu.craft.storage.api.model.StorageBatchResult;
@@ -458,7 +459,7 @@ public final class StorageChannel {
             return Map.of();
         }
         Map<ItemSourceRef, Long> accepted = new LinkedHashMap<>();
-        List<emaki.jiuwu.craft.storage.api.model.StorageAmount> amounts = batch.applied();
+        List<StorageAmount> amounts = batch.applied();
         for (int index = 0; index < order.size() && index < amounts.size(); index++) {
             accepted.put(order.get(index), Math.max(0L, amounts.get(index).applied()));
         }

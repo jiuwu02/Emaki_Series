@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.codex.advancement.trigger;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -81,7 +82,7 @@ public final class AdvancementTriggerRegistry implements Listener, AutoCloseable
                 }
             }
         }
-        return java.util.Collections.unmodifiableSet(result);
+        return Collections.unmodifiableSet(result);
     }
 
     public synchronized void unregisterOwner(Plugin owner) {

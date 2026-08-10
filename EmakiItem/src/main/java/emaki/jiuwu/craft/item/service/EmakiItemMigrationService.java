@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -370,19 +371,19 @@ public final class EmakiItemMigrationService {
 
     private ReplaceResult replaceToken(String content, String oldToken, String newToken) {
         Pattern pattern = Pattern.compile("(?i)(?<![a-z0-9_.:-])" + Pattern.quote(oldToken) + "(?![a-z0-9_.:-])");
-        java.util.regex.Matcher matcher = pattern.matcher(content);
-        String replaced = matcher.replaceAll(java.util.regex.Matcher.quoteReplacement(newToken));
+        Matcher matcher = pattern.matcher(content);
+        String replaced = matcher.replaceAll(Matcher.quoteReplacement(newToken));
         return new ReplaceResult(replaced, countMatches(matcher));
     }
 
     private ReplaceResult replaceYamlIdLine(String content, String oldId, String newId) {
         Pattern pattern = Pattern.compile("(?m)^(\\s*id\\s*:\\s*)([\\\"']?)" + Pattern.quote(oldId) + "\\2(\\s*)$");
-        java.util.regex.Matcher matcher = pattern.matcher(content);
-        String replaced = matcher.replaceAll("$1$2" + java.util.regex.Matcher.quoteReplacement(newId) + "$2$3");
+        Matcher matcher = pattern.matcher(content);
+        String replaced = matcher.replaceAll("$1$2" + Matcher.quoteReplacement(newId) + "$2$3");
         return new ReplaceResult(replaced, countMatches(matcher));
     }
 
-    private int countMatches(java.util.regex.Matcher matcher) {
+    private int countMatches(Matcher matcher) {
         matcher.reset();
         int count = 0;
         while (matcher.find()) {

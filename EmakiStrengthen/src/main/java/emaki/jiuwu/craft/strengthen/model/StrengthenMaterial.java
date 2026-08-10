@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.strengthen.model;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -114,7 +115,7 @@ public final class StrengthenMaterial {
 
     private static List<String> parseStringList(Object raw) {
         if (raw instanceof Iterable<?> iterable) {
-            java.util.ArrayList<String> values = new java.util.ArrayList<>();
+            ArrayList<String> values = new ArrayList<>();
             for (Object entry : iterable) {
                 values.add(Texts.toStringSafe(entry));
             }

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.level.service;
 
 import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
@@ -39,7 +40,7 @@ public final class LevelMessageService implements LogMessages {
     @Override
     public String message(String key, Map<String, ?> replacements) {
         String raw = resolveText(key, key);
-        Map<String, Object> merged = new java.util.LinkedHashMap<>();
+        Map<String, Object> merged = new LinkedHashMap<>();
         merged.put("prefix", prefix());
         if (replacements != null) {
             merged.putAll(replacements);

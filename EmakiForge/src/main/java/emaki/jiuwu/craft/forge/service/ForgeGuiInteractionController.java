@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Predicate;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -265,7 +266,7 @@ final class ForgeGuiInteractionController {
             return;
         }
         ForgeStartEvent startEvent = new ForgeStartEvent(state.player(), finalRecipe.id(), firstCraft, finalRecipe.successRate());
-        org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
+        Bukkit.getPluginManager().callEvent(startEvent);
         if (startEvent.isCancelled()) {
             debug(state.player(), "forge.gui.confirm.rejected_start_event_cancelled", replacements(
                     "recipe", finalRecipe.id()));
@@ -491,7 +492,7 @@ final class ForgeGuiInteractionController {
         if (player == null || recipe == null || threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return;
         }
-        org.bukkit.Bukkit.getPluginManager().callEvent(new ForgeCompletedEvent(
+        Bukkit.getPluginManager().callEvent(new ForgeCompletedEvent(
                 player,
                 recipe.id(),
                 success,

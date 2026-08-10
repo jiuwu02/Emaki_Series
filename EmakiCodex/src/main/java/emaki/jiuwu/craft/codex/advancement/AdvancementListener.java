@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.codex.advancement;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -36,7 +37,7 @@ public final class AdvancementListener implements Listener {
         if (definition == null) {
             return;
         }
-        org.bukkit.Bukkit.getPluginManager().callEvent(
+        Bukkit.getPluginManager().callEvent(
                 new AdvancementCompletedEvent(event.getPlayer(), definition.id(), key.toString()));
         List<String> lines = definition.completeActions();
         if (lines.isEmpty()) {

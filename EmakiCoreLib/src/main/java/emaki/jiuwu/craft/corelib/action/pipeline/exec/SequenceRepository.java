@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
+import java.util.List;
+import java.util.Set;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,18 +36,18 @@ public interface SequenceRepository extends SequenceCatalog {
             }
 
             @Override
-            public @NotNull java.util.Set<String> requiredParameters(@Nullable String name) {
-                return java.util.Set.of();
+            public @NotNull Set<String> requiredParameters(@Nullable String name) {
+                return Set.of();
             }
 
             @Override
-            public @NotNull java.util.Set<String> calls(@Nullable String name) {
-                return java.util.Set.of();
+            public @NotNull Set<String> calls(@Nullable String name) {
+                return Set.of();
             }
 
             @Override
-            public @NotNull java.util.List<String> names() {
-                return java.util.List.of();
+            public @NotNull List<String> names() {
+                return List.of();
             }
         };
     }

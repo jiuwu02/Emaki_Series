@@ -66,7 +66,7 @@ public final class EaBridge {
         return providerMode == null ? "" : providerMode;
     }
 
-    public double readResourceCurrent(org.bukkit.entity.Player player, String resourceId) {
+    public double readResourceCurrent(Player player, String resourceId) {
         SkillsAttributeBridge resolved = resolve();
         if (!resolved.available()) {
             return -1D;
@@ -82,7 +82,7 @@ public final class EaBridge {
         }
     }
 
-    public double readResourceMax(org.bukkit.entity.Player player, String resourceId) {
+    public double readResourceMax(Player player, String resourceId) {
         SkillsAttributeBridge resolved = resolve();
         if (!resolved.available()) {
             return -1D;
@@ -98,7 +98,7 @@ public final class EaBridge {
         }
     }
 
-    public boolean consumeResource(org.bukkit.entity.Player player, String resourceId, double amount) {
+    public boolean consumeResource(Player player, String resourceId, double amount) {
         SkillsAttributeBridge resolved = resolve();
         if (!resolved.available()) {
             return false;
@@ -114,7 +114,7 @@ public final class EaBridge {
         }
     }
 
-    public double readAttributeValue(org.bukkit.entity.Player player, String attributeId) {
+    public double readAttributeValue(Player player, String attributeId) {
         SkillsAttributeBridge resolved = resolve();
         if (!resolved.available()) {
             return 0D;

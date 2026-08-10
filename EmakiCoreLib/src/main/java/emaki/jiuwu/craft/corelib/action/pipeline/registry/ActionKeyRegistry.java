@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.action.pipeline.registry;
 
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
@@ -51,7 +52,7 @@ public final class ActionKeyRegistry {
      * @return the declaration, or {@code null} when the name is unknown
      */
     public @Nullable Declaration find(@Nullable String name) {
-        return name == null ? null : declarations.get(name.trim().toLowerCase(java.util.Locale.ROOT));
+        return name == null ? null : declarations.get(name.trim().toLowerCase(Locale.ROOT));
     }
 
     /** {@return every recorded declaration, keyed by key name} */

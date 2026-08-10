@@ -11,6 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -174,7 +175,7 @@ public final class GemInlayService {
                 gemDefinition.id(), instance.level(), successChance);
 
         if (threadOwnership.isEntityOwned(actor)) {
-            org.bukkit.Bukkit.getPluginManager().callEvent(inlayEvent);
+            Bukkit.getPluginManager().callEvent(inlayEvent);
             if (inlayEvent.isCancelled()) {
                 return new InlayResult(Result.failure("gem.operation.cancelled", placeholders), equipment, operationId);
             }
@@ -314,7 +315,7 @@ public final class GemInlayService {
         if (threadOwnership.isEntityOwned(actor)) {
             GemExtractEvent extractEvent = new GemExtractEvent(operationId, actor, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
-            org.bukkit.Bukkit.getPluginManager().callEvent(extractEvent);
+            Bukkit.getPluginManager().callEvent(extractEvent);
             if (extractEvent.isCancelled()) {
                 return new ExtractDirectResult(
                         GemExtractService.Result.failure("gem.operation.cancelled", Map.of()), equipment, null,
@@ -403,7 +404,7 @@ public final class GemInlayService {
             String gemId,
             int gemLevel,
             String reasonKey) {
-        fireCompletedEvent(actor, () -> org.bukkit.Bukkit.getPluginManager().callEvent(
+        fireCompletedEvent(actor, () -> Bukkit.getPluginManager().callEvent(
                 new GemInlayCompletedEvent(operationId, actor, successful, finalEquipment, inputConsumed,
                         slotIndex, gemId, gemLevel, reasonKey == null ? "" : reasonKey)));
     }
@@ -416,7 +417,7 @@ public final class GemInlayService {
             String gemId,
             int gemLevel,
             String returnMode) {
-        fireCompletedEvent(actor, () -> org.bukkit.Bukkit.getPluginManager().callEvent(
+        fireCompletedEvent(actor, () -> Bukkit.getPluginManager().callEvent(
                 new GemExtractCompletedEvent(operationId, actor, finalEquipment, returnedGem,
                         slotIndex, gemId, gemLevel, returnMode)));
     }
@@ -462,8 +463,8 @@ public final class GemInlayService {
         GemDefinition.CostConfig costConfig = gemDefinition == null ? null : gemDefinition.inlayCost();
         return economyService.charge(
                 actor,
-                costConfig == null ? java.util.List.of() : costConfig.currencies(),
-                costConfig == null ? java.util.List.of() : costConfig.materials(),
+                costConfig == null ? List.of() : costConfig.currencies(),
+                costConfig == null ? List.of() : costConfig.materials(),
                 costVariables(gemDefinition, instance.level(), instance.level()),
                 providedMaterials
         );

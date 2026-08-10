@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item.apiimpl;
 
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -168,7 +169,7 @@ public final class DefaultItemRepair implements ItemRepair {
                 reasonKey, currencies);
     }
 
-    private <T> EmakiResult<T> failure(String reasonKey, java.util.Map<String, Object> placeholders) {
+    private <T> EmakiResult<T> failure(String reasonKey, Map<String, Object> placeholders) {
         if ("repair.error.cancelled".equals(reasonKey)) {
             return EmakiResult.failure(FailureKind.CANCELLED, "item.repair.cancelled", placeholders);
         }

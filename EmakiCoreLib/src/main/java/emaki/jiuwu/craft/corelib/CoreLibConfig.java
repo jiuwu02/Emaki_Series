@@ -2,8 +2,11 @@ package emaki.jiuwu.craft.corelib;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record CoreLibConfig(
@@ -74,7 +77,7 @@ public record CoreLibConfig(
         public VanillaLanguageConfig {
             locale = locale == null || locale.isBlank()
                     ? "zh_cn"
-                    : locale.trim().toLowerCase(java.util.Locale.ROOT);
+                    : locale.trim().toLowerCase(Locale.ROOT);
         }
 
         public static VanillaLanguageConfig defaults() {
@@ -107,7 +110,7 @@ public record CoreLibConfig(
     public record GuiConfig(String backend, int clickIntervalMs) {
 
         public GuiConfig {
-            backend = backend == null ? "bukkit" : backend.trim().toLowerCase(java.util.Locale.ROOT);
+            backend = backend == null ? "bukkit" : backend.trim().toLowerCase(Locale.ROOT);
             clickIntervalMs = Math.max(0, clickIntervalMs);
         }
 
@@ -155,7 +158,7 @@ public record CoreLibConfig(
         public DisplayConfig {
             backend = backend == null || backend.isBlank()
                     ? "auto"
-                    : backend.trim().toLowerCase(java.util.Locale.ROOT);
+                    : backend.trim().toLowerCase(Locale.ROOT);
             viewDistanceBlocks = Math.max(1, viewDistanceBlocks);
             refreshIntervalTicks = Math.max(1, refreshIntervalTicks);
         }
@@ -292,8 +295,8 @@ public record CoreLibConfig(
         }
 
         /** {@return these limits as the compiler's own type} */
-        public emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits toLimits() {
-            return new emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits(
+        public PipelineLimits toLimits() {
+            return new PipelineLimits(
                     maxRepeatTimes, maxSequenceDepth, maxBranchDepth);
         }
     }
@@ -333,7 +336,7 @@ public record CoreLibConfig(
         }
 
         private static long parseTicks(String raw, long fallback) {
-            long parsed = emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers.parseTicks(raw);
+            long parsed = ValueParsers.parseTicks(raw);
             return parsed < 0L ? fallback : parsed;
         }
     }

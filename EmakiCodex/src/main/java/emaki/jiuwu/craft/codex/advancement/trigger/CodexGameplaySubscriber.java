@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
 
@@ -69,7 +70,7 @@ public final class CodexGameplaySubscriber {
     }
 
     private <T extends GameplayEvent> void subscribe(EmakiEventBus eventBus,
-            Class<T> type, java.util.function.Consumer<T> handler) {
+            Class<T> type, Consumer<T> handler) {
         subscriptions.add(eventBus.subscribe(plugin, type, handler));
     }
 

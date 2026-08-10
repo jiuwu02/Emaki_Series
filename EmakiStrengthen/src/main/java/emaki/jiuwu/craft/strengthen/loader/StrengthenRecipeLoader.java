@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.strengthen.loader;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,7 +53,7 @@ public final class StrengthenRecipeLoader {
             if (files == null || files.length == 0) {
                 return;
             }
-            java.util.Arrays.sort(files, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
+            Arrays.sort(files, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
             for (File file : files) {
                 loadFile(file);
             }

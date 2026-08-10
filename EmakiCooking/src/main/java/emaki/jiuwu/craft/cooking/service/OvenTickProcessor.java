@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
@@ -18,6 +19,7 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 
 final class OvenTickProcessor {
 
@@ -123,7 +125,7 @@ final class OvenTickProcessor {
                 "recipe_id", recipe.id(),
                 "station_type", StationType.OVEN.folderName(),
                 "slot_index", slot,
-                "stage", stage.name().toLowerCase(java.util.Locale.ROOT)
+                "stage", stage.name().toLowerCase(Locale.ROOT)
         );
 
         OvenState committed = copyState(coordinates, state);
@@ -162,7 +164,7 @@ final class OvenTickProcessor {
 
         boolean emptyCommit = committed.isCompletelyEmpty();
         boolean accepted = completionCoordinator != null && completionCoordinator.submit(new CookingCompletionRequest(
-                "oven:" + slot + ":" + state.progressAt(slot) + ":" + stage.name().toLowerCase(java.util.Locale.ROOT),
+                "oven:" + slot + ":" + state.progressAt(slot) + ":" + stage.name().toLowerCase(Locale.ROOT),
                 StationType.OVEN,
                 coordinates,
                 codec.serializeState(coordinates, state),
@@ -185,7 +187,7 @@ final class OvenTickProcessor {
     }
 
     private OvenState copyState(StationCoordinates coordinates, OvenState state) {
-        return codec.readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
+        return codec.readState(new MapYamlSection(codec.serializeState(coordinates, state)));
     }
 
     private OvenBakeStage determineStage(OvenState state, int slot, RecipeDocument recipe, int requiredSeconds) {

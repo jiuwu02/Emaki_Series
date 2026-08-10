@@ -78,11 +78,11 @@ public final class ExpressionEngine {
     }
 
     public static Map<String, Double> resolveVariables(Map<String, Object> rawValues, Map<String, ?> context) {
-        Map<String, Double> resolved = new java.util.LinkedHashMap<>();
+        Map<String, Double> resolved = new LinkedHashMap<>();
         if (rawValues == null || rawValues.isEmpty()) {
             return resolved;
         }
-        Map<String, Object> evalContext = new java.util.LinkedHashMap<>();
+        Map<String, Object> evalContext = new LinkedHashMap<>();
         if (context != null) {
             evalContext.putAll(context);
         }
@@ -103,11 +103,11 @@ public final class ExpressionEngine {
     }
 
     public static Map<String, Object> resolveMixedVariables(Map<String, Object> rawValues, Map<String, ?> context) {
-        Map<String, Object> resolved = new java.util.LinkedHashMap<>();
+        Map<String, Object> resolved = new LinkedHashMap<>();
         if (rawValues == null || rawValues.isEmpty()) {
             return resolved;
         }
-        Map<String, Object> evalContext = new java.util.LinkedHashMap<>();
+        Map<String, Object> evalContext = new LinkedHashMap<>();
         if (context != null) {
             evalContext.putAll(context);
         }

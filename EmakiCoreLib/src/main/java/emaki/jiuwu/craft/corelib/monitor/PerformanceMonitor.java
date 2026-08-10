@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,7 +93,7 @@ public final class PerformanceMonitor {
     }
 
     private String normalizeOperation(String operation) {
-        return operation == null || operation.isBlank() ? "unknown" : operation.trim().toLowerCase(java.util.Locale.ROOT);
+        return operation == null || operation.isBlank() ? "unknown" : operation.trim().toLowerCase(Locale.ROOT);
     }
 
     private void evictOldestMetric() {

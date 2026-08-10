@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -141,7 +142,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                     + " issues=" + issueCount()
                     + " warnings=" + warningCount()
                     + " hash=" + fileSummaryHash
-                    + " duration_ms=" + String.format(java.util.Locale.ROOT, "%.3f", durationNanos / 1_000_000D);
+                    + " duration_ms=" + String.format(Locale.ROOT, "%.3f", durationNanos / 1_000_000D);
         }
     }
 

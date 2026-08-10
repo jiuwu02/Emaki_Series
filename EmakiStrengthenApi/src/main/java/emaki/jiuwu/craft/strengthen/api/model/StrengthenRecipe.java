@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.strengthen.api.model;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -466,7 +467,7 @@ public final class StrengthenRecipe {
                 result.add(entry.getValue());
             }
         }
-        result.sort(java.util.Comparator.comparingInt(StarStage::targetStar));
+        result.sort(Comparator.comparingInt(StarStage::targetStar));
         return List.copyOf(result);
     }
 
@@ -643,7 +644,7 @@ public final class StrengthenRecipe {
         List<StarStage> stages = branchTree == null
                 ? reachedStages(currentStar)
                 : branchTree.collectStages(branchPath, currentStar).values().stream()
-                        .sorted(java.util.Comparator.comparingInt(StarStage::targetStar))
+                        .sorted(Comparator.comparingInt(StarStage::targetStar))
                         .toList();
         for (StarStage stage : stages) {
             Object actions = name ? stage.nameActions() : stage.loreActions();

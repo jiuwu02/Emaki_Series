@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.skills.model;
 
+import java.util.Locale;
+
 public enum ResourceCostType {
 
     EA_RESOURCE,
@@ -12,7 +14,7 @@ public enum ResourceCostType {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return switch (value.strip().toLowerCase(java.util.Locale.ROOT).replace('_', '-')) {
+        return switch (value.strip().toLowerCase(Locale.ROOT).replace('_', '-')) {
             case "ea-resource" -> EA_RESOURCE;
             case "attribute-check", "ea-attribute-check" -> ATTRIBUTE_CHECK;
             case "local-resource" -> LOCAL_RESOURCE;

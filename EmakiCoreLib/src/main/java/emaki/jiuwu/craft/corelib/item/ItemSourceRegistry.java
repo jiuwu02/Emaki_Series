@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
@@ -179,7 +180,7 @@ public final class ItemSourceRegistry {
     }
 
     private static List<String> normalizedPrefixes(ItemSourceProvider provider) {
-        java.util.Set<String> declared;
+        Set<String> declared;
         try {
             declared = provider.shorthandPrefixes();
         } catch (LinkageError | RuntimeException failure) {

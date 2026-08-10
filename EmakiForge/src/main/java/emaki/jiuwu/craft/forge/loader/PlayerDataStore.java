@@ -16,6 +16,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
@@ -382,7 +384,7 @@ public final class PlayerDataStore {
         return mutate(uuid, generation, data -> data.resetGuaranteeCounter(key));
     }
 
-    private boolean mutate(UUID uuid, long expectedGeneration, java.util.function.Consumer<PlayerData> mutation) {
+    private boolean mutate(UUID uuid, long expectedGeneration, Consumer<PlayerData> mutation) {
         if (uuid == null) {
             return false;
         }
@@ -627,7 +629,7 @@ public final class PlayerDataStore {
     }
 
     private void logLoadFailure(String uuid, Throwable throwable) {
-        plugin.getLogger().log(java.util.logging.Level.WARNING,
+        plugin.getLogger().log(Level.WARNING,
                 "[PlayerDataStore] Failed to load player data for " + uuid
                         + "; this session will remain read-only to protect the existing file",
                 throwable);

@@ -1,10 +1,15 @@
 package emaki.jiuwu.craft.codex;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -36,6 +41,9 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.codex.apiimpl.DefaultEmakiCodexApi;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 
 
 
@@ -63,8 +71,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private MessageService messageService;
-    private emaki.jiuwu.craft.corelib.loader.LanguageLoader languageLoader;
-    private emaki.jiuwu.craft.corelib.bootstrap.BootstrapService bootstrapService;
+    private LanguageLoader languageLoader;
+    private BootstrapService bootstrapService;
     private AdvancementPageLoader advancementPageLoader;
     private AdvancementPlatform advancementPlatform;
     private AdvancementJsonBuilder advancementJsonBuilder;
@@ -87,7 +95,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private volatile boolean contentReady;
 
     private final EmakiCodexApi.Bridge apiBridge =
-            new emaki.jiuwu.craft.codex.apiimpl.DefaultEmakiCodexApi(this);
+            new DefaultEmakiCodexApi(this);
 
     public EmakiCodexPlugin() {
         super(AppConfig::defaults);
@@ -174,7 +182,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
      *
      * @param action what to publish
      */
-    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
@@ -221,7 +229,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerCommand(
                 ROOT_COMMAND,
                 "codex command",
-                java.util.List.of("ecodex"),
+                List.of("ecodex"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakicodex.use", commandRouter, commandRouter)
         );
     }
@@ -259,11 +267,11 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return messageService;
     }
 
-    public emaki.jiuwu.craft.corelib.loader.LanguageLoader languageLoader() {
+    public LanguageLoader languageLoader() {
         return languageLoader;
     }
 
-    public emaki.jiuwu.craft.corelib.bootstrap.BootstrapService bootstrapService() {
+    public BootstrapService bootstrapService() {
         return bootstrapService;
     }
 
@@ -317,13 +325,13 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                 String permission,
-                org.bukkit.command.CommandExecutor executor,
-                org.bukkit.command.TabCompleter tabCompleter) {
+                CommandExecutor executor,
+                TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -336,10 +344,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

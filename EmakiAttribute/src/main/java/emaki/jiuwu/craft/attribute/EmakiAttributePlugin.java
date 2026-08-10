@@ -12,6 +12,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.attribute.service.DamageIndicatorService;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 
 import emaki.jiuwu.craft.attribute.action.AttributeStageRegistrar;
@@ -88,7 +89,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry;
     private LanguageLoader languageLoader;
     private MessageService messageService;
-    private emaki.jiuwu.craft.attribute.service.DamageIndicatorService damageIndicatorService;
+    private DamageIndicatorService damageIndicatorService;
     private EmakiAttributeApi.Bridge emakiAttributeBridge;
     private ParentAttributeService parentAttributeService;
     private GuiTemplateLoader guiTemplateLoader;
@@ -311,10 +312,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         languageLoader = components.languageLoader();
         messageService = components.messageService();
         // 飘字服务用 Supplier 取依赖，这样 reload 后自动读到新配置，无需重建实例。
-        damageIndicatorService = new emaki.jiuwu.craft.attribute.service.DamageIndicatorService(
+        damageIndicatorService = new DamageIndicatorService(
                 () -> {
-                    emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin coreLib =
-                            getPlugin(emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin.class);
+                    EmakiCoreLibPlugin coreLib =
+                            getPlugin(EmakiCoreLibPlugin.class);
                     return coreLib == null ? null : coreLib.textDisplayService();
                 },
                 () -> configModel() == null ? null : configModel().damageIndicator(),
@@ -415,7 +416,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     /** {@return 伤害飘字服务，未启用飘字时仍返回实例但不会生成任何实体} */
-    public emaki.jiuwu.craft.attribute.service.DamageIndicatorService damageIndicatorService() {
+    public DamageIndicatorService damageIndicatorService() {
         return damageIndicatorService;
     }
 

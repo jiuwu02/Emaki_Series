@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.cooking.api.model.CookingStationType;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
+import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 
 /** Runtime-backed cooking operations. */
 public final class DefaultCookingOperations implements CookingOperations {
@@ -95,7 +96,7 @@ public final class DefaultCookingOperations implements CookingOperations {
         }
         if (matches.size() > 1) {
             return EmakiResult.failure(
-                    emaki.jiuwu.craft.corelib.api.contract.FailureKind.REJECTED,
+                    FailureKind.REJECTED,
                     "cooking.recipe_id_ambiguous",
                     Map.of("recipe_id", Texts.lower(recipeId), "matches", matches.size()));
         }

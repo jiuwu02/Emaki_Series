@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -100,7 +101,7 @@ public final class GemExtractService {
         if (threadOwnership.isEntityOwned(target)) {
             GemExtractEvent extractEvent = new GemExtractEvent(operationId, target, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
-            org.bukkit.Bukkit.getPluginManager().callEvent(extractEvent);
+            Bukkit.getPluginManager().callEvent(extractEvent);
             if (extractEvent.isCancelled()) {
                 return Result.failure("gem.operation.cancelled", Map.of());
             }
@@ -153,7 +154,7 @@ public final class GemExtractService {
         if (target == null || event == null || plugin == null || !plugin.isEnabled()) {
             return;
         }
-        Runnable eventCall = () -> org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        Runnable eventCall = () -> Bukkit.getPluginManager().callEvent(event);
         if (threadOwnership.isEntityOwned(target)) {
             eventCall.run();
             return;

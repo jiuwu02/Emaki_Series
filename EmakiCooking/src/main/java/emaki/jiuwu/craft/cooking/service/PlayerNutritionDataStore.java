@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.cooking.service;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -379,7 +380,7 @@ public final class PlayerNutritionDataStore {
             try {
                 YamlFiles.save(file, serialized);
                 return CompletableFuture.completedFuture(true);
-            } catch (java.io.IOException exception) {
+            } catch (IOException exception) {
                 return CompletableFuture.failedFuture(exception);
             }
         }

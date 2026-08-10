@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
 import emaki.jiuwu.craft.attribute.api.model.PdcAttributePayload;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 
 /**
@@ -135,6 +136,6 @@ public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
     }
 
     private String normalize(String sourceId) {
-        return emaki.jiuwu.craft.corelib.api.text.Texts.normalizeId(sourceId);
+        return Texts.normalizeId(sourceId);
     }
 }

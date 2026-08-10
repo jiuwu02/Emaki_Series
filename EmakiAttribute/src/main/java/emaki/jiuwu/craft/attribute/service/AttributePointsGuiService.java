@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Material;
@@ -238,7 +239,7 @@ public final class AttributePointsGuiService {
                     if (result == ParentAttributeService.AllocateResult.SUCCESS) {
                         plugin.messageService().send(player, "command.points.add_success", Map.of("player", player.getName(), "attribute", definition.displayName(), "amount", amount));
                     } else {
-                        plugin.messageService().send(player, "command.points.add_failed", Map.of("reason", result.name().toLowerCase(java.util.Locale.ROOT)));
+                        plugin.messageService().send(player, "command.points.add_failed", Map.of("reason", result.name().toLowerCase(Locale.ROOT)));
                     }
                     refresh(session);
                 }
@@ -247,7 +248,7 @@ public final class AttributePointsGuiService {
                     if (result == ParentAttributeService.ResetResult.SUCCESS) {
                         plugin.messageService().send(player, "command.points.reset_success", Map.of("player", player.getName()));
                     } else {
-                        plugin.messageService().send(player, "command.points.reset_failed", Map.of("reason", result.name().toLowerCase(java.util.Locale.ROOT)));
+                        plugin.messageService().send(player, "command.points.reset_failed", Map.of("reason", result.name().toLowerCase(Locale.ROOT)));
                     }
                     refresh(session);
                 }

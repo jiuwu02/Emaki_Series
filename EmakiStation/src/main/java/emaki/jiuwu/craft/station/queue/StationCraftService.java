@@ -8,11 +8,15 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.action.ActionResult;
+import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
@@ -56,7 +60,7 @@ import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
  */
 public final class StationCraftService {
 
-    private final org.bukkit.plugin.Plugin plugin;
+    private final Plugin plugin;
     private final ExecutionDispatcher dispatcher;
     private final QueueService queueService;
     private final BackpackChannel backpackChannel;
@@ -86,7 +90,7 @@ public final class StationCraftService {
      * @param saveOnSubmit        supplies whether a successful submission flushes immediately
      * @param debugLoggerSupplier supplies the debug logger; may supply {@code null} when debug is off
      */
-    public StationCraftService(org.bukkit.plugin.Plugin plugin,
+    public StationCraftService(Plugin plugin,
             ExecutionDispatcher dispatcher,
             QueueService queueService,
             BackpackChannel backpackChannel,
@@ -160,7 +164,7 @@ public final class StationCraftService {
                 : MaterialChannel.BACKPACK;
         if (!fireSubmitEvent(player, station, recipe, safeBatch, reported)) {
             return CompletableFuture.completedFuture(EmakiResult.failure(
-                    emaki.jiuwu.craft.corelib.api.contract.FailureKind.CANCELLED, "station.submit_cancelled"));
+                    FailureKind.CANCELLED, "station.submit_cancelled"));
         }
         return materialChannel.snapshotAsync(player, station, recipe)
                 .thenCompose(availability -> onOwnerThread(player,
@@ -266,7 +270,7 @@ public final class StationCraftService {
         if (recipe.condition().configured()
                 && !ConditionEvaluator.evaluate(recipe.condition(),
                         text -> resolvePlaceholders(player, text),
-                        emaki.jiuwu.craft.corelib.api.condition.ConditionContext.of(player))) {
+                        ConditionContext.of(player))) {
             return EmakiResult.rejected("station.recipe_condition_failed");
         }
         PlayerQueues queues = queueService.cached(player.getUniqueId());
@@ -460,7 +464,7 @@ public final class StationCraftService {
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled()) {
             return CompletableFuture.completedFuture(EmakiResult.failure(
-                    emaki.jiuwu.craft.corelib.api.contract.FailureKind.CANCELLED, "station.cancel_vetoed"));
+                    FailureKind.CANCELLED, "station.cancel_vetoed"));
         }
         List<ConsumedMaterial> materials = List.copyOf(entry.consumedMaterials());
         queue.entries().remove(entry);
@@ -617,7 +621,7 @@ public final class StationCraftService {
      * @return a future carrying the continuation's result
      */
     private <T> CompletableFuture<T> onOwnerThread(Player player,
-            java.util.function.Supplier<CompletableFuture<T>> work) {
+            Supplier<CompletableFuture<T>> work) {
         CompletableFuture<T> future = new CompletableFuture<>();
         dispatcher.runEntity(plugin, player, () -> {
             try {
@@ -641,7 +645,7 @@ public final class StationCraftService {
             return "";
         }
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text);
+            return PlaceholderAPI.setPlaceholders(player, text);
         }
         return text;
     }

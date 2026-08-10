@@ -4,8 +4,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -92,7 +95,7 @@ public final class EmakiItemPdcWriter {
                     "active_thresholds", thresholds(activeThresholds)
             ));
         }
-        java.util.LinkedHashSet<String> skills = new java.util.LinkedHashSet<>(definition.skills());
+        LinkedHashSet<String> skills = new LinkedHashSet<>(definition.skills());
         if (setSkills != null) {
             skills.addAll(setSkills);
         }
@@ -187,7 +190,7 @@ public final class EmakiItemPdcWriter {
     private boolean isSetSkillPayloadCurrent(ItemStack itemStack,
             EmakiItemDefinition definition,
             List<String> setSkills) {
-        java.util.LinkedHashSet<String> expectedSkills = new java.util.LinkedHashSet<>(definition.skills());
+        LinkedHashSet<String> expectedSkills = new LinkedHashSet<>(definition.skills());
         if (setSkills != null) {
             expectedSkills.addAll(setSkills);
         }
@@ -202,10 +205,10 @@ public final class EmakiItemPdcWriter {
     private void observeSkillMutation(ItemStack itemStack, SkillPdcMutation mutation) {
         if (debugLogger == null
                 || mutation == null
-                || !debugLogger.shouldLog("pdc", (java.util.UUID) null)) {
+                || !debugLogger.shouldLog("pdc", (UUID) null)) {
             return;
         }
-        debugLogger.log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+        debugLogger.log("pdc", (UUID) null, "pdc.skill_payload", Map.of(
                 "operation", mutation.operation(),
                 "item", itemStack == null ? "null" : itemStack.getType(),
                 "amount", itemStack == null ? 0 : itemStack.getAmount(),
@@ -220,7 +223,7 @@ public final class EmakiItemPdcWriter {
         if (thresholds == null || thresholds.isEmpty()) {
             return "";
         }
-        return thresholds.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(";"));
+        return thresholds.stream().map(String::valueOf).collect(Collectors.joining(";"));
     }
 
     private Map<String, Double> resolveAttributes(Map<String, Object> rawAttributes) {

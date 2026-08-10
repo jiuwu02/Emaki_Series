@@ -1,11 +1,14 @@
 package emaki.jiuwu.craft.level.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -51,8 +54,8 @@ public final class PlayerLevelService {
     private final ThreadOwnership threadOwnership;
     private final LevelOperationJournal operationJournal;
     private final Runnable attributeRefreshAll;
-    private final java.util.function.Consumer<Player> attributeRefreshPlayer;
-    private final java.util.function.Consumer<PlayerLevelData> dataChangeListener;
+    private final Consumer<Player> attributeRefreshPlayer;
+    private final Consumer<PlayerLevelData> dataChangeListener;
     private AppConfig config;
 
     public PlayerLevelService(Plugin plugin,
@@ -68,8 +71,8 @@ public final class PlayerLevelService {
             ThreadOwnership threadOwnership,
             AppConfig config,
             Runnable attributeRefreshAll,
-            java.util.function.Consumer<Player> attributeRefreshPlayer,
-            java.util.function.Consumer<PlayerLevelData> dataChangeListener) {
+            Consumer<Player> attributeRefreshPlayer,
+            Consumer<PlayerLevelData> dataChangeListener) {
         this.plugin = plugin;
         this.typeRegistry = typeRegistry;
         this.requirementService = requirementService;
@@ -379,7 +382,7 @@ public final class PlayerLevelService {
             data.markDirty();
             operationJournal.advance(operationId, LevelOperationJournal.Phase.STATE_COMMITTED);
             giveRewards(player, type, targetLevel);
-            Map<String, Object> placeholders = placeholders(type, entry, oldLevel, oldExp, 1D, cause == null ? "levelup" : cause.name().toLowerCase(java.util.Locale.ROOT));
+            Map<String, Object> placeholders = placeholders(type, entry, oldLevel, oldExp, 1D, cause == null ? "levelup" : cause.name().toLowerCase(Locale.ROOT));
             operationJournal.completeAfterActions(operationId,
                     executeActions(player, type, "success", placeholders, silent));
             sync(uuid, type, entry);
@@ -469,7 +472,7 @@ public final class PlayerLevelService {
             return LevelCostTransaction.Result.failure(LevelFailureReason.PLAYER_NOT_FOUND);
         }
         Map<String, Object> vars = costVariables(type, targetLevel);
-        List<LevelCostTransaction.CurrencyCharge> currencies = new java.util.ArrayList<>();
+        List<LevelCostTransaction.CurrencyCharge> currencies = new ArrayList<>();
         for (LevelTypeConfig.CurrencyCost currency : type.upgrade().cost().currencies()) {
             vars.put("base_cost", currency.baseCost());
             double amount = Math.max(0D, ExpressionEngine.evaluate(currency.costFormula(), vars));
@@ -477,7 +480,7 @@ public final class PlayerLevelService {
                 currencies.add(new LevelCostTransaction.CurrencyCharge(currency.provider(), currency.currencyId(), amount));
             }
         }
-        List<LevelCostTransaction.MaterialCharge> materials = new java.util.ArrayList<>();
+        List<LevelCostTransaction.MaterialCharge> materials = new ArrayList<>();
         for (LevelTypeConfig.MaterialCost material : type.upgrade().cost().materials()) {
             vars.put("base_amount", material.baseAmount());
             long amount = Math.max(0L, Math.round(ExpressionEngine.evaluate(material.amountFormula(), vars)));
@@ -659,6 +662,6 @@ public final class PlayerLevelService {
         if (Math.abs(value - Math.rint(value)) < 1.0E-9D) {
             return String.valueOf((long) Math.rint(value));
         }
-        return String.format(java.util.Locale.US, "%.2f", value);
+        return String.format(Locale.US, "%.2f", value);
     }
 }

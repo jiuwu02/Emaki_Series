@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 
+import io.lumine.mythic.bukkit.BukkitAPIHelper;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
@@ -90,7 +92,7 @@ public final class CastMythicSkillStage implements CoreActionStage {
                     "action.stage.cast_mythic_skill.unavailable");
         }
         try {
-            var helper = (io.lumine.mythic.bukkit.BukkitAPIHelper) apiHelper;
+            var helper = (BukkitAPIHelper) apiHelper;
             return helper.castSkill(target, skillId)
                     ? CoreActionOutcome.success(Map.of("skill", skillId))
                     : CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
@@ -129,7 +131,7 @@ public final class CastMythicSkillStage implements CoreActionStage {
                 if (Bukkit.getPluginManager().getPlugin("MythicMobs") == null) {
                     return false;
                 }
-                apiHelper = io.lumine.mythic.bukkit.MythicBukkit.inst().getAPIHelper();
+                apiHelper = MythicBukkit.inst().getAPIHelper();
                 available = apiHelper != null;
             } catch (NoClassDefFoundError | Exception exception) {
                 Bukkit.getLogger().log(Level.FINE,

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.gui;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -35,7 +36,7 @@ public final class GuiBackendRegistry {
     private final BukkitGuiBackend bukkitBackend = new BukkitGuiBackend();
     private final Map<String, GuiBackend> backends = new ConcurrentHashMap<>();
 
-    private final Set<String> registrationOrder = java.util.Collections.synchronizedSet(new java.util.LinkedHashSet<>());
+    private final Set<String> registrationOrder = Collections.synchronizedSet(new LinkedHashSet<>());
     private final Set<String> warnedNames = ConcurrentHashMap.newKeySet();
     private final AtomicReference<CompletableFuture<Void>> shutdownFuture = new AtomicReference<>();
 

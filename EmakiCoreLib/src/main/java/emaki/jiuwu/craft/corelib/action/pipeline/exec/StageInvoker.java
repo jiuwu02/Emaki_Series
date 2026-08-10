@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
 import java.util.List;
+import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -88,7 +89,7 @@ public interface StageInvoker {
     ExecutionDomain domainOf(@NotNull Handle handle,
             @NotNull CoreStageContext context,
             @NotNull CoreActionSubject target,
-            @NotNull java.util.Map<String, String> rawArguments);
+            @NotNull Map<String, String> rawArguments);
 
     /**
      * Invokes a source stage.

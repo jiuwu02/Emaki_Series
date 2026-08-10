@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.station.recipe;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -41,7 +42,7 @@ public final class RecipeMatcher {
         if (recipe == null || available == null) {
             return false;
         }
-        Map<ItemSourceRef, Long> remaining = new java.util.LinkedHashMap<>(available);
+        Map<ItemSourceRef, Long> remaining = new LinkedHashMap<>(available);
         for (MaterialRequirement requirement : recipe.requirements()) {
             long needed = requirement.totalFor(batch);
             for (ItemSourceRef source : requirement.sources()) {

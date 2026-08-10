@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.gui;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -60,7 +61,7 @@ public final class SoundParser {
         if (idPartCount <= 0) {
             return new SoundDefinition(trimmed, 1F, 1F);
         }
-        String key = String.join("-", java.util.Arrays.copyOf(parts, idPartCount));
+        String key = String.join("-", Arrays.copyOf(parts, idPartCount));
         return new SoundDefinition(
                 key,
                 volume == null ? 1F : volume,

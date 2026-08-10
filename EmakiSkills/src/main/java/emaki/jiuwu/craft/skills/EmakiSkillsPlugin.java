@@ -1,10 +1,16 @@
 package emaki.jiuwu.craft.skills;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -45,6 +51,7 @@ import emaki.jiuwu.craft.skills.service.ManualSkillSourceService;
 import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
+import emaki.jiuwu.craft.skills.apiimpl.DefaultEmakiSkillsApi;
 
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
@@ -125,7 +132,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private PassiveTriggerSource passiveTriggerSource;
     private SkillsStageRegistrar stageRegistrar;
     private final EmakiSkillsApi.Bridge skillsApiBridge =
-            new emaki.jiuwu.craft.skills.apiimpl.DefaultEmakiSkillsApi(this);
+            new DefaultEmakiSkillsApi(this);
 
     public EmakiSkillsPlugin() {
         super(AppConfig::defaults);
@@ -197,7 +204,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         publishReady();
     }
 
-    public java.util.concurrent.CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories, java.util.function.Consumer<String> progressListener) {
+    public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories, Consumer<String> progressListener) {
         contentReady = false;
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener)
@@ -241,7 +248,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
      *
      * @param action what to publish
      */
-    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
@@ -291,7 +298,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         registerCommand(
                 ROOT_COMMAND,
                 "emakiskills command",
-                java.util.List.of("eskills"),
+                List.of("eskills"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiskills.use", commandRouter, commandRouter)
         );
     }
@@ -488,13 +495,13 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                 String permission,
-                org.bukkit.command.CommandExecutor executor,
-                org.bukkit.command.TabCompleter tabCompleter) {
+                CommandExecutor executor,
+                TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -507,10 +514,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

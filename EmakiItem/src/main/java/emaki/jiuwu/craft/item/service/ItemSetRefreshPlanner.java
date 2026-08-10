@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.item.service;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import emaki.jiuwu.craft.item.model.RefreshFullReason;
@@ -43,7 +45,7 @@ public final class ItemSetRefreshPlanner {
         if (initial == null || initial.scope() != RefreshScope.LOCAL) {
             return initial;
         }
-        if (!java.util.Objects.equals(cachedSignature, currentSignature)) {
+        if (!Objects.equals(cachedSignature, currentSignature)) {
             LinkedHashSet<RefreshFullReason> reasons = new LinkedHashSet<>(initial.fullReasons());
             reasons.add(RefreshFullReason.CONTRIBUTION_SIGNATURE_CHANGED);
             return Decision.full(reasons, initial.cacheHit(), initial.cacheValid());
@@ -85,7 +87,7 @@ public final class ItemSetRefreshPlanner {
         public Request {
             fullReasons = fullReasons == null || fullReasons.isEmpty()
                     ? Set.of()
-                    : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(fullReasons));
+                    : Collections.unmodifiableSet(new LinkedHashSet<>(fullReasons));
         }
     }
 
@@ -102,7 +104,7 @@ public final class ItemSetRefreshPlanner {
             scope = scope == null ? RefreshScope.FULL : scope;
             fullReasons = fullReasons == null || fullReasons.isEmpty()
                     ? Set.of()
-                    : java.util.Collections.unmodifiableSet(new LinkedHashSet<>(fullReasons));
+                    : Collections.unmodifiableSet(new LinkedHashSet<>(fullReasons));
         }
 
         private static Decision full(Set<RefreshFullReason> reasons, boolean cacheHit, boolean cacheValid) {

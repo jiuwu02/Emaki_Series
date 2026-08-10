@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 final class OvenStateCodec {
 
@@ -67,7 +68,7 @@ final class OvenStateCodec {
         return root;
     }
 
-    OvenState readState(emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    OvenState readState(YamlSection section) {
         OvenState state = new OvenState();
         if (section == null || !StationType.OVEN.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
             return state;

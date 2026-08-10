@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.entity.Entity;
@@ -48,6 +49,6 @@ public final class KillEntityStage extends BaseStage {
             return CoreActionOutcome.skipped("action.stage.kill_entity.already_dead");
         }
         target.remove();
-        return CoreActionOutcome.success(Map.of("type", target.getType().name().toLowerCase(java.util.Locale.ROOT)));
+        return CoreActionOutcome.success(Map.of("type", target.getType().name().toLowerCase(Locale.ROOT)));
     }
 }

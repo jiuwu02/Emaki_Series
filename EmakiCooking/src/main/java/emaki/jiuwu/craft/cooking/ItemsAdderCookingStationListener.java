@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.cooking;
 
+import java.util.function.Consumer;
+
 import dev.lone.itemsadder.api.CustomComplexFurniture;
 import dev.lone.itemsadder.api.Events.ComplexFurnitureBreakEvent;
 import dev.lone.itemsadder.api.Events.ComplexFurnitureInteractEvent;
@@ -99,7 +101,7 @@ final class ItemsAdderCookingStationListener implements Listener {
     private void dispatchFurnitureInteraction(Player player,
             Entity entity,
             Action action,
-            java.util.function.Consumer<Boolean> cancelConsumer,
+            Consumer<Boolean> cancelConsumer,
             ItemSourceRef source) {
         Block block = anchorBlock(entity);
         if (player == null || block == null || source == null) {
@@ -118,7 +120,7 @@ final class ItemsAdderCookingStationListener implements Listener {
 
     private void dispatchFurnitureBreak(Player player,
             Entity entity,
-            java.util.function.Consumer<Boolean> cancelConsumer,
+            Consumer<Boolean> cancelConsumer,
             ItemSourceRef source) {
         Block block = anchorBlock(entity);
         if (block == null || source == null) {

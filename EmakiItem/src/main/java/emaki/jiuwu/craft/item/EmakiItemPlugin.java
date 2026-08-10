@@ -1,10 +1,16 @@
 package emaki.jiuwu.craft.item;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -70,6 +76,7 @@ import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRefreshMetrics;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
+import emaki.jiuwu.craft.item.apiimpl.DefaultEmakiItemApi;
 
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -134,7 +141,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemRepairService repairService;
     private ItemRepairGuiService repairGuiService;
     private final EmakiItemApi.Bridge itemApiBridge =
-            new emaki.jiuwu.craft.item.apiimpl.DefaultEmakiItemApi(this);
+            new DefaultEmakiItemApi(this);
 
     public EmakiItemPlugin() {
         super(AppConfig::defaults);
@@ -256,7 +263,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private CompletableFuture<Void> enqueueReloadAttempt(
             ReloadAttempt attempt,
-            java.util.function.Supplier<CompletableFuture<Void>> reloadAction) {
+            Supplier<CompletableFuture<Void>> reloadAction) {
         CompletableFuture<Void> gate = new CompletableFuture<>();
         CompletableFuture<Void> queued;
         synchronized (readinessMonitor) {
@@ -272,7 +279,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private CompletableFuture<Void> startReloadAttempt(
             ReloadAttempt attempt,
-            java.util.function.Supplier<CompletableFuture<Void>> reloadAction) {
+            Supplier<CompletableFuture<Void>> reloadAction) {
         if (!isReloadAttemptCurrent(attempt)) {
             return CompletableFuture.completedFuture(null);
         }
@@ -343,7 +350,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
      *
      * @param action what to publish
      */
-    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
@@ -428,7 +435,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerCommand(
                 ROOT_COMMAND,
                 "emakiitem command",
-                java.util.List.of("ei"),
+                List.of("ei"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiitem.use", commandRouter, commandRouter)
         );
     }
@@ -618,13 +625,13 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                                     String permission,
-                                    org.bukkit.command.CommandExecutor executor,
-                                    org.bukkit.command.TabCompleter tabCompleter) {
+                                    CommandExecutor executor,
+                                    TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -637,10 +644,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[]{""} : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

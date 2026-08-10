@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.attribute.model;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -69,7 +70,7 @@ public record DamageTypeDefinition(String id,
         if (raw == null) {
             return null;
         }
-        List<DamageStageDefinition> stages = new java.util.ArrayList<>();
+        List<DamageStageDefinition> stages = new ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(ConfigNodes.get(raw, "stages"))) {
             DamageStageDefinition stage = DamageStageDefinition.fromMap(entry, attributeNormalizer);
             if (stage != null) {

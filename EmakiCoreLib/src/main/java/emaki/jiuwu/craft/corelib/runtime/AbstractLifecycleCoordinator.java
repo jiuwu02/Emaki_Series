@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.runtime;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -97,7 +98,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
                 return config.asyncLoad() == null ? null : config.asyncLoad().get();
             } catch (Exception exception) {
                 handleReloadPipelineFailure(config, config.loadStageName(), exception);
-                throw new java.util.concurrent.CompletionException(exception);
+                throw new CompletionException(exception);
             }
         }).thenCompose(loaded -> runReloadApplyOnGlobal(executionDispatcher, executionOwner, loaded, config));
     }

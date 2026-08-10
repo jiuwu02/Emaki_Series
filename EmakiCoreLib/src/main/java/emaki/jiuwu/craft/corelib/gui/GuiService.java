@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.corelib.gui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +18,8 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -45,8 +48,8 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             AsyncTaskScheduler asyncTaskScheduler,
             PerformanceMonitor performanceMonitor,
             GuiBackend backend) {
-        this.plugin = java.util.Objects.requireNonNull(plugin, "plugin");
-        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
+        this.plugin = Objects.requireNonNull(plugin, "plugin");
+        this.executionDispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
         this.asyncGuiRenderer = new AsyncGuiRenderer(
                 asyncTaskScheduler,
                 performanceMonitor
@@ -93,7 +96,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             return CompletableFuture.completedFuture(null);
         }
         CompletableFuture<GuiSession> future = new CompletableFuture<>();
-        org.bukkit.plugin.Plugin owner = request.owner() == null ? plugin : request.owner();
+        Plugin owner = request.owner() == null ? plugin : request.owner();
         debug(request.viewer(), "common.gui.async_open_requested", GuiDebugSupport.replacements(
                 "owner", owner.getName(),
                 "backend", resolveBackend().name()
@@ -425,7 +428,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         }
 
         @Override
-        public org.bukkit.entity.Player player() {
+        public Player player() {
             return session.viewer();
         }
 
@@ -436,7 +439,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         }
 
         @Override
-        public org.bukkit.inventory.ItemStack topInventoryItem(int slot) {
+        public ItemStack topInventoryItem(int slot) {
             Inventory inventory = session.getInventory();
             return inventory == null || slot < 0 || slot >= inventory.getSize() ? null : inventory.getItem(slot);
         }

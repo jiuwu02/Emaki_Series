@@ -1,11 +1,14 @@
 package emaki.jiuwu.craft.cooking.service;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +37,8 @@ import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class GrinderRuntimeService {
 
@@ -95,12 +100,12 @@ public final class GrinderRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> replace(
+            public CompletionStage<Void> replace(
                     StationCoordinates coordinates,
                     Map<String, Object> committedState) {
-                GrinderState state = readState(new emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection(committedState));
+                GrinderState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
-                    return java.util.concurrent.CompletableFuture.failedFuture(
+                    return CompletableFuture.failedFuture(
                             new IllegalArgumentException("Invalid committed grinder state"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
@@ -112,7 +117,7 @@ public final class GrinderRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+            public CompletionStage<Void> delete(StationCoordinates coordinates) {
                 return stateStore.deleteAsync(coordinates)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
                         .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
@@ -131,7 +136,7 @@ public final class GrinderRuntimeService {
         ensureTicker();
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
@@ -323,7 +328,7 @@ public final class GrinderRuntimeService {
         if (plugin == null || plugin.debugLogger() == null) {
             return;
         }
-        plugin.debugLogger().log("station", (java.util.UUID) null, langKey, replacements);
+        plugin.debugLogger().log("station", (UUID) null, langKey, replacements);
     }
 
     private void ensureTicker() {
@@ -512,7 +517,7 @@ public final class GrinderRuntimeService {
             int z = Integer.parseInt(parts[parts.length - 1]);
             int y = Integer.parseInt(parts[parts.length - 2]);
             int x = Integer.parseInt(parts[parts.length - 3]);
-            String world = String.join(":", java.util.Arrays.copyOf(parts, parts.length - 3));
+            String world = String.join(":", Arrays.copyOf(parts, parts.length - 3));
             return new StationCoordinates(world, x, y, z);
         } catch (NumberFormatException exception) {
             return null;
@@ -551,7 +556,7 @@ public final class GrinderRuntimeService {
         return root;
     }
 
-    private GrinderState readState(emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    private GrinderState readState(YamlSection section) {
         if (section == null || !StationType.GRINDER.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
             return null;
         }

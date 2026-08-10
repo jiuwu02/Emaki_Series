@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +30,7 @@ public final class ItemSetLoreRenderer {
         addIfNotNull(lines, replace(config.header(), base));
         for (ItemSetPieceDefinition piece : definition.pieces().values()) {
             boolean equipped = state.equippedPieces().contains(piece.pieceId());
-            Map<String, String> placeholders = new java.util.LinkedHashMap<>(base);
+            Map<String, String> placeholders = new LinkedHashMap<>(base);
             placeholders.put("piece", piece.displayLabel());
             placeholders.put("piece_id", piece.pieceId());
             placeholders.put("slot", piece.slot());
@@ -41,7 +42,7 @@ public final class ItemSetLoreRenderer {
         for (ItemSetThreshold threshold : definition.thresholds()) {
             boolean active = threshold.active(state.activeCount());
             for (String loreLine : threshold.lore()) {
-                Map<String, String> placeholders = new java.util.LinkedHashMap<>(base);
+                Map<String, String> placeholders = new LinkedHashMap<>(base);
                 placeholders.put("threshold", Integer.toString(threshold.requiredPieces()));
                 placeholders.put("line", loreLine);
                 addIfNotNull(lines, replace(active ? config.activeThresholdFormat() : config.inactiveThresholdFormat(), placeholders));

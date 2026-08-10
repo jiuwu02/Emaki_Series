@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiRenderer;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
+import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
@@ -167,7 +168,7 @@ public final class GemGuiService {
     private GuiSession openGui(Player player,
             GuiTemplate template,
             GuiRenderer renderer,
-            emaki.jiuwu.craft.corelib.gui.GuiSessionHandler handler) {
+            GuiSessionHandler handler) {
         return guiService.open(new GuiOpenRequest(
                 plugin,
                 player,

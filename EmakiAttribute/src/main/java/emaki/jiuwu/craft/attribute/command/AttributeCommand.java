@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.command;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +36,7 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.util.Jsons;
+import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 
 public final class AttributeCommand implements TabExecutor {
 
@@ -503,7 +505,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         var result = attributeService.parentAttributeService().allocate(target, definition.id(), amount);
-        if (result == emaki.jiuwu.craft.attribute.service.ParentAttributeService.AllocateResult.SUCCESS) {
+        if (result == ParentAttributeService.AllocateResult.SUCCESS) {
             messages().send(sender, "command.points.add_success", Map.of("player", target.getName(), "attribute", definition.displayName(), "amount", Math.max(1, amount)));
         } else {
             messages().send(sender, "command.points.add_failed", Map.of("reason", result.name().toLowerCase(Locale.ROOT)));
@@ -579,7 +581,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         var result = attributeService.parentAttributeService().reset(target, !adminReset);
-        if (result == emaki.jiuwu.craft.attribute.service.ParentAttributeService.ResetResult.SUCCESS) {
+        if (result == ParentAttributeService.ResetResult.SUCCESS) {
             messages().send(sender, "command.points.reset_success", Map.of("player", target.getName()));
         } else {
             messages().send(sender, "command.points.reset_failed", Map.of("reason", result.name().toLowerCase(Locale.ROOT)));
@@ -759,7 +761,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private Map<String, ResourceState> dumpResources(Player player) {
-        Map<String, ResourceState> resources = new java.util.LinkedHashMap<>();
+        Map<String, ResourceState> resources = new LinkedHashMap<>();
         attributeService.resourceDefinitions().forEach((id, definition) -> {
             ResourceState state = attributeService.readResourceState(player, id);
             if (state != null) {

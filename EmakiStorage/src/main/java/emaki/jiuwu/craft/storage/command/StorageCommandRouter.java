@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -25,6 +26,7 @@ import emaki.jiuwu.craft.storage.log.StorageOperationType;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
+import emaki.jiuwu.craft.storage.service.StorageAutoPickupService;
 import emaki.jiuwu.craft.storage.session.StorageSessionManager;
 
 /**
@@ -85,7 +87,7 @@ public final class StorageCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.player_only");
             return true;
         }
-        if (!player.hasPermission(emaki.jiuwu.craft.storage.service.StorageAutoPickupService.PERMISSION)) {
+        if (!player.hasPermission(StorageAutoPickupService.PERMISSION)) {
             plugin.messageService().send(sender, "general.no_permission");
             return true;
         }
@@ -417,7 +419,7 @@ public final class StorageCommandRouter implements TabExecutor {
      * are refused: mutating an unloaded storage would race the player's next login.
      */
     private void withStorage(CommandSender sender, ResolvedTarget target,
-            java.util.function.Consumer<PlayerStorage> mutation) {
+            Consumer<PlayerStorage> mutation) {
         if (target.online() == null) {
             plugin.messageService().send(sender, "command.target_offline",
                     Map.of("player", target.name()));

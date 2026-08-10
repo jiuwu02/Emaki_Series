@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.gui;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -83,7 +84,7 @@ public final class GuiTemplateParser {
             return InventoryType.CHEST;
         }
         try {
-            return InventoryType.valueOf(configured.trim().toUpperCase(java.util.Locale.ROOT));
+            return InventoryType.valueOf(configured.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ignored) {
             return InventoryType.CHEST;
         }

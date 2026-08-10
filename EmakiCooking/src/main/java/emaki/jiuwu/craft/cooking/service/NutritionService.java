@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.DoubleUnaryOperator;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -154,7 +155,7 @@ public final class NutritionService {
         return apply(uuid, typeId, _ -> amount);
     }
 
-    private NutritionOperationResult apply(UUID uuid, String typeId, java.util.function.DoubleUnaryOperator operator) {
+    private NutritionOperationResult apply(UUID uuid, String typeId, DoubleUnaryOperator operator) {
         if (uuid == null) {
             return NutritionOperationResult.failure(typeId, "no_target");
         }

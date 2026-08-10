@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.corelib.api.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class Jsons {
@@ -132,7 +135,7 @@ public final class Jsons {
         }
 
         private Map<String, Object> readObject() {
-            Map<String, Object> result = new java.util.LinkedHashMap<>();
+            Map<String, Object> result = new LinkedHashMap<>();
             index++;
             while (index < json.length()) {
                 skipWhitespace();
@@ -156,8 +159,8 @@ public final class Jsons {
             return result;
         }
 
-        private java.util.List<Object> readArray() {
-            java.util.List<Object> result = new java.util.ArrayList<>();
+        private List<Object> readArray() {
+            List<Object> result = new ArrayList<>();
             index++;
             while (index < json.length()) {
                 skipWhitespace();

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.action.builtin;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -27,7 +28,51 @@ import emaki.jiuwu.craft.corelib.action.builtin.source.OriginSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.PlayerByNameSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.SelfSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.TriggerSource;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarHideStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarShowStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarStages;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.BreakBlockStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.BroadcastMessageStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.ClearItemStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.ClearPotionEffectsStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.DamageItemStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.DamageStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.DropItemStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.ExplosionStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.ExtinguishStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.FeedStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.GiveExpStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.GiveItemStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.GiveMoneyStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.GivePotionEffectStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.HealStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.IgniteStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.KillEntityStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.PlaceBlockStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.PlaySoundStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.ProjectileStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.RemovePotionEffectStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.RepairItemStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.RunCommandAsConsoleStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.RunCommandAsOpStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.RunCommandAsPlayerStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SendActionBarStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SendItemStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SendMessageStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SendTitleStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetBlockStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetExpStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetHealthStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetItemStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetMoneyStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SpawnEntityStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SpawnParticleStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.StartTaskStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.StopTaskStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.TakeExpStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.TakeItemStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.TakeMoneyStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.TeleportStage;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
@@ -86,7 +131,7 @@ public final class BuiltinStages {
             @Nullable CustomBlockBridge oraxenBlockBridge,
             @Nullable PipelineTaskService taskService,
             @Nullable StartTaskStage.SequenceSource sequences) {
-        java.util.Objects.requireNonNull(registry, "registry");
+        Objects.requireNonNull(registry, "registry");
         List<String> failures = new ArrayList<>();
         registerSources(registry, owner, failures);
         registerGates(registry, owner, itemSourceService, failures);
@@ -162,60 +207,60 @@ public final class BuiltinStages {
             StartTaskStage.SequenceSource sequences) {
         List<CoreActionStage> stages = new ArrayList<>(ACTION_COUNT);
         // Messaging and feedback.
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SendMessageStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SendActionBarStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SendTitleStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.BroadcastMessageStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.PlaySoundStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SpawnParticleStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarShowStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarHideStage());
+        stages.add(new SendMessageStage());
+        stages.add(new SendActionBarStage());
+        stages.add(new SendTitleStage());
+        stages.add(new BroadcastMessageStage());
+        stages.add(new PlaySoundStage());
+        stages.add(new SpawnParticleStage());
+        stages.add(new BossBarShowStage());
+        stages.add(new BossBarHideStage());
         // Health and status.
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.HealStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.DamageStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SetHealthStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.FeedStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.IgniteStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.ExtinguishStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.KillEntityStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.ProjectileStage(
+        stages.add(new HealStage());
+        stages.add(new DamageStage());
+        stages.add(new SetHealthStage());
+        stages.add(new FeedStage());
+        stages.add(new IgniteStage());
+        stages.add(new ExtinguishStage());
+        stages.add(new KillEntityStage());
+        stages.add(new ProjectileStage(
                 executionDispatcher, owner));
         // Potion effects.
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.GivePotionEffectStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.RemovePotionEffectStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.ClearPotionEffectsStage());
+        stages.add(new GivePotionEffectStage());
+        stages.add(new RemovePotionEffectStage());
+        stages.add(new ClearPotionEffectsStage());
         // Items.
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SendItemStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.GiveItemStage(itemSourceService));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SetItemStage(itemSourceService));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.ClearItemStage(itemSourceService));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.TakeItemStage(itemSourceService));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.DropItemStage(itemSourceService));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.RepairItemStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.DamageItemStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.PlaceBlockStage(itemSourceService,
+        stages.add(new SendItemStage());
+        stages.add(new GiveItemStage(itemSourceService));
+        stages.add(new SetItemStage(itemSourceService));
+        stages.add(new ClearItemStage(itemSourceService));
+        stages.add(new TakeItemStage(itemSourceService));
+        stages.add(new DropItemStage(itemSourceService));
+        stages.add(new RepairItemStage());
+        stages.add(new DamageItemStage());
+        stages.add(new PlaceBlockStage(itemSourceService,
                 craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SetBlockStage());
+        stages.add(new SetBlockStage());
         // Blocks and world.
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.BreakBlockStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.ExplosionStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SpawnEntityStage());
+        stages.add(new BreakBlockStage());
+        stages.add(new ExplosionStage());
+        stages.add(new SpawnEntityStage());
         // Teleport, economy and experience.
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.TeleportStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.GiveMoneyStage(economyManager));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.TakeMoneyStage(economyManager));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SetMoneyStage(economyManager));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.GiveExpStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.TakeExpStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.SetExpStage());
+        stages.add(new TeleportStage());
+        stages.add(new GiveMoneyStage(economyManager));
+        stages.add(new TakeMoneyStage(economyManager));
+        stages.add(new SetMoneyStage(economyManager));
+        stages.add(new GiveExpStage());
+        stages.add(new TakeExpStage());
+        stages.add(new SetExpStage());
         // Commands.
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.RunCommandAsPlayerStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.RunCommandAsOpStage());
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.RunCommandAsConsoleStage());
+        stages.add(new RunCommandAsPlayerStage());
+        stages.add(new RunCommandAsOpStage());
+        stages.add(new RunCommandAsConsoleStage());
         // Long-running tasks, replacing the v1 loop actions.
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.StartTaskStage(
+        stages.add(new StartTaskStage(
                 taskService, sequences));
-        stages.add(new emaki.jiuwu.craft.corelib.action.builtin.stage.StopTaskStage(taskService));
+        stages.add(new StopTaskStage(taskService));
         return List.copyOf(stages);
     }
 
@@ -226,7 +271,7 @@ public final class BuiltinStages {
      * revoking the stage that created it, so it has to be detached explicitly or it would outlive the plugin.</p>
      */
     public static void shutdown() {
-        emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarStages.clearAll();
+        BossBarStages.clearAll();
     }
 
     private static void record(List<String> failures, String id, CoreStageRegistration registration) {

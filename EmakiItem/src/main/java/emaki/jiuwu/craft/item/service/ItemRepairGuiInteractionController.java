@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.item.service;
 
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -58,8 +60,8 @@ final class ItemRepairGuiInteractionController {
 
     private void handleSlotSwap(GuiClickContext click,
             ItemRepairGuiSession state,
-            java.util.function.Supplier<ItemStack> getter,
-            java.util.function.Consumer<ItemStack> setter) {
+            Supplier<ItemStack> getter,
+            Consumer<ItemStack> setter) {
         ItemStack cursor = ItemRepairGuiSession.cloneNonAir(click.cursorItem());
         if (cursor != null) {
             ItemStack previous = ItemRepairGuiSession.cloneNonAir(getter.get());

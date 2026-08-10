@@ -3,7 +3,11 @@ package emaki.jiuwu.craft.corelib.dialog;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.papermc.paper.dialog.DialogResponseView;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.event.ClickCallback;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -12,6 +16,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 import io.papermc.paper.dialog.Dialog;
 import io.papermc.paper.registry.data.dialog.ActionButton;
@@ -41,13 +46,13 @@ public final class DialogService {
     private final JavaPlugin plugin;
     private final DialogLoader loader;
     private final ItemSourceService itemSourceService;
-    private final emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher executionDispatcher;
+    private final ExecutionDispatcher executionDispatcher;
     private volatile boolean enabled;
 
     public DialogService(JavaPlugin plugin,
             DialogLoader loader,
             ItemSourceService itemSourceService,
-            emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher executionDispatcher) {
+            ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.loader = loader;
         this.itemSourceService = itemSourceService;
@@ -163,8 +168,8 @@ public final class DialogService {
 
     /** 构建按钮动作为提交回调的对话框。 */
     private Dialog buildInteractive(DialogDefinition definition, DialogSubmitHandler handler) {
-        java.util.concurrent.atomic.AtomicBoolean delivered =
-                new java.util.concurrent.atomic.AtomicBoolean();
+        AtomicBoolean delivered =
+                new AtomicBoolean();
         return Dialog.create(factory -> factory.empty()
                 .base(buildBase(definition))
                 .type(buildInteractiveType(definition, handler, delivered)));
@@ -172,7 +177,7 @@ public final class DialogService {
 
     private DialogType buildInteractiveType(DialogDefinition definition,
             DialogSubmitHandler handler,
-            java.util.concurrent.atomic.AtomicBoolean delivered) {
+            AtomicBoolean delivered) {
         List<DialogDefinition.Button> buttons = definition.buttons();
         return switch (definition.type()) {
             case CONFIRMATION -> DialogType.confirmation(
@@ -200,7 +205,7 @@ public final class DialogService {
     /** 构建一个把提交派发给 handler 的按钮。 */
     private ActionButton submitButton(DialogDefinition.Button button,
             DialogSubmitHandler handler,
-            java.util.concurrent.atomic.AtomicBoolean delivered) {
+            AtomicBoolean delivered) {
         if (button == null) {
             return null;
         }
@@ -214,7 +219,7 @@ public final class DialogService {
         String buttonId = button.action() == null ? "" : Texts.toStringSafe(button.action().value());
         builder.action(DialogAction.customClick(
                 (response, audience) -> dispatch(response, audience, buttonId, handler, delivered),
-                net.kyori.adventure.text.event.ClickCallback.Options.builder().build()));
+                ClickCallback.Options.builder().build()));
         return builder.build();
     }
 
@@ -223,11 +228,11 @@ public final class DialogService {
      *
      * <p>用 CAS 保证回调恰好一次：Paper 的回调可能因客户端重复提交而多次触发。
      */
-    private void dispatch(io.papermc.paper.dialog.DialogResponseView response,
-            net.kyori.adventure.audience.Audience audience,
+    private void dispatch(DialogResponseView response,
+            Audience audience,
             String buttonId,
             DialogSubmitHandler handler,
-            java.util.concurrent.atomic.AtomicBoolean delivered) {
+            AtomicBoolean delivered) {
         if (!(audience instanceof Player player) || !delivered.compareAndSet(false, true)) {
             return;
         }

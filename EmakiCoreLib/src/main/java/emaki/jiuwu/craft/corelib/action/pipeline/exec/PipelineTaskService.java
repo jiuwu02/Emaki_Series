@@ -1,11 +1,16 @@
 package emaki.jiuwu.craft.corelib.action.pipeline.exec;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -212,14 +217,14 @@ public final class PipelineTaskService implements Listener {
         return snapshotsMatching(task -> task.key.startsWith(target));
     }
 
-    private List<TaskSnapshot> snapshotsMatching(java.util.function.Predicate<Task> filter) {
-        List<TaskSnapshot> matches = new java.util.ArrayList<>();
+    private List<TaskSnapshot> snapshotsMatching(Predicate<Task> filter) {
+        List<TaskSnapshot> matches = new ArrayList<>();
         for (Task task : tasks.values()) {
             if (filter.test(task)) {
                 matches.add(task.snapshot());
             }
         }
-        matches.sort(java.util.Comparator.comparing(TaskSnapshot::key));
+        matches.sort(Comparator.comparing(TaskSnapshot::key));
         return List.copyOf(matches);
     }
 
@@ -368,7 +373,7 @@ public final class PipelineTaskService implements Listener {
          * @return whether the body succeeded
          */
         @NotNull
-        java.util.concurrent.CompletableFuture<Boolean> run(@NotNull Plugin owner,
+        CompletableFuture<Boolean> run(@NotNull Plugin owner,
                 @NotNull List<CompiledPipeline> body,
                 @NotNull PipelineContext context,
                 boolean stopOnFailure);
@@ -394,7 +399,7 @@ public final class PipelineTaskService implements Listener {
             if (raw == null) {
                 return REPLACE;
             }
-            return switch (raw.trim().toLowerCase(java.util.Locale.ROOT)) {
+            return switch (raw.trim().toLowerCase(Locale.ROOT)) {
                 case "ignore" -> IGNORE;
                 case "allow_duplicate", "allow" -> ALLOW_DUPLICATE;
                 default -> REPLACE;

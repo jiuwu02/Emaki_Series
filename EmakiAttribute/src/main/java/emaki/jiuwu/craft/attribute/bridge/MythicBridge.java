@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -114,7 +115,7 @@ public final class MythicBridge implements Listener {
             if (activeMob == null || activeMob.getEntity() == null) {
                 continue;
             }
-            org.bukkit.entity.Entity bukkitEntity = activeMob.getEntity().getBukkitEntity();
+            Entity bukkitEntity = activeMob.getEntity().getBukkitEntity();
             LivingEntity livingEntity = bukkitEntity instanceof LivingEntity livingEntityCandidate ? livingEntityCandidate : null;
             if (livingEntity != null) {
                 attributeService.scheduleLivingEntitySync(livingEntity);
@@ -264,7 +265,7 @@ public final class MythicBridge implements Listener {
             if (abstractEntity == null) {
                 return null;
             }
-            org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
+            Entity entity = abstractEntity.getBukkitEntity();
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
         }
 
@@ -296,7 +297,7 @@ public final class MythicBridge implements Listener {
             if (abstractEntity == null) {
                 return null;
             }
-            org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
+            Entity entity = abstractEntity.getBukkitEntity();
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
         }
 
@@ -645,7 +646,7 @@ public final class MythicBridge implements Listener {
             if (abstractEntity == null) {
                 return null;
             }
-            org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
+            Entity entity = abstractEntity.getBukkitEntity();
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
         }
 

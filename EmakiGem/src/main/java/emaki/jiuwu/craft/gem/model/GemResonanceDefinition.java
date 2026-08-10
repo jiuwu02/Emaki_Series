@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.gem.model;
 
+import java.util.List;
+
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record GemResonanceDefinition(
@@ -15,7 +17,7 @@ public record GemResonanceDefinition(
         displayName = Texts.isBlank(displayName) ? id : displayName;
         priority = Math.max(0, priority);
         exclusiveGroup = Texts.isBlank(exclusiveGroup) ? "" : Texts.lower(exclusiveGroup);
-        chain = chain == null ? new ResonanceChain("unordered", java.util.List.of()) : chain;
+        chain = chain == null ? new ResonanceChain("unordered", List.of()) : chain;
         effects = effects == null ? new ResonanceEffects(null, null, null, null, null) : effects;
     }
 

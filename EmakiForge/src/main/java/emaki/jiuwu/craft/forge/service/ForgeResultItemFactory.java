@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.List;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -43,7 +45,7 @@ final class ForgeResultItemFactory {
                 baseSource,
                 1,
                 existingItem,
-                java.util.List.of(forgeLayer)
+                List.of(forgeLayer)
         );
     }
 

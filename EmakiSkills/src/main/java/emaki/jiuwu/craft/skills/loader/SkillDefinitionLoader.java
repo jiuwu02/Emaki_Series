@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -363,7 +364,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
     }
 
     private List<String> parseIdList(Object primary, Object secondary) {
-        java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+        LinkedHashSet<String> ids = new LinkedHashSet<>();
         for (String rawId : Texts.asStringList(primary)) {
             String id = Texts.normalizeId(rawId).replace('-', '_');
             if (Texts.isNotBlank(id)) {

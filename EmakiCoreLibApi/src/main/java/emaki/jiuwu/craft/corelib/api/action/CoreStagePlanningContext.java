@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.api.action;
 
+import java.util.Locale;
 import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
@@ -51,7 +52,7 @@ public record CoreStagePlanningContext(@NotNull CoreActionSubject caster,
         if (name == null) {
             return "";
         }
-        String value = arguments.get(name.trim().toLowerCase(java.util.Locale.ROOT));
+        String value = arguments.get(name.trim().toLowerCase(Locale.ROOT));
         return value == null ? "" : value;
     }
 }

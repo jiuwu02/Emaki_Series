@@ -1,12 +1,18 @@
 package emaki.jiuwu.craft.cooking;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -68,6 +74,7 @@ import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi;
 
 public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -137,7 +144,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private PlayerNutritionDataStore nutritionDataStore;
     private NutritionService nutritionService;
     private final EmakiCookingApi.Bridge cookingApiBridge =
-            new emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi(this);
+            new DefaultEmakiCookingApi(this);
     private volatile boolean publicApiReady;
 
     public EmakiCookingPlugin() {
@@ -284,7 +291,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
      *
      * @param action what to publish
      */
-    private void publishReadiness(java.util.function.Consumer<EmakiCoreLibPlugin> action) {
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
@@ -359,7 +366,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerCommand(
                 ROOT_COMMAND,
                 "ecooking command",
-                java.util.List.of("ec"),
+                List.of("ec"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakicooking.use", commandRouter, commandRouter)
         );
     }
@@ -404,7 +411,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerMmoItemsNutritionHandler();
         registerNeigeItemsNutritionHandler();
 
-        for (org.bukkit.entity.Player online : getServer().getOnlinePlayers()) {
+        for (Player online : getServer().getOnlinePlayers()) {
             playerDataListener.ensureSession(online);
         }
     }
@@ -682,13 +689,13 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                 String permission,
-                org.bukkit.command.CommandExecutor executor,
-                org.bukkit.command.TabCompleter tabCompleter) {
+                CommandExecutor executor,
+                TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -701,10 +708,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

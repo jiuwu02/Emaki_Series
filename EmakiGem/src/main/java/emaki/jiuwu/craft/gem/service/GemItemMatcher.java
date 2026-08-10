@@ -6,6 +6,7 @@ import java.util.Locale;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -63,16 +64,16 @@ public final class GemItemMatcher {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
-        String gemId = PDC.get(itemStack, GEM_ITEM_PARTITION, "id", org.bukkit.persistence.PersistentDataType.STRING);
+        String gemId = PDC.get(itemStack, GEM_ITEM_PARTITION, "id", PersistentDataType.STRING);
         if (Texts.isBlank(gemId)) {
             return null;
         }
-        Integer level = PDC.get(itemStack, GEM_ITEM_PARTITION, "level", org.bukkit.persistence.PersistentDataType.INTEGER);
+        Integer level = PDC.get(itemStack, GEM_ITEM_PARTITION, "level", PersistentDataType.INTEGER);
         return new GemItemInstance(gemId, level == null ? 1 : level, System.currentTimeMillis());
     }
 
     public String readOpenerId(ItemStack itemStack) {
-        return Texts.lower(PDC.get(itemStack, OPENER_PARTITION, "id", org.bukkit.persistence.PersistentDataType.STRING));
+        return Texts.lower(PDC.get(itemStack, OPENER_PARTITION, "id", PersistentDataType.STRING));
     }
 
     public SocketOpenerConfig matchOpenerItem(ItemStack itemStack) {

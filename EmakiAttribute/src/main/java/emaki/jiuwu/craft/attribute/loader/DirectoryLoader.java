@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -195,7 +196,7 @@ public abstract class DirectoryLoader<T> {
     }
 
     protected String normalizeId(String id) {
-        return Texts.toStringSafe(id).trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '_');
+        return Texts.toStringSafe(id).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
     }
 
     protected void afterLoad() {

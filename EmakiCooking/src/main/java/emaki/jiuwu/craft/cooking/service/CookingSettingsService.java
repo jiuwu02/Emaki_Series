@@ -9,6 +9,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -664,7 +665,7 @@ public final class CookingSettingsService {
     }
 
     private String normalizeWorldName(String worldName) {
-        return Texts.toStringSafe(worldName).trim().toLowerCase(java.util.Locale.ROOT);
+        return Texts.toStringSafe(worldName).trim().toLowerCase(Locale.ROOT);
     }
 
     private Map<String, ItemDisplayAdjustmentOverride> loadItemAdjustments() {
@@ -682,7 +683,7 @@ public final class CookingSettingsService {
             List<Path> files = stream
                     .filter(Files::isRegularFile)
                     .filter(this::isYamlFile)
-                    .sorted(Comparator.comparing(path -> path.toString().toLowerCase(java.util.Locale.ROOT)))
+                    .sorted(Comparator.comparing(path -> path.toString().toLowerCase(Locale.ROOT)))
                     .toList();
             for (Path file : files) {
                 ItemDisplayAdjustmentOverride adjustment = parseItemDisplayAdjustment(file, YamlFiles.load(file.toFile()));
@@ -701,7 +702,7 @@ public final class CookingSettingsService {
         if (path == null || path.getFileName() == null) {
             return false;
         }
-        String name = path.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
+        String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
         return name.endsWith(".yml") || name.endsWith(".yaml");
     }
 

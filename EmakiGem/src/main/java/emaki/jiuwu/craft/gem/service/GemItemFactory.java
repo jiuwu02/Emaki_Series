@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 
 public final class GemItemFactory {
 
@@ -120,7 +121,7 @@ public final class GemItemFactory {
         return definition.id();
     }
 
-    private ItemStack createBaseItem(emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef itemSource, int amount) {
+    private ItemStack createBaseItem(ItemSourceRef itemSource, int amount) {
         return itemSourceService == null || itemSource == null ? null : itemSourceService.createItem(itemSource, amount);
     }
 }

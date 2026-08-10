@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.api.math;
 
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -67,7 +68,7 @@ public final class Numbers {
         if (Double.isNaN(value) || Double.isInfinite(value)) {
             return Double.toString(value);
         }
-        return java.math.BigDecimal.valueOf(value).toPlainString();
+        return BigDecimal.valueOf(value).toPlainString();
     }
 
     public static String formatNumber(double value, String pattern) {

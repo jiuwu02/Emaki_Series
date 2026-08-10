@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -214,7 +215,7 @@ public final class StorageOperationLog {
     private void warn(String message, Throwable throwable) {
         Throwable cause = throwable;
         while (cause != null && cause.getCause() != null && cause != cause.getCause()
-                && cause instanceof java.util.concurrent.CompletionException) {
+                && cause instanceof CompletionException) {
             cause = cause.getCause();
         }
         logger.log(Level.WARNING, message

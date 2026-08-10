@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -17,13 +18,13 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
-
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinStages;
 import emaki.jiuwu.craft.corelib.action.legacy.LegacyActionMigrator;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineBatchRunner;
 import emaki.jiuwu.craft.corelib.action.pipeline.RegistryPlaceholderBridge;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.ConfiguredSequenceRepository;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.RegistryStageInvoker;
@@ -32,6 +33,24 @@ import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRebuildListeners;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
+import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
+import emaki.jiuwu.craft.corelib.dialog.DialogApiBridge;
+import emaki.jiuwu.craft.corelib.dialog.DialogLoader;
+import emaki.jiuwu.craft.corelib.dialog.DialogService;
+import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
+import emaki.jiuwu.craft.corelib.display.DisplayServiceFactory;
+import emaki.jiuwu.craft.corelib.display.ItemDisplayService;
+import emaki.jiuwu.craft.corelib.display.TextDisplayService;
+import emaki.jiuwu.craft.corelib.event.EmakiEventBus;
+import emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher;
+import emaki.jiuwu.craft.corelib.gui.GuiBackend;
+import emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry;
+import emaki.jiuwu.craft.corelib.gui.GuiClickThrottle;
+import emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend;
+import emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller;
+import emaki.jiuwu.craft.corelib.text.VanillaLanguageDownloader;
+import emaki.jiuwu.craft.corelib.text.VanillaTranslationService;
 
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
@@ -109,8 +128,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private CoreLibConfig configModel = CoreLibConfig.defaults();
     private PerformanceMonitor performanceMonitor;
     private AsyncTaskScheduler asyncTaskScheduler;
-    private emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry guiBackendRegistry;
-    private emaki.jiuwu.craft.corelib.gui.GuiBackend guiBackend;
+    private GuiBackendRegistry guiBackendRegistry;
+    private GuiBackend guiBackend;
     private AsyncFileService asyncFileService;
     private AsyncYamlFiles asyncYamlFiles;
     private CapabilityProbe platformCapabilities;
@@ -141,8 +160,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private ConfigPrecheckService configPrecheckService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
     private final ItemSourceService itemSourceService = new ItemSourceService();
-    private final emaki.jiuwu.craft.corelib.text.VanillaTranslationService vanillaTranslationService =
-            new emaki.jiuwu.craft.corelib.text.VanillaTranslationService();
+    private final VanillaTranslationService vanillaTranslationService =
+            new VanillaTranslationService();
     private ConfiguredItemService configuredItemService;
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
@@ -153,17 +172,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private final CustomBlockBridge oraxenBlockBridge = new OraxenBlockBridgeProvider(this);
     private final MythicMobBridge mythicMobBridge = new MythicMobBridgeProvider(this);
     private EmakiItemAssemblyService itemAssemblyService;
-    private final emaki.jiuwu.craft.corelib.event.EmakiEventBus eventBus
-            = new emaki.jiuwu.craft.corelib.event.EmakiEventBus();
+    private final EmakiEventBus eventBus
+            = new EmakiEventBus();
     private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
     private DebugLogger debugLogger;
     private CoreLibCommandRouter commandRouter;
     private DefaultEmakiCoreLibApi coreLibApiBridge;
-    private emaki.jiuwu.craft.corelib.dialog.DialogService dialogService;
-    private emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs dialogApiBridge;
-    private emaki.jiuwu.craft.corelib.display.TextDisplayService textDisplayService;
-    private emaki.jiuwu.craft.corelib.display.ItemDisplayService itemDisplayService;
-    private emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher gameplayEventPublisher;
+    private DialogService dialogService;
+    private CoreLibDialogs dialogApiBridge;
+    private TextDisplayService textDisplayService;
+    private ItemDisplayService itemDisplayService;
+    private GameplayEventPublisher gameplayEventPublisher;
 
     @Override
     public void onLoad() {
@@ -342,7 +361,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         DebugLogger.setGlobalAllEnabled(configModel.debugConfig().globalAll());
         MiniMessages.configureDefaultNoItalic(configModel.miniMessageConfig().defaultNoItalic());
         if (configModel.guiConfig() != null) {
-            emaki.jiuwu.craft.corelib.gui.GuiClickThrottle.configureIntervalMs(configModel.guiConfig().clickIntervalMs());
+            GuiClickThrottle.configureIntervalMs(configModel.guiConfig().clickIntervalMs());
         }
         if (dialogService != null && configModel.dialogConfig() != null) {
             dialogService.setEnabled(configModel.dialogConfig().enabled());
@@ -400,7 +419,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 new SequenceRepository() {
 
                     @Override
-                    public emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline find(String name) {
+                    public CompiledPipeline find(String name) {
                         ConfiguredSequenceRepository live = sequenceRepository;
                         return live == null ? null : live.find(name);
                     }
@@ -412,15 +431,15 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     }
 
                     @Override
-                    public java.util.Set<String> requiredParameters(String name) {
+                    public Set<String> requiredParameters(String name) {
                         ConfiguredSequenceRepository live = sequenceRepository;
-                        return live == null ? java.util.Set.of() : live.requiredParameters(name);
+                        return live == null ? Set.of() : live.requiredParameters(name);
                     }
 
                     @Override
-                    public java.util.Set<String> calls(String name) {
+                    public Set<String> calls(String name) {
                         ConfiguredSequenceRepository live = sequenceRepository;
-                        return live == null ? java.util.Set.of() : live.calls(name);
+                        return live == null ? Set.of() : live.calls(name);
                     }
 
                     @Override
@@ -460,7 +479,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         if (dialogService != null) {
             if (dialogApiBridge == null) {
-                dialogApiBridge = new emaki.jiuwu.craft.corelib.dialog.DialogApiBridge(dialogService);
+                dialogApiBridge = new DialogApiBridge(dialogService);
             }
             coreLibApiBridge.installDialogs(dialogApiBridge);
         }
@@ -517,7 +536,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerCommand(
                 "emakicorelib",
                 "EmakiCoreLib management command",
-                java.util.List.of("corelib", "emakicore"),
+                List.of("corelib", "emakicore"),
                 new CoreLibBasicCommand(commandRouter)
         );
     }
@@ -574,7 +593,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             platformCapabilities = null;
             ExpressionEngine.clearGlobalCache();
             ExpressionEngine.clearThreadLocalCache();
-            emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer.clearRegexCache();
+            OperationTemplateRenderer.clearRegexCache();
         });
     }
 
@@ -609,10 +628,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         corePluginLifecycle = new CorePluginLifecycle(this::finalizeCoreRuntimeAsync);
         corePluginLifecycle.start(asyncFileService, asyncTaskScheduler);
         languageLoader.load();
-        guiBackendRegistry = new emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry(messageService);
+        guiBackendRegistry = new GuiBackendRegistry(messageService);
         guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
-        emaki.jiuwu.craft.corelib.gui.GuiClickThrottle.configureIntervalMs(config.guiConfig().clickIntervalMs());
-        guiBackend = new emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
+        GuiClickThrottle.configureIntervalMs(config.guiConfig().clickIntervalMs());
+        guiBackend = new RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
         itemAssemblyService = new EmakiItemAssemblyService(
                 namespaceRegistry,
                 itemLayerCodecRegistry,
@@ -621,22 +640,22 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         );
         itemAssemblyService.configureAsync(asyncTaskScheduler, executionDispatcher, this, performanceMonitor);
         String displayBackend = config.displayConfig().resolveBackend(config.guiConfig().backend());
-        emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings displaySettings =
-                emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings.of(
+        DisplayRuntimeSettings displaySettings =
+                DisplayRuntimeSettings.of(
                         config.displayConfig().viewDistanceBlocks(),
                         config.displayConfig().refreshIntervalTicks());
-        textDisplayService = emaki.jiuwu.craft.corelib.display.DisplayServiceFactory.createTextService(
+        textDisplayService = DisplayServiceFactory.createTextService(
                 this, displayBackend, displaySettings, executionDispatcher);
-        itemDisplayService = emaki.jiuwu.craft.corelib.display.DisplayServiceFactory.createItemService(
+        itemDisplayService = DisplayServiceFactory.createItemService(
                 this, displayBackend, displaySettings, executionDispatcher);
-        dialogService = new emaki.jiuwu.craft.corelib.dialog.DialogService(
+        dialogService = new DialogService(
                 this,
-                new emaki.jiuwu.craft.corelib.dialog.DialogLoader(this, config.dialogConfig().directory()),
+                new DialogLoader(this, config.dialogConfig().directory()),
                 itemSourceService,
                 executionDispatcher);
         dialogService.setEnabled(config.dialogConfig().enabled());
         dialogService.load();
-        gameplayEventPublisher = new emaki.jiuwu.craft.corelib.event.gameplay.GameplayEventPublisher(
+        gameplayEventPublisher = new GameplayEventPublisher(
                 this, executionDispatcher, eventBus,
                 () -> configModel == null ? null : configModel.gameplayEventConfig(),
                 mythicMobBridge);
@@ -650,7 +669,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             boolean copied = YamlFiles.copyResourceIfMissing(this, relativePath, target);
             if (!copied && !target.exists()) {
                 if (messageService != null) {
-                    messageService.warning("loader.bundled_resource_missing", java.util.Map.of(
+                    messageService.warning("loader.bundled_resource_missing", Map.of(
                             "type", "资源",
                             "path", target.getPath(),
                             "resource", relativePath
@@ -661,7 +680,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             }
         } catch (Exception exception) {
             if (messageService != null) {
-                messageService.warning("loader.bundled_resource_write_failed", java.util.Map.of(
+                messageService.warning("loader.bundled_resource_write_failed", Map.of(
                         "path", target.getPath(),
                         "error", String.valueOf(exception.getMessage())
                 ));
@@ -684,7 +703,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {
             if (messageService != null) {
-                messageService.warning("console.action_config_load_failed", java.util.Map.of(
+                messageService.warning("console.action_config_load_failed", Map.of(
                         "error", String.valueOf(exception.getMessage())
                 ));
             } else {
@@ -711,7 +730,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
     }
 
-    public emaki.jiuwu.craft.corelib.dialog.DialogService dialogService() {
+    public DialogService dialogService() {
         return dialogService;
     }
 
@@ -721,7 +740,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
      * <p>按 CoreLib 的 {@code display.*} 配置创建，供无特殊需求的模块直接取用。
      * 需要独立配置的模块应改用 {@code DisplayServiceFactory} 自建实例，并自行负责关闭。
      */
-    public emaki.jiuwu.craft.corelib.display.TextDisplayService textDisplayService() {
+    public TextDisplayService textDisplayService() {
         return textDisplayService;
     }
 
@@ -735,7 +754,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
 
 
-    public emaki.jiuwu.craft.corelib.event.EmakiEventBus eventBus() {
+    public EmakiEventBus eventBus() {
         return eventBus;
     }
 
@@ -935,7 +954,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return performanceMonitor;
     }
 
-    public emaki.jiuwu.craft.corelib.gui.GuiBackend guiBackend() {
+    public GuiBackend guiBackend() {
         return guiBackend;
     }
 
@@ -965,7 +984,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             return;
         }
         try {
-            emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller.install(this, guiBackendRegistry, executionDispatcher);
+            PacketBackendInstaller.install(this, guiBackendRegistry, executionDispatcher);
         } catch (LinkageError | RuntimeException exception) {
             getLogger().warning("Failed to register the packet GUI backend: " + exception.getMessage()
                     + ". EmakiCoreLib will use the Bukkit (entity) backend.");
@@ -1020,7 +1039,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
      * <p>Never {@code null}. When the table is disabled or could not be downloaded
      * it simply reports unavailable, so callers can query it unconditionally.
      */
-    public emaki.jiuwu.craft.corelib.text.VanillaTranslationService vanillaTranslationService() {
+    public VanillaTranslationService vanillaTranslationService() {
         return vanillaTranslationService;
     }
 
@@ -1040,11 +1059,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
         String locale = languageConfig.locale();
         String minecraftVersion = resolveMinecraftVersion();
-        java.nio.file.Path cacheDirectory = getDataFolder().toPath().resolve("lang-cache");
+        Path cacheDirectory = getDataFolder().toPath().resolve("lang-cache");
         asyncTaskScheduler.runAsync("corelib-vanilla-language", () -> {
-            emaki.jiuwu.craft.corelib.text.VanillaLanguageDownloader downloader =
-                    new emaki.jiuwu.craft.corelib.text.VanillaLanguageDownloader(getLogger(), cacheDirectory);
-            java.util.Map<String, String> table = downloader.load(minecraftVersion, locale);
+            VanillaLanguageDownloader downloader =
+                    new VanillaLanguageDownloader(getLogger(), cacheDirectory);
+            Map<String, String> table = downloader.load(minecraftVersion, locale);
             if (table.isEmpty()) {
                 getLogger().info("Vanilla language table for '" + locale
                         + "' is unavailable; features that need localized vanilla names stay disabled.");
@@ -1057,7 +1076,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     private String resolveMinecraftVersion() {
         try {
-            return java.util.Objects.requireNonNullElse(getServer().getMinecraftVersion(), "").trim();
+            return Objects.requireNonNullElse(getServer().getMinecraftVersion(), "").trim();
         } catch (RuntimeException | LinkageError _) {
             return "";
         }
@@ -1135,7 +1154,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerService(OraxenBlockBridgeProvider.class, (OraxenBlockBridgeProvider) oraxenBlockBridge);
         registerService(MythicMobBridge.class, mythicMobBridge);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
-        registerService(emaki.jiuwu.craft.corelib.event.EmakiEventBus.class, eventBus);
+        registerService(EmakiEventBus.class, eventBus);
     }
 
     private <T> void registerService(Class<T> type, T service) {

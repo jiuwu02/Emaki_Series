@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
+import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
@@ -33,7 +34,7 @@ public final class DefaultProfileRegistry {
                     ? null
                     : plugin.configModel().defaultProfile();
             if (profile == null) {
-                profile = emaki.jiuwu.craft.attribute.config.AttributeConfig.defaults().defaultProfile();
+                profile = AttributeConfig.defaults().defaultProfile();
             }
             if (profile == null) {
                 loaded = true;

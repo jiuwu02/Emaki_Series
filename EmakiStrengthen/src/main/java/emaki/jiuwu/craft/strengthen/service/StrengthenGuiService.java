@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.strengthen.service;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
@@ -62,7 +64,7 @@ public final class StrengthenGuiService implements Listener {
                 plugin,
                 player,
                 template,
-                java.util.Map.of(),
+                Map.of(),
                 (guiSession, slot) -> renderer.renderSlot(state, slot),
                 interactionController.createSessionHandler(state)
         ));
@@ -102,7 +104,7 @@ public final class StrengthenGuiService implements Listener {
         }
         ItemStack heldItem = player.getInventory().getItemInMainHand();
         AttemptPreview heldPreview = plugin.attemptService().preview(
-                player, AttemptContext.of(heldItem, java.util.List.of()));
+                player, AttemptContext.of(heldItem, List.of()));
         if (heldPreview != null && heldPreview.recipe() != null) {
             String t = heldPreview.recipe().guiTemplate();
             if (t != null && !t.isBlank()) {

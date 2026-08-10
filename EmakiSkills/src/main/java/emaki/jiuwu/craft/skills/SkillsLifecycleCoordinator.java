@@ -56,6 +56,9 @@ import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
 import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
 
 final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiSkillsPlugin, SkillsRuntimeComponents> {
 
@@ -250,7 +253,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiSkillsPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
-        emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin, closeInventories);
             return CompletableFuture.completedFuture(null);
@@ -486,7 +489,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
         Map<String, Integer> limits = new LinkedHashMap<>();
         for (String key : section.getKeys(false)) {
-            String tag = emaki.jiuwu.craft.corelib.api.text.Texts.normalizeId(key).replace('-', '_');
+            String tag = Texts.normalizeId(key).replace('-', '_');
             int limit = intValue(section.getInt(key), 0);
             if (!tag.isBlank() && limit > 0) {
                 limits.put(tag, limit);
@@ -570,7 +573,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                     tc.enabled(),
                     incompatible,
                     null,
-                    emaki.jiuwu.craft.skills.trigger.TriggerCategory.PASSIVE
+                    TriggerCategory.PASSIVE
             ));
         }
     }

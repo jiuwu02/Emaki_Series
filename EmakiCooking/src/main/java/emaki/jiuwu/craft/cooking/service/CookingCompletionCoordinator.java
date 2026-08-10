@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -246,7 +247,7 @@ public final class CookingCompletionCoordinator {
             payload.put("description", input.description());
             payload.put("inventory_slot", "main_hand");
             units.add(new Unit(
-                    request.operationId() + ":input:" + String.format(java.util.Locale.ROOT, "%04d", index++),
+                    request.operationId() + ":input:" + String.format(Locale.ROOT, "%04d", index++),
                     UnitKind.PLAYER_INVENTORY_INPUT,
                     UnitState.PENDING,
                     Semantics.AT_MOST_ONCE_AFTER_DURABLE_INTENT,
@@ -656,7 +657,7 @@ public final class CookingCompletionCoordinator {
         if (debugLogger == null) {
             return;
         }
-        debugLogger.log("station", (java.util.UUID) null, langKey, replacements);
+        debugLogger.log("station", (UUID) null, langKey, replacements);
     }
 
     private void remove(CookingCompletionOperation operation) {

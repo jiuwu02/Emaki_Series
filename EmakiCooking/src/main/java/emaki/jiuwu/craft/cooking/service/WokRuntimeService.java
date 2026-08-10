@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -44,6 +47,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class WokRuntimeService {
 
@@ -104,12 +108,12 @@ public final class WokRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> replace(
+            public CompletionStage<Void> replace(
                     StationCoordinates coordinates,
                     Map<String, Object> committedState) {
                 WokState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
-                    return java.util.concurrent.CompletableFuture.failedFuture(
+                    return CompletableFuture.failedFuture(
                             new IllegalArgumentException("Invalid committed wok state"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
@@ -118,7 +122,7 @@ public final class WokRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+            public CompletionStage<Void> delete(StationCoordinates coordinates) {
                 return stateStore.deleteAsync(coordinates)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
                         .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> clearRuntimeVisuals(coordinates)));
@@ -131,7 +135,7 @@ public final class WokRuntimeService {
         stateStore.forEachLoadedState(StationType.WOK, this::restoreStoredState);
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
@@ -1072,14 +1076,14 @@ public final class WokRuntimeService {
         if (plugin == null || plugin.debugLogger() == null) {
             return;
         }
-        plugin.debugLogger().log("station", (java.util.UUID) null, langKey, replacements);
+        plugin.debugLogger().log("station", (UUID) null, langKey, replacements);
     }
 
     private void debugStir(String langKey, Map<String, ?> replacements) {
         if (plugin == null || plugin.debugLogger() == null) {
             return;
         }
-        plugin.debugLogger().log("stir", (java.util.UUID) null, langKey, replacements);
+        plugin.debugLogger().log("stir", (UUID) null, langKey, replacements);
     }
 
     private Map<String, Object> serializeState(StationCoordinates coordinates, WokState state) {
@@ -1321,13 +1325,13 @@ public final class WokRuntimeService {
         textDisplayService.removeStation(StationType.WOK, coordinates);
     }
 
-    private WokState readState(emaki.jiuwu.craft.corelib.api.yaml.YamlSection section) {
+    private WokState readState(YamlSection section) {
         if (section == null || !StationType.WOK.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
             return null;
         }
         List<WokIngredientState> ingredients = new ArrayList<>();
         for (Map<?, ?> entry : section.getMapList("wok.ingredients")) {
-            Map<String, Object> normalized = emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection.normalizeMap(entry);
+            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
             String source = String.valueOf(normalized.getOrDefault("source", ""));
             if (Texts.isBlank(source)) {
                 continue;

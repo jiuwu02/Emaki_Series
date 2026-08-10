@@ -3,9 +3,12 @@ package emaki.jiuwu.craft.item.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Supplier;
 
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -29,6 +32,7 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.RepairCurrencyCost;
 import emaki.jiuwu.craft.item.model.RepairEconomyConfig;
 import emaki.jiuwu.craft.item.model.RepairMaterial;
+import emaki.jiuwu.craft.item.api.event.ItemRepairEvent;
 
 public final class ItemRepairService {
 
@@ -388,7 +392,7 @@ public final class ItemRepairService {
         if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return new ItemRepairEventResult(false, restoreAmount);
         }
-        emaki.jiuwu.craft.item.api.event.ItemRepairEvent event = new emaki.jiuwu.craft.item.api.event.ItemRepairEvent(
+        ItemRepairEvent event = new ItemRepairEvent(
                 player,
                 equipment,
                 definition == null ? "" : definition.id(),
@@ -396,7 +400,7 @@ public final class ItemRepairService {
                 restoreAmount,
                 currentDamage(equipment),
                 maxDamage(equipment));
-        org.bukkit.Bukkit.getPluginManager().callEvent(event);
+        Bukkit.getPluginManager().callEvent(event);
         return new ItemRepairEventResult(event.isCancelled(), event.getRestoreAmount());
     }
 
@@ -627,7 +631,7 @@ public final class ItemRepairService {
         if (Math.rint(value) == value) {
             return Long.toString(Math.round(value));
         }
-        return String.format(java.util.Locale.ROOT, "%.2f", value);
+        return String.format(Locale.ROOT, "%.2f", value);
     }
 
     private record MaterialDebit(boolean success, List<InventoryItemUtil.RemovalPlan> plans) {
@@ -701,7 +705,7 @@ public final class ItemRepairService {
         replacements.put("changed", Map.of());
         replacements.put("committed", committed);
         replacements.put("reason", "");
-        plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.mutation", replacements);
+        plugin.debugLogger().log("pdc", (UUID) null, "pdc.mutation", replacements);
     }
 
     private EconomyManager economyManager() {

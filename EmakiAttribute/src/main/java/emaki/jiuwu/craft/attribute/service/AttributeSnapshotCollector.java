@@ -142,7 +142,7 @@ final class AttributeSnapshotCollector {
 
     private AttributeSnapshot collectLivingCombatSnapshot(LivingEntity entity) {
         EntityEquipment equipment = entity.getEquipment();
-        IntFunction<org.bukkit.inventory.ItemStack> itemResolver = equipment == null ? null : index -> switch (index) {
+        IntFunction<ItemStack> itemResolver = equipment == null ? null : index -> switch (index) {
             case 0 -> equipment.getItemInMainHand();
             case 1 -> equipment.getItemInOffHand();
             case 2 -> equipment.getHelmet();
@@ -155,7 +155,7 @@ final class AttributeSnapshotCollector {
     }
 
     private AttributeSnapshot collectCombatSnapshot(LivingEntity entity,
-            IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+            IntFunction<ItemStack> itemResolver,
             Player playerOrNull) {
         List<String> signatureParts = new ArrayList<>();
         signatureParts.add("defaults:" + service.registryService().defaultProfilesSignature());
@@ -207,26 +207,26 @@ final class AttributeSnapshotCollector {
         return snapshot;
     }
 
-    private void collectEquipmentSnapshots(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+    private void collectEquipmentSnapshots(IntFunction<ItemStack> itemResolver,
             Player player,
             Map<String, Double> values,
             List<String> signatureParts) {
         collectEquipment(itemResolver, player, values, signatureParts);
     }
 
-    private void collectEquipmentSignatures(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+    private void collectEquipmentSignatures(IntFunction<ItemStack> itemResolver,
             Player playerOrNull,
             List<String> signatureParts) {
         collectEquipment(itemResolver, playerOrNull, null, signatureParts);
     }
 
-    private void collectEquipmentSnapshots(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+    private void collectEquipmentSnapshots(IntFunction<ItemStack> itemResolver,
             Player playerOrNull,
             Map<String, Double> values) {
         collectEquipment(itemResolver, playerOrNull, values, null);
     }
 
-    private void collectEquipment(IntFunction<org.bukkit.inventory.ItemStack> itemResolver,
+    private void collectEquipment(IntFunction<ItemStack> itemResolver,
             Player playerOrNull,
             Map<String, Double> values,
             List<String> signatureParts) {
@@ -239,7 +239,7 @@ final class AttributeSnapshotCollector {
             return;
         }
         for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
-            org.bukkit.inventory.ItemStack itemStack = itemResolver.apply(index);
+            ItemStack itemStack = itemResolver.apply(index);
             String slotName = EQUIPMENT_SLOT_NAMES[index];
             PdcAttributeService.PdcAttributeViews views = !service.config().readPdcAttributes()
                     ? null

@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.strengthen;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -290,7 +293,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     }
 
     private Map<Integer, Double> parseSuccessRates(YamlSection section, Map<Integer, Double> fallback) {
-        Map<Integer, Double> rates = new java.util.LinkedHashMap<>();
+        Map<Integer, Double> rates = new LinkedHashMap<>();
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 Integer star = Numbers.tryParseInt(key, null);
@@ -303,8 +306,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         return rates.isEmpty() ? fallback : Map.copyOf(rates);
     }
 
-    private java.util.List<Integer> parseIntegerList(YamlSection section, Object raw, java.util.Set<Integer> fallback) {
-        java.util.List<Integer> values = new java.util.ArrayList<>();
+    private List<Integer> parseIntegerList(YamlSection section, Object raw, Set<Integer> fallback) {
+        List<Integer> values = new ArrayList<>();
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 Integer value = Numbers.tryParseInt(section.get(key), null);
@@ -321,9 +324,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             }
         }
         if (values.isEmpty()) {
-            return java.util.List.copyOf(fallback);
+            return List.copyOf(fallback);
         }
-        return java.util.List.copyOf(values);
+        return List.copyOf(values);
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {

@@ -3,7 +3,9 @@ package emaki.jiuwu.craft.forge.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -77,7 +79,7 @@ public final class RecipeBookGuiService {
         if (guiState != ForgeGuiState.READY) {
             if (runtime.messageService() != null) {
                 runtime.messageService().send(player,
-                        "forge.error.runtime." + guiState.name().toLowerCase(java.util.Locale.ROOT));
+                        "forge.error.runtime." + guiState.name().toLowerCase(Locale.ROOT));
             }
             return false;
         }
@@ -167,7 +169,7 @@ public final class RecipeBookGuiService {
     public List<Player> openPlayersSnapshot() {
         return openBooks.values().stream()
                 .map(session -> session.player)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .toList();
     }
 

@@ -6,6 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -78,7 +79,7 @@ final class ForgePlayerDataListener implements Listener {
             return;
         }
         Throwable cause = AsyncFailures.unwrapOnce(throwable);
-        plugin.getLogger().log(java.util.logging.Level.WARNING,
+        plugin.getLogger().log(Level.WARNING,
                 "[PlayerDataStore] Async " + operation + " failed for " + playerId,
                 cause);
     }

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.skills.apiimpl;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,7 +35,7 @@ public final class DefaultSkillCatalog implements SkillCatalog {
         }
         return plugin.skillDefinitionLoader().all().values().stream()
                 .map(DefaultSkillCatalog::toView)
-                .sorted(java.util.Comparator.comparing(SkillDefinitionView::id))
+                .sorted(Comparator.comparing(SkillDefinitionView::id))
                 .toList();
     }
 

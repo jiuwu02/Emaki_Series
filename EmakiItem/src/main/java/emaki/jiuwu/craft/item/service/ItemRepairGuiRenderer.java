@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.item.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
@@ -202,7 +203,7 @@ final class ItemRepairGuiRenderer {
         if (Math.rint(value) == value) {
             return Long.toString(Math.round(value));
         }
-        return String.format(java.util.Locale.ROOT, "%.2f", value);
+        return String.format(Locale.ROOT, "%.2f", value);
     }
 
     private static int parseMaterialIndex(String type) {

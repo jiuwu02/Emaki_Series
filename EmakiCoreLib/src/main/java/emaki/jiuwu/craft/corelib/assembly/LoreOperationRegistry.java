@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.assembly;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.Set;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 
 public final class LoreOperationRegistry {
 
@@ -174,7 +176,7 @@ public final class LoreOperationRegistry {
         }
 
         private void replaceNthOrLast(List<String> lines, String anchor, String replacement, int requestedIndex) {
-            List<Integer> matches = new java.util.ArrayList<>();
+            List<Integer> matches = new ArrayList<>();
             for (int index = 0; index < lines.size(); index++) {
                 if (Texts.toStringSafe(lines.get(index)).contains(anchor)) {
                     matches.add(index);
@@ -196,7 +198,7 @@ public final class LoreOperationRegistry {
         }
 
         private int parseRequestedIndex(Object rawIndex) {
-            Integer parsed = emaki.jiuwu.craft.corelib.api.math.Numbers.tryParseInt(rawIndex, null);
+            Integer parsed = Numbers.tryParseInt(rawIndex, null);
             return parsed == null ? 0 : Math.max(0, parsed);
         }
     }

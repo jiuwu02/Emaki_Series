@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.display;
 
+import org.bukkit.Location;
+
 /**
  * 物品展示实体服务。
  *
@@ -39,7 +41,7 @@ public interface ItemDisplayService {
      */
     void playTransformAnimation(String namespace,
             String group,
-            org.bukkit.Location anchor,
+            Location anchor,
             double heightOffset,
             String rotationAxis,
             double rotationDegrees,

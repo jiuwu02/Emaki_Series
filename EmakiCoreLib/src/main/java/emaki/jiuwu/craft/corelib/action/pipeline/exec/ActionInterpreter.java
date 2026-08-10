@@ -4,7 +4,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -56,8 +61,8 @@ public final class ActionInterpreter {
             @NotNull StageDispatcher dispatcher,
             @Nullable SequenceRepository sequences,
             @Nullable PipelineLimits limits) {
-        this.invoker = java.util.Objects.requireNonNull(invoker, "invoker");
-        this.dispatcher = java.util.Objects.requireNonNull(dispatcher, "dispatcher");
+        this.invoker = Objects.requireNonNull(invoker, "invoker");
+        this.dispatcher = Objects.requireNonNull(dispatcher, "dispatcher");
         this.sequences = sequences == null ? SequenceRepository.empty() : sequences;
         this.limits = limits == null ? PipelineLimits.defaults() : limits;
     }
@@ -73,9 +78,9 @@ public final class ActionInterpreter {
     public @NotNull CompletableFuture<PipelineOutcome> run(@NotNull Plugin owner,
             @NotNull CompiledPipeline pipeline,
             @NotNull PipelineContext context) {
-        java.util.Objects.requireNonNull(owner, "owner");
-        java.util.Objects.requireNonNull(pipeline, "pipeline");
-        java.util.Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(pipeline, "pipeline");
+        Objects.requireNonNull(context, "context");
         if (pipeline.empty()) {
             return CompletableFuture.completedFuture(
                     PipelineOutcome.skipped("action.run.empty_pipeline", List.of()));
@@ -661,14 +666,14 @@ public final class ActionInterpreter {
 
     private static CoreActionOutcome throwableOutcome(Throwable throwable) {
         Throwable cause = throwable;
-        while (cause instanceof java.util.concurrent.CompletionException
-                || cause instanceof java.util.concurrent.ExecutionException) {
+        while (cause instanceof CompletionException
+                || cause instanceof ExecutionException) {
             cause = cause.getCause();
         }
-        if (cause instanceof java.util.concurrent.TimeoutException) {
+        if (cause instanceof TimeoutException) {
             return CoreActionOutcome.failure(CoreActionFailureKind.TIMEOUT, "action.run.timeout");
         }
-        if (cause instanceof java.util.concurrent.CancellationException) {
+        if (cause instanceof CancellationException) {
             return CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED, "action.run.cancelled");
         }
         if (cause instanceof StageDispatcher.OwnerDisabledException) {

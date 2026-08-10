@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.forge.api.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
@@ -78,7 +79,7 @@ public record ForgeRecipeView(@NotNull String id,
         if (requiredMaterials.isEmpty()) {
             return optionalMaterials;
         }
-        List<ForgeMaterialView> combined = new java.util.ArrayList<>(requiredMaterials.size() + optionalMaterials.size());
+        List<ForgeMaterialView> combined = new ArrayList<>(requiredMaterials.size() + optionalMaterials.size());
         combined.addAll(requiredMaterials);
         combined.addAll(optionalMaterials);
         return List.copyOf(combined);

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.station.recipe;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -257,7 +258,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
         if (raw == null || raw.isEmpty()) {
             return null;
         }
-        Map<String, Object> normalized = new java.util.LinkedHashMap<>();
+        Map<String, Object> normalized = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : raw.entrySet()) {
             if (entry.getKey() != null) {
                 normalized.put(String.valueOf(entry.getKey()), entry.getValue());

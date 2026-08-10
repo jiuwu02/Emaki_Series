@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 
@@ -164,7 +165,7 @@ public final class StrengthenActionCoordinator {
         var message = plugin.messageService() == null
                 ? ""
                 : plugin.messageService().message("strengthen.misc.default_item_name");
-        return emaki.jiuwu.craft.corelib.api.text.Texts.isBlank(message) ? "物品" : message;
+        return Texts.isBlank(message) ? "物品" : message;
     }
 
     private String resolveSuccessRate(StrengthenRecipe recipe, int currentStar, int temper) {

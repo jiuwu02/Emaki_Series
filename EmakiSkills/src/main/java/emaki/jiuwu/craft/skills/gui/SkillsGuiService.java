@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.skills.gui;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
@@ -738,7 +739,7 @@ public final class SkillsGuiService {
         Map<String, Object> replacements = baseSkillReplacements(player, definition);
         replacements.put("equipped", equipped);
         replacements.put("source", sourceLabel == null ? "" : sourceLabel);
-        replacements.put("source_type", entry == null || entry.sourceType() == null ? "" : entry.sourceType().name().toLowerCase(java.util.Locale.ROOT));
+        replacements.put("source_type", entry == null || entry.sourceType() == null ? "" : entry.sourceType().name().toLowerCase(Locale.ROOT));
         return replacements;
     }
 
@@ -761,6 +762,6 @@ public final class SkillsGuiService {
     }
 
     private String cooldownSeconds(long cooldownTicks) {
-        return String.format(java.util.Locale.ROOT, "%.1f", cooldownTicks / 20.0D);
+        return String.format(Locale.ROOT, "%.1f", cooldownTicks / 20.0D);
     }
 }

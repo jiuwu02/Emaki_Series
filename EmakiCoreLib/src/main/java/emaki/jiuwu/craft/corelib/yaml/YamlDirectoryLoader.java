@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -250,7 +251,7 @@ public abstract class YamlDirectoryLoader<T> {
                 collectYamlFiles(entry, sink);
                 continue;
             }
-            String name = entry.getName().toLowerCase(java.util.Locale.ROOT);
+            String name = entry.getName().toLowerCase(Locale.ROOT);
             if (name.endsWith(".yml") || name.endsWith(".yaml")) {
                 sink.add(entry);
             }

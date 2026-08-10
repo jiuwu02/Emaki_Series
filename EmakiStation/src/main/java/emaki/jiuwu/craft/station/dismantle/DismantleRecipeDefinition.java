@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.station.dismantle;
 import java.util.List;
 import java.util.Set;
 
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 
 /**
@@ -27,7 +28,7 @@ public record DismantleRecipeDefinition(
         String displayName,
         String stationId,
         Set<String> tags,
-        emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef inputSource,
+        ItemSourceRef inputSource,
         RollsRange rolls,
         List<DismantlePoolEntry> pool,
         String permission,

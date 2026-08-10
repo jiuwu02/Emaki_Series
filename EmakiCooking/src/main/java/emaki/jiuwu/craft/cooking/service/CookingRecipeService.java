@@ -2,8 +2,10 @@ package emaki.jiuwu.craft.cooking.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
@@ -18,6 +20,13 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import org.bukkit.entity.Player;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import me.clip.placeholderapi.PlaceholderAPI;
+import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 public final class CookingRecipeService {
 
@@ -259,7 +268,7 @@ public final class CookingRecipeService {
             return ConditionEvaluator.evaluate(
                     condition,
                     text -> resolvePlaceholders(player, text),
-                    ConditionContext.of(player, null, java.util.Map.of("recipeId", recipe.id()))
+                    ConditionContext.of(player, null, Map.of("recipeId", recipe.id()))
             );
         }
         return true;
@@ -300,7 +309,7 @@ public final class CookingRecipeService {
         return ConditionEvaluator.evaluate(
                 condition,
                 text -> resolvePlaceholders(player, text),
-                ConditionContext.of(player, null, java.util.Map.of("recipeId", recipe.id()))
+                ConditionContext.of(player, null, Map.of("recipeId", recipe.id()))
         );
     }
 
@@ -483,7 +492,7 @@ public final class CookingRecipeService {
 
     private List<ItemSourceRef> parseItemSources(Object raw) {
         List<ItemSourceRef> sources = new ArrayList<>();
-        for (Object token : emaki.jiuwu.craft.corelib.api.config.ConfigNodes.asObjectList(raw)) {
+        for (Object token : ConfigNodes.asObjectList(raw)) {
             ItemSourceRef source = ItemSourceUtil.parse(token);
             if (source != null) {
                 sources.add(source);
@@ -496,7 +505,7 @@ public final class CookingRecipeService {
         parsedSourceCache.clear();
     }
 
-    public boolean satisfiesPreviousStep(RecipeDocument recipe, org.bukkit.inventory.ItemStack itemStack) {
+    public boolean satisfiesPreviousStep(RecipeDocument recipe, ItemStack itemStack) {
         if (recipe == null || itemStack == null || itemStack.getType().isAir()) {
             return true;
         }
@@ -504,32 +513,32 @@ public final class CookingRecipeService {
         if (Texts.isBlank(requiredStep)) {
             return true;
         }
-        org.bukkit.inventory.meta.ItemMeta meta = itemStack.getItemMeta();
+        ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) {
             return false;
         }
-        org.bukkit.NamespacedKey key = new org.bukkit.NamespacedKey(plugin, "cooking_history");
-        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        String history = pdc.getOrDefault(key, org.bukkit.persistence.PersistentDataType.STRING, "");
+        NamespacedKey key = new NamespacedKey(plugin, "cooking_history");
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        String history = pdc.getOrDefault(key, PersistentDataType.STRING, "");
         return history.contains(requiredStep);
     }
 
-    public void writeProcessingHistory(org.bukkit.inventory.ItemStack itemStack, String recipeId) {
+    public void writeProcessingHistory(ItemStack itemStack, String recipeId) {
         if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(recipeId)) {
             return;
         }
-        org.bukkit.inventory.meta.ItemMeta meta = itemStack.getItemMeta();
+        ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) {
             return;
         }
-        org.bukkit.NamespacedKey key = new org.bukkit.NamespacedKey(plugin, "cooking_history");
-        org.bukkit.persistence.PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        String existing = pdc.getOrDefault(key, org.bukkit.persistence.PersistentDataType.STRING, "");
+        NamespacedKey key = new NamespacedKey(plugin, "cooking_history");
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        String existing = pdc.getOrDefault(key, PersistentDataType.STRING, "");
         String updated = existing.isEmpty() ? recipeId : existing + "," + recipeId;
-        pdc.set(key, org.bukkit.persistence.PersistentDataType.STRING, updated);
+        pdc.set(key, PersistentDataType.STRING, updated);
         boolean committed = itemStack.setItemMeta(meta);
         if (plugin.debugLogger() != null) {
-            plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.cooking_history", Map.of(
+            plugin.debugLogger().log("pdc", (UUID) null, "pdc.cooking_history", Map.of(
                     "item", itemStack.getType(),
                     "amount", itemStack.getAmount(),
                     "key", key,
@@ -568,7 +577,7 @@ public final class CookingRecipeService {
         }
         if (resolved.indexOf('%') >= 0 && plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             try {
-                resolved = Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, resolved));
+                resolved = Texts.toStringSafe(PlaceholderAPI.setPlaceholders(player, resolved));
             } catch (Exception | NoClassDefFoundError _) {
             }
         }
@@ -576,7 +585,7 @@ public final class CookingRecipeService {
     }
 
     private Map<String, String> playerVariables(Player player) {
-        Map<String, String> values = new java.util.LinkedHashMap<>();
+        Map<String, String> values = new LinkedHashMap<>();
         values.put("player_name", player.getName());
         values.put("player_level", Integer.toString(player.getLevel()));
         values.put("player_exp", Float.toString(player.getExp()));

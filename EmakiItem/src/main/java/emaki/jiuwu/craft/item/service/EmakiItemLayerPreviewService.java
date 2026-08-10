@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -109,7 +110,7 @@ public final class EmakiItemLayerPreviewService {
             );
         }
         String pieceId = membership.effectivePieceId(definition.id());
-        EquippedSetState state = new EquippedSetState(setDefinition, java.util.Set.of(pieceId));
+        EquippedSetState state = new EquippedSetState(setDefinition, Set.of(pieceId));
         List<String> setLore = new ItemSetLoreRenderer().render(state);
         appendSetLore(itemStack, setLore);
         return mapOf(

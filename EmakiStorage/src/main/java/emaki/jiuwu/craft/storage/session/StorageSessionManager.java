@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
@@ -26,6 +27,8 @@ import emaki.jiuwu.craft.storage.model.SearchQuery;
 import emaki.jiuwu.craft.storage.model.SortMode;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.service.StorageUnlockService;
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.dialog.DialogService;
 
 /**
  * Opens warehouse windows and owns the chat-driven interactions.
@@ -392,9 +395,9 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
     }
 
     /** {@return CoreLib 的对话框服务；不可用时为 {@code null}} */
-    private emaki.jiuwu.craft.corelib.dialog.DialogService dialogService() {
-        var coreLib = org.bukkit.plugin.java.JavaPlugin
-                .getPlugin(emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin.class);
+    private DialogService dialogService() {
+        var coreLib = JavaPlugin
+                .getPlugin(EmakiCoreLibPlugin.class);
         return coreLib == null ? null : coreLib.dialogService();
     }
 

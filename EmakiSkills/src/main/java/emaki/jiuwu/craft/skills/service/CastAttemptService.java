@@ -41,6 +41,7 @@ import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptMode;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.skills.model.SkillActivationType;
 
 public final class CastAttemptService {
 
@@ -250,7 +251,7 @@ public final class CastAttemptService {
             CastBypass bypass) {
         if (definition == null || !definition.enabled()
                 || (requireActive && definition.activationType()
-                        != emaki.jiuwu.craft.skills.model.SkillActivationType.ACTIVE)) {
+                        != SkillActivationType.ACTIVE)) {
             return AttemptPlan.failure(player, FailureReason.SKILL_NOT_FOUND, "skill.not_found");
         }
         return AttemptPlan.ready(player, definition, triggerId, invocation, bypass);

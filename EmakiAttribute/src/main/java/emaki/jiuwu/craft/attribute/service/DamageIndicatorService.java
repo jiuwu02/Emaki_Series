@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.attribute.service;
 
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -302,7 +303,7 @@ public final class DamageIndicatorService {
         if (value == Math.rint(value) && !Double.isInfinite(value)) {
             return String.valueOf((long) value);
         }
-        return String.format(java.util.Locale.ROOT, "%.1f", value);
+        return String.format(Locale.ROOT, "%.1f", value);
     }
 
     private DamageIndicatorConfig config() {

@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -54,7 +56,7 @@ final class ItemCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+        return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -81,7 +83,7 @@ final class ItemCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "repair", "update", "alias", "migrate", "reload", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
+                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -91,14 +93,14 @@ final class ItemCommandRouter implements TabExecutor {
             List<String> debugSuggestions = new ArrayList<>(
                     plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length))
             );
-            if (args.length == 2 && "stats".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+            if (args.length == 2 && "stats".startsWith(args[1].toLowerCase(Locale.ROOT))) {
                 debugSuggestions.add("stats");
             }
             return debugSuggestions.stream().distinct().toList();
         }
         if (args.length == 2 && "alias".equalsIgnoreCase(args[0])) {
             for (String sub : List.of("list", "add", "remove")) {
-                if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -106,17 +108,17 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length == 2 && "migrate".equalsIgnoreCase(args[0])) {
             for (String sub : List.of("id", "inventory")) {
-                if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
             return result;
         }
         if (args.length == 2) {
-            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+            switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "give", "inspect", "update" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 case "components", "component" -> {
-                    if ("yaml".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                    if ("yaml".startsWith(args[1].toLowerCase(Locale.ROOT))) {
                         result.add("yaml");
                     }
                     result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
@@ -154,7 +156,7 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length == 3 && "give".equalsIgnoreCase(args[0])) {
             plugin.itemLoader().all().keySet().stream()
-                    .filter(id -> id.startsWith(args[2].toLowerCase(java.util.Locale.ROOT)))
+                    .filter(id -> id.startsWith(args[2].toLowerCase(Locale.ROOT)))
                     .forEach(result::add);
             return result;
         }
@@ -474,7 +476,7 @@ final class ItemCommandRouter implements TabExecutor {
         if (args.length >= 5 && "id".equalsIgnoreCase(args[1])) {
             String oldId = Texts.normalizeId(args[2]);
             String newId = Texts.normalizeId(args[3]);
-            String mode = args[4].toLowerCase(java.util.Locale.ROOT);
+            String mode = args[4].toLowerCase(Locale.ROOT);
             try {
                 if ("--dry-run".equals(mode)) {
                     Map<String, Object> preview = plugin.migrationService().preview(oldId, newId);
@@ -505,7 +507,7 @@ final class ItemCommandRouter implements TabExecutor {
                 }
                 AtomicInteger totalChanged = new AtomicInteger();
                 AtomicInteger remaining = new AtomicInteger(targets.size());
-                java.util.function.IntConsumer complete = changed -> {
+                IntConsumer complete = changed -> {
                     totalChanged.addAndGet(changed);
                     if (remaining.decrementAndGet() == 0) {
                         runForSender(sender, () -> plugin.messageService().sendRaw(sender,
@@ -605,9 +607,9 @@ final class ItemCommandRouter implements TabExecutor {
     }
 
     private void completeComponentIds(List<String> result, Player player, String prefix) {
-        String normalizedPrefix = Texts.toStringSafe(prefix).toLowerCase(java.util.Locale.ROOT);
+        String normalizedPrefix = Texts.toStringSafe(prefix).toLowerCase(Locale.ROOT);
         for (String id : plugin.componentInspector().ids(player.getInventory().getItemInMainHand())) {
-            if (id.toLowerCase(java.util.Locale.ROOT).startsWith(normalizedPrefix) && !result.contains(id)) {
+            if (id.toLowerCase(Locale.ROOT).startsWith(normalizedPrefix) && !result.contains(id)) {
                 result.add(id);
             }
         }

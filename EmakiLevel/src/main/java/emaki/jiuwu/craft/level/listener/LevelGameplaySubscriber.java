@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.level.listener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -75,7 +76,7 @@ public final class LevelGameplaySubscriber {
     }
 
     private <T extends GameplayEvent> void subscribe(EmakiEventBus eventBus,
-            Class<T> type, java.util.function.Consumer<T> handler) {
+            Class<T> type, Consumer<T> handler) {
         subscriptions.add(eventBus.subscribe(plugin, type, handler));
     }
 

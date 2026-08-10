@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Material;
@@ -199,7 +200,7 @@ final class StructuredPresentationRenderer {
         if (material == null) {
             return "";
         }
-        String[] parts = material.name().toLowerCase(java.util.Locale.ROOT).split("_");
+        String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
         StringBuilder builder = new StringBuilder();
         for (String part : parts) {
             if (part.isEmpty()) {

@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -131,7 +132,7 @@ public final class ConfiguredGuiSupport {
         if (value == null) {
             return fallback == null ? List.of() : fallback;
         }
-        List<Integer> parsed = emaki.jiuwu.craft.corelib.api.gui.SlotParser.parse(value);
+        List<Integer> parsed = SlotParser.parse(value);
         return parsed.isEmpty() && fallback != null ? fallback : parsed;
     }
 

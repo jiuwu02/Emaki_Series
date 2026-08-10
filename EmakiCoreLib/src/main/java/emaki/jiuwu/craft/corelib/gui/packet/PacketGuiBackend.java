@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.gui.packet;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -37,6 +39,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWi
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.gui.GuiBackend;
 import emaki.jiuwu.craft.corelib.gui.GuiClickThrottle;
+import emaki.jiuwu.craft.corelib.gui.GuiClickType;
 import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionRegistry;
@@ -72,7 +75,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     @Override
-    public void open(GuiSession session, Map<Integer, org.bukkit.inventory.ItemStack> renderedSlots) {
+    public void open(GuiSession session, Map<Integer, ItemStack> renderedSlots) {
         if (session == null || session.viewer() == null) {
             return;
         }
@@ -102,7 +105,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     @Override
-    public void applySlots(GuiSession session, Map<Integer, org.bukkit.inventory.ItemStack> renderedSlots) {
+    public void applySlots(GuiSession session, Map<Integer, ItemStack> renderedSlots) {
         if (session == null || session.viewer() == null) {
             return;
         }
@@ -117,7 +120,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             int desiredSize = topSize(session);
             if (desiredSize != window.topSize) {
                 window.topSize = desiredSize;
-                window.topItems = new org.bukkit.inventory.ItemStack[desiredSize];
+                window.topItems = new ItemStack[desiredSize];
                 if (window.handlingClick) {
                     window.pendingReopen = true;
                 } else {
@@ -346,10 +349,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         debug(viewer, "common.gui.packet_send_open", windowFields(window));
     }
 
-    private void applyTopItems(PacketWindow window, Map<Integer, org.bukkit.inventory.ItemStack> renderedSlots) {
-        org.bukkit.inventory.ItemStack[] top = new org.bukkit.inventory.ItemStack[window.topSize];
+    private void applyTopItems(PacketWindow window, Map<Integer, ItemStack> renderedSlots) {
+        ItemStack[] top = new ItemStack[window.topSize];
         if (renderedSlots != null) {
-            for (Map.Entry<Integer, org.bukkit.inventory.ItemStack> entry : renderedSlots.entrySet()) {
+            for (Map.Entry<Integer, ItemStack> entry : renderedSlots.entrySet()) {
                 int slot = entry.getKey();
                 if (slot >= 0 && slot < window.topSize) {
                     top[slot] = entry.getValue();
@@ -419,9 +422,9 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         if (window.cursor == null || window.cursor.getType().isAir()) {
             return;
         }
-        Map<Integer, org.bukkit.inventory.ItemStack> overflow =
+        Map<Integer, ItemStack> overflow =
                 viewer.getInventory().addItem(window.cursor.clone());
-        for (org.bukkit.inventory.ItemStack leftover : overflow.values()) {
+        for (ItemStack leftover : overflow.values()) {
             if (leftover != null && !leftover.getType().isAir()) {
                 viewer.getWorld().dropItemNaturally(viewer.getLocation(), leftover);
             }
@@ -530,7 +533,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                             "button", click.button()
                     )
             ));
-            authoritativeResync(viewer, expectedWindow, "unsupported-" + click.clickType().name().toLowerCase(java.util.Locale.ROOT));
+            authoritativeResync(viewer, expectedWindow, "unsupported-" + click.clickType().name().toLowerCase(Locale.ROOT));
             return;
         }
 
@@ -658,7 +661,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
 
     private void playClickSound(GuiSession session,
             GuiTemplate.ResolvedSlot slot,
-            emaki.jiuwu.craft.corelib.gui.GuiClickType clickType) {
+            GuiClickType clickType) {
         if (session == null || slot == null) {
             return;
         }
@@ -717,8 +720,8 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         private final int windowId;
         private final GuiSession session;
         private int topSize;
-        private org.bukkit.inventory.ItemStack[] topItems;
-        private org.bukkit.inventory.ItemStack cursor;
+        private ItemStack[] topItems;
+        private ItemStack cursor;
         private final AtomicInteger stateId = new AtomicInteger();
         private volatile int lastSentStateId;
         private boolean handlingClick;
@@ -729,7 +732,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             this.windowId = windowId;
             this.topSize = topSize;
             this.session = session;
-            this.topItems = new org.bukkit.inventory.ItemStack[topSize];
+            this.topItems = new ItemStack[topSize];
         }
 
         int nextStateId() {
@@ -756,15 +759,15 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             return topSize;
         }
 
-        org.bukkit.inventory.ItemStack topItem(int slot) {
+        ItemStack topItem(int slot) {
             return slot >= 0 && slot < topSize ? topItems[slot] : null;
         }
 
-        org.bukkit.inventory.ItemStack cursor() {
+        ItemStack cursor() {
             return cursor;
         }
 
-        void setCursor(org.bukkit.inventory.ItemStack cursor) {
+        void setCursor(ItemStack cursor) {
             this.cursor = cursor;
         }
 

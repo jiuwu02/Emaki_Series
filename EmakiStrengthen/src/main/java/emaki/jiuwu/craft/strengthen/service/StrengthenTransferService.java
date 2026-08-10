@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.strengthen.service;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -68,7 +69,7 @@ public final class StrengthenTransferService {
 
         StrengthenTransferEvent transferEvent = new StrengthenTransferEvent(
                 player, source, target, targetState.recipeId(), sourceStar, transferredStar, request.decayRate());
-        org.bukkit.Bukkit.getPluginManager().callEvent(transferEvent);
+        Bukkit.getPluginManager().callEvent(transferEvent);
         if (transferEvent.isCancelled()) {
             return TransferResult.failure("strengthen.transfer.cancelled");
         }
@@ -90,7 +91,7 @@ public final class StrengthenTransferService {
 
         StrengthenTransferOutcome outcome = new StrengthenTransferOutcome(result, transferredStar);
         try {
-            org.bukkit.Bukkit.getPluginManager().callEvent(new StrengthenTransferCompletedEvent(
+            Bukkit.getPluginManager().callEvent(new StrengthenTransferCompletedEvent(
                     player,
                     source,
                     target,

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.item.listener;
 
 import java.util.Map;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -27,13 +28,15 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
 public final class ItemTriggerListener implements Listener {
 
-    private static final org.bukkit.NamespacedKey DISABLED_KEY = new org.bukkit.NamespacedKey("emakiitem", "disabled");
+    private static final NamespacedKey DISABLED_KEY = new NamespacedKey("emakiitem", "disabled");
 
     private static final Map<String, Object> EMPTY_PLACEHOLDERS = Map.of();
 
@@ -298,8 +301,8 @@ public final class ItemTriggerListener implements Listener {
         if (held == null || !held.hasItemMeta()) {
             return false;
         }
-        org.bukkit.persistence.PersistentDataContainer pdc = held.getItemMeta().getPersistentDataContainer();
-        Byte value = pdc.get(DISABLED_KEY, org.bukkit.persistence.PersistentDataType.BYTE);
+        PersistentDataContainer pdc = held.getItemMeta().getPersistentDataContainer();
+        Byte value = pdc.get(DISABLED_KEY, PersistentDataType.BYTE);
         return value != null && value == 1;
     }
 

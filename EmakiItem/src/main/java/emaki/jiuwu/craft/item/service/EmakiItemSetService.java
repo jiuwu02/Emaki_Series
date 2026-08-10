@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
@@ -163,11 +164,11 @@ public final class EmakiItemSetService {
                 player, triggers, dirtySlots, forceFull, contributionDirty, requestedFullReasons, sharedBatch);
     }
 
-    public void clearCachedState(java.util.UUID uuid) {
+    public void clearCachedState(UUID uuid) {
         refresher.clearCachedState(uuid);
     }
 
-    public void invalidateCachedState(java.util.UUID uuid) {
+    public void invalidateCachedState(UUID uuid) {
         refresher.invalidateCachedState(uuid);
     }
 

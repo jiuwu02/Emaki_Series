@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
@@ -141,7 +142,7 @@ final class LevelOperationJournal {
         }
     }
 
-    void completeAfterActions(String operationId, java.util.concurrent.CompletionStage<Boolean> actions) {
+    void completeAfterActions(String operationId, CompletionStage<Boolean> actions) {
         advance(operationId, Phase.REWARD_PENDING);
         if (actions == null) {
             rewardPending(operationId, "action_stage_missing");
