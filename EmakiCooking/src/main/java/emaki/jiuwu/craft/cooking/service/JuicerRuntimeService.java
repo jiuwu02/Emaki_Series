@@ -197,7 +197,7 @@ public final class JuicerRuntimeService implements Listener {
             return guiController.openGui(player, coordinates);
         }
         if (settingsService.matchesInteraction(StationType.JUICER, CookingSettingsService.INTERACTION_SERVE, interaction)
-                && loadStateOrEmpty(coordinates).hasFluid()) {
+                && servingTakesPrecedence(player, coordinates)) {
             interaction.cancel();
             return serve(player, block, coordinates);
         }
@@ -386,6 +386,41 @@ public final class JuicerRuntimeService implements Listener {
             }
         }
         return null;
+    }
+
+    /**
+     * Whether serving should win the interaction that {@code serve} and {@code process} share.
+     *
+     * <p>Both default to {@code shift_left_click}, and serving is evaluated first, so without this
+     * gate any stored fluid made pressing unreachable: every click was answered by a serving
+     * failure message instead. Serving now only takes the click when it can actually proceed —
+     * the container requirement is off, or the player holds a container for the stored fluid —
+     * and otherwise the click falls through to pressing. When nothing is pressable, serving keeps
+     * the click so its own diagnosis is still the one the player sees.
+     */
+    private boolean servingTakesPrecedence(Player player, StationCoordinates coordinates) {
+        JuicerState state = loadStateOrEmpty(coordinates);
+        if (!state.hasFluid()) {
+            return false;
+        }
+        if (!settingsService.juicerRequireContainer() || holdsServingContainer(player, state)) {
+            return true;
+        }
+        return !hasPressableIngredient(player, state);
+    }
+
+    private boolean holdsServingContainer(Player player, JuicerState state) {
+        RecipeDocument recipe = recipeService.findJuicerRecipeByFluidId(state.fluidId(), player);
+        return recipe != null && requiredContainerInput(player, recipe) != null;
+    }
+
+    private boolean hasPressableIngredient(Player player, JuicerState state) {
+        for (String source : state.slotSources().values()) {
+            if (recipeService.findJuicerRecipe(source, player) != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean serve(Player player, Block block, StationCoordinates coordinates) {

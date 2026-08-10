@@ -593,7 +593,7 @@ public final class CookingSettingsService {
             case JUICER -> switch (operation) {
                 case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
                 case INTERACTION_PROCESS, INTERACTION_SERVE -> StationInteractionType.SHIFT_LEFT_CLICK;
-                case INTERACTION_INSPECT -> StationInteractionType.LEFT_CLICK;
+                case INTERACTION_INSPECT -> StationInteractionType.RIGHT_CLICK;
                 default -> null;
             };
             case FERMENTATION_BARREL -> switch (operation) {
