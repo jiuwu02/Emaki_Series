@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
@@ -15,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.TriggerContract;
 
 /**
@@ -35,6 +37,7 @@ public final class ActionLineRunner {
     private final Supplier<ActionEngine> engineSupplier;
     private final PipelineBatchRunner batchRunner;
     private final PlaceholderBridge placeholders;
+    private final Function<CompileDiagnostic, String> diagnosticFormatter;
 
     /**
      * Creates a runner.
@@ -48,10 +51,31 @@ public final class ActionLineRunner {
             @NotNull Supplier<ActionEngine> engineSupplier,
             @NotNull PipelineBatchRunner batchRunner,
             @Nullable PlaceholderBridge placeholders) {
+        this(owner, engineSupplier, batchRunner, placeholders, null);
+    }
+
+    /**
+     * Creates a runner that reports rejected lines as readable text.
+     *
+     * @param owner the plugin whose invocations these are
+     * @param engineSupplier reads the live engine; must not capture it
+     * @param batchRunner the shared batch runner, holding the compile cache
+     * @param placeholders renders placeholders, may be {@code null} for variables-only rendering
+     * @param diagnosticFormatter renders a diagnostic through the language file; when {@code null} the
+     *        stable reason key is logged instead, which is what a caller without a message service gets
+     */
+    public ActionLineRunner(@NotNull Plugin owner,
+            @NotNull Supplier<ActionEngine> engineSupplier,
+            @NotNull PipelineBatchRunner batchRunner,
+            @Nullable PlaceholderBridge placeholders,
+            @Nullable Function<CompileDiagnostic, String> diagnosticFormatter) {
         this.owner = owner;
         this.engineSupplier = engineSupplier;
         this.batchRunner = batchRunner;
         this.placeholders = placeholders == null ? PlaceholderBridge.noop() : placeholders;
+        this.diagnosticFormatter = diagnosticFormatter == null
+                ? CompileDiagnostic::reasonKey
+                : diagnosticFormatter;
     }
 
     /**
@@ -114,7 +138,8 @@ public final class ActionLineRunner {
         }
         PhaseContract resolved = phase == null ? phaseContract(context) : phase;
         return batchRunner.compileAndRun(owner, engine, lines, context, resolved, stopOnFailure,
-                diagnostic -> logger().warning("Pipeline line rejected: " + diagnostic.reasonKey()));
+                diagnostic -> logger().warning("Pipeline line rejected: "
+                        + diagnosticFormatter.apply(diagnostic)));
     }
 
     /**

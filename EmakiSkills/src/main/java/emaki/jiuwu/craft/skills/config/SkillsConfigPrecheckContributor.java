@@ -103,9 +103,15 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
                     "argument", Texts.toStringSafe(diagnostic.detail().get("argument"))), issues);
             return;
         }
+        // Rendered through CoreLib's message service, not this module's: every action.* diagnostic text
+        // lives in CoreLib's language file, and Skills' own language file has none of those keys. Falls
+        // back to toString() so the token, column and detail survive when CoreLib is unreachable.
+        String detail = plugin.coreLib() == null || plugin.coreLib().messageService() == null
+                ? diagnostic.toString()
+                : plugin.coreLib().messageService().renderDiagnostic(diagnostic);
         addMessageIssue(path, WARN, "script_syntax_error", Map.of(
                 "skill", entry.skillId(),
                 "line", entry.lineNumber(),
-                "detail", diagnostic.toString()), issues);
+                "detail", detail), issues);
     }
 }

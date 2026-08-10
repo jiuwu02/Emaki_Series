@@ -177,10 +177,12 @@ public final class StaticValidator {
             validateThreadDeclaration(stage, resolution, state.diagnostics);
             if (kind == CoreStageKind.SOURCE) {
                 if (explicitSourceSeen) {
-                    state.diagnostics.add(CompileDiagnostic.at("action.validate.multiple_sources", stageToken));
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.multiple_sources", stageToken,
+                            Map.of("stage", stage.id())));
                 }
                 if (actionSeen) {
-                    state.diagnostics.add(CompileDiagnostic.at("action.validate.source_after_action", stageToken));
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.source_after_action", stageToken,
+                            Map.of("stage", stage.id())));
                 }
                 validateInheritedTargets(stage, state, state.diagnostics);
                 explicitSourceSeen = true;
@@ -251,8 +253,12 @@ public final class StaticValidator {
             normalizeEveryPositional(stage, arguments, diagnostics);
         } else if (!stage.positional().isEmpty()) {
             if (positional.isEmpty()) {
-                diagnostics.add(CompileDiagnostic.at("action.validate.positional_not_allowed",
-                        token(stage.positional().get(0), stage.column())));
+                // Names the stage, the word that was rejected and the argument names this stage does
+                // accept. Without those three an author only learns that something is wrong, not where.
+                diagnostics.add(new CompileDiagnostic("action.validate.positional_not_allowed",
+                        "", "", 0, Math.max(1, stage.column()), stage.positional().get(0),
+                        Map.of("stage", stage.id(), "value", stage.positional().get(0)),
+                        List.copyOf(byName.keySet())));
             } else if (positional.size() == 1) {
                 CoreStageParameter parameter = positional.get(0);
                 if (arguments.containsKey(parameter.name())) {
@@ -361,7 +367,7 @@ public final class StaticValidator {
             if (!state.provides(key)) {
                 diagnostics.add(CompileDiagnostic.at("action.validate.missing_context_key",
                         token(stage.id(), stage.column()),
-                        Map.of("key", key.name(), "type", key.type().getSimpleName(),
+                        Map.of("stage", stage.id(), "key", key.name(), "type", key.type().getSimpleName(),
                                 "phase", state.contract.phaseId())));
             }
         }

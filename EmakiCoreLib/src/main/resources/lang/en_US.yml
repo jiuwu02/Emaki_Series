@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.6.22"
+version: "4.6.23"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -119,22 +119,51 @@ action:
       (%requirement%); registration refused</red>"
     key_type_conflict: "<red>[Pipeline] Context key %key% type conflict: existing %existing%,
       %stage% declares %declared%</red>"
-  validate:
+  # Shared suffixes for rendered diagnostics. Location and candidates are separate keys so a
+  # translation can reorder or drop the trailing detail.
+  diagnostic:
+    at_column: "<gray>(column %column%)</gray>"
+    at_file: "<gray>(%file% at %key_path%, line %line% column %column%)</gray>"
+    candidates: "<gray> Valid values: <white>%candidates%</white></gray>"
+    more_problems: "<gray> This line has <yellow>%count%</yellow> more problem(s); they will be reported once this one is fixed.</gray>"
+    unknown_reason: "<red>[Pipeline] Validation failed (diagnostic key %reason% has no message yet; please report this key)</red>"
+  # Syntax-level diagnostics: lexing and bracket/pipe structure, raised before validate
+  lex:
+    unclosed_quote: "<red>[Pipeline] Unclosed quote; the quote opened at column %column% has no closing quote</red>"
+  parse:
+    unexpected_token: "<red>[Pipeline] Leftover content that cannot be parsed: %token%</red>"
     empty_pipeline: "<red>[Pipeline] This line contains no stages</red>"
-    missing_self_source: "<red>[Pipeline] Omitting the source needs the builtin self source,
-      which is currently unavailable</red>"
+    empty_stage: "<red>[Pipeline] Empty stage name; a stage is required between two | separators</red>"
+    missing_pipe: "<red>[Pipeline] Missing separator | before %token%; adjacent stages must be split with |</red>"
+    trailing_pipe: "<red>[Pipeline] The line ends with |; a stage must follow it</red>"
+    unmatched_bracket_close: "<red>[Pipeline] Extra ] with no matching [</red>"
+    unexpected_bracket_open: "<red>[Pipeline] [ cannot appear here; brackets are only for if/else branch bodies</red>"
+    unclosed_bracket: "<red>[Pipeline] The [ opened by %keyword% at column %open_column% is never closed; a matching ] is missing</red>"
+    branch_missing_condition: "<red>[Pipeline] if has no condition; write it as if <condition> [ ... ]</red>"
+    branch_missing_body: "<red>[Pipeline] %keyword% has no branch body wrapped in [ ]</red>"
+    empty_branch_body: "<red>[Pipeline] The branch body at column %open_column% is empty; [ ] must contain stages</red>"
+    run_missing_sequence: "<red>[Pipeline] run has no sequence name; write it as run <sequence> name=value</red>"
+    run_positional_parameter: "<red>[Pipeline] run parameters must be written as name=value; got the bare argument %token%</red>"
+    duplicate_argument: "<red>[Pipeline] Argument %argument% appears twice; each argument may only be given once per stage</red>"
+    stage_name_is_argument: "<red>[Pipeline] The stage name position holds a name=value form (%token%); a stage name cannot contain =</red>"
+  validate:
+    empty_pipeline: "<red>[Pipeline] This line contains no stages; at least one stage is required</red>"
+    missing_self_source: "<red>[Pipeline] Omitting the source needs the builtin self source, which is
+      currently unavailable; write an explicit source stage at the start of the line</red>"
     unknown_stage: "<red>[Pipeline] Unknown stage %token%</red>"
     stage_owner_disabled: "<red>[Pipeline] Stage %stage% is provided by plugin %owner%,
       which is currently disabled</red>"
-    multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage</red>"
-    source_after_action: "<red>[Pipeline] A source stage cannot follow an action stage</red>"
+    multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage; %stage% is the second</red>"
+    source_after_action: "<red>[Pipeline] Source stage %stage% cannot follow an action stage; a source must
+      come first on the line</red>"
     gate_after_action: "<red>[Pipeline] Gate stage %stage% cannot follow an action stage; the target
       flow has already been consumed</red>"
     missing_required_argument: "<red>[Pipeline] Missing required argument %argument%</red>"
     unknown_argument: "<red>[Pipeline] Unknown argument %token%</red>"
     invalid_argument_type: "<red>[Pipeline] Argument %argument% value %value% is not a valid
       %expected%</red>"
-    positional_not_allowed: "<red>[Pipeline] This stage accepts no bare arguments</red>"
+    positional_not_allowed: "<red>[Pipeline] Stage %stage% accepts no bare arguments but got
+      <white>%value%</white>; its arguments must be written as name=value</red>"
     too_many_positional_arguments: "<red>[Pipeline] Too many bare arguments: at most %maximum%,
       got %actual%</red>"
     argument_both_named_and_positional: "<red>[Pipeline] Argument %token% was given both named
@@ -174,6 +203,7 @@ action:
     owner_disabled: "<red>[Pipeline] The owning plugin is disabled: %error%</red>"
     target_retired: "<gray>[Pipeline] The target became invalid before the delayed run: %error%</gray>"
     timing_without_body: "<gray>[Pipeline] A timing stage has no stages after it</gray>"
+    exception: "<red>[Pipeline] A stage threw an exception during execution: %error%</red>"
   task:
     empty_body: "<red>[Pipeline] That sequence has no runnable lines</red>"
     times_out_of_range: "<red>[Pipeline] times is out of range; adjust action.pipeline.max_repeat_times</red>"

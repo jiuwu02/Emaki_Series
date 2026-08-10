@@ -541,9 +541,11 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             if (compiled.successful()) {
                 continue;
             }
+            // Rendered through CoreLib's message service: every action.* diagnostic text lives in
+            // CoreLib's language file, so Forge reads it there rather than duplicating the wording.
             String reason = compiled.diagnostics().isEmpty()
                     ? "did not compile"
-                    : Texts.toStringSafe(compiled.diagnostics().get(0).reasonKey());
+                    : forgePlugin.coreLib().messageService().renderFirstDiagnostic(compiled.diagnostics());
             recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
                     "INVALID_ACTION_LINE", "Action line did not compile: " + reason, true, null, null);
             return false;

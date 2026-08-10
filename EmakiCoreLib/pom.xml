@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.6.22</version>
+    <version>4.6.23</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 

@@ -177,9 +177,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
         if (!compiled.successful() || compiled.pipeline() == null) {
             sendLang(sender, "command.action_compile_failed", Map.of(
                     "line", rawLine,
-                    "reason", compiled.diagnostics().isEmpty()
-                            ? "unknown"
-                            : Texts.toStringSafe(compiled.diagnostics().get(0).reasonKey())
+                    "reason", plugin.messageService().renderFirstDiagnostic(compiled.diagnostics())
             ));
             return;
         }
@@ -251,9 +249,14 @@ public final class CoreLibCommandRouter implements TabExecutor {
         }
         if (outcome.status() == PipelineOutcome.Status.FAILURE) {
             PipelineOutcome.StageResult failure = firstFailedStage(outcome);
+            // Only the pipeline-level outcome carries placeholder arguments; StageResult has just a key.
+            // Prefer the stage's key when the pipeline did not set one, so the more specific reason wins.
+            String reasonKey = Texts.isBlank(outcome.reasonKey()) && failure != null
+                    ? failure.reasonKey()
+                    : outcome.reasonKey();
             sendLang(sender, "command.action_execute_failed", Map.of(
                     "stage", failure == null ? "-" : Texts.toStringSafe(failure.stageId()),
-                    "error", Texts.toStringSafe(outcome.reasonKey())
+                    "error", plugin.messageService().renderDiagnostic(reasonKey, outcome.args())
             ));
             return;
         }

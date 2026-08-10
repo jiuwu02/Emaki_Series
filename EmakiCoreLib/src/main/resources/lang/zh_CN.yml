@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.6.22"
+version: "4.6.23"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -116,18 +116,44 @@ action:
     undeclared_domain: "<red>[管道] 段 %stage% 未声明线程域，注册被拒绝</red>"
     async_needs_target: "<red>[管道] 段 %stage% 声明异步域但要求目标(%requirement%)，注册被拒绝</red>"
     key_type_conflict: "<red>[管道] 上下文键 %key% 类型冲突：已有 %existing%，%stage% 声明 %declared%</red>"
-  validate:
+  # 诊断渲染的公共后缀。位置与候选值单独成键，便于翻译时调整顺序或省略。
+  diagnostic:
+    at_column: "<gray>（第 %column% 列）</gray>"
+    at_file: "<gray>（%file% 的 %key_path%，第 %line% 行第 %column% 列）</gray>"
+    candidates: "<gray> 可选值: <white>%candidates%</white></gray>"
+    more_problems: "<gray> 该行另有 <yellow>%count%</yellow> 处问题，修好这处后会继续提示。</gray>"
+    unknown_reason: "<red>[管道] 校验未通过（诊断键 %reason% 尚无对应文案，请反馈该键）</red>"
+  # 语法层诊断：词法与括号/管道结构，先于 validate 触发
+  lex:
+    unclosed_quote: "<red>[管道] 引号没有闭合，%column% 列起的引号缺少配对的结束引号</red>"
+  parse:
+    unexpected_token: "<red>[管道] 多出了无法解析的内容 %token%</red>"
     empty_pipeline: "<red>[管道] 该行没有任何段</red>"
-    missing_self_source: "<red>[管道] 省略源段需要内置 self 源段，但它当前不可用</red>"
+    empty_stage: "<red>[管道] 段名为空，两个 | 之间必须写一个段</red>"
+    missing_pipe: "<red>[管道] %token% 之前缺少分隔符 |，相邻两段必须用 | 隔开</red>"
+    trailing_pipe: "<red>[管道] 该行以 | 结尾，| 之后还需要写一个段</red>"
+    unmatched_bracket_close: "<red>[管道] 多出一个 ]，它没有对应的 [</red>"
+    unexpected_bracket_open: "<red>[管道] 这里不能出现 [，方括号只能用于 if/else 的分支体</red>"
+    unclosed_bracket: "<red>[管道] %keyword% 在第 %open_column% 列打开的 [ 没有闭合，缺少对应的 ]</red>"
+    branch_missing_condition: "<red>[管道] if 缺少条件表达式，应写成 if <条件> [ ... ]</red>"
+    branch_missing_body: "<red>[管道] %keyword% 缺少用 [ ] 包裹的分支体</red>"
+    empty_branch_body: "<red>[管道] 第 %open_column% 列的分支体是空的，[ ] 之间必须有段</red>"
+    run_missing_sequence: "<red>[管道] run 缺少序列名，应写成 run <序列名> 参数=值</red>"
+    run_positional_parameter: "<red>[管道] run 的参数必须写成 名称=值，收到了无名参数 %token%</red>"
+    duplicate_argument: "<red>[管道] 参数 %argument% 重复出现，同一段内每个参数只能写一次</red>"
+    stage_name_is_argument: "<red>[管道] 段名位置写成了 %token% 这样的 名称=值 形式，段名不能带 =</red>"
+  validate:
+    empty_pipeline: "<red>[管道] 该行没有任何段，至少要写一个段才能执行</red>"
+    missing_self_source: "<red>[管道] 省略源段时需要内置的 self 源段，但它当前不可用；请在行首显式写一个源段</red>"
     unknown_stage: "<red>[管道] 未知段 %token%</red>"
     stage_owner_disabled: "<red>[管道] 段 %stage% 由插件 %owner% 提供，该插件当前未启用</red>"
-    multiple_sources: "<red>[管道] 一条管道只能有一个源段</red>"
-    source_after_action: "<red>[管道] 源段不能出现在动作段之后</red>"
+    multiple_sources: "<red>[管道] 一条管道只能有一个源段，%stage% 是第二个</red>"
+    source_after_action: "<red>[管道] 源段 %stage% 不能出现在动作段之后，源段必须位于行首</red>"
     gate_after_action: "<red>[管道] 闸门段 %stage% 不能出现在动作段之后，此时目标流已被消耗</red>"
     missing_required_argument: "<red>[管道] 缺少必填参数 %argument%</red>"
     unknown_argument: "<red>[管道] 未知参数 %token%</red>"
     invalid_argument_type: "<red>[管道] 参数 %argument% 的值 %value% 不是合法的 %expected%</red>"
-    positional_not_allowed: "<red>[管道] 该段不接受无名参数</red>"
+    positional_not_allowed: "<red>[管道] 段 %stage% 不接受无名参数，但收到了 <white>%value%</white>；该段的参数必须写成 名称=值</red>"
     too_many_positional_arguments: "<red>[管道] 无名参数过多：最多 %maximum% 个，实际 %actual% 个</red>"
     argument_both_named_and_positional: "<red>[管道] 参数 %token% 同时以具名和无名形式给出</red>"
     missing_context_key: "<red>[管道] 段 %stage% 需要上下文 %key%(%type%)，但阶段 %phase% 不提供</red>"
@@ -158,6 +184,7 @@ action:
     owner_disabled: "<red>[管道] 所属插件已停用：%error%</red>"
     target_retired: "<gray>[管道] 目标在延迟执行前已失效：%error%</gray>"
     timing_without_body: "<gray>[管道] 时序段之后没有可执行的段</gray>"
+    exception: "<red>[管道] 段执行时抛出异常：%error%</red>"
   task:
     empty_body: "<red>[管道] 该序列没有可执行的行</red>"
     times_out_of_range: "<red>[管道] times 超出允许范围，请调整 action.pipeline.max_repeat_times</red>"

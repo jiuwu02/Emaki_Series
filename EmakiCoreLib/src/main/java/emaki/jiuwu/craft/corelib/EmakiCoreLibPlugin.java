@@ -832,7 +832,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     public ActionLineRunner actionLineRunner(Plugin moduleOwner) {
         Plugin resolved = moduleOwner == null ? this : moduleOwner;
         return new ActionLineRunner(resolved, this::actionEngine, pipelineBatchRunner,
-                new RegistryPlaceholderBridge(this::placeholderRegistry));
+                new RegistryPlaceholderBridge(this::placeholderRegistry),
+                diagnostic -> messageService().renderDiagnostic(diagnostic));
     }
 
     /** {@return the long-running task service, or {@code null} before the first reload} */
@@ -862,7 +863,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     }
                     String reason = result.diagnostics().isEmpty()
                             ? "did not compile"
-                            : result.diagnostics().get(0).reasonKey();
+                            : messageService().renderFirstDiagnostic(result.diagnostics());
                     getLogger().warning("Sequence '" + sequence + "' line rejected: " + reason
                             + " <- " + line);
                     return null;
@@ -916,7 +917,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             }
             return result.diagnostics().isEmpty()
                     ? "did not compile"
-                    : result.diagnostics().get(0).reasonKey();
+                    : messageService().renderFirstDiagnostic(result.diagnostics());
         });
         LegacyActionMigrator.Report report = migrator.run(getDataFolder().toPath(), folders, false);
         report.describe().forEach(line -> getLogger().info(line));

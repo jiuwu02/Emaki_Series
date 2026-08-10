@@ -188,9 +188,15 @@ public final class SkillPipelineRuntime {
         if (plugin == null) {
             return;
         }
+        // Rendered through CoreLib's message service: every action.* diagnostic text lives in CoreLib's
+        // language file. Falls back to the raw list when CoreLib is not reachable, which keeps a load-time
+        // problem visible instead of swallowing it.
+        String reason = plugin.coreLib() == null || plugin.coreLib().messageService() == null
+                ? String.valueOf(diagnostics)
+                : plugin.coreLib().messageService().renderFirstDiagnostic(diagnostics);
         plugin.getLogger().warning("Skill script error in '"
                 + (Texts.isBlank(skillId) ? "unknown" : skillId) + "' phase " + phase.configKey()
-                + " line " + lineNumber + ": " + diagnostics);
+                + " line " + lineNumber + ": " + reason);
     }
 
     private ActionEngine engine() {

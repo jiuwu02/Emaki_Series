@@ -115,6 +115,6 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
             return;
         }
         addMessageIssue(path, ConfigPrecheckSeverity.WARN, "template_invalid_syntax",
-                Map.of("line", line, "error", diagnostic.toString()), issues);
+                Map.of("line", line, "error", renderDiagnostic(diagnostic)), issues);
     }
 }
