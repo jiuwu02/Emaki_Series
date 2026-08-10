@@ -5,7 +5,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.9"
+version: "1.0.10"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -33,7 +33,32 @@ command:
   revoke:
     done: "<green>已撤销 %player% 的成就 %advancement%。</green>"
   advancement:
-    failed: "<red>成就 %advancement% 未注册或状态无变化。</red>"
+    failed: "<red>成就 %advancement% 操作失败：%reason%</red>"
+    reason_unknown: "<red>未知原因</red>"
+
+# 授予/撤销失败的具体原因。由服务层的 reasonKey 直接解析，新增原因只需在此加一条。
+codex:
+  player:
+    required: "未指定玩家。"
+  advancement:
+    disabled: "成就子系统已在 config.yml 中关闭（advancement.enabled=false）。"
+    id_required: "未指定成就 id。"
+    not_found: "成就 id 未注册。请确认 advancements/ 下的页面已加载，且 id 形如 emakicodex:<页面id>/<节点id>；可用 /codex reload 查看已注册数量。"
+    missing_on_server: "成就已在插件内注册，但服务端上找不到对应的原版成就。通常是注册后被 reloadData 清除、或数据包目录未落盘所致；请检查启动日志中的注册数量与告警。"
+  grant:
+    already_completed: "玩家已完成该成就。"
+    cancelled: "授予被其他插件取消。"
+    rejected: "服务端拒绝写入完成条件。"
+  revoke:
+    not_completed: "玩家尚未完成该成就。"
+    cancelled: "撤销被其他插件取消。"
+    rejected: "服务端拒绝撤销完成条件。"
+
+emaki:
+  api:
+    unavailable: "成就服务当前不可用（插件未启用或注册表未就绪）。"
+    target_offline: "目标玩家不在线。"
+    wrong_thread: "当前线程不拥有该玩家，操作被拒绝。"
 
 console:
   plugin_starting: "<gray>正在启动 EmakiCodex...</gray>"

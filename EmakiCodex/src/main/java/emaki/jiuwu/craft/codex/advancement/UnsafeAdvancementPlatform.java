@@ -100,6 +100,19 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
     }
 
     @Override
+    public boolean exists(NamespacedKey key) {
+        if (key == null) {
+            return false;
+        }
+        try {
+            return Bukkit.getAdvancement(key) != null;
+        } catch (Throwable throwable) {
+            logger.log(Level.WARNING, "[Codex] Failed to look up advancement " + key + ": " + throwable.getMessage());
+            return false;
+        }
+    }
+
+    @Override
     public boolean remove(NamespacedKey key) {
         if (key == null) {
             return false;

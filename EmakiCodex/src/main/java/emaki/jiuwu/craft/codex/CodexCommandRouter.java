@@ -16,6 +16,9 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 
 
@@ -89,13 +92,27 @@ final class CodexCommandRouter implements TabExecutor {
             return true;
         }
         String advancementId = args[2];
+        // Carries the whole EmakiResult back rather than isSuccess(): the service distinguishes nine
+        // failure causes (not registered, missing on server, already completed, disabled, wrong thread,
+        // ...) and collapsing them into one message left the operator with no way to tell them apart.
         runOnTargetOwner(target, () -> grant
-                ? plugin.advancementService().grant(target, advancementId).isSuccess()
-                : plugin.advancementService().revoke(target, advancementId).isSuccess())
-                .whenComplete((ok, throwable) -> {
-                    if (throwable != null || !Boolean.TRUE.equals(ok)) {
+                ? plugin.advancementService().grant(target, advancementId)
+                : plugin.advancementService().revoke(target, advancementId))
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null || result == null) {
                         sendToSender(sender, () -> plugin.messageService().send(sender,
-                                "command.advancement.failed", Map.of("advancement", advancementId)));
+                                "command.advancement.failed", Map.of(
+                                        "advancement", advancementId,
+                                        "reason", throwable == null
+                                                ? plugin.messageService().message("command.advancement.reason_unknown")
+                                                : Texts.toStringSafe(throwable.getMessage()))));
+                        return;
+                    }
+                    if (!result.isSuccess()) {
+                        sendToSender(sender, () -> plugin.messageService().send(sender,
+                                "command.advancement.failed", Map.of(
+                                        "advancement", advancementId,
+                                        "reason", describeFailure(result))));
                         return;
                     }
                     String key = grant ? "command.grant.done" : "command.revoke.done";
@@ -106,15 +123,39 @@ final class CodexCommandRouter implements TabExecutor {
         return true;
     }
 
-    private CompletableFuture<Boolean> runOnTargetOwner(Player target, Supplier<Boolean> operation) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
+    /**
+     * Turns a failed result into the sentence explaining why.
+     *
+     * <p>Resolves the result's own reason key through the language file, so a new failure cause in
+     * {@code AdvancementService} only needs a language entry rather than a change here. Falls back to the
+     * raw key so an untranslated cause is still reportable instead of silently blank.</p>
+     */
+    private String describeFailure(EmakiResult<Unit> result) {
+        String reasonKey = result == null ? "" : Texts.toStringSafe(result.reasonKey());
+        if (Texts.isBlank(reasonKey)) {
+            return plugin.messageService().message("command.advancement.reason_unknown");
+        }
+        return plugin.messageService().messageOrFallback(reasonKey, reasonKey);
+    }
+
+    /**
+     * Runs an advancement mutation on the thread that owns the target.
+     *
+     * <p>Carries the operation's own {@link EmakiResult} rather than a boolean so the caller can report why
+     * a mutation was refused. When the target is gone or no thread could be obtained the failure is
+     * expressed as a result too, keeping one reporting path for every outcome.</p>
+     */
+    private CompletableFuture<EmakiResult<Unit>> runOnTargetOwner(Player target,
+            Supplier<EmakiResult<Unit>> operation) {
+        CompletableFuture<EmakiResult<Unit>> future = new CompletableFuture<>();
         if (target == null || !target.isOnline()) {
-            future.complete(false);
+            future.complete(EmakiResult.targetOffline());
             return future;
         }
         Runnable task = () -> {
             try {
-                future.complete(Boolean.TRUE.equals(operation.get()));
+                EmakiResult<Unit> result = operation.get();
+                future.complete(result == null ? EmakiResult.unavailable() : result);
             } catch (Throwable throwable) {
                 future.completeExceptionally(throwable);
             }
@@ -124,9 +165,10 @@ final class CodexCommandRouter implements TabExecutor {
                 task.run();
                 return future;
             }
-            var scheduled = plugin.executionDispatcher().runEntity(plugin, target, task, () -> future.complete(false));
+            var scheduled = plugin.executionDispatcher().runEntity(plugin, target, task,
+                    () -> future.complete(EmakiResult.unavailable()));
             if (scheduled == null) {
-                future.complete(false);
+                future.complete(EmakiResult.unavailable());
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);

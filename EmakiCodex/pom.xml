@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-codex</artifactId>
-    <version>1.0.9</version>
+    <version>1.0.10</version>
     <name>EmakiCodex</name>
     <packaging>jar</packaging>
 

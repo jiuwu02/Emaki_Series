@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.6.18"
+version: "4.6.19"
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
 
@@ -363,8 +363,18 @@ command:
     player_not_found: "<red>Player %player% not found.</red>"
     console_usage: "<yellow>Console usage: /emakiattribute dump <player></yellow>"
     player: "<green>Viewing attribute snapshot for %player%.</green>"
+    # Player side: one compact line, expanded on hover
     signature: "<gray>Signature <dark_gray>(hover to view)</dark_gray></gray>"
     values: "<gray>Attribute values <dark_gray>(hover to view)</dark_gray></gray>"
+    signature_empty: "<gray>No signature</gray>"
+    values_empty: "<gray>No non-zero attributes</gray>"
+    # Console side: hovering is impossible, so print a header and one indented line each
+    signature_header: "<gray>Signature:</gray>"
+    signature_line: "  <yellow>%signature%</yellow>"
+    signature_empty_line: "  <gray>No signature</gray>"
+    values_header: "<gray>Attribute values:</gray>"
+    values_line: "  <aqua>%attribute%</aqua><dark_gray> (</dark_gray><white>%attribute_id%</white><dark_gray>): </dark_gray><yellow>%value%</yellow>"
+    values_empty_line: "  <gray>No non-zero attributes</gray>"
     resource_line:
       "<gray>%resource%: default %default_max%, bonus %bonus_max%, cap
       %current_max%, current %current%</gray>"

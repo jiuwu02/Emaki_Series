@@ -284,8 +284,8 @@ public final class AttributeCommand implements TabExecutor {
         }
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(target);
         messages().send(sender, "command.dump.player", Map.of("player", target.getName()));
-        messages().sendRaw(sender, buildDumpSignatureMessage(snapshot));
-        messages().sendRaw(sender, buildDumpValuesMessage(snapshot));
+        sendDumpSignature(sender, snapshot);
+        sendDumpValues(sender, snapshot);
         if (args.length >= 3 && "json".equalsIgnoreCase(args[2])) {
             messages().sendRaw(sender, Jsons.stringify(attributeService.attributeTraceService().trace(target, "").toMap()));
         }
@@ -650,38 +650,88 @@ public final class AttributeCommand implements TabExecutor {
                 + "</white>";
     }
 
-    private String buildDumpSignatureMessage(AttributeSnapshot snapshot) {
-        String hoverText = snapshot == null || snapshot.sourceSignature() == null || snapshot.sourceSignature().isBlank()
-                ? "<gray>没有签名</gray>"
-                : "<yellow>" + MiniMessages.escape(snapshot.sourceSignature()) + "</yellow>";
-        return MiniMessages.withHoverText(messages().message("command.dump.signature"), hoverText);
+    /**
+     * Sends the source signature.
+     *
+     * <p>A player gets the compact hover form; the console gets the value expanded onto its own indented
+     * line, because a console cannot hover and would otherwise only ever see the label.</p>
+     */
+    private void sendDumpSignature(CommandSender sender, AttributeSnapshot snapshot) {
+        boolean blank = snapshot == null || snapshot.sourceSignature() == null
+                || snapshot.sourceSignature().isBlank();
+        if (supportsHover(sender)) {
+            String hoverText = blank
+                    ? messages().message("command.dump.signature_empty")
+                    : "<yellow>" + MiniMessages.escape(snapshot.sourceSignature()) + "</yellow>";
+            messages().sendRaw(sender, MiniMessages.withHoverText(
+                    messages().message("command.dump.signature"), hoverText));
+            return;
+        }
+        messages().sendRaw(sender, messages().message("command.dump.signature_header"));
+        if (blank) {
+            messages().sendRaw(sender, messages().message("command.dump.signature_empty_line"));
+            return;
+        }
+        messages().send(sender, "command.dump.signature_line", Map.of(
+                "signature", MiniMessages.escape(snapshot.sourceSignature())));
     }
 
-    private String buildDumpValuesMessage(AttributeSnapshot snapshot) {
-        return MiniMessages.withHoverText(messages().message("command.dump.values"), buildDumpValuesHoverText(snapshot));
-    }
-
-    private String buildDumpValuesHoverText(AttributeSnapshot snapshot) {
-        List<String> lines = new ArrayList<>();
+    /**
+     * Sends the non-zero attribute values.
+     *
+     * <p>Same split as {@link #sendDumpSignature}: hover for players, one indented line per attribute for
+     * the console. Both paths read the same ordered list, so the two views cannot drift.</p>
+     */
+    private void sendDumpValues(CommandSender sender, AttributeSnapshot snapshot) {
+        List<String> hoverLines = new ArrayList<>();
+        List<Map.Entry<String, Double>> shown = new ArrayList<>();
         for (Map.Entry<String, Double> entry : orderedDumpValues(snapshot)) {
             String attributeId = entry.getKey();
             Double value = entry.getValue();
             if (attributeId == null || value == null || Double.compare(value, 0D) == 0) {
                 continue;
             }
-            var definition = attributeService.attributeRegistry().resolve(attributeId);
-            String displayName = definition == null ? attributeId : definition.displayName();
-            String formattedValue = Numbers.formatNumber(value, "0.##");
-            lines.add("<aqua>" + MiniMessages.escape(displayName) + "</aqua>"
+            shown.add(entry);
+            hoverLines.add("<aqua>" + MiniMessages.escape(displayNameOf(attributeId)) + "</aqua>"
                     + "<dark_gray> (</dark_gray>"
                     + "<white>" + MiniMessages.escape(attributeId) + "</white>"
                     + "<dark_gray>): </dark_gray>"
-                    + "<yellow>" + MiniMessages.escape(formattedValue) + "</yellow>");
+                    + "<yellow>" + MiniMessages.escape(Numbers.formatNumber(value, "0.##")) + "</yellow>");
         }
-        if (lines.isEmpty()) {
-            return "<gray>没有非零属性</gray>";
+        if (supportsHover(sender)) {
+            String hoverText = hoverLines.isEmpty()
+                    ? messages().message("command.dump.values_empty")
+                    : String.join("\n", hoverLines);
+            messages().sendRaw(sender, MiniMessages.withHoverText(
+                    messages().message("command.dump.values"), hoverText));
+            return;
         }
-        return String.join("\n", lines);
+        messages().sendRaw(sender, messages().message("command.dump.values_header"));
+        if (shown.isEmpty()) {
+            messages().sendRaw(sender, messages().message("command.dump.values_empty_line"));
+            return;
+        }
+        for (Map.Entry<String, Double> entry : shown) {
+            messages().send(sender, "command.dump.values_line", Map.of(
+                    "attribute", MiniMessages.escape(displayNameOf(entry.getKey())),
+                    "attribute_id", MiniMessages.escape(entry.getKey()),
+                    "value", MiniMessages.escape(Numbers.formatNumber(entry.getValue(), "0.##"))));
+        }
+    }
+
+    /**
+     * {@return whether this sender can read hover text}
+     *
+     * <p>Only a real player can hover. The console renders a component's plain text, so hover content is
+     * silently dropped there.</p>
+     */
+    private boolean supportsHover(CommandSender sender) {
+        return sender instanceof Player;
+    }
+
+    private String displayNameOf(String attributeId) {
+        var definition = attributeService.attributeRegistry().resolve(attributeId);
+        return definition == null ? attributeId : definition.displayName();
     }
 
     private List<Map.Entry<String, Double>> orderedDumpValues(AttributeSnapshot snapshot) {

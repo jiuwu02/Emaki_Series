@@ -52,14 +52,65 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         this.jsonBuilder = jsonBuilder;
     }
 
-    /** Reloads configured pages while preserving third-party registrations. */
+    /**
+     * Reloads configured pages while preserving third-party registrations.
+     *
+     * <p>Verifies the result against the server after {@code reloadData()} rather than trusting the
+     * per-node return value. {@code reloadData()} rebuilds the advancement tree from what is on disk, so a
+     * node that {@code platform.register} accepted can still be absent afterwards. Without this check the
+     * registry reported N registered while the server had none, and the only symptom was every later grant
+     * failing with {@code missing_on_server} — a state the operator had no way to see.</p>
+     *
+     * @return how many configured advancements the server actually has after the reload
+     */
     public synchronized int registerAll() {
         unregisterConfigured(false);
         for (AdvancementPage page : pageLoader.all().values()) {
             registerPage(page);
         }
         platform.reloadData();
-        return configuredKeys.size();
+        return verifyConfigured();
+    }
+
+    /**
+     * Reports configured keys the server does not actually expose.
+     *
+     * <p>Diagnostic only: the entries stay in the registry. The catalog API, the resync service and tab
+     * completion all read those maps, so dropping a key here would silently shrink the published catalog and
+     * trade one confusing failure for a wider one. What was missing before is the report itself — the
+     * mismatch used to be invisible, and every grant then failed with {@code missing_on_server} for no
+     * stated reason.</p>
+     *
+     * @return how many configured advancements the server actually exposes
+     */
+    private int verifyConfigured() {
+        List<NamespacedKey> missing = new ArrayList<>();
+        for (NamespacedKey key : configuredKeys) {
+            if (!platform.exists(key)) {
+                missing.add(key);
+            }
+        }
+        if (missing.isEmpty()) {
+            return configuredKeys.size();
+        }
+        plugin.getLogger().warning("[Codex] " + missing.size() + " of " + configuredKeys.size()
+                + " configured advancement(s) are absent from the server after reloadData and cannot be"
+                + " granted; platform '" + platform.id() + "' registered them but they did not survive the"
+                + " data reload. Affected: " + describeMissing(missing));
+        return configuredKeys.size() - missing.size();
+    }
+
+    /** Names the missing keys, capped so a whole failed page cannot flood the log. */
+    private String describeMissing(List<NamespacedKey> missing) {
+        int shown = Math.min(missing.size(), 5);
+        StringBuilder text = new StringBuilder();
+        for (int index = 0; index < shown; index++) {
+            text.append(index == 0 ? "" : ", ").append(missing.get(index));
+        }
+        if (missing.size() > shown) {
+            text.append(" ... (+").append(missing.size() - shown).append(')');
+        }
+        return text.toString();
     }
 
     private void registerPage(AdvancementPage page) {

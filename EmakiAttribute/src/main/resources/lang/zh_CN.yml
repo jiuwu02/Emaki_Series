@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.6.18"
+version: "4.6.19"
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
 
@@ -326,8 +326,18 @@ command:
     player_not_found: "<red>未找到玩家 %player%。</red>"
     console_usage: "<yellow>控制台用法: /emakiattribute dump <player></yellow>"
     player: "<green>正在查看玩家 %player% 的属性快照。</green>"
+    # 玩家侧：紧凑一行 + 悬停展开
     signature: "<gray>签名 <dark_gray>(悬停查看)</dark_gray></gray>"
     values: "<gray>属性数值 <dark_gray>(悬停查看)</dark_gray></gray>"
+    signature_empty: "<gray>没有签名</gray>"
+    values_empty: "<gray>没有非零属性</gray>"
+    # 控制台侧：无法悬停，改为标题 + 缩进逐行列出
+    signature_header: "<gray>签名:</gray>"
+    signature_line: "  <yellow>%signature%</yellow>"
+    signature_empty_line: "  <gray>没有签名</gray>"
+    values_header: "<gray>属性数值:</gray>"
+    values_line: "  <aqua>%attribute%</aqua><dark_gray> (</dark_gray><white>%attribute_id%</white><dark_gray>): </dark_gray><yellow>%value%</yellow>"
+    values_empty_line: "  <gray>没有非零属性</gray>"
     resource_line: "<gray>%resource%: 默认 %default_max%，加成 %bonus_max%，上限
       %current_max%，当前 %current%</gray>"
 

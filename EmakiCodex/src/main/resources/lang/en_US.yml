@@ -5,7 +5,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "1.0.9"
+version: "1.0.10"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -33,7 +33,33 @@ command:
   revoke:
     done: "<green>Revoked advancement %advancement% from %player%.</green>"
   advancement:
-    failed: "<red>Advancement %advancement% is not registered or unchanged.</red>"
+    failed: "<red>Advancement %advancement% operation failed: %reason%</red>"
+    reason_unknown: "<red>unknown reason</red>"
+
+# Concrete reasons a grant/revoke was refused. Resolved straight from the service's reasonKey, so a new
+# cause only needs an entry here.
+codex:
+  player:
+    required: "No player given."
+  advancement:
+    disabled: "The advancement subsystem is disabled in config.yml (advancement.enabled=false)."
+    id_required: "No advancement id given."
+    not_found: "The advancement id is not registered. Check that the page under advancements/ loaded and that the id looks like emakicodex:<pageId>/<nodeId>; /codex reload reports how many are registered."
+    missing_on_server: "The advancement is registered inside the plugin but the server has no matching vanilla advancement. Usually it was cleared by reloadData after registration, or the datapack directory was never written; check the registration count and warnings in the startup log."
+  grant:
+    already_completed: "The player has already completed this advancement."
+    cancelled: "The grant was cancelled by another plugin."
+    rejected: "The server refused to award the completion criterion."
+  revoke:
+    not_completed: "The player has not completed this advancement yet."
+    cancelled: "The revoke was cancelled by another plugin."
+    rejected: "The server refused to revoke the completion criterion."
+
+emaki:
+  api:
+    unavailable: "The advancement service is unavailable (plugin disabled or registry not ready)."
+    target_offline: "The target player is offline."
+    wrong_thread: "The current thread does not own that player; the operation was refused."
 
 console:
   plugin_starting: "<gray>Starting EmakiCodex...</gray>"

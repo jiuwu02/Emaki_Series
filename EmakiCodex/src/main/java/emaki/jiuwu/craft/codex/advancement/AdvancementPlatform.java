@@ -29,6 +29,16 @@ public interface AdvancementPlatform {
 
     boolean remove(NamespacedKey key);
 
+    /**
+     * {@return whether the server currently exposes this advancement}
+     *
+     * <p>Asked after {@code reloadData()}: registering a node and the server still having it are two
+     * different facts, because a reload rebuilds the tree from disk.</p>
+     *
+     * @param key the advancement key
+     */
+    boolean exists(NamespacedKey key);
+
 
 
 
