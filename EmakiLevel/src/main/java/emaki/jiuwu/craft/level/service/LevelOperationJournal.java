@@ -1,30 +1,40 @@
 package emaki.jiuwu.craft.level.service;
 
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 
 final class LevelOperationJournal {
@@ -44,7 +54,11 @@ final class LevelOperationJournal {
     private final ThreadOwnership threadOwnership;
     private final Path activeDirectory;
     private final Path completedDirectory;
-    private final Object ioLock = new Object();
+    private final Path quarantineDirectory;
+    private final Map<String, Entry> activeEntries = new ConcurrentHashMap<>();
+    private volatile AsyncYamlFiles asyncYamlFiles;
+    private volatile FileScope fileScope;
+    private volatile boolean asyncFilesUnavailableLogged;
 
     LevelOperationJournal(Plugin plugin,
             ExecutionDispatcher executionDispatcher,
@@ -55,6 +69,7 @@ final class LevelOperationJournal {
         Path root = plugin.getDataFolder().toPath().resolve("data/operation-journal");
         this.activeDirectory = root.resolve("active");
         this.completedDirectory = root.resolve("completed");
+        this.quarantineDirectory = root.resolve("quarantine");
     }
 
     String begin(String kind, UUID playerId) {
@@ -83,16 +98,26 @@ final class LevelOperationJournal {
     }
 
     void advance(String operationId, Phase phase) {
+        advanceAsync(operationId, phase);
+    }
+
+    /**
+     * Persists the phase transition and, for {@link Phase#COMPLETED}, archives the entry afterwards.
+     * The returned future completes once the journal is durable; archiving only runs when the write
+     * succeeded, so a failed write leaves the entry recoverable in {@code active}.
+     */
+    private CompletableFuture<Void> advanceAsync(String operationId, Phase phase) {
         Entry current = load(operationId);
         if (current == null || phase == null) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
         Entry updated = new Entry(current.operationId(), current.kind(), current.playerId(), phase,
                 current.currencies(), current.materials(), current.error());
-        save(updated);
-        if (phase == Phase.COMPLETED) {
-            archive(updated);
+        CompletableFuture<Void> persisted = save(updated);
+        if (phase != Phase.COMPLETED) {
+            return persisted;
         }
+        return persisted.thenCompose(_ -> archive(updated));
     }
 
     void failedCharge(String operationId, LevelCostTransaction.Result result) {
@@ -117,7 +142,7 @@ final class LevelOperationJournal {
         }
     }
 
-    void completeAfterActions(String operationId, java.util.concurrent.CompletionStage<Boolean> actions) {
+    void completeAfterActions(String operationId, CompletionStage<Boolean> actions) {
         advance(operationId, Phase.REWARD_PENDING);
         if (actions == null) {
             rewardPending(operationId, "action_stage_missing");
@@ -132,8 +157,15 @@ final class LevelOperationJournal {
                 rewardPending(operationId, "action_failed");
                 return;
             }
-            advance(operationId, Phase.REWARDED);
-            advance(operationId, Phase.COMPLETED);
+            advanceAsync(operationId, Phase.REWARDED)
+                    .thenCompose(_ -> advanceAsync(operationId, Phase.COMPLETED))
+                    .whenComplete((_, failure) -> {
+                        if (failure != null) {
+                            plugin.getLogger().severe("Level operation " + operationId
+                                    + " completed its actions but the journal write failed; the entry stays in active"
+                                    + " for the next recovery pass: " + rootCauseMessage(failure));
+                        }
+                    });
         });
     }
 
@@ -145,8 +177,32 @@ final class LevelOperationJournal {
         }
     }
 
+    /**
+     * Reads the journal off the calling thread and applies recovery on the global thread, because
+     * compensation touches Bukkit state. Returns immediately; recovery continues in the background.
+     */
     void recover(EconomyManager economyManager, ItemSourceService itemSourceService) {
-        for (Entry entry : loadActive()) {
+        loadActive().thenAccept(entries -> {
+            if (entries.isEmpty()) {
+                return;
+            }
+            Runnable apply = () -> applyRecovery(entries, economyManager, itemSourceService);
+            if (executionDispatcher == null) {
+                apply.run();
+                return;
+            }
+            if (executionDispatcher.runGlobal(plugin, apply) == null) {
+                plugin.getLogger().warning("Level operation journal recovery was rejected by the scheduler; "
+                        + entries.size() + " entries stay pending in active");
+            }
+        });
+    }
+
+    private void applyRecovery(List<Entry> entries,
+            EconomyManager economyManager,
+            ItemSourceService itemSourceService) {
+        for (Entry entry : entries) {
+            activeEntries.putIfAbsent(entry.operationId(), entry);
             switch (entry.phase()) {
                 case PREPARED, REWARDED -> advance(entry.operationId(), Phase.COMPLETED);
                 case STATE_COMMITTED, REWARD_PENDING -> rewardPending(entry.operationId(),
@@ -220,7 +276,7 @@ final class LevelOperationJournal {
             Object sourcesValue = material.get("item_sources");
             if (sourcesValue instanceof List<?> sources) {
                 for (Object sourceValue : sources) {
-                    ItemSource source = ItemSourceUtil.parse(text(sourceValue));
+                    ItemSourceRef source = ItemSourceUtil.parse(text(sourceValue));
                     if (source == null || itemSourceService == null) {
                         continue;
                     }
@@ -240,52 +296,237 @@ final class LevelOperationJournal {
         return new RefundResult(remainingCurrencies, remainingMaterials);
     }
 
-    private void save(Entry entry) {
-        synchronized (ioLock) {
-            try {
-                YamlFiles.save(activePath(entry.operationId()).toFile(), encode(entry));
-            } catch (IOException exception) {
-                throw new IllegalStateException("Failed to persist level operation " + entry.operationId(), exception);
-            }
+    /**
+     * Records the entry in memory and persists it off the calling thread. The returned future
+     * completes only after the write lands, so callers can gate operation completion on durability.
+     * Writes for one operation id share a physical path and are therefore ordered by the file scope.
+     */
+    private CompletableFuture<Void> save(Entry entry) {
+        activeEntries.put(entry.operationId(), entry);
+        AsyncYamlFiles files = asyncYamlFiles();
+        if (files == null) {
+            return logPersistFailure(entry.operationId(), asyncFilesUnavailable("save"));
         }
+        return files.save(activePath(entry.operationId()).toFile(), encode(entry))
+                .exceptionallyCompose(throwable -> logPersistFailure(entry.operationId(), throwable));
     }
 
+    private CompletableFuture<Void> logPersistFailure(String operationId, Throwable throwable) {
+        plugin.getLogger().severe("Failed to persist level operation " + operationId + ": "
+                + rootCauseMessage(throwable));
+        return CompletableFuture.failedFuture(new IllegalStateException(
+                "Failed to persist level operation " + operationId, AsyncFailures.unwrap(throwable)));
+    }
+
+    /**
+     * Returns the in-memory entry for the operation. Active entries are seeded by {@link #recover}
+     * at startup and by {@link #begin}, so no blocking read is needed on the calling thread.
+     */
     private Entry load(String operationId) {
-        Path path = activePath(operationId);
-        return Files.isRegularFile(path) ? decode(YamlFiles.load(path.toFile())) : null;
+        return operationId == null ? null : activeEntries.get(operationId);
     }
 
-    private List<Entry> loadActive() {
-        synchronized (ioLock) {
-            try {
-                Files.createDirectories(activeDirectory);
-                try (var stream = Files.list(activeDirectory)) {
-                    return stream.filter(Files::isRegularFile)
-                            .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".yml"))
-                            .map(path -> decode(YamlFiles.load(path.toFile())))
-                            .toList();
+    /**
+     * Lists and decodes every active entry off the calling thread. A single corrupt file is
+     * quarantined and skipped instead of discarding the whole journal.
+     */
+    private CompletableFuture<List<Entry>> loadActive() {
+        AsyncYamlFiles files = asyncYamlFiles();
+        if (files == null) {
+            plugin.getLogger().severe("Cannot recover level operation journal: async file service is unavailable");
+            return CompletableFuture.completedFuture(List.of());
+        }
+        return files.read("level-journal-list-active", this::listActiveFiles)
+                .thenCompose(this::loadEach)
+                .exceptionally(throwable -> {
+                    plugin.getLogger().severe("Failed to list level operation journal directory: "
+                            + rootCauseMessage(throwable));
+                    return List.of();
+                });
+    }
+
+    private CompletableFuture<List<Entry>> loadEach(List<Path> paths) {
+        CompletableFuture<List<Entry>> chain = CompletableFuture.completedFuture(new ArrayList<>());
+        for (Path path : paths) {
+            chain = chain.thenCompose(entries -> loadOne(path).thenApply(entry -> {
+                if (entry != null) {
+                    entries.add(entry);
                 }
-            } catch (IOException | RuntimeException exception) {
-                plugin.getLogger().severe("Failed to recover level operation journal: " + exception.getMessage());
-                return List.of();
+                return entries;
+            }));
+        }
+        return chain.thenApply(entries -> {
+            logRecoverable(entries);
+            return List.copyOf(entries);
+        });
+    }
+
+    private CompletableFuture<Entry> loadOne(Path path) {
+        AsyncYamlFiles files = asyncYamlFiles();
+        if (files == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return files.load(path.toFile())
+                .thenApply(this::decode)
+                .exceptionallyCompose(throwable -> quarantineCorruptFile(path, throwable));
+    }
+
+    private List<Path> listActiveFiles() {
+        try {
+            Files.createDirectories(activeDirectory);
+            List<Path> paths = new ArrayList<>();
+            try (var stream = Files.newDirectoryStream(activeDirectory, "*.{yml,yaml}")) {
+                for (Path path : stream) {
+                    if (Files.isRegularFile(path)) {
+                        paths.add(path);
+                    }
+                }
             }
+            paths.sort(Comparator.comparing(path -> path.getFileName().toString().toLowerCase(Locale.ROOT)));
+            return List.copyOf(paths);
+        } catch (IOException exception) {
+            throw new CompletionException(exception);
         }
     }
 
-    private void archive(Entry entry) {
-        synchronized (ioLock) {
+    /**
+     * Moves an undecodable file into the quarantine directory on the file scope and resolves to
+     * {@code null} so the remaining entries keep loading.
+     */
+    private CompletableFuture<Entry> quarantineCorruptFile(Path source, Throwable throwable) {
+        String fileName = source.getFileName() == null ? "unknown.yml" : source.getFileName().toString();
+        String stem = fileName.replaceFirst("(?i)\\.ya?ml$", "");
+        Path target = quarantineDirectory.resolve(sanitize(stem) + "-corrupt-" + System.currentTimeMillis() + ".yml");
+        FileScope scope = fileScope();
+        if (scope == null) {
+            plugin.getLogger().warning("Failed to load level operation journal '" + fileName + "': "
+                    + rootCauseMessage(throwable) + "; quarantine skipped because the file scope is unavailable");
+            return CompletableFuture.completedFuture(null);
+        }
+        return scope.write(source, "level-journal-quarantine:" + fileName, () -> {
+            try {
+                Files.createDirectories(quarantineDirectory);
+                moveReplacing(source, target);
+            } catch (IOException exception) {
+                throw new CompletionException(exception);
+            }
+        }).handle((_, moveFailure) -> {
+            if (moveFailure == null) {
+                plugin.getLogger().warning("Quarantined corrupt level operation journal '" + fileName + "' to '"
+                        + target.getFileName() + "': " + rootCauseMessage(throwable));
+            } else {
+                plugin.getLogger().warning("Failed to load level operation journal '" + fileName + "': "
+                        + rootCauseMessage(throwable) + "; quarantine move failed: "
+                        + rootCauseMessage(moveFailure));
+            }
+            return null;
+        });
+    }
+
+    private void logRecoverable(List<Entry> entries) {
+        if (entries.isEmpty()) {
+            return;
+        }
+        List<String> operationIds = new ArrayList<>();
+        for (Entry entry : entries) {
+            operationIds.add(entry.operationId() + "(" + entry.phase().name() + ")");
+        }
+        plugin.getLogger().info("Recoverable level operations: " + String.join(", ", operationIds));
+    }
+
+    private String sanitize(String value) {
+        String normalized = value == null ? "operation" : value.replaceAll("[^a-zA-Z0-9._-]+", "_");
+        return normalized.isBlank() ? "operation" : normalized;
+    }
+
+    private static void moveReplacing(Path source, Path target) throws IOException {
+        try {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException _) {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable current = AsyncFailures.unwrap(throwable);
+        String message = current == null ? null : current.getMessage();
+        return message == null || message.isBlank()
+                ? current == null ? "unknown error" : current.getClass().getSimpleName()
+                : message;
+    }
+
+    /**
+     * Moves the finished entry out of {@code active}. The move is enqueued on the same physical path
+     * as the preceding writes, so it can never overtake them. A failed archive leaves the file in
+     * {@code active} for the next recovery pass, which is why it does not fail the operation.
+     */
+    private CompletableFuture<Void> archive(Entry entry) {
+        Path source = activePath(entry.operationId());
+        Path target = completedDirectory.resolve(entry.operationId() + ".yml");
+        FileScope scope = fileScope();
+        if (scope == null) {
+            activeEntries.remove(entry.operationId());
+            plugin.getLogger().warning("Failed to archive level operation " + entry.operationId()
+                    + ": async file service is unavailable");
+            return CompletableFuture.completedFuture(null);
+        }
+        return scope.write(source, "level-journal-archive:" + entry.operationId(), () -> {
             try {
                 Files.createDirectories(completedDirectory);
-                Files.move(activePath(entry.operationId()), completedDirectory.resolve(entry.operationId() + ".yml"),
-                        StandardCopyOption.REPLACE_EXISTING);
+                moveReplacing(source, target);
             } catch (IOException exception) {
-                plugin.getLogger().warning("Failed to archive level operation " + entry.operationId() + ": " + exception.getMessage());
+                throw new CompletionException(exception);
             }
-        }
+        }).handle((_, throwable) -> {
+            activeEntries.remove(entry.operationId());
+            if (throwable != null) {
+                plugin.getLogger().warning("Failed to archive level operation " + entry.operationId() + ": "
+                        + rootCauseMessage(throwable));
+            }
+            return null;
+        });
     }
 
     private Path activePath(String operationId) {
         return activeDirectory.resolve(operationId + ".yml");
+    }
+
+    private AsyncYamlFiles asyncYamlFiles() {
+        resolveAsyncFiles();
+        return asyncYamlFiles;
+    }
+
+    private FileScope fileScope() {
+        resolveAsyncFiles();
+        return fileScope;
+    }
+
+    private void resolveAsyncFiles() {
+        if (asyncYamlFiles != null) {
+            return;
+        }
+        synchronized (this) {
+            if (asyncYamlFiles != null) {
+                return;
+            }
+            try {
+                EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+                FileScope scope = coreLib.asyncFileScope(plugin);
+                this.fileScope = scope;
+                this.asyncYamlFiles = new AsyncYamlFiles(scope);
+            } catch (RuntimeException | LinkageError failure) {
+                if (!asyncFilesUnavailableLogged) {
+                    asyncFilesUnavailableLogged = true;
+                    plugin.getLogger().warning("Level operation journal cannot reach the CoreLib async file service: "
+                            + rootCauseMessage(failure));
+                }
+            }
+        }
+    }
+
+    private Throwable asyncFilesUnavailable(String operation) {
+        return new IllegalStateException(
+                "Level operation journal async file service is unavailable for " + operation);
     }
 
     private Map<String, Object> encode(Entry entry) {

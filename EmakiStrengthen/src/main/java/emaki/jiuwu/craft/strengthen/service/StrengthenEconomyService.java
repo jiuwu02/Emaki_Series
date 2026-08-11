@@ -9,18 +9,18 @@ import java.util.function.Supplier;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.api.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.api.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
-import emaki.jiuwu.craft.strengthen.model.AttemptCost;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptCost;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 
 public final class StrengthenEconomyService {
 
@@ -398,13 +398,12 @@ public final class StrengthenEconomyService {
         if (player == null || player.getInventory() == null || amount <= 0L || amount > Integer.MAX_VALUE) {
             return false;
         }
-        ItemSource source = ItemSourceUtil.parse(itemToken);
+        ItemSourceRef source = ItemSourceUtil.parse(itemToken);
         ItemStack itemStack = source == null ? null : plugin.coreItemFactory().create(source, (int) amount);
         if (itemStack == null || itemStack.isEmpty()) {
             return false;
         }
-        Map<Integer, ItemStack> leftover = player.getInventory().addItem(itemStack);
-        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+        InventoryItemUtil.giveOrDrop(player, itemStack);
         return true;
     }
 

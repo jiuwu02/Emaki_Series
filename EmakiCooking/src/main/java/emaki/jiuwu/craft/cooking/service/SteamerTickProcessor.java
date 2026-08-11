@@ -9,10 +9,10 @@ import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -23,6 +23,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Lightable;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 
 final class SteamerTickProcessor {
 
@@ -232,13 +233,15 @@ final class SteamerTickProcessor {
                 actions,
                 "cooking_steamer_complete",
                 placeholders,
-                List.of()
+                List.of(),
+                // No player inventory input on this path; the pipeline evaluates the condition itself.
+                null
         ));
         return accepted;
     }
 
     private SteamerState copyState(StationCoordinates coordinates, SteamerState state) {
-        return codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(codec.serializeState(coordinates, state)));
+        return codec.readState(new MapYamlSection(codec.serializeState(coordinates, state)));
     }
 
     boolean canStoreOutcomeInSlot(List<Map<String, Object>> outputs) {
@@ -266,7 +269,7 @@ final class SteamerTickProcessor {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }
@@ -384,7 +387,7 @@ final class SteamerTickProcessor {
             if (rule == null) {
                 continue;
             }
-            ItemSource target = lit ? rule.litSource() : rule.unlitSource();
+            ItemSourceRef target = lit ? rule.litSource() : rule.unlitSource();
             if (target == null) {
                 continue;
             }
@@ -401,7 +404,7 @@ final class SteamerTickProcessor {
         return false;
     }
 
-    private boolean matchesSource(Block block, ItemSource source) {
+    private boolean matchesSource(Block block, ItemSourceRef source) {
         return block != null && source != null && blockMatcher.matches(block, source);
     }
 
@@ -426,7 +429,7 @@ final class SteamerTickProcessor {
                     dropSource = Texts.isBlank(outputSource) ? dropSource : outputSource;
                 }
             }
-            ItemSource source = ItemSourceUtil.parse(dropSource);
+            ItemSourceRef source = ItemSourceUtil.parse(dropSource);
             ItemStack itemStack = source == null ? null : itemSourceService.createItem(source, 1);
             if (itemStack != null && !itemStack.getType().isAir()) {
                 steamerBlock.getWorld().dropItemNaturally(dropLocation, itemStack);

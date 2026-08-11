@@ -1,13 +1,19 @@
 package emaki.jiuwu.craft.forge;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
@@ -15,6 +21,8 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -28,12 +36,11 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
-import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.forge.action.ForgeActionRegistrar;
+import emaki.jiuwu.craft.forge.action.ForgeStageRegistrar;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
@@ -43,12 +50,11 @@ import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
-import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeResultHookRegistry;
-import emaki.jiuwu.craft.forge.script.js.JavaScriptForgeRuleRegistry;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
+import emaki.jiuwu.craft.forge.apiimpl.DefaultEmakiForgeApi;
 
-public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider, EmakiServiceRegistry {
+public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakiforge";
 
@@ -92,29 +98,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
-    private final JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry = new JavaScriptForgeRuleRegistry(this);
-    private final JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry = new JavaScriptForgeResultHookRegistry(this);
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskHandle autoSaveTask;
     private DebugCommand debugCommand;
-    private final EmakiForgeApi.Bridge forgeApiBridge = new EmakiForgeApi.Bridge() {
-        @Override
-        public String apiVersion() {
-            return getDescription().getVersion();
-        }
+    private ForgeStageRegistrar stageRegistrar;
+    private final EmakiForgeApi.Bridge forgeApiBridge =
+            new DefaultEmakiForgeApi(this);
 
-        @Override
-        public String pluginName() {
-            return getName();
-        }
-
-        @Override
-        public boolean isReady() {
-            return isEnabled() && isRuntimeReady();
-        }
-    };
-
-    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "script", "pdc");
+    private static final Set<String> DEBUG_MODULES = Set.of("recipe", "forge", "gui", "pdc");
 
     public EmakiForgePlugin() {
         super(AppConfig::defaults);
@@ -149,6 +140,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         if (!shutdownStarted.compareAndSet(false, true)) {
             return;
         }
+        publishAbsent();
         CompletableFuture<Void> shutdownFuture = new CompletableFuture<>();
         EmakiCoreLibPlugin coreLibPlugin = resolveCoreLibForShutdown();
         registerCoreShutdownBarrier(coreLibPlugin, shutdownFuture);
@@ -178,7 +170,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             shutdownPipeline = lifecycleCoordinator
                     .quiesceAndCloseForShutdown(this, coreLibPlugin)
                     .thenCompose(ignored -> {
-                        clearRuntimeRegistrationsForShutdown(coreLibPlugin);
+                        clearRuntimeRegistrationsForShutdown();
                         return lifecycleCoordinator.shutdownAsync(this, coreLibPlugin);
                     });
         } catch (Throwable startupFailure) {
@@ -187,10 +179,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         shutdownPipeline.whenComplete((ignored, throwable) -> {
             Throwable terminalFailure = throwable;
             if (throwable != null) {
-                Throwable cause = throwable instanceof java.util.concurrent.CompletionException
-                        && throwable.getCause() != null
-                        ? throwable.getCause()
-                        : throwable;
+                Throwable cause = AsyncFailures.unwrapOnce(throwable);
                 getLogger().warning("[Shutdown] Forge cleanup failed: "
                         + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
             }
@@ -254,31 +243,20 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
     }
 
-    private void clearRuntimeRegistrationsForShutdown(EmakiCoreLibPlugin coreLibPlugin) {
+    private void clearRuntimeRegistrationsForShutdown() {
         try {
             playerDataListener.clearSessionsForShutdown();
         } catch (Throwable throwable) {
             getLogger().warning("[Shutdown] Player session cleanup failed: " + String.valueOf(throwable.getMessage()));
         }
-        try {
-            javaScriptResultHookRegistry.clear();
-        } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] JavaScript result hook cleanup failed: "
-                    + String.valueOf(throwable.getMessage()));
-        }
-        try {
-            javaScriptForgeRuleRegistry.clear();
-        } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] JavaScript rule cleanup failed: "
-                    + String.valueOf(throwable.getMessage()));
-        }
-        if (coreLibPlugin == null || coreLibPlugin.actionRegistry() == null) {
-            return;
-        }
-        try {
-            coreLibPlugin.actionRegistry().unregisterAll(this);
-        } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] Forge action cleanup failed: " + String.valueOf(throwable.getMessage()));
+        if (stageRegistrar != null) {
+            try {
+                stageRegistrar.unregister();
+            } catch (Throwable throwable) {
+                getLogger().warning("[Shutdown] Forge stage cleanup failed: "
+                        + String.valueOf(throwable.getMessage()));
+            }
+            stageRegistrar = null;
         }
     }
 
@@ -294,7 +272,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                     }
                     logConfigPrecheckReport();
                     if (debugLogger() != null) {
-                        debugLogger().log("forge", (java.util.UUID) null, "forge.runtime_metrics",
+                        debugLogger().log("forge", (UUID) null, "forge.runtime_metrics",
                                 runtimeMetrics.snapshot().debugValues(runtimeStatus(), runtimeSnapshot().guiState()));
                     }
                     return result;
@@ -339,13 +317,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerCommand(
                 ROOT_COMMAND,
                 "emakiforge command",
-                java.util.List.of("eforge", "ef"),
+                List.of("eforge", "ef"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiforge.use", commandRouter, commandRouter)
         );
     }
 
     private void registerActions() {
-        new ForgeActionRegistrar(this).register(coreLib().actionRegistry());
+        stageRegistrar = new ForgeStageRegistrar(this);
+        stageRegistrar.register();
     }
 
     private void registerEventHandlers() {
@@ -436,6 +415,16 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
+    /**
+     * {@return the runner used to execute configured pipeline lines}
+     *
+     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
+     * needs no action here.</p>
+     */
+    public ActionLineRunner actionLines() {
+        return coreLib().actionLineRunner(this);
+    }
+
     public ExecutionDispatcher executionDispatcher() {
         ForgeRuntimeComponents components = runtimeSnapshot.get().components();
         return components == null ? executionDispatcher : components.executionDispatcher();
@@ -481,14 +470,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return components == null ? recipeBookGuiService : components.recipeBookGuiService();
     }
 
-    public JavaScriptForgeRuleRegistry javaScriptForgeRuleRegistry() {
-        return javaScriptForgeRuleRegistry;
-    }
-
-    public JavaScriptForgeResultHookRegistry javaScriptResultHookRegistry() {
-        return javaScriptResultHookRegistry;
-    }
-
     public DebugCommand debugCommand() {
         return debugCommand;
     }
@@ -530,6 +511,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     void beginReload(long generation) {
+        applyReloadStart(generation);
+        syncReadiness();
+    }
+
+    private void applyReloadStart(long generation) {
         runtimeSnapshot.updateAndGet(current -> {
             if (shutdownStarted.get()
                     || current.status() == ForgeRuntimeStatus.CLOSING
@@ -567,7 +553,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 coreLibPlugin.asyncTaskScheduler(),
                 coreLibPlugin.performanceMonitor(),
                 coreLibPlugin.itemAssemblyService(),
-                coreLibPlugin::actionExecutor,
+                actionLines(),
                 previousComponents.executionDispatcher(),
                 previousComponents.threadOwnership()
         );
@@ -621,6 +607,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             setDebugLogger(nextLogger);
             debugCommand = nextCommand;
             previousComponents.forgeService().close();
+            // The published snapshot is RELOADING, so this reports "loading" rather than ready; the
+            // ready transition belongs to completeCandidateInstallation.
+            syncReadiness();
         } catch (RuntimeException | Error failure) {
             boolean restored = !committed || runtimeSnapshot.compareAndSet(next, previous);
             if (restored) {
@@ -628,6 +617,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 setDebugLogger(previousLogger);
                 debugCommand = previousCommand;
             }
+            // A restored previous runtime can be ACTIVE and available again, and the caller never
+            // reaches completeCandidateInstallation on this path. Without this the registry would stay
+            // stuck reporting "loading" while status() reports ready.
+            syncReadiness();
             try {
                 nextForgeService.close();
                 ForgeRuntimeSnapshot active = runtimeSnapshot.get();
@@ -649,6 +642,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     boolean completeCandidateInstallation(long generation) {
+        boolean completed = installActiveGeneration(generation);
+        // Published outside the CAS loop above: waiting third-party callbacks run synchronously, so a
+        // retry iteration must never carry one, and no lock may be held while they run.
+        syncReadiness();
+        return completed;
+    }
+
+    private boolean installActiveGeneration(long generation) {
         while (true) {
             ForgeRuntimeSnapshot current = runtimeSnapshot.get();
             if (shutdownStarted.get()
@@ -766,17 +767,55 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         runtimeSnapshot.updateAndGet(current -> current.withStatus(status));
     }
 
+    /**
+     * Publishes the current runtime availability to CoreLib's readiness registry.
+     *
+     * <p>Derived from the snapshot rather than tracked separately so the registry cannot disagree with
+     * {@link #isRuntimeReady()}. Must be called outside any CAS retry loop: waiting third-party
+     * callbacks run synchronously on the calling thread.</p>
+     */
+    private void syncReadiness() {
+        boolean ready = runtimeSnapshot.get().available();
+        publishReadiness(coreLibPlugin -> {
+            if (ready) {
+                coreLibPlugin.markModuleReady(getName());
+            } else {
+                coreLibPlugin.markModuleLoading(getName());
+            }
+        });
+    }
+
+    private void publishAbsent() {
+        publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
+    }
+
+    /**
+     * Runs a readiness publication, tolerating CoreLib being gone.
+     *
+     * <p>Shutdown ordering is the reason for the guard: the disable path publishes too, and failing to
+     * tell CoreLib about it must never turn into an exception out of {@code onDisable}.</p>
+     *
+     * @param action what to publish
+     */
+    private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
+        try {
+            action.accept(coreLib());
+        } catch (RuntimeException | LinkageError exception) {
+            getLogger().fine("EmakiForge readiness publication skipped: " + exception);
+        }
+    }
+
     private static final class PaperCommandAdapter implements BasicCommand {
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                                     String permission,
-                                    org.bukkit.command.CommandExecutor executor,
-                                    org.bukkit.command.TabCompleter tabCompleter) {
+                                    CommandExecutor executor,
+                                    TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -789,10 +828,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[]{""} : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

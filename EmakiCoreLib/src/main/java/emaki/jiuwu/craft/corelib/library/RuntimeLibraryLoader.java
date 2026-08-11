@@ -28,6 +28,16 @@ public final class RuntimeLibraryLoader {
 
     private static final String ALIYUN_REPO = "https://maven.aliyun.com/repository/central";
     private static final String CENTRAL_REPO = "https://repo1.maven.org/maven2";
+
+    /**
+     * Adventure 家族各 artifact 之间存在内部 API 契约，必须整组同版本加载，
+     * 混版是已知的 {@code NoSuchMethodError} 来源，因此所有 {@code net.kyori:adventure-*}
+     * 坐标共用这一个常量。
+     *
+     * <p>该值必须与根 {@code pom.xml} 的 {@code <adventure.version>} 保持一致：
+     * 编译期依赖来自 POM，运行期依赖来自这里，两侧不同版本会让编译通过的调用在运行时失败。
+     */
+    private static final String ADVENTURE_VERSION = "4.26.1";
     private static final Component LOG_PREFIX = Component.text("[LibraryLoader] ", NamedTextColor.GRAY);
 
     private static final int PROBE_TIMEOUT_MS = 3000;
@@ -86,34 +96,31 @@ public final class RuntimeLibraryLoader {
 
     private List<RuntimeLibrary> libraries() {
         return List.of(
-                RuntimeLibrary.maven("adventure-api", new LibraryCoordinate("net.kyori", "adventure-api", "4.26.1")),
-                RuntimeLibrary.maven("adventure-key", new LibraryCoordinate("net.kyori", "adventure-key", "4.26.1")),
+                adventure("adventure-api"),
+                adventure("adventure-key"),
                 RuntimeLibrary.maven("examination-api", new LibraryCoordinate("net.kyori", "examination-api", "1.3.0")),
                 RuntimeLibrary.maven("examination-string", new LibraryCoordinate("net.kyori", "examination-string", "1.3.0")),
-                RuntimeLibrary.maven("adventure-nbt", new LibraryCoordinate("net.kyori", "adventure-nbt", "4.21.0")),
-                RuntimeLibrary.maven("adventure-text-minimessage", new LibraryCoordinate("net.kyori", "adventure-text-minimessage", "4.26.1")),
-                RuntimeLibrary.maven("adventure-text-serializer-plain", new LibraryCoordinate("net.kyori", "adventure-text-serializer-plain", "4.26.1")),
-                RuntimeLibrary.maven("adventure-text-serializer-legacy", new LibraryCoordinate("net.kyori", "adventure-text-serializer-legacy", "4.26.1")),
-                RuntimeLibrary.maven("adventure-text-serializer-gson", new LibraryCoordinate("net.kyori", "adventure-text-serializer-gson", "4.21.0")),
-                RuntimeLibrary.maven("adventure-text-serializer-gson-legacy-impl", new LibraryCoordinate("net.kyori", "adventure-text-serializer-gson-legacy-impl", "4.21.0")),
-                RuntimeLibrary.maven("adventure-text-serializer-json", new LibraryCoordinate("net.kyori", "adventure-text-serializer-json", "4.21.0")),
-                RuntimeLibrary.maven("adventure-text-serializer-json-legacy-impl", new LibraryCoordinate("net.kyori", "adventure-text-serializer-json-legacy-impl", "4.21.0")),
-                RuntimeLibrary.maven("adventure-text-serializer-commons", new LibraryCoordinate("net.kyori", "adventure-text-serializer-commons", "4.21.0")),
+                adventure("adventure-nbt"),
+                adventure("adventure-text-minimessage"),
+                adventure("adventure-text-serializer-plain"),
+                adventure("adventure-text-serializer-legacy"),
+                adventure("adventure-text-serializer-gson"),
+                adventure("adventure-text-serializer-gson-legacy-impl"),
+                adventure("adventure-text-serializer-json"),
+                adventure("adventure-text-serializer-json-legacy-impl"),
+                adventure("adventure-text-serializer-commons"),
                 RuntimeLibrary.maven("option", new LibraryCoordinate("net.kyori", "option", "1.1.0")),
-                RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.8.0")),
+                // gson 与 paper-api 声明的 2.11.0 对齐：Paper 运行时自带 gson，这里下载更旧的版本
+                // 会把服务端已有实现挤到后面，造成 adventure gson serializer 与服务端行为不一致。
+                RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.11.0")),
                 RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7")),
                 RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
-                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4")),
-                RuntimeLibrary.maven("graal-polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", "25.0.3")),
-                RuntimeLibrary.maven("graal-collections", new LibraryCoordinate("org.graalvm.sdk", "collections", "25.0.3")),
-                RuntimeLibrary.maven("graal-nativeimage", new LibraryCoordinate("org.graalvm.sdk", "nativeimage", "25.0.3")),
-                RuntimeLibrary.maven("graal-word", new LibraryCoordinate("org.graalvm.sdk", "word", "25.0.3")),
-                RuntimeLibrary.maven("graal-js-language", new LibraryCoordinate("org.graalvm.js", "js-language", "25.0.3")),
-                RuntimeLibrary.maven("graal-regex", new LibraryCoordinate("org.graalvm.regex", "regex", "25.0.3")),
-                RuntimeLibrary.maven("graal-truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", "25.0.3")),
-                RuntimeLibrary.maven("graal-icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", "25.0.3")),
-                RuntimeLibrary.maven("graal-xz", new LibraryCoordinate("org.graalvm.shadowed", "xz", "25.0.3"))
+                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4"))
         );
+    }
+
+    private static RuntimeLibrary adventure(String artifactId) {
+        return RuntimeLibrary.maven(artifactId, new LibraryCoordinate("net.kyori", artifactId, ADVENTURE_VERSION));
     }
 
     private boolean prepareLibrary(RuntimeLibrary library, Path localFile, String preferredRepo, String fallbackRepo) {

@@ -1,13 +1,20 @@
 package emaki.jiuwu.craft.skills.api;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Static public API facade for the EmakiSkills skill-scripting system.
+ * Static public facade for EmakiSkills.
  *
- * <p>Third-party plugins can use this facade to check whether EmakiSkills is
- * available and to access the skill-script action registry when it is installed.
+ * <p>Use {@link #catalog()} for read-only definition and player queries, {@link #operations()} for casting
+ * and state changes, and {@link #extensions()} to register an external skill source. Every accessor is
+ * non-null and degrades to a stable unavailable implementation when the runtime bridge is absent, so callers
+ * must test {@link #status()} or classify on {@code FailureKind} instead of catching
+ * {@code NullPointerException}.
+ *
+ * <p>Accessors are cheap and the backing bridge is replaced across a reload, so resolve the layer at the
+ * point of use rather than caching it in a field.
  */
 public final class EmakiSkillsApi {
 
@@ -17,48 +24,77 @@ public final class EmakiSkillsApi {
     }
 
     /**
-     * Installs the backing bridge. Intended for EmakiSkills' lifecycle only.
+     * Installs the runtime bridge. Intended for EmakiSkills lifecycle code only.
      *
-     * @param bridge the active bridge implementation supplied by EmakiSkills
+     * @param bridge the runtime implementation to publish
      */
+    @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
         EmakiSkillsApi.bridge = bridge;
     }
 
     /**
-     * Removes the backing bridge when it is still the active bridge.
+     * Removes the bridge only when it is still the active instance, so a stale instance from a previous
+     * reload cannot uninstall its replacement.
      *
-     * @param bridge the bridge to remove; ignored when it is not the active bridge
+     * @param bridge the instance attempting to uninstall; a non-matching or {@code null} value is ignored
      */
+    @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
         if (EmakiSkillsApi.bridge == bridge) {
             EmakiSkillsApi.bridge = null;
         }
     }
 
-    /** {@return whether EmakiSkills has installed its API bridge} */
-    public static boolean available() {
-        return bridge != null;
+    /** {@return availability and identity metadata, reporting not-installed while no bridge is present} */
+    public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
+                : resolved.status();
     }
 
     /**
-     * Returns the registry used to register custom skill-script actions.
-     *
-     * @return the registry, or {@code null} when EmakiSkills is unavailable
+     * {@return the read-only query layer; never {@code null}, falling back to an unavailable implementation
+     * whose per-player queries fail with {@code UNAVAILABLE} and whose collections are empty}
      */
-    public static @Nullable SkillScriptActionRegistry scriptActionRegistry() {
+    public static @NotNull SkillCatalog catalog() {
         Bridge resolved = bridge;
-        return resolved == null ? null : resolved.scriptActionRegistry();
+        return resolved == null ? UnavailableSkills.CATALOG : resolved.catalog();
     }
 
-    /** Internal bridge installed by EmakiSkills. */
+    /**
+     * {@return the state-changing operation layer; never {@code null}, falling back to an unavailable
+     * implementation whose methods all fail with {@code UNAVAILABLE} without touching game state}
+     */
+    public static @NotNull SkillOperations operations() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableSkills.OPERATIONS : resolved.operations();
+    }
+
+    /**
+     * {@return the extension registration layer; never {@code null}, falling back to an unavailable
+     * implementation that hands back inactive no-op registration handles}
+     */
+    public static @NotNull SkillExtensions extensions() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableSkills.EXTENSIONS : resolved.extensions();
+    }
+
+    /** Runtime contract implemented only by EmakiSkills; third-party plugins must not implement it. */
+    @ApiStatus.NonExtendable
     public interface Bridge {
-        /**
-         * Returns the registry used to register custom skill-script actions.
-         *
-         * @return the registry, or {@code null} when the registry is not initialized
-         */
-        @Nullable
-        SkillScriptActionRegistry scriptActionRegistry();
+
+        /** {@return availability and identity metadata for the running EmakiSkills instance} */
+        @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status();
+
+        /** {@return the runtime read-only query layer} */
+        @NotNull SkillCatalog catalog();
+
+        /** {@return the runtime state-changing operation layer} */
+        @NotNull SkillOperations operations();
+
+        /** {@return the runtime extension registration layer} */
+        @NotNull SkillExtensions extensions();
     }
 }

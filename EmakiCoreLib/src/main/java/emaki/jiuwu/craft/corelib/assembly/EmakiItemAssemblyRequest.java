@@ -5,13 +5,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 
-public record EmakiItemAssemblyRequest(ItemSource baseSource,
+public record EmakiItemAssemblyRequest(ItemSourceRef baseSource,
         int amount,
         ItemStack existingItem,
         List<EmakiItemLayerSnapshot> layerSnapshots,
@@ -23,14 +24,14 @@ public record EmakiItemAssemblyRequest(ItemSource baseSource,
         removedNamespaceIds = copyRemovedNamespaces(removedNamespaceIds);
     }
 
-    public EmakiItemAssemblyRequest(ItemSource baseSource,
+    public EmakiItemAssemblyRequest(ItemSourceRef baseSource,
             int amount,
             ItemStack existingItem,
             Collection<EmakiItemLayerSnapshot> layerSnapshots) {
         this(baseSource, amount, existingItem, layerSnapshots, List.of(), null);
     }
 
-    public EmakiItemAssemblyRequest(ItemSource baseSource,
+    public EmakiItemAssemblyRequest(ItemSourceRef baseSource,
             int amount,
             ItemStack existingItem,
             Collection<EmakiItemLayerSnapshot> layerSnapshots,
@@ -38,7 +39,7 @@ public record EmakiItemAssemblyRequest(ItemSource baseSource,
         this(baseSource, amount, existingItem, layerSnapshots, List.of(), feedbackPlayerId);
     }
 
-    public EmakiItemAssemblyRequest(ItemSource baseSource,
+    public EmakiItemAssemblyRequest(ItemSourceRef baseSource,
             int amount,
             ItemStack existingItem,
             Collection<EmakiItemLayerSnapshot> layerSnapshots,
@@ -46,7 +47,7 @@ public record EmakiItemAssemblyRequest(ItemSource baseSource,
         this(baseSource, amount, existingItem, layerSnapshots, removedNamespaceIds, null);
     }
 
-    public EmakiItemAssemblyRequest(ItemSource baseSource,
+    public EmakiItemAssemblyRequest(ItemSourceRef baseSource,
             int amount,
             ItemStack existingItem,
             Collection<EmakiItemLayerSnapshot> layerSnapshots,
@@ -94,7 +95,7 @@ public record EmakiItemAssemblyRequest(ItemSource baseSource,
         if (removedNamespaceIds == null || removedNamespaceIds.isEmpty()) {
             return List.of();
         }
-        Map<String, String> unique = new java.util.TreeMap<>();
+        Map<String, String> unique = new TreeMap<>();
         for (String namespaceId : removedNamespaceIds) {
             String normalized = normalizeNamespace(namespaceId);
             if (!normalized.isBlank()) {

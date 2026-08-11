@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.codex.advancement;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -11,7 +12,8 @@ import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
+import emaki.jiuwu.craft.codex.api.event.AdvancementCompletedEvent;
+
 
 
 
@@ -35,18 +37,18 @@ public final class AdvancementListener implements Listener {
         if (definition == null) {
             return;
         }
+        Bukkit.getPluginManager().callEvent(
+                new AdvancementCompletedEvent(event.getPlayer(), definition.id(), key.toString()));
         List<String> lines = definition.completeActions();
         if (lines.isEmpty()) {
             return;
         }
         String pageId = registrar.pageByKey(key);
-        ActionContext context = ActionContext.create(plugin, event.getPlayer(), "advancement.complete", false)
-                .withPlaceholders(Map.of(
-                        "advancement_id", key.toString(),
-                        "advancement_node", definition.id(),
-                        "advancement_title", definition.title(),
-                        "advancement_page", pageId == null ? "" : pageId
-                ));
-        plugin.coreLib().actionExecutor().executeAll(context, lines, true);
+        plugin.actionLines().run(lines, event.getPlayer(), "advancement.complete", false, Map.of(
+                "advancement_id", key.toString(),
+                "advancement_node", definition.id(),
+                "advancement_title", definition.title(),
+                "advancement_page", pageId == null ? "" : pageId
+        ), true);
     }
 }

@@ -2,16 +2,16 @@ package emaki.jiuwu.craft.attribute.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.function.Function;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record DamageStageDefinition(String id,
         DamageStageKind kind,
@@ -27,7 +27,8 @@ public record DamageStageDefinition(String id,
         Double minChance,
         Double maxChance,
         Double minMultiplier,
-        Double maxMultiplier) {
+        Double maxMultiplier,
+        Map<String, Object> variables) {
 
     private static final Map<DamageStageDefinition, AttributeSignatureCache> ATTRIBUTE_SIGNATURE_CACHE =
             Collections.synchronizedMap(new WeakHashMap<>());
@@ -42,6 +43,7 @@ public record DamageStageDefinition(String id,
         chanceAttributes = chanceAttributes == null ? List.of() : List.copyOf(chanceAttributes);
         multiplierAttributes = multiplierAttributes == null ? List.of() : List.copyOf(multiplierAttributes);
         expression = Texts.toStringSafe(expression).trim();
+        variables = normalizeVariables(variables);
     }
 
     public static DamageStageDefinition fromMap(Object raw) {
@@ -53,9 +55,9 @@ public record DamageStageDefinition(String id,
             return null;
         }
         String id = ConfigNodes.string(raw, "id", "stage");
-        DamageStageKind kind = parseEnum(ConfigNodes.string(raw, "kind", "FLAT_PERCENT"), DamageStageKind.FLAT_PERCENT);
-        DamageStageSource source = parseEnum(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER);
-        DamageStageMode mode = parseEnum(ConfigNodes.string(raw, "mode", "ADD"), DamageStageMode.ADD);
+        DamageStageKind kind = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "kind", "FLAT_PERCENT"), DamageStageKind.FLAT_PERCENT);
+        DamageStageSource source = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER);
+        DamageStageMode mode = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "mode", "ADD"), DamageStageMode.ADD);
         return new DamageStageDefinition(
                 id,
                 kind,
@@ -71,7 +73,8 @@ public record DamageStageDefinition(String id,
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "min_chance"), null),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "max_chance"), null),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "min_multiplier"), null),
-                Numbers.tryParseDouble(ConfigNodes.get(raw, "max_multiplier"), null)
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "max_multiplier"), null),
+                ConfigNodes.entries(ConfigNodes.get(raw, "variables"))
         );
     }
 
@@ -102,7 +105,21 @@ public record DamageStageDefinition(String id,
                 )
         );
     }
-private static List<String> normalizeAttributes(List<String> ids, Function<String, String> attributeNormalizer) {
+private static Map<String, Object> normalizeVariables(Map<String, Object> variables) {
+        if (variables == null || variables.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            if (Texts.isBlank(entry.getKey()) || entry.getValue() == null) {
+                continue;
+            }
+            normalized.put(entry.getKey(), ConfigNodes.toPlainData(entry.getValue()));
+        }
+        return normalized.isEmpty() ? Map.of() : Collections.unmodifiableMap(normalized);
+    }
+
+    private static List<String> normalizeAttributes(List<String> ids, Function<String, String> attributeNormalizer) {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
@@ -118,17 +135,6 @@ private static List<String> normalizeAttributes(List<String> ids, Function<Strin
             }
         }
         return List.copyOf(normalized);
-    }
-
-    private static <E extends Enum<E>> E parseEnum(String value, E defaultValue) {
-        if (Texts.isBlank(value)) {
-            return defaultValue;
-        }
-        try {
-            return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception _) {
-            return defaultValue;
-        }
     }
 
     private record AttributeSignatureCache(String flatAttributesSignature,

@@ -18,8 +18,8 @@ import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGate;
-import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGate;
+import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGateRegistration;
 
 /**
  * Owner-aware registry of {@link ItemContributionGate} providers.

@@ -11,10 +11,12 @@ import org.bukkit.inventory.meta.ItemMeta;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
+import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 
 final class ItemOperationExecutor {
 
@@ -222,7 +224,7 @@ final class ItemOperationExecutor {
             if ("replace_line".equals(action) || "delete_line".equals(action)) {
                 originalLines = findMatchingLines(currentLore, anchor);
             }
-            Integer parsedIndex = emaki.jiuwu.craft.corelib.math.Numbers.tryParseInt(operation.get("index"), null);
+            Integer parsedIndex = Numbers.tryParseInt(operation.get("index"), null);
             int requestedIndex = parsedIndex == null ? 0 : Math.max(0, parsedIndex);
             String regexPattern = "regex_replace".equals(action)
                     ? Texts.toStringSafe(operation.get("regex_pattern"))

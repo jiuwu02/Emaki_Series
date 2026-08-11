@@ -8,9 +8,9 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.6.0"
+version: "4.7.0"
 general:
-  prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
 
 console:
   plugin_starting: "<gray>Starting...</gray>"
@@ -19,6 +19,8 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -36,6 +38,7 @@ console:
       directory_not_readable: "The directory is not readable."
       attribute_sources_disabled: "Both Lore and PDC item attribute sources are disabled, so all item attributes are inactive."
       attribute_sources_match_requires_both: "Match mode requires both Lore and PDC attribute reading; otherwise all item attributes are inactive."
+      scaling_curve_type_unknown: "Unknown scaling curve type %curve_type% for attribute %attribute%; falling back to logarithmic."
   combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>Config load failed: %error%</red>"
@@ -65,22 +68,6 @@ console:
     <yellow>%default_value%</yellow> <dark_gray>|</dark_gray> <gray>Power</gray>
     <yellow>%attribute_power%</yellow>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
-  js_attribute_extension_no_result: "no result"
-  js_attribute_extension_load_failed: "<yellow>Failed to load JavaScript attribute extension: <white>%script%</white> (<red>%error%</red>)</yellow>"
-  js_attribute_extensions_loaded: "<gray>Loaded <yellow>%count%</yellow> JavaScript attribute extension script(s), damage hooks=<yellow>%damage_hooks%</yellow>, damage pipelines=<yellow>%damage_pipelines%</yellow></gray>"
-  js_attribute_extension_directory_create_failed: "<yellow>Failed to create JavaScript attribute extension directory: <red>%error%</red></yellow>"
-  js_attribute_extension_scan_failed: "<yellow>Failed to scan JavaScript attribute extensions: <red>%error%</red></yellow>"
-  js_attribute_blank_id: "<yellow>JavaScript attribute definition ID cannot be blank: <white>%script%</white></yellow>"
-  js_attribute_registered: "<gray>Registered JavaScript attribute: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_attribute_provider_blank_id: "<yellow>JavaScript attribute provider ID cannot be blank: <white>%script%</white></yellow>"
-  js_attribute_provider_registered: "<gray>Registered JavaScript attribute provider: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_damage_hook_invalid: "<yellow>JavaScript damage hook requires id and function: <white>%script%</white></yellow>"
-  js_damage_hook_registered: "<gray>Registered JavaScript damage hook: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_damage_hook_failed: "<yellow>JavaScript damage hook failed: <aqua>%id%</aqua> (<red>%error%</red>)</yellow>"
-  js_damage_type_invalid: "<yellow>Invalid JavaScript damage type definition: <white>%script%</white></yellow>"
-  js_damage_type_registered: "<gray>Registered JavaScript damage type: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_damage_pipeline_invalid: "<yellow>JavaScript damage pipeline requires id and function: <white>%script%</white></yellow>"
-  js_damage_pipeline_registered: "<gray>Registered JavaScript damage pipeline: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
 
 loader:
   lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"
@@ -118,6 +105,12 @@ damage:
   target: "Target"
   critical_text: "Critical"
   critical_suffix: " <red>Critical</red>"
+  # Damage indicator templates. %damage% is the damage dealt, %amount% the amount healed.
+  indicator:
+    normal: "<white>-%damage%</white>"
+    critical: "<red><bold>-%damage% ✦</bold></red>"
+    heal: "<green>+%amount%</green>"
+    dodge: "<gray><i>Dodge</i></gray>"
   cause:
     environment: "Environment"
     unknown: "Unknown"
@@ -170,30 +163,6 @@ combat_debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
-    action:
-      execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
-      execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
-      execute_direct_result: "Direct action execution complete | action=%action% | success=%success% | error=%error%"
-      execute_batch_start: "Batch action execution started | phase=%phase% | lines=%lines% | stop_on_failure=%stop_on_failure%"
-      execute_batch_result: "Batch action execution complete | phase=%phase% | success=%success% | steps=%steps% | error=%error%"
-      parse_line: "Parse action line | phase=%phase% | line=%line% | raw=%raw%"
-      parse_failed: "Action line parsing failed | phase=%phase% | line=%line% | error=%error%"
-      parse_skipped: "Skipped blank action line | phase=%phase% | line=%line%"
-      parse_ok: "Action line parsed | phase=%phase% | line=%line% | action=%action% | control=%control% | args=%args%"
-      step_result: "Action step complete | phase=%phase% | line=%line% | action=%action% | success=%success% | error=%error%"
-      batch_stop: "Batch action stopped after failure | phase=%phase% | line=%line% | action=%action%"
-      action_missing: "Action is not registered | line=%line% | action=%action% | error=%error%"
-      control_condition: "Action condition check | line=%line% | action=%action% | condition=%condition% | passes=%passes%"
-      control_chance_invalid: "Invalid action chance | line=%line% | action=%action% | chance=%chance%"
-      control_chance: "Action chance check | line=%line% | action=%action% | chance=%chance% | threshold=%threshold% | roll=%roll% | passes=%passes%"
-      control_delay: "Action delay parsed | line=%line% | action=%action% | raw=%raw% | ticks=%ticks%"
-      dispatch_template: "Dispatch action template | action=%action% | delay=%delay% | args=%args%"
-      dispatch_action: "Dispatch registered action | action=%action% | domain=%domain% | owner=%owner% | delay=%delay% | timeout=%timeout% | args=%args%"
-      safe_execute_start: "Safe action execution started | phase=%phase% | action=%action% | args=%args%"
-      safe_execute_result: "Safe action execution complete | phase=%phase% | action=%action% | success=%success% | error=%error%"
     item_operation:
       apply_start: "Item operation started | operation=%operation_id% | namespace=%namespace% | item=%item% | name_actions=%name_actions% | lore_actions=%lore_actions% | variables=%variables%"
       apply_empty: "Item operation produced no result | operation=%operation_id%"
@@ -394,8 +363,18 @@ command:
     player_not_found: "<red>Player %player% not found.</red>"
     console_usage: "<yellow>Console usage: /emakiattribute dump <player></yellow>"
     player: "<green>Viewing attribute snapshot for %player%.</green>"
+    # Player side: one compact line, expanded on hover
     signature: "<gray>Signature <dark_gray>(hover to view)</dark_gray></gray>"
     values: "<gray>Attribute values <dark_gray>(hover to view)</dark_gray></gray>"
+    signature_empty: "<gray>No signature</gray>"
+    values_empty: "<gray>No non-zero attributes</gray>"
+    # Console side: hovering is impossible, so print a header and one indented line each
+    signature_header: "<gray>Signature:</gray>"
+    signature_line: "  <yellow>%signature%</yellow>"
+    signature_empty_line: "  <gray>No signature</gray>"
+    values_header: "<gray>Attribute values:</gray>"
+    values_line: "  <aqua>%attribute%</aqua><dark_gray> (</dark_gray><white>%attribute_id%</white><dark_gray>): </dark_gray><yellow>%value%</yellow>"
+    values_empty_line: "  <gray>No non-zero attributes</gray>"
     resource_line:
       "<gray>%resource%: default %default_max%, bonus %bonus_max%, cap
       %current_max%, current %current%</gray>"
@@ -491,30 +470,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
-    action:
-      execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
-      execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
-      execute_direct_result: "Direct action execution complete | action=%action% | success=%success% | error=%error%"
-      execute_batch_start: "Batch action execution started | phase=%phase% | lines=%lines% | stop_on_failure=%stop_on_failure%"
-      execute_batch_result: "Batch action execution complete | phase=%phase% | success=%success% | steps=%steps% | error=%error%"
-      parse_line: "Parse action line | phase=%phase% | line=%line% | raw=%raw%"
-      parse_failed: "Action line parsing failed | phase=%phase% | line=%line% | error=%error%"
-      parse_skipped: "Skipped blank action line | phase=%phase% | line=%line%"
-      parse_ok: "Action line parsed | phase=%phase% | line=%line% | action=%action% | control=%control% | args=%args%"
-      step_result: "Action step complete | phase=%phase% | line=%line% | action=%action% | success=%success% | error=%error%"
-      batch_stop: "Batch action stopped after failure | phase=%phase% | line=%line% | action=%action%"
-      action_missing: "Action is not registered | line=%line% | action=%action% | error=%error%"
-      control_condition: "Action condition check | line=%line% | action=%action% | condition=%condition% | passes=%passes%"
-      control_chance_invalid: "Invalid action chance | line=%line% | action=%action% | chance=%chance%"
-      control_chance: "Action chance check | line=%line% | action=%action% | chance=%chance% | threshold=%threshold% | roll=%roll% | passes=%passes%"
-      control_delay: "Action delay parsed | line=%line% | action=%action% | raw=%raw% | ticks=%ticks%"
-      dispatch_template: "Dispatch action template | action=%action% | delay=%delay% | args=%args%"
-      dispatch_action: "Dispatch registered action | action=%action% | domain=%domain% | owner=%owner% | delay=%delay% | timeout=%timeout% | args=%args%"
-      safe_execute_start: "Safe action execution started | phase=%phase% | action=%action% | args=%args%"
-      safe_execute_result: "Safe action execution complete | phase=%phase% | action=%action% | success=%success% | error=%error%"
     item_operation:
       apply_start: "Item operation started | operation=%operation_id% | namespace=%namespace% | item=%item% | name_actions=%name_actions% | lore_actions=%lore_actions% | variables=%variables%"
       apply_empty: "Item operation produced no result | operation=%operation_id%"
@@ -623,6 +578,12 @@ debug:
     snapshot_collect: "Collect attribute snapshot | entity=%entity% | count=%count%"
     damage_stage: "Damage stage | stage=%stage% | values=%values%"
     damage_result: "Damage calc complete | final_damage=%damage% | type=%type%"
+    damage_base: "Damage base value | attacker=%attacker% | target=%target% | projectile=%projectile% | damage_type=%damage_type% | cause=%cause% | source_damage=%source_damage% | base_damage=%base_damage% | stage_chain=%stage_chain% | allow_critical=%allow_critical% | calculate_target_defense=%calculate_target_defense% | allow_target_dodge=%allow_target_dodge% | target_blocking=%target_blocking% | seeded_roll=%seeded_roll% | attacker_signature=%attacker_signature% | target_signature=%target_signature%"
+    damage_bonus: "Damage bonus stage | attacker=%attacker% | target=%target% | damage_type=%damage_type% | stage=%stage% | stage_kind=%stage_kind% | stage_source=%stage_source% | stage_mode=%stage_mode% | chain_base_damage=%chain_base_damage% | flat_sources=%flat_sources% | percent_sources=%percent_sources% | chance_sources=%chance_sources% | multiplier_sources=%multiplier_sources% | expression=%expression% | clamps=%clamps% | target_blocking=%target_blocking% | roll_flat=%roll_flat% | roll_percent=%roll_percent% | roll_chance=%roll_chance% | roll_multiplier=%roll_multiplier% | seeded_roll=%seeded_roll% | source_signature=%source_signature%"
+    damage_reduction: "Damage reduction stage | attacker=%attacker% | target=%target% | damage_type=%damage_type% | stage=%stage% | stage_kind=%stage_kind% | stage_source=%stage_source% | stage_mode=%stage_mode% | chain_base_damage=%chain_base_damage% | flat_sources=%flat_sources% | percent_sources=%percent_sources% | chance_sources=%chance_sources% | multiplier_sources=%multiplier_sources% | expression=%expression% | clamps=%clamps% | target_blocking=%target_blocking% | roll_flat=%roll_flat% | roll_percent=%roll_percent% | roll_chance=%roll_chance% | roll_multiplier=%roll_multiplier% | seeded_roll=%seeded_roll% | source_signature=%source_signature%"
+    damage_critical: "Damage critical stage | attacker=%attacker% | target=%target% | damage_type=%damage_type% | stage=%stage% | stage_kind=%stage_kind% | stage_source=%stage_source% | stage_mode=%stage_mode% | chain_base_damage=%chain_base_damage% | flat_sources=%flat_sources% | percent_sources=%percent_sources% | chance_sources=%chance_sources% | multiplier_sources=%multiplier_sources% | expression=%expression% | clamps=%clamps% | target_blocking=%target_blocking% | roll_flat=%roll_flat% | roll_percent=%roll_percent% | roll_chance=%roll_chance% | roll_multiplier=%roll_multiplier% | seeded_roll=%seeded_roll% | source_signature=%source_signature%"
+    damage_block: "Damage block stage | attacker=%attacker% | target=%target% | damage_type=%damage_type% | stage=%stage% | stage_kind=%stage_kind% | stage_source=%stage_source% | stage_mode=%stage_mode% | chain_base_damage=%chain_base_damage% | flat_sources=%flat_sources% | percent_sources=%percent_sources% | chance_sources=%chance_sources% | multiplier_sources=%multiplier_sources% | expression=%expression% | clamps=%clamps% | target_blocking=%target_blocking% | roll_flat=%roll_flat% | roll_percent=%roll_percent% | roll_chance=%roll_chance% | roll_multiplier=%roll_multiplier% | seeded_roll=%seeded_roll% | source_signature=%source_signature%"
+    damage_final: "Damage final value | attacker=%attacker% | target=%target% | damage_type=%damage_type% | cause=%cause% | base_damage=%base_damage% | stage_outputs=%stage_outputs% | critical=%critical% | seeded_roll=%seeded_roll% | engine_final_damage=%engine_final_damage% | event_final_damage=%event_final_damage% | attacker_signature=%attacker_signature% | target_signature=%target_signature%"
   resync:
     start: "Attribute resync start | player=%player%"
     slot_scan: "Scan equipment slot | slot=%slot% | item=%item% | source=%source%"
@@ -648,9 +609,12 @@ debug:
     max_update: "Resource max update | player=%player% | resource=%resource% | max=%max%"
     request: "Resource sync requested | player=%player% | source=%source% | reason=%reason% | delay_ticks=%delay_ticks%"
     execute: "Resource sync executing | player=%player% | source=%source% | reason=%reason% | delay_ticks=%delay_ticks% | bukkit_health=%bukkit_health% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value% | stored_present=%stored_present% | stored_resource_id=%stored_resource_id% | stored_default_max=%stored_default_max% | stored_bonus_max=%stored_bonus_max% | stored_current_max=%stored_current_max% | stored_current_value=%stored_current_value% | stored_source_signature=%stored_source_signature% | stored_schema_version=%stored_schema_version%"
+    health_ceiling: "Health ceiling resolved | player=%player% | resource=%resource% | reason=%reason% | own_max=%own_max% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value% | ceiling=%ceiling%"
+    max_health_modifier: "Max health modifier | player=%player% | reason=%reason% | index=%index% | total=%total% | modifier_key=%modifier_key% | modifier_amount=%modifier_amount% | modifier_operation=%modifier_operation% | modifier_slot_group=%modifier_slot_group%"
     calculate: "Resource calculation | player=%player% | resource=%resource% | reason=%reason% | current_value_override=%current_value_override% | default_max=%default_max% | flat_bonus=%flat_bonus% | percent_bonus=%percent_bonus% | percent_factor=%percent_factor% | current_max=%current_max% | current_value=%current_value% | write_state=%write_state% | existing_present=%existing_present% | existing_resource_id=%existing_resource_id% | existing_default_max=%existing_default_max% | existing_bonus_max=%existing_bonus_max% | existing_current_max=%existing_current_max% | existing_current_value=%existing_current_value% | existing_source_signature=%existing_source_signature% | existing_schema_version=%existing_schema_version%"
     state_written: "Resource state written | player=%player% | resource=%resource% | reason=%reason% | state_present=%state_present% | state_resource_id=%state_resource_id% | state_default_max=%state_default_max% | state_bonus_max=%state_bonus_max% | state_current_max=%state_current_max% | state_current_value=%state_current_value% | state_source_signature=%state_source_signature% | state_schema_version=%state_schema_version%"
     state_unchanged: "Resource state unchanged | player=%player% | resource=%resource% | reason=%reason% | state_present=%state_present% | state_resource_id=%state_resource_id% | state_default_max=%state_default_max% | state_bonus_max=%state_bonus_max% | state_current_max=%state_current_max% | state_current_value=%state_current_value% | state_source_signature=%state_source_signature% | state_schema_version=%state_schema_version%"
     bukkit_before: "Before Bukkit write | player=%player% | reason=%reason% | resource_value=%resource_value% | resource_max=%resource_max% | bukkit_health=%bukkit_health% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value%"
     bukkit_after: "After Bukkit write | player=%player% | reason=%reason% | resource_value=%resource_value% | resource_max=%resource_max% | bukkit_health=%bukkit_health% | bukkit_max_health_base=%bukkit_max_health_base% | bukkit_max_health_value=%bukkit_max_health_value%"
-    regen: "Health regeneration | player=%player% | resource=%resource% | old_value=%old_value% | regen_per_second=%regen_per_second% | interval_seconds=%interval_seconds% | candidate_value=%candidate_value% | synced_present=%synced_present% | synced_resource_id=%synced_resource_id% | synced_default_max=%synced_default_max% | synced_bonus_max=%synced_bonus_max% | synced_current_max=%synced_current_max% | synced_current_value=%synced_current_value% | synced_source_signature=%synced_source_signature% | synced_schema_version=%synced_schema_version%"
+    bukkit_skipped_dead: "Bukkit write skipped (player is dead) | player=%player% | reason=%reason% | resource_value=%resource_value% | resource_max=%resource_max% | bukkit_health=%bukkit_health%"
+    regen: "Health regeneration | player=%player% | resource=%resource% | old_value=%old_value% | baseline_value=%baseline_value% | regen_per_second=%regen_per_second% | interval_seconds=%interval_seconds% | candidate_value=%candidate_value% | synced_present=%synced_present% | synced_resource_id=%synced_resource_id% | synced_default_max=%synced_default_max% | synced_bonus_max=%synced_bonus_max% | synced_current_max=%synced_current_max% | synced_current_value=%synced_current_value% | synced_source_signature=%synced_source_signature% | synced_schema_version=%synced_schema_version%"

@@ -4,18 +4,27 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
+import org.jetbrains.annotations.ApiStatus;
 
 /**
- * Fired by EmakiForge when a player confirms a forge attempt, just before the
- * asynchronous forge execution begins.
+ * Fired by EmakiForge when a player confirms a forge attempt, just before the asynchronous forge
+ * execution begins.
  *
- * <p>This is the only point in the forge flow that runs on the server thread
- * before the async chain starts, so it is the place to cancel a forge. A
- * cancelled event stops EmakiForge from running the attempt. The success rate
- * carried here is the configured recipe value; the actual roll may be adjusted
- * by JavaScript rules inside the async chain, so it is exposed read-only.
+ * <p>Cancelling this event stops the attempt: EmakiForge returns without scheduling execution and
+ * without consuming materials.
  *
- * <p>This event is fired on the server thread.
+ * <h2>Threading</h2>
+ * Fired synchronously on the thread that owns the forging player. On Paper that is the main thread;
+ * on Folia it is the player's region thread. EmakiForge verifies ownership before firing, so if the
+ * owner thread is unavailable the attempt is abandoned and <em>this event is not fired at all</em>.
+ *
+ * <h2>Coverage</h2>
+ * Both the GUI confirmation path and
+ * {@link emaki.jiuwu.craft.forge.api.ForgeOperations#forgeAsync} fire this event. Listeners may veto
+ * the attempt or adjust its success-rate roll through {@link #setSuccessRate(double)}. Quality tier
+ * selection and item assembly remain controlled by EmakiForge.
+ *
+ * @see ForgeCompletedEvent
  */
 public final class ForgeStartEvent extends Event implements Cancellable {
 
@@ -24,7 +33,7 @@ public final class ForgeStartEvent extends Event implements Cancellable {
     private final Player player;
     private final String recipeId;
     private final boolean firstCraft;
-    private final double successRate;
+    private double successRate;
     private boolean cancelled;
 
     /**
@@ -33,14 +42,13 @@ public final class ForgeStartEvent extends Event implements Cancellable {
      * @param player      the player performing the forge
      * @param recipeId    the recipe id being forged
      * @param firstCraft  whether this is the player's first craft of the recipe
-     * @param successRate the configured recipe success rate in percent (0-100),
-     *                    read-only
+     * @param successRate initial recipe success rate in percent (0-100)
      */
     public ForgeStartEvent(Player player, String recipeId, boolean firstCraft, double successRate) {
         this.player = player;
         this.recipeId = recipeId;
         this.firstCraft = firstCraft;
-        this.successRate = successRate;
+        setSuccessRate(successRate);
     }
 
     /** {@return the player performing the forge} */
@@ -58,9 +66,24 @@ public final class ForgeStartEvent extends Event implements Cancellable {
         return firstCraft;
     }
 
-    /** {@return the configured recipe success rate in percent (0-100)} */
+    /** {@return the effective success rate in percent (0-100)} */
     public double getSuccessRate() {
         return successRate;
+    }
+
+    /**
+     * Replaces the success rate used by this attempt's chance roll.
+     *
+     * <p>Finite values are clamped to {@code [0, 100]}. Non-finite values become {@code 0} so an
+     * invalid listener value can never turn into an implicit guaranteed success.
+     *
+     * @param successRate effective success rate in percent
+     */
+    @ApiStatus.Experimental
+    public void setSuccessRate(double successRate) {
+        this.successRate = Double.isFinite(successRate)
+                ? Math.max(0D, Math.min(100D, successRate))
+                : 0D;
     }
 
     @Override

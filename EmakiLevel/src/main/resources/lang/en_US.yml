@@ -1,6 +1,6 @@
-version: "1.4.0"
+version: "1.5.0"
 general:
-  prefix: "<gray>[ <gradient:#7DD3FC:#C084FC>EmakiLevel</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
@@ -8,6 +8,8 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -30,7 +32,7 @@ console:
   attribute_bridge_ready: "<gray>EmakiAttribute contribution bridge connected</gray>"
   attribute_bridge_unavailable: "<gray>EmakiAttribute contribution bridge unavailable, skipped</gray>"
   mythic_drops_registered: "<gray>MythicMobs drops registered</gray>"
-  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_start: "<gray>Checking default files...</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data file generation.</gray>"
@@ -100,6 +102,7 @@ failure:
   not_enough_money: "Not enough money"
   not_enough_material: "Not enough material"
   invalid_requirement: "Invalid requirement"
+  event_cancelled: "Cancelled by another plugin"
 debug:
   common:
     placeholder:
@@ -108,30 +111,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
-    action:
-      execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
-      execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
-      execute_direct_result: "Direct action execution complete | action=%action% | success=%success% | error=%error%"
-      execute_batch_start: "Batch action execution started | phase=%phase% | lines=%lines% | stop_on_failure=%stop_on_failure%"
-      execute_batch_result: "Batch action execution complete | phase=%phase% | success=%success% | steps=%steps% | error=%error%"
-      parse_line: "Parse action line | phase=%phase% | line=%line% | raw=%raw%"
-      parse_failed: "Action line parsing failed | phase=%phase% | line=%line% | error=%error%"
-      parse_skipped: "Skipped blank action line | phase=%phase% | line=%line%"
-      parse_ok: "Action line parsed | phase=%phase% | line=%line% | action=%action% | control=%control% | args=%args%"
-      step_result: "Action step complete | phase=%phase% | line=%line% | action=%action% | success=%success% | error=%error%"
-      batch_stop: "Batch action stopped after failure | phase=%phase% | line=%line% | action=%action%"
-      action_missing: "Action is not registered | line=%line% | action=%action% | error=%error%"
-      control_condition: "Action condition check | line=%line% | action=%action% | condition=%condition% | passes=%passes%"
-      control_chance_invalid: "Invalid action chance | line=%line% | action=%action% | chance=%chance%"
-      control_chance: "Action chance check | line=%line% | action=%action% | chance=%chance% | threshold=%threshold% | roll=%roll% | passes=%passes%"
-      control_delay: "Action delay parsed | line=%line% | action=%action% | raw=%raw% | ticks=%ticks%"
-      dispatch_template: "Dispatch action template | action=%action% | delay=%delay% | args=%args%"
-      dispatch_action: "Dispatch registered action | action=%action% | domain=%domain% | owner=%owner% | delay=%delay% | timeout=%timeout% | args=%args%"
-      safe_execute_start: "Safe action execution started | phase=%phase% | action=%action% | args=%args%"
-      safe_execute_result: "Safe action execution complete | phase=%phase% | action=%action% | success=%success% | error=%error%"
     item_operation:
       apply_start: "Item operation started | operation=%operation_id% | namespace=%namespace% | item=%item% | name_actions=%name_actions% | lore_actions=%lore_actions% | variables=%variables%"
       apply_empty: "Item operation produced no result | operation=%operation_id%"
@@ -219,8 +198,6 @@ debug:
       packet_receive_click: "Packet GUI click received | click=%click_type% | raw_slot=%raw_slot% | button=%button% | incoming_state=%incoming_state_id% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
       packet_receive_click_state_absent: "Packet GUI click received without a state ID | click=%click_type% | raw_slot=%raw_slot% | button=%button% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
       packet_receive_close: "Packet GUI close packet received | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
-  script:
-    trace: "Level script rule trace | rule=%rule% | before=%before% | after=%after% | message=%message%"
   command:
     status_header: "<gold>========== EmakiLevel Debug Status ==========</gold>"
     status_enabled: "<green>Debug enabled</green>"

@@ -6,16 +6,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateParser;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader.CandidateDocument;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
@@ -191,7 +191,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
         if (source instanceof List<?>) {
             List<Object> prioritized = prioritizeAlternatives(source);
             if (!prioritized.isEmpty()) {
-                ItemSource selected = ItemSourceUtil.parse(prioritized.get(0));
+                ItemSourceRef selected = ItemSourceUtil.parse(prioritized.get(0));
                 item.put("source", selected == null ? prioritized.get(0) : ItemSourceUtil.toShorthand(selected));
             }
         }
@@ -206,7 +206,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
             alternatives = List.of(raw);
         }
         for (Object alternative : alternatives) {
-            ItemSource source = ItemSourceUtil.parse(alternative);
+            ItemSourceRef source = ItemSourceUtil.parse(alternative);
             Object plain = ConfigNodes.toPlainData(alternative);
             if (itemIdentifierService.probeSource(source).ready()) {
                 ready.add(plain);

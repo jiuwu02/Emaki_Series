@@ -3,9 +3,9 @@ package emaki.jiuwu.craft.forge.model;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class PlayerData {
 

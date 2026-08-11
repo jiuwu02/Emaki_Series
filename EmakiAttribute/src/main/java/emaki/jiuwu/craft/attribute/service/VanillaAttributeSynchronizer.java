@@ -17,9 +17,9 @@ import org.bukkit.inventory.EquipmentSlotGroup;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 final class VanillaAttributeSynchronizer {
 
     private static final double DEFAULT_WALK_SPEED_BLOCKS_PER_SECOND = 4.317D;

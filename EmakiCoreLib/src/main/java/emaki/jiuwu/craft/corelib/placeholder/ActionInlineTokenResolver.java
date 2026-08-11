@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.corelib.placeholder;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class ActionInlineTokenResolver implements PlaceholderResolver {
 
@@ -11,7 +11,7 @@ public final class ActionInlineTokenResolver implements PlaceholderResolver {
             return text;
         }
         String resolved = text;
-        String showItem = context.placeholder("show_item");
+        String showItem = context.placeholder("var.show_item");
         if (Texts.isNotBlank(showItem)) {
             resolved = resolved.replace("<show_item>", showItem);
         }

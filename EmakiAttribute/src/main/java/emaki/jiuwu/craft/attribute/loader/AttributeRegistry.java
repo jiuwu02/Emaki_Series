@@ -18,10 +18,11 @@ import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.LoreFormatDefinition;
 import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition> {
 
@@ -57,9 +58,9 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         if (Texts.isNotBlank(singlePattern)) {
             patterns.add(singlePattern);
         }
-        AttributeValueKind valueKind = parseEnum(configuration.getString("value_kind", "FLAT"), AttributeValueKind.FLAT);
-        AttributeTargetType targetType = parseEnum(configuration.getString("target_type", "GENERIC"), AttributeTargetType.GENERIC);
-        TemporaryStackMode temporaryStackMode = parseEnum(configuration.getString("temporary_stack_mode", "REPLACE"), TemporaryStackMode.REPLACE);
+        AttributeValueKind valueKind = ConfigNodes.enumOrDefault(configuration.getString("value_kind", "FLAT"), AttributeValueKind.FLAT);
+        AttributeTargetType targetType = ConfigNodes.enumOrDefault(configuration.getString("target_type", "GENERIC"), AttributeTargetType.GENERIC);
+        TemporaryStackMode temporaryStackMode = ConfigNodes.enumOrDefault(configuration.getString("temporary_stack_mode", "REPLACE"), TemporaryStackMode.REPLACE);
         return new AttributeDefinition(
                 configuration.getString("id"),
                 configuration.getString("display_name"),
@@ -556,17 +557,6 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         }
         LoreFormatRegistry registry = plugin.loreFormatRegistry();
         return registry == null ? null : registry.get(loreFormatId);
-    }
-
-    private <E extends Enum<E>> E parseEnum(String value, E defaultValue) {
-        if (Texts.isBlank(value)) {
-            return defaultValue;
-        }
-        try {
-            return Enum.valueOf(defaultValue.getDeclaringClass(), value.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception _) {
-            return defaultValue;
-        }
     }
 
     private void logLoadReport(List<AttributeDefinition> definitions) {

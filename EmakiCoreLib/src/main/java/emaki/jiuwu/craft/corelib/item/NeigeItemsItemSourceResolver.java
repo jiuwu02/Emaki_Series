@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.item;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.bukkit.event.EventHandler;
@@ -9,12 +10,14 @@ import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import pers.neige.neigeitems.event.PluginReloadEvent;
 import pers.neige.neigeitems.manager.ItemManager;
 
 final class NeigeItemsItemSourceResolver
-        extends AbstractManagedItemSourceResolver<NeigeItemsItemSourceResolver.DirectAccessor> {
+        extends AbstractManagedItemSourceProvider<NeigeItemsItemSourceResolver.DirectAccessor> {
 
     private static final String PLUGIN_NAME = "NeigeItems";
 
@@ -27,8 +30,13 @@ final class NeigeItemsItemSourceResolver
     }
 
     @Override
-    public String id() {
-        return "corelib_neigeitems";
+    public ItemSourceKind kind() {
+        return ItemSourceKind.NEIGEITEMS;
+    }
+
+    @Override
+    public Set<String> shorthandPrefixes() {
+        return Set.of("neigeitems-", "ni-");
     }
 
     @Override
@@ -37,13 +45,8 @@ final class NeigeItemsItemSourceResolver
     }
 
     @Override
-    public String pluginName() {
+    public String providerPluginName() {
         return PLUGIN_NAME;
-    }
-
-    @Override
-    protected ItemSourceType sourceType() {
-        return ItemSourceType.NEIGEITEMS;
     }
 
     @Override
@@ -52,14 +55,14 @@ final class NeigeItemsItemSourceResolver
     }
 
     @Override
-    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceResolver> loadedHandler) {
+    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceProvider> loadedHandler) {
         if (plugin == null || loadedHandler == null) {
             return;
         }
         plugin.getServer().getPluginManager().registerEvents(new NeigeItemsLoadListener(this, loadedHandler), plugin);
     }
 
-    static final class DirectAccessor implements AbstractManagedItemSourceResolver.Accessor {
+    static final class DirectAccessor implements AbstractManagedItemSourceProvider.Accessor {
 
         private String failureReason = "";
 
@@ -134,11 +137,11 @@ final class NeigeItemsItemSourceResolver
 
     private static final class NeigeItemsLoadListener implements Listener {
 
-        private final ManagedItemSourceResolver resolver;
-        private final Consumer<ManagedItemSourceResolver> loadedHandler;
+        private final ManagedItemSourceProvider resolver;
+        private final Consumer<ManagedItemSourceProvider> loadedHandler;
 
-        private NeigeItemsLoadListener(ManagedItemSourceResolver resolver,
-                Consumer<ManagedItemSourceResolver> loadedHandler) {
+        private NeigeItemsLoadListener(ManagedItemSourceProvider resolver,
+                Consumer<ManagedItemSourceProvider> loadedHandler) {
             this.resolver = resolver;
             this.loadedHandler = loadedHandler;
         }

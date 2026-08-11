@@ -12,8 +12,8 @@ import org.bukkit.event.HandlerList;
  * becomes met and again when it is no longer met (recovered). The configured
  * threshold actions are still driven by EmakiCooking; this event is purely
  * informational and cannot be cancelled. It is suitable for achievements,
- * custom buffs/debuffs and UI updates. This event is fired on the server
- * thread.
+ * custom buffs/debuffs and UI updates. This synchronous event is fired while the runtime owns the
+ * affected player's entity execution boundary.
  */
 public final class NutritionThresholdChangeEvent extends Event {
 

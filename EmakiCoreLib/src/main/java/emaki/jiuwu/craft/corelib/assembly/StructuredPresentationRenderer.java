@@ -5,16 +5,23 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
+import emaki.jiuwu.craft.corelib.api.assembly.BaseNamePolicy;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiLoreSectionContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNameContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.api.assembly.NamePosition;
 
 final class StructuredPresentationRenderer {
 
@@ -183,7 +190,7 @@ final class StructuredPresentationRenderer {
             if (material.isBlock()) {
                 return material.getBlockTranslationKey();
             }
-            return material.getTranslationKey();
+            return material.translationKey();
         } catch (RuntimeException _) {
             return "";
         }
@@ -193,7 +200,7 @@ final class StructuredPresentationRenderer {
         if (material == null) {
             return "";
         }
-        String[] parts = material.name().toLowerCase(java.util.Locale.ROOT).split("_");
+        String[] parts = material.name().toLowerCase(Locale.ROOT).split("_");
         StringBuilder builder = new StringBuilder();
         for (String part : parts) {
             if (part.isEmpty()) {

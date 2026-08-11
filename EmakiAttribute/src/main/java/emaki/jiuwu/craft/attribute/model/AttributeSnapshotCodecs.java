@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.attribute.model;
 
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
 
 public final class AttributeSnapshotCodecs {

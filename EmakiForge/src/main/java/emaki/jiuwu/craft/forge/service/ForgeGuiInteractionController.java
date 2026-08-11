@@ -5,6 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Predicate;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -17,8 +18,8 @@ import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.api.event.ForgeCompletedEvent;
 import emaki.jiuwu.craft.forge.api.event.ForgeStartEvent;
@@ -61,7 +62,7 @@ final class ForgeGuiInteractionController {
             return;
         }
         ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
-        ItemSource source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
+        ItemSourceRef source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
         String materialId = materialKey(state, source);
 
         if (rules.requiredIds().contains(materialId)) {
@@ -130,7 +131,7 @@ final class ForgeGuiInteractionController {
                 required ? "required_materials" : "optional_materials",
                 required ? state.requiredMaterialItems() : state.optionalMaterialItems(),
                 itemStack -> {
-        ItemSource source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
+        ItemSourceRef source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
 
                     String materialId = materialKey(state, source);
                     if (Texts.isBlank(materialId)) {
@@ -265,7 +266,7 @@ final class ForgeGuiInteractionController {
             return;
         }
         ForgeStartEvent startEvent = new ForgeStartEvent(state.player(), finalRecipe.id(), firstCraft, finalRecipe.successRate());
-        org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
+        Bukkit.getPluginManager().callEvent(startEvent);
         if (startEvent.isCancelled()) {
             debug(state.player(), "forge.gui.confirm.rejected_start_event_cancelled", replacements(
                     "recipe", finalRecipe.id()));
@@ -274,7 +275,7 @@ final class ForgeGuiInteractionController {
         debug(state.player(), "forge.gui.processing.started", replacements(
                 "recipe", finalRecipe.id(),
                 "first_craft", firstCraft,
-                "success_rate", finalRecipe.successRate()));
+                "success_rate", startEvent.getSuccessRate()));
         state.setProcessing(true);
         state.setRecipe(finalRecipe);
         state.setPreviewRecipe(finalRecipe);
@@ -298,6 +299,7 @@ final class ForgeGuiInteractionController {
                     snapshot,
                     preparedForge,
                     state.runtimeGeneration(),
+                    startEvent.getSuccessRate(),
                     state::claimResultDelivery,
                     state::releaseResultDelivery,
                     state::markResultCommitted
@@ -490,7 +492,7 @@ final class ForgeGuiInteractionController {
         if (player == null || recipe == null || threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
             return;
         }
-        org.bukkit.Bukkit.getPluginManager().callEvent(new ForgeCompletedEvent(
+        Bukkit.getPluginManager().callEvent(new ForgeCompletedEvent(
                 player,
                 recipe.id(),
                 success,
@@ -733,7 +735,7 @@ final class ForgeGuiInteractionController {
         stateSupport.returnItems(state);
     }
 
-    private String materialKey(ForgeGuiSession state, ItemSource source) {
+    private String materialKey(ForgeGuiSession state, ItemSourceRef source) {
         if (state == null || source == null || state.runtimeSnapshot().forgeService() == null) {
             return "";
         }

@@ -11,8 +11,9 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -29,6 +30,12 @@ final class ForgeGuiStateSupport {
     }
 
     public String resolveTemplateId(Recipe recipe) {
+        if (recipe != null) {
+            String t = recipe.guiTemplate();
+            if (t != null && !t.isBlank()) {
+                return t;
+            }
+        }
         return "forge_gui";
     }
 
@@ -203,12 +210,12 @@ final class ForgeGuiStateSupport {
         return rules.optionalLimit() <= 0 || occupiedCount < rules.optionalLimit();
     }
 
-    public BlueprintRequirement findBlueprintRequirementBySource(ForgeGuiSession state, ItemSource source) {
+    public BlueprintRequirement findBlueprintRequirementBySource(ForgeGuiSession state, ItemSourceRef source) {
         ForgeService forgeService = state == null ? null : state.runtimeSnapshot().forgeService();
         return forgeService == null ? null : forgeService.findBlueprintRequirementBySource(source);
     }
 
-    public ForgeMaterial findMaterialBySource(ForgeGuiSession state, ItemSource source) {
+    public ForgeMaterial findMaterialBySource(ForgeGuiSession state, ItemSourceRef source) {
         ForgeService forgeService = state == null ? null : state.runtimeSnapshot().forgeService();
         return forgeService == null ? null : forgeService.findMaterialBySource(source);
     }
@@ -251,8 +258,7 @@ final class ForgeGuiStateSupport {
         if (player == null) {
             throw new IllegalStateException("Forge item return has no player owner.");
         }
-        Map<Integer, ItemStack> leftover = player.getInventory().addItem(clone);
-        leftover.values().forEach(left -> player.getWorld().dropItemNaturally(player.getLocation(), left));
+        InventoryItemUtil.giveOrDrop(player, clone);
     }
 
     public String normalizedType(GuiSlot slot) {
@@ -269,7 +275,7 @@ final class ForgeGuiStateSupport {
         return itemStack.clone();
     }
 
-    private ForgeMaterialUsagePlanner usagePlanner(ForgeGuiSession state) {
+    ForgeMaterialUsagePlanner usagePlanner(ForgeGuiSession state) {
         ItemIdentifierService identifier = state == null || state.runtimeSnapshot() == null
                 ? null
                 : state.runtimeSnapshot().itemIdentifierService();

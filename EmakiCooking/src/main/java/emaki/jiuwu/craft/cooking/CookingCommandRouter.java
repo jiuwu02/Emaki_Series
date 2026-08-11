@@ -4,13 +4,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 final class CookingCommandRouter implements TabExecutor {
@@ -33,7 +38,7 @@ final class CookingCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+        return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -55,7 +60,7 @@ final class CookingCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "reload", "inspect", "station", "nutrition", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
+                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -69,14 +74,14 @@ final class CookingCommandRouter implements TabExecutor {
         }
         if (args.length == 2) {
             if ("inspect".equalsIgnoreCase(args[0])) {
-                String prefix = args[1].toLowerCase(java.util.Locale.ROOT);
+                String prefix = args[1].toLowerCase(Locale.ROOT);
                 for (String option : List.of("hand", "block")) {
                     if (option.startsWith(prefix)) {
                         result.add(option);
                     }
                 }
             }
-            if ("station".equalsIgnoreCase(args[0]) && "reindex".startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+            if ("station".equalsIgnoreCase(args[0]) && "reindex".startsWith(args[1].toLowerCase(Locale.ROOT))) {
                 result.add("reindex");
             }
             return result;
@@ -88,23 +93,18 @@ final class CookingCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 2) {
             for (String sub : List.of("get", "set", "add", "remove")) {
-                if (sub.startsWith(args[1].toLowerCase(java.util.Locale.ROOT))) {
+                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
             return result;
         }
         if (args.length == 3) {
-            String prefix = args[2].toLowerCase(java.util.Locale.ROOT);
-            for (Player online : org.bukkit.Bukkit.getOnlinePlayers()) {
-                if (online.getName().toLowerCase(java.util.Locale.ROOT).startsWith(prefix)) {
-                    result.add(online.getName());
-                }
-            }
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             return result;
         }
         if (args.length == 4 && plugin.nutritionTypeRegistry() != null) {
-            String prefix = args[3].toLowerCase(java.util.Locale.ROOT);
+            String prefix = args[3].toLowerCase(Locale.ROOT);
             plugin.nutritionTypeRegistry().all().forEach(type -> {
                 if (type.id().startsWith(prefix)) {
                     result.add(type.id());
@@ -159,7 +159,7 @@ final class CookingCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.invalid_args");
             return true;
         }
-        return switch (args[1].toLowerCase(java.util.Locale.ROOT)) {
+        return switch (args[1].toLowerCase(Locale.ROOT)) {
             case "hand" -> plugin.inspectService().inspectHand(sender, player);
             case "block" -> plugin.inspectService().inspectBlock(sender, player);
             default -> {
@@ -218,7 +218,7 @@ final class CookingCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "nutrition.disabled");
             return true;
         }
-        String action = args.length >= 2 ? args[1].toLowerCase(java.util.Locale.ROOT) : "";
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
         return switch (action) {
             case "get" -> handleNutritionGet(sender, args);
             case "set", "add", "remove" -> handleNutritionModify(sender, args, action);
@@ -239,8 +239,8 @@ final class CookingCommandRouter implements TabExecutor {
 
         Player target;
         String typeArg;
-        if (args.length >= 3 && org.bukkit.Bukkit.getPlayerExact(args[2]) != null) {
-            target = org.bukkit.Bukkit.getPlayerExact(args[2]);
+        if (args.length >= 3 && Bukkit.getPlayerExact(args[2]) != null) {
+            target = Bukkit.getPlayerExact(args[2]);
             typeArg = args.length >= 4 ? args[3] : null;
         } else if (sender instanceof Player self) {
             target = self;
@@ -257,7 +257,7 @@ final class CookingCommandRouter implements TabExecutor {
             double value = plugin.nutritionService().value(target.getUniqueId(), typeArg);
             plugin.messageService().send(sender, "nutrition.value", Map.of(
                     "player", target.getName(),
-                    "type", emaki.jiuwu.craft.corelib.text.Texts.normalizeId(typeArg),
+                    "type", Texts.normalizeId(typeArg),
                     "value", formatValue(value)
             ));
             return true;
@@ -285,7 +285,7 @@ final class CookingCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "nutrition.usage");
             return true;
         }
-        Player target = org.bukkit.Bukkit.getPlayerExact(args[2]);
+        Player target = Bukkit.getPlayerExact(args[2]);
         if (target == null) {
             plugin.messageService().send(sender, "nutrition.player_not_found", Map.of("player", args[2]));
             return true;
@@ -302,7 +302,7 @@ final class CookingCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "nutrition.invalid_amount", Map.of("amount", args[4]));
             return true;
         }
-        emaki.jiuwu.craft.cooking.model.NutritionOperationResult result = switch (action) {
+        NutritionOperationResult result = switch (action) {
             case "set" -> plugin.nutritionService().set(target.getUniqueId(), typeArg, amount);
             case "add" -> plugin.nutritionService().add(target.getUniqueId(), typeArg, amount);
             case "remove" -> plugin.nutritionService().remove(target.getUniqueId(), typeArg, amount);

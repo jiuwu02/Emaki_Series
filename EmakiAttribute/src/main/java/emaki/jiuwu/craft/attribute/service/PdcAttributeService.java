@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,23 +20,25 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
+import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
-import emaki.jiuwu.craft.attribute.model.PdcAttributePayload;
+import emaki.jiuwu.craft.attribute.api.model.PdcAttributePayload;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCondition;
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.item.EquipmentSlotMatcher;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import me.clip.placeholderapi.PlaceholderAPI;
 
-public final class PdcAttributeService implements PdcAttributeApi.Bridge {
+public final class PdcAttributeService implements PdcAttributeAccess {
 
     private static final Pattern SOURCE_META_PATTERN = Pattern.compile("%source_meta_([a-zA-Z0-9_\\-.]+)%");
     private static final Pattern SOURCE_ATTRIBUTE_PATTERN = Pattern.compile("%source_(?:attr|attribute)_([a-zA-Z0-9_\\-.]+)%");
@@ -68,17 +71,25 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
     }
 
     @Override
-    public boolean registerSource(String sourceId) {
+    public EmakiResult<Unit> registerSource(String sourceId) {
         String normalized = Texts.normalizeId(sourceId);
-        return Texts.isNotBlank(normalized) && registeredSources.add(normalized);
+        if (Texts.isBlank(normalized)) {
+            return EmakiResult.invalidInput("attribute.pdc.source_id_invalid");
+        }
+        return registeredSources.add(normalized)
+                ? EmakiResult.ok()
+                : EmakiResult.rejected("attribute.pdc.source_already_registered");
     }
 
     @Override
-    public void unregisterSource(String sourceId) {
+    public EmakiResult<Unit> unregisterSource(String sourceId) {
         String normalized = Texts.normalizeId(sourceId);
-        if (Texts.isNotBlank(normalized)) {
-            registeredSources.remove(normalized);
+        if (Texts.isBlank(normalized)) {
+            return EmakiResult.invalidInput("attribute.pdc.source_id_invalid");
         }
+        return registeredSources.remove(normalized)
+                ? EmakiResult.ok()
+                : EmakiResult.notFound("attribute.pdc.source_not_registered");
     }
 
     @Override
@@ -94,16 +105,20 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
     }
 
     @Override
-    public boolean write(ItemStack itemStack, PdcAttributePayload payload) {
-        if (itemStack == null || payload == null || Texts.isBlank(payload.sourceId())) {
-            return false;
+    public EmakiResult<Unit> write(ItemStack itemStack, PdcAttributePayload payload) {
+        if (itemStack == null || itemStack.getType().isAir() || payload == null || Texts.isBlank(payload.sourceId())) {
+            return EmakiResult.invalidInput("attribute.pdc.write_input_invalid");
         }
         if (!isRegisteredSource(payload.sourceId())) {
             plugin.getLogger().warning("Ignoring PDC attribute write for unregistered source: " + payload.sourceId());
-            return false;
+            return EmakiResult.rejected("attribute.pdc.source_not_registered");
         }
-        persist(itemStack, payload);
-        return true;
+        try {
+            persist(itemStack, payload);
+            return EmakiResult.ok();
+        } catch (RuntimeException exception) {
+            return EmakiResult.internalError("attribute.pdc.write_failed");
+        }
     }
 
     private void persist(ItemStack itemStack, PdcAttributePayload payload) {
@@ -112,7 +127,21 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
     }
 
     @Override
-    public PdcAttributePayload read(ItemStack itemStack, String sourceId) {
+    public EmakiResult<PdcAttributePayload> read(ItemStack itemStack, String sourceId) {
+        if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(sourceId)) {
+            return EmakiResult.invalidInput("attribute.pdc.read_input_invalid");
+        }
+        try {
+            PdcAttributePayload payload = rawRead(itemStack, sourceId);
+            return payload == null
+                    ? EmakiResult.notFound("attribute.pdc.payload_not_found")
+                    : EmakiResult.success(payload);
+        } catch (RuntimeException exception) {
+            return EmakiResult.internalError("attribute.pdc.read_failed");
+        }
+    }
+
+    private PdcAttributePayload rawRead(ItemStack itemStack, String sourceId) {
         if (itemStack == null || Texts.isBlank(sourceId)) {
             return null;
         }
@@ -122,11 +151,11 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
     @Override
     public Map<String, PdcAttributePayload> readAll(ItemStack itemStack) {
         Map<String, PdcAttributePayload> result = new LinkedHashMap<>();
-        if (itemStack == null) {
-            return result;
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return Map.of();
         }
         for (String sourceId : readIndex(itemStack)) {
-            PdcAttributePayload payload = read(itemStack, sourceId);
+            PdcAttributePayload payload = rawRead(itemStack, sourceId);
             if (payload != null) {
                 result.put(sourceId, payload);
             }
@@ -135,19 +164,22 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
     }
 
     @Override
-    public void copy(ItemStack fromItem, ItemStack toItem, Set<String> excludedSourceIds) {
-        if (fromItem == null || toItem == null) {
-            return;
+    public EmakiResult<Unit> copy(ItemStack fromItem, ItemStack toItem, Set<String> excludedSourceIds) {
+        if (fromItem == null || fromItem.getType().isAir() || toItem == null || toItem.getType().isAir()) {
+            return EmakiResult.invalidInput("attribute.pdc.copy_input_invalid");
         }
-        Set<String> excluded = normalizeIds(excludedSourceIds);
-        for (PdcAttributePayload payload : readAll(fromItem).values()) {
-            if (payload == null || Texts.isBlank(payload.sourceId()) || excluded.contains(payload.sourceId())) {
-                continue;
+        try {
+            Set<String> excluded = normalizeIds(excludedSourceIds);
+            for (PdcAttributePayload payload : readAll(fromItem).values()) {
+                if (payload == null || Texts.isBlank(payload.sourceId()) || excluded.contains(payload.sourceId())) {
+                    continue;
+                }
+                // Copy preserves persisted blocks even when their owning source is temporarily absent.
+                persist(toItem, payload);
             }
-            // Copy preserves data already persisted on the source item, including
-            // payloads whose owning plugin is currently absent, so an unregistered
-            // source must not silently drop the block during a rebuild.
-            persist(toItem, payload);
+            return EmakiResult.ok();
+        } catch (RuntimeException exception) {
+            return EmakiResult.internalError("attribute.pdc.copy_failed");
         }
     }
 
@@ -166,25 +198,37 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
     }
 
     @Override
-    public boolean clear(ItemStack itemStack, String sourceId) {
+    public EmakiResult<Unit> clear(ItemStack itemStack, String sourceId) {
         String normalized = Texts.normalizeId(sourceId);
-        if (itemStack == null || Texts.isBlank(normalized)) {
-            return false;
+        if (itemStack == null || itemStack.getType().isAir() || Texts.isBlank(normalized)) {
+            return EmakiResult.invalidInput("attribute.pdc.clear_input_invalid");
         }
-        pdcService.remove(itemStack, sourcePartition.child(normalized), "payload");
-        writeIndex(itemStack, removeSource(readIndex(itemStack), normalized));
-        return true;
+        if (rawRead(itemStack, normalized) == null) {
+            return EmakiResult.notFound("attribute.pdc.payload_not_found");
+        }
+        try {
+            pdcService.remove(itemStack, sourcePartition.child(normalized), "payload");
+            writeIndex(itemStack, removeSource(readIndex(itemStack), normalized));
+            return EmakiResult.ok();
+        } catch (RuntimeException exception) {
+            return EmakiResult.internalError("attribute.pdc.clear_failed");
+        }
     }
 
     @Override
-    public void clearAll(ItemStack itemStack) {
-        if (itemStack == null) {
-            return;
+    public EmakiResult<Unit> clearAll(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return EmakiResult.invalidInput("attribute.pdc.clear_all_input_invalid");
         }
-        for (String sourceId : readIndex(itemStack)) {
-            pdcService.remove(itemStack, sourcePartition.child(sourceId), "payload");
+        try {
+            for (String sourceId : readIndex(itemStack)) {
+                pdcService.remove(itemStack, sourcePartition.child(sourceId), "payload");
+            }
+            pdcService.remove(itemStack, itemPartition, "source_index");
+            return EmakiResult.ok();
+        } catch (RuntimeException exception) {
+            return EmakiResult.internalError("attribute.pdc.clear_all_failed");
         }
-        pdcService.remove(itemStack, itemPartition, "source_index");
     }
 
     PdcAttributeCollection collectRawContribution(ItemStack itemStack) {
@@ -614,7 +658,7 @@ public final class PdcAttributeService implements PdcAttributeApi.Bridge {
         return resolved;
     }
 
-    private String replaceTokenPattern(String text, Pattern pattern, java.util.function.Function<String, String> resolver) {
+    private String replaceTokenPattern(String text, Pattern pattern, Function<String, String> resolver) {
         if (Texts.isBlank(text) || pattern == null || resolver == null) {
             return text;
         }

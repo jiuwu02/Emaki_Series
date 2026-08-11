@@ -2,12 +2,13 @@ package emaki.jiuwu.craft.corelib.condition;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record ConditionGroup(String conditionType,
         int requiredCount,
@@ -50,7 +51,7 @@ public record ConditionGroup(String conditionType,
         }
         YamlSection section = asSection(raw);
         if (section != null) {
-            Object entries = section.contains("entries") ? section.get("entries") : section.get("conditions");
+            Object entries = section.get("entries");
             if (entries == null) {
                 return new ConditionGroup(defaultType, defaultRequiredCount, List.of());
             }
@@ -78,7 +79,7 @@ public record ConditionGroup(String conditionType,
     static List<ConditionNode> parseNodes(Object raw) {
         return ConfigNodes.asObjectList(raw).stream()
                 .map(ConditionNode::fromConfig)
-                .filter(java.util.Objects::nonNull)
+                .filter(Objects::nonNull)
                 .toList();
     }
 

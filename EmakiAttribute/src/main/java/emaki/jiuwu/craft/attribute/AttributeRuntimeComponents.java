@@ -6,7 +6,6 @@ import java.util.Map;
 import org.bukkit.event.Listener;
 
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
-import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
@@ -14,19 +13,21 @@ import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
-import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
-import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
+import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 
 record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
@@ -39,10 +40,11 @@ record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
         AttributePresetRegistry presetRegistry,
         PdcReadRuleLoader pdcReadRuleLoader,
         ItemContributionGateRegistry itemContributionGateRegistry,
+        ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry,
         LanguageLoader languageLoader,
         MessageService messageService,
         EmakiAttributeApi.Bridge emakiAttributeBridge,
-        PdcAttributeApi.Bridge pdcAttributeApi,
+        PdcAttributeService pdcAttributeService,
         ParentAttributeDataStore parentAttributeDataStore,
         ParentAttributeService parentAttributeService,
         GuiTemplateLoader guiTemplateLoader,
@@ -66,10 +68,11 @@ record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(AttributePresetRegistry.class, presetRegistry),
                 RuntimeComponents.component(PdcReadRuleLoader.class, pdcReadRuleLoader),
                 RuntimeComponents.component(ItemContributionGateRegistry.class, itemContributionGateRegistry),
+                RuntimeComponents.component(ContributionProviderRegistrationRegistry.class, contributionProviderRegistrationRegistry),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(EmakiAttributeApi.Bridge.class, emakiAttributeBridge),
-                RuntimeComponents.component(PdcAttributeApi.Bridge.class, pdcAttributeApi),
+                RuntimeComponents.component(PdcAttributeService.class, pdcAttributeService),
                 RuntimeComponents.component(ParentAttributeDataStore.class, parentAttributeDataStore),
                 RuntimeComponents.component(ParentAttributeService.class, parentAttributeService),
                 RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),

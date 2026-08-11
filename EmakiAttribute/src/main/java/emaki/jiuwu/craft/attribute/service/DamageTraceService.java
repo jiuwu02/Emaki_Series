@@ -12,15 +12,16 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.attribute.model.DamageContext;
-import emaki.jiuwu.craft.attribute.model.DamageResult;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageTraceRecord;
 import emaki.jiuwu.craft.attribute.model.DamageTraceStageRecord;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class DamageTraceService {
 
@@ -119,6 +120,7 @@ public final class DamageTraceService {
             details.put("chanceAttributes", definition.chanceAttributes());
             details.put("multiplierAttributes", definition.multiplierAttributes());
             details.put("expression", Texts.toStringSafe(definition.expression()));
+            details.put("variables", definition.variables());
             stages.add(new DamageTraceStageRecord(
                     definition.id(),
                     definition.kind() == null ? "" : definition.kind().name(),
@@ -141,7 +143,7 @@ public final class DamageTraceService {
     }
 
     private void addFor(Entity entity, DamageTraceRecord record) {
-        if (!(entity instanceof org.bukkit.entity.Player player) || record == null) {
+        if (!(entity instanceof Player player) || record == null) {
             return;
         }
         recordsByPlayer.compute(player.getUniqueId(), (_, current) -> {
@@ -174,7 +176,7 @@ public final class DamageTraceService {
     }
 
     private boolean hasPlayerParticipant(DamageContext context) {
-        return context != null && (context.attacker() instanceof org.bukkit.entity.Player || context.target() instanceof org.bukkit.entity.Player);
+        return context != null && (context.attacker() instanceof Player || context.target() instanceof Player);
     }
 
     private UUID id(Entity entity) {

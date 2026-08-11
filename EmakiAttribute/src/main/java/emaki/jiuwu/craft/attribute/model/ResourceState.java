@@ -3,8 +3,8 @@ package emaki.jiuwu.craft.attribute.model;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 
 public record ResourceState(String resourceId,
         double defaultMax,

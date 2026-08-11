@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.forge.service;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.bukkit.entity.Player;
 
@@ -53,7 +54,7 @@ public final class ForgeGuiService {
         if (guiState != ForgeGuiState.READY) {
             if (runtime.messageService() != null) {
                 runtime.messageService().send(player,
-                        "forge.error.runtime." + guiState.name().toLowerCase(java.util.Locale.ROOT));
+                        "forge.error.runtime." + guiState.name().toLowerCase(Locale.ROOT));
             }
             return false;
         }
@@ -77,7 +78,6 @@ public final class ForgeGuiService {
                 player,
                 template,
                 renderer.titleReplacements(state),
-                runtime.itemIdentifierService()::createItem,
                 (guiSession, slot) -> renderer.renderSlot(state, slot),
                 interactionController.createSessionHandler(state)
         ));

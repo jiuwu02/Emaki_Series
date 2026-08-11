@@ -1,12 +1,13 @@
 package emaki.jiuwu.craft.attribute.model;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record DamageTypeDefinition(String id,
         String displayName,
@@ -69,7 +70,7 @@ public record DamageTypeDefinition(String id,
         if (raw == null) {
             return null;
         }
-        List<DamageStageDefinition> stages = new java.util.ArrayList<>();
+        List<DamageStageDefinition> stages = new ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(ConfigNodes.get(raw, "stages"))) {
             DamageStageDefinition stage = DamageStageDefinition.fromMap(entry, attributeNormalizer);
             if (stage != null) {

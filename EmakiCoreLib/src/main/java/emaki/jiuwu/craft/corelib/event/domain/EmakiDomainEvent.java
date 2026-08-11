@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.corelib.event.domain;
 import java.time.Instant;
 import java.util.UUID;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public class EmakiDomainEvent {
 

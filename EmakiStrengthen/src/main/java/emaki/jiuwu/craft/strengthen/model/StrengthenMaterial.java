@@ -1,14 +1,15 @@
 package emaki.jiuwu.craft.strengthen.model;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class StrengthenMaterial {
 
@@ -35,7 +36,7 @@ public final class StrengthenMaterial {
     private final String id;
     private final String displayName;
     private final List<String> description;
-    private final ItemSource source;
+    private final ItemSourceRef source;
     private final Role role;
     private final int consumeAmount;
     private final int minTargetStar;
@@ -50,7 +51,7 @@ public final class StrengthenMaterial {
             String id,
             String displayName,
             List<String> description,
-            ItemSource source,
+            ItemSourceRef source,
             Role role,
             int consumeAmount,
             int minTargetStar,
@@ -90,7 +91,7 @@ public final class StrengthenMaterial {
         if (Texts.isBlank(id)) {
             id = Texts.lower(recipeId) + "_" + Texts.lower(role.name()) + "_" + Math.max(1, index + 1);
         }
-        ItemSource source = ItemSourceUtil.parse(values.get("item"));
+        ItemSourceRef source = ItemSourceUtil.parse(values.get("item"));
         if (source == null) {
             return null;
         }
@@ -114,7 +115,7 @@ public final class StrengthenMaterial {
 
     private static List<String> parseStringList(Object raw) {
         if (raw instanceof Iterable<?> iterable) {
-            java.util.ArrayList<String> values = new java.util.ArrayList<>();
+            ArrayList<String> values = new ArrayList<>();
             for (Object entry : iterable) {
                 values.add(Texts.toStringSafe(entry));
             }
@@ -130,7 +131,7 @@ public final class StrengthenMaterial {
         return targetStar >= minTargetStar && targetStar <= maxTargetStar;
     }
 
-    public boolean matches(ItemSource itemSource, int targetStar) {
+    public boolean matches(ItemSourceRef itemSource, int targetStar) {
         return availableForTargetStar(targetStar) && ItemSourceUtil.matches(source, itemSource);
     }
 
@@ -150,7 +151,7 @@ public final class StrengthenMaterial {
         return description;
     }
 
-    public ItemSource source() {
+    public ItemSourceRef source() {
         return source;
     }
 

@@ -3,8 +3,8 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import org.bukkit.inventory.ItemStack;
 
 final class StoredItemCodec {

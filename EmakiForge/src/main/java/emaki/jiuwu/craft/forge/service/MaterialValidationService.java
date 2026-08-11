@@ -6,7 +6,7 @@ import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -53,7 +53,7 @@ final class MaterialValidationService {
             if (isEmpty(itemStack)) {
                 continue;
             }
-            ItemSource source = identify(itemStack);
+            ItemSourceRef source = identify(itemStack);
             if (source == null) {
                 return ValidationResult.fail("blueprint.count_not_enough");
             }
@@ -119,7 +119,7 @@ final class MaterialValidationService {
             if (isEmpty(itemStack)) {
                 continue;
             }
-            ItemSource source = identify(itemStack);
+            ItemSourceRef source = identify(itemStack);
             if (source == null || recipe.findMaterialBySource(source, optional) == null) {
                 return false;
             }
@@ -141,11 +141,11 @@ final class MaterialValidationService {
         return counts;
     }
 
-    private ItemSource identify(ItemStack itemStack) {
+    private ItemSourceRef identify(ItemStack itemStack) {
         return plugin.itemIdentifierService() == null ? null : plugin.itemIdentifierService().identifyItem(itemStack);
     }
 
-    private String shorthand(ItemSource source) {
+    private String shorthand(ItemSourceRef source) {
         if (source == null) {
             return "";
         }

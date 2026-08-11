@@ -1,10 +1,30 @@
 package emaki.jiuwu.craft.cooking.api;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Static public API facade for the EmakiCooking cooking-station system.
+ * Static public API facade for the EmakiCooking cooking and nutrition system.
+ *
+ * <h2>Layout</h2>
+ * {@link #nutrition()} for the player nutrition subsystem, {@link #catalog()} for read-only recipe and
+ * station queries, {@link #operations()} for the small set of state-changing actions that can report
+ * their outcome honestly. {@link #status()} reports availability.
+ *
+ * <h2>Availability</h2>
+ * Check {@code status().usable()} before relying on results. The accessors never return {@code null};
+ * when EmakiCooking is absent they return no-op implementations whose queries yield empty answers and
+ * whose operations yield {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult#unavailable()}.
+ *
+ * <p>Note that {@code status().ready()} does not imply the nutrition subsystem is on: a server owner may
+ * disable nutrition while cooking stations keep working. Check
+ * {@link CookingNutrition#enabled()} separately.
+ *
+ * <h2>Do not shade</h2>
+ * Depend on {@code emaki-cooking-api} with {@code provided} (Maven) or {@code compileOnly} (Gradle).
+ * EmakiCooking's jar already carries an un-relocated copy of these classes; a second copy would make your
+ * event listeners silently unreachable.
  */
 public final class EmakiCookingApi {
 
@@ -18,6 +38,7 @@ public final class EmakiCookingApi {
      *
      * @param bridge the active bridge implementation supplied by EmakiCooking
      */
+    @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
         EmakiCookingApi.bridge = bridge;
     }
@@ -27,46 +48,72 @@ public final class EmakiCookingApi {
      *
      * @param bridge the bridge to remove; ignored when it is not the active bridge
      */
+    @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
         if (EmakiCookingApi.bridge == bridge) {
             EmakiCookingApi.bridge = null;
         }
     }
 
-    /** {@return whether EmakiCooking has installed its API bridge} */
-    public static boolean available() {
-        return bridge != null;
-    }
-
-    /** {@return the semantic version string of this API, or an empty string when unavailable} */
-    public static @NotNull String apiVersion() {
+    /**
+     * {@return availability and identity metadata; never {@code null}, and
+     * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()} when no bridge is
+     * installed}
+     */
+    public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
         Bridge resolved = bridge;
-        return resolved == null ? "" : resolved.apiVersion();
+        return resolved == null
+                ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
+                : resolved.status();
     }
 
-    /** {@return the owning plugin's name, or an empty string when unavailable} */
-    public static @NotNull String pluginName() {
+    /**
+     * {@return the player nutrition subsystem; never {@code null}, and an implementation reporting
+     * unavailability when EmakiCooking is absent}
+     */
+    public static @NotNull CookingNutrition nutrition() {
         Bridge resolved = bridge;
-        return resolved == null ? "" : resolved.pluginName();
+        return resolved == null ? UnavailableCooking.NUTRITION : resolved.nutrition();
     }
 
-    /** {@return whether the plugin has finished initializing and is usable} */
-    public static boolean isReady() {
+    /**
+     * {@return read-only recipe and station queries; never {@code null}, and an empty-answer
+     * implementation when EmakiCooking is unavailable}
+     */
+    public static @NotNull CookingCatalog catalog() {
         Bridge resolved = bridge;
-        return resolved != null && resolved.isReady();
+        return resolved == null ? UnavailableCooking.CATALOG : resolved.catalog();
     }
 
-    /** Internal bridge installed by EmakiCooking. */
+    /**
+     * {@return state-changing operations; never {@code null}, and an implementation that reports
+     * unavailability when EmakiCooking is absent}
+     */
+    public static @NotNull CookingOperations operations() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableCooking.OPERATIONS : resolved.operations();
+    }
+
+    /**
+     * Bridge contract implemented by EmakiCooking. Third-party plugins must not implement it.
+     */
+    @ApiStatus.NonExtendable
     public interface Bridge {
-        /** {@return the semantic version string of the backing plugin} */
-        @NotNull
-        String apiVersion();
 
-        /** {@return the owning plugin's name} */
+        /** {@return availability and identity metadata; must never be {@code null}} */
         @NotNull
-        String pluginName();
+        emaki.jiuwu.craft.corelib.api.contract.ApiStatus status();
 
-        /** {@return whether the backing plugin is initialized and usable} */
-        boolean isReady();
+        /** {@return the nutrition subsystem} */
+        @NotNull
+        CookingNutrition nutrition();
+
+        /** {@return the read-only query layer} */
+        @NotNull
+        CookingCatalog catalog();
+
+        /** {@return the write operation layer} */
+        @NotNull
+        CookingOperations operations();
     }
 }

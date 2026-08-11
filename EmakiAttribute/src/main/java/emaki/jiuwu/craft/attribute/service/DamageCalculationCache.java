@@ -2,16 +2,16 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.List;
 
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.model.DamageContext;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
-import emaki.jiuwu.craft.attribute.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class DamageCalculationCache {
 

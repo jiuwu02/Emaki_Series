@@ -21,7 +21,14 @@ __pycache__/
 *.md
 .*/
 docs/
+tools/
 release version/
+screenshot_guide/
 emaki_manager.py
 
 !README_EN.md
+
+*.html
+*.png
+*.py
+*.json

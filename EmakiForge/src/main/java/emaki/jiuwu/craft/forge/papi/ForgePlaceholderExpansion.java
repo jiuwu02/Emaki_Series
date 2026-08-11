@@ -5,18 +5,19 @@ import java.util.Map;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.model.PlayerData;
-import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 
-public final class ForgePlaceholderExpansion extends PlaceholderExpansion {
+public final class ForgePlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
     private final EmakiForgePlugin plugin;
     private final PlayerDataStore playerDataStore;
 
     public ForgePlaceholderExpansion(EmakiForgePlugin plugin, PlayerDataStore playerDataStore) {
+        super(plugin);
         this.plugin = plugin;
         this.playerDataStore = playerDataStore;
     }
@@ -24,21 +25,6 @@ public final class ForgePlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public String getIdentifier() {
         return "emakiforge";
-    }
-
-    @Override
-    public String getAuthor() {
-        return "Emaki";
-    }
-
-    @Override
-    public String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public boolean persist() {
-        return true;
     }
 
     @Override

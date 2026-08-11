@@ -1,0 +1,33 @@
+# EmakiAttribute 属性定义 - 格挡减伤
+# 详细字段说明参考 physical_attack.yml
+#
+# 仅在 config.yml 的 shield.mode = attribute 时参与结算。
+# 格挡触发后按此百分比削减伤害：100 等价于原版全免，40 表示只挡掉四成。
+# 实际生效的基线值写在 config.yml 的 default_profile.attributes；
+# 盾牌物品可通过 EA 属性词条或 PDC 在基线之上叠加，总值受 max_value 截断。
+
+id: block_reduction
+
+display_name: "格挡减伤"
+
+value_kind: PERCENT
+
+target_type: GENERIC
+
+target_id: block
+
+default_value: 0.0
+
+min_value: 0.0
+
+max_value: 100.0
+
+allow_negative: false
+
+priority: 79
+
+lore_format_id: default_percent
+
+attribute_power: 1.0
+
+description: "Damage percentage removed by a successful shield block."

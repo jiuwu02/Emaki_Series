@@ -6,8 +6,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.DiagnosticRenderer;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 
 public abstract class AbstractModuleConfigPrecheckContributor implements ConfigPrecheckContributor {
 
@@ -41,6 +44,42 @@ public abstract class AbstractModuleConfigPrecheckContributor implements ConfigP
             return messageKey;
         }
         return messages.message(messageKey, replacements == null ? Map.of() : replacements);
+    }
+
+    /**
+     * Renders a pipeline compile diagnostic as readable text.
+     *
+     * <p>Kept separate from {@link #message(String, Map)} because that method prefixes every key with the
+     * precheck namespace, while a diagnostic's reason key is already absolute.</p>
+     *
+     * <p><strong>Only valid when this contributor's message supplier points at CoreLib's message
+     * service.</strong> Every {@code action.*} text lives in CoreLib's language file and {@code
+     * LanguageLoader} only falls back between one module's own {@code zh_CN}/{@code en_US}, so a business
+     * module's service resolves none of these keys. A contributor for another module must render through
+     * CoreLib's service directly instead of calling this, as {@code SkillsConfigPrecheckContributor}
+     * does.</p>
+     *
+     * <p>Falls back to {@link CompileDiagnostic#toString()} rather than the bare reason key, so an
+     * unresolved diagnostic still carries its token, column and detail.</p>
+     *
+     * @param diagnostic the diagnostic
+     * @return the rendered text, never {@code null}
+     */
+    protected final String renderDiagnostic(CompileDiagnostic diagnostic) {
+        if (diagnostic == null) {
+            return "";
+        }
+        LogMessages messages = messagesSupplier.get();
+        if (messages == null) {
+            return diagnostic.toString();
+        }
+        String rendered = new DiagnosticRenderer((key, replacements, fallback) -> {
+            String resolved = messages.message(key, replacements == null ? Map.of() : replacements);
+            return Texts.isBlank(resolved) || key.equals(resolved) ? fallback : resolved;
+        }).render(diagnostic);
+        return Texts.isBlank(rendered) || rendered.equals(diagnostic.reasonKey())
+                ? diagnostic.toString()
+                : rendered;
     }
 
     protected final void checkFile(File file, String path, List<ConfigPrecheckIssue> issues) {

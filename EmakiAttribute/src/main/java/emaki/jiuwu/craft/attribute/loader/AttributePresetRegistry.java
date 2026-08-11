@@ -5,8 +5,8 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributePreset;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class AttributePresetRegistry extends DirectoryLoader<AttributePreset> {
 

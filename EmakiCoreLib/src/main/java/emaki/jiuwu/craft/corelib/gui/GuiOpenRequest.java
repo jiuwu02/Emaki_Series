@@ -9,7 +9,6 @@ public record GuiOpenRequest(Plugin owner,
         Player viewer,
         GuiTemplate template,
         Map<String, ?> replacements,
-        GuiItemBuilder.ItemFactory itemFactory,
         GuiRenderer renderer,
         GuiSessionHandler handler) {
 

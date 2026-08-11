@@ -8,7 +8,7 @@
 version: "1.0.0"
 
 general:
-  prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to do that.</red>"
   player_only: "<red>This command can only be run by a player.</red>"
   player_not_found: "<red>Player %player% not found.</red>"
@@ -33,19 +33,70 @@ command:
   revoke:
     done: "<green>Revoked advancement %advancement% from %player%.</green>"
   advancement:
-    failed: "<red>Advancement %advancement% is not registered or unchanged.</red>"
+    failed: "<red>Advancement %advancement% operation failed: %reason%</red>"
+    reason_unknown: "<red>unknown reason</red>"
+
+# Concrete reasons a grant/revoke was refused. Resolved straight from the service's reasonKey, so a new
+# cause only needs an entry here.
+codex:
+  player:
+    required: "No player given."
+  advancement:
+    disabled: "The advancement subsystem is disabled in config.yml (advancement.enabled=false)."
+    id_required: "No advancement id given."
+    not_found: "The advancement id is not registered. Check that the page under advancements/ loaded and that the id looks like emakicodex:<pageId>/<nodeId>; /codex reload reports how many are registered."
+    missing_on_server: "The advancement is registered inside the plugin but the server has no matching vanilla advancement. Usually it was cleared by reloadData after registration, or the datapack directory was never written; check the registration count and warnings in the startup log."
+  grant:
+    already_completed: "The player has already completed this advancement."
+    cancelled: "The grant was cancelled by another plugin."
+    rejected: "The server refused to award the completion criterion."
+  revoke:
+    not_completed: "The player has not completed this advancement yet."
+    cancelled: "The revoke was cancelled by another plugin."
+    rejected: "The server refused to revoke the completion criterion."
+
+emaki:
+  api:
+    unavailable: "The advancement service is unavailable (plugin disabled or registry not ready)."
+    target_offline: "The target player is offline."
+    wrong_thread: "The current thread does not own that player; the operation was refused."
 
 console:
-  plugin_starting: "Starting EmakiCodex..."
-  plugin_started: "EmakiCodex started."
-  bootstrap_start: "Releasing default resources..."
-  bootstrap_skip: "Skipped default sample data release."
-  bootstrap_complete: "Default resources ready."
+  plugin_starting: "<gray>Starting EmakiCodex...</gray>"
+  plugin_started: "<green>EmakiCodex started.</green>"
+  bootstrap_start: "<gray>Releasing default resources...</gray>"
+  bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
+  bootstrap_complete: "<green>Default file check complete.</green>"
+  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
   advancements_registered: "Registered %count% advancements."
   advancements_resynced: "Re-pushed advancements to %count% online player(s) via PacketEvents; no relog needed."
   advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen."
   advancement_packet_enabled: "Advancement packet coordinate injection enabled (PacketEvents)."
   advancement_packet_absent: "PacketEvents not detected; advancement x/y coordinates are ignored and the client auto-lays-out nodes."
+  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> hint(s).</gray>"
+  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  config_precheck:
+    severity:
+      fatal: "Fatal"
+      error: "Error"
+      warn: "Warning"
+      info: "Info"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
+    messages:
+      passed: "EmakiCodex configuration precheck passed."
+      required_file_missing: "The required file is missing."
+      path_not_file: "The specified path is not a file."
+      file_not_readable: "The file is not readable."
+      required_directory_missing: "The required directory is missing."
+      path_not_directory: "The specified path is not a directory."
+      directory_not_readable: "The directory is not readable."
 
 debug:
   common:
@@ -55,30 +106,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
-    action:
-      execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
-      execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
-      execute_direct_result: "Direct action execution complete | action=%action% | success=%success% | error=%error%"
-      execute_batch_start: "Batch action execution started | phase=%phase% | lines=%lines% | stop_on_failure=%stop_on_failure%"
-      execute_batch_result: "Batch action execution complete | phase=%phase% | success=%success% | steps=%steps% | error=%error%"
-      parse_line: "Parse action line | phase=%phase% | line=%line% | raw=%raw%"
-      parse_failed: "Action line parsing failed | phase=%phase% | line=%line% | error=%error%"
-      parse_skipped: "Skipped blank action line | phase=%phase% | line=%line%"
-      parse_ok: "Action line parsed | phase=%phase% | line=%line% | action=%action% | control=%control% | args=%args%"
-      step_result: "Action step complete | phase=%phase% | line=%line% | action=%action% | success=%success% | error=%error%"
-      batch_stop: "Batch action stopped after failure | phase=%phase% | line=%line% | action=%action%"
-      action_missing: "Action is not registered | line=%line% | action=%action% | error=%error%"
-      control_condition: "Action condition check | line=%line% | action=%action% | condition=%condition% | passes=%passes%"
-      control_chance_invalid: "Invalid action chance | line=%line% | action=%action% | chance=%chance%"
-      control_chance: "Action chance check | line=%line% | action=%action% | chance=%chance% | threshold=%threshold% | roll=%roll% | passes=%passes%"
-      control_delay: "Action delay parsed | line=%line% | action=%action% | raw=%raw% | ticks=%ticks%"
-      dispatch_template: "Dispatch action template | action=%action% | delay=%delay% | args=%args%"
-      dispatch_action: "Dispatch registered action | action=%action% | domain=%domain% | owner=%owner% | delay=%delay% | timeout=%timeout% | args=%args%"
-      safe_execute_start: "Safe action execution started | phase=%phase% | action=%action% | args=%args%"
-      safe_execute_result: "Safe action execution complete | phase=%phase% | action=%action% | success=%success% | error=%error%"
     item_operation:
       apply_start: "Item operation started | operation=%operation_id% | namespace=%namespace% | item=%item% | name_actions=%name_actions% | lore_actions=%lore_actions% | variables=%variables%"
       apply_empty: "Item operation produced no result | operation=%operation_id%"

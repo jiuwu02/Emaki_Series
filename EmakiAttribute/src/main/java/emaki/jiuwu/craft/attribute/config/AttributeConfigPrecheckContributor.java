@@ -1,11 +1,12 @@
 package emaki.jiuwu.craft.attribute.config;
 
-import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
-import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.WARN;
+import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.INFO;
+import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.WARN;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
@@ -39,6 +40,16 @@ public final class AttributeConfigPrecheckContributor extends AbstractModuleConf
         } else if (attributeConfig.requireLorePdcMatch()
                 && (!attributeConfig.readLoreAttributes() || !attributeConfig.readPdcAttributes())) {
             addMessageIssue("config.yml:attribute_sources.require_lore_pdc_match", WARN, "attribute_sources_match_requires_both", issues);
+        }
+        // Reads the normalized value: a blank `curve_type` is a legitimate shorthand for logarithmic, so
+        // checking the raw YAML here would flag every rule that omits the field.
+        for (ScalingCurveConfig curve : attributeConfig.scalingCurves()) {
+            if (!ScalingCurveConfig.isSupportedCurveType(curve.curveType())) {
+                addMessageIssue("config.yml:scaling_curves." + curve.attributeId(), WARN,
+                        "scaling_curve_type_unknown",
+                        Map.of("attribute", curve.attributeId(), "curve_type", curve.curveType()),
+                        issues);
+            }
         }
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);

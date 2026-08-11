@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
@@ -13,10 +14,12 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 
 final class StrengthenCommandRouter implements TabExecutor {
 
@@ -38,7 +41,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             sendHelp(sender);
             return true;
         }
-        return switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+        return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> {
                 sendHelp(sender);
                 yield true;
@@ -64,7 +67,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("help", "open", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
+                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
@@ -74,8 +77,8 @@ final class StrengthenCommandRouter implements TabExecutor {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
         }
         if (args.length == 2) {
-            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
-                case "inspect", "refresh" -> completePlayers(result, args[1]);
+            switch (args[0].toLowerCase(Locale.ROOT)) {
+                case "inspect", "refresh" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 case "setstar" -> {
                     int maxStar = plugin.recipeLoader().all().values().stream()
                             .mapToInt(recipe -> recipe == null ? 0 : recipe.limits().maxStar())
@@ -89,7 +92,7 @@ final class StrengthenCommandRouter implements TabExecutor {
                     }
                 }
                 case "givecatalyst" -> plugin.recipeLoader().materialCatalog().keySet().stream()
-                        .filter(id -> id.startsWith(args[1].toLowerCase(java.util.Locale.ROOT)))
+                        .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
                         .forEach(result::add);
                 default -> {
                 }
@@ -97,9 +100,9 @@ final class StrengthenCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 3) {
-            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+            switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "setstar" -> plugin.recipeLoader().all().keySet().stream()
-                        .filter(id -> id.startsWith(args[2].toLowerCase(java.util.Locale.ROOT)))
+                        .filter(id -> id.startsWith(args[2].toLowerCase(Locale.ROOT)))
                         .forEach(result::add);
                 case "givecatalyst" -> {
                     for (String amount : List.of("1", "8", "16", "32", "64")) {
@@ -114,7 +117,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             return result;
         }
         if (args.length == 4 && "givecatalyst".equalsIgnoreCase(args[0])) {
-            completePlayers(result, args[3]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[3]));
         }
         return result;
     }
@@ -186,7 +189,7 @@ final class StrengthenCommandRouter implements TabExecutor {
                 "value", Texts.isBlank(state.baseSource()) ? "-" : state.baseSource()
         )));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "star", "value", state.currentStar())));
-        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "crack", "value", state.crackLevel())));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of("key", "temper", "value", state.crackLevel())));
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of(
                 "key", "first_reach",
                 "value", state.firstReachFlags().isEmpty() ? "-" : state.firstReachFlags()
@@ -313,8 +316,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "command.catalyst_create_failed");
             return true;
         }
-        Map<Integer, ItemStack> leftover = target.getInventory().addItem(itemStack);
-        leftover.values().forEach(left -> target.getWorld().dropItemNaturally(target.getLocation(), left));
+        InventoryItemUtil.giveOrDrop(target, itemStack);
         plugin.messageService().send(sender, "command.givecatalyst.success", Map.of(
                 "player", target.getName(),
                 "material", materialToken,
@@ -333,13 +335,6 @@ final class StrengthenCommandRouter implements TabExecutor {
 
     private ItemStack createMaterialItem(String materialToken, int amount) {
         return plugin.coreItemFactory().create(ItemSourceUtil.parse(materialToken), Math.max(1, amount));
-    }
-
-    private void completePlayers(List<String> result, String prefix) {
-        Bukkit.getOnlinePlayers().stream()
-                .map(Player::getName)
-                .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix.toLowerCase(java.util.Locale.ROOT)))
-                .forEach(result::add);
     }
 
     private void sendHelp(CommandSender sender) {

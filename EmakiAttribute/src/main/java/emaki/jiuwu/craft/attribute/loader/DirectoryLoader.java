@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -13,9 +14,9 @@ import java.util.function.Consumer;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public abstract class DirectoryLoader<T> {
@@ -195,7 +196,7 @@ public abstract class DirectoryLoader<T> {
     }
 
     protected String normalizeId(String id) {
-        return Texts.toStringSafe(id).trim().toLowerCase(java.util.Locale.ROOT).replace(' ', '_');
+        return Texts.toStringSafe(id).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
     }
 
     protected void afterLoad() {

@@ -4,8 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 
 public record ProjectileDamageSnapshot(int schemaVersion,
         String damageTypeId,

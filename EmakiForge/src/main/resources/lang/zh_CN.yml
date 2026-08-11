@@ -10,7 +10,7 @@
 # Emaki Forge 中文语言文件
 
 # version 由资源同步维护
-version: "4.6.0"
+version: "4.7.0"
 
 # 通用消息
 general:
@@ -61,6 +61,8 @@ console:
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -77,20 +79,20 @@ console:
       path_not_directory: "指定路径不是目录。"
       directory_not_readable: "目录不可读。"
   config_load_failed: "<red>配置读取失败: %error%</red>"
-  checking_config: "<white>正在检查默认配置文件...</white>"
+  checking_config: "<gray>正在检查默认配置文件...</gray>"
   data_folder_error: "<yellow>无法获取数据目录，已跳过默认文件检查。</yellow>"
   data_folder_failed: "<yellow>获取数据文件夹失败: <red>%error%</red>"
-  loading_configs: "<white>正在加载配置文件...</white>"
+  loading_configs: "<gray>正在加载配置文件...</gray>"
   config_loaded: "<green>配置文件加载完成。</green>"
-  registering_services: "<white>正在注册服务...</white>"
+  registering_services: "<gray>正在注册服务...</gray>"
   services_registered: "<green>服务注册完成。</green>"
-  unregistering_services: "<white>正在注销服务...</white>"
+  unregistering_services: "<gray>正在注销服务...</gray>"
   services_unregistered: "<green>服务注销完成。</green>"
-  registering_listeners: "<white>正在注册事件监听器...</white>"
+  registering_listeners: "<gray>正在注册事件监听器...</gray>"
   listeners_registered: "<green>事件监听器注册完成。</green>"
-  saving_player_data: "<white>正在保存玩家数据...</white>"
+  saving_player_data: "<gray>正在保存玩家数据...</gray>"
   player_data_saved: "<gray>已保存 %count% 份玩家数据</gray>"
-  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_skip: "<gray>release_default_data=false，已跳过默认数据生成</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
@@ -179,30 +181,6 @@ debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
-    action:
-      execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
-      execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
-      execute_direct_result: "直接执行动作完成 | 动作=%action% | 成功=%success% | 错误=%error%"
-      execute_batch_start: "开始批量执行动作 | 阶段=%phase% | 行数=%lines% | 失败即停=%stop_on_failure%"
-      execute_batch_result: "批量执行动作完成 | 阶段=%phase% | 成功=%success% | 步骤=%steps% | 错误=%error%"
-      parse_line: "解析动作行 | 阶段=%phase% | 行=%line% | 原文=%raw%"
-      parse_failed: "动作行解析失败 | 阶段=%phase% | 行=%line% | 错误=%error%"
-      parse_skipped: "跳过空动作行 | 阶段=%phase% | 行=%line%"
-      parse_ok: "动作行解析完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 控制参数=%control% | 参数=%args%"
-      step_result: "动作步骤完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 成功=%success% | 错误=%error%"
-      batch_stop: "批量动作因失败停止 | 阶段=%phase% | 行=%line% | 动作=%action%"
-      action_missing: "动作未注册 | 行=%line% | 动作=%action% | 错误=%error%"
-      control_condition: "动作条件检查 | 行=%line% | 动作=%action% | 条件=%condition% | 通过=%passes%"
-      control_chance_invalid: "动作概率无效 | 行=%line% | 动作=%action% | 概率=%chance%"
-      control_chance: "动作概率检查 | 行=%line% | 动作=%action% | 概率=%chance% | 阈值=%threshold% | 随机值=%roll% | 通过=%passes%"
-      control_delay: "动作延迟解析 | 行=%line% | 动作=%action% | 原值=%raw% | tick=%ticks%"
-      dispatch_template: "分派动作模板 | 动作=%action% | 延迟=%delay% | 参数=%args%"
-      dispatch_action: "分派已注册动作 | 动作=%action% | 域=%domain% | 所有者=%owner% | 延迟=%delay% | 超时=%timeout% | 参数=%args%"
-      safe_execute_start: "开始安全执行动作 | 阶段=%phase% | 动作=%action% | 参数=%args%"
-      safe_execute_result: "安全执行动作完成 | 阶段=%phase% | 动作=%action% | 成功=%success% | 错误=%error%"
     item_operation:
       apply_start: "开始应用物品操作 | 操作=%operation_id% | 命名空间=%namespace% | 物品=%item% | 名称动作=%name_actions% | Lore 动作=%lore_actions% | 变量=%variables%"
       apply_empty: "物品操作未产生结果 | 操作=%operation_id%"
@@ -422,8 +400,6 @@ debug:
         completed: "槽位移除完成 | 物品=%item% | 槽位=%slot% | 槽位类型=%slot_type%"
         ignored_empty: "忽略空槽位移除 | 槽位=%slot% | 槽位类型=%slot_type%"
         ignored_shift_click: "忽略 Shift 槽位移除 | 槽位=%slot% | 槽位类型=%slot_type%"
-  script:
-    trace: "锻造脚本规则追踪 | 规则=%rule% | 修改前=%before% | 修改后=%after% | 消息=%message%"
   gui:
     open: "打开 GUI | 玩家=%player% | 类型=%type%"
     click: "GUI 点击 | 玩家=%player% | 槽位=%slot% | 动作=%action%"
@@ -510,6 +486,16 @@ gui:
     target: "<aqua>放入目标物品</aqua>"
     required: "<gold>放入材料(任意槽位)</gold>"
     optional: "<green>放入材料(任意槽位)</green>"
+
+  # 图纸槽的材料需求清单 (gui/forge_gui.yml 的 %blueprint_requirements%)
+  # 一张图纸可被多个配方使用，配方未确定时按配方分组列出，最多展开 3 组。
+  # 数量口径是「已放入 GUI 的量 / 需要的量」，不是背包里的量。
+  blueprint:
+    no_recipe: "<gray>配方会按图纸物品源自动匹配"
+    recipe_group_header: "<gold>【%recipe%】</gold>"
+    requirement_satisfied: "<green>  ✔ %material% %placed%/%required%</green>"
+    requirement_missing: "<red>  ✘ %material% %placed%/%required%</red>"
+    more_recipes: "<dark_gray>还有 %count% 个配方</dark_gray>"
 
   status:
     crafted: "<green>已锻造</green>"

@@ -1,29 +1,18 @@
 package emaki.jiuwu.craft.attribute.api;
 
-import java.util.Map;
-
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGate;
-import emaki.jiuwu.craft.attribute.api.gate.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeExtensions;
 
 /**
- * Static public API facade for EmakiAttribute's gameplay capabilities: player
- * resources, resolved attribute values, attribute-driven damage and equipment
- * attribute synchronization.
+ * Static public facade for EmakiAttribute.
  *
- * <p>This is the canonical entry point. Every method degrades to a documented
- * no-op value when EmakiAttribute is absent, disabled or reloading, so callers
- * never need to guard on plugin presence beyond avoiding class loading.
- *
- * <p>Callers must not cache the {@link Bridge} instance; resolve through these
- * static methods so a reloaded or disabled EmakiAttribute is never called
- * through a stale bridge.
+ * <p>Use {@link #catalog()} for read-only queries, {@link #operations()} for resource, damage and
+ * synchronization writes, and {@link #extensions()} for contribution providers, item gates and PDC.
+ * Every accessor is non-null and degrades to an unavailable implementation when the runtime bridge is
+ * absent.
  */
 public final class EmakiAttributeApi {
 
@@ -33,240 +22,72 @@ public final class EmakiAttributeApi {
     }
 
     /**
-     * Installs the backing bridge. Intended for EmakiAttribute's lifecycle only.
+     * Installs the runtime bridge. Intended for EmakiAttribute lifecycle code only.
      *
-     * @param bridge the active bridge implementation supplied by EmakiAttribute
+     * @param bridge the runtime implementation to publish
      */
+    @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
         EmakiAttributeApi.bridge = bridge;
     }
 
     /**
-     * Removes the backing bridge when it is still the active bridge.
+     * Removes the bridge only when it is still the active instance, so a stale instance from a previous
+     * reload cannot uninstall its replacement.
      *
-     * @param bridge the bridge to remove; ignored when it is not the active bridge
+     * @param bridge the instance attempting to uninstall; a non-matching or {@code null} value is ignored
      */
+    @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
         if (EmakiAttributeApi.bridge == bridge) {
             EmakiAttributeApi.bridge = null;
         }
     }
 
-    /** {@return whether EmakiAttribute has installed its gameplay API bridge} */
-    public static boolean available() {
-        Bridge resolved = bridge;
-        return resolved != null && resolved.available();
-    }
-
-    /**
-     * Reads a player's current value for a resource.
-     *
-     * @param player the owning player
-     * @param resourceId the resource id
-     * @return the current value, or {@code -1} when unavailable
-     */
-    public static double readResourceCurrent(@Nullable Player player, @Nullable String resourceId) {
-        Bridge resolved = bridge;
-        return resolved == null ? -1D : resolved.readResourceCurrent(player, resourceId);
-    }
-
-    /**
-     * Reads a player's current maximum for a resource.
-     *
-     * @param player the owning player
-     * @param resourceId the resource id
-     * @return the current maximum, or {@code -1} when unavailable
-     */
-    public static double readResourceMax(@Nullable Player player, @Nullable String resourceId) {
-        Bridge resolved = bridge;
-        return resolved == null ? -1D : resolved.readResourceMax(player, resourceId);
-    }
-
-    /**
-     * Consumes a resource amount from a player.
-     *
-     * <p>Fires {@code PlayerResourceConsumeEvent} and honours cancellation and
-     * a listener-modified amount.
-     *
-     * @param player the owning player
-     * @param resourceId the resource id
-     * @param amount the amount to consume
-     * @return {@code true} when the resource was consumed
-     */
-    public static boolean consumeResource(@Nullable Player player, @Nullable String resourceId, double amount) {
-        Bridge resolved = bridge;
-        return resolved != null && resolved.consumeResource(player, resourceId, amount);
-    }
-
-    /**
-     * Reads a player's resolved value for an attribute.
-     *
-     * @param player the owning player
-     * @param attributeId the attribute id
-     * @return the resolved value, or {@code 0} when unavailable
-     */
-    public static double readAttributeValue(@Nullable Player player, @Nullable String attributeId) {
-        Bridge resolved = bridge;
-        return resolved == null ? 0D : resolved.readAttributeValue(player, attributeId);
-    }
-
-    /**
-     * Requests an equipment attribute resynchronization for a player.
-     *
-     * @param player the owning player; {@code null} is a no-op
-     */
-    public static void scheduleEquipmentSync(@Nullable Player player) {
-        Bridge resolved = bridge;
-        if (resolved != null) {
-            resolved.scheduleEquipmentSync(player);
-        }
-    }
-
-    /**
-     * Applies EmakiAttribute damage resolution to a target.
-     *
-     * @param attacker the attacking entity; may be {@code null}
-     * @param target the damaged entity
-     * @param damageTypeId the damage type id; blank uses the configured default
-     * @param baseDamage the base damage before attribute resolution
-     * @param context additional damage context variables; may be {@code null}
-     * @return {@code true} when damage was applied
-     */
-    public static boolean applyDamage(@Nullable LivingEntity attacker,
-            @Nullable LivingEntity target,
-            @Nullable String damageTypeId,
-            double baseDamage,
-            @Nullable Map<String, Object> context) {
-        Bridge resolved = bridge;
-        return resolved != null && resolved.applyDamage(attacker, target, damageTypeId, baseDamage, context);
-    }
-
-    /**
-     * Registers an item contribution gate.
-     *
-     * <p>A gate can veto every contribution of one item, dropping its Lore and PDC
-     * values together. Callers must close the returned handle on disable or reload.
-     *
-     * @param plugin the owning plugin
-     * @param gate the gate implementation
-     * @return a closeable registration handle, or a no-op handle when unavailable
-     */
-    public static @NotNull ItemContributionGateRegistration registerItemContributionGate(
-            @NotNull Plugin plugin,
-            @NotNull ItemContributionGate gate) {
+    /** {@return availability and identity metadata} */
+    public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
         Bridge resolved = bridge;
         return resolved == null
-                ? ItemContributionGateRegistration.noop()
-                : resolved.registerItemContributionGate(plugin, gate);
+                ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
+                : resolved.status();
     }
 
-    /**
-     * Returns whether every registered gate accepts the item for the player.
-     *
-     * <p>Degrades to {@code true} when EmakiAttribute is absent, so callers never
-     * lose functionality by consulting this method.
-     *
-     * @param player the owning player
-     * @param itemStack the equipped item
-     * @param slotName the equipment slot name; may be {@code null}
-     * @return {@code false} only when a gate actively rejects the item
-     */
-    public static boolean isItemContributionActive(@Nullable Player player,
-            @Nullable ItemStack itemStack,
-            @Nullable String slotName) {
+    /** {@return the read-only query layer; never {@code null}} */
+    public static @NotNull AttributeCatalog catalog() {
         Bridge resolved = bridge;
-        return resolved == null || resolved.isItemContributionActive(player, itemStack, slotName);
+        return resolved == null ? UnavailableAttribute.CATALOG : resolved.catalog();
     }
 
-    /** Internal bridge installed by EmakiAttribute. */
+    /** {@return the state-changing operation layer; never {@code null}} */
+    public static @NotNull AttributeOperations operations() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableAttribute.OPERATIONS : resolved.operations();
+    }
+
+    /** {@return the extension registration and PDC layer; never {@code null}} */
+    public static @NotNull AttributeExtensions extensions() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableAttribute.EXTENSIONS : resolved.extensions();
+    }
+
+    /** Runtime contract implemented by EmakiAttribute; third-party plugins must not implement it. */
+    @ApiStatus.NonExtendable
     public interface Bridge {
 
-        /** {@return whether the backing attribute services are usable} */
-        boolean available();
-
-        /**
-         * Registers an item contribution gate.
-         *
-         * @param plugin the owning plugin
-         * @param gate the gate implementation
-         * @return a closeable registration handle
-         */
+        /** {@return availability and identity metadata for the running EmakiAttribute instance} */
         @NotNull
-        ItemContributionGateRegistration registerItemContributionGate(
-                @NotNull Plugin plugin,
-                @NotNull ItemContributionGate gate);
+        emaki.jiuwu.craft.corelib.api.contract.ApiStatus status();
 
-        /**
-         * Returns whether every registered gate accepts the item for the player.
-         *
-         * @param player the owning player
-         * @param itemStack the equipped item
-         * @param slotName the equipment slot name; may be {@code null}
-         * @return {@code false} only when a gate actively rejects the item
-         */
-        boolean isItemContributionActive(@Nullable Player player,
-                @Nullable ItemStack itemStack,
-                @Nullable String slotName);
+        /** {@return the runtime read-only query layer} */
+        @NotNull
+        AttributeCatalog catalog();
 
-        /**
-         * Reads a player's current value for a resource.
-         *
-         * @param player the owning player
-         * @param resourceId the resource id
-         * @return the current value, or {@code -1} when unavailable
-         */
-        double readResourceCurrent(@Nullable Player player, @Nullable String resourceId);
+        /** {@return the runtime state-changing operation layer} */
+        @NotNull
+        AttributeOperations operations();
 
-        /**
-         * Reads a player's current maximum for a resource.
-         *
-         * @param player the owning player
-         * @param resourceId the resource id
-         * @return the current maximum, or {@code -1} when unavailable
-         */
-        double readResourceMax(@Nullable Player player, @Nullable String resourceId);
-
-        /**
-         * Consumes a resource amount from a player, firing
-         * {@code PlayerResourceConsumeEvent}.
-         *
-         * @param player the owning player
-         * @param resourceId the resource id
-         * @param amount the amount to consume
-         * @return {@code true} when the resource was consumed
-         */
-        boolean consumeResource(@Nullable Player player, @Nullable String resourceId, double amount);
-
-        /**
-         * Reads a player's resolved value for an attribute.
-         *
-         * @param player the owning player
-         * @param attributeId the attribute id
-         * @return the resolved value, or {@code 0} when unavailable
-         */
-        double readAttributeValue(@Nullable Player player, @Nullable String attributeId);
-
-        /**
-         * Requests an equipment attribute resynchronization for a player.
-         *
-         * @param player the owning player; may be {@code null}
-         */
-        void scheduleEquipmentSync(@Nullable Player player);
-
-        /**
-         * Applies EmakiAttribute damage resolution to a target.
-         *
-         * @param attacker the attacking entity; may be {@code null}
-         * @param target the damaged entity
-         * @param damageTypeId the damage type id; blank uses the default
-         * @param baseDamage the base damage before attribute resolution
-         * @param context additional damage context variables; may be {@code null}
-         * @return {@code true} when damage was applied
-         */
-        boolean applyDamage(@Nullable LivingEntity attacker,
-                @Nullable LivingEntity target,
-                @Nullable String damageTypeId,
-                double baseDamage,
-                @Nullable Map<String, Object> context);
+        /** {@return the runtime extension registration and PDC layer} */
+        @NotNull
+        AttributeExtensions extensions();
     }
 }

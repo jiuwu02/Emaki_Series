@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.runtime;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -11,7 +12,6 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.integration.PdcAttributeGateway;
 
 public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponents> {
 
@@ -98,7 +98,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
                 return config.asyncLoad() == null ? null : config.asyncLoad().get();
             } catch (Exception exception) {
                 handleReloadPipelineFailure(config, config.loadStageName(), exception);
-                throw new java.util.concurrent.CompletionException(exception);
+                throw new CompletionException(exception);
             }
         }).thenCompose(loaded -> runReloadApplyOnGlobal(executionDispatcher, executionOwner, loaded, config));
     }
@@ -152,24 +152,6 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         CompletableFuture<T> future = new CompletableFuture<>();
         future.completeExceptionally(throwable);
         return future;
-    }
-
-    /**
-     * Synchronizes a legacy {@link PdcAttributeGateway} source registration.
-     *
-     * @param gateway the legacy gateway; {@code null} is a no-op
-     * @param sourceId the source id to register
-     * @deprecated Register through
-     *             {@code emaki.jiuwu.craft.attribute.api.PdcAttributeApi} from the
-     *             owning module's optional Attribute integration instead. Retained
-     *             for one synchronized release window.
-     */
-    @Deprecated(forRemoval = true)
-    protected final void syncPdcAttributeRegistration(PdcAttributeGateway gateway, String sourceId) {
-        if (gateway == null || sourceId == null || sourceId.isBlank()) {
-            return;
-        }
-        gateway.syncRegistration(sourceId);
     }
 
     public record ReloadStageConfig<T>(String taskPrefix,

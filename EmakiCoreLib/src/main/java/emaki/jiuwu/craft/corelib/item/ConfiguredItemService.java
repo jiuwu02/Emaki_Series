@@ -17,10 +17,13 @@ import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssueSeverity;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 
 public final class ConfiguredItemService {
+
+    private static final String LORE_COMPONENT_ID = "minecraft:lore";
 
     private final Plugin plugin;
     private final ItemSourceService itemSourceService;
@@ -59,12 +62,12 @@ public final class ConfiguredItemService {
             return finish(null, List.of(ItemBuildIssue.error(null, "Configured item definition is null.")));
         }
         ConfiguredItemDefinition resolved = resolve(definition, replacements);
-        ItemSource source = ItemSourceUtil.parse(resolved.source());
+        ItemSourceRef source = ItemSourceUtil.parse(resolved.source());
         if (source == null) {
             return finish(null, List.of(ItemBuildIssue.error(null, "Configured item source is missing or invalid.")));
         }
 
-        ItemStack itemStack = source.getType() == ItemSourceType.VANILLA
+        ItemStack itemStack = source.vanilla()
                 ? createVanilla(source, resolved, issues)
                 : createThirdParty(source, resolved, issues);
         clampAmount(itemStack, resolved.amount(), issues);
@@ -93,10 +96,10 @@ public final class ConfiguredItemService {
         return finish(itemStack, issues);
     }
 
-    private ItemStack createVanilla(ItemSource source,
+    private ItemStack createVanilla(ItemSourceRef source,
             ConfiguredItemDefinition definition,
             List<ItemBuildIssue> issues) {
-        String materialId = "minecraft:" + ItemSourceUtil.normalizeVanillaIdentifier(source.getIdentifier());
+        String materialId = "minecraft:" + ItemSourceUtil.normalizeVanillaIdentifier(source.identifier());
         Map<String, ItemComponentPatch> accepted = acceptedVanillaPatches(definition.components(), issues);
         if (accepted.isEmpty()) {
             ItemStack created = itemSourceService.createItem(source, definition.amount());
@@ -131,7 +134,7 @@ public final class ConfiguredItemService {
         }
     }
 
-    private ItemStack createThirdParty(ItemSource source,
+    private ItemStack createThirdParty(ItemSourceRef source,
             ConfiguredItemDefinition definition,
             List<ItemBuildIssue> issues) {
         ItemStack created = itemSourceService.createItem(source, definition.amount());
@@ -153,13 +156,8 @@ public final class ConfiguredItemService {
                 accepted.put(componentId, entry.getValue());
                 continue;
             }
-            MinecraftItemComponentCatalog.Entry catalogEntry = catalog.entry(componentId);
-            if (catalogEntry == null) {
+            if (catalog.entry(componentId) == null) {
                 issues.add(ItemBuildIssue.error(componentId, "Unknown item component id."));
-            } else if (catalog.isKnownFutureComponent(componentId)) {
-                issues.add(ItemBuildIssue.warning(componentId,
-                        "Component requires Minecraft " + catalogEntry.minimumMinecraftVersion()
-                                + "; current server is " + catalog.serverVersion() + ". Patch was skipped."));
             } else {
 
                 accepted.put(componentId, entry.getValue());
@@ -177,13 +175,8 @@ public final class ConfiguredItemService {
                 paperBridge.apply(itemStack, componentId, entry.getValue(), codec, issues);
                 continue;
             }
-            MinecraftItemComponentCatalog.Entry catalogEntry = catalog.entry(componentId);
-            if (catalogEntry == null) {
+            if (catalog.entry(componentId) == null) {
                 issues.add(ItemBuildIssue.error(componentId, "Unknown item component id."));
-            } else if (catalog.isKnownFutureComponent(componentId)) {
-                issues.add(ItemBuildIssue.warning(componentId,
-                        "Component requires Minecraft " + catalogEntry.minimumMinecraftVersion()
-                                + "; current server is " + catalog.serverVersion() + ". Patch was skipped."));
             } else {
                 issues.add(ItemBuildIssue.warning(componentId,
                         "Current Paper runtime does not expose this component through the generic bridge; patch was skipped to preserve source data."));
@@ -239,14 +232,41 @@ public final class ConfiguredItemService {
         Map<String, ItemComponentPatch> resolvedPatches = new LinkedHashMap<>();
         for (Map.Entry<String, ItemComponentPatch> entry : definition.components().entrySet()) {
             ItemComponentPatch patch = entry.getValue();
-            resolvedPatches.put(entry.getKey(), patch.operation() == ItemComponentPatch.Operation.SET
-                    ? ItemComponentPatch.set(replacePlain(patch.value(), safeReplacements))
-                    : patch);
+            if (patch.operation() != ItemComponentPatch.Operation.SET) {
+                resolvedPatches.put(entry.getKey(), patch);
+                continue;
+            }
+            Object resolvedValue = LORE_COMPONENT_ID.equals(entry.getKey())
+                    ? expandLoreValue(patch.value(), safeReplacements)
+                    : replacePlain(patch.value(), safeReplacements);
+            resolvedPatches.put(entry.getKey(), ItemComponentPatch.set(resolvedValue));
         }
         String source = definition.source() == null
                 ? null
                 : Texts.formatTemplate(definition.source(), safeReplacements);
         return new ConfiguredItemDefinition(source, definition.amount(), resolvedPatches);
+    }
+
+    /**
+     * Resolves a lore value, letting a line that is exactly one placeholder expand into several lines.
+     *
+     * <p>Only {@code minecraft:lore} takes this path. Other components keep the strict one-to-one
+     * {@link #replacePlain(Object, Map)} mapping, because structured values such as
+     * {@code writable_book_content.pages} must not gain or lose entries from placeholder expansion.
+     */
+    private Object expandLoreValue(Object value, Map<String, ?> replacements) {
+        if (!(value instanceof Collection<?> lines)) {
+            return replacePlain(value, replacements);
+        }
+        List<Object> result = new ArrayList<>(lines.size());
+        for (Object line : lines) {
+            if (line instanceof String text) {
+                result.addAll(Texts.expandTemplateLines(text, replacements));
+            } else {
+                result.add(replacePlain(line, replacements));
+            }
+        }
+        return result;
     }
 
     private Object replacePlain(Object value, Map<String, ?> replacements) {

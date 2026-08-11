@@ -9,10 +9,8 @@ import java.util.function.Consumer;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
-import emaki.jiuwu.craft.cooking.script.ScriptCookingModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
@@ -24,8 +22,8 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
@@ -83,8 +81,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
-        registerScriptModule(coreLibPlugin);
-        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -127,12 +123,11 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         StationStateStore stationStateStore = new StationStateStore(
                 plugin, cookingFileScope, executionDispatcher, threadOwnership);
         CookingRecipeService recipeService = new CookingRecipeService(plugin, settingsService);
-        ActionExecutor coreActionExecutor = coreLibPlugin.actionExecutor();
         CookingRewardService rewardService = new CookingRewardService(
                 plugin,
                 messageService,
                 coreLibPlugin.itemSourceService(),
-                coreActionExecutor,
+                plugin.actionLines(),
                 coreLibPlugin.itemAssemblyService(),
                 executionDispatcher,
                 threadOwnership
@@ -142,9 +137,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 plugin, rewardService, cookingFileScope, executionDispatcher);
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService(), stationStateStore, blockMatcher, settingsService);
         CookingDisplayService displayService = CookingDisplayServiceFactory.create(
-                plugin, settingsService, executionDispatcher, threadOwnership);
+                plugin, settingsService, executionDispatcher);
         CookingTextDisplayService textDisplayService = CookingTextDisplayServiceFactory.create(
-                plugin, settingsService, executionDispatcher, threadOwnership);
+                plugin, settingsService, executionDispatcher);
         ChoppingBoardRuntimeService choppingBoardRuntimeService = new ChoppingBoardRuntimeService(
                 plugin,
                 messageService,
@@ -243,7 +238,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         PlayerNutritionDataStore nutritionDataStore = new PlayerNutritionDataStore(plugin, () -> nutritionDataFiles);
         NutritionService nutritionService = new NutritionService(
                 plugin,
-                coreActionExecutor,
                 coreLibPlugin.itemSourceService(),
                 settingsService,
                 nutritionTypeRegistry,
@@ -265,7 +259,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 fermentationBarrelRecipeLoader,
                 messageService,
                 bootstrapService,
-                coreActionExecutor,
                 coreLibPlugin.itemSourceService(),
                 craftEngineBlockBridge,
                 itemsAdderBlockBridge,
@@ -420,11 +413,4 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("cooking", 10000, "Cooking"));
     }
 
-    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("cooking", context -> new ScriptCookingModuleApi(JavaPlugin.getPlugin(EmakiCookingPlugin.class), context));
-    }
-
-    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiCookingPlugin plugin) {
-        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("cooking_reward.js"));
-    }
 }

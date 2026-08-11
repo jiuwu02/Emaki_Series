@@ -1,0 +1,22 @@
+id: "combat_sources"
+enabled: true
+sources:
+  vanilla_entity_kill:
+    enabled: true
+    type: "combat"
+    trigger: "entity_kill"
+    include_players: false
+    anti_abuse:
+      exp_cooldown_ticks: 5
+      ignore_near_spawner: true
+      spawner_scan_radius: 8
+    rules:
+      - entity_types: ["ZOMBIE", "SKELETON", "SPIDER", "CREEPER"]
+        exp_formula: "10"
+      - entity_types: ["ENDERMAN", "BLAZE", "WITHER_SKELETON"]
+        exp_formula: "25"
+      - entity_types: ["WITHER", "ENDER_DRAGON"]
+        exp_formula: "500"
+    actions:
+      gain:
+        - 'chance 5% | send_action_bar text="<gray>战斗经验 +%var.amount%</gray>"'

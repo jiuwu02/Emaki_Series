@@ -25,17 +25,17 @@ import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.api.AttributeContribution;
-import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContribution;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
 import net.Indyuce.mmoitems.api.event.item.SpecialWeaponAttackEvent;
@@ -494,7 +494,10 @@ public final class MmoItemsBridge implements Listener {
                 if (stat == null) {
                     continue;
                 }
-                statObjects.putIfAbsent(normalizeMmoId(stat.name()), stat);
+                // MMOItems 的 ItemStat#name() 已弃用但未提供替代读取入口，保留以维持旧 stat 名索引。
+                @SuppressWarnings("deprecation")
+                String statName = stat.name();
+                statObjects.putIfAbsent(normalizeMmoId(statName), stat);
                 String statId = stat.getId();
                 if (Texts.isNotBlank(statId)) {
                     statObjects.putIfAbsent(normalizeMmoId(statId), stat);

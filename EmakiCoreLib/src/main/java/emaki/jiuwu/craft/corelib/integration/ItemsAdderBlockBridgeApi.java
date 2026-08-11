@@ -7,7 +7,7 @@ import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import org.bukkit.block.Block;
 
 import dev.lone.itemsadder.api.CustomBlock;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class ItemsAdderBlockBridgeApi implements CustomBlockBridge {
 

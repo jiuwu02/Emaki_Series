@@ -7,16 +7,16 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
 
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.model.DamageContext;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
-import emaki.jiuwu.craft.attribute.model.DamageResult;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageStageSource;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class DamageRecoveryCalculator {
 
@@ -53,8 +53,14 @@ final class DamageRecoveryCalculator {
         double currentHealth = Math.max(0D, attacker.getHealth());
         AttributeInstance maxHealthAttribute = attacker.getAttribute(Attribute.MAX_HEALTH);
         double maxHealth = maxHealthAttribute == null ? Math.max(1D, currentHealth) : Math.max(1D, maxHealthAttribute.getValue());
+        double healed = Math.min(maxHealth, currentHealth + recoveryAmount) - currentHealth;
         attacker.setHealth(Math.min(maxHealth, currentHealth + recoveryAmount));
         service.scheduleHealthSync(attacker);
+        // 这里是所有回血路径的唯一汇聚点，飘字挂在此处可同时覆盖同步与异步结算分支。
+        // 用实际生效的治疗量而非请求量，满血时不再冒出无意义的数字。
+        if (healed > 0D && service.plugin() != null && service.plugin().damageIndicatorService() != null) {
+            service.plugin().damageIndicatorService().showHeal(attacker, healed);
+        }
     }
 
     private double resolveRecoveryAmount(DamageContext damageContext, RecoveryDefinition recovery, double finalDamage) {

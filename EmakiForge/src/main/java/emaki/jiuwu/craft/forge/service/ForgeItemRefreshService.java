@@ -25,14 +25,14 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.ItemOperationEntry;
+import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
@@ -556,7 +556,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (allNameActions.isEmpty() && allLoreActions.isEmpty()) {
             return;
         }
-        java.util.Map<String, Object> variables = buildOperationVariables(plan);
+        Map<String, Object> variables = buildOperationVariables(plan);
 
         String operationId = "forge:" + recipe.id();
         Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
@@ -567,10 +567,10 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 variables);
     }
 
-    private java.util.Map<String, Object> buildOperationVariables(RefreshPlan plan) {
+    private Map<String, Object> buildOperationVariables(RefreshPlan plan) {
         double multiplier = plan == null ? 1D : plan.multiplier();
-        java.util.Map<String, Object> variables = new java.util.LinkedHashMap<>(snapshotBuilder.buildDisplayVariables(
-                plan == null ? java.util.List.of() : plan.materials(),
+        Map<String, Object> variables = new LinkedHashMap<>(snapshotBuilder.buildDisplayVariables(
+                plan == null ? List.of() : plan.materials(),
                 multiplier,
                 plugin.appConfig().defaultNumberFormat()
         ));

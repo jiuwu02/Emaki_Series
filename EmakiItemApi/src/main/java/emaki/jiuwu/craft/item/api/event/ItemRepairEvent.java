@@ -14,7 +14,7 @@ import org.bukkit.inventory.ItemStack;
  * current/max damage, adjust the restored amount via
  * {@link #setRestoreAmount(int)}, or cancel the repair entirely. A cancelled
  * event stops EmakiItem from charging and restoring durability. This event is
- * fired on the server thread.
+ * fired on the repaired player's entity-owner thread.
  */
 public final class ItemRepairEvent extends Event implements Cancellable {
 

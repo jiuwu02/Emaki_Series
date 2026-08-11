@@ -1,9 +1,12 @@
 package emaki.jiuwu.craft.cooking.service;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -202,7 +205,7 @@ public record CookingCompletionOperation(
     private static String normalizedDigest(String digest, Map<String, Object> state) {
         return digest == null || digest.isBlank()
                 ? CookingCompletionStateDigest.digest(state)
-                : digest.trim().toLowerCase(java.util.Locale.ROOT);
+                : digest.trim().toLowerCase(Locale.ROOT);
     }
 
     private static String requireText(String value, String name) {
@@ -226,7 +229,7 @@ public record CookingCompletionOperation(
                 copy.put(String.valueOf(entry.getKey()), immutableValue(entry.getValue()));
             }
         }
-        return copy.isEmpty() ? Map.of() : java.util.Collections.unmodifiableMap(copy);
+        return copy.isEmpty() ? Map.of() : Collections.unmodifiableMap(copy);
     }
 
     private static Object immutableValue(Object value) {
@@ -238,15 +241,15 @@ public record CookingCompletionOperation(
             for (Object entry : collection) {
                 copy.add(immutableValue(entry));
             }
-            return java.util.Collections.unmodifiableList(copy);
+            return Collections.unmodifiableList(copy);
         }
         if (value != null && value.getClass().isArray()) {
-            int length = java.lang.reflect.Array.getLength(value);
+            int length = Array.getLength(value);
             List<Object> copy = new ArrayList<>(length);
             for (int index = 0; index < length; index++) {
-                copy.add(immutableValue(java.lang.reflect.Array.get(value, index)));
+                copy.add(immutableValue(Array.get(value, index)));
             }
-            return java.util.Collections.unmodifiableList(copy);
+            return Collections.unmodifiableList(copy);
         }
         return value;
     }

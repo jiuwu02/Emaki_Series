@@ -6,20 +6,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.DoubleUnaryOperator;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.api.event.NutritionThresholdChangeEvent;
 import emaki.jiuwu.craft.cooking.api.event.PlayerNutritionConsumeEvent;
@@ -43,8 +42,28 @@ import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
 public final class NutritionService {
 
+    public enum FoodApplyStatus {
+        APPLIED,
+        DISABLED,
+        INVALID_INPUT,
+        SOURCE_NOT_FOUND,
+        CANCELLED,
+        NO_RULE,
+        DATA_UNAVAILABLE
+    }
+
+    public record FoodApplyResult(FoodApplyStatus status) {
+
+        public FoodApplyResult {
+            status = status == null ? FoodApplyStatus.DATA_UNAVAILABLE : status;
+        }
+
+        public boolean applied() {
+            return status == FoodApplyStatus.APPLIED;
+        }
+    }
+
     private final EmakiCookingPlugin plugin;
-    private final ActionExecutor actionExecutor;
     private final ItemSourceService itemSourceService;
     private final CookingSettingsService settingsService;
     private final NutritionTypeRegistry typeRegistry;
@@ -63,7 +82,6 @@ public final class NutritionService {
     private TaskHandle saveTask;
 
     public NutritionService(EmakiCookingPlugin plugin,
-            ActionExecutor actionExecutor,
             ItemSourceService itemSourceService,
             CookingSettingsService settingsService,
             NutritionTypeRegistry typeRegistry,
@@ -71,7 +89,6 @@ public final class NutritionService {
             ExecutionDispatcher executionDispatcher,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
-        this.actionExecutor = actionExecutor;
         this.itemSourceService = itemSourceService;
         this.settingsService = settingsService;
         this.typeRegistry = typeRegistry;
@@ -106,10 +123,7 @@ public final class NutritionService {
         restartSaveTask();
         if (enabled) {
             for (Player online : Bukkit.getOnlinePlayers()) {
-                PlayerNutritionData data = dataStore.cached(online.getUniqueId());
-                if (data != null) {
-                    evaluateThresholds(online, data);
-                }
+                evaluateThresholdsOnOwnerThread(online);
             }
         }
     }
@@ -141,7 +155,7 @@ public final class NutritionService {
         return apply(uuid, typeId, _ -> amount);
     }
 
-    private NutritionOperationResult apply(UUID uuid, String typeId, java.util.function.DoubleUnaryOperator operator) {
+    private NutritionOperationResult apply(UUID uuid, String typeId, DoubleUnaryOperator operator) {
         if (uuid == null) {
             return NutritionOperationResult.failure(typeId, "no_target");
         }
@@ -176,26 +190,35 @@ public final class NutritionService {
 
 
     public boolean applyFood(Player player, ItemStack itemStack) {
-        if (!enabled || player == null || itemStack == null || itemStack.getType().isAir()) {
-            return false;
+        return applyFoodDetailed(player, itemStack).applied();
+    }
+
+    public FoodApplyResult applyFoodDetailed(Player player, ItemStack itemStack) {
+        if (!enabled) {
+            return new FoodApplyResult(FoodApplyStatus.DISABLED);
         }
-        ItemSource source = itemSourceService.identifyItem(itemStack);
+        if (player == null || itemStack == null || itemStack.getType().isAir()) {
+            return new FoodApplyResult(FoodApplyStatus.INVALID_INPUT);
+        }
+        ItemSourceRef source = itemSourceService.identifyItem(itemStack);
         if (source == null) {
-            return false;
+            return new FoodApplyResult(FoodApplyStatus.SOURCE_NOT_FOUND);
         }
         if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
             PlayerNutritionConsumeEvent consumeEvent =
                     new PlayerNutritionConsumeEvent(player, itemStack, ItemSourceUtil.toShorthand(source));
             Bukkit.getPluginManager().callEvent(consumeEvent);
             if (consumeEvent.isCancelled()) {
-                return false;
+                return new FoodApplyResult(FoodApplyStatus.CANCELLED);
             }
         }
-        boolean matched = false;
+        boolean ruleMatched = false;
+        boolean applied = false;
         for (NutritionFoodSource rule : foodSources) {
             if (!matchesAny(rule.itemSources(), source)) {
                 continue;
             }
+            ruleMatched = true;
             PlayerNutritionData updated = dataStore.mutateActive(player.getUniqueId(), typeRegistry.asMap(), data -> {
                 for (Map.Entry<String, Double> entry : rule.nutrition().entrySet()) {
                     NutritionTypeConfig type = typeRegistry.type(entry.getKey()).orElse(null);
@@ -213,20 +236,23 @@ public final class NutritionService {
             if (updated == null) {
                 continue;
             }
-            matched = true;
+            applied = true;
             if (!rule.actions().isEmpty()) {
-                ActionContext context = baseContext(player, "cooking.nutrition.food")
-                        .withPlaceholders(nutritionPlaceholders(updated))
-                        .withPlaceholder("consumed_item", ItemSourceUtil.toShorthand(source));
-                actionExecutor.executeAll(context, rule.actions(), false);
+                Map<String, Object> placeholders = nutritionPlaceholders(updated);
+                placeholders.put("consumed_item", ItemSourceUtil.toShorthand(source));
+                plugin.actionLines().run(rule.actions(), player, "cooking.nutrition.food", false,
+                        placeholders, false);
             }
             evaluateThresholds(player, updated);
         }
-        return matched;
+        if (applied) {
+            return new FoodApplyResult(FoodApplyStatus.APPLIED);
+        }
+        return new FoodApplyResult(ruleMatched ? FoodApplyStatus.DATA_UNAVAILABLE : FoodApplyStatus.NO_RULE);
     }
 
-    private boolean matchesAny(List<ItemSource> sources, ItemSource target) {
-        for (ItemSource candidate : sources) {
+    private boolean matchesAny(List<ItemSourceRef> sources, ItemSourceRef target) {
+        for (ItemSourceRef candidate : sources) {
             if (ItemSourceUtil.matches(candidate, target)) {
                 return true;
             }
@@ -246,6 +272,34 @@ public final class NutritionService {
         }
         evaluateThresholds(player, data);
         return true;
+    }
+
+    private void evaluateThresholdsOnOwnerThread(Player player) {
+        if (player == null) {
+            return;
+        }
+        // Threshold evaluation runs action lines and fires Bukkit events against the player,
+        // so it must happen on the thread that owns this player entity.
+        if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
+            evaluateCachedThresholds(player);
+            return;
+        }
+        if (executionDispatcher == null) {
+            plugin.getLogger().warning("EmakiCooking skipped nutrition threshold evaluation for " + player.getName()
+                    + ": caller thread does not own the player and no execution dispatcher is available.");
+            return;
+        }
+        if (executionDispatcher.runEntity(plugin, player, () -> evaluateCachedThresholds(player)) == null) {
+            plugin.getLogger().warning("EmakiCooking failed to reroute nutrition threshold evaluation for "
+                    + player.getName() + ": entity task scheduling was rejected.");
+        }
+    }
+
+    private void evaluateCachedThresholds(Player player) {
+        PlayerNutritionData data = dataStore.cached(player.getUniqueId());
+        if (data != null) {
+            evaluateThresholds(player, data);
+        }
     }
 
     private void evaluateThresholds(Player player, PlayerNutritionData data) {
@@ -345,18 +399,15 @@ public final class NutritionService {
 
     private void runActions(Player player, PlayerNutritionData data, List<String> actions, String phase,
             Map<String, Object> extra) {
-        if (actions == null || actions.isEmpty() || actionExecutor == null) {
+        if (actions == null || actions.isEmpty()) {
             return;
         }
-        ActionContext context = baseContext(player, phase).withPlaceholders(nutritionPlaceholders(data));
+        Map<String, Object> placeholders = nutritionPlaceholders(data);
         if (extra != null && !extra.isEmpty()) {
-            context = context.withPlaceholders(extra);
+            // Threshold-specific keys are merged last so they win over the per-type snapshot, matching v1.
+            placeholders.putAll(extra);
         }
-        actionExecutor.executeAll(context, actions, false);
-    }
-
-    private ActionContext baseContext(Player player, String phase) {
-        return ActionContext.create(plugin, player, phase, false);
+        plugin.actionLines().run(actions, player, phase, false, placeholders, false);
     }
 
 

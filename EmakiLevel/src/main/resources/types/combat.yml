@@ -1,0 +1,35 @@
+id: "combat"
+enabled: true
+display_name: "<red>战斗等级</red>"
+description:
+  - "<gray>通过击杀实体或 MythicMobs 生物获得经验。</gray>"
+primary: false
+start_level: 1
+max_level: 80
+requirement:
+  group: "combat"
+  formula: ""
+  values: {}
+upgrade:
+  enabled: true
+  auto_upgrade: true
+  manual_upgrade: true
+  cost:
+    enabled: false
+    economy:
+      enabled: false
+      currencies: []
+    materials: []
+  rewards:
+    items: []
+  actions:
+    success:
+      - 'send_message text="<red>战斗等级提升: </red> <yellow>%var.old_level%</yellow> <gray>→</gray> <yellow>%var.new_level%</yellow>"'
+    failure: []
+pdc:
+  enabled: true
+attributes:
+  enabled: true
+  values:
+    physical_attack: "%level% * 0.25"
+    physical_crit_rate: "%level% * 0.02"

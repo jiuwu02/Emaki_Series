@@ -6,7 +6,7 @@ import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 
 import org.bukkit.block.Block;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.momirealms.craftengine.bukkit.api.CraftEngineBlocks;
 import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.block.ImmutableBlockState;

@@ -8,31 +8,25 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.Action;
-import emaki.jiuwu.craft.corelib.action.ActionLineParser;
-import emaki.jiuwu.craft.corelib.action.ActionRegistry;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.action.ActionSyntaxException;
-import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
-import emaki.jiuwu.craft.corelib.action.ParsedActionLine;
-import emaki.jiuwu.craft.corelib.action.builtin.UseTemplateAction;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceProbeStatus;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
@@ -59,7 +53,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                                   boolean skipped,
                                   String source,
                                   String provider,
-                                  ItemSourceProbeStatus sourceStatus) {
+                                  ItemSourceProbeState sourceStatus) {
 
         public RecipeLoadIssue {
             recipeId = Texts.toStringSafe(recipeId);
@@ -77,9 +71,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         }
 
         public boolean capabilityIssue() {
-            return sourceStatus == ItemSourceProbeStatus.RESOLVER_MISSING
-                    || sourceStatus == ItemSourceProbeStatus.PROVIDER_NOT_READY
-                    || sourceStatus == ItemSourceProbeStatus.INCOMPATIBLE;
+            return sourceStatus == ItemSourceProbeState.PROVIDER_MISSING
+                    || sourceStatus == ItemSourceProbeState.PROVIDER_NOT_READY
+                    || sourceStatus == ItemSourceProbeState.INCOMPATIBLE;
         }
     }
 
@@ -93,7 +87,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                                    int guiVisible,
                                    Map<String, Integer> inputSourceTypes,
                                    Map<String, Integer> outputSourceTypes,
-                                   Map<ItemSourceProbeStatus, Integer> sourceStatuses,
+                                   Map<ItemSourceProbeState, Integer> sourceStatuses,
                                    List<RecipeLoadIssue> issues,
                                    String directoryPath,
                                    String fileSummaryHash,
@@ -148,7 +142,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                     + " issues=" + issueCount()
                     + " warnings=" + warningCount()
                     + " hash=" + fileSummaryHash
-                    + " duration_ms=" + String.format(java.util.Locale.ROOT, "%.3f", durationNanos / 1_000_000D);
+                    + " duration_ms=" + String.format(Locale.ROOT, "%.3f", durationNanos / 1_000_000D);
         }
     }
 
@@ -169,14 +163,13 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     }
 
     private final EmakiForgePlugin forgePlugin;
-    private final Supplier<ActionRegistry> actionRegistrySupplier;
-    private final Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier;
+    private final Supplier<ActionEngine> actionEngineSupplier;
     private final ItemIdentifierService itemIdentifierService;
     private final boolean deferRuntimeValidation;
     private final List<RecipeLoadIssue> structuredIssues = new ArrayList<>();
     private final Map<String, Integer> inputSourceTypes = new LinkedHashMap<>();
     private final Map<String, Integer> outputSourceTypes = new LinkedHashMap<>();
-    private final Map<ItemSourceProbeStatus, Integer> sourceStatuses = new LinkedHashMap<>();
+    private final Map<ItemSourceProbeState, Integer> sourceStatuses = new LinkedHashMap<>();
     private final List<File> discoveredFiles = new ArrayList<>();
     private final List<DeferredRecipe> deferredRecipes = new ArrayList<>();
     private final List<DeferredSourceValidation> deferredSourceValidations = new ArrayList<>();
@@ -190,28 +183,34 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     private volatile RecipeLoadReport report = RecipeLoadReport.empty(0L);
 
     public RecipeLoader(EmakiForgePlugin plugin,
-                        Supplier<ActionRegistry> actionRegistrySupplier,
-                        Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier) {
-        this(plugin, actionRegistrySupplier, actionTemplateRegistrySupplier,
-                plugin == null ? null : plugin.itemIdentifierService(), false);
+                        Supplier<ActionEngine> actionEngineSupplier) {
+        this(plugin, actionEngineSupplier, plugin == null ? null : plugin.itemIdentifierService(), false);
     }
 
     public RecipeLoader(EmakiForgePlugin plugin,
-                        Supplier<ActionRegistry> actionRegistrySupplier,
-                        Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier,
-        ItemIdentifierService itemIdentifierService) {
-        this(plugin, actionRegistrySupplier, actionTemplateRegistrySupplier, itemIdentifierService, false);
+                        Supplier<ActionEngine> actionEngineSupplier,
+                        ItemIdentifierService itemIdentifierService) {
+        this(plugin, actionEngineSupplier, itemIdentifierService, false);
     }
 
+    /**
+     * Creates a loader.
+     *
+     * <p>The engine arrives as a supplier rather than a value because a CoreLib reload replaces it; reading
+     * it per validation pass is what keeps this loader from checking recipes against a retired stage table.</p>
+     *
+     * @param plugin the owning plugin
+     * @param actionEngineSupplier reads the live pipeline engine, may yield {@code null} before first load
+     * @param itemIdentifierService resolves configured item ids
+     * @param deferRuntimeValidation whether runtime-only checks are postponed to a later pass
+     */
     public RecipeLoader(EmakiForgePlugin plugin,
-                        Supplier<ActionRegistry> actionRegistrySupplier,
-                        Supplier<ActionTemplateRegistry> actionTemplateRegistrySupplier,
+                        Supplier<ActionEngine> actionEngineSupplier,
                         ItemIdentifierService itemIdentifierService,
                         boolean deferRuntimeValidation) {
         super(plugin);
         this.forgePlugin = plugin;
-        this.actionRegistrySupplier = actionRegistrySupplier;
-        this.actionTemplateRegistrySupplier = actionTemplateRegistrySupplier;
+        this.actionEngineSupplier = actionEngineSupplier;
         this.itemIdentifierService = itemIdentifierService;
         this.deferRuntimeValidation = deferRuntimeValidation;
     }
@@ -502,66 +501,55 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         if (recipe == null || recipe.action() == null) {
             return recipe != null;
         }
-        ActionRegistry actionRegistry = actionRegistrySupplier == null ? null : actionRegistrySupplier.get();
-        ActionTemplateRegistry actionTemplateRegistry = actionTemplateRegistrySupplier == null
-                ? null
-                : actionTemplateRegistrySupplier.get();
-        if (actionRegistry == null || actionTemplateRegistry == null) {
+        ActionEngine engine = actionEngineSupplier == null ? null : actionEngineSupplier.get();
+        if (engine == null) {
             recordIssue(file, recipe.id(), "actions", IssueSeverity.WARNING, "ACTION_VALIDATION_SKIPPED",
-                    "Action validation was skipped because the CoreLib action registries are unavailable.",
+                    "Action validation was skipped because the CoreLib action pipeline is unavailable.",
                     false, null, null);
             return true;
         }
-        ActionLineParser parser = new ActionLineParser();
-        return validatePhase(file, recipe, "pre", recipe.action().pre(), parser, actionRegistry, actionTemplateRegistry)
-                && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), parser, actionRegistry, actionTemplateRegistry)
-                && validatePhase(file, recipe, "success", recipe.action().success(), parser, actionRegistry, actionTemplateRegistry)
-                && validatePhase(file, recipe, "failure", recipe.action().failure(), parser, actionRegistry, actionTemplateRegistry);
+        return validatePhase(file, recipe, "pre", recipe.action().pre(), engine)
+                && validatePhase(file, recipe, "result", recipe.result() == null ? List.of() : recipe.result().action(), engine)
+                && validatePhase(file, recipe, "success", recipe.action().success(), engine)
+                && validatePhase(file, recipe, "failure", recipe.action().failure(), engine);
     }
 
+    /**
+     * Rejects a recipe whose action lines do not compile.
+     *
+     * <p>Compilation replaces what used to be three separate checks against the v1 registries: parse the
+     * line, look the action up, then validate its arguments. The pipeline compiler does all three and additionally
+     * verifies stage position and referenced sequences, so a recipe that compiles here cannot fail at forge
+     * time for a configuration reason.</p>
+     *
+     * <p>Only the first diagnostic per line is reported. The compiler emits every problem it finds, and the
+     * later ones are usually consequences of the first, so surfacing them all would bury the real cause.</p>
+     */
     private boolean validatePhase(File file,
                                   Recipe recipe,
                                   String phase,
                                   List<String> lines,
-                                  ActionLineParser parser,
-                                  ActionRegistry actionRegistry,
-                                  ActionTemplateRegistry actionTemplateRegistry) {
+                                  ActionEngine engine) {
         if (lines == null || lines.isEmpty()) {
             return true;
         }
         for (int index = 0; index < lines.size(); index++) {
-            ParsedActionLine parsedLine;
-            try {
-                parsedLine = parser.parse(index + 1, lines.get(index));
-            } catch (ActionSyntaxException exception) {
-                recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                        "INVALID_ACTION_SYNTAX", exceptionSummary(exception), true, null, null);
-                return false;
-            }
-            if (parsedLine == null) {
+            String line = lines.get(index);
+            if (Texts.isBlank(line)) {
                 continue;
             }
-            Action action = actionRegistry.get(parsedLine.actionId());
-            if (action == null) {
-                recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                        "UNKNOWN_ACTION", "Unknown action '" + parsedLine.actionId() + "'.", true, null, null);
-                return false;
+            ActionEngine.Result compiled = engine.compile(line, null);
+            if (compiled.successful()) {
+                continue;
             }
-            ActionResult validation = action.validate(parsedLine.arguments());
-            if (!validation.success()) {
-                recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                        "INVALID_ACTION_ARGUMENTS", Texts.toStringSafe(validation.errorMessage()), true, null, null);
-                return false;
-            }
-            if (UseTemplateAction.ID.equals(parsedLine.actionId())) {
-                String templateName = parsedLine.arguments().get("name");
-                if (Texts.isBlank(templateName) || actionTemplateRegistry.get(templateName) == null) {
-                    recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
-                            "UNKNOWN_ACTION_TEMPLATE", "Unknown action template '" + templateName + "'.",
-                            true, null, null);
-                    return false;
-                }
-            }
+            // Rendered through CoreLib's message service: every action.* diagnostic text lives in
+            // CoreLib's language file, so Forge reads it there rather than duplicating the wording.
+            String reason = compiled.diagnostics().isEmpty()
+                    ? "did not compile"
+                    : forgePlugin.coreLib().messageService().renderFirstDiagnostic(compiled.diagnostics());
+            recordIssue(file, recipe.id(), "actions." + phase + "[" + index + "]", IssueSeverity.ERROR,
+                    "INVALID_ACTION_LINE", "Action line did not compile: " + reason, true, null, null);
+            return false;
         }
         return true;
     }
@@ -620,7 +608,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             alternatives = List.of(raw);
         }
         for (Object alternative : alternatives) {
-            ItemSource source = ItemSourceUtil.parse(alternative);
+            ItemSourceRef source = ItemSourceUtil.parse(alternative);
             Object plain = ConfigNodes.toPlainData(alternative);
             if (itemIdentifierService.probeSource(source).ready()) {
                 ready.add(plain);
@@ -735,17 +723,19 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         int ready = 0;
         List<ItemIdentifierService.SourceProbe> probes = new ArrayList<>();
         for (Object alternative : alternatives) {
-            ItemSource source = ItemSourceUtil.parse(alternative);
+            ItemSourceRef source = ItemSourceUtil.parse(alternative);
             ItemIdentifierService.SourceProbe probe = itemIdentifierService == null
                     ? new ItemIdentifierService.SourceProbe(source,
-                    ItemSourceProbeStatus.RESOLVER_MISSING,
+                    ItemSourceProbeState.PROVIDER_MISSING,
                     "EmakiCoreLib",
                     "Item source probing is unavailable.")
                     : itemIdentifierService.probeSource(source, yamlPath);
             probes.add(probe);
             sourceStatuses.merge(probe.status(), 1, Integer::sum);
-            if (source != null && source.getType() != null) {
-                typeDistribution.merge(source.getType().name(), 1, Integer::sum);
+            if (source != null) {
+                // A diagnostic distribution only, reported as-is and never compared against config.
+                // The key was the enum's name(); the kind's canonical key serves the same purpose.
+                typeDistribution.merge(source.kind().key(), 1, Integer::sum);
             }
             if (probe.ready()) {
                 ready++;

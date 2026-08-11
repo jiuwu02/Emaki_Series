@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 
 
 

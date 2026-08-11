@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
@@ -23,7 +23,7 @@ public final class InventoryItemUtil {
         return countItems(player, itemSourceService, ItemSourceUtil.parse(itemToken));
     }
 
-    public static long countItems(Player player, ItemSourceService itemSourceService, ItemSource targetSource) {
+    public static long countItems(Player player, ItemSourceService itemSourceService, ItemSourceRef targetSource) {
         if (player == null) {
             return 0L;
         }
@@ -34,7 +34,7 @@ public final class InventoryItemUtil {
         return countItems(contents, itemSourceService, ItemSourceUtil.parse(itemToken));
     }
 
-    public static long countItems(ItemStack[] contents, ItemSourceService itemSourceService, ItemSource targetSource) {
+    public static long countItems(ItemStack[] contents, ItemSourceService itemSourceService, ItemSourceRef targetSource) {
         if (contents == null || contents.length == 0 || itemSourceService == null || targetSource == null) {
             return 0L;
         }
@@ -43,7 +43,7 @@ public final class InventoryItemUtil {
             if (isEmptyStack(itemStack)) {
                 continue;
             }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
+            ItemSourceRef source = itemSourceService.identifyItem(itemStack);
             if (ItemSourceUtil.matches(targetSource, source)) {
                 total += itemStack.getAmount();
             }
@@ -51,7 +51,7 @@ public final class InventoryItemUtil {
         return total;
     }
 
-    public static long countItems(Map<Integer, ItemStack> items, ItemSourceService itemSourceService, ItemSource targetSource) {
+    public static long countItems(Map<Integer, ItemStack> items, ItemSourceService itemSourceService, ItemSourceRef targetSource) {
         if (items == null || items.isEmpty() || itemSourceService == null || targetSource == null) {
             return 0L;
         }
@@ -60,7 +60,7 @@ public final class InventoryItemUtil {
             if (isEmptyStack(itemStack)) {
                 continue;
             }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
+            ItemSourceRef source = itemSourceService.identifyItem(itemStack);
             if (ItemSourceUtil.matches(targetSource, source)) {
                 total += itemStack.getAmount();
             }
@@ -77,7 +77,7 @@ public final class InventoryItemUtil {
 
     public static boolean removeItems(PlayerInventory inventory,
             ItemSourceService itemSourceService,
-            ItemSource targetSource,
+            ItemSourceRef targetSource,
             long amount) {
         if (inventory == null || itemSourceService == null || targetSource == null || amount <= 0L) {
             return amount <= 0L;
@@ -88,7 +88,7 @@ public final class InventoryItemUtil {
 
     public static long removeItems(Map<Integer, ItemStack> items,
             ItemSourceService itemSourceService,
-            ItemSource targetSource,
+            ItemSourceRef targetSource,
             long amount) {
         if (amount <= 0L) {
             return amount;
@@ -102,14 +102,14 @@ public final class InventoryItemUtil {
 
     public static RemovalPlan planRemoval(PlayerInventory inventory,
             ItemSourceService itemSourceService,
-            ItemSource targetSource,
+            ItemSourceRef targetSource,
             long amount) {
         return planRemoval(inventory == null ? null : inventory.getContents(), itemSourceService, targetSource, amount);
     }
 
     public static RemovalPlan planRemoval(ItemStack[] contents,
             ItemSourceService itemSourceService,
-            ItemSource targetSource,
+            ItemSourceRef targetSource,
             long amount) {
         if (contents == null || contents.length == 0 || itemSourceService == null || targetSource == null || amount <= 0L) {
             return RemovalPlan.empty(amount);
@@ -121,7 +121,7 @@ public final class InventoryItemUtil {
             if (isEmptyStack(itemStack)) {
                 continue;
             }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
+            ItemSourceRef source = itemSourceService.identifyItem(itemStack);
             if (!ItemSourceUtil.matches(targetSource, source)) {
                 continue;
             }
@@ -137,7 +137,7 @@ public final class InventoryItemUtil {
 
     public static RemovalPlan planRemoval(Map<Integer, ItemStack> items,
             ItemSourceService itemSourceService,
-            ItemSource targetSource,
+            ItemSourceRef targetSource,
             long amount) {
         if (items == null || items.isEmpty() || itemSourceService == null || targetSource == null || amount <= 0L) {
             return RemovalPlan.empty(amount);
@@ -152,7 +152,7 @@ public final class InventoryItemUtil {
             if (isEmptyStack(itemStack)) {
                 continue;
             }
-            ItemSource source = itemSourceService.identifyItem(itemStack);
+            ItemSourceRef source = itemSourceService.identifyItem(itemStack);
             if (!ItemSourceUtil.matches(targetSource, source)) {
                 continue;
             }

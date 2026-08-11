@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Material;
@@ -15,15 +16,15 @@ import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
+import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class AttributePointsGuiService {
 
@@ -54,7 +55,6 @@ public final class AttributePointsGuiService {
                 player,
                 template,
                 replacements(player, template, 0),
-                (source, amount) -> plugin.coreLib().itemSourceService().createItem(source, amount),
                 this::render,
                 handler
         ));
@@ -136,18 +136,11 @@ public final class AttributePointsGuiService {
         if (pageSize <= 0) {
             return 1;
         }
-        return Math.max(1, (int) Math.ceil((double) attributes().size() / pageSize));
+        return GuiPagination.totalPages(attributes().size(), pageSize);
     }
 
     private int pageSize(GuiTemplate template) {
-        if (template == null) {
-            return 0;
-        }
-        int size = 0;
-        for (GuiSlot slot : template.slotsByType("parent_attribute")) {
-            size += slot.slots().size();
-        }
-        return size;
+        return GuiPagination.pageSize(template, "parent_attribute");
     }
 
     private int slotIndex(GuiSession session, GuiTemplate.ResolvedSlot resolved) {
@@ -216,38 +209,15 @@ public final class AttributePointsGuiService {
     }
 
     private ItemStack buildConfiguredItem(GuiSlot slot, String fallbackItem, String fallbackName, List<String> fallbackLore, Map<String, ?> replacements) {
-        ItemComponentParser.ItemComponents fallbackComponents = new ItemComponentParser.ItemComponents(
-                fallbackName,
-                true,
-                fallbackLore == null ? List.of() : fallbackLore,
-                null,
-                null,
-                Map.of(),
-                List.of()
-        );
-        ItemComponentParser.ItemComponents components = hasConfiguredComponents(slot) ? slot.components() : fallbackComponents;
         String item = Texts.isBlank(slot == null ? null : slot.item()) ? fallbackItem : slot.item();
         return GuiItemBuilder.build(
+                slot,
                 Texts.isBlank(item) ? "barrier" : item,
-                components,
-                1,
+                fallbackName,
+                fallbackLore == null ? List.of() : fallbackLore,
                 replacements == null ? Map.of() : replacements,
-                (source, amount) -> plugin.coreLib().itemSourceService().createItem(source, amount)
+                plugin.coreLib().configuredItemService()
         );
-    }
-
-    private boolean hasConfiguredComponents(GuiSlot slot) {
-        if (slot == null || slot.components() == null) {
-            return false;
-        }
-        ItemComponentParser.ItemComponents components = slot.components();
-        return Texts.isNotBlank(components.displayName())
-                || components.displayNameConfig() != null
-                || components.loreConfigured()
-                || Texts.isNotBlank(components.itemModel())
-                || components.customModelData() != null
-                || !components.enchantments().isEmpty()
-                || !components.hiddenComponents().isEmpty();
     }
 
     private final class Handler implements GuiSessionHandler {
@@ -269,7 +239,7 @@ public final class AttributePointsGuiService {
                     if (result == ParentAttributeService.AllocateResult.SUCCESS) {
                         plugin.messageService().send(player, "command.points.add_success", Map.of("player", player.getName(), "attribute", definition.displayName(), "amount", amount));
                     } else {
-                        plugin.messageService().send(player, "command.points.add_failed", Map.of("reason", result.name().toLowerCase(java.util.Locale.ROOT)));
+                        plugin.messageService().send(player, "command.points.add_failed", Map.of("reason", result.name().toLowerCase(Locale.ROOT)));
                     }
                     refresh(session);
                 }
@@ -278,7 +248,7 @@ public final class AttributePointsGuiService {
                     if (result == ParentAttributeService.ResetResult.SUCCESS) {
                         plugin.messageService().send(player, "command.points.reset_success", Map.of("player", player.getName()));
                     } else {
-                        plugin.messageService().send(player, "command.points.reset_failed", Map.of("reason", result.name().toLowerCase(java.util.Locale.ROOT)));
+                        plugin.messageService().send(player, "command.points.reset_failed", Map.of("reason", result.name().toLowerCase(Locale.ROOT)));
                     }
                     refresh(session);
                 }

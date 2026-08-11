@@ -5,13 +5,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -19,7 +21,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -31,25 +34,26 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.loader.ForgeGuiTemplateLoader;
 import emaki.jiuwu.craft.forge.model.Recipe;
-import emaki.jiuwu.craft.forge.script.ScriptForgeModuleApi;
 import emaki.jiuwu.craft.forge.service.ForgeGuiService;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeLookupIndex;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
+import emaki.jiuwu.craft.forge.model.QualitySettings;
+import emaki.jiuwu.craft.forge.service.ForgeGuiSession;
 
 final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiForgePlugin, ForgeRuntimeComponents> {
 
@@ -99,8 +103,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         reloadsAccepted.set(true);
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         registerAssemblyLayer(coreLibPlugin);
-        registerScriptModule(coreLibPlugin);
-        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -109,8 +111,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
         appConfigLoader.load();
         LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
-        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLibPlugin::actionRegistry,
-                coreLibPlugin::actionTemplateRegistry);
+        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLibPlugin::actionEngine);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         AsyncYamlFiles playerDataFiles = coreLibPlugin.asyncYamlFiles(plugin);
         PlayerDataStore playerDataStore = new PlayerDataStore(plugin, () -> playerDataFiles);
@@ -129,7 +130,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 coreLibPlugin.asyncTaskScheduler(),
                 coreLibPlugin.performanceMonitor(),
                 coreLibPlugin.itemAssemblyService(),
-                coreLibPlugin::actionExecutor,
+                plugin.actionLines(),
                 executionDispatcher,
                 threadOwnership
         );
@@ -226,7 +227,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             if (throwable == null) {
                 return CompletableFuture.completedFuture(result);
             }
-            Throwable cause = unwrap(throwable);
+            Throwable cause = AsyncFailures.unwrap(throwable);
             if (cause instanceof StaleReloadException) {
                 return staleReload(plugin, generation, started, "superseded during reload");
             }
@@ -308,8 +309,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         validateCandidateLanguagesReadOnly(new File(plugin.getDataFolder(), "lang"));
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         BootstrapService bootstrapService = createBootstrapService(plugin, messageService);
-        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLib::actionRegistry,
-                coreLib::actionTemplateRegistry, plugin.itemIdentifierService(), true);
+        RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLib::actionEngine,
+                plugin.itemIdentifierService(), true);
         ForgeGuiTemplateLoader guiTemplateLoader = new ForgeGuiTemplateLoader(
                 plugin, plugin.itemIdentifierService(), true);
         recipeLoader.prepareLoad(generation);
@@ -350,7 +351,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             return;
         }
         File[] files = directory.listFiles((ignored, name) -> {
-            String normalized = name == null ? "" : name.toLowerCase(java.util.Locale.ROOT);
+            String normalized = name == null ? "" : name.toLowerCase(Locale.ROOT);
             return normalized.endsWith(".yml") || normalized.endsWith(".yaml");
         });
         if (files == null) {
@@ -456,7 +457,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 collectYamlFiles(entry, sink);
                 continue;
             }
-            String name = entry.getName().toLowerCase(java.util.Locale.ROOT);
+            String name = entry.getName().toLowerCase(Locale.ROOT);
             if (name.endsWith(".yml") || name.endsWith(".yaml")) {
                 sink.add(entry);
             }
@@ -657,21 +658,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 plugin.getLogger().warning("[Shutdown] Namespace cleanup failed: "
                         + String.valueOf(throwable.getMessage()));
             }
-            try {
-                var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
-                if (javaScriptRegistrationTracker != null) {
-                    javaScriptRegistrationTracker.unregisterOwner(plugin);
-                }
-            } catch (Throwable throwable) {
-                plugin.getLogger().warning("[Shutdown] JavaScript registration cleanup failed: "
-                        + String.valueOf(throwable.getMessage()));
-            }
-            try {
-                coreLibPlugin.scriptModuleRegistry().unregister("forge");
-            } catch (Throwable throwable) {
-                plugin.getLogger().warning("[Shutdown] Script module cleanup failed: "
-                        + String.valueOf(throwable.getMessage()));
-            }
         }
         sendShutdownMessage(plugin, "console.plugin_stopping");
         if (plugin.pdcAttributeGateway() != null) {
@@ -698,7 +684,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         return flushFuture.handle((flushResult, throwable) -> {
             if (throwable != null) {
-                Throwable cause = unwrap(throwable);
+                Throwable cause = AsyncFailures.unwrap(throwable);
                 plugin.getLogger().warning("[Shutdown] Player data flush failed: "
                         + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
             } else if (flushResult != null) {
@@ -738,13 +724,13 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     private <T> CompletableFuture<T> submitGlobal(EmakiForgePlugin plugin,
-            java.util.function.Supplier<T> operation) {
+            Supplier<T> operation) {
         return submitGlobal(plugin, plugin, operation);
     }
 
     private <T> CompletableFuture<T> submitGlobal(EmakiForgePlugin plugin,
             Plugin taskOwner,
-            java.util.function.Supplier<T> operation) {
+            Supplier<T> operation) {
         return plugin.executionDispatcher().submitGlobal(taskOwner, operation);
     }
 
@@ -763,7 +749,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 .orTimeout(SHUTDOWN_RETIREMENT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        Throwable cause = unwrap(throwable);
+                        Throwable cause = AsyncFailures.unwrap(throwable);
                         plugin.runtimeMetrics().recordGuiSettlementFailure();
                         plugin.getLogger().warning("[Shutdown] Forge retirement did not complete cleanly: "
                                 + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
@@ -782,7 +768,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 })
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        Throwable cause = unwrap(throwable);
+                        Throwable cause = AsyncFailures.unwrap(throwable);
                         plugin.getLogger().warning("[Shutdown] Forge runtime cleanup failed: "
                                 + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
                         closeRuntimeForShutdown(plugin);
@@ -821,7 +807,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private CompletableFuture<Void> scheduleShutdownInventoryClosures(EmakiForgePlugin plugin,
             EmakiCoreLibPlugin coreLibPlugin,
             CompletableFuture<Void> quiesceFuture) {
-        List<CompletableFuture<Void>> closures = new java.util.ArrayList<>();
+        List<CompletableFuture<Void>> closures = new ArrayList<>();
         for (var session : plugin.forgeGuiService().sessionsSnapshot()) {
             session.markShutdownRetiring();
             Player player = session.player();
@@ -890,7 +876,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private void scheduleShutdownSettlementFallback(EmakiForgePlugin plugin,
             EmakiCoreLibPlugin coreLibPlugin,
             Player player,
-            emaki.jiuwu.craft.forge.service.ForgeGuiSession session,
+            ForgeGuiSession session,
             CompletableFuture<Void> quiesceFuture,
             CompletableFuture<Void> completion) {
         Runnable settle = () -> {
@@ -987,7 +973,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private CompletableFuture<Void> scheduleInventoryClosures(EmakiForgePlugin plugin) {
         List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
-        List<CompletableFuture<Void>> closures = new java.util.ArrayList<>(players.size());
+        List<CompletableFuture<Void>> closures = new ArrayList<>(players.size());
         for (Player player : players) {
             CompletableFuture<Void> closure = new CompletableFuture<>();
             closures.add(closure);
@@ -1009,7 +995,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     var scheduled = plugin.executionDispatcher().runEntity(plugin, player, close,
                             () -> closure.complete(null));
                     if (scheduled == null) {
-                        closure.completeExceptionally(new java.util.concurrent.RejectedExecutionException(
+                        closure.completeExceptionally(new RejectedExecutionException(
                                 "Forge GUI closure scheduling was rejected."));
                     }
                 }
@@ -1018,15 +1004,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             }
         }
         return CompletableFuture.allOf(closures.toArray(CompletableFuture[]::new));
-    }
-
-    private Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof CompletionException || current instanceof java.util.concurrent.ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
     }
 
     private AppConfig parseAppConfig(YamlSection configuration) {
@@ -1041,7 +1018,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 configuration.getString("language", "zh_CN"),
                 configuration.getString("version", AppConfig.defaults().configVersion()),
                 configuration.getBoolean("release_default_data", true),
-                emaki.jiuwu.craft.forge.model.QualitySettings.fromConfig(configuration.get("quality")),
+                QualitySettings.fromConfig(configuration.get("quality")),
                 numberFormat == null ? "0.##" : numberFormat.getString("default", "0.##"),
                 numberFormat == null ? "0" : numberFormat.getString("integer", "0"),
                 numberFormat == null ? "0.##%" : numberFormat.getString("percentage", "0.##%"),
@@ -1060,15 +1037,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {
         coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("forge", 100, "Forge"));
-    }
-
-    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("forge",
-                context -> new ScriptForgeModuleApi(JavaPlugin.getPlugin(EmakiForgePlugin.class), context));
-    }
-
-    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiForgePlugin plugin) {
-        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("forge_success.js"));
     }
 
     private static final class StaleReloadException extends RuntimeException {

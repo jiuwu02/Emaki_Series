@@ -6,36 +6,35 @@ import java.util.Map;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceProbe;
-import emaki.jiuwu.craft.corelib.item.ItemSourceProbeStatus;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeResult;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
-import emaki.jiuwu.craft.corelib.item.ItemSourceType;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 
 public final class ItemIdentifierService {
 
-    public record SourceProbe(ItemSource source,
-            ItemSourceProbeStatus status,
+    public record SourceProbe(ItemSourceRef source,
+            ItemSourceProbeState status,
             String provider,
             String detail) {
 
         public SourceProbe {
-            status = status == null ? ItemSourceProbeStatus.RESOLUTION_ERROR : status;
+            status = status == null ? ItemSourceProbeState.RESOLUTION_ERROR : status;
             provider = Texts.toStringSafe(provider);
             detail = Texts.toStringSafe(detail);
         }
 
         public boolean ready() {
-            return status == ItemSourceProbeStatus.READY;
+            return status == ItemSourceProbeState.READY;
         }
 
         public boolean capabilityIssue() {
-            return status == ItemSourceProbeStatus.RESOLVER_MISSING
-                    || status == ItemSourceProbeStatus.PROVIDER_NOT_READY
-                    || status == ItemSourceProbeStatus.INCOMPATIBLE;
+            return status == ItemSourceProbeState.PROVIDER_MISSING
+                    || status == ItemSourceProbeState.PROVIDER_NOT_READY
+                    || status == ItemSourceProbeState.INCOMPATIBLE;
         }
     }
 
@@ -51,11 +50,11 @@ public final class ItemIdentifierService {
         // ItemSourceService owns the authoritative resolver snapshot. No local cache is required.
     }
 
-    public ItemSource parseSource(Object raw) {
+    public ItemSourceRef parseSource(Object raw) {
         return ItemSourceUtil.parse(raw);
     }
 
-    public boolean matches(ItemStack itemStack, ItemSource source) {
+    public boolean matches(ItemStack itemStack, ItemSourceRef source) {
         if (itemSourceService == null || itemStack == null || source == null) {
             return false;
         }
@@ -66,33 +65,33 @@ public final class ItemIdentifierService {
         return toShorthand(identifySource(itemStack));
     }
 
-    public ItemSource identifySource(ItemStack itemStack) {
+    public ItemSourceRef identifySource(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir() || itemSourceService == null) {
             return null;
         }
         return itemSourceService.identifyItem(itemStack);
     }
 
-    public ItemSource identifyItem(ItemStack itemStack) {
+    public ItemSourceRef identifyItem(ItemStack itemStack) {
         return identifySource(itemStack);
     }
 
-    public String toShorthand(ItemSource source) {
+    public String toShorthand(ItemSourceRef source) {
         return ItemSourceUtil.toShorthand(source);
     }
 
-    public String displayName(ItemSource source) {
+    public String displayName(ItemSourceRef source) {
         if (source == null) {
             return "";
         }
-        return itemSourceService == null ? source.getIdentifier() : itemSourceService.displayName(source);
+        return itemSourceService == null ? source.identifier() : itemSourceService.displayName(source);
     }
 
     public ItemStack createItem(Object raw, int amount) {
         return createItem(parseSource(raw), amount);
     }
 
-    public ItemStack createItem(ItemSource source, int amount) {
+    public ItemStack createItem(ItemSourceRef source, int amount) {
         if (source == null || amount <= 0 || itemSourceService == null) {
             return null;
         }
@@ -100,41 +99,41 @@ public final class ItemIdentifierService {
         if (item != null && !item.getType().isAir()) {
             return item;
         }
-        if (source.getType() != ItemSourceType.VANILLA) {
+        if (!source.vanilla()) {
             warnResolutionFailure("console.item_source_resolve_failed", source, "create");
         }
         return null;
     }
 
-    public boolean isConfiguredSourceAvailable(ItemSource source) {
+    public boolean isConfiguredSourceAvailable(ItemSourceRef source) {
         return probeSource(source).ready();
     }
 
-    public SourceProbe probeSource(ItemSource source) {
+    public SourceProbe probeSource(ItemSourceRef source) {
         return probeSource(source, "");
     }
 
-    public SourceProbe probeSource(ItemSource source, String location) {
+    public SourceProbe probeSource(ItemSourceRef source, String location) {
         if (source == null) {
-            return new SourceProbe(null, ItemSourceProbeStatus.INVALID_SOURCE, "", "Item source is invalid.");
+            return new SourceProbe(null, ItemSourceProbeState.INVALID_SOURCE, "", "Item source is invalid.");
         }
         if (itemSourceService == null) {
-            return new SourceProbe(source, ItemSourceProbeStatus.RESOLVER_MISSING, "EmakiCoreLib",
+            return new SourceProbe(source, ItemSourceProbeState.PROVIDER_MISSING, "EmakiCoreLib",
                     "ItemSourceService is unavailable.");
         }
-        ItemSourceProbe probe = itemSourceService.probe(source);
+        ItemSourceProbeResult probe = itemSourceService.probe(source);
         if (probe == null) {
-            return new SourceProbe(source, ItemSourceProbeStatus.RESOLUTION_ERROR, "EmakiCoreLib",
+            return new SourceProbe(source, ItemSourceProbeState.RESOLUTION_ERROR, "EmakiCoreLib",
                     "ItemSourceService returned no probe result.");
         }
         String detail = probe.detail();
         if (!Texts.isBlank(location) && !probe.ready()) {
             detail = (Texts.isBlank(detail) ? "" : detail + " ") + "Location: " + location;
         }
-        return new SourceProbe(source, probe.status(), probe.resolverId(), detail);
+        return new SourceProbe(source, probe.state(), probe.providerId(), detail);
     }
 
-    public void validateConfiguredSource(ItemSource source, String location) {
+    public void validateConfiguredSource(ItemSourceRef source, String location) {
         SourceProbe probe = probeSource(source, location);
         if (probe.ready()) {
             return;
@@ -150,7 +149,7 @@ public final class ItemIdentifierService {
         }
     }
 
-    private void warnResolutionFailure(String messageKey, ItemSource source, String operation) {
+    private void warnResolutionFailure(String messageKey, ItemSourceRef source, String operation) {
         if (plugin == null || plugin.messageService() == null || source == null) {
             return;
         }
@@ -160,10 +159,10 @@ public final class ItemIdentifierService {
         ));
     }
 
-    public Material vanillaMaterial(ItemSource source) {
-        if (source == null || source.getType() != ItemSourceType.VANILLA) {
+    public Material vanillaMaterial(ItemSourceRef source) {
+        if (source == null || !source.vanilla()) {
             return null;
         }
-        return Material.matchMaterial(source.getIdentifier());
+        return Material.matchMaterial(source.identifier());
     }
 }

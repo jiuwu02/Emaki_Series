@@ -4,13 +4,14 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.action.ActionErrorType;
-import emaki.jiuwu.craft.corelib.action.ActionResult;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.action.ActionErrorType;
+import emaki.jiuwu.craft.corelib.api.action.ActionResult;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class EconomyManager {
 
@@ -34,6 +35,10 @@ public final class EconomyManager {
         try {
             register(providerFactory.get());
         } catch (RuntimeException | LinkageError exception) {
+            plugin.getLogger().log(Level.SEVERE,
+                    "Economy provider registration failed: dependency=" + dependencyName
+                            + ", operation=register_optional_provider, cause=" + exception,
+                    exception);
         }
     }
 

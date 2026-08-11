@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,6 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -19,7 +21,7 @@ import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class TemporaryAttributeService implements AutoCloseable {
 
@@ -308,13 +310,17 @@ public final class TemporaryAttributeService implements AutoCloseable {
     }
 
     private String normalizeTag(String tag) {
-        return Texts.isBlank(tag) ? "" : tag.trim().toLowerCase(java.util.Locale.ROOT);
+        return Texts.isBlank(tag) ? "" : tag.trim().toLowerCase(Locale.ROOT);
     }
 
     private void cleanupExpiredSafely() {
         try {
             cleanupExpired();
-        } catch (Exception _) {
+        } catch (Exception exception) {
+            plugin.getLogger().log(Level.WARNING,
+                    "Temporary attribute cleanup failed: trackedEntities=" + entries.size()
+                            + ", operation=cleanup_expired, cause=" + exception,
+                    exception);
         }
     }
 

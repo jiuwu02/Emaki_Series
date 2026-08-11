@@ -21,7 +21,6 @@
 
     <modules>
         <module>EmakiCoreLibApi</module>
-        <module>EmakiSkillsProtocol</module>
         <module>EmakiCoreLib</module>
         <module>EmakiItemApi</module>
         <module>EmakiStrengthenApi</module>
@@ -33,12 +32,15 @@
         <module>EmakiLevelApi</module>
         <module>EmakiCodexApi</module>
         <module>EmakiStorageApi</module>
+        <module>EmakiStationApi</module>
+        <module>EmakiAccessoryApi</module>
         <module>EmakiForge</module>
         <module>EmakiStrengthen</module>
         <module>EmakiCooking</module>
         <module>EmakiAttribute</module>
         <module>EmakiLevel</module>
         <module>EmakiCodex</module>
+        <module>EmakiStation</module>
     </modules>
 
     <profiles>
@@ -54,6 +56,7 @@
                 <module>EmakiGem</module>
                 <module>EmakiItem</module>
                 <module>EmakiStorage</module>
+                <module>EmakiAccessory</module>
             </modules>
         </profile>
     </profiles>
@@ -61,11 +64,25 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.6.0</emaki.corelib.version>
-        <emaki.attribute.version>4.6.0</emaki.attribute.version>
-        <emaki.item.version>2.6.0</emaki.item.version>
-        <emaki.skills.version>2.6.0</emaki.skills.version>
-        <emaki.skills.protocol.version>2.6.0</emaki.skills.protocol.version>
+        <emaki.corelib.version>4.7.0</emaki.corelib.version>
+        <emaki.attribute.version>4.7.0</emaki.attribute.version>
+        <emaki.item.version>2.7.0</emaki.item.version>
+        <emaki.skills.version>2.7.0</emaki.skills.version>
+        <emaki.corelib.api.version>4.7.0</emaki.corelib.api.version>
+        <emaki.attribute.api.version>4.7.0</emaki.attribute.api.version>
+        <emaki.item.api.version>2.7.0</emaki.item.api.version>
+        <emaki.skills.api.version>2.7.0</emaki.skills.api.version>
+        <emaki.forge.api.version>4.7.0</emaki.forge.api.version>
+        <emaki.strengthen.api.version>4.7.0</emaki.strengthen.api.version>
+        <emaki.cooking.api.version>4.2.0</emaki.cooking.api.version>
+        <emaki.gem.api.version>2.7.0</emaki.gem.api.version>
+        <emaki.level.api.version>1.5.0</emaki.level.api.version>
+        <emaki.codex.api.version>1.0.0</emaki.codex.api.version>
+        <emaki.storage.api.version>1.0.0</emaki.storage.api.version>
+        <emaki.station.api.version>1.0.0</emaki.station.api.version>
+        <emaki.station.version>1.0.0</emaki.station.version>
+        <emaki.accessory.api.version>1.0.0</emaki.accessory.api.version>
+        <emaki.accessory.version>1.0.0</emaki.accessory.version>
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>
@@ -90,7 +107,7 @@
         <packetevents.version>2.13.0</packetevents.version>
         <bstats.version>3.2.1</bstats.version>
         <caffeine.version>3.2.4</caffeine.version>
-        <graalvm.polyglot.version>25.0.3</graalvm.polyglot.version>
+        <betterhud.version>2.0.0</betterhud.version>
     </properties>
 
     <dependencyManagement>
@@ -314,20 +331,15 @@
                 <version>${caffeine.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.graalvm.polyglot</groupId>
-                <artifactId>polyglot</artifactId>
-                <version>${graalvm.polyglot.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.graalvm.polyglot</groupId>
-                <artifactId>js</artifactId>
-                <version>${graalvm.polyglot.version}</version>
-                <type>pom</type>
-            </dependency>
-            <dependency>
                 <groupId>org.bstats</groupId>
                 <artifactId>bstats-bukkit</artifactId>
                 <version>${bstats.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.toxicity188</groupId>
+                <artifactId>BetterHud-bukkit-api</artifactId>
+                <version>${betterhud.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -418,6 +430,52 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>3.4.0</version>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.12.0</version>
+                    <configuration>
+                        <!--
+                            关闭 DocLint 的 missing 组。该组覆盖「缺 @param / 缺 @return / 无注释 /
+                            无主说明」四类，实测全量为 1159 条（构建日志显示的 698 条是 javadoc 默认
+                            -Xmaxwarns 100 截断后的假数，4 个模块的计数都正好停在 100）。
+
+                            公开面文档不靠本开关兜底：公开事件类、各模块 API 入口（*Catalog /
+                            *Operations / *Extensions / Emaki*Api / ItemRepair / ItemMigration）以及
+                            全部「无主说明」缺陷已逐条补齐 javadoc，屏蔽后这些文件复跑 -Xdoclint:all
+                            仍为 0。被本开关屏蔽的 806 条集中在 record 组件 @param 与 getter /
+                            紧凑构造器 / 常量的「无注释」——自解释数据载体，逐条补齐只会产出无信息
+                            文档。这是有意保留的文档覆盖率债，不是「已完备」。
+
+                            其余 DocLint 组（accessibility / html / reference / syntax）保持开启：
+                            它们检查的是文档正确性（坏链接、错误标签、语法错误），必须继续失败可见。
+                        -->
+                        <doclint>all,-missing</doclint>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
                     <version>3.6.2</version>
                     <configuration>
@@ -428,6 +486,25 @@
                                 <excludes>
                                     <exclude>module-info.class</exclude>
                                     <exclude>META-INF/versions/**/module-info.class</exclude>
+                                </excludes>
+                            </filter>
+                            <!--
+                                Each runtime module shades its own API jar, and that jar carries its own
+                                META-INF/MANIFEST.MF which collides with the module's manifest. That is the
+                                real source of the 11 shade "overlapping resource" warnings (one per runtime
+                                module) - not the dependency-specific filters below, none of which ever
+                                trigger because no module shades exp4j / caffeine / kyori / jspecify /
+                                auto-service / error_prone.
+
+                                Scoped to *-api on purpose. A blanket emaki.jiuwu.craft:* pattern also matches
+                                the module's own main artifact and strips the manifest shade would otherwise
+                                have kept, leaving the shipped jar with no META-INF/MANIFEST.MF at all.
+                            -->
+                            <filter>
+                                <artifact>emaki.jiuwu.craft:*-api</artifact>
+                                <excludes>
+                                    <exclude>META-INF/MANIFEST.MF</exclude>
+                                    <exclude>META-INF/maven/**</exclude>
                                 </excludes>
                             </filter>
                             <filter>
@@ -465,6 +542,19 @@
                             </filter>
                             <filter>
                                 <artifact>com.github.ben-manes.caffeine:caffeine</artifact>
+                                <excludes>
+                                    <exclude>META-INF/MANIFEST.MF</exclude>
+                                    <exclude>META-INF/maven/**</exclude>
+                                </excludes>
+                            </filter>
+                            <!--
+                                bstats-base and bstats-bukkit are shaded together and both carry their own
+                                manifest, so they overlap with each other rather than with our artifacts.
+                                This is the one MANIFEST collision the emaki.jiuwu.craft:* filter above does
+                                not cover.
+                            -->
+                            <filter>
+                                <artifact>org.bstats:*</artifact>
                                 <excludes>
                                     <exclude>META-INF/MANIFEST.MF</exclude>
                                     <exclude>META-INF/maven/**</exclude>

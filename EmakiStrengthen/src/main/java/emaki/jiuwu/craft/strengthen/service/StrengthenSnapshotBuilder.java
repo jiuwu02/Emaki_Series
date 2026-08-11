@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiLoreSectionContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 
 public final class StrengthenSnapshotBuilder {
 
@@ -76,7 +76,7 @@ public final class StrengthenSnapshotBuilder {
             return stats;
         }
         double decayFactor = Math.max(0D, 1D - fractureLevel * FRACTURE_PENALTY_RATE);
-        Map<String, Double> decayed = new java.util.LinkedHashMap<>();
+        Map<String, Double> decayed = new LinkedHashMap<>();
         for (Map.Entry<String, Double> entry : stats.entrySet()) {
             decayed.put(entry.getKey(), entry.getValue() * decayFactor);
         }

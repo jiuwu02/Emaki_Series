@@ -13,7 +13,7 @@ import org.bukkit.event.HandlerList;
  * Listeners may inspect the casting player, the skill id and the trigger id,
  * and cancel the cast to prevent execution. A cancelled event stops EmakiSkills
  * from running the skill (no resources are consumed and no cooldown is
- * recorded). This event is fired on the server thread.
+ * recorded). This event is fired synchronously on the casting player's owner thread.
  */
 public final class SkillPreCastEvent extends Event implements Cancellable {
 

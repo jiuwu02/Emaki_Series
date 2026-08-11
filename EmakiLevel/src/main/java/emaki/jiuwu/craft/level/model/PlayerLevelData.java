@@ -4,7 +4,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public final class PlayerLevelData {
+import emaki.jiuwu.craft.corelib.session.SessionData;
+
+public final class PlayerLevelData implements SessionData<PlayerLevelData> {
 
     private final UUID uuid;
     private String name;
@@ -17,6 +19,7 @@ public final class PlayerLevelData {
         this.name = name == null ? "" : name;
     }
 
+    @Override
     public PlayerLevelData copy() {
         PlayerLevelData copy = new PlayerLevelData(uuid, name);
         for (Map.Entry<String, PlayerLevelEntry> entry : levels.entrySet()) {
@@ -53,26 +56,32 @@ public final class PlayerLevelData {
         markDirty();
     }
 
+    @Override
     public long revision() {
         return revision;
     }
 
+    @Override
     public long persistedRevision() {
         return persistedRevision;
     }
 
+    @Override
     public boolean dirty() {
         return revision > persistedRevision;
     }
 
+    @Override
     public void markDirty() {
         revision++;
     }
 
+    @Override
     public void markPersisted(long revision) {
         persistedRevision = Math.max(persistedRevision, revision);
     }
 
+    @Override
     public void clearDirty() {
         persistedRevision = revision;
     }

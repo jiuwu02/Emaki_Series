@@ -9,7 +9,7 @@
 
 # version is maintained by resource sync
 
-version: "4.6.0"
+version: "4.7.0"
 
 # General messages
 general:
@@ -60,6 +60,8 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -90,7 +92,7 @@ console:
   listeners_registered: "<green>Event listeners registered.</green>"
   saving_player_data: "<white>Saving player data...</white>"
   player_data_saved: "<gray>Saved %count% player data entries</gray>"
-  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_start: "<gray>Checking default files...</gray>"
   bootstrap_skip: "<gray>release_default_data=false, skipped default data generation</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
@@ -275,6 +277,16 @@ gui:
     required: "<gold>Place Material (any slot)</gold>"
     optional: "<green>Place Material (any slot)</green>"
 
+  # Blueprint slot requirement list (%blueprint_requirements% in gui/forge_gui.yml)
+  # One blueprint can feed several recipes; while the recipe is undecided the entries are
+  # grouped per recipe, at most 3 groups. Amounts are "placed in GUI / required", not inventory.
+  blueprint:
+    no_recipe: "<gray>The recipe is matched from the blueprint item source"
+    recipe_group_header: "<gold>[%recipe%]</gold>"
+    requirement_satisfied: "<green>  ✔ %material% %placed%/%required%</green>"
+    requirement_missing: "<red>  ✘ %material% %placed%/%required%</red>"
+    more_recipes: "<dark_gray>%count% more recipe(s)</dark_gray>"
+
   status:
     crafted: "<green>Crafted</green>"
     not_crafted: "<gray>Not Crafted</gray>"
@@ -302,30 +314,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
-    action:
-      execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
-      execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
-      execute_direct_result: "Direct action execution complete | action=%action% | success=%success% | error=%error%"
-      execute_batch_start: "Batch action execution started | phase=%phase% | lines=%lines% | stop_on_failure=%stop_on_failure%"
-      execute_batch_result: "Batch action execution complete | phase=%phase% | success=%success% | steps=%steps% | error=%error%"
-      parse_line: "Parse action line | phase=%phase% | line=%line% | raw=%raw%"
-      parse_failed: "Action line parsing failed | phase=%phase% | line=%line% | error=%error%"
-      parse_skipped: "Skipped blank action line | phase=%phase% | line=%line%"
-      parse_ok: "Action line parsed | phase=%phase% | line=%line% | action=%action% | control=%control% | args=%args%"
-      step_result: "Action step complete | phase=%phase% | line=%line% | action=%action% | success=%success% | error=%error%"
-      batch_stop: "Batch action stopped after failure | phase=%phase% | line=%line% | action=%action%"
-      action_missing: "Action is not registered | line=%line% | action=%action% | error=%error%"
-      control_condition: "Action condition check | line=%line% | action=%action% | condition=%condition% | passes=%passes%"
-      control_chance_invalid: "Invalid action chance | line=%line% | action=%action% | chance=%chance%"
-      control_chance: "Action chance check | line=%line% | action=%action% | chance=%chance% | threshold=%threshold% | roll=%roll% | passes=%passes%"
-      control_delay: "Action delay parsed | line=%line% | action=%action% | raw=%raw% | ticks=%ticks%"
-      dispatch_template: "Dispatch action template | action=%action% | delay=%delay% | args=%args%"
-      dispatch_action: "Dispatch registered action | action=%action% | domain=%domain% | owner=%owner% | delay=%delay% | timeout=%timeout% | args=%args%"
-      safe_execute_start: "Safe action execution started | phase=%phase% | action=%action% | args=%args%"
-      safe_execute_result: "Safe action execution complete | phase=%phase% | action=%action% | success=%success% | error=%error%"
     item_operation:
       apply_start: "Item operation started | operation=%operation_id% | namespace=%namespace% | item=%item% | name_actions=%name_actions% | lore_actions=%lore_actions% | variables=%variables%"
       apply_empty: "Item operation produced no result | operation=%operation_id%"
@@ -545,8 +533,6 @@ debug:
         completed: "Slot removal completed | item=%item% | slot=%slot% | slot_type=%slot_type%"
         ignored_empty: "Empty slot removal ignored | slot=%slot% | slot_type=%slot_type%"
         ignored_shift_click: "Shift-click slot removal ignored | slot=%slot% | slot_type=%slot_type%"
-  script:
-    trace: "Forge script rule trace | rule=%rule% | before=%before% | after=%after% | message=%message%"
   gui:
     open: "Open GUI | player=%player% | type=%type%"
     click: "GUI click | player=%player% | slot=%slot% | action=%action%"

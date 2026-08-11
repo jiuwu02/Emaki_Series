@@ -3,13 +3,13 @@ package emaki.jiuwu.craft.forge.service;
 import java.util.ArrayList;
 import java.util.List;
 
-import emaki.jiuwu.craft.corelib.assembly.EmakiLoreSectionContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiNameContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiLoreSectionContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNameContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStatContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.LocalNameState;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 

@@ -6,8 +6,8 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStatContribution;
-import emaki.jiuwu.craft.corelib.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStatContribution;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationValidator;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;

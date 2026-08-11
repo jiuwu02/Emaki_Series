@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.level.listener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -75,7 +76,7 @@ public final class LevelGameplaySubscriber {
     }
 
     private <T extends GameplayEvent> void subscribe(EmakiEventBus eventBus,
-            Class<T> type, java.util.function.Consumer<T> handler) {
+            Class<T> type, Consumer<T> handler) {
         subscriptions.add(eventBus.subscribe(plugin, type, handler));
     }
 
@@ -84,13 +85,15 @@ public final class LevelGameplaySubscriber {
 
 
     private void onEntityKill(EntityKillEvent event) {
-
-
+        LivingEntity entity = event.victim();
+        Player killer = event.player();
+        sourceService.awardExtensions(killer, "entity_kill", Map.of(
+                "entity_type", entity.getType().name(),
+                "victim", entity,
+                "direct_kill", event.directKill()));
         if (!event.directKill() && !plugin.appConfig().lastDamagerTracking()) {
             return;
         }
-        LivingEntity entity = event.victim();
-        Player killer = event.player();
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("entity_kill")) {
             if (!source.includePlayers() && entity instanceof Player) {
                 continue;
@@ -108,11 +111,15 @@ public final class LevelGameplaySubscriber {
     }
 
     private void onMythicKill(MythicKillEvent event) {
+        LivingEntity entity = event.victim();
+        Player killer = event.player();
+        sourceService.awardExtensions(killer, "mythic_mob_kill", Map.of(
+                "mythic_id", event.mobId(),
+                "mythic_level", event.level(),
+                "victim", entity));
         if (!plugin.appConfig().mythicEnabled() || !plugin.appConfig().mythicKillSources()) {
             return;
         }
-        LivingEntity entity = event.victim();
-        Player killer = event.player();
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("mythic_mob_kill")) {
             if (source.ignoreNearSpawner()
                     && plugin.antiAbuseService().nearSpawner(entity.getLocation(), source.spawnerScanRadius())) {
@@ -131,6 +138,9 @@ public final class LevelGameplaySubscriber {
 
 
     private void onBlockPlace(BlockPlaceGameplayEvent event) {
+        sourceService.awardExtensions(event.player(), "block_place", Map.of(
+                "block", event.block(),
+                "block_type", event.block().getType().name()));
         plugin.antiAbuseService().recordPlacedBlock(event.block().getLocation());
     }
 
@@ -144,6 +154,11 @@ public final class LevelGameplaySubscriber {
     }
 
     private void awardBlock(String trigger, BlockBreakGameplayEvent event, boolean playerPlaced, String blockType) {
+        sourceService.awardExtensions(event.player(), trigger, Map.of(
+                "block", event.block(),
+                "block_type", blockType,
+                "player_placed", playerPlaced,
+                "mature", event.mature()));
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger(trigger)) {
             if ((source.ignorePlayerPlacedBlocks() || !plugin.appConfig().placedBlockExp()) && playerPlaced) {
                 continue;
@@ -161,6 +176,10 @@ public final class LevelGameplaySubscriber {
 
     private void onCraft(CraftGameplayEvent event) {
         int amount = Math.max(1, event.result().getAmount());
+        sourceService.awardExtensions(event.player(), "craft_item", Map.of(
+                "result", event.result(),
+                "result_amount", amount,
+                "result_type", event.result().getType().name()));
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("craft_item")) {
             SourceRuleConfig.Rule rule = sourceService.matchItem(source, event.result());
             if (rule != null) {
@@ -171,6 +190,10 @@ public final class LevelGameplaySubscriber {
     }
 
     private void onFurnaceExtract(FurnaceExtractGameplayEvent event) {
+        sourceService.awardExtensions(event.player(), "furnace_extract", Map.of(
+                "result", event.result(),
+                "result_amount", event.amount(),
+                "result_type", event.result().getType().name()));
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("furnace_extract")) {
             SourceRuleConfig.Rule rule = sourceService.matchItem(source, event.result());
             if (rule != null) {
@@ -185,6 +208,8 @@ public final class LevelGameplaySubscriber {
 
 
     private void onFish(FishGameplayEvent event) {
+        sourceService.awardExtensions(
+                event.player(), "player_fish", Map.of("fish_state", event.state()));
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("player_fish")) {
             SourceRuleConfig.Rule rule = sourceService.matchState(source, event.state());
             if (rule != null) {
@@ -194,6 +219,8 @@ public final class LevelGameplaySubscriber {
     }
 
     private void onTame(TameGameplayEvent event) {
+        sourceService.awardExtensions(
+                event.player(), "entity_tame", Map.of("entity_type", event.entityType().name()));
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("entity_tame")) {
             SourceRuleConfig.Rule rule = sourceService.matchEntity(source, event.entityType());
             if (rule != null) {
@@ -209,6 +236,9 @@ public final class LevelGameplaySubscriber {
 
     private void onBrew(BrewGameplayEvent event) {
         String potionType = event.potionType();
+        sourceService.awardExtensions(event.player(), "brew_complete", Map.of(
+                "potion_type", potionType,
+                "age_ticks", event.ageTicks()));
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("brew_complete")) {
             if (event.ageTicks() > Math.max(1, source.attributionExpireTicks())) {
                 continue;

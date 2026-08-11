@@ -9,6 +9,7 @@ public final class LevelFailureReason {
     public static final String TYPE_DISABLED = "type_disabled";
     public static final String INVALID_AMOUNT = "invalid_amount";
     public static final String DAILY_CAP_REACHED = "daily_cap_reached";
+    public static final String EVENT_CANCELLED = "event_cancelled";
     public static final String UPGRADE_DISABLED = "upgrade_disabled";
     public static final String MANUAL_UPGRADE_DISABLED = "manual_upgrade_disabled";
     public static final String MAX_LEVEL = "max_level";

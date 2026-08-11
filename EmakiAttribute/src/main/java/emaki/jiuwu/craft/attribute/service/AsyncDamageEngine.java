@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
-import emaki.jiuwu.craft.attribute.model.DamageResult;
+import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 

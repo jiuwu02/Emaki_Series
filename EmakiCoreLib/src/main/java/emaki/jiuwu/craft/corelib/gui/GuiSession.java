@@ -14,8 +14,8 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
 
 public final class GuiSession implements InventoryHolder {
@@ -23,7 +23,6 @@ public final class GuiSession implements InventoryHolder {
     private final Plugin owner;
     private final Player viewer;
     private final GuiTemplate template;
-    private final GuiItemBuilder.ItemFactory itemFactory;
     private final ConfiguredItemService configuredItemService;
     private final GuiRenderer renderer;
     private final GuiSessionHandler handler;
@@ -33,12 +32,12 @@ public final class GuiSession implements InventoryHolder {
     private final String plainTitle;
     private final Component titleComponent;
     private Inventory inventory;
+    private long lastClickAt;
 
     GuiSession(Plugin owner,
             Player viewer,
             GuiTemplate template,
             Map<String, ?> replacements,
-            GuiItemBuilder.ItemFactory itemFactory,
             ConfiguredItemService configuredItemService,
             GuiRenderer renderer,
             GuiSessionHandler handler,
@@ -47,7 +46,6 @@ public final class GuiSession implements InventoryHolder {
         this.owner = owner;
         this.viewer = viewer;
         this.template = template;
-        this.itemFactory = itemFactory;
         this.configuredItemService = configuredItemService;
         this.renderer = renderer;
         this.handler = handler == null ? new GuiSessionHandler() {
@@ -60,6 +58,23 @@ public final class GuiSession implements InventoryHolder {
         this.titleComponent = MiniMessages.parse(resolveTitle(template, this.replacements));
         this.plainTitle = MiniMessages.plain(this.titleComponent);
         this.inventory = createInventory(template, this.titleComponent);
+    }
+
+    /**
+     * 判断本次点击是否满足最小间隔。满足时记录时间戳并返回 {@code true}；
+     * 间隔不足时返回 {@code false}，调用方应丢弃该次点击回调。
+     * {@code intervalMs} 小于等于 0 表示不限制。
+     */
+    boolean tryConsumeClick(long intervalMs) {
+        if (intervalMs <= 0L) {
+            return true;
+        }
+        long now = System.currentTimeMillis();
+        if (lastClickAt != 0L && now - lastClickAt < intervalMs) {
+            return false;
+        }
+        lastClickAt = now;
+        return true;
     }
 
     private Inventory createInventory(GuiTemplate template, Component titleComponent) {
@@ -110,15 +125,7 @@ public final class GuiSession implements InventoryHolder {
                 GuiTemplate.ResolvedSlot resolved = new GuiTemplate.ResolvedSlot(slot, inventorySlot, index);
                 ItemStack rendered = renderer == null ? null : renderer.render(this, resolved);
                 if (rendered == null) {
-                    rendered = configuredItemService == null
-                            ? GuiItemBuilder.build(
-                                    slot.item(),
-                                    slot.components(),
-                                    1,
-                                    replacements,
-                                    itemFactory
-                            )
-                            : GuiItemBuilder.build(slot.itemDefinition(), replacements, configuredItemService);
+                    rendered = GuiItemBuilder.build(slot.itemDefinition(), replacements, configuredItemService);
                 }
                 renderedSlots.put(inventorySlot, rendered);
             }

@@ -3,15 +3,16 @@ package emaki.jiuwu.craft.strengthen.service;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.skills.protocol.EquipmentSkillPdcCodec;
-import emaki.jiuwu.craft.skills.protocol.SkillPdcMutation;
+import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.skills.api.pdc.SkillPdcMutation;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 
 final class StrengthenPdcAttributeWriter {
 
@@ -70,10 +71,10 @@ final class StrengthenPdcAttributeWriter {
         if (plugin == null
                 || plugin.debugLogger() == null
                 || mutation == null
-                || !plugin.debugLogger().shouldLog("pdc", (java.util.UUID) null)) {
+                || !plugin.debugLogger().shouldLog("pdc", (UUID) null)) {
             return;
         }
-        plugin.debugLogger().log("pdc", (java.util.UUID) null, "pdc.skill_payload", Map.of(
+        plugin.debugLogger().log("pdc", (UUID) null, "pdc.skill_payload", Map.of(
                 "operation", mutation.operation(),
                 "item", itemStack == null ? "null" : itemStack.getType(),
                 "amount", itemStack == null ? 0 : itemStack.getAmount(),

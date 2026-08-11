@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.1.0"
+version: "4.2.0"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -56,6 +56,8 @@ console:
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -79,7 +81,7 @@ console:
       station_storage_inspect_anchor: "后端取决于实际锚点 BlockState；请检查已放置的工位。"
       station_storage_block_pdc: "已放置的原版 %material% 支持 BLOCK_PDC。"
       station_storage_yaml_fallback: "除非已放置方块是 TileState，否则回退到 YAML。"
-  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
@@ -284,30 +286,6 @@ debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
-    action:
-      execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
-      execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
-      execute_direct_result: "直接执行动作完成 | 动作=%action% | 成功=%success% | 错误=%error%"
-      execute_batch_start: "开始批量执行动作 | 阶段=%phase% | 行数=%lines% | 失败即停=%stop_on_failure%"
-      execute_batch_result: "批量执行动作完成 | 阶段=%phase% | 成功=%success% | 步骤=%steps% | 错误=%error%"
-      parse_line: "解析动作行 | 阶段=%phase% | 行=%line% | 原文=%raw%"
-      parse_failed: "动作行解析失败 | 阶段=%phase% | 行=%line% | 错误=%error%"
-      parse_skipped: "跳过空动作行 | 阶段=%phase% | 行=%line%"
-      parse_ok: "动作行解析完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 控制参数=%control% | 参数=%args%"
-      step_result: "动作步骤完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 成功=%success% | 错误=%error%"
-      batch_stop: "批量动作因失败停止 | 阶段=%phase% | 行=%line% | 动作=%action%"
-      action_missing: "动作未注册 | 行=%line% | 动作=%action% | 错误=%error%"
-      control_condition: "动作条件检查 | 行=%line% | 动作=%action% | 条件=%condition% | 通过=%passes%"
-      control_chance_invalid: "动作概率无效 | 行=%line% | 动作=%action% | 概率=%chance%"
-      control_chance: "动作概率检查 | 行=%line% | 动作=%action% | 概率=%chance% | 阈值=%threshold% | 随机值=%roll% | 通过=%passes%"
-      control_delay: "动作延迟解析 | 行=%line% | 动作=%action% | 原值=%raw% | tick=%ticks%"
-      dispatch_template: "分派动作模板 | 动作=%action% | 延迟=%delay% | 参数=%args%"
-      dispatch_action: "分派已注册动作 | 动作=%action% | 域=%domain% | 所有者=%owner% | 延迟=%delay% | 超时=%timeout% | 参数=%args%"
-      safe_execute_start: "开始安全执行动作 | 阶段=%phase% | 动作=%action% | 参数=%args%"
-      safe_execute_result: "安全执行动作完成 | 阶段=%phase% | 动作=%action% | 成功=%success% | 错误=%error%"
     item_operation:
       apply_start: "开始应用物品操作 | 操作=%operation_id% | 命名空间=%namespace% | 物品=%item% | 名称动作=%name_actions% | Lore 动作=%lore_actions% | 变量=%variables%"
       apply_empty: "物品操作未产生结果 | 操作=%operation_id%"
@@ -414,6 +392,27 @@ debug:
     ingredient_add: "放入食材 | 玩家=%player% | 工位=%station% | 物品=%item%"
     ingredient_remove: "取出食材 | 玩家=%player% | 工位=%station% | 物品=%item%"
     state_change: "工位状态变化 | 工位=%station% | 旧状态=%old% | 新状态=%new%"
+    state_load: "读取工位状态 | 工位=%station% | 结果=%result% | 内存版本=%in_memory_version% | 内存墓碑=%in_memory_tombstone% | 持久版本=%persisted_version% | PDC存在=%pdc_present% | YAML存在=%yaml_present%"
+    state_save_begin: "开始写入工位状态 | 工位=%station% | 版本=%version% | 类型=%backend_hint%"
+    state_save_result: "写入工位状态完成 | 工位=%station% | 版本=%version% | 成功=%success% | 仍为当前版本=%still_current% | 错误=%error%"
+    state_delete_begin: "开始删除工位状态 | 工位=%station% | 版本=%version%"
+    state_delete_result: "删除工位状态完成 | 工位=%station% | 版本=%version% | 成功=%success% | 错误=%error%"
+    migrate_skipped: "跳过 YAML→PDC 迁移 | 工位=%station% | 原因=%reason%"
+    migrate_ok: "YAML→PDC 迁移成功 | 工位=%station% | 版本=%version%"
+    migrate_failed: "YAML→PDC 迁移失败 | 工位=%station% | 版本=%version% | 回滚前版本=%previous_version% | 已回滚=%rolled_back%"
+    break_without_state: "破坏工位但无可读状态，仅清理残留展示 | 工位=%station% | 类型=%type%"
+    wok_interact: "炒锅交互 | 玩家=%player% | 工位=%station% | 交互=%interaction% | 手持=%hand% | 手持来源=%hand_source% | 是锅铲=%is_spatula% | 是空碗=%is_bowl% | 火候=%heat% | 状态=%state%"
+    wok_serve: "炒锅出锅 | 玩家=%player% | 工位=%station% | 结果=%result% | 用碗=%with_bowl% | 翻炒=%stir% | 配方=%recipe%"
+    wok_outcome: "炒锅结果判定 | 工位=%station% | 配方=%recipe% | 分支=%branch% | 翻炒=%stir% | 最少=%stir_min% | 最多=%stir_max% | 容错=%tolerance%"
+    ingredient_rejected: "食材被拒绝 | 玩家=%player% | 工位=%station% | 物品=%item% | 原因=%reason% | 候选序列=%candidates% | 火候=%heat%"
+    chopping_interact: "砧板交互 | 玩家=%player% | 工位=%station% | 交互=%interaction% | 状态=%state%"
+    chopping_rejected: "砧板操作被拒绝 | 玩家=%player% | 工位=%station% | 操作=%operation% | 原因=%reason%"
+    chopping_cut: "砧板切割 | 玩家=%player% | 工位=%station% | 配方=%recipe% | 第%cut%刀/共%required%刀"
+    grinder_start: "研磨机启动 | 玩家=%player% | 工位=%station% | 手持=%hand% | 已有状态=%existing_state%"
+    grinder_tick: "研磨机计时 | 工位=%station% | 结果=%result% | 已用=%elapsed_ms%ms | 目标=%target_ms%ms"
+    completion_relation: "完成流水线状态比对 | 操作=%operation% | 工位=%station% | 阶段=%status% | 关系=%relation% | 快照=%snapshot% | 提交模式=%commit_mode%"
+    completion_quarantined: "完成流水线隔离 | 操作=%operation% | 工位=%station% | 阶段=%status% | 原因=%reason%"
+    completion_input_abandoned: "完成流水线放弃取材 | 操作=%operation% | 工位=%station% | 单元=%unit% | 尝试次数=%attempts%"
   recipe:
     source_resolve: "食材来源解析 | 物品来源=%sources% | 解析结果=%resolved%"
     match_start: "开始配方匹配 | 工位=%station% | 食材=%ingredients%"
@@ -421,6 +420,7 @@ debug:
     match_result: "配方匹配完成 | 结果=%recipe_id%"
   stir:
     trigger: "翻炒触发 | 玩家=%player% | 工位=%station% | 次数=%count%/%max%"
+    rejected: "翻炒被拒绝 | 玩家=%player% | 工位=%station% | 原因=%reason%"
     animation_start: "翻炒动画开始 | 实体数=%entities% | 高度=%height%"
     animation_end: "翻炒动画结束 | 工位=%station%"
   display:
@@ -564,6 +564,3 @@ debug:
       open_requested: "调试事件：gui.fermentation barrel.open requested | coordinates=%coordinates% | station=%station%"
       save_completed: "调试事件：gui.fermentation barrel.save completed | coordinates=%coordinates% | station=%station%"
       save_started: "调试事件：gui.fermentation barrel.save started | coordinates=%coordinates% | inventory_size=%inventory_size% | station=%station%"
-  script:
-    execute_context: "执行 Cooking 脚本上下文 | 工位=%station_id% | 配方=%recipe_id% | 阶段=%stage%"
-    trace: "调试事件：script.trace | message=%message% | rule=%rule%"

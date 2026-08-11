@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.corelib.economy;
 
 import org.bukkit.entity.Player;
 
-import emaki.jiuwu.craft.corelib.action.ActionResult;
+import emaki.jiuwu.craft.corelib.api.action.ActionResult;
 
 public interface EconomyProvider {
 

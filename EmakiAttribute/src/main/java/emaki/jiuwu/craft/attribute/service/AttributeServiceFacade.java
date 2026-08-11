@@ -10,7 +10,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
@@ -18,10 +18,10 @@ import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.model.DamageContext;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
-import emaki.jiuwu.craft.attribute.model.DamageResult;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
@@ -71,6 +71,8 @@ public interface AttributeServiceFacade {
     void registerContributionProvider(AttributeContributionProvider provider);
 
     void unregisterContributionProvider(String providerId);
+
+    boolean unregisterContributionProvider(String providerId, AttributeContributionProvider expectedProvider);
 
     AttributeSnapshot collectItemSnapshot(ItemStack itemStack);
 

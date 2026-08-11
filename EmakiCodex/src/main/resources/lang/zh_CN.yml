@@ -8,7 +8,7 @@
 version: "1.0.0"
 
 general:
-  prefix: "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此操作。</red>"
   player_only: "<red>此命令只能由玩家执行。</red>"
   player_not_found: "<red>找不到玩家 %player%。</red>"
@@ -33,19 +33,69 @@ command:
   revoke:
     done: "<green>已撤销 %player% 的成就 %advancement%。</green>"
   advancement:
-    failed: "<red>成就 %advancement% 未注册或状态无变化。</red>"
+    failed: "<red>成就 %advancement% 操作失败：%reason%</red>"
+    reason_unknown: "<red>未知原因</red>"
+
+# 授予/撤销失败的具体原因。由服务层的 reasonKey 直接解析，新增原因只需在此加一条。
+codex:
+  player:
+    required: "未指定玩家。"
+  advancement:
+    disabled: "成就子系统已在 config.yml 中关闭（advancement.enabled=false）。"
+    id_required: "未指定成就 id。"
+    not_found: "成就 id 未注册。请确认 advancements/ 下的页面已加载，且 id 形如 emakicodex:<页面id>/<节点id>；可用 /codex reload 查看已注册数量。"
+    missing_on_server: "成就已在插件内注册，但服务端上找不到对应的原版成就。通常是注册后被 reloadData 清除、或数据包目录未落盘所致；请检查启动日志中的注册数量与告警。"
+  grant:
+    already_completed: "玩家已完成该成就。"
+    cancelled: "授予被其他插件取消。"
+    rejected: "服务端拒绝写入完成条件。"
+  revoke:
+    not_completed: "玩家尚未完成该成就。"
+    cancelled: "撤销被其他插件取消。"
+    rejected: "服务端拒绝撤销完成条件。"
+
+emaki:
+  api:
+    unavailable: "成就服务当前不可用（插件未启用或注册表未就绪）。"
+    target_offline: "目标玩家不在线。"
+    wrong_thread: "当前线程不拥有该玩家，操作被拒绝。"
 
 console:
-  plugin_starting: "正在启动 EmakiCodex..."
-  plugin_started: "EmakiCodex 已启动。"
-  bootstrap_start: "正在释放默认资源..."
-  bootstrap_skip: "已跳过默认示例数据释放。"
-  bootstrap_complete: "默认资源就绪。"
+  plugin_starting: "<gray>正在启动 EmakiCodex...</gray>"
+  plugin_started: "<green>EmakiCodex 已启动。</green>"
+  bootstrap_start: "<gray>正在释放默认资源...</gray>"
+  bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
+  bootstrap_complete: "<green>默认文件检查完成。</green>"
+  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
   advancements_registered: "已注册成就 %count% 个。"
   advancements_resynced: "已向 %count% 名在线玩家重新推送成就（PacketEvents），无需重连。"
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"
   advancement_packet_enabled: "成就发包坐标注入已启用（PacketEvents）。"
   advancement_packet_absent: "未检测到 PacketEvents，成就 x/y 坐标不生效，节点位置由客户端自动排布。"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  config_precheck:
+    severity:
+      fatal: "致命"
+      error: "错误"
+      warn: "警告"
+      info: "信息"
+    hint: " <dark_gray>（%hint%）</dark_gray>"
+    messages:
+      passed: "EmakiCodex 配置预检通过。"
+      required_file_missing: "缺少必需文件。"
+      path_not_file: "指定路径不是文件。"
+      file_not_readable: "文件不可读。"
+      required_directory_missing: "缺少必需目录。"
+      path_not_directory: "指定路径不是目录。"
+      directory_not_readable: "目录不可读。"
 
 debug:
   common:
@@ -55,30 +105,6 @@ debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
-    action:
-      execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
-      execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
-      execute_direct_result: "直接执行动作完成 | 动作=%action% | 成功=%success% | 错误=%error%"
-      execute_batch_start: "开始批量执行动作 | 阶段=%phase% | 行数=%lines% | 失败即停=%stop_on_failure%"
-      execute_batch_result: "批量执行动作完成 | 阶段=%phase% | 成功=%success% | 步骤=%steps% | 错误=%error%"
-      parse_line: "解析动作行 | 阶段=%phase% | 行=%line% | 原文=%raw%"
-      parse_failed: "动作行解析失败 | 阶段=%phase% | 行=%line% | 错误=%error%"
-      parse_skipped: "跳过空动作行 | 阶段=%phase% | 行=%line%"
-      parse_ok: "动作行解析完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 控制参数=%control% | 参数=%args%"
-      step_result: "动作步骤完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 成功=%success% | 错误=%error%"
-      batch_stop: "批量动作因失败停止 | 阶段=%phase% | 行=%line% | 动作=%action%"
-      action_missing: "动作未注册 | 行=%line% | 动作=%action% | 错误=%error%"
-      control_condition: "动作条件检查 | 行=%line% | 动作=%action% | 条件=%condition% | 通过=%passes%"
-      control_chance_invalid: "动作概率无效 | 行=%line% | 动作=%action% | 概率=%chance%"
-      control_chance: "动作概率检查 | 行=%line% | 动作=%action% | 概率=%chance% | 阈值=%threshold% | 随机值=%roll% | 通过=%passes%"
-      control_delay: "动作延迟解析 | 行=%line% | 动作=%action% | 原值=%raw% | tick=%ticks%"
-      dispatch_template: "分派动作模板 | 动作=%action% | 延迟=%delay% | 参数=%args%"
-      dispatch_action: "分派已注册动作 | 动作=%action% | 域=%domain% | 所有者=%owner% | 延迟=%delay% | 超时=%timeout% | 参数=%args%"
-      safe_execute_start: "开始安全执行动作 | 阶段=%phase% | 动作=%action% | 参数=%args%"
-      safe_execute_result: "安全执行动作完成 | 阶段=%phase% | 动作=%action% | 成功=%success% | 错误=%error%"
     item_operation:
       apply_start: "开始应用物品操作 | 操作=%operation_id% | 命名空间=%namespace% | 物品=%item% | 名称动作=%name_actions% | Lore 动作=%lore_actions% | 变量=%variables%"
       apply_empty: "物品操作未产生结果 | 操作=%operation_id%"

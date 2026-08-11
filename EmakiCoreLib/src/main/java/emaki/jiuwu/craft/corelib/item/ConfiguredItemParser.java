@@ -6,10 +6,11 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 
 public final class ConfiguredItemParser {
@@ -84,7 +85,7 @@ public final class ConfiguredItemParser {
         if (raw instanceof String source) {
             return Texts.trim(source);
         }
-        ItemSource parsed = ItemSourceUtil.parse(raw);
+        ItemSourceRef parsed = ItemSourceUtil.parse(raw);
         return parsed == null ? null : ItemSourceUtil.toShorthand(parsed);
     }
 

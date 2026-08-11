@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -18,17 +19,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Semantics;
@@ -42,6 +47,17 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionRecoveryPlanner.NextSt
 public final class CookingCompletionCoordinator {
 
     private static final long RETRY_DELAY_TICKS = 20L;
+
+    /**
+     * How many times a player-inventory input may be attempted before the completion is abandoned.
+     *
+     * <p>These units read the player's main hand at execution time, so an unbounded retry would keep
+     * watching the hand and consume the item at some arbitrary later moment — long after the
+     * interaction that asked for it. With {@link #RETRY_DELAY_TICKS} at 20 ticks this bounds the watch
+     * to roughly five seconds, after which nothing has been consumed and no state has been committed,
+     * so abandoning simply returns the station to the player untouched.
+     */
+    private static final int MAX_PLAYER_INPUT_ATTEMPTS = 5;
 
     private final JavaPlugin plugin;
     private final CookingRewardService rewardService;
@@ -132,6 +148,10 @@ public final class CookingCompletionCoordinator {
             }
             install(created);
             triggerAdvance(created.operationId());
+        }).exceptionally(error -> {
+            logger.warning("Unhandled failure while starting cooking completion " + operationId + ": "
+                    + rootCauseMessage(error));
+            return null;
         });
         return true;
     }
@@ -170,7 +190,8 @@ public final class CookingCompletionCoordinator {
                 request.outputs(),
                 request.actions(),
                 request.phase(),
-                request.placeholders()
+                request.placeholders(),
+                request.conditionOutcome()
         );
         List<Unit> inputs = freezePlayerInputs(request);
         List<Unit> deliveries = new ArrayList<>();
@@ -226,7 +247,7 @@ public final class CookingCompletionCoordinator {
             payload.put("description", input.description());
             payload.put("inventory_slot", "main_hand");
             units.add(new Unit(
-                    request.operationId() + ":input:" + String.format(java.util.Locale.ROOT, "%04d", index++),
+                    request.operationId() + ":input:" + String.format(Locale.ROOT, "%04d", index++),
                     UnitKind.PLAYER_INVENTORY_INPUT,
                     UnitState.PENDING,
                     Semantics.AT_MOST_ONCE_AFTER_DURABLE_INTENT,
@@ -250,13 +271,56 @@ public final class CookingCompletionCoordinator {
         if (!accepting.get() || Texts.isBlank(operationId) || !advancing.add(operationId)) {
             return;
         }
-        advanceOne(operationId).whenComplete((progressed, error) -> {
+        CookingCompletionOperation operation = operations.get(operationId);
+        if (operation == null) {
+            advancing.remove(operationId);
+            return;
+        }
+        if (!dispatchAdvance(operationId, operation.stationCoordinates())) {
+            advancing.remove(operationId);
+            scheduleRetry(operationId);
+        }
+    }
+
+    private boolean dispatchAdvance(String operationId, StationCoordinates coordinates) {
+        if (executionDispatcher == null) {
+            advanceOnOwnerThread(operationId);
+            return true;
+        }
+        Location location = coordinates == null ? null : coordinates.location(0, 0, 0);
+        if (location == null) {
+            return false;
+        }
+        try {
+            return executionDispatcher.runAtLocation(
+                    plugin, location, () -> advanceOnOwnerThread(operationId)) != null;
+        } catch (Throwable error) {
+            logger.warning("Failed to schedule cooking completion advance " + operationId + ": "
+                    + rootCauseMessage(error));
+            return false;
+        }
+    }
+
+    private void advanceOnOwnerThread(String operationId) {
+        CompletableFuture<Boolean> advance;
+        try {
+            advance = advanceOne(operationId);
+            if (advance == null) {
+                advance = CompletableFuture.completedFuture(false);
+            }
+        } catch (Throwable error) {
+            advance = CompletableFuture.failedFuture(error);
+        }
+        advance.whenComplete((progressed, error) -> {
             advancing.remove(operationId);
             if (error != null) {
                 CookingCompletionOperation operation = operations.get(operationId);
-                if (operation != null) {
-                    save(operation.withError(rootCauseMessage(error))).whenComplete((_, saveError) -> scheduleRetry(operationId));
+                if (operation == null) {
+                    logger.warning("Cooking completion advance failed for " + operationId + ": "
+                            + rootCauseMessage(error));
+                    return;
                 }
+                save(operation.withError(rootCauseMessage(error))).whenComplete((_, saveError) -> scheduleRetry(operationId));
                 return;
             }
             if (Boolean.TRUE.equals(progressed) && operations.containsKey(operationId)) {
@@ -315,16 +379,54 @@ public final class CookingCompletionCoordinator {
                             .filter(candidate -> candidate.unitId().equals(unit.unitId()))
                             .findFirst()
                             .orElseThrow();
-                    CookingCompletionOperation updated = success
-                            ? saved.withInputUnit(current.complete())
-                            : saved.withInputUnit(current.fail("Required main-hand inventory input is unavailable"));
+                    if (success) {
+                        return save(saved.withInputUnit(current.complete())).thenApply(_ -> true);
+                    }
+                    // The unit reads the player's main hand when it runs, so retrying forever would let it
+                    // consume the item at an unrelated later moment. Give up once the attempt budget is
+                    // spent: nothing was consumed and no state was committed, so the station is released
+                    // exactly as the player left it.
+                    if (current.attempts() >= MAX_PLAYER_INPUT_ATTEMPTS) {
+                        return abandonUnavailableInput(saved, current).thenApply(_ -> false);
+                    }
+                    CookingCompletionOperation updated =
+                            saved.withInputUnit(current.fail("Required main-hand inventory input is unavailable"));
                     return save(updated).thenApply(_ -> {
-                        if (!success) {
-                            scheduleRetry(updated.operationId());
-                        }
-                        return success;
+                        scheduleRetry(updated.operationId());
+                        return false;
                     });
                 }));
+    }
+
+    /**
+     * Abandons a completion whose required player-inventory input never became available.
+     *
+     * <p>Reached only while the operation is still {@code PREPARED}: no input has been consumed and the
+     * station state has not been committed, so there is nothing to roll back and nothing to salvage.
+     * The operation is archived rather than quarantined because it is a benign outcome — the player
+     * simply no longer held the item — and archiving releases the station through {@code remove}.
+     *
+     * @param operation the operation to abandon
+     * @param unit the input unit that exhausted its attempts
+     * @return the archived operation
+     */
+    private CompletableFuture<CookingCompletionOperation> abandonUnavailableInput(
+            CookingCompletionOperation operation,
+            Unit unit) {
+        logger.warning("Abandoning cooking completion " + operation.operationId()
+                + " after " + unit.attempts() + " attempts: required inventory input was never available"
+                + " (nothing consumed, station state unchanged)");
+        debugCompletion("station.completion_input_abandoned", Map.of(
+                "operation", operation.operationId(),
+                "station", operation.stationCoordinates().runtimeKey(),
+                "unit", unit.unitId(),
+                "attempts", unit.attempts()
+        ));
+        String reason = "Required main-hand inventory input was never available after "
+                + unit.attempts() + " attempts";
+        return archive(operation
+                .withInputUnit(unit.fail(reason))
+                .withError(reason));
     }
 
     private CompletableFuture<Boolean> commitStationState(
@@ -498,13 +600,23 @@ public final class CookingCompletionCoordinator {
         }
         Map<String, Object> current = access.snapshot(operation.stationCoordinates());
         String currentDigest = CookingCompletionStateDigest.digest(current == null ? Map.of() : current);
+        StateRelation resolved;
         if (currentDigest.equals(operation.expectedStateDigest())) {
-            return StateRelation.EXPECTED;
+            resolved = StateRelation.EXPECTED;
+        } else if (currentDigest.equals(operation.committedStateDigest())) {
+            resolved = StateRelation.COMMITTED;
+        } else {
+            resolved = StateRelation.OTHER;
         }
-        if (currentDigest.equals(operation.committedStateDigest())) {
-            return StateRelation.COMMITTED;
-        }
-        return StateRelation.OTHER;
+        debugCompletion("station.completion_relation", Map.of(
+                "operation", operation.operationId(),
+                "station", operation.stationCoordinates().runtimeKey(),
+                "status", operation.status().name(),
+                "relation", resolved.name(),
+                "snapshot", current == null ? "null" : "present",
+                "commit_mode", operation.commitMode().name()
+        ));
+        return resolved;
     }
 
     private CompletableFuture<CookingCompletionOperation> save(CookingCompletionOperation operation) {
@@ -528,10 +640,24 @@ public final class CookingCompletionCoordinator {
             String error) {
         String reason = Texts.isBlank(error) ? "Cooking completion recovery rejected operation" : error;
         logger.warning("Quarantining cooking completion " + operation.operationId() + ": " + reason);
+        debugCompletion("station.completion_quarantined", Map.of(
+                "operation", operation.operationId(),
+                "station", operation.stationCoordinates().runtimeKey(),
+                "status", operation.status().name(),
+                "reason", reason
+        ));
         return journalStore.quarantine(operation, reason).thenApply(quarantined -> {
             remove(quarantined);
             return quarantined;
         });
+    }
+
+    private void debugCompletion(String langKey, Map<String, ?> replacements) {
+        DebugLogger debugLogger = plugin instanceof DebugLoggerProvider provider ? provider.debugLogger() : null;
+        if (debugLogger == null) {
+            return;
+        }
+        debugLogger.log("station", (UUID) null, langKey, replacements);
     }
 
     private void remove(CookingCompletionOperation operation) {
@@ -581,13 +707,7 @@ public final class CookingCompletionCoordinator {
     }
 
     private String rootCauseMessage(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null
-                && current.getCause() != null
-                && (current instanceof java.util.concurrent.CompletionException
-                || current instanceof java.util.concurrent.ExecutionException)) {
-            current = current.getCause();
-        }
+        Throwable current = AsyncFailures.unwrap(throwable);
         if (current == null) {
             return "unknown error";
         }

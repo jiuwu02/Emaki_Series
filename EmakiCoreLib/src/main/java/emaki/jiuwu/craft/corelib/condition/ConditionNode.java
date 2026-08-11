@@ -2,9 +2,9 @@ package emaki.jiuwu.craft.corelib.condition;
 
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record ConditionNode(String type,
         String expression,
@@ -40,14 +40,10 @@ public record ConditionNode(String type,
             return expression(Texts.toStringSafe(raw));
         }
         String type = section.getString("type", "expression");
-        if ("group".equals(Texts.lower(type)) || section.contains("entries") || section.contains("conditions")) {
+        if ("group".equals(Texts.lower(type)) || section.contains("entries")) {
             return group(ConditionGroup.fromConfig(section));
         }
-        String expression = firstNotBlank(
-                section.getString("expression", ""),
-                section.getString("condition", ""),
-                section.getString("value", "")
-        );
+        String expression = section.getString("expression", "");
         Map<String, Object> data = ConfigNodes.entries(section);
         return new ConditionNode(type, expression, null, data);
     }
@@ -60,15 +56,4 @@ public record ConditionNode(String type,
         return group != null;
     }
 
-    private static String firstNotBlank(String... values) {
-        if (values == null) {
-            return "";
-        }
-        for (String value : values) {
-            if (Texts.isNotBlank(value)) {
-                return value;
-            }
-        }
-        return "";
-    }
 }

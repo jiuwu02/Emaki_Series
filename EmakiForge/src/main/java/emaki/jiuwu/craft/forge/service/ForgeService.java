@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.forge.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -11,19 +12,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.ForgeRuntimeSnapshot;
@@ -42,7 +42,7 @@ public final class ForgeService {
     public record PreparedForge(EmakiItemAssemblyRequest request,
                                 QualitySettings.QualityTier rolledQualityTier,
                                 boolean forceQualityApplied,
-                                emaki.jiuwu.craft.forge.model.QualitySettings.QualityTier qualityTier,
+                                QualitySettings.QualityTier qualityTier,
                                 String quality,
                                 double multiplier,
                                 ItemStack previewItem) {
@@ -54,6 +54,8 @@ public final class ForgeService {
 
     private final EmakiForgePlugin plugin;
     private final ForgeResultItemFactory resultItemFactory;
+    private final EmakiItemAssemblyService itemAssemblyService;
+    private final ForgeMasteryService masteryService;
     private final ForgeLookupIndex lookupIndex;
     private final RecipeMatchingService recipeMatchingService;
     private final ForgeExecutionService forgeExecutionService;
@@ -75,16 +77,18 @@ public final class ForgeService {
                         AsyncTaskScheduler asyncTaskScheduler,
                         PerformanceMonitor performanceMonitor,
                         EmakiItemAssemblyService itemAssemblyService,
-                        Supplier<ActionExecutor> actionExecutorSupplier,
+                        ActionLineRunner actionLines,
                         ExecutionDispatcher executionDispatcher,
                         ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.itemAssemblyService = itemAssemblyService;
+        this.masteryService = new ForgeMasteryService(plugin == null ? null : plugin.playerDataStore());
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
         this.layerSnapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.resultItemFactory = new ForgeResultItemFactory(plugin);
         ForgePdcAttributeWriter pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
-        ForgeActionCoordinator actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory, actionExecutorSupplier);
+        ForgeActionCoordinator actionCoordinator = new ForgeActionCoordinator(plugin, resultItemFactory, actionLines);
         this.lookupIndex = new ForgeLookupIndex();
         MaterialValidationService materialValidationService = new MaterialValidationService(plugin, lookupIndex);
         QualityCalculationService qualityCalculationService = new QualityCalculationService(
@@ -167,9 +171,7 @@ public final class ForgeService {
                 },
                 (playerId, generation, recipeId, guaranteeUpdate) -> plugin.playerDataStore()
                         .recordSuccessfulForgeIfCurrent(playerId, generation, recipeId, guaranteeUpdate),
-                resultPostProcessor::process,
-                plugin.javaScriptForgeRuleRegistry(),
-                plugin.javaScriptResultHookRegistry()
+                resultPostProcessor::process
         );
     }
 
@@ -238,7 +240,7 @@ public final class ForgeService {
         return lookupIndex.sortedRecipes();
     }
 
-    public ForgeMaterial findMaterialBySource(ItemSource source) {
+    public ForgeMaterial findMaterialBySource(ItemSourceRef source) {
         return lookupIndex.findMaterialBySource(source);
     }
 
@@ -246,7 +248,7 @@ public final class ForgeService {
         return lookupIndex.findMaterialById(materialId);
     }
 
-    public BlueprintRequirement findBlueprintRequirementBySource(ItemSource source) {
+    public BlueprintRequirement findBlueprintRequirementBySource(ItemSourceRef source) {
         return lookupIndex.findBlueprintRequirementBySource(source);
     }
 
@@ -256,7 +258,7 @@ public final class ForgeService {
 
     private List<Recipe> candidateRecipes(GuiItems guiItems) {
         List<Recipe> candidates = new ArrayList<>(lookupIndex.genericRecipes());
-        ItemSource inputSource = guiItems == null || guiItems.targetItem() == null
+        ItemSourceRef inputSource = guiItems == null || guiItems.targetItem() == null
                 ? null
                 : plugin.itemIdentifierService().identifyItem(guiItems.targetItem());
         if (inputSource == null) {
@@ -272,7 +274,7 @@ public final class ForgeService {
     public ValidationResult canForge(Player player, Recipe recipe, GuiItems guiItems) {
         if (!accepting.get() || !plugin.isRuntimeReady()) {
             return ValidationResult.fail("forge.error.runtime_unavailable", Map.of(
-                    "state", plugin.runtimeStatus().name().toLowerCase(java.util.Locale.ROOT)));
+                    "state", plugin.runtimeStatus().name().toLowerCase(Locale.ROOT)));
         }
         return validationService.canForge(player, recipe, guiItems);
     }
@@ -286,7 +288,20 @@ public final class ForgeService {
                                        GuiItems guiItems,
                                        long previewSeed,
                                        long forgedAt) {
-        return null;
+        PreparedForge preparedForge = prepareForge(player, recipe, guiItems, previewSeed, forgedAt);
+        if (preparedForge == null || preparedForge.request() == null || itemAssemblyService == null) {
+            return null;
+        }
+        ItemStack preview = itemAssemblyService.preview(preparedForge.request());
+        if (preview == null) {
+            return null;
+        }
+        resultPostProcessor.process(player, recipe, guiItems, preparedForge, preview);
+        return preview;
+    }
+
+    public int mastery(UUID playerId, String recipeId) {
+        return masteryService.getMastery(playerId, recipeId);
     }
 
     public PreparedForge prepareForge(Player player,
@@ -378,7 +393,31 @@ public final class ForgeService {
                                                             Recipe recipe,
                                                             GuiItems guiItems,
                                                             PreparedForge preparedForge,
+                                                            double successRate) {
+        ForgeRuntimeSnapshot runtime = plugin.runtimeSnapshot();
+        long runtimeGeneration = runtime == null ? 0L : runtime.generation();
+        return executeForgeAsync(player, recipe, guiItems, preparedForge, runtimeGeneration,
+                successRate, null, null, null);
+    }
+
+    public CompletableFuture<ForgeResult> executeForgeAsync(Player player,
+                                                            Recipe recipe,
+                                                            GuiItems guiItems,
+                                                            PreparedForge preparedForge,
                                                             long runtimeGeneration,
+                                                            BooleanSupplier deliveryClaim,
+                                                            Runnable deliveryRollback,
+                                                            Runnable deliveryCommit) {
+        return executeForgeAsync(player, recipe, guiItems, preparedForge, runtimeGeneration,
+                recipe == null ? 0D : recipe.successRate(), deliveryClaim, deliveryRollback, deliveryCommit);
+    }
+
+    public CompletableFuture<ForgeResult> executeForgeAsync(Player player,
+                                                            Recipe recipe,
+                                                            GuiItems guiItems,
+                                                            PreparedForge preparedForge,
+                                                            long runtimeGeneration,
+                                                            double successRate,
                                                             BooleanSupplier deliveryClaim,
                                                             Runnable deliveryRollback,
                                                             Runnable deliveryCommit) {
@@ -403,6 +442,7 @@ public final class ForgeService {
                     guiItems,
                     preparedForge,
                     validation,
+                    successRate,
                     sessionGeneration,
                     runtimeGeneration,
                     deliveryClaim,
@@ -479,7 +519,7 @@ public final class ForgeService {
         ForgeResult result = new ForgeResult();
         result.setErrorKey("forge.error.runtime_unavailable");
         result.setReplacements(Map.of("reason", reason, "state",
-                plugin.runtimeStatus().name().toLowerCase(java.util.Locale.ROOT)));
+                plugin.runtimeStatus().name().toLowerCase(Locale.ROOT)));
         return result;
     }
 

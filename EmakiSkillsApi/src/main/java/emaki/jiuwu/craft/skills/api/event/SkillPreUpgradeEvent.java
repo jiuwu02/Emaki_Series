@@ -12,7 +12,7 @@ import org.bukkit.event.HandlerList;
  * <p>Listeners may inspect the player, the skill id and the current/target
  * level, override the success rate via {@link #setSuccessRate(double)}, or
  * cancel the upgrade entirely. A cancelled event stops EmakiSkills from
- * charging and rolling. This event is fired on the server thread.
+ * charging and rolling. This event is fired synchronously on the player's owner thread.
  */
 public final class SkillPreUpgradeEvent extends Event implements Cancellable {
 

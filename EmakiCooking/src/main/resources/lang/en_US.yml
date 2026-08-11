@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.1.0"
+version: "4.2.0"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -56,6 +56,8 @@ console:
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -79,7 +81,7 @@ console:
       station_storage_inspect_anchor: "Backend depends on the actual anchor BlockState; inspect a placed station."
       station_storage_block_pdc: "Placed vanilla %material% supports BLOCK_PDC."
       station_storage_yaml_fallback: "YAML fallback unless the placed block is TileState."
-  bootstrap_start: "<white>Checking default files...</white>"
+  bootstrap_start: "<gray>Checking default files...</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
@@ -294,30 +296,6 @@ debug:
       variables: "Apply variables | source=%source% | values=%values%"
       internal_resolved: "Internal placeholder resolution complete | source=%source% | hits=%hits% | missing=%missing% | text=%text%"
       resolver_changed: "Placeholder resolver changed text | resolver=%resolver% | before=%before% | after=%after%"
-    script:
-      expression: "Script expression executed | expression=%expression% | args=%args% | result=%result% | duration=%duration_ms%ms | error=%error%"
-      condition: "Script condition executed | condition=%condition% | args=%args% | passed=%passed% | duration=%duration_ms%ms | message=%message% | error=%error%"
-    action:
-      execute_direct: "Direct action execution | phase=%phase% | action=%action% | raw_args=%raw_args%"
-      execute_direct_missing: "Direct action execution failed: action missing | action=%action% | error=%error%"
-      execute_direct_result: "Direct action execution complete | action=%action% | success=%success% | error=%error%"
-      execute_batch_start: "Batch action execution started | phase=%phase% | lines=%lines% | stop_on_failure=%stop_on_failure%"
-      execute_batch_result: "Batch action execution complete | phase=%phase% | success=%success% | steps=%steps% | error=%error%"
-      parse_line: "Parse action line | phase=%phase% | line=%line% | raw=%raw%"
-      parse_failed: "Action line parsing failed | phase=%phase% | line=%line% | error=%error%"
-      parse_skipped: "Skipped blank action line | phase=%phase% | line=%line%"
-      parse_ok: "Action line parsed | phase=%phase% | line=%line% | action=%action% | control=%control% | args=%args%"
-      step_result: "Action step complete | phase=%phase% | line=%line% | action=%action% | success=%success% | error=%error%"
-      batch_stop: "Batch action stopped after failure | phase=%phase% | line=%line% | action=%action%"
-      action_missing: "Action is not registered | line=%line% | action=%action% | error=%error%"
-      control_condition: "Action condition check | line=%line% | action=%action% | condition=%condition% | passes=%passes%"
-      control_chance_invalid: "Invalid action chance | line=%line% | action=%action% | chance=%chance%"
-      control_chance: "Action chance check | line=%line% | action=%action% | chance=%chance% | threshold=%threshold% | roll=%roll% | passes=%passes%"
-      control_delay: "Action delay parsed | line=%line% | action=%action% | raw=%raw% | ticks=%ticks%"
-      dispatch_template: "Dispatch action template | action=%action% | delay=%delay% | args=%args%"
-      dispatch_action: "Dispatch registered action | action=%action% | domain=%domain% | owner=%owner% | delay=%delay% | timeout=%timeout% | args=%args%"
-      safe_execute_start: "Safe action execution started | phase=%phase% | action=%action% | args=%args%"
-      safe_execute_result: "Safe action execution complete | phase=%phase% | action=%action% | success=%success% | error=%error%"
     item_operation:
       apply_start: "Item operation started | operation=%operation_id% | namespace=%namespace% | item=%item% | name_actions=%name_actions% | lore_actions=%lore_actions% | variables=%variables%"
       apply_empty: "Item operation produced no result | operation=%operation_id%"
@@ -424,6 +402,27 @@ debug:
     ingredient_add: "Ingredient added | Player=%player% | Station=%station% | Item=%item%"
     ingredient_remove: "Ingredient removed | Player=%player% | Station=%station% | Item=%item%"
     state_change: "Station state change | Station=%station% | Old=%old% | New=%new%"
+    state_load: "Station state load | Station=%station% | Result=%result% | InMemoryVersion=%in_memory_version% | InMemoryTombstone=%in_memory_tombstone% | PersistedVersion=%persisted_version% | PdcPresent=%pdc_present% | YamlPresent=%yaml_present%"
+    state_save_begin: "Station state save begin | Station=%station% | Version=%version% | Type=%backend_hint%"
+    state_save_result: "Station state save result | Station=%station% | Version=%version% | Success=%success% | StillCurrent=%still_current% | Error=%error%"
+    state_delete_begin: "Station state delete begin | Station=%station% | Version=%version%"
+    state_delete_result: "Station state delete result | Station=%station% | Version=%version% | Success=%success% | Error=%error%"
+    migrate_skipped: "YAML to PDC migration skipped | Station=%station% | Reason=%reason%"
+    migrate_ok: "YAML to PDC migration succeeded | Station=%station% | Version=%version%"
+    migrate_failed: "YAML to PDC migration failed | Station=%station% | Version=%version% | PreviousVersion=%previous_version% | RolledBack=%rolled_back%"
+    break_without_state: "Station broken without readable state, clearing residual displays only | Station=%station% | Type=%type%"
+    wok_interact: "Wok interact | Player=%player% | Station=%station% | Interaction=%interaction% | Hand=%hand% | HandSource=%hand_source% | IsSpatula=%is_spatula% | IsBowl=%is_bowl% | Heat=%heat% | State=%state%"
+    wok_serve: "Wok serve | Player=%player% | Station=%station% | Result=%result% | WithBowl=%with_bowl% | Stir=%stir% | Recipe=%recipe%"
+    wok_outcome: "Wok outcome resolved | Station=%station% | Recipe=%recipe% | Branch=%branch% | Stir=%stir% | Min=%stir_min% | Max=%stir_max% | Tolerance=%tolerance%"
+    ingredient_rejected: "Ingredient rejected | Player=%player% | Station=%station% | Item=%item% | Reason=%reason% | Candidates=%candidates% | Heat=%heat%"
+    chopping_interact: "Chopping board interact | Player=%player% | Station=%station% | Interaction=%interaction% | State=%state%"
+    chopping_rejected: "Chopping board operation rejected | Player=%player% | Station=%station% | Operation=%operation% | Reason=%reason%"
+    chopping_cut: "Chopping board cut | Player=%player% | Station=%station% | Recipe=%recipe% | Cut %cut% of %required%"
+    grinder_start: "Grinder started | Player=%player% | Station=%station% | Hand=%hand% | ExistingState=%existing_state%"
+    grinder_tick: "Grinder tick | Station=%station% | Result=%result% | Elapsed=%elapsed_ms%ms | Target=%target_ms%ms"
+    completion_relation: "Completion pipeline state relation | Operation=%operation% | Station=%station% | Status=%status% | Relation=%relation% | Snapshot=%snapshot% | CommitMode=%commit_mode%"
+    completion_quarantined: "Completion pipeline quarantined | Operation=%operation% | Station=%station% | Status=%status% | Reason=%reason%"
+    completion_input_abandoned: "Completion pipeline abandoned inventory input | Operation=%operation% | Station=%station% | Unit=%unit% | Attempts=%attempts%"
   recipe:
     source_resolve: "Ingredient source resolve | Sources=%sources% | Resolved=%resolved%"
     match_start: "Recipe match start | Station=%station% | Ingredients=%ingredients%"
@@ -431,6 +430,7 @@ debug:
     match_result: "Recipe match complete | Result=%recipe_id%"
   stir:
     trigger: "Stir triggered | Player=%player% | Station=%station% | Count=%count%/%max%"
+    rejected: "Stir rejected | Player=%player% | Station=%station% | Reason=%reason%"
     animation_start: "Stir animation start | Entities=%entities% | Height=%height%"
     animation_end: "Stir animation end | Station=%station%"
   display:
@@ -574,6 +574,3 @@ debug:
       open_requested: "Debug event: gui.fermentation barrel.open requested | coordinates=%coordinates% | station=%station%"
       save_completed: "Debug event: gui.fermentation barrel.save completed | coordinates=%coordinates% | station=%station%"
       save_started: "Debug event: gui.fermentation barrel.save started | coordinates=%coordinates% | inventory_size=%inventory_size% | station=%station%"
-  script:
-    execute_context: "Cooking script context executed | station=%station_id% | recipe=%recipe_id% | stage=%stage%"
-    trace: "Debug event: script.trace | message=%message% | rule=%rule%"

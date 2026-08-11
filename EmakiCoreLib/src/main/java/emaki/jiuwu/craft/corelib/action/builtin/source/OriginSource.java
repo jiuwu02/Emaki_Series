@@ -1,0 +1,44 @@
+package emaki.jiuwu.craft.corelib.action.builtin.source;
+
+import java.util.List;
+
+import org.bukkit.Location;
+import org.jetbrains.annotations.NotNull;
+
+import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+
+/**
+ * The pipeline's spatial reference point as a location subject.
+ *
+ * <p>Domain {@code SERVER_GLOBAL}: the origin is a {@code Location} value the context already holds, so
+ * reading it touches no world or block state.</p>
+ */
+public final class OriginSource extends BaseSource {
+
+    public OriginSource() {
+        super("origin", "The pipeline origin as a location target.",
+                CoreActionExecutionDomain.SERVER_GLOBAL);
+    }
+
+    @Override
+    public @NotNull CoreSourceResult select(@NotNull CoreStageContext context,
+            @NotNull CoreResolvedArguments arguments) {
+        Location origin;
+        try {
+            origin = context.origin();
+        } catch (IllegalStateException exception) {
+            // A console-triggered pipeline has neither caster nor origin. That is a normal state for a
+            // trigger, not a configuration error, so it is Empty rather than Invalid.
+            return CoreSourceResult.empty("action.source.origin.no_origin");
+        }
+        if (origin == null || origin.getWorld() == null) {
+            return CoreSourceResult.empty("action.source.origin.no_origin");
+        }
+        return CoreSourceResult.selected(List.of(CoreActionSubject.of(origin)));
+    }
+}

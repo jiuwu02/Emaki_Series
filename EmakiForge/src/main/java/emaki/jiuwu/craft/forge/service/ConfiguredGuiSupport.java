@@ -6,17 +6,17 @@ import java.util.Map;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.gui.ItemComponentParser;
-import emaki.jiuwu.craft.corelib.gui.SlotParser;
+import emaki.jiuwu.craft.corelib.api.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.ForgeRuntimeSnapshot;
 
@@ -24,6 +24,8 @@ final class ConfiguredGuiSupport {
 
     private final EmakiForgePlugin plugin;
     private final ConfiguredItemParser configuredItemParser = new ConfiguredItemParser();
+    private final LegacyConfiguredItemConverter legacyConverter =
+            new LegacyConfiguredItemConverter(configuredItemParser);
 
     ConfiguredGuiSupport(EmakiForgePlugin plugin) {
         this.plugin = plugin;
@@ -58,9 +60,9 @@ final class ConfiguredGuiSupport {
             String path,
             Map<String, ?> replacements,
             String fallbackItem,
-            ItemComponentParser.ItemComponents fallbackComponents) {
+            ConfiguredItemDefinition fallbackDefinition) {
         Object raw = raw(guiId, path);
-        ConfiguredItemDefinition definition = configuredDefinition(raw, fallbackItem, fallbackComponents);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, fallbackItem, fallbackDefinition);
         return GuiItemBuilder.build(definition, replacements, plugin.coreLib().configuredItemService());
     }
 
@@ -69,9 +71,9 @@ final class ConfiguredGuiSupport {
             String path,
             Map<String, ?> replacements,
             String fallbackItem,
-            ItemComponentParser.ItemComponents fallbackComponents) {
+            ConfiguredItemDefinition fallbackDefinition) {
         Object raw = raw(runtime, guiId, path);
-        ConfiguredItemDefinition definition = configuredDefinition(raw, fallbackItem, fallbackComponents);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, fallbackItem, fallbackDefinition);
         return GuiItemBuilder.build(definition, replacements, plugin.coreLib().configuredItemService());
     }
 
@@ -79,9 +81,9 @@ final class ConfiguredGuiSupport {
             String path,
             ItemStack baseItem,
             Map<String, ?> replacements,
-            ItemComponentParser.ItemComponents fallbackComponents) {
+            ConfiguredItemDefinition fallbackDefinition) {
         Object raw = raw(guiId, path);
-        ConfiguredItemDefinition definition = configuredDefinition(raw, null, fallbackComponents);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, null, fallbackDefinition);
         return GuiItemBuilder.apply(baseItem, definition, replacements, plugin.coreLib().configuredItemService());
     }
 
@@ -90,9 +92,9 @@ final class ConfiguredGuiSupport {
             String path,
             ItemStack baseItem,
             Map<String, ?> replacements,
-            ItemComponentParser.ItemComponents fallbackComponents) {
+            ConfiguredItemDefinition fallbackDefinition) {
         Object raw = raw(runtime, guiId, path);
-        ConfiguredItemDefinition definition = configuredDefinition(raw, null, fallbackComponents);
+        ConfiguredItemDefinition definition = configuredDefinition(raw, null, fallbackDefinition);
         return GuiItemBuilder.apply(baseItem, definition, replacements, plugin.coreLib().configuredItemService());
     }
 
@@ -137,16 +139,19 @@ final class ConfiguredGuiSupport {
 
     private ConfiguredItemDefinition configuredDefinition(Object raw,
             String fallbackItem,
-            ItemComponentParser.ItemComponents fallbackComponents) {
+            ConfiguredItemDefinition fallbackDefinition) {
         Object canonical = ConfigNodes.get(raw, "item");
         if (canonical instanceof Map<?, ?> || canonical instanceof YamlSection) {
             return configuredItemParser.parse(canonical);
         }
         String item = resolveItem(raw, fallbackItem);
-        ItemComponentParser.ItemComponents components = raw == null
-                ? (fallbackComponents == null ? ItemComponentParser.empty() : fallbackComponents)
-                : ItemComponentParser.parse(raw);
-        return ItemComponentParser.toDefinition(item, components, 1, Map.of());
+        if (raw == null) {
+            ConfiguredItemDefinition fallback = fallbackDefinition == null
+                    ? new ConfiguredItemDefinition(item, 1, Map.of())
+                    : fallbackDefinition;
+            return Texts.isBlank(item) ? fallback : fallback.withSource(item);
+        }
+        return legacyConverter.convert(item, 1, raw, Map.of());
     }
 
     private String resolveItem(Object raw, String fallbackItem) {
@@ -160,7 +165,7 @@ final class ConfiguredGuiSupport {
         if (Texts.isNotBlank(configuredItem)) {
             return configuredItem;
         }
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         if (source != null) {
             String shorthand = ItemSourceUtil.toShorthand(source);
             if (Texts.isNotBlank(shorthand)) {

@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -15,16 +16,16 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.api.AttributeContribution;
-import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContribution;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import io.lumine.mythic.api.adapters.AbstractEntity;
 import io.lumine.mythic.api.config.MythicLineConfig;
 import io.lumine.mythic.api.mobs.MythicMob;
@@ -114,7 +115,7 @@ public final class MythicBridge implements Listener {
             if (activeMob == null || activeMob.getEntity() == null) {
                 continue;
             }
-            org.bukkit.entity.Entity bukkitEntity = activeMob.getEntity().getBukkitEntity();
+            Entity bukkitEntity = activeMob.getEntity().getBukkitEntity();
             LivingEntity livingEntity = bukkitEntity instanceof LivingEntity livingEntityCandidate ? livingEntityCandidate : null;
             if (livingEntity != null) {
                 attributeService.scheduleLivingEntitySync(livingEntity);
@@ -264,7 +265,7 @@ public final class MythicBridge implements Listener {
             if (abstractEntity == null) {
                 return null;
             }
-            org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
+            Entity entity = abstractEntity.getBukkitEntity();
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
         }
 
@@ -296,7 +297,7 @@ public final class MythicBridge implements Listener {
             if (abstractEntity == null) {
                 return null;
             }
-            org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
+            Entity entity = abstractEntity.getBukkitEntity();
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
         }
 
@@ -645,7 +646,7 @@ public final class MythicBridge implements Listener {
             if (abstractEntity == null) {
                 return null;
             }
-            org.bukkit.entity.Entity entity = abstractEntity.getBukkitEntity();
+            Entity entity = abstractEntity.getBukkitEntity();
             return entity instanceof LivingEntity livingEntity ? livingEntity : null;
         }
 

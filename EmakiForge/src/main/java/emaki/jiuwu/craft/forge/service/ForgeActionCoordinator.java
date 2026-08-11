@@ -5,18 +5,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
-import emaki.jiuwu.craft.corelib.action.ActionStepResult;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
@@ -26,19 +24,48 @@ final class ForgeActionCoordinator {
 
     private static final long ACTION_TIMEOUT_SECONDS = 30L;
 
+    /**
+     * Returned to callers that need a human-readable reason when the Boolean result provides no step detail.
+     *
+     * <p>The pipeline runner answers with a pass/fail verdict; per-step failure information such as action
+     * ids and line numbers is not surfaced at this layer. Callers log or display this constant instead.</p>
+     */
+    static final String UNKNOWN_FAILURE_REASON = "Unknown forge action failure.";
+
     private final EmakiForgePlugin plugin;
     private final ForgeResultItemFactory resultItemFactory;
-    private final Supplier<ActionExecutor> actionExecutorSupplier;
+    private final ActionLineRunner actionLines;
 
+    /**
+     * Creates a coordinator.
+     *
+     * @param plugin the owning plugin
+     * @param resultItemFactory resolves display names and show-item placeholders
+     * @param actionLines the pipeline runner; safe to hold because it reads the live engine per call
+     */
     ForgeActionCoordinator(EmakiForgePlugin plugin,
             ForgeResultItemFactory resultItemFactory,
-            Supplier<ActionExecutor> actionExecutorSupplier) {
+            ActionLineRunner actionLines) {
         this.plugin = plugin;
         this.resultItemFactory = resultItemFactory;
-        this.actionExecutorSupplier = actionExecutorSupplier;
+        this.actionLines = actionLines;
     }
 
-    CompletableFuture<ActionBatchResult> executePhase(Player player,
+    /**
+     * Runs the phase for a given item target and waits for the result.
+     *
+     * @param player the acting player
+     * @param recipe the recipe being forged
+     * @param guiItems the GUI item slots
+     * @param phase phase name
+     * @param resultItem the resolved result item (may be {@code null} for pre-phase)
+     * @param quality the resolved quality label
+     * @param multiplier the stat multiplier
+     * @param errorKey the error key to surface on failure
+     * @param failureReason a human-readable failure reason
+     * @return {@code true} when all lines succeeded
+     */
+    CompletableFuture<Boolean> executePhase(Player player,
             Recipe recipe,
             GuiItems guiItems,
             String phase,
@@ -50,7 +77,22 @@ final class ForgeActionCoordinator {
         return executePhase(player, recipe, guiItems, phase, resultItem, null, quality, multiplier, errorKey, failureReason);
     }
 
-    CompletableFuture<ActionBatchResult> executePhase(Player player,
+    /**
+     * Runs the phase for an explicit item target and waits for the result.
+     *
+     * @param player the acting player
+     * @param recipe the recipe being forged
+     * @param guiItems the GUI item slots
+     * @param phase phase name
+     * @param resultItem the resolved result item
+     * @param itemTarget mutable holder that stages write the item back through; may be {@code null}
+     * @param quality the resolved quality label
+     * @param multiplier the stat multiplier
+     * @param errorKey the error key to surface on failure
+     * @param failureReason a human-readable failure reason
+     * @return {@code true} when all lines succeeded
+     */
+    CompletableFuture<Boolean> executePhase(Player player,
             Recipe recipe,
             GuiItems guiItems,
             String phase,
@@ -75,6 +117,19 @@ final class ForgeActionCoordinator {
         );
     }
 
+    /**
+     * Fires a phase without waiting for it.
+     *
+     * @param player the acting player
+     * @param recipe the recipe being forged
+     * @param guiItems the GUI item slots
+     * @param phase phase name
+     * @param resultItem the resolved result item
+     * @param quality the resolved quality label
+     * @param multiplier the stat multiplier
+     * @param errorKey the error key to surface on failure
+     * @param failureMessage a human-readable failure message
+     */
     void triggerPhase(Player player,
             Recipe recipe,
             GuiItems guiItems,
@@ -87,6 +142,21 @@ final class ForgeActionCoordinator {
         awaitPhase(player, recipe, guiItems, phase, resultItem, null, quality, multiplier, errorKey, failureMessage);
     }
 
+    /**
+     * Runs the phase and logs any failure, discarding the Boolean result.
+     *
+     * @param player the acting player
+     * @param recipe the recipe being forged
+     * @param guiItems the GUI item slots
+     * @param phase phase name
+     * @param resultItem the resolved result item
+     * @param itemTarget mutable holder for item write-back; may be {@code null}
+     * @param quality the resolved quality label
+     * @param multiplier the stat multiplier
+     * @param errorKey the error key to surface on failure
+     * @param failureMessage a human-readable failure message
+     * @return a future that completes when the phase finishes
+     */
     CompletableFuture<Void> awaitPhase(Player player,
             Recipe recipe,
             GuiItems guiItems,
@@ -98,24 +168,37 @@ final class ForgeActionCoordinator {
             String errorKey,
             String failureMessage) {
         return executePhase(player, recipe, guiItems, phase, resultItem, itemTarget, quality, multiplier, errorKey, failureMessage)
-                .handle((batch, throwable) -> {
+                .handle((success, throwable) -> {
                     if (throwable != null) {
                         logWarning("console.forge_phase_execution_failed", Map.of(
                                 "phase", phase,
-                                "recipe", recipe.id(),
+                                "recipe", recipe == null ? "" : recipe.id(),
                                 "error", String.valueOf(throwable.getMessage())
                         ));
-                    } else if (batch != null && !batch.success()) {
+                    } else if (!Boolean.TRUE.equals(success)) {
                         logWarning("console.forge_phase_failed", Map.of(
                                 "phase", phase,
-                                "recipe", recipe.id(),
-                                "reason", resolveFailureReason(batch.firstFailure())
+                                "recipe", recipe == null ? "" : recipe.id(),
+                                "reason", UNKNOWN_FAILURE_REASON
                         ));
                     }
                     return null;
                 });
     }
 
+    /**
+     * Runs quality-tier item-meta actions and logs any failure.
+     *
+     * @param player the acting player
+     * @param recipe the recipe being forged
+     * @param guiItems the GUI item slots
+     * @param resultItem the resolved result item
+     * @param itemTarget mutable holder for item write-back; may be {@code null}
+     * @param qualityTier the resolved quality tier
+     * @param quality the quality label
+     * @param multiplier the stat multiplier
+     * @return a future that completes when the quality actions finish
+     */
     CompletableFuture<Void> awaitQualityActions(Player player,
             Recipe recipe,
             GuiItems guiItems,
@@ -133,33 +216,23 @@ final class ForgeActionCoordinator {
         }
         return executeActionLines(player, recipe, guiItems, "quality", lines, resultItem, itemTarget,
                 quality, multiplier, null, null)
-                .handle((batch, throwable) -> {
+                .handle((success, throwable) -> {
                     if (throwable != null) {
                         logWarning("console.forge_quality_execution_failed", Map.of(
                                 "tier", qualityTier.name(),
                                 "error", String.valueOf(throwable.getMessage())
                         ));
-                    } else if (batch != null && !batch.success()) {
+                    } else if (!Boolean.TRUE.equals(success)) {
                         logWarning("console.forge_quality_failed", Map.of(
                                 "tier", qualityTier.name(),
-                                "reason", resolveFailureReason(batch.firstFailure())
+                                "reason", UNKNOWN_FAILURE_REASON
                         ));
                     }
                     return null;
                 });
     }
 
-    String resolveFailureReason(ActionStepResult failure) {
-        if (failure == null || failure.result() == null) {
-            return "Unknown forge action failure.";
-        }
-        if (Texts.isNotBlank(failure.result().errorMessage())) {
-            return failure.result().errorMessage();
-        }
-        return "Action '" + failure.actionId() + "' failed.";
-    }
-
-    private CompletableFuture<ActionBatchResult> executeActionLines(Player player,
+    private CompletableFuture<Boolean> executeActionLines(Player player,
             Recipe recipe,
             GuiItems guiItems,
             String phase,
@@ -170,14 +243,35 @@ final class ForgeActionCoordinator {
             double multiplier,
             String errorKey,
             String failureReason) {
-        var actionExecutor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
-        if (lines.isEmpty() || actionExecutor == null) {
-            return CompletableFuture.completedFuture(new ActionBatchResult(true, List.of()));
+        if (lines.isEmpty() || actionLines == null || !actionLines.available()) {
+            return CompletableFuture.completedFuture(true);
         }
-        ActionContext context = buildActionContext(player, recipe, guiItems, phase, resultItem, itemTarget,
-                quality, multiplier, errorKey, failureReason);
-        return actionExecutor
-                .executeAll(context, lines, true)
+        Map<String, String> placeholders = buildPlaceholders(player, recipe, guiItems, phase,
+                resultItem, itemTarget, quality, multiplier, errorKey, failureReason);
+
+        /*
+         * Pass the action item as CoreActionKeys.ITEM so stages that mutate items (e.g.
+         * item_component_add) can read and write it in place. After the batch completes the updated
+         * item is stored back into itemTarget so the caller gets the post-action item at delivery.
+         */
+        ItemStack actionItem = itemTarget == null ? resultItem : itemTarget.itemStack();
+        PipelineContext context = actionLines.context(player, phase, false, placeholders);
+        if (actionItem != null) {
+            context = context.with(CoreActionKeys.ITEM, actionItem);
+        }
+
+        final PipelineContext finalContext = context;
+        return actionLines.run(lines, finalContext, true)
+                .thenApply(success -> {
+                    // Write the (possibly mutated) item back into the caller's holder.
+                    if (itemTarget != null && actionItem != null) {
+                        ItemStack updated = finalContext.get(CoreActionKeys.ITEM).orElse(null);
+                        if (updated != null && updated != actionItem) {
+                            itemTarget.setItemStack(updated);
+                        }
+                    }
+                    return success;
+                })
                 .orTimeout(ACTION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
@@ -199,7 +293,7 @@ final class ForgeActionCoordinator {
         };
     }
 
-    private ActionContext buildActionContext(Player player,
+    private Map<String, String> buildPlaceholders(Player player,
             Recipe recipe,
             GuiItems guiItems,
             String phase,
@@ -223,26 +317,7 @@ final class ForgeActionCoordinator {
         placeholders.put("forge_error_key", Texts.toStringSafe(errorKey));
         placeholders.put("forge_failure_reason", Texts.toStringSafe(failureReason));
         placeholders.put("forge_show_item", showItem);
-        placeholders.put("show_item", showItem);
-
-        Map<String, Object> attributes = new LinkedHashMap<>();
-        putIfNotNull(attributes, "recipe", recipe);
-        putIfNotNull(attributes, "guiItems", guiItems);
-        putIfNotNull(attributes, "targetItem", guiItems == null ? null : guiItems.targetItem());
-        putIfNotNull(attributes, "resultItem", actionItem);
-        putIfNotNull(attributes, CoreActionItemTarget.ATTRIBUTE_KEY, itemTarget);
-        putIfNotNull(attributes, "quality", quality);
-        attributes.put("multiplier", multiplier);
-        putIfNotNull(attributes, "errorKey", errorKey);
-        putIfNotNull(attributes, "failureReason", failureReason);
-
-        return new ActionContext(plugin, player, phase, false, placeholders, attributes);
-    }
-
-    private void putIfNotNull(Map<String, Object> target, String key, Object value) {
-        if (target != null && value != null) {
-            target.put(key, value);
-        }
+        return placeholders;
     }
 
     private void logWarning(String key, Map<String, ?> replacements) {

@@ -3,10 +3,10 @@ package emaki.jiuwu.craft.forge;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.forge.model.PlayerData;
 
 final class ForgePlayerDataListener implements Listener {
@@ -77,11 +78,8 @@ final class ForgePlayerDataListener implements Listener {
         if (throwable == null) {
             return;
         }
-        Throwable cause = throwable instanceof CompletionException completionException
-                && completionException.getCause() != null
-                        ? completionException.getCause()
-                        : throwable;
-        plugin.getLogger().log(java.util.logging.Level.WARNING,
+        Throwable cause = AsyncFailures.unwrapOnce(throwable);
+        plugin.getLogger().log(Level.WARNING,
                 "[PlayerDataStore] Async " + operation + " failed for " + playerId,
                 cause);
     }

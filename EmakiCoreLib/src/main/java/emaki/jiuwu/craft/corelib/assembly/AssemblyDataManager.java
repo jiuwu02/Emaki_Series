@@ -14,12 +14,12 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 
 final class AssemblyDataManager {
 
@@ -72,7 +72,7 @@ final class AssemblyDataManager {
                 && pdcService.has(itemStack, itemPartition, BASE_SOURCE, PersistentDataType.STRING);
     }
 
-    ItemSource readBaseSource(ItemStack itemStack) {
+    ItemSourceRef readBaseSource(ItemStack itemStack) {
         String shorthand = pdcService.get(itemStack, itemPartition, BASE_SOURCE, PersistentDataType.STRING);
         return Texts.isBlank(shorthand) ? null : ItemSourceUtil.parseShorthand(shorthand);
     }
@@ -187,7 +187,7 @@ final class AssemblyDataManager {
 
     void writeAssemblyData(ItemStack itemStack,
             int currentSchemaVersion,
-            ItemSource baseSource,
+            ItemSourceRef baseSource,
             int amount,
             String baseCustomName,
             List<String> baseLore,

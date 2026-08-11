@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.cooking.service;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -19,10 +20,11 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
@@ -152,7 +154,7 @@ public final class PlayerNutritionDataStore {
                 .handle((loaded, throwable) -> {
                     if (throwable != null) {
                         cache.installLoadFailure(ticket, fallback);
-                        throw new CompletionException(unwrap(throwable));
+                        throw new CompletionException(AsyncFailures.unwrap(throwable));
                     }
                     PlayerNutritionDataCache.CommitResult result = cache.installLoaded(ticket, loaded);
                     if (result != PlayerNutritionDataCache.CommitResult.COMMITTED) {
@@ -278,7 +280,7 @@ public final class PlayerNutritionDataStore {
                     .get(Math.max(1L, timeoutNanos), TimeUnit.NANOSECONDS);
             logicalCompleted = true;
         } catch (Throwable throwable) {
-            failures.add(unwrap(throwable));
+            failures.add(AsyncFailures.unwrap(throwable));
         }
 
         AsyncFileService.DrainResult drainResult = new AsyncFileService.DrainResult(true, 0, List.of());
@@ -378,7 +380,7 @@ public final class PlayerNutritionDataStore {
             try {
                 YamlFiles.save(file, serialized);
                 return CompletableFuture.completedFuture(true);
-            } catch (java.io.IOException exception) {
+            } catch (IOException exception) {
                 return CompletableFuture.failedFuture(exception);
             }
         }
@@ -491,19 +493,10 @@ public final class PlayerNutritionDataStore {
     }
 
     private void logLoadFailure(UUID uuid, Throwable throwable) {
-        logger.log(Level.WARNING, "Failed to load nutrition data for " + uuid, unwrap(throwable));
+        logger.log(Level.WARNING, "Failed to load nutrition data for " + uuid, AsyncFailures.unwrap(throwable));
     }
 
     private void logSaveFailure(UUID uuid, Throwable throwable) {
-        logger.log(Level.WARNING, "Failed to save nutrition data for " + uuid, unwrap(throwable));
-    }
-
-    private Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof CompletionException || current instanceof java.util.concurrent.ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
+        logger.log(Level.WARNING, "Failed to save nutrition data for " + uuid, AsyncFailures.unwrap(throwable));
     }
 }

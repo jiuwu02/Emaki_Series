@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -22,12 +24,12 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -40,6 +42,8 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class OvenRuntimeService implements Listener {
 
@@ -115,10 +119,10 @@ public final class OvenRuntimeService implements Listener {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
-                OvenState state = codec.readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(committedState));
+            public CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
+                OvenState state = codec.readState(new MapYamlSection(committedState));
                 if (state == null || state.isCompletelyEmpty()) {
-                    return java.util.concurrent.CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed oven state"));
+                    return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed oven state"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -139,7 +143,7 @@ public final class OvenRuntimeService implements Listener {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+            public CompletionStage<Void> delete(StationCoordinates coordinates) {
                 return stateStore.deleteAsync(coordinates)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
                         .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
@@ -175,12 +179,12 @@ public final class OvenRuntimeService implements Listener {
         ensureTicker();
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
         OvenState state = codec.readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         Block block = coordinates.block();
         if (state == null) {
             guiController.closeOpenInventories(coordinates, true);
@@ -289,6 +293,7 @@ public final class OvenRuntimeService implements Listener {
                         Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName()
                 );
         if (state.isCompletelyEmpty()) {
+            textDisplayService.removeStation(StationType.OVEN, coordinates);
             return false;
         }
         guiController.closeOpenInventories(coordinates, true);
@@ -507,7 +512,7 @@ public final class OvenRuntimeService implements Listener {
     private void processStation(StationCoordinates coordinates, long now) {
         Block block = coordinates == null ? null : coordinates.block();
         OvenState state = loadStateOrEmpty(coordinates);
-        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || !blockMatcher.matches(block, StationType.OVEN, stationSource)) {
             guiController.closeOpenInventories(coordinates, true);
             removeState(coordinates, true);
@@ -630,7 +635,7 @@ public final class OvenRuntimeService implements Listener {
                 state.heat(),
                 0,
                 0,
-                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource)),
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource).orElse("")),
                 Texts.toStringSafe(firstSource),
                 firstSource.isBlank() ? 0 : 1,
                 state.slotSources().size(),
@@ -675,7 +680,7 @@ public final class OvenRuntimeService implements Listener {
             textDisplayService.removeStation(StationType.OVEN, coordinates);
             return;
         }
-        org.bukkit.Location baseLocation = coordinates.location(0D, 0D, 0D);
+        Location baseLocation = coordinates.location(0D, 0D, 0D);
         if (baseLocation == null || baseLocation.getWorld() == null) {
             textDisplayService.removeStation(StationType.OVEN, coordinates);
             return;
@@ -712,7 +717,7 @@ public final class OvenRuntimeService implements Listener {
     }
 
     private CookingSettingsService.OvenFuelRule matchFuelRule(ItemStack itemStack) {
-        ItemSource identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         if (identified == null) {
             return null;
         }
@@ -725,7 +730,7 @@ public final class OvenRuntimeService implements Listener {
     }
 
     private String itemDisplayName(ItemStack itemStack) {
-        String displayName = EmakiCoreLibApi.itemDisplayName(itemStack);
+        String displayName = EmakiCoreLibApi.itemDisplayName(itemStack).orElse("");
         return Texts.isBlank(displayName)
                 ? (itemStack == null || itemStack.getType() == null ? "" : itemStack.getType().name())
                 : displayName;

@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.codex;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.codex.advancement.AdvancementJsonBuilder;
@@ -12,17 +13,19 @@ import emaki.jiuwu.craft.codex.advancement.AdvancementService;
 import emaki.jiuwu.craft.codex.advancement.UnsafeAdvancementPlatform;
 import emaki.jiuwu.craft.codex.advancement.loader.AdvancementPageLoader;
 import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
+import emaki.jiuwu.craft.codex.advancement.trigger.AdvancementTriggerRegistry;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 
 
@@ -30,7 +33,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlSection;
 
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F59E0B:#EC4899>EmakiCodex</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of();
     private static final List<String> DEFAULT_DATA_FILES = List.of("advancements/example_page.yml");
@@ -63,19 +66,21 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         AdvancementPlatform platform = new UnsafeAdvancementPlatform(plugin.getLogger());
         AdvancementJsonBuilder jsonBuilder = new AdvancementJsonBuilder(coreLibPlugin.itemSourceService());
         AdvancementRegistrar registrar = new AdvancementRegistrar(plugin, advancementPageLoader, platform, jsonBuilder);
-        AdvancementService advancementService = new AdvancementService(registrar);
+        AdvancementService advancementService = new AdvancementService(plugin, registrar);
         var executionDispatcher = coreLibPlugin.executionDispatcher();
         var threadOwnership = coreLibPlugin.threadOwnership();
         AdvancementPacketGateway advancementPacketGateway =
                 new AdvancementPacketGateway(plugin, registrar, coreLibPlugin.itemSourceService(),
                         config.packetCoordinates(), executionDispatcher, threadOwnership);
-        CodexTriggerService triggerService =
-                new CodexTriggerService(plugin, advancementPageLoader, advancementService);
+        AdvancementTriggerRegistry advancementTriggerRegistry = new AdvancementTriggerRegistry(plugin);
+        CodexTriggerService triggerService = new CodexTriggerService(
+                plugin, advancementPageLoader, advancementService, advancementTriggerRegistry);
 
         return new CodexRuntimeComponents(
                 appConfigLoader, languageLoader, messageService, bootstrapService,
                 advancementPageLoader, platform, jsonBuilder, registrar, advancementService,
-                advancementPacketGateway, triggerService, executionDispatcher, threadOwnership);
+                advancementPacketGateway, advancementTriggerRegistry, triggerService,
+                executionDispatcher, threadOwnership);
     }
 
 
@@ -85,10 +90,24 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
 
     public void reload(EmakiCodexPlugin plugin) {
-        plugin.languageLoader().load();
-        plugin.appConfigLoader().load();
+        // The page loader runs inside the candidate step because the codex precheck reads its issue list;
+        // advancement registration below only happens once the gate accepts that candidate.
+        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                plugin.messageService(),
+                "codex",
+                plugin.appConfigLoader()::current,
+                () -> {
+                    plugin.languageLoader().load();
+                    AppConfig candidate = plugin.appConfigLoader().load();
+                    plugin.advancementPageLoader().load();
+                    return candidate;
+                },
+                plugin.appConfigLoader()::overrideCurrent);
+        if (gate.rejected()) {
+            // Previous AppConfig is active again and no candidate value reached a runtime service.
+            return;
+        }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        plugin.advancementPageLoader().load();
 
         AppConfig config = plugin.appConfig();
 
@@ -96,6 +115,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             int registered = plugin.advancementRegistrar().registerAll();
             plugin.messageService().info("console.advancements_registered", Map.of("count", registered));
             resyncAdvancements(plugin, registered);
+        } else {
+            plugin.advancementRegistrar().unregisterConfigured();
         }
     }
 
@@ -110,7 +131,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
 
     private void resyncAdvancements(EmakiCodexPlugin plugin, int registered) {
-        if (registered <= 0 || org.bukkit.Bukkit.getOnlinePlayers().isEmpty()) {
+        if (registered <= 0 || Bukkit.getOnlinePlayers().isEmpty()) {
             return;
         }
         plugin.advancementPacketGateway().resyncAll().thenAccept(result -> {
@@ -123,11 +144,15 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     public void shutdown(EmakiCodexPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        coreLibPlugin.actionRegistry().unregisterAll(plugin);
-
-        if (plugin.appConfig() != null && plugin.appConfig().removeOnDisable() && plugin.advancementRegistrar() != null) {
-            plugin.advancementRegistrar().unregisterAll();
+        if (plugin.stageRegistrar() != null) {
+            plugin.stageRegistrar().unregister();
+        }
+        if (plugin.advancementRegistrar() != null) {
+            boolean removeConfigured = plugin.appConfig() != null && plugin.appConfig().removeOnDisable();
+            plugin.advancementRegistrar().shutdown(removeConfigured);
+        }
+        if (plugin.advancementTriggerRegistry() != null) {
+            plugin.advancementTriggerRegistry().close();
         }
         if (plugin.advancementPacketGateway() != null) {
             plugin.advancementPacketGateway().shutdown();

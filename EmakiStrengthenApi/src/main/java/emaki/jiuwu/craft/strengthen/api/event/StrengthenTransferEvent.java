@@ -13,8 +13,10 @@ import org.bukkit.inventory.ItemStack;
  * <p>Listeners may inspect the source/target items, the target recipe and the
  * source/transferred stars, override the transferred star count via
  * {@link #setTransferredStar(int)}, or cancel the transfer entirely. A
- * cancelled event stops EmakiStrengthen from rebuilding the target item. This
- * event is fired on the server thread.
+ * cancelled event stops EmakiStrengthen from rebuilding the target item.
+ *
+ * <p><strong>Thread:</strong> fired synchronously on the player's entity-owner thread. On Paper
+ * this is the main server thread; on Folia it is the player's region thread.
  */
 public final class StrengthenTransferEvent extends Event implements Cancellable {
 

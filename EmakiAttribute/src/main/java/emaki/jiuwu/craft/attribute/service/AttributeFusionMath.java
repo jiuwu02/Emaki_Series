@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 
 final class AttributeFusionMath {
 

@@ -1,50 +1,18 @@
 package emaki.jiuwu.craft.corelib.item;
 
+import java.util.Set;
+
 import org.bukkit.inventory.ItemStack;
 
 import com.willfp.ecoitems.items.EcoItem;
 import com.willfp.ecoitems.items.EcoItems;
 import com.willfp.ecoitems.items.ItemUtilsKt;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class EcoItemsItemSourceResolver
-        extends AbstractManagedItemSourceResolver<EcoItemsItemSourceResolver.DirectAccessor> {
+        extends AbstractManagedItemSourceProvider<EcoItemsItemSourceResolver.DirectAccessor> {
 
     private static final String PLUGIN_NAME = "EcoItems";
 
@@ -57,8 +25,13 @@ final class EcoItemsItemSourceResolver
     }
 
     @Override
-    public String id() {
-        return "corelib_ecoitems";
+    public ItemSourceKind kind() {
+        return ItemSourceKind.ECOITEMS;
+    }
+
+    @Override
+    public Set<String> shorthandPrefixes() {
+        return Set.of("ecoitems-", "eci-");
     }
 
     @Override
@@ -67,13 +40,8 @@ final class EcoItemsItemSourceResolver
     }
 
     @Override
-    public String pluginName() {
+    public String providerPluginName() {
         return PLUGIN_NAME;
-    }
-
-    @Override
-    protected ItemSourceType sourceType() {
-        return ItemSourceType.ECOITEMS;
     }
 
     @Override
@@ -81,7 +49,7 @@ final class EcoItemsItemSourceResolver
         return "EcoItems items are not loaded yet.";
     }
 
-    static final class DirectAccessor implements AbstractManagedItemSourceResolver.Accessor {
+    static final class DirectAccessor implements AbstractManagedItemSourceProvider.Accessor {
 
         private String failureReason = "";
 

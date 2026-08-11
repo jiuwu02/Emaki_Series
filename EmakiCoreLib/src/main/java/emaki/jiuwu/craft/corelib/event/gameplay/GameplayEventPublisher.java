@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.corelib.event.gameplay;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -36,6 +36,7 @@ import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
+import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.event.EmakiEventBus;
 
@@ -66,6 +67,7 @@ public final class GameplayEventPublisher implements Listener {
     private final ExecutionDispatcher executionDispatcher;
     private final EmakiEventBus eventBus;
     private final Supplier<CoreLibConfig.GameplayEventConfig> configSupplier;
+    private final MythicMobBridge mythicMobBridge;
 
     private final Map<UUID, DamageAttribution> lastDamagers = new ConcurrentHashMap<>();
     private final Map<String, BrewerUser> brewers = new ConcurrentHashMap<>();
@@ -73,11 +75,13 @@ public final class GameplayEventPublisher implements Listener {
     public GameplayEventPublisher(Plugin plugin,
             ExecutionDispatcher executionDispatcher,
             EmakiEventBus eventBus,
-            Supplier<CoreLibConfig.GameplayEventConfig> configSupplier) {
+            Supplier<CoreLibConfig.GameplayEventConfig> configSupplier,
+            MythicMobBridge mythicMobBridge) {
         this.plugin = plugin;
-        this.executionDispatcher = java.util.Objects.requireNonNull(executionDispatcher, "executionDispatcher");
+        this.executionDispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
         this.eventBus = eventBus;
         this.configSupplier = configSupplier;
+        this.mythicMobBridge = Objects.requireNonNull(mythicMobBridge, "mythicMobBridge");
     }
 
     private CoreLibConfig.GameplayEventConfig config() {
@@ -122,9 +126,9 @@ public final class GameplayEventPublisher implements Listener {
             return;
         }
         eventBus.publish(new EntityKillEvent(killer, entity, directKill));
-        MythicMobInfo info = mythicMobInfo(entity);
-        if (info != null) {
-            eventBus.publish(new MythicKillEvent(killer, entity, info.mobId(), info.level()));
+        MythicMobBridge.MythicMobSnapshot snapshot = mythicMobBridge.snapshot(entity);
+        if (snapshot != null) {
+            eventBus.publish(new MythicKillEvent(killer, entity, snapshot.mobId(), snapshot.level()));
         }
     }
 
@@ -291,68 +295,9 @@ public final class GameplayEventPublisher implements Listener {
 
 
 
-    private MythicMobInfo mythicMobInfo(LivingEntity entity) {
-        if (!plugin.getServer().getPluginManager().isPluginEnabled("MythicMobs")) {
-            return null;
-        }
-        try {
-            Class<?> mythicBukkit = Class.forName("io.lumine.mythic.bukkit.MythicBukkit");
-            Object instance = mythicBukkit.getMethod("inst").invoke(null);
-            Object mobManager = instance.getClass().getMethod("getMobManager").invoke(instance);
-            Object activeMobs = mobManager.getClass().getMethod("getActiveMobs").invoke(mobManager);
-            if (!(activeMobs instanceof Iterable<?> iterable)) {
-                return null;
-            }
-            for (Object activeMob : iterable) {
-                Object abstractEntity = activeMob.getClass().getMethod("getEntity").invoke(activeMob);
-                Object bukkitEntity = abstractEntity.getClass().getMethod("getBukkitEntity").invoke(abstractEntity);
-                if (bukkitEntity instanceof Entity bukkit && bukkit.getUniqueId().equals(entity.getUniqueId())) {
-                    return new MythicMobInfo(resolveMobId(activeMob), resolveMobLevel(activeMob));
-                }
-            }
-        } catch (ReflectiveOperationException | LinkageError | RuntimeException ignored) {
-        }
-        return null;
-    }
-
-    private String resolveMobId(Object activeMob) {
-        for (String method : List.of("getMobType", "getType", "getInternalName")) {
-            try {
-                Object value = activeMob.getClass().getMethod(method).invoke(activeMob);
-                if (value != null) {
-                    return String.valueOf(value);
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        try {
-            Object mythicMob = activeMob.getClass().getMethod("getType").invoke(activeMob);
-            Object internal = mythicMob.getClass().getMethod("getInternalName").invoke(mythicMob);
-            return String.valueOf(internal);
-        } catch (ReflectiveOperationException ignored) {
-            return "";
-        }
-    }
-
-    private double resolveMobLevel(Object activeMob) {
-        for (String method : List.of("getLevel", "getMobLevel")) {
-            try {
-                Object value = activeMob.getClass().getMethod(method).invoke(activeMob);
-                if (value instanceof Number number) {
-                    return number.doubleValue();
-                }
-            } catch (ReflectiveOperationException ignored) {
-            }
-        }
-        return 1D;
-    }
-
     private record DamageAttribution(UUID playerId, long time) {
     }
 
     private record BrewerUser(UUID uuid, long time) {
-    }
-
-    private record MythicMobInfo(String mobId, double level) {
     }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -39,7 +40,7 @@ public final class DebugCommand {
             sendStatus(sender, messageService);
             return true;
         }
-        switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+        switch (args[0].toLowerCase(Locale.ROOT)) {
             case "status" -> sendStatus(sender, messageService);
             case "on" -> {
                 debugLogger.enableAll();
@@ -60,23 +61,23 @@ public final class DebugCommand {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
             for (String sub : List.of("status", "on", "off", "player", "module")) {
-                if (sub.startsWith(args[0].toLowerCase(java.util.Locale.ROOT))) {
+                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
             }
             return result;
         }
         if (args.length == 2) {
-            switch (args[0].toLowerCase(java.util.Locale.ROOT)) {
+            switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "player" -> {
-                    String prefix = args[1].toLowerCase(java.util.Locale.ROOT);
+                    String prefix = args[1].toLowerCase(Locale.ROOT);
                     Bukkit.getOnlinePlayers().stream()
                             .map(Player::getName)
-                            .filter(name -> name.toLowerCase(java.util.Locale.ROOT).startsWith(prefix))
+                            .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix))
                             .forEach(result::add);
                 }
                 case "module" -> {
-                    String prefix = args[1].toLowerCase(java.util.Locale.ROOT);
+                    String prefix = args[1].toLowerCase(Locale.ROOT);
                     availableModules.stream()
                             .filter(module -> module.startsWith(prefix))
                             .forEach(result::add);
@@ -116,7 +117,7 @@ public final class DebugCommand {
                     Map.of("modules", String.join(", ", availableModules))));
             return;
         }
-        String module = args[1].toLowerCase(java.util.Locale.ROOT);
+        String module = args[1].toLowerCase(Locale.ROOT);
         boolean nowEnabled = debugLogger.toggleModule(module);
         if (nowEnabled) {
             messageService.sendRaw(sender, messageService.message("debug.command.module_enabled",

@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 
 public final class GuiSlot {
@@ -14,58 +14,21 @@ public final class GuiSlot {
     private final List<Integer> slots;
     private final String type;
     private final String item;
-    private final ItemComponentParser.ItemComponents components;
     private final Map<GuiClickType, SoundParser.SoundDefinition> sounds;
     private final ConfiguredItemDefinition itemDefinition;
 
     public GuiSlot(String key,
             List<Integer> slots,
             String type,
-            String item,
-            ItemComponentParser.ItemComponents components,
-            Map<GuiClickType, SoundParser.SoundDefinition> sounds) {
-        this(
-                key,
-                slots,
-                type,
-                item,
-                components == null ? ItemComponentParser.empty() : components,
-                sounds,
-                ItemComponentParser.toDefinition(item, components, 1, Map.of())
-        );
-    }
-
-    public GuiSlot(String key,
-            List<Integer> slots,
-            String type,
             ConfiguredItemDefinition itemDefinition,
             Map<GuiClickType, SoundParser.SoundDefinition> sounds) {
-        this(
-                key,
-                slots,
-                type,
-                itemDefinition == null ? null : itemDefinition.source(),
-                ItemComponentParser.fromDefinition(itemDefinition),
-                sounds,
-                itemDefinition == null ? new ConfiguredItemDefinition(null, 1, Map.of()) : itemDefinition
-        );
-    }
-
-    private GuiSlot(String key,
-            List<Integer> slots,
-            String type,
-            String item,
-            ItemComponentParser.ItemComponents components,
-            Map<GuiClickType, SoundParser.SoundDefinition> sounds,
-            ConfiguredItemDefinition itemDefinition) {
         this.key = key;
         this.slots = slots == null ? List.of() : List.copyOf(slots);
         this.type = type;
-        this.item = item;
-        this.components = components == null ? ItemComponentParser.empty() : components;
+        this.item = itemDefinition == null ? null : itemDefinition.source();
         this.sounds = sounds == null ? Map.of() : Map.copyOf(sounds);
         this.itemDefinition = itemDefinition == null
-                ? new ConfiguredItemDefinition(item, 1, Map.of())
+                ? new ConfiguredItemDefinition(null, 1, Map.of())
                 : itemDefinition;
     }
 
@@ -85,10 +48,6 @@ public final class GuiSlot {
         return item;
     }
 
-    public ItemComponentParser.ItemComponents components() {
-        return components;
-    }
-
     public Map<GuiClickType, SoundParser.SoundDefinition> sounds() {
         return sounds;
     }
@@ -99,6 +58,14 @@ public final class GuiSlot {
 
     public boolean hasType() {
         return Texts.isNotBlank(type);
+    }
+
+    /**
+     * {@return whether the template configured any item component for this slot} Renderers use this
+     * to decide between the template's own styling and their code-side fallback name/lore.
+     */
+    public boolean hasConfiguredComponents() {
+        return !itemDefinition.components().isEmpty();
     }
 
     public SoundParser.SoundDefinition soundFor(GuiClickType clickType) {
@@ -127,14 +94,13 @@ public final class GuiSlot {
                 && slots.equals(slot.slots)
                 && Objects.equals(type, slot.type)
                 && Objects.equals(item, slot.item)
-                && components.equals(slot.components)
                 && sounds.equals(slot.sounds)
                 && itemDefinition.equals(slot.itemDefinition);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, slots, type, item, components, sounds, itemDefinition);
+        return Objects.hash(key, slots, type, item, sounds, itemDefinition);
     }
 
     @Override
@@ -143,7 +109,6 @@ public final class GuiSlot {
                 + ", slots=" + slots
                 + ", type=" + type
                 + ", item=" + item
-                + ", components=" + components
                 + ", sounds=" + sounds
                 + ", itemDefinition=" + itemDefinition + "]";
     }

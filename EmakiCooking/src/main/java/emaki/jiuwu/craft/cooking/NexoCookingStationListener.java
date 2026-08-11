@@ -7,8 +7,8 @@ import com.nexomc.nexo.api.events.custom_block.NexoBlockInteractEvent;
 import com.nexomc.nexo.api.events.furniture.NexoFurnitureBreakEvent;
 import com.nexomc.nexo.api.events.furniture.NexoFurnitureInteractEvent;
 import com.nexomc.nexo.mechanics.Mechanic;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemSourceType;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -34,7 +34,7 @@ final class NexoCookingStationListener implements Listener {
             return;
         }
         Action action = event.getAction();
-        ItemSource source = nexoSource(event.getMechanic());
+        ItemSourceRef source = nexoSource(event.getMechanic());
         stationListener.dispatchInteraction(new StationInteraction(
                 player,
                 block,
@@ -53,7 +53,7 @@ final class NexoCookingStationListener implements Listener {
         if (player == null || block == null) {
             return;
         }
-        ItemSource source = nexoSource(event.getMechanic());
+        ItemSourceRef source = nexoSource(event.getMechanic());
         stationListener.dispatchBreak(new StationBreakContext(
                 player,
                 block,
@@ -66,7 +66,7 @@ final class NexoCookingStationListener implements Listener {
     public void onNexoFurnitureInteract(NexoFurnitureInteractEvent event) {
         Player player = event.getPlayer();
         Entity entity = event.getBaseEntity();
-        ItemSource source = nexoSource(event.getMechanic());
+        ItemSourceRef source = nexoSource(event.getMechanic());
         Block block = anchorBlock(entity);
         if (player == null || block == null || source == null) {
             return;
@@ -86,7 +86,7 @@ final class NexoCookingStationListener implements Listener {
     public void onNexoFurnitureBreak(NexoFurnitureBreakEvent event) {
         Player player = event.getPlayer();
         Entity entity = event.getBaseEntity();
-        ItemSource source = nexoSource(event.getMechanic());
+        ItemSourceRef source = nexoSource(event.getMechanic());
         Block block = anchorBlock(entity);
         if (block == null || source == null) {
             return;
@@ -103,10 +103,10 @@ final class NexoCookingStationListener implements Listener {
         return entity == null || entity.getWorld() == null ? null : entity.getLocation().getBlock();
     }
 
-    private ItemSource nexoSource(Mechanic mechanic) {
+    private ItemSourceRef nexoSource(Mechanic mechanic) {
         if (mechanic == null || mechanic.getItemID() == null || mechanic.getItemID().isBlank()) {
             return null;
         }
-        return new ItemSource(ItemSourceType.NEXO, mechanic.getItemID());
+        return ItemSourceRef.orNull(ItemSourceKind.NEXO, mechanic.getItemID());
     }
 }

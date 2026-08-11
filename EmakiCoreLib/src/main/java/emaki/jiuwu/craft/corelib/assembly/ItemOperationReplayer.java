@@ -3,14 +3,17 @@ package emaki.jiuwu.craft.corelib.assembly;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
+import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 
 final class ItemOperationReplayer {
 
@@ -344,7 +347,7 @@ final class ItemOperationReplayer {
                     lore.get(index),
                     regexPattern,
                     replacement,
-                    java.util.Map.of()
+                    Map.of()
             ));
         }
     }
@@ -410,7 +413,7 @@ final class ItemOperationReplayer {
             return false;
         }
         for (int offset = 0; offset < expected.size(); offset++) {
-            if (!java.util.Objects.equals(lore.get(startIndex + offset), expected.get(offset))) {
+            if (!Objects.equals(lore.get(startIndex + offset), expected.get(offset))) {
                 return false;
             }
         }

@@ -24,27 +24,32 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.util.Vector;
 
-import emaki.jiuwu.craft.attribute.api.EmakiAttributeDamageEvent;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.model.DamageContext;
-import emaki.jiuwu.craft.attribute.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.api.event.EmakiAttributeDamageEvent;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.api.model.DamageResult;
+import emaki.jiuwu.craft.attribute.model.AttributeContributionTrace;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
-import emaki.jiuwu.craft.attribute.model.DamageResult;
+import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageStageSource;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
-import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamagePipelineRegistry;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 
 final class DamageCalculationService {
+
+    private static final String DEBUG_MODULE_COMBAT = "combat";
+    private static final String DEBUG_NONE = "-";
 
     private final AttributeService service;
     private final DamageRecoveryCalculator recoveryCalculator;
@@ -235,6 +240,11 @@ final class DamageCalculationService {
             merged.put("projectile_type", projectile.getType().name());
             merged.put("projectile_uuid", projectile.getUniqueId().toString());
         }
+        merged.put(ShieldBlockResolver.TARGET_BLOCKING, ShieldBlockResolver.isBlocking(
+                target,
+                projectile != null ? projectile : attacker,
+                service.config().shield()
+        ) ? 1D : 0D);
         return DamageContext.of(
                 attacker,
                 target,
@@ -275,12 +285,6 @@ final class DamageCalculationService {
         DamageCalculationPlan plan = prepareDamageCalculation(damageContext);
         if (plan == null) {
             return new DamageResult("", 0D, false, 0D, Map.of(), DamageContext.empty());
-        }
-        DamageResult scripted = service.plugin() == null || service.plugin().javaScriptDamagePipelineRegistry() == null
-                ? null
-                : service.plugin().javaScriptDamagePipelineRegistry().resolve(plan.request().damageContext(), plan.seededRoll());
-        if (scripted != null) {
-            return scripted;
         }
         return service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
     }
@@ -438,33 +442,11 @@ final class DamageCalculationService {
         if (plan == null) {
             return null;
         }
-        JavaScriptDamagePipelineRegistry pipelines = service.plugin() == null
-                ? null
-                : service.plugin().javaScriptDamagePipelineRegistry();
-        DamageResult scripted = pipelines == null ? null : pipelines.resolve(plan.request().damageContext(), plan.seededRoll());
-        return scripted == null
-                ? service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll())
-                : scripted;
+        return service.damageEngine().resolve(plan.request(), plan.damageType(), plan.seededRoll());
     }
 
     private CompletableFuture<DamageResult> resolveCalculationAsync(DamageCalculationPlan plan) {
-        JavaScriptDamagePipelineRegistry pipelines = service.plugin() == null
-                ? null
-                : service.plugin().javaScriptDamagePipelineRegistry();
-        if (pipelines == null || !pipelines.handles(plan.damageContext().damageTypeId())) {
-            return service.asyncDamageEngine().resolveAsync(plan.request(), plan.damageType(), plan.seededRoll());
-        }
-        if (service.asyncTaskScheduler() == null) {
-            try {
-                return CompletableFuture.completedFuture(resolveCalculation(plan));
-            } catch (RuntimeException exception) {
-                return CompletableFuture.failedFuture(exception);
-            }
-        }
-        return service.asyncTaskScheduler().supplyAsync(
-                "attribute-damage-script-pipeline",
-                () -> resolveCalculation(plan)
-        );
+        return service.asyncDamageEngine().resolveAsync(plan.request(), plan.damageType(), plan.seededRoll());
     }
 
     private DamageContext detachForWorker(DamageContext context) {
@@ -675,8 +657,7 @@ final class DamageCalculationService {
                 resolvedDamage.damageType(),
                 resolvedDamage.damageResult(),
                 resolvedDamage.finalDamage()
-        ) + Math.max(0D, damageContext.variables().getDouble(
-                JavaScriptDamagePipelineRegistry.ATTACKER_HEAL_INTENT, 0D));
+        );
         int cooldownTicks = 0;
         if (sameOwner) {
             double sameOwnerRecovery = recoveryAmount;
@@ -697,10 +678,6 @@ final class DamageCalculationService {
         } else {
             runPostDamageEffect("target-message", () -> messageDispatcher.dispatch(targetPlayer, messages.target()));
         }
-        runPostDamageEffect(
-                "target-script-intents",
-                () -> replayTargetScriptIntents(target, targetPlayer, damageContext.variables())
-        );
         runPostDamageEffect("target-health-sync", () -> service.scheduleHealthSync(target));
 
         boolean applied = !applyDamage || remainingDamage > 0D || appliedDamage > 0D;
@@ -771,36 +748,6 @@ final class DamageCalculationService {
                 );
             }
             return fallback;
-        }
-    }
-
-    private void replayTargetScriptIntents(LivingEntity target,
-            Player targetPlayer,
-            DamageContextVariables variables) {
-        if (target == null || variables == null) {
-            return;
-        }
-        double healing = variables.getDouble(JavaScriptDamagePipelineRegistry.TARGET_HEAL_INTENT, 0D);
-        if (healing > 0D && target.isValid() && !target.isDead()) {
-            double healed = Math.min(target.getMaxHealth(), target.getHealth() + healing);
-            target.setHealth(Math.max(0D, healed));
-        }
-        if (targetPlayer == null) {
-            return;
-        }
-        for (Object raw : ConfigNodes.asObjectList(variables.get(JavaScriptDamagePipelineRegistry.TARGET_MESSAGES_INTENT))) {
-            Map<String, Object> entry = ConfigNodes.entries(raw);
-            String message = Texts.toStringSafe(entry.get("message"));
-            if (Texts.isBlank(message)) {
-                continue;
-            }
-            pluginMessage(targetPlayer, message, ConfigNodes.entries(entry.get("placeholders")));
-        }
-    }
-
-    private void pluginMessage(Player player, String message, Map<String, Object> placeholders) {
-        if (service.plugin() != null && service.plugin().messageService() != null) {
-            service.plugin().messageService().send(player, message, placeholders);
         }
     }
 
@@ -959,20 +906,24 @@ final class DamageCalculationService {
                             "dodge_roll", service.combatDebug().formatNumber(dodgeRoll)
                     ));
                 }
-                return new DamageCalculationPlan(
+                DamageCalculationPlan dodgedPlan = new DamageCalculationPlan(
                         resolvedContext.withBaseDamage(0D),
                         emptyDamageType(damageType),
                         new DamageRequest(detachForWorker(resolvedContext.withBaseDamage(0D))),
                         seededRoll
                 );
+                debugDamagePlan(dodgedPlan);
+                return dodgedPlan;
             }
         }
-        return new DamageCalculationPlan(
+        DamageCalculationPlan plan = new DamageCalculationPlan(
                 resolvedContext,
                 effectiveDamageType,
                 new DamageRequest(detachForWorker(resolvedContext)),
                 seededRoll
         );
+        debugDamagePlan(plan);
+        return plan;
     }
 
     private ResolvedDamage finalizeResolvedDamage(DamageContext damageContext, DamageResult result) {
@@ -1018,6 +969,7 @@ final class DamageCalculationService {
                     "resolved_damage_type", damageType.id()
             ));
         }
+        debugDamageFinal(resultContext, effectiveResult, damageType, event.getFinalDamage());
         return new ResolvedDamage(resultContext, effectiveResult, damageType, event.getFinalDamage());
     }
 
@@ -1025,7 +977,7 @@ final class DamageCalculationService {
         if (damageType == null || (allowCritical && calculateTargetDefense)) {
             return damageType;
         }
-        List<emaki.jiuwu.craft.attribute.model.DamageStageDefinition> filteredStages = new ArrayList<>();
+        List<DamageStageDefinition> filteredStages = new ArrayList<>();
         for (var stage : damageType.stages()) {
             if (stage == null) {
                 continue;
@@ -1250,7 +1202,7 @@ final class DamageCalculationService {
         };
     }
 
-    private double sumAttributes(AttributeSnapshot snapshot, Map<String, ?> context, java.util.List<String> ids) {
+    private double sumAttributes(AttributeSnapshot snapshot, Map<String, ?> context, List<String> ids) {
         if (ids == null || ids.isEmpty()) {
             return 0D;
         }
@@ -1269,6 +1221,357 @@ final class DamageCalculationService {
             }
         }
         return total;
+    }
+
+    private void debugDamagePlan(DamageCalculationPlan plan) {
+        if (plan == null) {
+            return;
+        }
+        DamageContext context = plan.damageContext();
+        if (!shouldDebugDamage(context)) {
+            return;
+        }
+        try {
+            emitDamagePlanAnchors(plan, context);
+        } catch (RuntimeException | LinkageError exception) {
+            if (service.plugin() != null) {
+                service.plugin().getLogger().log(
+                        Level.WARNING,
+                        "Damage debug anchor emission failed; damage calculation is unaffected.",
+                        exception
+                );
+            }
+        }
+    }
+
+    private void emitDamagePlanAnchors(DamageCalculationPlan plan, DamageContext context) {
+        DamageTypeDefinition damageType = plan.damageType();
+        Map<String, List<AttributeContributionTrace>> attackerTraces = debugContributionIndex(context.attacker());
+        Map<String, List<AttributeContributionTrace>> targetTraces = debugContributionIndex(context.target());
+        debugDamage(context, "combat.damage_base", Map.ofEntries(
+                Map.entry("attacker", debugEntityLabel(context.attacker())),
+                Map.entry("target", debugEntityLabel(context.target())),
+                Map.entry("projectile", debugEntityLabel(context.projectile())),
+                Map.entry("damage_type", Texts.toStringSafe(damageType == null ? "" : damageType.id())),
+                Map.entry("cause", context.cause() == null ? DEBUG_NONE : context.cause().name()),
+                Map.entry("source_damage", debugNumber(context.sourceDamage())),
+                Map.entry("base_damage", debugNumber(context.baseDamage())),
+                Map.entry("stage_chain", debugStageChain(damageType)),
+                Map.entry("allow_critical", String.valueOf(context.variables().getBoolean(true, "allow_critical"))),
+                Map.entry("calculate_target_defense",
+                        String.valueOf(context.variables().getBoolean(true, "calculate_target_defense"))),
+                Map.entry("allow_target_dodge", String.valueOf(context.variables().getBoolean(false, "allow_target_dodge"))),
+                Map.entry("target_blocking", debugNumber(context.variables().getDouble(ShieldBlockResolver.TARGET_BLOCKING, 0D))),
+                Map.entry("seeded_roll", debugNumber(plan.seededRoll())),
+                Map.entry("attacker_signature", debugSignature(context.attackerSnapshot())),
+                Map.entry("target_signature", debugSignature(context.targetSnapshot()))
+        ));
+        if (damageType == null) {
+            return;
+        }
+        for (DamageStageDefinition stage : damageType.stages()) {
+            if (stage == null) {
+                continue;
+            }
+            Map<String, List<AttributeContributionTrace>> stageTraces = switch (stage.source()) {
+                case ATTACKER ->
+                    attackerTraces;
+                case TARGET ->
+                    targetTraces;
+                case CONTEXT ->
+                    null;
+            };
+            debugDamage(context, debugStageLangKey(stage), debugStageFields(context, plan, stage, stageTraces));
+        }
+    }
+
+    private String debugStageLangKey(DamageStageDefinition stage) {
+        if (isCriticalStage(stage.id())) {
+            return "combat.damage_critical";
+        }
+        if (isDefenseStage(stage.id())) {
+            return "combat.damage_reduction";
+        }
+        if (isBlockStage(stage.id())) {
+            return "combat.damage_block";
+        }
+        return "combat.damage_bonus";
+    }
+
+    private boolean isBlockStage(String stageId) {
+        String normalized = Texts.normalizeId(stageId);
+        return "block".equals(normalized) || "shield_block".equals(normalized);
+    }
+
+    private Map<String, ?> debugStageFields(DamageContext context,
+            DamageCalculationPlan plan,
+            DamageStageDefinition stage,
+            Map<String, List<AttributeContributionTrace>> traces) {
+        AttributeSnapshot snapshot = switch (stage.source()) {
+            case ATTACKER ->
+                context.attackerSnapshot();
+            case TARGET ->
+                context.targetSnapshot();
+            case CONTEXT ->
+                null;
+        };
+        DamageContextVariables variables = context.variables();
+        return Map.ofEntries(
+                Map.entry("attacker", debugEntityLabel(context.attacker())),
+                Map.entry("target", debugEntityLabel(context.target())),
+                Map.entry("damage_type", Texts.toStringSafe(plan.damageType() == null ? "" : plan.damageType().id())),
+                Map.entry("stage", Texts.toStringSafe(stage.id())),
+                Map.entry("stage_kind", String.valueOf(stage.kind())),
+                Map.entry("stage_source", String.valueOf(stage.source())),
+                Map.entry("stage_mode", String.valueOf(stage.mode())),
+                Map.entry("chain_base_damage", debugNumber(context.baseDamage())),
+                Map.entry("flat_sources", debugContributions(snapshot, variables, traces, stage.flatAttributes())),
+                Map.entry("percent_sources", debugContributions(snapshot, variables, traces, stage.percentAttributes())),
+                Map.entry("chance_sources", debugContributions(snapshot, variables, traces, stage.chanceAttributes())),
+                Map.entry("multiplier_sources", debugContributions(snapshot, variables, traces, stage.multiplierAttributes())),
+                Map.entry("expression", Texts.isBlank(stage.expression()) ? DEBUG_NONE : stage.expression()),
+                Map.entry("clamps", debugClamps(stage)),
+                Map.entry("target_blocking", debugNumber(variables.getDouble(ShieldBlockResolver.TARGET_BLOCKING, 0D))),
+                Map.entry("roll_flat", debugNumber(variables.getDouble("damage_roll_flat", 0D))),
+                Map.entry("roll_percent", debugNumber(variables.getDouble("damage_roll_percent", 0D))),
+                Map.entry("roll_chance", debugNumber(variables.getDouble("damage_roll_chance", 0D))),
+                Map.entry("roll_multiplier", debugNumber(variables.getDouble("damage_roll_multiplier", 0D))),
+                Map.entry("seeded_roll", debugNumber(plan.seededRoll())),
+                Map.entry("source_signature", debugSignature(snapshot))
+        );
+    }
+
+    private String debugStageChain(DamageTypeDefinition damageType) {
+        if (damageType == null || damageType.stages().isEmpty()) {
+            return DEBUG_NONE;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (DamageStageDefinition stage : damageType.stages()) {
+            if (stage == null) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(" -> ");
+            }
+            builder.append(Texts.toStringSafe(stage.id()));
+        }
+        return builder.isEmpty() ? DEBUG_NONE : builder.toString();
+    }
+
+    private String debugClamps(DamageStageDefinition stage) {
+        return "result[" + debugBound(stage.minResult()) + "," + debugBound(stage.maxResult()) + "]"
+                + " chance[" + debugBound(stage.minChance()) + "," + debugBound(stage.maxChance()) + "]"
+                + " multiplier[" + debugBound(stage.minMultiplier()) + "," + debugBound(stage.maxMultiplier()) + "]";
+    }
+
+    private String debugBound(Double value) {
+        return value == null ? DEBUG_NONE : debugNumber(value);
+    }
+
+    private String debugContributions(AttributeSnapshot snapshot,
+            DamageContextVariables variables,
+            Map<String, List<AttributeContributionTrace>> traces,
+            List<String> attributeIds) {
+        if (attributeIds == null || attributeIds.isEmpty()) {
+            return DEBUG_NONE;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (String attributeId : attributeIds) {
+            if (Texts.isBlank(attributeId)) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append("; ");
+            }
+            builder.append(attributeId).append('=');
+            // 与 DamageCalculationCache#computeSum 同序：先读快照，缺失时回落到上下文变量。
+            Double snapshotValue = snapshot == null ? null : snapshot.values().get(attributeId);
+            if (snapshotValue != null) {
+                builder.append(debugNumber(snapshotValue));
+                double spread = readSnapshotAttribute(snapshot, AttributeSnapshot.rangeSpreadKey(attributeId));
+                if (spread != 0D) {
+                    builder.append("(+spread ").append(debugNumber(spread)).append(')');
+                }
+                builder.append(" from ").append(debugAttributeSources(traces, attributeId));
+                continue;
+            }
+            Double contextValue = variables == null
+                    ? null
+                    : Numbers.tryParseDouble(variables.get(attributeId), null);
+            if (contextValue != null) {
+                builder.append(debugNumber(contextValue)).append(" from context_variable");
+                continue;
+            }
+            builder.append(debugNumber(0D)).append(" from absent(no_snapshot_no_context)");
+        }
+        return builder.isEmpty() ? DEBUG_NONE : builder.toString();
+    }
+
+    private String debugAttributeSources(Map<String, List<AttributeContributionTrace>> traces, String attributeId) {
+        if (traces == null) {
+            return "snapshot(non_player_no_item_layer_trace)";
+        }
+        List<AttributeContributionTrace> matched = traces.get(attributeId);
+        if (matched == null || matched.isEmpty()) {
+            return "snapshot(unattributed)";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (AttributeContributionTrace trace : matched) {
+            if (trace == null) {
+                continue;
+            }
+            if (!builder.isEmpty()) {
+                builder.append(" + ");
+            }
+            builder.append('[')
+                    .append(debugField(trace.slot()))
+                    .append('/')
+                    .append(debugField(trace.layer()))
+                    .append('/')
+                    .append(debugField(trace.sourceLabel()))
+                    .append(" module=").append(debugField(trace.sourceModule()))
+                    .append(" type=").append(debugField(trace.sourceType()))
+                    .append(" id=").append(debugField(trace.sourceId()))
+                    .append(" item=").append(debugField(trace.itemId()))
+                    .append(" raw=").append(debugNumber(trace.rawValue()))
+                    .append(" value=").append(debugNumber(trace.value()))
+                    .append(" passed=").append(trace.conditionPassed())
+                    .append(']');
+        }
+        return builder.isEmpty() ? "snapshot(unattributed)" : builder.toString();
+    }
+
+    private Map<String, List<AttributeContributionTrace>> debugContributionIndex(LivingEntity entity) {
+        if (!(entity instanceof Player player) || service.attributeTraceService() == null) {
+            return null;
+        }
+        List<AttributeContributionTrace> contributions =
+                service.attributeTraceService().trace(player, null).contributions();
+        if (contributions.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, List<AttributeContributionTrace>> index = new LinkedHashMap<>();
+        for (AttributeContributionTrace trace : contributions) {
+            if (trace == null) {
+                continue;
+            }
+            index.computeIfAbsent(Texts.normalizeId(trace.attributeId()), _ -> new ArrayList<>()).add(trace);
+        }
+        return index;
+    }
+
+    private String debugEntityLabel(Entity entity) {
+        if (entity == null) {
+            return DEBUG_NONE;
+        }
+        return Texts.toStringSafe(entity.getName())
+                + "/" + entity.getType().name()
+                + "/" + entity.getUniqueId();
+    }
+
+    private String debugSignature(AttributeSnapshot snapshot) {
+        if (snapshot == null || Texts.isBlank(snapshot.sourceSignature())) {
+            return DEBUG_NONE;
+        }
+        return snapshot.sourceSignature();
+    }
+
+    private String debugField(String value) {
+        String safe = Texts.toStringSafe(value).trim();
+        return safe.isEmpty() ? DEBUG_NONE : safe;
+    }
+
+    private String debugNumber(double value) {
+        return Numbers.formatNumber(value, "0.####");
+    }
+
+    private void debugDamageFinal(DamageContext context,
+            DamageResult engineResult,
+            DamageTypeDefinition damageType,
+            double eventFinalDamage) {
+        if (!shouldDebugDamage(context)) {
+            return;
+        }
+        try {
+            debugDamage(context, "combat.damage_final", Map.ofEntries(
+                    Map.entry("attacker", debugEntityLabel(context.attacker())),
+                    Map.entry("target", debugEntityLabel(context.target())),
+                    Map.entry("damage_type", Texts.toStringSafe(damageType == null ? "" : damageType.id())),
+                    Map.entry("cause", context.cause() == null ? DEBUG_NONE : context.cause().name()),
+                    Map.entry("base_damage", debugNumber(context.baseDamage())),
+                    Map.entry("stage_outputs", debugStageOutputs(engineResult)),
+                    Map.entry("critical", String.valueOf(engineResult != null && engineResult.critical())),
+                    Map.entry("seeded_roll", debugNumber(engineResult == null ? 0D : engineResult.roll())),
+                    Map.entry("engine_final_damage", debugNumber(engineResult == null ? 0D : engineResult.finalDamage())),
+                    Map.entry("event_final_damage", debugNumber(eventFinalDamage)),
+                    Map.entry("attacker_signature", debugSignature(context.attackerSnapshot())),
+                    Map.entry("target_signature", debugSignature(context.targetSnapshot()))
+            ));
+        } catch (RuntimeException | LinkageError exception) {
+            if (service.plugin() != null) {
+                service.plugin().getLogger().log(
+                        Level.WARNING,
+                        "Damage debug anchor emission failed; damage calculation is unaffected.",
+                        exception
+                );
+            }
+        }
+    }
+
+    private String debugStageOutputs(DamageResult result) {
+        if (result == null || result.stageValues().isEmpty()) {
+            return DEBUG_NONE;
+        }
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<String, Double> entry : result.stageValues().entrySet()) {
+            if (!builder.isEmpty()) {
+                builder.append("; ");
+            }
+            builder.append(Texts.toStringSafe(entry.getKey()))
+                    .append(" -> ")
+                    .append(debugNumber(entry.getValue() == null ? 0D : entry.getValue()));
+        }
+        return builder.isEmpty() ? DEBUG_NONE : builder.toString();
+    }
+
+    private boolean shouldDebugDamage(DamageContext damageContext) {
+        if (damageContext == null
+                || service.plugin() == null
+                || service.plugin().debugLogger() == null) {
+            return false;
+        }
+        Player subject = debugDamageSubject(damageContext);
+        if (subject == null && !DebugLogger.isGlobalAllEnabled()) {
+            return false;
+        }
+        return service.plugin().debugLogger().shouldLog(DEBUG_MODULE_COMBAT, subject);
+    }
+
+    private Player debugDamageSubject(DamageContext damageContext) {
+        if (damageContext == null) {
+            return null;
+        }
+        if (damageContext.attacker() instanceof Player attackerPlayer) {
+            return attackerPlayer;
+        }
+        if (damageContext.target() instanceof Player targetPlayer) {
+            return targetPlayer;
+        }
+        return null;
+    }
+
+    private void debugDamage(DamageContext damageContext, String langKey, Map<String, ?> replacements) {
+        if (damageContext == null
+                || service.plugin() == null
+                || service.plugin().debugLogger() == null) {
+            return;
+        }
+        service.plugin().debugLogger().log(
+                DEBUG_MODULE_COMBAT,
+                debugDamageSubject(damageContext),
+                langKey,
+                replacements
+        );
     }
 
     private boolean shouldDebugCombat(DamageContext damageContext) {

@@ -1,8 +1,11 @@
 package emaki.jiuwu.craft.item.api.preview;
 
+import org.jetbrains.annotations.ApiStatus;
+
 /**
  * Closeable handle for an item layer preview provider registration.
  */
+@ApiStatus.NonExtendable
 @FunctionalInterface
 public interface ItemLayerPreviewRegistration extends AutoCloseable {
 
@@ -18,6 +21,7 @@ public interface ItemLayerPreviewRegistration extends AutoCloseable {
         return NoopHolder.INSTANCE;
     }
 
+    @ApiStatus.Internal
     final class NoopHolder {
         private static final ItemLayerPreviewRegistration INSTANCE = () -> {
         };

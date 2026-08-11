@@ -7,11 +7,10 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
-import emaki.jiuwu.craft.corelib.action.ActionLineParser;
-import emaki.jiuwu.craft.corelib.action.ActionRegistry;
-import emaki.jiuwu.craft.corelib.action.ActionTemplateRegistry;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 
 public final class ConfigPrecheckService {
 
@@ -20,8 +19,7 @@ public final class ConfigPrecheckService {
     private final ConfigPrecheckRegistry registry = new ConfigPrecheckRegistry();
     private final Supplier<? extends LogMessages> messagesSupplier;
     private ConfigPrecheckReport lastReport = ConfigPrecheckReport.empty();
-    private ActionRegistry actionRegistry;
-    private ActionTemplateRegistry templateRegistry;
+    private StageRegistry stageRegistry;
 
     public ConfigPrecheckService() {
         this(() -> null);
@@ -36,9 +34,16 @@ public final class ConfigPrecheckService {
         registry.register(new CoreLibConfigPrecheckContributor(this.messagesSupplier));
     }
 
-    public void configure(ActionRegistry actionRegistry, ActionTemplateRegistry templateRegistry) {
-        this.actionRegistry = actionRegistry;
-        this.templateRegistry = templateRegistry;
+    /**
+     * Binds the stage table pipeline checks validate against.
+     *
+     * <p>Called with the freshly built candidate registry before it is installed, which is what lets a
+     * reload reject a configuration without having replaced the live stage table first.</p>
+     *
+     * @param stageRegistry the stage table
+     */
+    public void configure(StageRegistry stageRegistry) {
+        this.stageRegistry = stageRegistry;
     }
 
     public ConfigPrecheckRegistry registry() {
@@ -73,11 +78,16 @@ public final class ConfigPrecheckService {
     }
 
     private ConfigPrecheckReport run(CoreLibConfig config, List<ConfigPrecheckContributor> contributors) {
-        ConfigPrecheckContext context = new ConfigPrecheckContext(new ActionLineParser(), actionRegistry, templateRegistry);
+        CoreLibConfig safeConfig = config == null ? CoreLibConfig.defaults() : config;
+        // Built from the config being checked rather than the live one: a reload prechecks its candidate, so
+        // a sequence added in that candidate has to be visible to `run` validation right now.
+        ConfigPrecheckContext context = ConfigPrecheckContext.of(stageRegistry,
+                safeConfig.actionTemplates(),
+                safeConfig.pipelineConfig() == null ? null : safeConfig.pipelineConfig().toLimits());
         List<ConfigPrecheckResult> results = new ArrayList<>();
         for (ConfigPrecheckContributor contributor : contributors) {
             try {
-                results.add(contributor.check(config == null ? CoreLibConfig.defaults() : config, context));
+                results.add(contributor.check(safeConfig, context));
             } catch (RuntimeException exception) {
                 String error = Texts.toStringSafe(exception.getMessage());
                 if (Texts.isBlank(error)) {

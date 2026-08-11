@@ -60,10 +60,10 @@ condition:
     - "%player_level% >= 5"
   on_pass:
     actions:
-      - 'sendmessage text="<green>厨艺达标，出锅成功。</green>"'
+      - 'send_message text="<green>厨艺达标，出锅成功。</green>"'
   on_fail:
     actions:
-      - 'sendmessage text="<red>厨艺等级不足，出锅失败。</red>"'
+      - 'send_message text="<red>厨艺等级不足，出锅失败。</red>"'
     block_output: true
 
 # ============================================================
@@ -81,7 +81,7 @@ result:
           - "minecraft-rabbit_stew"
         amount: 1
     actions:
-      - 'sendmessage text="<green>成功出锅。</green>"'
+      - 'send_message text="<green>成功出锅。</green>"'
   undercooked:
     outputs:
       - item_sources:

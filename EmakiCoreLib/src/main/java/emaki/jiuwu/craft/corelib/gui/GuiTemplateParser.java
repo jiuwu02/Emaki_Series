@@ -2,20 +2,22 @@ package emaki.jiuwu.craft.corelib.gui;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import org.bukkit.event.inventory.InventoryType;
 
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.gui.SlotParser;
 
 public final class GuiTemplateParser {
 
@@ -82,7 +84,7 @@ public final class GuiTemplateParser {
             return InventoryType.CHEST;
         }
         try {
-            return InventoryType.valueOf(configured.trim().toUpperCase(java.util.Locale.ROOT));
+            return InventoryType.valueOf(configured.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ignored) {
             return InventoryType.CHEST;
         }
@@ -156,7 +158,7 @@ public final class GuiTemplateParser {
         if (Texts.isNotBlank(item)) {
             return item;
         }
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         return source == null ? null : ItemSourceUtil.toShorthand(source);
     }
 
@@ -167,7 +169,7 @@ public final class GuiTemplateParser {
         if (raw instanceof String text) {
             return Texts.trim(text);
         }
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         return source == null ? null : ItemSourceUtil.toShorthand(source);
     }
 

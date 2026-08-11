@@ -1,11 +1,14 @@
 package emaki.jiuwu.craft.cooking.service;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -23,17 +26,19 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class GrinderRuntimeService {
 
@@ -95,12 +100,12 @@ public final class GrinderRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> replace(
+            public CompletionStage<Void> replace(
                     StationCoordinates coordinates,
                     Map<String, Object> committedState) {
-                GrinderState state = readState(new emaki.jiuwu.craft.corelib.yaml.MapYamlSection(committedState));
+                GrinderState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
-                    return java.util.concurrent.CompletableFuture.failedFuture(
+                    return CompletableFuture.failedFuture(
                             new IllegalArgumentException("Invalid committed grinder state"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
@@ -112,7 +117,7 @@ public final class GrinderRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+            public CompletionStage<Void> delete(StationCoordinates coordinates) {
                 return stateStore.deleteAsync(coordinates)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
                         .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
@@ -131,12 +136,12 @@ public final class GrinderRuntimeService {
         ensureTicker();
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
         GrinderState state = readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         Block block = coordinates.block();
         if (state == null) {
             activeStations.remove(coordinates.runtimeKey());
@@ -204,12 +209,18 @@ public final class GrinderRuntimeService {
             return true;
         }
         GrinderState existing = readState(stateStore.load(coordinates));
+        debugStation("station.grinder_start", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "hand", String.valueOf(hand.getType().getKey()),
+                "existing_state", existing == null ? "null" : "input=" + existing.inputSource()
+        ));
         if (existing != null) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.busy", Map.of());
             interaction.cancel();
             return true;
         }
-        ItemSource source = itemSourceService.identifyItem(hand);
+        ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
         RecipeDocument recipe = recipeService.findGrinderRecipe(shorthand, player);
         if (recipe == null) {
@@ -250,10 +261,16 @@ public final class GrinderRuntimeService {
         }
         GrinderState state = readState(stateStore.load(coordinates));
         if (state == null) {
+            debugStation("station.break_without_state", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "type", StationType.GRINDER.folderName()
+            ));
+            activeStations.remove(coordinates.runtimeKey());
+            textDisplayService.removeStation(StationType.GRINDER, coordinates);
             return false;
         }
         if (state.hasInputSource()) {
-            ItemSource source = ItemSourceUtil.parse(state.inputSource());
+            ItemSourceRef source = ItemSourceUtil.parse(state.inputSource());
             ItemStack itemStack = itemSourceService.createItem(source, 1);
             if (itemStack != null && !itemStack.getType().isAir()) {
                 block.getWorld().dropItemNaturally(block.getLocation().add(0.5D, 1.0D, 0.5D), itemStack);
@@ -291,7 +308,7 @@ public final class GrinderRuntimeService {
                 false,
                 0L,
                 0, 0, 0,
-                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(state.inputSource())),
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(state.inputSource()).orElse("")),
                 state.inputSource(),
                 state.hasInputSource() ? 1 : 0,
                 state.hasInputSource() ? 1 : 0,
@@ -305,6 +322,13 @@ public final class GrinderRuntimeService {
                 0,
                 state.playerName() == null ? "" : state.playerName()
         ));
+    }
+
+    private void debugStation(String langKey, Map<String, ?> replacements) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        plugin.debugLogger().log("station", (UUID) null, langKey, replacements);
     }
 
     private void ensureTicker() {
@@ -358,7 +382,14 @@ public final class GrinderRuntimeService {
                 try {
                     GrinderState state = readState(stateStore.load(coordinates));
                     if (state == null) {
+                        debugStation("station.grinder_tick", Map.of(
+                                "station", coordinates.runtimeKey(),
+                                "result", "aborted_state_null",
+                                "elapsed_ms", 0,
+                                "target_ms", 0
+                        ));
                         activeStations.remove(stationKey);
+                        textDisplayService.removeStation(StationType.GRINDER, coordinates);
                         return;
                     }
                     processStation(coordinates, state);
@@ -381,7 +412,7 @@ public final class GrinderRuntimeService {
         }
         Block block = coordinates.block();
         RecipeDocument recipe = recipeService.grinderRecipeById(state.recipeId());
-        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || recipe == null || !blockMatcher.matches(block, StationType.GRINDER, stationSource)) {
             activeStations.remove(coordinates.runtimeKey());
             stateStore.deleteAsync(coordinates);
@@ -390,6 +421,12 @@ public final class GrinderRuntimeService {
         }
         int grindTimeSeconds = recipeService.grinderTimeSeconds(recipe);
         long elapsed = System.currentTimeMillis() - state.startTimeMs();
+        debugStation("station.grinder_tick", Map.of(
+                "station", coordinates.runtimeKey(),
+                "result", elapsed >= grindTimeSeconds * 1000L ? "completing" : "running",
+                "elapsed_ms", elapsed,
+                "target_ms", grindTimeSeconds * 1000L
+        ));
         if (elapsed >= grindTimeSeconds * 1000L) {
             complete(coordinates, block, state, recipe);
             return;
@@ -423,7 +460,9 @@ public final class GrinderRuntimeService {
                         "recipe_id", recipe.id(),
                         "station_type", StationType.GRINDER.folderName()
                 ),
-                List.of()
+                List.of(),
+                // No player inventory input on this path; the pipeline evaluates the condition itself.
+                null
         ));
         if (accepted && player != null && player.isOnline()) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.completed", Map.of("recipe", recipe.displayName()));
@@ -449,7 +488,7 @@ public final class GrinderRuntimeService {
         StringBuilder builder = new StringBuilder();
         appendLine(builder, messageService.message("text_display.grinder.title"));
         if (state.hasInputSource()) {
-            String itemName = EmakiCoreLibApi.itemDisplayName(state.inputSource());
+            String itemName = EmakiCoreLibApi.itemDisplayName(state.inputSource()).orElse("");
             if (itemName == null || itemName.isBlank()) {
                 itemName = state.inputSource();
             }
@@ -478,7 +517,7 @@ public final class GrinderRuntimeService {
             int z = Integer.parseInt(parts[parts.length - 1]);
             int y = Integer.parseInt(parts[parts.length - 2]);
             int x = Integer.parseInt(parts[parts.length - 3]);
-            String world = String.join(":", java.util.Arrays.copyOf(parts, parts.length - 3));
+            String world = String.join(":", Arrays.copyOf(parts, parts.length - 3));
             return new StationCoordinates(world, x, y, z);
         } catch (NumberFormatException exception) {
             return null;
@@ -517,7 +556,7 @@ public final class GrinderRuntimeService {
         return root;
     }
 
-    private GrinderState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    private GrinderState readState(YamlSection section) {
         if (section == null || !StationType.GRINDER.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
             return null;
         }

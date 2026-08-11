@@ -11,16 +11,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.attribute.api.AttributeContribution;
-import emaki.jiuwu.craft.attribute.api.AttributeContributionProvider;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContribution;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.model.AttributeContributionTrace;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeSourceTraceReport;
 import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class AttributeTraceService {
 

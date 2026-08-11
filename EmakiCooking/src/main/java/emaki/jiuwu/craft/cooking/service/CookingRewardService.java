@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -15,28 +16,24 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
-import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.cooking.api.event.CookingRecipeCompleteEvent;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
-import emaki.jiuwu.craft.cooking.script.JavaScriptCookingCompleteHookRegistry;
-import emaki.jiuwu.craft.cooking.script.JavaScriptCookingResultRuleRegistry;
 
 public final class CookingRewardService {
 
@@ -44,7 +41,7 @@ public final class CookingRewardService {
     @SuppressWarnings("unused")
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
-    private final ActionExecutor actionExecutor;
+    private final ActionLineRunner actionLines;
     private final EmakiItemAssemblyService itemAssemblyService;
     private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
@@ -54,14 +51,14 @@ public final class CookingRewardService {
     public CookingRewardService(JavaPlugin plugin,
             MessageService messageService,
             ItemSourceService itemSourceService,
-            ActionExecutor actionExecutor,
+            ActionLineRunner actionLines,
             EmakiItemAssemblyService itemAssemblyService,
             ExecutionDispatcher executionDispatcher,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.itemSourceService = itemSourceService;
-        this.actionExecutor = actionExecutor;
+        this.actionLines = actionLines;
         this.itemAssemblyService = itemAssemblyService;
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
@@ -120,13 +117,37 @@ public final class CookingRewardService {
             List<String> actions,
             String phase,
             Map<String, ?> placeholders) {
+        return prepare(operationId, recipe, player, location, dropResult, inputs, outputs, actions, phase,
+                placeholders, null);
+    }
+
+    /**
+     * Freezes the reward units for a completion.
+     *
+     * @param conditionOutcome a completion condition the caller already evaluated, or {@code null} to
+     *         evaluate it here. Supplying it keeps the condition a single observation per completion,
+     *         which matters because the caller may have gated the submission on that same result.
+     */
+    PreparedReward prepare(String operationId,
+            RecipeDocument recipe,
+            Player player,
+            Location location,
+            boolean dropResult,
+            List<CookingInputIngredient> inputs,
+            List<Map<String, Object>> outputs,
+            List<String> actions,
+            String phase,
+            Map<String, ?> placeholders,
+            CookingCompletionRequest.ConditionOutcome conditionOutcome) {
         String stableOperationId = Texts.isBlank(operationId) ? UUID.randomUUID().toString() : operationId;
         Map<String, Object> basePlaceholders = defaultPlaceholders(recipe, player, location, inputs, placeholders);
         List<FrozenRewardUnit> units = new ArrayList<>();
         int sequence = 0;
 
         if (recipe != null && recipeService != null && recipeService.hasCompletionCondition(recipe)) {
-            boolean conditionPassed = recipeService.completionConditionPasses(recipe, player);
+            boolean conditionPassed = conditionOutcome != null
+                    ? conditionOutcome.passed()
+                    : recipeService.completionConditionPasses(recipe, player);
             List<String> branchActions = recipeService.completionConditionActions(recipe, conditionPassed);
             if (!branchActions.isEmpty()) {
                 units.add(freezeActionUnit(
@@ -144,23 +165,9 @@ public final class CookingRewardService {
             }
         }
 
-        JavaScriptCookingResultRuleRegistry.DeliveryPlan plan = JavaScriptCookingResultRuleRegistry.DeliveryPlan.from(
-                recipe,
-                player,
-                location,
-                phase,
-                inputs,
-                outputs,
-                actions,
-                basePlaceholders
-        );
-        if (plugin instanceof EmakiCookingPlugin cookingPlugin
-                && cookingPlugin.javaScriptResultRuleRegistry() != null) {
-            plan = cookingPlugin.javaScriptResultRuleRegistry().apply(plan);
-        }
-        if (plan == null || plan.cancelled()) {
-            return new PreparedReward(units);
-        }
+        String effectivePhase = Texts.toStringSafe(phase);
+        List<Map<String, Object>> effectiveOutputs = outputs == null ? List.of() : outputs;
+        List<String> effectiveActions = actions == null ? List.of() : actions;
 
         boolean effectiveDropResult = dropResult;
         if (recipe != null && threadOwnership != null && threadOwnership.isGlobalOwned()) {
@@ -170,8 +177,8 @@ public final class CookingRewardService {
                     recipe.id(),
                     recipe.displayName(),
                     recipe.stationType() == null ? "" : recipe.stationType().folderName(),
-                    plan.phase(),
-                    plan.outputs().size(),
+                    effectivePhase,
+                    effectiveOutputs.size(),
                     dropResult
             );
             Bukkit.getPluginManager().callEvent(completeEvent);
@@ -181,11 +188,11 @@ public final class CookingRewardService {
             effectiveDropResult = completeEvent.isDropResult();
         }
 
-        for (Map<String, Object> output : plan.outputs()) {
+        for (Map<String, Object> output : effectiveOutputs) {
             if (output == null || output.isEmpty() || !passesChance(output.get("chance"))) {
                 continue;
             }
-            ItemStack itemStack = createOutputItem(recipe, output, player, location, plan.phase(), plan.placeholders());
+            ItemStack itemStack = createOutputItem(recipe, output, player, location, effectivePhase, basePlaceholders);
             if (itemStack == null || itemStack.getType().isAir()) {
                 plugin.getLogger().warning("[CookingReward] Output item is null or air. output_map=" + output
                         + ", recipe=" + (recipe == null ? "null" : recipe.id()));
@@ -207,38 +214,21 @@ public final class CookingRewardService {
                         outputActions,
                         player,
                         location,
-                        plan.phase(),
-                        buildOutputPlaceholders(recipe, output, player, location, plan.phase(), plan.placeholders())
+                        effectivePhase,
+                        buildOutputPlaceholders(recipe, output, player, location, effectivePhase, basePlaceholders)
                 ));
             }
         }
-        if (!plan.actions().isEmpty()) {
+        if (!effectiveActions.isEmpty()) {
             units.add(freezeActionUnit(
                     stableOperationId,
-                    sequence++,
-                    plan.actions(),
+                    sequence,
+                    effectiveActions,
                     player,
                     location,
-                    plan.phase(),
+                    effectivePhase,
                     basePlaceholders
             ));
-        }
-        if (plugin instanceof EmakiCookingPlugin cookingPlugin) {
-            JavaScriptCookingCompleteHookRegistry hookRegistry = cookingPlugin.javaScriptCompleteHookRegistry();
-            if (hookRegistry != null) {
-                List<String> hookActions = hookRegistry.prepareActions(plan);
-                if (!hookActions.isEmpty()) {
-                    units.add(freezeActionUnit(
-                            stableOperationId,
-                            sequence,
-                            hookActions,
-                            player,
-                            location,
-                            "cooking.complete",
-                            basePlaceholders
-                    ));
-                }
-            }
         }
         return new PreparedReward(units);
     }
@@ -315,19 +305,18 @@ public final class CookingRewardService {
         if (actions.isEmpty()) {
             return CompletableFuture.completedFuture(true);
         }
-        if (actionExecutor == null) {
+        if (actionLines == null) {
             return CompletableFuture.completedFuture(false);
         }
         Player player = resolvePlayer(payload == null ? null : payload.get("player_uuid"));
         Location location = resolveLocation(mapValue(payload == null ? null : payload.get("location")));
         String phase = Texts.toStringSafe(payload == null ? null : payload.get("phase"));
         Map<String, Object> placeholders = mapValue(payload == null ? null : payload.get("placeholders"));
-        ActionContext context = ActionContext.create(plugin, player, phase, false)
-                .withPlaceholders(placeholders)
-                .withAttribute("phase", phase)
-                .withAttribute("location", location);
-        return actionExecutor.executeAll(context, actions, true)
-                .thenApply(ActionBatchResult::success);
+        // The frozen station location, not the player, is the spatial reference: the reward may be replayed
+        // from the journal long after the player moved away. v1 carried this as a "location" attribute.
+        PipelineContext context = actionLines.context(player, phase, false, placeholders)
+                .withOrigin(location);
+        return actionLines.run(actions, context, true);
     }
 
     public boolean completionConditionPasses(RecipeDocument recipe, Player player) {
@@ -336,6 +325,79 @@ public final class CookingRewardService {
 
     public boolean completionConditionBlocksOutput(RecipeDocument recipe) {
         return recipeService != null && recipeService.completionConditionBlocksOutput(recipe);
+    }
+
+    /**
+     * Evaluates a recipe's completion condition once, before anything is consumed or committed.
+     *
+     * <p>Player-driven completions must decide whether to run at all before they take the player's
+     * item and clear the station: a condition with {@code block_output} would otherwise suppress the
+     * outputs while the inputs and the state commit anyway. Callers submit only when
+     * {@link ConditionGate#blocked()} is false, and pass {@link ConditionGate#outcome()} into the
+     * request so the pipeline reuses this same result rather than evaluating the condition again.
+     *
+     * <p>When the gate blocks, the caller is responsible for running {@link ConditionGate#failActions}
+     * on the calling thread; those actions are not frozen into the journal because no operation exists.
+     *
+     * @param recipe the recipe whose condition applies, may be {@code null}
+     * @param player the player the condition is evaluated against
+     * @return the gate decision; never {@code null}
+     */
+    public ConditionGate evaluateConditionGate(RecipeDocument recipe, Player player) {
+        if (recipe == null || recipeService == null || !recipeService.hasCompletionCondition(recipe)) {
+            return ConditionGate.OPEN;
+        }
+        boolean passed = recipeService.completionConditionPasses(recipe, player);
+        boolean blocked = !passed && recipeService.completionConditionBlocksOutput(recipe);
+        return new ConditionGate(
+                CookingCompletionRequest.ConditionOutcome.of(passed),
+                blocked,
+                blocked ? recipeService.completionConditionActions(recipe, false) : List.of()
+        );
+    }
+
+    /**
+     * The result of {@link #evaluateConditionGate}.
+     *
+     * @param outcome the evaluated condition, to be carried into the completion request
+     * @param blocked whether the condition forbids this completion from running at all
+     * @param failActions the {@code on_fail} actions to run when {@code blocked} is true
+     */
+    public record ConditionGate(
+            CookingCompletionRequest.ConditionOutcome outcome,
+            boolean blocked,
+            List<String> failActions) {
+
+        static final ConditionGate OPEN = new ConditionGate(null, false, List.of());
+
+        public ConditionGate {
+            failActions = failActions == null ? List.of() : List.copyOf(failActions);
+        }
+    }
+
+    /**
+     * Runs a blocked condition's {@code on_fail} actions immediately.
+     *
+     * <p>Used only on the gate-blocked path, where no journal operation is created and therefore no
+     * frozen action unit can carry them.
+     *
+     * @param actions the action lines to run
+     * @param player the acting player
+     * @param location the station location used as the pipeline origin
+     * @param phase the completion phase name
+     * @param placeholders placeholders exposed to the action lines
+     */
+    public void runConditionFailActions(List<String> actions,
+            Player player,
+            Location location,
+            String phase,
+            Map<String, ?> placeholders) {
+        if (actions == null || actions.isEmpty() || actionLines == null) {
+            return;
+        }
+        PipelineContext context = actionLines.context(player, Texts.toStringSafe(phase), false, immutableMap(placeholders))
+                .withOrigin(location);
+        actionLines.run(actions, context, true);
     }
 
     public ItemStack createOutputItem(RecipeDocument recipe,
@@ -347,7 +409,7 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
         if (source == null) {
             plugin.getLogger().warning("[CookingReward] Failed to parse item_sources from output: " + output.get("item_sources"));
             return null;
@@ -375,7 +437,7 @@ public final class CookingRewardService {
             ItemStack fallbackItem = itemSourceService.createItem(source, amount);
             if (fallbackItem == null) {
                 plugin.getLogger().warning("[CookingReward] Both assembly preview and direct createItem returned null for source="
-                        + ItemSourceUtil.toShorthand(source) + " type=" + source.getType() + " id=" + source.getIdentifier());
+                        + ItemSourceUtil.toShorthand(source) + " type=" + source.kind() + " id=" + source.identifier());
             }
             return fallbackItem;
         }
@@ -409,7 +471,7 @@ public final class CookingRewardService {
     }
 
     private String stableUnitId(String operationId, int sequence) {
-        return operationId + ":reward:" + String.format(java.util.Locale.ROOT, "%04d", Math.max(0, sequence));
+        return operationId + ":reward:" + String.format(Locale.ROOT, "%04d", Math.max(0, sequence));
     }
 
     private Map<String, Object> targetPayload(Player player, Location location) {
@@ -556,7 +618,7 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSource source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

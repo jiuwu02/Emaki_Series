@@ -15,7 +15,22 @@ import org.bukkit.inventory.ItemStack;
  * current/target stars, override the success rate via
  * {@link #setSuccessRate(double)}, or cancel the attempt entirely. A cancelled
  * event stops EmakiStrengthen from rolling, rebuilding the item or charging any
- * cost. This event is fired on the server thread.
+ * cost.
+ *
+ * <p><strong>Thread:</strong> fired synchronously on the player's entity-owner thread. On Paper
+ * this is the main server thread; on Folia it is the player's region thread.
+ *
+ * <h2>Coverage — this event is not fired for every attempt</h2>
+ * It is skipped when the runtime rejects the attempt before reaching the roll: an ineligible or missing
+ * target item, a missing strengthen recipe, a star level already at maximum, unsatisfied material
+ * inputs, the recipe's own condition group failing, a conflicting in-flight operation on the same
+ * operation id, the service no longer accepting attempts during shutdown, and an internal error.
+ *
+ * <p>It is also skipped, without any error, when the attempt is invoked off the owner thread of the
+ * player. The public API rejects that case with {@code WRONG_THREAD}, but a listener should still not
+ * assume {@link #setSuccessRate(double)} is consulted on every roll.
+ *
+ * @see StrengthenAttemptEvent
  */
 public final class StrengthenPreAttemptEvent extends Event implements Cancellable {
 
@@ -51,6 +66,17 @@ public final class StrengthenPreAttemptEvent extends Event implements Cancellabl
 
     /**
      * Creates a pre-attempt event with an operation id.
+     *
+     * @param player      the player performing the attempt
+     * @param targetItem  the item being strengthened, may be {@code null}; stored as a defensive copy,
+     *                    and an empty stack is normalised to {@code null}
+     * @param recipeId    the strengthen recipe id, may be {@code null}
+     * @param currentStar the star level before the attempt
+     * @param targetStar  the star level targeted on success
+     * @param successRate the resolved success rate in percent (0-100); non-finite values become
+     *                    {@code 0} and out-of-range values are clamped
+     * @param operationId the id used for tracing and idempotency; {@code null} becomes empty and
+     *                    surrounding whitespace is trimmed
      */
     public StrengthenPreAttemptEvent(Player player,
             ItemStack targetItem,
@@ -74,8 +100,11 @@ public final class StrengthenPreAttemptEvent extends Event implements Cancellabl
     }
 
     /**
-     * Returns a defensive copy of the item being strengthened. Mutating it does
-     * not change the real attempt input.
+     * {@return a defensive copy of the item being strengthened, or {@code null} when the attempt
+     * carried no usable target stack}
+     *
+     * <p>Each call returns a fresh copy, so mutating it does not change the real attempt input. To stop
+     * an attempt, cancel the event.
      */
     public ItemStack getTargetItem() {
         return cloneItem(targetItem);
@@ -104,13 +133,23 @@ public final class StrengthenPreAttemptEvent extends Event implements Cancellabl
     /**
      * Overrides the success rate used for the roll.
      *
+     * <p>The argument is a percentage, not a {@code [0, 1]} probability. It is clamped to
+     * {@code [0, 100]} and any non-finite value becomes {@code 0}, so this never throws. When several
+     * listeners write in turn the last write wins, and that final value is the one rolled against unless
+     * the event is cancelled.
+     *
      * @param successRate the new success rate in percent (0-100)
      */
     public void setSuccessRate(double successRate) {
         this.successRate = sanitizeRate(successRate);
     }
 
-    /** {@return the operation id used for tracing and idempotency} */
+    /**
+     * {@return the operation id used for tracing and idempotency, empty when none was supplied}
+     *
+     * <p>Reusing an id lets the runtime return an earlier result instead of rolling twice, so it is the
+     * reliable way to correlate this event with the matching {@link StrengthenAttemptEvent}.
+     */
     public String getOperationId() {
         return operationId;
     }

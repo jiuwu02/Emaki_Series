@@ -1,6 +1,6 @@
 package emaki.jiuwu.craft.strengthen.config;
 
-import static emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckSeverity.INFO;
+import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.INFO;
 
 import java.io.File;
 import java.util.ArrayList;

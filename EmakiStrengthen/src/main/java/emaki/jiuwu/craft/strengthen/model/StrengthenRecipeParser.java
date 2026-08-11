@@ -5,24 +5,29 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.condition.ConditionNode;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.CurrencyEntry;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.EconomyConfig;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.EconomyOverride;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.Limits;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.MatchRule;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StarStage;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StarStageMaterial;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe.StatLineDefinition;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenBranchNode;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionGroup;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.CurrencyEntry;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.EconomyConfig;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.EconomyOverride;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.Limits;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.MatchRule;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StarStage;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StarStageMaterial;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StatLineDefinition;
 
 public final class StrengthenRecipeParser {
 
@@ -67,7 +72,7 @@ public final class StrengthenRecipeParser {
                 group.requiredCount(),
                 group.conditions().stream()
                         .map(StrengthenRecipeParser::toApiConditionNode)
-                        .filter(java.util.Objects::nonNull)
+                        .filter(Objects::nonNull)
                         .toList()
         );
     }
@@ -270,7 +275,7 @@ public final class StrengthenRecipeParser {
     }
 
     static String parseMaterialItem(Object rawEntry) {
-        ItemSource source = ItemSourceUtil.parse(ConfigNodes.get(rawEntry, "item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(ConfigNodes.get(rawEntry, "item_sources"));
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

@@ -54,10 +54,10 @@ condition:
     - "%player_level% >= 2"
   on_pass:
     actions:
-      - 'sendmessage text="<gold>烤制条件满足。</gold>"'
+      - 'send_message text="<gold>烤制条件满足。</gold>"'
   on_fail:
     actions:
-      - 'sendmessage text="<red>烤制条件不满足。</red>"'
+      - 'send_message text="<red>烤制条件不满足。</red>"'
     block_output: false
 
 # ============================================================
@@ -73,18 +73,18 @@ result:
           - "minecraft-baked_potato"
         amount: 1
     actions:
-      - 'sendmessage text="<gold>烤制完成。</gold>"'
+      - 'send_message text="<gold>烤制完成。</gold>"'
   perfect:
     outputs:
       - item_sources:
           - "minecraft-baked_potato"
         amount: 1
     actions:
-      - 'sendmessage text="<green>火候完美，烤制完成。</green>"'
+      - 'send_message text="<green>火候完美，烤制完成。</green>"'
   overbaked:
     outputs:
       - item_sources:
           - "minecraft-charcoal"
         amount: 1
     actions:
-      - 'sendmessage text="<red>烤过头了。</red>"'
+      - 'send_message text="<red>烤过头了。</red>"'

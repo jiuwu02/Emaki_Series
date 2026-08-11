@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -58,12 +59,20 @@ public final class PerfectTakeoverCoordinator implements Listener {
         service.applyDamageSideEffectsAsync(claimed.resolvedDamage()).exceptionally(throwable -> false);
     }
 
+    // DamageModifier 整组已被 Bukkit 弃用且无替代 API；这里刻意清零原版减伤以把结算权交给 EA 的
+    // 伤害类型阶段，抑制范围与下方 zeroModifierIfApplicable 一致。
+    @SuppressWarnings("deprecation")
     private void neutralizeVanillaMitigation(EntityDamageEvent event) {
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.HARD_HAT);
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.ARMOR);
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.RESISTANCE);
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.MAGIC);
         zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.FREEZING);
+        // BLOCKING 默认保留给原版：举盾按原版规则完全免除该次伤害。切到 attribute 模式后由
+        // 伤害类型的格挡阶段结算，必须在此清零，否则原版减伤会与 EA 阶段重复叠加。
+        if (service.config().shield().attributeModeEnabled()) {
+            zeroModifierIfApplicable(event, EntityDamageEvent.DamageModifier.BLOCKING);
+        }
     }
 
     @SuppressWarnings("deprecation")
@@ -72,7 +81,12 @@ public final class PerfectTakeoverCoordinator implements Listener {
             if (event.isApplicable(modifier)) {
                 event.setDamage(modifier, 0D);
             }
-        } catch (UnsupportedOperationException | IllegalArgumentException ignored) {
+        } catch (UnsupportedOperationException | IllegalArgumentException exception) {
+            service.plugin().getLogger().log(Level.WARNING,
+                    "Vanilla damage modifier neutralization failed: entity=" + event.getEntity().getType()
+                            + ", modifier=" + modifier
+                            + ", operation=zero_damage_modifier, cause=" + exception,
+                    exception);
         }
     }
 }

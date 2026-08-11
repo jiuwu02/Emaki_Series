@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
+import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 
 record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
         ThreadOwnership threadOwnership,
@@ -41,6 +42,7 @@ record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
         StrengthenSnapshotBuilder snapshotBuilder,
         StrengthenActionCoordinator actionCoordinator,
         StrengthenAttemptService attemptService,
+        StrengthenTransferService transferService,
         StrengthenRefreshService refreshService,
         StrengthenGuiService strengthenGuiService) implements RuntimeComponents {
 
@@ -64,6 +66,7 @@ record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(StrengthenSnapshotBuilder.class, snapshotBuilder),
                 RuntimeComponents.component(StrengthenActionCoordinator.class, actionCoordinator),
                 RuntimeComponents.component(StrengthenAttemptService.class, attemptService),
+                RuntimeComponents.component(StrengthenTransferService.class, transferService),
                 RuntimeComponents.component(StrengthenRefreshService.class, refreshService),
                 RuntimeComponents.component(StrengthenGuiService.class, strengthenGuiService)
         );

@@ -8,10 +8,10 @@ import java.util.regex.Pattern;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule;
 import emaki.jiuwu.craft.attribute.model.PdcReadRule.RuleCondition;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
 
@@ -159,10 +159,7 @@ public final class PdcReadRuleLoader extends DirectoryLoader<PdcReadRule> {
             return false;
         }
         YamlSection condition = configuration.getSection("condition");
-        Object rawEntries = condition == null ? configuration.get("conditions") : condition.get("entries");
-        if (rawEntries == null && condition != null) {
-            rawEntries = condition.get("conditions");
-        }
+        Object rawEntries = condition == null ? null : condition.get("entries");
         if (rawEntries == null) {
             return true;
         }

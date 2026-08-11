@@ -13,12 +13,12 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +28,8 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+
+import net.kyori.adventure.text.Component;
 
 final class SteamerGuiController implements Listener {
 
@@ -99,7 +101,7 @@ final class SteamerGuiController implements Listener {
     }
 
     Inventory createInventory(SteamerGuiHolder holder) {
-        String title = MiniMessages.plain(MiniMessages.parse(settingsService.steamerInventoryTitle()));
+        Component title = MiniMessages.parse(settingsService.steamerInventoryTitle());
         return Bukkit.createInventory(holder, settingsService.steamerInventoryRows() * 9, title);
     }
 
@@ -116,7 +118,7 @@ final class SteamerGuiController implements Listener {
             }
             ItemStack itemStack = codec.deserializeItem(state.slotItemData(slot));
             if (itemStack == null || itemStack.getType().isAir()) {
-                ItemSource itemSource = ItemSourceUtil.parse(source);
+                ItemSourceRef itemSource = ItemSourceUtil.parse(source);
                 itemStack = itemSource == null ? null : itemSourceService.createItem(itemSource, 1);
             }
             if (itemStack != null && !itemStack.getType().isAir()) {
@@ -395,7 +397,7 @@ final class SteamerGuiController implements Listener {
     }
 
     String identifySource(ItemStack itemStack) {
-        ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         return source == null ? "" : Texts.toStringSafe(ItemSourceUtil.toShorthand(source));
     }
 

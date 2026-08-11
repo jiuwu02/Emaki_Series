@@ -85,7 +85,7 @@ advancements:
     # 完成时执行 corelib action：给玩家发消息
     actions:
       complete:
-        - "sendmessage text=<green>你迈出了图鉴之路的第一步！</green>"
+        - "send_message text=<green>你迈出了图鉴之路的第一步！</green>"
     # 事件触发：合成一个工作台即达成
     triggers:
       entries:
@@ -110,7 +110,7 @@ advancements:
     hidden: false
     actions:
       complete:
-        - "sendmessage text=<gold>恭喜达成终极挑战！</gold>"
+        - "send_message text=<gold>恭喜达成终极挑战！</gold>"
     # 事件触发：击杀凋灵或末影龙任意其一即达成
     triggers:
       entries:

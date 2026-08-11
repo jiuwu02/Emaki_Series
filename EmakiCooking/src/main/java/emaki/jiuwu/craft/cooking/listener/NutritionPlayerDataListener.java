@@ -14,6 +14,7 @@ import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 
 
 
@@ -66,7 +67,7 @@ public final class NutritionPlayerDataListener implements Listener {
             }
             plugin.getLogger().log(Level.WARNING,
                     "Failed to load nutrition data for " + playerId,
-                    unwrap(throwable));
+                    AsyncFailures.unwrap(throwable));
         });
     }
 
@@ -82,16 +83,6 @@ public final class NutritionPlayerDataListener implements Listener {
         if (plugin.nutritionService() != null) {
             plugin.nutritionService().handleQuit(playerId);
         }
-    }
-
-    private Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof java.util.concurrent.CompletionException
-                || current instanceof java.util.concurrent.ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
     }
 
     private record SessionRef(Player player, long generation) {

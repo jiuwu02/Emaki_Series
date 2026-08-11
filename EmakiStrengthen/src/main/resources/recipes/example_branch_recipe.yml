@@ -80,7 +80,7 @@ lore_actions:
   - action: "prepend"
     content:
       - "<gradient:#FFD700:#FF4500>精炼等级 +%star%</gradient>"
-      - "<gray>锻印: %temper_color%%temper%/%max_temper%</gray>"
+      - "<gray>强化值: %temper_color%%temper%/%max_temper%</gray>"
 
 # ============================================================
 # 分支树定义
@@ -188,7 +188,7 @@ branch_tree:
           amount: 6
       actions:
         success:
-          - 'sendmessage text="<yellow>精炼达到 +4，请选择你的强化方向！</yellow>"'
+          - 'send_message text="<yellow>精炼达到 +4，请选择你的强化方向！</yellow>"'
 
   # ============================================================
   # 子分支定义
@@ -225,7 +225,7 @@ branch_tree:
               amount: 3
           actions:
             success:
-              - 'sendmessage text="<red>选择了锋锐路线，暴击率开始提升。</red>"'
+              - 'send_message text="<red>选择了锋锐路线，暴击率开始提升。</red>"'
 
         6:
           effects:
@@ -279,7 +279,7 @@ branch_tree:
               amount: 5
           actions:
             success:
-              - 'sendmessage text="<yellow>锋锐路线达到 +7，请选择进阶方向！</yellow>"'
+              - 'send_message text="<yellow>锋锐路线达到 +7，请选择进阶方向！</yellow>"'
 
       # ---- 锋锐路线的子分支 ----
       children:
@@ -383,8 +383,8 @@ branch_tree:
                   amount: 4
               actions:
                 success:
-                  - 'sendtitle title="<dark_red><bold>致命一击</bold></dark_red>" subtitle="<gray>终极暴击技能已解锁</gray>"'
-                  - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+                  - 'send_title title="<dark_red><bold>致命一击</bold></dark_red>" subtitle="<gray>终极暴击技能已解锁</gray>"'
+                  - "play_sound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
 
         # 子分支 A-2: 迅捷路线（攻速 + 穿透）
         swift:
@@ -496,8 +496,8 @@ branch_tree:
                   amount: 8
               actions:
                 success:
-                  - 'sendtitle title="<aqua><bold>疾风连斩</bold></aqua>" subtitle="<gray>终极攻速技能已解锁</gray>"'
-                  - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+                  - 'send_title title="<aqua><bold>疾风连斩</bold></aqua>" subtitle="<gray>终极攻速技能已解锁</gray>"'
+                  - "play_sound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
 
     # ---- 分支 B: 重击路线（纯粹高伤害，无二次分叉）----
     heavy:
@@ -528,7 +528,7 @@ branch_tree:
               amount: 8
           actions:
             success:
-              - 'sendmessage text="<gold>选择了重击路线，伤害大幅提升。</gold>"'
+              - 'send_message text="<gold>选择了重击路线，伤害大幅提升。</gold>"'
 
         6:
           effects:
@@ -593,7 +593,7 @@ branch_tree:
               amount: 16
           actions:
             success:
-              - 'sendtitle title="<gold><bold>+8 重击强化</bold></gold>" subtitle="<yellow>增伤已解锁</yellow>"'
+              - 'send_title title="<gold><bold>+8 重击强化</bold></gold>" subtitle="<yellow>增伤已解锁</yellow>"'
 
         9:
           effects:
@@ -649,5 +649,5 @@ branch_tree:
               amount: 12
           actions:
             success:
-              - 'sendtitle title="<gold><bold>重锤一击</bold></gold>" subtitle="<gray>终极重击技能已解锁</gray>"'
-              - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+              - 'send_title title="<gold><bold>重锤一击</bold></gold>" subtitle="<gray>终极重击技能已解锁</gray>"'
+              - "play_sound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"

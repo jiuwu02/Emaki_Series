@@ -8,6 +8,7 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
+import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
 
 public final class ChatInputDebugSupport {
 

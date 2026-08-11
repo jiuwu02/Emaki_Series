@@ -2,21 +2,27 @@ package emaki.jiuwu.craft.attribute;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -37,27 +43,28 @@ import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
-import emaki.jiuwu.craft.attribute.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
-import emaki.jiuwu.craft.attribute.service.MessageService;
-import emaki.jiuwu.craft.attribute.script.js.JavaScriptDamageHookListener;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 
 final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiAttributePlugin, AttributeRuntimeComponents> {
 
@@ -67,7 +74,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         LanguageLoader languageLoader = new LanguageLoader(plugin);
-        MessageService messageService = new MessageService(plugin, languageLoader, plugin::configModel);
+        MessageService messageService = new MessageService(plugin, languageLoader,
+                "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>", true);
         AttributeRegistry attributeRegistry = new AttributeRegistry(plugin);
         AttributeBalanceRegistry attributeBalanceRegistry = new AttributeBalanceRegistry(plugin, attributeRegistry);
         DamageTypeRegistry damageTypeRegistry = new DamageTypeRegistry(plugin, attributeRegistry);
@@ -98,10 +106,14 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 executionDispatcher,
                 threadOwnership
         );
+        ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry =
+                new ContributionProviderRegistrationRegistry(attributeService);
         EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(
                 attributeService,
                 threadOwnership,
-                itemContributionGateRegistry);
+                itemContributionGateRegistry,
+                contributionProviderRegistrationRegistry,
+                pdcAttributeService);
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),
@@ -110,7 +122,11 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 new CombatDamageListener(plugin, attributeService, combatDebugHandler, executionDispatcher),
                 attributeService.perfectTakeoverCoordinator(),
                 new CombatDebugListener(attributeService),
+                new DamageIndicatorListener(
+                        plugin::damageIndicatorService,
+                        () -> plugin.configModel() == null ? null : plugin.configModel().damageIndicator()),
                 itemContributionGateRegistry,
+                contributionProviderRegistrationRegistry,
                 guiService
         );
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
@@ -128,6 +144,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 presetRegistry,
                 pdcReadRuleLoader,
                 itemContributionGateRegistry,
+                contributionProviderRegistrationRegistry,
                 languageLoader,
                 messageService,
                 emakiAttributeBridge,
@@ -151,7 +168,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         plugin.registerCommand(
                 "emakiattribute",
                 "emakiattribute command",
-                java.util.List.of("eattribute", "ea"),
+                List.of("eattribute", "ea"),
                 new PaperCommandAdapter("emakiattribute", "emakiattribute.use", plugin.command(), plugin.command())
         );
     }
@@ -162,15 +179,16 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             }
         }
-        if (plugin.javaScriptDamageHookRegistry() != null) {
-            plugin.getServer().getPluginManager().registerEvents(new JavaScriptDamageHookListener(plugin.javaScriptDamageHookRegistry()), plugin);
-        }
-        if (plugin.mythicBridge() != null) {
-            plugin.getServer().getPluginManager().registerEvents(plugin.mythicBridge(), plugin);
-        }
+        // mythicBridge 不在此注册：它的唯一注册入口是 EmakiAttributePlugin#ensureMythicBridge，
+        // 那里同时覆盖 reload 与 MythicMobs 后启用两条路径。
     }
 
     public TaskHandle reload(EmakiAttributePlugin plugin, TaskHandle currentTask, boolean resyncPlayers) {
+        // Entry B rather than the single-loader gate: this module loads in stages, and two of its
+        // registries (DefaultProfileRegistry, AttributeBalanceRegistry) read plugin.configModel()
+        // while loading, so the candidate config has to be in place before the stages can run. The
+        // previous model is captured here and put back if the precheck rejects the candidate.
+        AttributeConfig previousConfig = plugin.configModel();
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().load();
         }
@@ -189,6 +207,12 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         runReloadStage("pdc_read_rule_loader", () -> plugin.pdcReadRuleLoader().load(), failureHandler(plugin));
         runReloadStage("attribute_balance_registry", () -> plugin.attributeBalanceRegistry().load(), failureHandler(plugin));
         runReloadStage("damage_type_registry", () -> plugin.damageTypeRegistry().load(), failureHandler(plugin));
+        // Gate after the stages because the attribute precheck reads every registry's issue list, and
+        // before the cache/bridge/player work so a rejected candidate never reaches online entities.
+        if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
+            restoreConfigModel(plugin, previousConfig);
+            return currentTask;
+        }
         if (plugin.attributeService() != null) {
             plugin.attributeService().refreshCaches();
         }
@@ -208,6 +232,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             boolean resyncPlayers,
             Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        // Captured before the pipeline mutates it, for the same reason as the synchronous path.
+        AttributeConfig previousConfig = plugin.configModel();
         return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<>(
                 "attribute",
                 "bootstrap",
@@ -293,6 +319,11 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 configModel,
                 failureHandler(plugin)
         ))).thenCompose(configModel -> plugin.executionDispatcher().submitGlobal(plugin, () -> {
+            if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
+                restoreConfigModel(plugin, previousConfig);
+                notifyProgress(progressListener, "EmakiAttribute 配置预检未通过，已保留上一份配置。");
+                return currentTask;
+            }
             notifyProgress(progressListener, "正在刷新缓存并同步在线实体...");
             if (plugin.attributeService() != null) {
                 plugin.attributeService().refreshCaches();
@@ -337,6 +368,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (plugin.itemContributionGateRegistry() != null) {
             plugin.itemContributionGateRegistry().close();
         }
+        if (plugin.contributionProviderRegistrationRegistry() != null) {
+            plugin.contributionProviderRegistrationRegistry().close();
+        }
         if (plugin.attributeService() != null) {
             plugin.attributeService().shutdown();
         }
@@ -374,11 +408,29 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         plugin.guiTemplateLoader().load();
     }
 
-    private java.util.function.BiConsumer<String, Exception> failureHandler(EmakiAttributePlugin plugin) {
+    private BiConsumer<String, Exception> failureHandler(EmakiAttributePlugin plugin) {
         return (stageName, exception) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
                 "stage", stageName,
                 "error", String.valueOf(exception.getMessage())
         ));
+    }
+
+    /**
+     * Puts the last known good config model back after a rejected precheck.
+     *
+     * <p>Restoring the captured instance rather than reloading from disk is deliberate: the file on disk
+     * is the rejected candidate, and {@code loadConfigModel} falls back to {@link AttributeConfig#defaults()}
+     * when parsing fails, which would silently discard the operator's working configuration.
+     */
+    private void restoreConfigModel(EmakiAttributePlugin plugin, AttributeConfig previousConfig) {
+        AttributeConfig restored = previousConfig == null ? AttributeConfig.defaults() : previousConfig;
+        plugin.setConfigModel(restored);
+        if (plugin.attributeService() != null) {
+            plugin.attributeService().reloadConfig(restored);
+        }
+        if (plugin.languageLoader() != null) {
+            plugin.languageLoader().setLanguage(restored.language());
+        }
     }
 
     private AttributeConfig loadConfigModel(EmakiAttributePlugin plugin) {
@@ -419,8 +471,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ));
     }
 
-    private void mergeBundledConfig(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+    private void mergeBundledConfig(YamlSection runtime,
+            YamlSection bundled) {
         boolean changed = mergeDefaultProfile(runtime, bundled);
         if (mergeAllowedDamageCauses(runtime, bundled)) {
             changed = true;
@@ -430,8 +482,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-    private boolean mergeDefaultProfile(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+    private boolean mergeDefaultProfile(YamlSection runtime,
+            YamlSection bundled) {
         if (runtime == null || bundled == null || runtime.contains("default_profile")) {
             return false;
         }
@@ -443,8 +495,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         return true;
     }
 
-    private boolean mergeAllowedDamageCauses(emaki.jiuwu.craft.corelib.yaml.YamlSection runtime,
-            emaki.jiuwu.craft.corelib.yaml.YamlSection bundled) {
+    private boolean mergeAllowedDamageCauses(YamlSection runtime,
+            YamlSection bundled) {
         if (runtime == null || bundled == null) {
             return false;
         }
@@ -490,13 +542,13 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
         private final String rootLabel;
         private final String permission;
-        private final org.bukkit.command.CommandExecutor executor;
-        private final org.bukkit.command.TabCompleter tabCompleter;
+        private final CommandExecutor executor;
+        private final TabCompleter tabCompleter;
 
         private PaperCommandAdapter(String rootLabel,
                 String permission,
-                org.bukkit.command.CommandExecutor executor,
-                org.bukkit.command.TabCompleter tabCompleter) {
+                CommandExecutor executor,
+                TabCompleter tabCompleter) {
             this.rootLabel = rootLabel;
             this.permission = permission;
             this.executor = executor;
@@ -509,10 +561,10 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
 
         @Override
-        public java.util.Collection<String> suggest(CommandSourceStack source, String[] args) {
+        public Collection<String> suggest(CommandSourceStack source, String[] args) {
             String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            java.util.List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? java.util.List.of() : suggestions;
+            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
+            return suggestions == null ? List.of() : suggestions;
         }
 
         @Override

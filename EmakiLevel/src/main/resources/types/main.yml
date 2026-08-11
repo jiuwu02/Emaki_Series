@@ -1,0 +1,38 @@
+id: "main"
+enabled: true
+display_name: "<gold>主等级</gold>"
+description:
+  - "<gray>代表玩家整体主线成长进度。</gray>"
+primary: true
+start_level: 1
+max_level: 100
+requirement:
+  group: "main"
+  formula: ""
+  values: {}
+upgrade:
+  enabled: true
+  auto_upgrade: true
+  manual_upgrade: true
+  cost:
+    enabled: false
+    economy:
+      enabled: false
+      currencies: []
+    materials: []
+  rewards:
+    items:
+      - levels: "*"
+        item_sources:
+          - "minecraft-experience_bottle"
+        amount: 1
+  actions:
+    success:
+      - 'send_message text="<green>你的 <gold>主等级</gold> 提升到了 <yellow>%var.new_level%</yellow> 级！</green>"'
+    failure: []
+pdc:
+  enabled: true
+attributes:
+  enabled: true
+  values:
+    attribute_power: "%level% * 0.5"

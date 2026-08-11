@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.cooking.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -25,13 +27,13 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -43,6 +45,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class FermentationBarrelRuntimeService implements Listener {
 
@@ -146,13 +149,13 @@ public final class FermentationBarrelRuntimeService implements Listener {
         };
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
         Block block = coordinates.block();
         FermentationBarrelState state = codec.readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         if (state == null || state.isCompletelyEmpty()) {
             removeState(coordinates, false);
             activeStations.remove(coordinates);
@@ -243,6 +246,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         FermentationBarrelState state = openHolder == null ? loadStateOrEmpty(coordinates) : guiController.snapshotInventoryState(coordinates,
                 openHolder.getInventory(), openHolder.viewerId(), Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName());
         if (state.isCompletelyEmpty()) {
+            textDisplayService.removeStation(StationType.FERMENTATION_BARREL, coordinates);
             return false;
         }
         guiController.closeOpenInventories(coordinates, true);
@@ -346,7 +350,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
     }
 
     private String firstSource(Object raw) {
-        ItemSource source = ItemSourceUtil.parse(raw);
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }
@@ -423,7 +427,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         long total = Math.max(1L, state.finishAtMs() - state.startedAtMs());
         long done = Math.max(0L, now - state.startedAtMs());
-        return String.format(java.util.Locale.ROOT, "%.2f%%", Math.min(100D, (double) done * 100D / (double) total));
+        return String.format(Locale.ROOT, "%.2f%%", Math.min(100D, (double) done * 100D / (double) total));
     }
 
     private void tick() {
@@ -460,7 +464,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
         Block block = coordinates.block();
-        ItemSource stationSource = stateStore.rememberedStationSource(coordinates);
+        ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || !blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource)) {
             removeState(coordinates, true);
             activeStations.remove(coordinates);
@@ -516,11 +520,11 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         Map<String, Object> outcome = recipeService.fermentationOutcomeForStage(recipe, stage);
-        List<CookingInputIngredient> inputs = new java.util.ArrayList<>();
+        List<CookingInputIngredient> inputs = new ArrayList<>();
         for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
             inputs.add(new CookingInputIngredient(entry.getValue(), state.slotAmounts().getOrDefault(entry.getKey(), 1)));
         }
-        String stageName = stage.name().toLowerCase(java.util.Locale.ROOT);
+        String stageName = stage.name().toLowerCase(Locale.ROOT);
         boolean accepted = completionCoordinator.submit(new CookingCompletionRequest(
                 "ferment:" + state.startedAtMs() + ":" + stageName,
                 StationType.FERMENTATION_BARREL,
@@ -541,7 +545,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
                         "station_type", StationType.FERMENTATION_BARREL.folderName(),
                         "stage", stageName
                 ),
-                List.of()
+                List.of(),
+                // No player inventory input on this path; the pipeline evaluates the condition itself.
+                null
         ));
         if (accepted && notifyPlayer && player != null) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, collectionMessage(stage), Map.of());
@@ -558,7 +564,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
             ItemStack item = codec.deserializeItem(state.slotItemData(entry.getKey()));
             if (item == null || item.getType().isAir()) {
-                ItemSource source = ItemSourceUtil.parse(entry.getValue());
+                ItemSourceRef source = ItemSourceUtil.parse(entry.getValue());
                 item = source == null ? null : itemSourceService.createItem(source, state.slotAmounts().getOrDefault(entry.getKey(), 1));
             }
             if (item != null && !item.getType().isAir()) {
@@ -646,7 +652,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 false,
                 remaining,
                 0, 0, 0,
-                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource)),
+                MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(firstSource).orElse("")),
                 Texts.toStringSafe(firstSource),
                 firstSource.isBlank() ? 0 : 1,
                 state.slotSources().size(),

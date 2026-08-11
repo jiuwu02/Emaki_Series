@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class MessageService extends AbstractMessageService {

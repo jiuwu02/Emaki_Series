@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -27,11 +28,11 @@ import emaki.jiuwu.craft.codex.advancement.model.AdvancementFrame;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 import net.kyori.adventure.text.Component;
 
@@ -179,7 +180,7 @@ public final class AdvancementResyncService {
         AdvancementDefinition definition = node.definition();
         AdvancementPage page = node.page();
 
-        ResourceLocation background = definition.isRoot() && Texts.isNotBlank(page.background())
+        ResourceLocation background = definition.isRoot() && page != null && Texts.isNotBlank(page.background())
                 ? new ResourceLocation(page.background()) : null;
 
         AdvancementDisplay display = new AdvancementDisplay(
@@ -202,7 +203,7 @@ public final class AdvancementResyncService {
     private com.github.retrooper.packetevents.protocol.item.ItemStack resolveIcon(String iconShorthand) {
         ItemStack bukkitIcon = null;
         if (Texts.isNotBlank(iconShorthand) && itemSourceService != null) {
-            ItemSource source = ItemSourceUtil.parse(iconShorthand);
+            ItemSourceRef source = ItemSourceUtil.parse(iconShorthand);
             if (source != null) {
                 ItemStack created = itemSourceService.createItem(source, 1);
                 if (created != null && !created.getType().isAir()) {
@@ -211,7 +212,7 @@ public final class AdvancementResyncService {
             }
         }
         if (bukkitIcon == null) {
-            bukkitIcon = new ItemStack(org.bukkit.Material.BOOK);
+            bukkitIcon = new ItemStack(Material.BOOK);
         }
         return SpigotConversionUtil.fromBukkitItemStack(bukkitIcon);
     }

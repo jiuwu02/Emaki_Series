@@ -1,14 +1,16 @@
 package emaki.jiuwu.craft.forge.service;
 
+import java.util.List;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
@@ -34,7 +36,7 @@ final class ForgeResultItemFactory {
             return null;
         }
         EmakiItemLayerSnapshot forgeLayer = snapshotBuilder.buildLayerSnapshot(recipe, guiItems, multiplier, qualityTier, forgedAt, player);
-        ItemSource baseSource = resolveConfiguredOutputSource(recipe);
+        ItemSourceRef baseSource = resolveConfiguredOutputSource(recipe);
         ItemStack existingItem = baseSource == null ? cloneNonAir(guiItems == null ? null : guiItems.targetItem()) : null;
         if (baseSource == null && existingItem == null) {
             return null;
@@ -43,16 +45,16 @@ final class ForgeResultItemFactory {
                 baseSource,
                 1,
                 existingItem,
-                java.util.List.of(forgeLayer)
+                List.of(forgeLayer)
         );
     }
 
-    ItemSource resolveConfiguredOutputSource(Recipe recipe) {
+    ItemSourceRef resolveConfiguredOutputSource(Recipe recipe) {
         return recipe == null ? null : recipe.configuredOutputSource();
     }
 
     ItemStack createConfiguredOutputItem(Recipe recipe) {
-        ItemSource source = resolveConfiguredOutputSource(recipe);
+        ItemSourceRef source = resolveConfiguredOutputSource(recipe);
         return source == null ? null : plugin.itemIdentifierService().createItem(source, 1);
     }
 
@@ -61,7 +63,7 @@ final class ForgeResultItemFactory {
         if (Texts.isNotBlank(resolvedItemName)) {
             return resolvedItemName;
         }
-        ItemSource source = resolveConfiguredOutputSource(recipe);
+        ItemSourceRef source = resolveConfiguredOutputSource(recipe);
         if (source != null) {
             String displayName = plugin.itemIdentifierService().displayName(source);
             if (Texts.isNotBlank(displayName)) {

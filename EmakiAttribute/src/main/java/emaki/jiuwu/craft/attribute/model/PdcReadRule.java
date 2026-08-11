@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public record PdcReadRule(String sourceId,
         String conditionType,
@@ -21,7 +22,7 @@ public record PdcReadRule(String sourceId,
     public PdcReadRule {
         sourceId = Texts.normalizeId(sourceId);
         conditionType = Texts.isBlank(conditionType) ? "all_of" : Texts.lower(conditionType);
-        conditions = conditions == null ? List.of() : List.copyOf(conditions.stream().filter(java.util.Objects::nonNull).toList());
+        conditions = conditions == null ? List.of() : List.copyOf(conditions.stream().filter(Objects::nonNull).toList());
         schemaVersion = schemaVersion <= 0 ? CURRENT_SCHEMA_VERSION : schemaVersion;
     }
 
@@ -47,28 +48,18 @@ public record PdcReadRule(String sourceId,
             return null;
         }
         Object condition = ConfigNodes.get(map, "condition");
-        Object entries = firstPresent(ConfigNodes.get(condition, "entries"), ConfigNodes.get(condition, "conditions"));
-        boolean hasConditionBlock = condition != null;
         return new PdcReadRule(
                 ConfigNodes.string(map, "source_id", ""),
-                hasConditionBlock
-                        ? ConfigNodes.string(condition, "type", ConfigNodes.string(condition, "condition_type", "all_of"))
-                        : ConfigNodes.string(map, "condition_type", "all_of"),
-                Numbers.tryParseInt(hasConditionBlock ? ConfigNodes.get(condition, "required_count") : map.get("required_count"), null),
-                parseConditions(hasConditionBlock ? entries : map.get("conditions")),
-                hasConditionBlock
-                        ? ConfigNodes.bool(condition, "invalid_as_failure", true)
-                        : ConfigNodes.bool(map, "invalid_as_failure", true),
+                ConfigNodes.string(condition, "type", "all_of"),
+                Numbers.tryParseInt(ConfigNodes.get(condition, "required_count"), null),
+                parseConditions(ConfigNodes.get(condition, "entries")),
+                ConfigNodes.bool(condition, "invalid_as_failure", true),
                 Numbers.tryParseInt(map.get("schema_version"), CURRENT_SCHEMA_VERSION)
         );
     }
 
     public boolean hasConditions() {
         return !conditions.isEmpty();
-    }
-
-    private static Object firstPresent(Object first, Object second) {
-        return first != null ? first : second;
     }
 
     private static List<RuleCondition> parseConditions(Object raw) {

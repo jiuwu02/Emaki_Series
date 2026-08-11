@@ -1,0 +1,54 @@
+package emaki.jiuwu.craft.corelib.action.builtin.stage;
+
+import java.util.Map;
+
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.LivingEntity;
+import org.jetbrains.annotations.NotNull;
+
+import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
+import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
+import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
+
+/**
+ * Restores health on the target, capped at its maximum.
+ *
+ * <p>Widened from v1's {@code Player} to {@code LivingEntity}: with a target flow the caster is no longer
+ * assumed to be a player, and {@code nearby | heal amount=5} on mobs is a reasonable thing to write.</p>
+ *
+ * <p>The cap is read from {@code AttributeInstance#getValue()}, the engine's own view of maximum health, so
+ * third-party modifiers are respected rather than recomputed.</p>
+ *
+ * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one entity's health.</p>
+ */
+public final class HealStage extends BaseStage {
+
+    public HealStage() {
+        super("heal", "entity", "Restores health on the target.",
+                CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
+                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "Health to restore"));
+    }
+
+    @Override
+    public @NotNull CoreActionOutcome execute(@NotNull CoreStageContext context,
+            @NotNull CoreResolvedArguments arguments) {
+        LivingEntity target = StageSupport.livingEntity(context.currentTarget());
+        if (target == null) {
+            return CoreActionOutcome.skipped("action.stage.common.not_living_entity");
+        }
+        double amount = arguments.getDouble("amount", 0D);
+        AttributeInstance attribute = target.getAttribute(Attribute.MAX_HEALTH);
+        double max = attribute == null ? target.getHealth() : attribute.getValue();
+        double before = target.getHealth();
+        double after = Math.min(max, before + amount);
+        target.setHealth(Math.max(0D, after));
+        return CoreActionOutcome.success(Map.of("health_before", before, "health_after", target.getHealth()));
+    }
+}

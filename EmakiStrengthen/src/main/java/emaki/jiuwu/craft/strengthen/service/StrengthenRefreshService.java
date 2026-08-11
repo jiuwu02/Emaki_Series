@@ -40,25 +40,34 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
 
     @Override
     public void refreshPlayerInventory(Player player) {
+        refreshPlayerItems(player);
+    }
+
+    public int refreshPlayerItems(Player player) {
         if (player == null || !player.isOnline()) {
-            return;
+            return 0;
         }
         PlayerInventory inventory = player.getInventory();
+        int refreshedCount = 0;
         ItemStack[] storage = inventory.getStorageContents();
-        boolean storageChanged = refreshArray(storage);
-        if (storageChanged) {
+        int storageChanged = refreshArray(storage);
+        if (storageChanged > 0) {
             inventory.setStorageContents(storage);
+            refreshedCount += storageChanged;
         }
         ItemStack[] armor = inventory.getArmorContents();
-        boolean armorChanged = refreshArray(armor);
-        if (armorChanged) {
+        int armorChanged = refreshArray(armor);
+        if (armorChanged > 0) {
             inventory.setArmorContents(armor);
+            refreshedCount += armorChanged;
         }
         ItemStack offHand = inventory.getItemInOffHand();
         ItemStack refreshedOffHand = refreshItem(offHand);
         if (refreshedOffHand != offHand) {
             inventory.setItemInOffHand(refreshedOffHand);
+            refreshedCount++;
         }
+        return refreshedCount;
     }
 
     @Override
@@ -77,17 +86,17 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
         return rebuilt == null ? itemStack : rebuilt;
     }
 
-    private boolean refreshArray(ItemStack[] items) {
+    private int refreshArray(ItemStack[] items) {
         if (items == null || items.length == 0) {
-            return false;
+            return 0;
         }
-        boolean changed = false;
+        int changed = 0;
         for (int index = 0; index < items.length; index++) {
             ItemStack original = items[index];
             ItemStack refreshed = refreshItem(original);
             if (refreshed != original) {
                 items[index] = refreshed;
-                changed = true;
+                changed++;
             }
         }
         return changed;

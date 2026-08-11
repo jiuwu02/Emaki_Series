@@ -1,17 +1,18 @@
 package emaki.jiuwu.craft.level.service;
 
 import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class LevelMessageService implements LogMessages {
 
@@ -39,7 +40,7 @@ public final class LevelMessageService implements LogMessages {
     @Override
     public String message(String key, Map<String, ?> replacements) {
         String raw = resolveText(key, key);
-        Map<String, Object> merged = new java.util.LinkedHashMap<>();
+        Map<String, Object> merged = new LinkedHashMap<>();
         merged.put("prefix", prefix());
         if (replacements != null) {
             merged.putAll(replacements);
@@ -50,7 +51,7 @@ public final class LevelMessageService implements LogMessages {
     private String prefix() {
         String prefix = resolveText("general.prefix", null);
         if (Texts.isBlank(prefix)) {
-            prefix = resolveText("prefix", "<gray>[ <gradient:#7DD3FC:#C084FC>EmakiLevel</gradient> ]</gray>");
+            prefix = resolveText("prefix", "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>");
         }
         return Texts.toStringSafe(prefix);
     }

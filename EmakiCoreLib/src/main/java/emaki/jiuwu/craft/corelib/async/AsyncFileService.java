@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.RejectedExecutionException;
@@ -18,6 +17,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler.TaskPriority;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
@@ -219,7 +219,7 @@ public final class AsyncFileService implements AutoCloseable {
             if (throwable == null) {
                 return CompletableFuture.completedFuture(value);
             }
-            Throwable cause = unwrap(throwable);
+            Throwable cause = AsyncFailures.unwrap(throwable);
             if (attempt >= maxRetries || cause instanceof RejectedExecutionException) {
                 return CompletableFuture.<T>failedFuture(cause);
             }
@@ -290,15 +290,6 @@ public final class AsyncFileService implements AutoCloseable {
 
     private String safeTaskName(String taskName) {
         return taskName == null || taskName.isBlank() ? "async-file" : taskName.trim();
-    }
-
-    private Throwable unwrap(Throwable throwable) {
-        Throwable current = throwable;
-        while ((current instanceof CompletionException || current instanceof java.util.concurrent.ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
     }
 
     public final class FileScope {
@@ -389,7 +380,7 @@ public final class AsyncFileService implements AutoCloseable {
             lock.lock();
             try {
                 if (throwable != null && failures.size() < MAX_RECORDED_FAILURES) {
-                    failures.add(unwrapStatic(throwable));
+                    failures.add(AsyncFailures.unwrap(throwable));
                 }
                 pending = Math.max(0, pending - 1);
                 if (pending == 0) {
@@ -453,15 +444,6 @@ public final class AsyncFileService implements AutoCloseable {
                     Thread.currentThread().interrupt();
                 }
             }
-        }
-
-        private static Throwable unwrapStatic(Throwable throwable) {
-            Throwable current = throwable;
-            while ((current instanceof CompletionException || current instanceof java.util.concurrent.ExecutionException)
-                    && current.getCause() != null) {
-                current = current.getCause();
-            }
-            return current;
         }
     }
 }

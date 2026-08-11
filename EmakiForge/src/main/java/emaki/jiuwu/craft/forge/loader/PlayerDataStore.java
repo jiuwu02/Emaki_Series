@@ -16,13 +16,16 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.function.Consumer;
+import java.util.logging.Level;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.PlayerData;
 
@@ -139,7 +142,7 @@ public final class PlayerDataStore {
                             : null;
                 })
                 .exceptionally(throwable -> {
-                    logLoadFailure(key, unwrap(throwable));
+                    logLoadFailure(key, AsyncFailures.unwrapOnce(throwable));
                     PlayerData fallback = new PlayerData(key);
                     return cache.installLoadFailure(ticket, fallback) == PlayerDataCache.CommitResult.COMMITTED
                             ? fallback.copy()
@@ -277,7 +280,7 @@ public final class PlayerDataStore {
                     : asyncYamlFiles.pendingOperationCount();
             List<Throwable> failures = throwable == null
                     ? List.of()
-                    : List.of(unwrap(throwable));
+                    : List.of(AsyncFailures.unwrapOnce(throwable));
             DrainResult drainResult = new DrainResult(
                     throwable == null && pendingOperations == 0,
                     pendingOperations,
@@ -381,7 +384,7 @@ public final class PlayerDataStore {
         return mutate(uuid, generation, data -> data.resetGuaranteeCounter(key));
     }
 
-    private boolean mutate(UUID uuid, long expectedGeneration, java.util.function.Consumer<PlayerData> mutation) {
+    private boolean mutate(UUID uuid, long expectedGeneration, Consumer<PlayerData> mutation) {
         if (uuid == null) {
             return false;
         }
@@ -472,7 +475,7 @@ public final class PlayerDataStore {
         }
         return asyncYamlFiles.load(file).handle((section, throwable) -> {
             if (throwable != null) {
-                Throwable cause = unwrap(throwable);
+                Throwable cause = AsyncFailures.unwrapOnce(throwable);
                 logSaveFailure(uuid, cause);
                 throw new CompletionException(cause);
             }
@@ -510,7 +513,7 @@ public final class PlayerDataStore {
                     return true;
                 })
                 .exceptionally(throwable -> {
-                    logSaveFailure(uuid, unwrap(throwable));
+                    logSaveFailure(uuid, AsyncFailures.unwrapOnce(throwable));
                     return false;
                 });
     }
@@ -626,7 +629,7 @@ public final class PlayerDataStore {
     }
 
     private void logLoadFailure(String uuid, Throwable throwable) {
-        plugin.getLogger().log(java.util.logging.Level.WARNING,
+        plugin.getLogger().log(Level.WARNING,
                 "[PlayerDataStore] Failed to load player data for " + uuid
                         + "; this session will remain read-only to protect the existing file",
                 throwable);
@@ -637,12 +640,5 @@ public final class PlayerDataStore {
                 "uuid", uuid,
                 "error", String.valueOf(throwable == null ? "unknown" : throwable.getMessage())
         ));
-    }
-
-    private Throwable unwrap(Throwable throwable) {
-        if (throwable instanceof CompletionException completionException && completionException.getCause() != null) {
-            return completionException.getCause();
-        }
-        return throwable;
     }
 }

@@ -9,8 +9,8 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.strengthen.model.AttemptContext;
-import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
 
 final class StrengthenGuiSession {
 

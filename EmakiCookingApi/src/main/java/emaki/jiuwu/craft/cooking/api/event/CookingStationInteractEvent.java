@@ -14,13 +14,14 @@ import org.bukkit.event.HandlerList;
  * {@link org.bukkit.event.Cancellable}. Whether the interaction itself is
  * cancelled is still decided by EmakiCooking's own per-station handling. The
  * event fires before EmakiCooking dispatches the interaction to its station
- * services, which lets EmakiCooking record the player's most recently used
- * station so station placeholders (for example
- * {@code %emakicooking_station_location%}) resolve against it.</p>
+ * services. The built-in tracker records it for
+ * {@link emaki.jiuwu.craft.cooking.api.CookingCatalog#recentStation(java.util.UUID)},
+ * which is the public query paired with this notification.</p>
  *
  * <p>Listeners may inspect the player, the station location, the station type
  * and the interaction type, for example to drive per-station special recipe
- * conditions. This event is fired on the server thread.</p>
+ * conditions. The event is synchronous and fires on the interacting player's
+ * entity-owner/location-owner execution boundary.</p>
  */
 public final class CookingStationInteractEvent extends Event {
 

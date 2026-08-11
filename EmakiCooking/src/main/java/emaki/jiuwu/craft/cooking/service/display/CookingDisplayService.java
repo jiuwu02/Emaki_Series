@@ -2,24 +2,84 @@ package emaki.jiuwu.craft.cooking.service.display;
 
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.display.ItemDisplayService;
 
-public interface CookingDisplayService {
+/**
+ * 工位物品展示的薄适配层。
+ *
+ * <p>与 {@link CookingTextDisplayService} 同理，实体管理下沉到 CoreLib，
+ * 这里只做工位身份翻译。
+ */
+public final class CookingDisplayService {
 
-    void upsert(CookingDisplaySpec spec);
+    private final ItemDisplayService delegate;
 
-    void remove(StationType stationType, StationCoordinates coordinates, String displayKey);
+    public CookingDisplayService(ItemDisplayService delegate) {
+        this.delegate = delegate;
+    }
 
-    void removeStation(StationType stationType, StationCoordinates coordinates);
+    public void upsert(CookingDisplaySpec spec) {
+        if (spec == null) {
+            return;
+        }
+        delegate.upsert(spec.toCoreSpec());
+    }
 
-    void removeStationType(StationType stationType);
+    public void remove(StationType stationType, StationCoordinates coordinates, String displayKey) {
+        if (stationType == null || coordinates == null || displayKey == null) {
+            return;
+        }
+        delegate.remove(CookingDisplayKeys.of(stationType, coordinates, displayKey));
+    }
 
-    void playStirAnimation(StationType stationType, StationCoordinates coordinates,
-                           double heightOffset, String rotationAxis,
-                           double rotationDegrees, int durationTicks);
+    public void removeStation(StationType stationType, StationCoordinates coordinates) {
+        if (stationType == null || coordinates == null) {
+            return;
+        }
+        delegate.removeGroup(CookingDisplayKeys.NAMESPACE, CookingDisplayKeys.group(stationType, coordinates));
+    }
 
-    boolean isAnimating(StationType stationType, StationCoordinates coordinates);
+    public void removeStationType(StationType stationType) {
+        if (stationType == null) {
+            return;
+        }
+        delegate.removeGroupPrefix(CookingDisplayKeys.NAMESPACE, CookingDisplayKeys.typePrefix(stationType));
+    }
 
-    void shutdown();
+    /** 播放翻炒动画，底层是通用的抬升加绕轴旋转变换。 */
+    public void playStirAnimation(StationType stationType,
+            StationCoordinates coordinates,
+            double heightOffset,
+            String rotationAxis,
+            double rotationDegrees,
+            int durationTicks) {
+        if (stationType == null || coordinates == null) {
+            return;
+        }
+        delegate.playTransformAnimation(
+                CookingDisplayKeys.NAMESPACE,
+                CookingDisplayKeys.group(stationType, coordinates),
+                coordinates.location(0.5D, 0.5D, 0.5D),
+                heightOffset,
+                rotationAxis,
+                rotationDegrees,
+                durationTicks
+        );
+    }
 
-    String backendName();
+    public boolean isAnimating(StationType stationType, StationCoordinates coordinates) {
+        if (stationType == null || coordinates == null) {
+            return false;
+        }
+        return delegate.isAnimating(
+                CookingDisplayKeys.NAMESPACE, CookingDisplayKeys.group(stationType, coordinates));
+    }
+
+    public void shutdown() {
+        delegate.shutdown();
+    }
+
+    public String backendName() {
+        return delegate.backendName();
+    }
 }

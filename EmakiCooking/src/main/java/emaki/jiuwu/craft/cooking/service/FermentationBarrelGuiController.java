@@ -12,12 +12,12 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.gui.GuiDebugSupport;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -61,7 +61,7 @@ final class FermentationBarrelGuiController {
         }
         FermentationBarrelGuiHolder holder = new FermentationBarrelGuiHolder(player.getUniqueId(), coordinates);
         Inventory inventory = Bukkit.createInventory(holder, settingsService.fermentationBarrelInventoryRows() * 9,
-                MiniMessages.plain(MiniMessages.parse(settingsService.fermentationBarrelInventoryTitle())));
+                MiniMessages.parse(settingsService.fermentationBarrelInventoryTitle()));
         holder.attach(inventory);
         loadInventory(coordinates, inventory);
         openSessions.put(player.getUniqueId(), holder);
@@ -84,7 +84,7 @@ final class FermentationBarrelGuiController {
             }
             ItemStack item = codec.deserializeItem(state.slotItemData(slot));
             if (item == null || item.getType().isAir()) {
-                ItemSource itemSource = ItemSourceUtil.parse(source);
+                ItemSourceRef itemSource = ItemSourceUtil.parse(source);
                 item = itemSource == null ? null : itemSourceService.createItem(itemSource, state.slotAmounts().getOrDefault(slot, 1));
             }
             if (item != null && !item.getType().isAir()) {
@@ -279,7 +279,7 @@ final class FermentationBarrelGuiController {
     }
 
     String identifySource(ItemStack itemStack) {
-        ItemSource source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         return source == null ? "" : Texts.toStringSafe(ItemSourceUtil.toShorthand(source));
     }
 

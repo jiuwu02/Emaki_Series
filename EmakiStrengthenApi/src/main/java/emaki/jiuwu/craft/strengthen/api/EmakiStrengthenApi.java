@@ -1,26 +1,17 @@
 package emaki.jiuwu.craft.strengthen.api;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.strengthen.model.AttemptContext;
-import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
-import emaki.jiuwu.craft.strengthen.model.AttemptResult;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 
 /**
- * Static public API facade for inspecting and performing EmakiStrengthen
- * item-strengthening operations.
+ * Static public API facade for the EmakiStrengthen strengthening system.
  *
- * <p>Third-party plugins should call these static methods directly. EmakiStrengthen
- * installs the backing bridge during its enable lifecycle and removes it on
- * disable.
+ * <p>Capabilities are grouped behind {@link #catalog()} for read-only queries and
+ * {@link #operations()} for state-changing work. All accessors are non-null. When the runtime bridge
+ * is absent, catalog collections are empty and result-bearing calls return
+ * {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult#unavailable()}.
  */
 public final class EmakiStrengthenApi {
 
@@ -32,152 +23,60 @@ public final class EmakiStrengthenApi {
     /**
      * Installs the backing bridge. Intended for EmakiStrengthen's lifecycle only.
      *
-     * @param bridge the active bridge implementation supplied by EmakiStrengthen
+     * @param bridge the active runtime bridge
      */
+    @org.jetbrains.annotations.ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
         EmakiStrengthenApi.bridge = bridge;
     }
 
     /**
-     * Removes the backing bridge when it is still the active bridge.
+     * Removes the backing bridge when it is still active.
      *
-     * @param bridge the bridge to remove; ignored when it is not the active bridge
+     * @param bridge the bridge to remove
      */
+    @org.jetbrains.annotations.ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
         if (EmakiStrengthenApi.bridge == bridge) {
             EmakiStrengthenApi.bridge = null;
         }
     }
 
-    /** {@return whether EmakiStrengthen has installed its API bridge} */
-    public static boolean available() {
-        return bridge != null;
-    }
-
     /**
-     * Checks whether the given item can be strengthened.
-     *
-     * @param itemStack the item to test; {@code null} yields {@code false}
-     * @return {@code true} when the item is eligible for strengthening
+     * {@return availability and identity metadata; never {@code null}, and
+     * {@link ApiStatus#notInstalled()} when no bridge is installed}
      */
-    public static boolean canStrengthen(@Nullable ItemStack itemStack) {
+    public static @NotNull ApiStatus status() {
         Bridge resolved = bridge;
-        return resolved != null && resolved.canStrengthen(itemStack);
+        return resolved == null ? ApiStatus.notInstalled() : resolved.status();
     }
 
-    /**
-     * Reads the current strengthen state of an item.
-     *
-     * @param itemStack the item to inspect; {@code null} yields an ineligible state
-     * @return the resolved state; never {@code null}
-     */
-    public static @NotNull StrengthenState readState(@Nullable ItemStack itemStack) {
+    /** {@return the read-only catalog layer; never {@code null}} */
+    public static @NotNull StrengthenCatalog catalog() {
         Bridge resolved = bridge;
-        return resolved == null
-                ? StrengthenState.ineligible("strengthen.error.api_unavailable", null, "")
-                : resolved.readState(itemStack);
+        return resolved == null ? UnavailableStrengthen.CATALOG : resolved.catalog();
     }
 
-    /**
-     * Computes a non-committing preview of a strengthen attempt.
-     *
-     * @param player the player performing the attempt; may be {@code null}
-     * @param context the attempt inputs; may be {@code null}
-     * @return the preview describing cost, success rate and projected outcome; never {@code null}
-     */
-    public static @NotNull AttemptPreview preview(@Nullable Player player, @Nullable AttemptContext context) {
+    /** {@return the state-changing operation layer; never {@code null}} */
+    public static @NotNull StrengthenOperations operations() {
         Bridge resolved = bridge;
-        return resolved == null
-                ? unavailablePreview()
-                : resolved.preview(player, context);
+        return resolved == null ? UnavailableStrengthen.OPERATIONS : resolved.operations();
     }
 
-    /**
-     * Performs a strengthen attempt and charges configured economy costs.
-     *
-     * <p>The API treats {@link AttemptContext} as cloned input data: it does not
-     * mutate or remove the target item or material stacks supplied in the context.
-     * On success or failure with a rebuilt item, callers must apply the returned
-     * {@link AttemptResult#resultItem()} and handle any external inventory material
-     * consumption themselves. The built-in GUI consumes/returns its hosted material
-     * stacks after reading the result preview's per-slot consumed amounts.
-     *
-     * @param player the player performing the attempt; may be {@code null}
-     * @param context the attempt inputs; may be {@code null}
-     * @return the attempt result with explicit committed/outcome semantics; never {@code null}
-     */
-    public static @NotNull AttemptResult attempt(@Nullable Player player, @Nullable AttemptContext context) {
-        Bridge resolved = bridge;
-        return resolved == null
-                ? AttemptResult.failure("strengthen.error.api_unavailable", preview(player, context), java.util.Map.of(),
-                        context == null ? "" : context.operationId())
-                : resolved.attempt(player, context);
-    }
-
-    /**
-     * Rebuilds the strengthen display layer of an item from its stored state.
-     *
-     * @param itemStack the item to rebuild; {@code null} yields {@code null}
-     * @return the rebuilt item, the original item when unavailable, or {@code null}
-     */
-    public static @Nullable ItemStack rebuild(@Nullable ItemStack itemStack) {
-        Bridge resolved = bridge;
-        return resolved == null ? itemStack : resolved.rebuild(itemStack);
-    }
-
-    private static AttemptPreview unavailablePreview() {
-        StrengthenState state = StrengthenState.ineligible("strengthen.error.api_unavailable", null, "");
-        return new AttemptPreview(false, "strengthen.error.api_unavailable", state, null, 0, 0, 0D,
-                List.of(), 0, 0, false, 0, Map.of(), Set.of(), List.of(), List.of());
-    }
-
-    /** Internal bridge installed by EmakiStrengthen. */
+    /** Bridge contract implemented by the EmakiStrengthen runtime. */
+    @org.jetbrains.annotations.ApiStatus.NonExtendable
     public interface Bridge {
-        /**
-         * Checks whether the given item can be strengthened.
-         *
-         * @param itemStack the item to test; may be {@code null}
-         * @return {@code true} when the item is eligible for strengthening
-         */
-        boolean canStrengthen(@Nullable ItemStack itemStack);
 
-        /**
-         * Reads the current strengthen state of an item.
-         *
-         * @param itemStack the item to inspect; may be {@code null}
-         * @return the resolved state; never {@code null}
-         */
+        /** {@return availability and identity metadata; must never be {@code null}} */
         @NotNull
-        StrengthenState readState(@Nullable ItemStack itemStack);
+        ApiStatus status();
 
-        /**
-         * Computes a non-committing preview of a strengthen attempt.
-         *
-         * @param player the player performing the attempt; may be {@code null}
-         * @param context the attempt inputs; may be {@code null}
-         * @return the preview result; never {@code null}
-         */
+        /** {@return the read-only catalog layer; must never be {@code null}} */
         @NotNull
-        AttemptPreview preview(@Nullable Player player, @Nullable AttemptContext context);
+        StrengthenCatalog catalog();
 
-        /**
-         * Performs a strengthen attempt and returns the rebuilt result item when committed.
-         * Implementations must not mutate the supplied {@link AttemptContext} item stacks.
-         *
-         * @param player the player performing the attempt; may be {@code null}
-         * @param context the attempt inputs; may be {@code null}
-         * @return the attempt result; never {@code null}
-         */
+        /** {@return the state-changing operation layer; must never be {@code null}} */
         @NotNull
-        AttemptResult attempt(@Nullable Player player, @Nullable AttemptContext context);
-
-        /**
-         * Rebuilds the strengthen display layer of an item.
-         *
-         * @param itemStack the item to rebuild; may be {@code null}
-         * @return the rebuilt item, or {@code null} when not applicable
-         */
-        @Nullable
-        ItemStack rebuild(@Nullable ItemStack itemStack);
+        StrengthenOperations operations();
     }
 }

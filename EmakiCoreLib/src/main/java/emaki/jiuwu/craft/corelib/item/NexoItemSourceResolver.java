@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.item;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.bukkit.event.EventHandler;
@@ -13,11 +14,12 @@ import com.nexomc.nexo.api.NexoItems;
 import com.nexomc.nexo.api.events.NexoItemsLoadedEvent;
 import com.nexomc.nexo.items.ItemBuilder;
 
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class NexoItemSourceResolver
-        extends AbstractManagedItemSourceResolver<NexoItemSourceResolver.DirectAccessor> {
+        extends AbstractManagedItemSourceProvider<NexoItemSourceResolver.DirectAccessor> {
 
     private static final String PLUGIN_NAME = "Nexo";
 
@@ -30,8 +32,13 @@ final class NexoItemSourceResolver
     }
 
     @Override
-    public String id() {
-        return "corelib_nexo";
+    public ItemSourceKind kind() {
+        return ItemSourceKind.NEXO;
+    }
+
+    @Override
+    public Set<String> shorthandPrefixes() {
+        return Set.of("nexo-", "no-");
     }
 
     @Override
@@ -40,13 +47,8 @@ final class NexoItemSourceResolver
     }
 
     @Override
-    public String pluginName() {
+    public String providerPluginName() {
         return PLUGIN_NAME;
-    }
-
-    @Override
-    protected ItemSourceType sourceType() {
-        return ItemSourceType.NEXO;
     }
 
     @Override
@@ -55,14 +57,14 @@ final class NexoItemSourceResolver
     }
 
     @Override
-    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceResolver> loadedHandler) {
+    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceProvider> loadedHandler) {
         if (plugin == null || loadedHandler == null) {
             return;
         }
         plugin.getServer().getPluginManager().registerEvents(new NexoLoadListener(this, loadedHandler), plugin);
     }
 
-    static final class DirectAccessor implements AbstractManagedItemSourceResolver.Accessor {
+    static final class DirectAccessor implements AbstractManagedItemSourceProvider.Accessor {
 
         private String failureReason = "";
 
@@ -142,11 +144,11 @@ final class NexoItemSourceResolver
 
     private static final class NexoLoadListener implements Listener {
 
-        private final ManagedItemSourceResolver resolver;
-        private final Consumer<ManagedItemSourceResolver> loadedHandler;
+        private final ManagedItemSourceProvider resolver;
+        private final Consumer<ManagedItemSourceProvider> loadedHandler;
 
-        private NexoLoadListener(ManagedItemSourceResolver resolver,
-                Consumer<ManagedItemSourceResolver> loadedHandler) {
+        private NexoLoadListener(ManagedItemSourceProvider resolver,
+                Consumer<ManagedItemSourceProvider> loadedHandler) {
             this.resolver = resolver;
             this.loadedHandler = loadedHandler;
         }

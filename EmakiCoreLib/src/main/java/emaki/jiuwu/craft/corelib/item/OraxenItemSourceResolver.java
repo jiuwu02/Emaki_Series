@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.item;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.bukkit.event.EventHandler;
@@ -13,10 +14,11 @@ import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.api.events.OraxenItemsLoadedEvent;
 import io.th0rgal.oraxen.items.ItemBuilder;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class OraxenItemSourceResolver
-        extends AbstractManagedItemSourceResolver<OraxenItemSourceResolver.DirectAccessor> {
+        extends AbstractManagedItemSourceProvider<OraxenItemSourceResolver.DirectAccessor> {
 
     private static final String PLUGIN_NAME = "Oraxen";
 
@@ -29,8 +31,13 @@ final class OraxenItemSourceResolver
     }
 
     @Override
-    public String id() {
-        return "corelib_oraxen";
+    public ItemSourceKind kind() {
+        return ItemSourceKind.ORAXEN;
+    }
+
+    @Override
+    public Set<String> shorthandPrefixes() {
+        return Set.of("oraxen-", "ox-");
     }
 
     @Override
@@ -39,13 +46,8 @@ final class OraxenItemSourceResolver
     }
 
     @Override
-    public String pluginName() {
+    public String providerPluginName() {
         return PLUGIN_NAME;
-    }
-
-    @Override
-    protected ItemSourceType sourceType() {
-        return ItemSourceType.ORAXEN;
     }
 
     @Override
@@ -54,14 +56,14 @@ final class OraxenItemSourceResolver
     }
 
     @Override
-    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceResolver> loadedHandler) {
+    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceProvider> loadedHandler) {
         if (plugin == null || loadedHandler == null) {
             return;
         }
         plugin.getServer().getPluginManager().registerEvents(new OraxenLoadListener(this, loadedHandler), plugin);
     }
 
-    static final class DirectAccessor implements AbstractManagedItemSourceResolver.Accessor {
+    static final class DirectAccessor implements AbstractManagedItemSourceProvider.Accessor {
 
         private String failureReason = "";
 
@@ -141,11 +143,11 @@ final class OraxenItemSourceResolver
 
     private static final class OraxenLoadListener implements Listener {
 
-        private final ManagedItemSourceResolver resolver;
-        private final Consumer<ManagedItemSourceResolver> loadedHandler;
+        private final ManagedItemSourceProvider resolver;
+        private final Consumer<ManagedItemSourceProvider> loadedHandler;
 
-        private OraxenLoadListener(ManagedItemSourceResolver resolver,
-                Consumer<ManagedItemSourceResolver> loadedHandler) {
+        private OraxenLoadListener(ManagedItemSourceProvider resolver,
+                Consumer<ManagedItemSourceProvider> loadedHandler) {
             this.resolver = resolver;
             this.loadedHandler = loadedHandler;
         }

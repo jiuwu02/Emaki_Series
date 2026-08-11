@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.strengthen.service;
 
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
@@ -7,11 +9,15 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
 
 public final class StrengthenGuiService implements Listener {
 
@@ -43,7 +49,11 @@ public final class StrengthenGuiService implements Listener {
             interactionController.resumePendingSettlement(player);
             return false;
         }
-        var template = plugin.guiTemplateLoader().get("strengthen_gui");
+        String templateId = resolveTemplateId(player);
+        var template = plugin.guiTemplateLoader().get(templateId);
+        if (template == null && !"strengthen_gui".equals(templateId)) {
+            template = plugin.guiTemplateLoader().get("strengthen_gui");
+        }
         if (template == null) {
             plugin.messageService().send(player, "gui.open_failed");
             return false;
@@ -54,8 +64,7 @@ public final class StrengthenGuiService implements Listener {
                 plugin,
                 player,
                 template,
-                java.util.Map.of(),
-                (source, amount) -> plugin.coreItemFactory().create(source, amount),
+                Map.of(),
                 (guiSession, slot) -> renderer.renderSlot(state, slot),
                 interactionController.createSessionHandler(state)
         ));
@@ -87,5 +96,21 @@ public final class StrengthenGuiService implements Listener {
 
     public CompletableFuture<Void> clearAllSessionsAsync() {
         return guiService.closeAllAsync().whenComplete((_, _) -> stateManager.clear());
+    }
+
+    private String resolveTemplateId(Player player) {
+        if (plugin.attemptService() == null) {
+            return "strengthen_gui";
+        }
+        ItemStack heldItem = player.getInventory().getItemInMainHand();
+        AttemptPreview heldPreview = plugin.attemptService().preview(
+                player, AttemptContext.of(heldItem, List.of()));
+        if (heldPreview != null && heldPreview.recipe() != null) {
+            String t = heldPreview.recipe().guiTemplate();
+            if (t != null && !t.isBlank()) {
+                return t;
+            }
+        }
+        return "strengthen_gui";
     }
 }

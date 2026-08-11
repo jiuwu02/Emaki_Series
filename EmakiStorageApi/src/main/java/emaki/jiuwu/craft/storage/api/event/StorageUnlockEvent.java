@@ -25,6 +25,18 @@ public class StorageUnlockEvent extends Event implements Cancellable {
     private final String source;
     private boolean cancelled;
 
+    /**
+     * Constructs the event. Called by EmakiStorage's unlock service after the quote has been validated;
+     * listeners receive instances rather than creating them.
+     *
+     * @param playerId             the storage owner
+     * @param slotAmount           how many slots this operation would unlock
+     * @param purchasedSlotsBefore how many slots the player had already purchased
+     * @param currencyCost         the summed currency price from the accepted quote; zero when the
+     *                             purchase does not charge currency
+     * @param source               the originating surface id, one of {@code gui}, {@code command},
+     *                             {@code api} or {@code action}
+     */
     public StorageUnlockEvent(@NotNull UUID playerId,
             int slotAmount,
             int purchasedSlotsBefore,
@@ -77,6 +89,7 @@ public class StorageUnlockEvent extends Event implements Cancellable {
         return HANDLERS;
     }
 
+    /** {@return the shared handler list, as required by the Bukkit event contract} */
     public static @NotNull HandlerList getHandlerList() {
         return HANDLERS;
     }

@@ -4,7 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class EmakiItemLayerCodecRegistry {
 

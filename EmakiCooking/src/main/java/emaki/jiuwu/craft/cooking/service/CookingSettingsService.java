@@ -9,6 +9,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -21,14 +22,14 @@ import org.bukkit.util.Transformation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.NutritionComboThreshold;
 import emaki.jiuwu.craft.cooking.model.NutritionCompare;
 import emaki.jiuwu.craft.cooking.model.NutritionFoodSource;
@@ -54,8 +55,8 @@ public final class CookingSettingsService {
 
     private static final Pattern RANGE_PATTERN = Pattern.compile("^\\s*(-?\\d+(?:\\.\\d+)?)\\s*-\\s*(-?\\d+(?:\\.\\d+)?)\\s*$");
 
-    private static final String[] LIT_SOURCE_KEYS = {"lit_item_sources", "lit_source", "ignited_item_sources", "ignited_source", "on_item_sources", "on_source"};
-    private static final String[] UNLIT_SOURCE_KEYS = {"unlit_item_sources", "unlit_source", "extinguished_item_sources", "extinguished_source", "off_item_sources", "off_source"};
+    private static final String[] LIT_SOURCE_KEYS = {"lit_item_sources"};
+    private static final String[] UNLIT_SOURCE_KEYS = {"unlit_item_sources"};
     private static final DisplayAdjustmentProfile DEFAULT_ITEM_DISPLAY_ADJUSTMENT = new DisplayAdjustmentProfile(
             new Vector3(0.5D, 1.02D, 0.5D),
             new RotationProfile(AxisRotation.fixed(90D), AxisRotation.fixed(0D), AxisRotation.fixed(0D)),
@@ -77,8 +78,24 @@ public final class CookingSettingsService {
     private volatile Set<String> globalDisabledWorlds = Set.of();
     private volatile Map<StationType, Set<String>> stationDisabledWorlds = Map.of();
 
+    private final ChoppingBoardSettings choppingBoardSettings;
+    private final GrinderSettings grinderSettings;
+    private final WokSettings wokSettings;
+    private final SteamerSettings steamerSettings;
+    private final OvenSettings ovenSettings;
+    private final JuicerSettings juicerSettings;
+    private final FermentationBarrelSettings fermentationBarrelSettings;
+
     public CookingSettingsService(JavaPlugin plugin) {
         this.plugin = plugin;
+        this.choppingBoardSettings = new ChoppingBoardSettings(() -> configuration);
+        this.grinderSettings = new GrinderSettings(() -> configuration);
+        this.wokSettings = new WokSettings(() -> configuration);
+        this.steamerSettings = new SteamerSettings(() -> configuration, () -> steamerGuiConfiguration);
+        this.ovenSettings = new OvenSettings(() -> configuration, () -> ovenGuiConfiguration);
+        this.juicerSettings = new JuicerSettings(() -> configuration, () -> juicerGuiConfiguration);
+        this.fermentationBarrelSettings =
+                new FermentationBarrelSettings(() -> configuration, () -> fermentationBarrelGuiConfiguration);
     }
 
     public void reload() {
@@ -92,12 +109,12 @@ public final class CookingSettingsService {
         stationDisabledWorlds = loadStationDisabledWorlds();
     }
 
-    public List<ItemSource> stationBlockSources(StationType stationType) {
+    public List<ItemSourceRef> stationBlockSources(StationType stationType) {
         return parseSources(configuration.get(stationPath(stationType) + ".block_item_sources"));
     }
 
-    public ItemSource stationBlockSource(StationType stationType) {
-        List<ItemSource> sources = stationBlockSources(stationType);
+    public ItemSourceRef stationBlockSource(StationType stationType) {
+        List<ItemSourceRef> sources = stationBlockSources(stationType);
         return sources.isEmpty() ? null : sources.getFirst();
     }
 
@@ -147,7 +164,7 @@ public final class CookingSettingsService {
     }
 
     public double wokDisplayLayoutRadius() {
-        return Math.max(0D, configuration.getDouble("display_entities.wok.layout_radius", 0.26D));
+        return wokSettings.displayLayoutRadius();
     }
 
 
@@ -232,7 +249,7 @@ public final class CookingSettingsService {
         return interaction.matches(configured);
     }
 
-    public DisplayAdjustmentProfile displayAdjustment(StationType stationType, ItemSource source, boolean blockDisplay) {
+    public DisplayAdjustmentProfile displayAdjustment(StationType stationType, ItemSourceRef source, boolean blockDisplay) {
         DisplayAdjustmentKind kind = blockDisplay ? DisplayAdjustmentKind.BLOCK : DisplayAdjustmentKind.ITEM;
         DisplayAdjustmentProfile fallback = resolveDefaultDisplayAdjustment(stationType, kind);
         if (source == null) {
@@ -247,310 +264,250 @@ public final class CookingSettingsService {
     }
 
     public boolean choppingDropResult() {
-        return configuration.getBoolean("stations.chopping_board.drop_result", true);
+        return choppingBoardSettings.dropResult();
     }
 
     public boolean choppingSpaceRestriction() {
-        return configuration.getBoolean("stations.chopping_board.space_restriction", false);
+        return choppingBoardSettings.spaceRestriction();
     }
 
     public long choppingInteractionDelayMs() {
-        return Math.max(0L, configuration.getInt("stations.chopping_board.interaction_delay_ms", 1000));
+        return choppingBoardSettings.interactionDelayMs();
     }
 
-    public List<ItemSource> choppingToolSources() {
-        return parseSources(configuration.get("stations.chopping_board.tool_item_sources"));
+    public List<ItemSourceRef> choppingToolSources() {
+        return choppingBoardSettings.toolSources();
     }
 
     public boolean choppingCutDamageEnabled() {
-        return configuration.getBoolean("stations.chopping_board.cut_damage.enabled", true);
+        return choppingBoardSettings.cutDamageEnabled();
     }
 
     public int choppingCutDamageChance() {
-        return Math.max(0, configuration.getInt("stations.chopping_board.cut_damage.chance", 10));
+        return choppingBoardSettings.cutDamageChance();
     }
 
     public int choppingCutDamageValue() {
-        return Math.max(0, configuration.getInt("stations.chopping_board.cut_damage.value", 2));
+        return choppingBoardSettings.cutDamageValue();
     }
 
     public boolean grinderDropResult() {
-        return configuration.getBoolean("stations.grinder.drop_result", true);
+        return grinderSettings.dropResult();
     }
 
     public int grinderCheckDelayTicks() {
-        return Math.max(1, configuration.getInt("stations.grinder.check_delay_ticks", 20));
+        return grinderSettings.checkDelayTicks();
     }
 
     public boolean wokDropResult() {
-        return configuration.getBoolean("stations.wok.drop_result", true);
+        return wokSettings.dropResult();
     }
 
     public boolean wokNeedBowl() {
-        return configuration.getBoolean("stations.wok.need_bowl", true);
+        return wokSettings.needBowl();
     }
 
     public long wokStirDelayMs() {
-        return Math.max(0L, configuration.getInt("stations.wok.stir_delay_ms", 5000));
+        return wokSettings.stirDelayMs();
     }
 
     public long wokTimeoutMs() {
-        return Math.max(0L, configuration.getInt("stations.wok.timeout_ms", 30000));
+        return wokSettings.timeoutMs();
     }
 
-    public List<ItemSource> wokSpatulaSources() {
-        return parseSources(configuration.get("stations.wok.spatula_item_sources"));
+    public List<ItemSourceRef> wokSpatulaSources() {
+        return wokSettings.spatulaSources();
     }
 
     public List<HeatLevelRule> wokHeatLevels() {
-        List<HeatLevelRule> result = new ArrayList<>();
-        for (Map<?, ?> entry : configuration.getMapList("stations.wok.heat_levels")) {
-            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
-            if (source == null) {
-                continue;
-            }
-            ItemSource litSource = ItemSourceUtil.parse(firstPresent(
-                    normalized,
-                    LIT_SOURCE_KEYS
-            ));
-            ItemSource unlitSource = ItemSourceUtil.parse(firstPresent(
-                    normalized,
-                    UNLIT_SOURCE_KEYS
-            ));
-            Integer level = configurationValueToInt(normalized.get("level"), 0);
-            result.add(new HeatLevelRule(source, litSource, unlitSource == null ? source : unlitSource, level == null ? 0 : Math.max(0, level)));
-        }
-        return result.isEmpty() ? List.of() : List.copyOf(result);
+        return wokSettings.heatLevels();
     }
 
     public boolean wokIgniteHeatSource() {
-        return configuration.getBoolean("stations.wok.ignite_heat_source", true);
+        return wokSettings.igniteHeatSource();
     }
 
     public boolean wokScaldDamageEnabled() {
-        return configuration.getBoolean("stations.wok.scald_damage.enabled", true);
+        return wokSettings.scaldDamageEnabled();
     }
 
     public int wokScaldDamageValue() {
-        return Math.max(0, configuration.getInt("stations.wok.scald_damage.value", 2));
+        return wokSettings.scaldDamageValue();
     }
 
     public boolean wokStirAnimationEnabled() {
-        return configuration.getBoolean("stations.wok.stir_animation.enabled", true);
+        return wokSettings.stirAnimationEnabled();
     }
 
     public int wokStirAnimationDurationTicks() {
-        return Math.max(2, configuration.getInt("stations.wok.stir_animation.duration_ticks", 10));
+        return wokSettings.stirAnimationDurationTicks();
     }
 
     public double wokStirAnimationHeight() {
-        return Math.max(0.0D, configuration.getDouble("stations.wok.stir_animation.height", 0.4D));
+        return wokSettings.stirAnimationHeight();
     }
 
     public String wokStirAnimationAxis() {
-        String axis = Texts.lower(configuration.getString("stations.wok.stir_animation.rotation_axis", "x"));
-        return switch (axis) {
-            case "x", "y", "z" -> axis;
-            default -> "x";
-        };
+        return wokSettings.stirAnimationAxis();
     }
 
     public double wokStirAnimationRotation() {
-        return configuration.getDouble("stations.wok.stir_animation.rotation_degrees", 360.0D);
+        return wokSettings.stirAnimationRotation();
     }
 
     public boolean wokFailureEnabled() {
-        return configuration.getBoolean("stations.wok.failure.enabled", true);
+        return wokSettings.failureEnabled();
     }
 
     public int wokFailureChance() {
-        return Math.max(0, configuration.getInt("stations.wok.failure.chance", 5));
+        return wokSettings.failureChance();
     }
 
     public String wokFailureOutputSource() {
-        return firstSourceShorthand(configuration.get("stations.wok.failure.item_sources"));
+        return wokSettings.failureOutputSource();
     }
 
     public String wokInvalidResultSource() {
-        return firstSourceShorthand(configuration.get("stations.wok.invalid_result_item_sources"));
+        return wokSettings.invalidResultSource();
     }
 
     public boolean steamerDropResult() {
-        return configuration.getBoolean("stations.steamer.drop_result", true);
+        return steamerSettings.dropResult();
     }
 
     public String steamerInventoryTitle() {
-        return steamerGuiConfiguration.getString("title", "<dark_gray>蒸锅");
+        return steamerSettings.inventoryTitle();
     }
 
     public int steamerInventoryRows() {
-        int rows = steamerGuiConfiguration.getInt("rows", 1);
-        return Math.max(1, Math.min(6, rows));
+        return steamerSettings.inventoryRows();
     }
 
     public List<Integer> steamerIngredientSlots() {
-        return ingredientSlots(steamerGuiConfiguration, steamerInventoryRows() * 9, 5);
+        return steamerSettings.ingredientSlots();
     }
 
-    public List<ItemSource> steamerHeatSources() {
-        return parseSources(configuration.get("stations.steamer.heat_item_sources"));
+    public List<ItemSourceRef> steamerHeatSources() {
+        return steamerSettings.heatSources();
     }
 
     public List<HeatSourceIgnitionRule> steamerHeatSourceIgnitionRules() {
-        return parseHeatSourceIgnitionRules(configuration.get("stations.steamer.heat_item_sources"));
+        return steamerSettings.heatSourceIgnitionRules();
     }
 
     public boolean steamerIgniteHeatSource() {
-        return configuration.getBoolean("stations.steamer.ignite_heat_source", true);
+        return steamerSettings.igniteHeatSource();
     }
 
     public List<SteamerFuelRule> steamerFuels() {
-        List<SteamerFuelRule> result = new ArrayList<>();
-        for (Map<?, ?> entry : configuration.getMapList("stations.steamer.fuels")) {
-            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
-            if (source == null) {
-                continue;
-            }
-            Integer duration = configurationValueToInt(normalized.get("duration_seconds"), 0);
-            result.add(new SteamerFuelRule(source, duration == null ? 0 : Math.max(0, duration)));
-        }
-        return result.isEmpty() ? List.of() : List.copyOf(result);
+        return steamerSettings.fuels();
     }
 
     public List<SteamerMoistureRule> steamerMoistureSources() {
-        List<SteamerMoistureRule> result = new ArrayList<>();
-        for (Map<?, ?> entry : configuration.getMapList("stations.steamer.moisture_rules")) {
-            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource input = ItemSourceUtil.parse(normalized.get("input_item_sources"));
-            if (input == null) {
-                continue;
-            }
-            ItemSource output = ItemSourceUtil.parse(normalized.get("item_sources"));
-            Integer moisture = configurationValueToInt(normalized.get("moisture"), 0);
-            result.add(new SteamerMoistureRule(input, output, moisture == null ? 0 : Math.max(0, moisture)));
-        }
-        return result.isEmpty() ? List.of() : List.copyOf(result);
+        return steamerSettings.moistureSources();
     }
 
     public boolean steamerResetProgressWhenSteamEmpty() {
-        return configuration.getBoolean("stations.steamer.reset_progress_when_steam_empty", true);
+        return steamerSettings.resetProgressWhenSteamEmpty();
     }
 
     public int steamerSteamProductionEfficiency() {
-        return Math.max(0, configuration.getInt("stations.steamer.steam_production_efficiency", 10));
+        return steamerSettings.steamProductionEfficiency();
     }
 
     public int steamerSteamConversionEfficiency() {
-        return Math.max(0, configuration.getInt("stations.steamer.steam_conversion_efficiency", 1));
+        return steamerSettings.steamConversionEfficiency();
     }
 
     public int steamerSteamConsumptionEfficiency() {
-        return Math.max(0, configuration.getInt("stations.steamer.steam_consumption_efficiency", 1));
+        return steamerSettings.steamConsumptionEfficiency();
     }
 
     public boolean ovenDropResult() {
-        return configuration.getBoolean("stations.oven.drop_result", true);
+        return ovenSettings.dropResult();
     }
 
     public String ovenInventoryTitle() {
-        return ovenGuiConfiguration.getString("title", "<dark_gray>烤炉");
+        return ovenSettings.inventoryTitle();
     }
 
     public int ovenInventoryRows() {
-        int rows = ovenGuiConfiguration.getInt("rows", 1);
-        return Math.max(1, Math.min(6, rows));
+        return ovenSettings.inventoryRows();
     }
 
     public List<Integer> ovenIngredientSlots() {
-        return ingredientSlots(ovenGuiConfiguration, ovenInventoryRows() * 9, 5);
+        return ovenSettings.ingredientSlots();
     }
 
     public List<OvenFuelRule> ovenFuels() {
-        List<OvenFuelRule> result = new ArrayList<>();
-        for (Map<?, ?> entry : configuration.getMapList("stations.oven.fuels")) {
-            Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSource source = ItemSourceUtil.parse(normalized.get("item_sources"));
-            if (source == null) {
-                continue;
-            }
-            Integer duration = configurationValueToInt(normalized.get("duration_seconds"), 0);
-            Integer heat = configurationValueToInt(normalized.get("heat"), 0);
-            result.add(new OvenFuelRule(
-                    source,
-                    duration == null ? 0 : Math.max(0, duration),
-                    heat == null ? 0 : Math.max(0, heat)
-            ));
-        }
-        return result.isEmpty() ? List.of() : List.copyOf(result);
+        return ovenSettings.fuels();
     }
 
     public int ovenHeatMin() {
-        return Math.max(0, configuration.getInt("stations.oven.heat.min", 20));
+        return ovenSettings.heatMin();
     }
 
     public int ovenHeatMax() {
-        return Math.max(ovenHeatMin(), configuration.getInt("stations.oven.heat.max", 80));
+        return ovenSettings.heatMax();
     }
 
     public int ovenHeatDecayPerSecond() {
-        return Math.max(0, configuration.getInt("stations.oven.heat.decay_per_second", 5));
+        return ovenSettings.heatDecayPerSecond();
     }
 
     public boolean juicerDropResult() {
-        return configuration.getBoolean("stations.juicer.drop_result", true);
+        return juicerSettings.dropResult();
     }
 
     public boolean juicerRequireContainer() {
-        return configuration.getBoolean("stations.juicer.require_container", true);
+        return juicerSettings.requireContainer();
     }
 
-    public List<ItemSource> juicerContainerSources() {
-        return parseSources(configuration.get("stations.juicer.container_item_sources"));
+    public List<ItemSourceRef> juicerContainerSources() {
+        return juicerSettings.containerSources();
     }
 
     public int juicerMaxFluidMl() {
-        return Math.max(1, configuration.getInt("stations.juicer.max_fluid_ml", 1000));
+        return juicerSettings.maxFluidMl();
     }
 
     public int juicerDefaultServingMl() {
-        return Math.max(1, configuration.getInt("stations.juicer.default_serving_ml", 250));
+        return juicerSettings.defaultServingMl();
     }
 
     public String juicerInventoryTitle() {
-        return juicerGuiConfiguration.getString("title", "<dark_gray>榨汁机");
+        return juicerSettings.inventoryTitle();
     }
 
     public int juicerInventoryRows() {
-        return Math.max(1, Math.min(6, juicerGuiConfiguration.getInt("rows", 1)));
+        return juicerSettings.inventoryRows();
     }
 
     public List<Integer> juicerIngredientSlots() {
-        return ingredientSlots(juicerGuiConfiguration, juicerInventoryRows() * 9, 5);
+        return juicerSettings.ingredientSlots();
     }
 
     public boolean fermentationBarrelDropResult() {
-        return configuration.getBoolean("stations.fermentation_barrel.drop_result", true);
+        return fermentationBarrelSettings.dropResult();
     }
 
     public boolean fermentationBarrelPauseWhenOpen() {
-        return configuration.getBoolean("stations.fermentation_barrel.pause_when_open", true);
+        return fermentationBarrelSettings.pauseWhenOpen();
     }
 
     public String fermentationBarrelInventoryTitle() {
-        return fermentationBarrelGuiConfiguration.getString("title", "<dark_gray>发酵桶");
+        return fermentationBarrelSettings.inventoryTitle();
     }
 
     public int fermentationBarrelInventoryRows() {
-        return Math.max(1, Math.min(6, fermentationBarrelGuiConfiguration.getInt("rows", 3)));
+        return fermentationBarrelSettings.inventoryRows();
     }
 
     public List<Integer> fermentationBarrelIngredientSlots() {
-        return ingredientSlots(fermentationBarrelGuiConfiguration, fermentationBarrelInventoryRows() * 9, 7);
+        return fermentationBarrelSettings.ingredientSlots();
     }
 
-    private List<Integer> ingredientSlots(YamlSection guiConfiguration, int inventorySize, int fallbackCount) {
+    static List<Integer> ingredientSlots(YamlSection guiConfiguration, int inventorySize, int fallbackCount) {
         LinkedHashSet<Integer> slots = new LinkedHashSet<>();
         YamlSection slotsSection = guiConfiguration.getSection("slots");
         if (slotsSection != null && !slotsSection.isEmpty()) {
@@ -575,10 +532,10 @@ public final class CookingSettingsService {
         return List.copyOf(slots);
     }
 
-    private List<ItemSource> parseSources(Object raw) {
-        List<ItemSource> result = new ArrayList<>();
+    static List<ItemSourceRef> parseSources(Object raw) {
+        List<ItemSourceRef> result = new ArrayList<>();
         for (Object token : ConfigNodes.asObjectList(raw)) {
-            ItemSource source = ItemSourceUtil.parse(token);
+            ItemSourceRef source = ItemSourceUtil.parse(token);
             if (source != null) {
                 result.add(source);
             }
@@ -586,40 +543,15 @@ public final class CookingSettingsService {
         return List.copyOf(result);
     }
 
-    private List<HeatSourceIgnitionRule> parseHeatSourceIgnitionRules(Object raw) {
-        List<HeatSourceIgnitionRule> result = new ArrayList<>();
-        for (Object token : ConfigNodes.asObjectList(raw)) {
-            if (token instanceof Map<?, ?> map) {
-                Map<String, Object> normalized = MapYamlSection.normalizeMap(map);
-                ItemSource source = ItemSourceUtil.parse(firstPresent(
-                        normalized,
-                        "item_sources",
-                        "source",
-                        "item"
-                ));
-                if (source == null) {
-                    continue;
-                }
-                ItemSource litSource = ItemSourceUtil.parse(firstPresent(
-                        normalized,
-                        LIT_SOURCE_KEYS
-                ));
-                ItemSource unlitSource = ItemSourceUtil.parse(firstPresent(
-                        normalized,
-                        UNLIT_SOURCE_KEYS
-                ));
-                result.add(new HeatSourceIgnitionRule(source, litSource, unlitSource == null ? source : unlitSource));
-                continue;
-            }
-            ItemSource source = ItemSourceUtil.parse(token);
-            if (source != null) {
-                result.add(new HeatSourceIgnitionRule(source, null, source));
-            }
-        }
-        return List.copyOf(result);
+    static ItemSourceRef parseLitSource(Map<String, Object> normalized) {
+        return ItemSourceUtil.parse(firstPresent(normalized, LIT_SOURCE_KEYS));
     }
 
-    private Object firstPresent(Map<String, Object> values, String... keys) {
+    static ItemSourceRef parseUnlitSource(Map<String, Object> normalized) {
+        return ItemSourceUtil.parse(firstPresent(normalized, UNLIT_SOURCE_KEYS));
+    }
+
+    static Object firstPresent(Map<String, Object> values, String... keys) {
         if (values == null || keys == null) {
             return null;
         }
@@ -629,12 +561,6 @@ public final class CookingSettingsService {
             }
         }
         return null;
-    }
-
-    private String firstSourceShorthand(Object raw) {
-        ItemSource source = ItemSourceUtil.parse(raw);
-        String shorthand = ItemSourceUtil.toShorthand(source);
-        return shorthand == null ? "" : shorthand;
     }
 
     private String stationPath(StationType stationType) {
@@ -667,7 +593,7 @@ public final class CookingSettingsService {
             case JUICER -> switch (operation) {
                 case INTERACTION_OPEN -> StationInteractionType.SHIFT_RIGHT_CLICK;
                 case INTERACTION_PROCESS, INTERACTION_SERVE -> StationInteractionType.SHIFT_LEFT_CLICK;
-                case INTERACTION_INSPECT -> StationInteractionType.LEFT_CLICK;
+                case INTERACTION_INSPECT -> StationInteractionType.RIGHT_CLICK;
                 default -> null;
             };
             case FERMENTATION_BARREL -> switch (operation) {
@@ -679,11 +605,11 @@ public final class CookingSettingsService {
         };
     }
 
-    private Integer configurationValueToInt(Object raw, Integer fallback) {
+    static Integer configurationValueToInt(Object raw, Integer fallback) {
         return Numbers.tryParseInt(raw, fallback);
     }
 
-    private void addSlotIndexes(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
+    private static void addSlotIndexes(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
         if (sink == null || raw == null || inventorySize <= 0) {
             return;
         }
@@ -696,7 +622,7 @@ public final class CookingSettingsService {
         addSlotIndex(sink, raw, inventorySize);
     }
 
-    private void addSlotIndex(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
+    private static void addSlotIndex(LinkedHashSet<Integer> sink, Object raw, int inventorySize) {
         Integer slot = configurationValueToInt(raw, null);
         if (slot != null && slot >= 0 && slot < inventorySize) {
             sink.add(slot);
@@ -739,7 +665,7 @@ public final class CookingSettingsService {
     }
 
     private String normalizeWorldName(String worldName) {
-        return Texts.toStringSafe(worldName).trim().toLowerCase(java.util.Locale.ROOT);
+        return Texts.toStringSafe(worldName).trim().toLowerCase(Locale.ROOT);
     }
 
     private Map<String, ItemDisplayAdjustmentOverride> loadItemAdjustments() {
@@ -757,7 +683,7 @@ public final class CookingSettingsService {
             List<Path> files = stream
                     .filter(Files::isRegularFile)
                     .filter(this::isYamlFile)
-                    .sorted(Comparator.comparing(path -> path.toString().toLowerCase(java.util.Locale.ROOT)))
+                    .sorted(Comparator.comparing(path -> path.toString().toLowerCase(Locale.ROOT)))
                     .toList();
             for (Path file : files) {
                 ItemDisplayAdjustmentOverride adjustment = parseItemDisplayAdjustment(file, YamlFiles.load(file.toFile()));
@@ -776,7 +702,7 @@ public final class CookingSettingsService {
         if (path == null || path.getFileName() == null) {
             return false;
         }
-        String name = path.getFileName().toString().toLowerCase(java.util.Locale.ROOT);
+        String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
         return name.endsWith(".yml") || name.endsWith(".yaml");
     }
 
@@ -784,7 +710,7 @@ public final class CookingSettingsService {
         if (section == null || section.isEmpty()) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(section.get("item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(section.get("item_sources"));
         String shorthand = source == null ? "" : ItemSourceUtil.toShorthand(source);
         if (Texts.isBlank(shorthand)) {
             return null;
@@ -903,19 +829,19 @@ public final class CookingSettingsService {
         return Numbers.tryParseDouble(raw, fallback);
     }
 
-    public record HeatLevelRule(ItemSource source, ItemSource litSource, ItemSource unlitSource, int level) {
+    public record HeatLevelRule(ItemSourceRef source, ItemSourceRef litSource, ItemSourceRef unlitSource, int level) {
     }
 
-    public record HeatSourceIgnitionRule(ItemSource source, ItemSource litSource, ItemSource unlitSource) {
+    public record HeatSourceIgnitionRule(ItemSourceRef source, ItemSourceRef litSource, ItemSourceRef unlitSource) {
     }
 
-    public record SteamerFuelRule(ItemSource source, int durationSeconds) {
+    public record SteamerFuelRule(ItemSourceRef source, int durationSeconds) {
     }
 
-    public record SteamerMoistureRule(ItemSource inputSource, ItemSource outputSource, int moisture) {
+    public record SteamerMoistureRule(ItemSourceRef inputSource, ItemSourceRef outputSource, int moisture) {
     }
 
-    public record OvenFuelRule(ItemSource source, int durationSeconds, int heat) {
+    public record OvenFuelRule(ItemSourceRef source, int durationSeconds, int heat) {
     }
 
     private enum DisplayAdjustmentKind {
@@ -1097,7 +1023,7 @@ public final class CookingSettingsService {
         List<NutritionFoodSource> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            List<ItemSource> sources = parseSources(firstPresent(normalized, "item_sources", "item_source", "item", "source"));
+            List<ItemSourceRef> sources = parseSources(normalized.get("item_sources"));
             if (sources.isEmpty()) {
                 continue;
             }
@@ -1123,11 +1049,11 @@ public final class CookingSettingsService {
             if (Texts.isBlank(id)) {
                 id = "single_" + index;
             }
-            List<String> types = normalizeIds(stringList(firstPresent(normalized, "types", "type")));
+            List<String> types = normalizeIds(stringList(normalized.get("types")));
             double value = configurationValueToDouble(normalized.get("value"), 0D);
-            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(firstPresent(normalized, "compare", "operator", "op")));
-            List<String> onMeet = stringList(firstPresent(normalized, "actions", "on_meet", "on_pass"));
-            List<String> onRecover = stringList(firstPresent(normalized, "on_recover", "on_fail", "recover_actions"));
+            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(normalized.get("compare")));
+            List<String> onMeet = stringList(normalized.get("actions"));
+            List<String> onRecover = stringList(normalized.get("on_recover"));
             if (onMeet.isEmpty() && onRecover.isEmpty()) {
                 index++;
                 continue;
@@ -1150,12 +1076,12 @@ public final class CookingSettingsService {
             if (Texts.isBlank(id)) {
                 id = "combo_" + index;
             }
-            List<String> types = normalizeIds(stringList(firstPresent(normalized, "types", "type")));
+            List<String> types = normalizeIds(stringList(normalized.get("types")));
             double value = configurationValueToDouble(normalized.get("value"), 0D);
-            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(firstPresent(normalized, "compare", "operator", "op")));
-            Integer requiredCount = configurationValueToInt(firstPresent(normalized, "required_count", "count"), 5);
-            List<String> onMeet = stringList(firstPresent(normalized, "actions", "on_meet", "on_pass"));
-            List<String> onRecover = stringList(firstPresent(normalized, "on_recover", "on_fail", "recover_actions"));
+            NutritionCompare compare = NutritionCompare.parse(Texts.toStringSafe(normalized.get("compare")));
+            Integer requiredCount = configurationValueToInt(normalized.get("required_count"), 5);
+            List<String> onMeet = stringList(normalized.get("actions"));
+            List<String> onRecover = stringList(normalized.get("on_recover"));
             if (onMeet.isEmpty() && onRecover.isEmpty()) {
                 index++;
                 continue;

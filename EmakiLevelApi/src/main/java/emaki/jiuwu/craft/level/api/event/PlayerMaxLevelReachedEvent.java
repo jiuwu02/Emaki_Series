@@ -11,8 +11,10 @@ import org.bukkit.event.HandlerList;
  *
  * <p>This is an informational milestone event: it fires once, on the level up
  * that takes the player to the configured max level. It is suitable for
- * announcements, achievements and capstone rewards. Listeners cannot revert the
- * level. This event is fired on the server thread.
+ * announcements, achievements and capstone rewards. Listeners cannot revert the level.
+ *
+ * <p><strong>Thread:</strong> synchronously on the player's owner thread. Player data persistence may
+ * complete asynchronously after this event.
  */
 public final class PlayerMaxLevelReachedEvent extends Event {
 

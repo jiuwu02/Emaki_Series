@@ -16,39 +16,37 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
-import emaki.jiuwu.craft.corelib.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenChanceRuleRegistry;
-import emaki.jiuwu.craft.strengthen.script.JavaScriptStrengthenResultHookRegistry;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
-import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.api.event.StrengthenAttemptEvent;
 import emaki.jiuwu.craft.strengthen.api.event.StrengthenPreAttemptEvent;
-import emaki.jiuwu.craft.strengthen.model.AttemptContext;
-import emaki.jiuwu.craft.strengthen.model.AttemptCost;
-import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
-import emaki.jiuwu.craft.strengthen.model.AttemptOutcome;
-import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
-import emaki.jiuwu.craft.strengthen.model.AttemptResult;
-import emaki.jiuwu.craft.strengthen.model.StrengthenConditionGroup;
-import emaki.jiuwu.craft.strengthen.model.StrengthenConditionNode;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
-import emaki.jiuwu.craft.strengthen.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptCost;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptOutcome;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionGroup;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
+import emaki.jiuwu.craft.corelib.condition.ConditionNode;
 
-public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge {
+public final class StrengthenAttemptService {
 
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final String OPERATION_NAMESPACE = "strengthen";
@@ -91,12 +89,10 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
 
-    @Override
     public boolean canStrengthen(ItemStack itemStack) {
         return readState(itemStack).eligible();
     }
 
-    @Override
     public StrengthenState readState(ItemStack itemStack) {
         return resolveState(itemStack).state();
     }
@@ -105,7 +101,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         if (itemStack == null || itemStack.getType().isAir()) {
             return new ResolvedState(StrengthenState.ineligible("strengthen.error.no_target", null, ""), StoredState.empty(null, ""));
         }
-        ItemSource initialBaseSource = recipeResolver.resolveBaseSource(itemStack);
+        ItemSourceRef initialBaseSource = recipeResolver.resolveBaseSource(itemStack);
         String initialSignature = ItemSourceUtil.toShorthand(initialBaseSource);
         StoredState stored = readStoredState(itemStack, initialBaseSource, initialSignature);
         StrengthenRecipeResolver.ResolvedItem resolved = recipeResolver.resolve(itemStack, stored.recipeId());
@@ -136,7 +132,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         );
     }
 
-    @Override
     public AttemptPreview preview(Player player, AttemptContext context) {
         ItemStack targetItem = context == null ? null : context.targetItem();
         StrengthenState state = readState(targetItem);
@@ -186,12 +181,9 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 materials.requiredMaterials(),
                 materials.optionalMaterials()
         );
-        JavaScriptStrengthenChanceRuleRegistry chanceRuleRegistry = plugin.javaScriptChanceRuleRegistry();
-        return chanceRuleRegistry == null ? preview
-                : chanceRuleRegistry.apply(player, context, materials.requiredMaterials(), materials.optionalMaterials(), preview);
+        return preview;
     }
 
-    @Override
     public AttemptResult attempt(Player player, AttemptContext context) {
         String operationId = resolveOperationId(context);
         AttemptContext safeContext = context == null
@@ -249,10 +241,10 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         if (recipe != null && !recipe.conditions().emptyGroup()) {
             boolean conditionsPassed = ConditionEvaluator.evaluate(
                     toCoreConditionGroup(recipe.conditions()),
-                    text -> resolvePlaceholders(player, text),
+                    text -> PlaceholderRenderer.renderPapi(player, text, null, "strengthen_attempt"),
                     true,
                     ConditionContext.of(player, context.targetItem(),
-                            java.util.Map.of(
+                            Map.of(
                                     "operationId", operationId,
                                     "recipeId", recipe.id(),
                                     "currentStar", preview.currentStar(),
@@ -325,15 +317,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     }
 
     private AttemptResult finishAttempt(Player player, AttemptResult result) {
-        try {
-            JavaScriptStrengthenResultHookRegistry resultHookRegistry = plugin.javaScriptResultHookRegistry();
-            if (resultHookRegistry != null) {
-                resultHookRegistry.fire(player, result);
-            }
-        } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("Strengthen result hook dispatch failed | operationId="
-                    + result.operationId() + " | error=" + exception.getMessage());
-        }
         if (isPlayerOwned(player)) {
             try {
                 Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
@@ -463,7 +446,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     }
 
     private void logOperation(Player player, String operationId, String phase, AttemptOutcome outcome) {
-        java.util.UUID playerId = player == null ? null : player.getUniqueId();
+        UUID playerId = player == null ? null : player.getUniqueId();
         if (plugin.debugLogger() != null && plugin.debugLogger().shouldLog("attempt", playerId)) {
             plugin.debugLogger().log("attempt", playerId, "attempt.operation", Map.of(
                     "operation_id", Texts.toStringSafe(operationId),
@@ -473,7 +456,6 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         }
     }
 
-    @Override
     public ItemStack rebuild(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return itemStack;
@@ -534,7 +516,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         return rebuilt;
     }
 
-    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
+    public CompletableFuture<Boolean> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -543,7 +525,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         return triggerSuccessActions(player, recipe, resultSlotId, itemTarget, star, temper, "");
     }
 
-    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
+    public CompletableFuture<Boolean> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -554,7 +536,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 player, recipe, resultSlotId, itemTarget, star, temper, operationId);
     }
 
-    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+    public CompletableFuture<Boolean> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -567,7 +549,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 dropped, protectionApplied, "");
     }
 
-    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+    public CompletableFuture<Boolean> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -627,7 +609,7 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
                 currentStar, temper, false, 0, Map.of(), Set.of(), List.of(), List.of());
     }
 
-    private StoredState readStoredState(ItemStack itemStack, ItemSource baseSource, String fallbackSignature) {
+    private StoredState readStoredState(ItemStack itemStack, ItemSourceRef baseSource, String fallbackSignature) {
         if (itemAssemblyService == null || itemStack == null || !itemAssemblyService.isEmakiItem(itemStack)) {
             return StoredState.empty(baseSource, fallbackSignature);
         }
@@ -805,9 +787,9 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         if (group == null) {
             return ConditionGroup.empty();
         }
-        List<emaki.jiuwu.craft.corelib.condition.ConditionNode> nodes = new ArrayList<>();
+        List<ConditionNode> nodes = new ArrayList<>();
         for (StrengthenConditionNode node : group.conditions()) {
-            emaki.jiuwu.craft.corelib.condition.ConditionNode converted = toCoreConditionNode(node);
+            ConditionNode converted = toCoreConditionNode(node);
             if (converted != null) {
                 nodes.add(converted);
             }
@@ -815,14 +797,14 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
         return new ConditionGroup(group.conditionType(), group.requiredCount(), nodes);
     }
 
-    private static emaki.jiuwu.craft.corelib.condition.ConditionNode toCoreConditionNode(StrengthenConditionNode node) {
+    private static ConditionNode toCoreConditionNode(StrengthenConditionNode node) {
         if (node == null) {
             return null;
         }
         if (node.groupNode()) {
-            return emaki.jiuwu.craft.corelib.condition.ConditionNode.group(toCoreConditionGroup(node.group()));
+            return ConditionNode.group(toCoreConditionGroup(node.group()));
         }
-        return new emaki.jiuwu.craft.corelib.condition.ConditionNode(node.type(), node.expression(), null, node.data());
+        return new ConditionNode(node.type(), node.expression(), null, node.data());
     }
 
     private record StoredState(boolean hasLayer,
@@ -837,14 +819,14 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
             String baseSourceSignature,
             String branchPath) {
 
-        private static StoredState empty(ItemSource baseSource, String fallbackSignature) {
+        private static StoredState empty(ItemSourceRef baseSource, String fallbackSignature) {
             String signature = Texts.isBlank(fallbackSignature) ? ItemSourceUtil.toShorthand(baseSource) : fallbackSignature;
             return new StoredState(false, "", 0, 0, Set.of(), 0, 0, 0L, "", signature, "");
         }
 
         private StoredState withBaseSourceSignature(String fallbackSignature) {
             String resolvedSignature = Texts.isBlank(baseSourceSignature) ? fallbackSignature : baseSourceSignature;
-            if (java.util.Objects.equals(baseSourceSignature, resolvedSignature)) {
+            if (Objects.equals(baseSourceSignature, resolvedSignature)) {
                 return this;
             }
             return new StoredState(
@@ -875,16 +857,5 @@ public final class StrengthenAttemptService implements EmakiStrengthenApi.Bridge
     }
 
     private record JournalEntry(int fingerprint, AttemptResult result) {
-    }
-
-    private String resolvePlaceholders(Player player, String text) {
-        if (player == null || Texts.isBlank(text) || !plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-            return text;
-        }
-        try {
-            return Texts.toStringSafe(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text));
-        } catch (Exception | NoClassDefFoundError _) {
-            return text;
-        }
     }
 }

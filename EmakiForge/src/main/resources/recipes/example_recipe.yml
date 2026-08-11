@@ -215,8 +215,8 @@ result:
           - "<dark_gray>由 %player% 锻造"
           - "<dark_gray>EmakiForge 示例配方"
     actions:
-      - 'sendmessage text="<green>锻造成功! 获得了 %forge_result_item_name%</green>"'
-      - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1"
+      - 'send_message text="<green>锻造成功! 获得了 %var.forge_result_item_name%</green>"'
+      - "play_sound sound=minecraft:block.anvil.use volume=1 pitch=1"
 
 # ============================================================
 # 锻造流程动作
@@ -226,10 +226,10 @@ result:
 # failure: 锻造失败时执行的动作
 actions:
   pre:
-    - 'sendactionbar text="<gray>烈焰之力正在熔铸...</gray>"'
+    - 'send_action_bar text="<gray>烈焰之力正在熔铸...</gray>"'
   success: []
   failure:
-    - 'sendmessage text="<red>锻造前置操作失败: %forge_failure_reason%</red>"'
+    - 'send_message text="<red>锻造前置操作失败: %var.forge_failure_reason%</red>"'
 
 # ============================================================
 # 锻造成功率（可选）

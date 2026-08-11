@@ -8,13 +8,13 @@
 
 # 强化系统主配置
 # version 由资源同步维护
-version: "4.6.0"
+version: "4.7.0"
 
 # 语言文件 ID
 language: "zh_CN"
 
 # 是否释放内置示例资源。
-# false 时不会自动生成示例强化配方与脚本示例等默认数据。
+# false 时不会自动生成示例强化配方等默认数据。
 release_default_data: true
 
 # 本地广播半径

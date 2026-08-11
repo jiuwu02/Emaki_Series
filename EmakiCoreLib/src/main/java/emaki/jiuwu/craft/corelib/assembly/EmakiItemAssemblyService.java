@@ -19,26 +19,37 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
-import emaki.jiuwu.craft.corelib.action.Action;
+
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
-import emaki.jiuwu.craft.corelib.pdc.SignatureUtil;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
+import emaki.jiuwu.craft.corelib.api.assembly.BaseNamePolicy;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiStructuredPresentation;
+import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 
 public final class EmakiItemAssemblyService {
 
     private static final int CURRENT_SCHEMA_VERSION = 2;
     private static final int PREVIEW_CACHE_SIZE = 128;
-    private static final long PREVIEW_CACHE_TTL_MILLIS = Action.DEFAULT_TIMEOUT_MILLIS;
+    // Was Action.DEFAULT_TIMEOUT_MILLIS before the v1 action system was removed. The value is inlined
+    // rather than re-pointed at a v2 constant: a preview cache TTL has nothing to do with how long a
+    // pipeline stage may run, and borrowing that number again would recreate the same false coupling.
+    private static final long PREVIEW_CACHE_TTL_MILLIS = 30_000L;
+    // Diagnostics below read EmakiItem's set-state fields. The partition must mirror EmakiItem's write
+    // side exactly (EmakiItemIdentifier.PARTITION = "emakiitem" over PdcService namespace "emaki",
+    // wired in ItemLifecycleCoordinator), otherwise existing item data becomes invisible here.
+    private static final PdcPartition ITEM_SET_PARTITION = new PdcPartition("emaki", "emakiitem");
 
     private final ItemSourceService itemSourceService;
     private final AssemblyDataManager dataManager;
@@ -225,7 +236,7 @@ public final class EmakiItemAssemblyService {
         return dataManager.isEmakiItem(itemStack);
     }
 
-    public ItemSource readBaseSource(ItemStack itemStack) {
+    public ItemSourceRef readBaseSource(ItemStack itemStack) {
         return dataManager.readBaseSource(itemStack);
     }
 
@@ -319,14 +330,14 @@ public final class EmakiItemAssemblyService {
         Map<String, EmakiItemLayerSnapshot> storedLayers = Map.of();
         List<String> previousActiveLayers = List.of();
 
-        ItemSource storedBaseSource = existingIsEmakiItem ? dataManager.readBaseSource(existingItem) : null;
+        ItemSourceRef storedBaseSource = existingIsEmakiItem ? dataManager.readBaseSource(existingItem) : null;
         int storedAmount = existingIsEmakiItem
                 ? dataManager.readBaseAmount(existingItem)
                 : existingItem == null ? 1 : Math.max(1, existingItem.getAmount());
         String storedBaseCustomName = existingIsEmakiItem ? dataManager.readBaseCustomName(existingItem) : "";
         List<String> storedBaseLore = existingIsEmakiItem ? safeLore(dataManager.readBaseLore(existingItem)) : List.of();
 
-        ItemSource baseSource = request.baseSource() != null ? request.baseSource() : storedBaseSource;
+        ItemSourceRef baseSource = request.baseSource() != null ? request.baseSource() : storedBaseSource;
         int amount = request.amount() > 0 ? request.amount() : storedAmount;
         String baseCustomName;
         List<String> baseLore;
@@ -592,7 +603,7 @@ public final class EmakiItemAssemblyService {
                 || dataManager.readPresentationSnapshot(managedProjection.itemStack()) != null;
     }
 
-    private ItemPresentationSnapshot renderPresentationSnapshot(ItemSource baseSource,
+    private ItemPresentationSnapshot renderPresentationSnapshot(ItemSourceRef baseSource,
             int amount,
             String baseCustomName,
             List<String> baseLore,
@@ -769,12 +780,11 @@ public final class EmakiItemAssemblyService {
             return "";
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        for (NamespacedKey key : container.getKeys()) {
-            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.STRING)) {
-                return Texts.toStringSafe(container.get(key, PersistentDataType.STRING));
-            }
+        NamespacedKey key = ITEM_SET_PARTITION.key(field);
+        if (!container.has(key, PersistentDataType.STRING)) {
+            return "";
         }
-        return "";
+        return Texts.toStringSafe(container.get(key, PersistentDataType.STRING));
     }
 
     private Integer pdcInteger(ItemMeta itemMeta, String field) {
@@ -782,12 +792,11 @@ public final class EmakiItemAssemblyService {
             return null;
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        for (NamespacedKey key : container.getKeys()) {
-            if (key.getKey().endsWith(field) && container.has(key, PersistentDataType.INTEGER)) {
-                return container.get(key, PersistentDataType.INTEGER);
-            }
+        NamespacedKey key = ITEM_SET_PARTITION.key(field);
+        if (!container.has(key, PersistentDataType.INTEGER)) {
+            return null;
         }
-        return null;
+        return container.get(key, PersistentDataType.INTEGER);
     }
 
     private <T> T measure(String metricKey, SupplierWithException<T> supplier) {
@@ -835,7 +844,7 @@ public final class EmakiItemAssemblyService {
 
     private record AssemblyContext(ItemStack existingItem,
             boolean existingIsEmakiItem,
-            ItemSource baseSource,
+            ItemSourceRef baseSource,
             int amount,
             String baseCustomName,
             List<String> baseLore,

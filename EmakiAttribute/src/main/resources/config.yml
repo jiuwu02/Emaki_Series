@@ -8,13 +8,13 @@
 
 # 属性系统主配置
 # version 由资源同步维护
-version: "4.6.0"
+version: "4.7.0"
 
 # 语言文件 ID
 language: zh_CN
 
 # 是否释放内置示例资源。
-# false 时不会自动生成属性、伤害类型、读取规则、词条格式、平衡系数与脚本示例等默认数据。
+# false 时不会自动生成属性、伤害类型、读取规则、词条格式与平衡系数等默认数据。
 release_default_data: true
 
 # 物品属性来源策略。
@@ -122,6 +122,27 @@ default_profile:
     spell_defense: 0.0
     health_regen: 0.1
     mana_regen: 0.1
+    # 格挡基线：只在 shield.mode = attribute 时参与结算。
+    # 默认 100/100 表示举盾必定触发且完全免伤，与原版行为一致，切换模式不改变手感。
+    # 想做成百分比格挡就调低 block_reduction，例如 40 表示只挡掉四成；
+    # 想做成概率格挡就调低 block_rate。盾牌物品的 EA 属性会叠加在此基线之上。
+    block_rate: 100.0
+    block_reduction: 100.0
+
+# 盾牌格挡
+# mode: vanilla   —— 默认。保持原版 BLOCKING 减伤，举盾按原版规则完全免除该次伤害，
+#                    EA 计算出的攻击、暴击、穿透在举盾时全部不生效。
+#       attribute —— 清零原版 BLOCKING，改由伤害类型里的格挡阶段结算，可做成百分比减伤。
+#                    需要在 damage_types/*.yml 保留 block 阶段，并配置 block_rate / block_reduction 属性。
+#                    把 block_reduction 配到 100 即等价于原版全免。
+# require_facing: 仅 attribute 模式生效。原版 BLOCKING 自带正面判定，改由 EA 接管后
+#                 必须自行重建，否则会退化成全向格挡。环境伤害没有来源方向，按不构成正面处理。
+# facing_angle_degrees: 正面判定张角，单位度。180 等价于原版行为（以视线为中心的半平面）；
+#                 调小会要求玩家更精确地正对来源。
+shield:
+  mode: vanilla
+  require_facing: true
+  facing_angle_degrees: 180
 
 synthetic_hit_feedback:
   # 仅在兼容模式（vanilla_event_damage.enabled = false）下生效：
@@ -130,6 +151,120 @@ synthetic_hit_feedback:
   knockback: true
   knockback_strength: 0.4
   hurt_sound: true
+
+# 伤害飘字
+# 用展示实体在目标上方显示伤害数字，覆盖普通攻击、暴击、生命恢复与闪避。
+# 渲染后端由 EmakiCoreLib 的 display.backend 决定，可见范围随后端而不同：
+#   packet 后端 - 只有下方 visible_to 指定的相关玩家能看到。
+#   bukkit 后端 - 飘字是真实体，附近所有玩家都能看到，visible_to 不生效。
+damage_indicator:
+  enabled: true
+  # 同一目标在该窗口(毫秒)内的多次伤害会累加合并为一个飘字。
+  # 与 same_signature_ignores_invulnerability.window_ms 保持一致时，
+  # 多重射击的多段命中会显示为一个总伤害而不是一堆数字。0 表示不合并。
+  # 窗口内再次命中会让飘字从起点重新抛出。
+  merge_window_ms: 500
+  # 同一目标每秒最多生成的飘字数，用于抑制 AOE 群伤刷屏。0 表示不限制。
+  max_per_target_per_second: 4
+  # 可见对象，仅 packet 后端生效：
+  #   involved - 仅攻击者与受击者可见(默认)
+  #   all      - 附近所有玩家可见
+  visible_to: "involved"
+  # 不显示飘字的伤害原因。持续伤害每 tick 都会结算，默认全部屏蔽。
+  ignored_causes:
+    - FIRE_TICK
+    - POISON
+    - WITHER
+    - DROWNING
+    - FREEZE
+    - SUFFOCATION
+    - STARVATION
+
+  # --- 以下为全部触发器的默认表现，可在 triggers.<名称> 下逐键覆盖 ---
+
+  # 飘字存活时长(tick)，同时是一次抛物运动的总时长。
+  # 到期由 CoreLib 展示实体服务自动回收。
+  lifetime_ticks: 24
+  spawn:
+    # 相对目标脚部的固定偏移(格)。
+    offset:
+      x: 0.0
+      y: 2.0
+      z: 0.0
+    # 各轴的随机散布范围(格)，实际取 ±该值，避免同位置飘字完全重叠。0 表示该轴不散布。
+    random_offset:
+      x: 0.4
+      y: 0.15
+      z: 0.4
+  # 抛物运动。轨迹为 p(t) = v·t + ½·a·t²，由客户端插值渲染，
+  # 飘字实体本身不移动，因此不产生传送开销。
+  motion:
+    enabled: true
+    # 关键帧间隔(tick)，同时是客户端插值时长。1 最平滑，值越大包越少、折线感越强。
+    step_ticks: 2
+    # 抛出初速度(格/tick)。
+    speed: 0.30
+    # 竖直加速度(格/tick²)，负值下坠。这一项决定抛物线的弯曲程度。
+    gravity: -0.030
+    direction:
+      # 抛出方向模式：
+      #   random             - 按下面的 pitch/yaw 区间随机
+      #   fixed              - 使用 fixed 指定的向量
+      #   away_from_attacker - 沿攻击者到目标的水平方向抛出并叠加 pitch 仰角；
+      #                        无攻击者时退化为 random
+      mode: "random"
+      fixed:
+        x: 0.0
+        y: 1.0
+        z: 0.0
+      # 仰角区间(度)，90 为正上方。
+      pitch:
+        min: 55.0
+        max: 85.0
+      # 水平角区间(度)。
+      yaw:
+        min: -180.0
+        max: 180.0
+    # 出场放大与退场缩小，与位移共用同一条插值通道。
+    scale:
+      # 出场起始缩放，前 pop_ticks 内线性放大到 1.0。
+      pop_from: 0.6
+      pop_ticks: 3
+      # 退场目标缩放，最后 shrink_ticks 内从 1.0 线性缩到该值。0 表示缩到不可见。
+      shrink_to: 0.0
+      shrink_ticks: 6
+
+  # 四个触发器。每个触发器可只写需要改的键，未写的键继承上面的默认值。
+  # 注意 dodge 还需要闪避判定本身被启用；原版战斗默认不进行闪避判定。
+  triggers:
+    normal:
+      enabled: true
+    critical:
+      enabled: true
+      # 暴击抛得更高更快，并从更小的尺寸弹出以强调打击感。
+      motion:
+        speed: 0.42
+        gravity: -0.036
+        scale:
+          pop_from: 0.35
+          pop_ticks: 4
+    heal:
+      enabled: true
+      # 治疗改为垂直缓慢上浮。
+      motion:
+        speed: 0.16
+        gravity: -0.004
+        direction:
+          mode: "fixed"
+          fixed:
+            x: 0.0
+            y: 1.0
+            z: 0.0
+    dodge:
+      enabled: true
+      motion:
+        speed: 0.20
+        gravity: -0.016
 
 # ============================================================
 # 属性衰减曲线（Scaling Curves）
@@ -140,12 +275,18 @@ synthetic_hit_feedback:
 #   threshold: 衰减起始阈值（低于此值不受影响）
 #   curve_type: 衰减函数类型
 #     - "logarithmic": 对数衰减（推荐，平滑且直觉）
-#     - "sqrt": 平方根衰减（比对数更激进）
+#     - "sqrt": 平方根衰减。实现为 sqrt(factor × 超出量)，同一 factor 下
+#       实际弱于对数；且超出量小于 factor 时会放大而非衰减，需谨慎取值。
 #     - "piecewise_linear": 线性折扣（超出部分乘以 factor）
-#   factor: 衰减系数
-#     - logarithmic/sqrt: 控制曲线陡峭程度（越大越平缓）
-#     - piecewise_linear: 超出部分的保留比例（如 0.5 = 保留 50%）
+#   factor: 衰减系数。不同曲线下含义不同:
+#     - logarithmic/sqrt: 控制曲线陡峭程度（越大越平缓）。作除数使用，
+#       填 0 或负数会被抬为 1。
+#     - piecewise_linear: 超出部分的保留比例（如 0.5 = 保留 50%）。
+#       填 0 表示超出部分全部作废，是合法取值。
+# 说明: curve_type 拼写无法识别时回退为 logarithmic，并在配置预检中告警。
+#       piecewise_linear 实际是「超出部分乘以 factor」的单一折扣，不支持多段。
 #
+# 默认为空，即不启用任何衰减。取消下方注释即可生效。
 # 示例: 物理攻击超过 500 后对数衰减
 # scaling_curves:
 #   physical_attack_cap:

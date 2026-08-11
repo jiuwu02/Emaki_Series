@@ -8,9 +8,9 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.6.0"
+version: "4.7.0"
 general:
-  prefix: "<gray>[ <gradient:#FB7185:#A78BFA>EmakiAttribute</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
 
 console:
   plugin_starting: "<gray>正在启动...</gray>"
@@ -19,6 +19,8 @@ console:
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -36,6 +38,7 @@ console:
       directory_not_readable: "目录不可读。"
       attribute_sources_disabled: "Lore 与 PDC 物品属性来源均已关闭，所有物品属性都会失效。"
       attribute_sources_match_requires_both: "一致模式要求同时启用 Lore 与 PDC 属性读取，否则所有物品属性都会失效。"
+      scaling_curve_type_unknown: "属性 %attribute% 的衰减曲线类型 %curve_type% 无法识别，已回退为 logarithmic。"
   combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   config_load_failed: "<red>配置读取失败: %error%</red>"
@@ -56,28 +59,12 @@ console:
   attribute_registry_empty: "<yellow>未加载到任何属性</yellow>"
   attribute_registry_summary: "<gray>已加载 <yellow>%count%</yellow> 个属性</gray>"
   attribute_registry_entry: "<gray>[属性注册]</gray>
-    <aqua>%display_name%</aqua>
+    <white>%index%</white> <dark_gray>|</dark_gray> <aqua>%display_name%</aqua>
     <dark_gray>(</dark_gray><white>%id%</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>%default_value%</yellow>
     <dark_gray>|</dark_gray> <gray>战力系数</gray>
     <yellow>%attribute_power%</yellow>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
-  js_attribute_extension_no_result: "无执行结果"
-  js_attribute_extension_load_failed: "<yellow>JavaScript 属性扩展加载失败: <white>%script%</white> (<red>%error%</red>)</yellow>"
-  js_attribute_extensions_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 JavaScript 属性扩展脚本，伤害 Hook=<yellow>%damage_hooks%</yellow>，伤害管线=<yellow>%damage_pipelines%</yellow></gray>"
-  js_attribute_extension_directory_create_failed: "<yellow>无法创建 JavaScript 属性扩展目录: <red>%error%</red></yellow>"
-  js_attribute_extension_scan_failed: "<yellow>扫描 JavaScript 属性扩展失败: <red>%error%</red></yellow>"
-  js_attribute_blank_id: "<yellow>JavaScript 属性定义 ID 不能为空: <white>%script%</white></yellow>"
-  js_attribute_registered: "<gray>已注册 JavaScript 属性: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_attribute_provider_blank_id: "<yellow>JavaScript 属性 Provider ID 不能为空: <white>%script%</white></yellow>"
-  js_attribute_provider_registered: "<gray>已注册 JavaScript 属性 Provider: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_damage_hook_invalid: "<yellow>JavaScript 伤害 Hook 需要 id 和 function: <white>%script%</white></yellow>"
-  js_damage_hook_registered: "<gray>已注册 JavaScript 伤害 Hook: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_damage_hook_failed: "<yellow>JavaScript 伤害 Hook 执行失败: <aqua>%id%</aqua> (<red>%error%</red>)</yellow>"
-  js_damage_type_invalid: "<yellow>JavaScript 伤害类型定义无效: <white>%script%</white></yellow>"
-  js_damage_type_registered: "<gray>已注册 JavaScript 伤害类型: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
-  js_damage_pipeline_invalid: "<yellow>JavaScript 伤害管线需要 id 和 function: <white>%script%</white></yellow>"
-  js_damage_pipeline_registered: "<gray>已注册 JavaScript 伤害管线: <aqua>%id%</aqua> <dark_gray>(%script%)</dark_gray></gray>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"
@@ -115,6 +102,12 @@ damage:
   target: "目标"
   critical_text: "暴击"
   critical_suffix: " <red>暴击</red>"
+  # 伤害飘字模板。%damage% 为伤害值，%amount% 为恢复量。
+  indicator:
+    normal: "<white>-%damage%</white>"
+    critical: "<red><bold>-%damage% ✦</bold></red>"
+    heal: "<green>+%amount%</green>"
+    dodge: "<gray><i>闪避</i></gray>"
   cause:
     environment: "环境"
     unknown: "未知来源"
@@ -167,30 +160,6 @@ combat_debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
-    action:
-      execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
-      execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
-      execute_direct_result: "直接执行动作完成 | 动作=%action% | 成功=%success% | 错误=%error%"
-      execute_batch_start: "开始批量执行动作 | 阶段=%phase% | 行数=%lines% | 失败即停=%stop_on_failure%"
-      execute_batch_result: "批量执行动作完成 | 阶段=%phase% | 成功=%success% | 步骤=%steps% | 错误=%error%"
-      parse_line: "解析动作行 | 阶段=%phase% | 行=%line% | 原文=%raw%"
-      parse_failed: "动作行解析失败 | 阶段=%phase% | 行=%line% | 错误=%error%"
-      parse_skipped: "跳过空动作行 | 阶段=%phase% | 行=%line%"
-      parse_ok: "动作行解析完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 控制参数=%control% | 参数=%args%"
-      step_result: "动作步骤完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 成功=%success% | 错误=%error%"
-      batch_stop: "批量动作因失败停止 | 阶段=%phase% | 行=%line% | 动作=%action%"
-      action_missing: "动作未注册 | 行=%line% | 动作=%action% | 错误=%error%"
-      control_condition: "动作条件检查 | 行=%line% | 动作=%action% | 条件=%condition% | 通过=%passes%"
-      control_chance_invalid: "动作概率无效 | 行=%line% | 动作=%action% | 概率=%chance%"
-      control_chance: "动作概率检查 | 行=%line% | 动作=%action% | 概率=%chance% | 阈值=%threshold% | 随机值=%roll% | 通过=%passes%"
-      control_delay: "动作延迟解析 | 行=%line% | 动作=%action% | 原值=%raw% | tick=%ticks%"
-      dispatch_template: "分派动作模板 | 动作=%action% | 延迟=%delay% | 参数=%args%"
-      dispatch_action: "分派已注册动作 | 动作=%action% | 域=%domain% | 所有者=%owner% | 延迟=%delay% | 超时=%timeout% | 参数=%args%"
-      safe_execute_start: "开始安全执行动作 | 阶段=%phase% | 动作=%action% | 参数=%args%"
-      safe_execute_result: "安全执行动作完成 | 阶段=%phase% | 动作=%action% | 成功=%success% | 错误=%error%"
     item_operation:
       apply_start: "开始应用物品操作 | 操作=%operation_id% | 命名空间=%namespace% | 物品=%item% | 名称动作=%name_actions% | Lore 动作=%lore_actions% | 变量=%variables%"
       apply_empty: "物品操作未产生结果 | 操作=%operation_id%"
@@ -357,8 +326,18 @@ command:
     player_not_found: "<red>未找到玩家 %player%。</red>"
     console_usage: "<yellow>控制台用法: /emakiattribute dump <player></yellow>"
     player: "<green>正在查看玩家 %player% 的属性快照。</green>"
+    # 玩家侧：紧凑一行 + 悬停展开
     signature: "<gray>签名 <dark_gray>(悬停查看)</dark_gray></gray>"
     values: "<gray>属性数值 <dark_gray>(悬停查看)</dark_gray></gray>"
+    signature_empty: "<gray>没有签名</gray>"
+    values_empty: "<gray>没有非零属性</gray>"
+    # 控制台侧：无法悬停，改为标题 + 缩进逐行列出
+    signature_header: "<gray>签名:</gray>"
+    signature_line: "  <yellow>%signature%</yellow>"
+    signature_empty_line: "  <gray>没有签名</gray>"
+    values_header: "<gray>属性数值:</gray>"
+    values_line: "  <aqua>%attribute%</aqua><dark_gray> (</dark_gray><white>%attribute_id%</white><dark_gray>): </dark_gray><yellow>%value%</yellow>"
+    values_empty_line: "  <gray>没有非零属性</gray>"
     resource_line: "<gray>%resource%: 默认 %default_max%，加成 %bonus_max%，上限
       %current_max%，当前 %current%</gray>"
 
@@ -441,30 +420,6 @@ debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
-    action:
-      execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
-      execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
-      execute_direct_result: "直接执行动作完成 | 动作=%action% | 成功=%success% | 错误=%error%"
-      execute_batch_start: "开始批量执行动作 | 阶段=%phase% | 行数=%lines% | 失败即停=%stop_on_failure%"
-      execute_batch_result: "批量执行动作完成 | 阶段=%phase% | 成功=%success% | 步骤=%steps% | 错误=%error%"
-      parse_line: "解析动作行 | 阶段=%phase% | 行=%line% | 原文=%raw%"
-      parse_failed: "动作行解析失败 | 阶段=%phase% | 行=%line% | 错误=%error%"
-      parse_skipped: "跳过空动作行 | 阶段=%phase% | 行=%line%"
-      parse_ok: "动作行解析完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 控制参数=%control% | 参数=%args%"
-      step_result: "动作步骤完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 成功=%success% | 错误=%error%"
-      batch_stop: "批量动作因失败停止 | 阶段=%phase% | 行=%line% | 动作=%action%"
-      action_missing: "动作未注册 | 行=%line% | 动作=%action% | 错误=%error%"
-      control_condition: "动作条件检查 | 行=%line% | 动作=%action% | 条件=%condition% | 通过=%passes%"
-      control_chance_invalid: "动作概率无效 | 行=%line% | 动作=%action% | 概率=%chance%"
-      control_chance: "动作概率检查 | 行=%line% | 动作=%action% | 概率=%chance% | 阈值=%threshold% | 随机值=%roll% | 通过=%passes%"
-      control_delay: "动作延迟解析 | 行=%line% | 动作=%action% | 原值=%raw% | tick=%ticks%"
-      dispatch_template: "分派动作模板 | 动作=%action% | 延迟=%delay% | 参数=%args%"
-      dispatch_action: "分派已注册动作 | 动作=%action% | 域=%domain% | 所有者=%owner% | 延迟=%delay% | 超时=%timeout% | 参数=%args%"
-      safe_execute_start: "开始安全执行动作 | 阶段=%phase% | 动作=%action% | 参数=%args%"
-      safe_execute_result: "安全执行动作完成 | 阶段=%phase% | 动作=%action% | 成功=%success% | 错误=%error%"
     item_operation:
       apply_start: "开始应用物品操作 | 操作=%operation_id% | 命名空间=%namespace% | 物品=%item% | 名称动作=%name_actions% | Lore 动作=%lore_actions% | 变量=%variables%"
       apply_empty: "物品操作未产生结果 | 操作=%operation_id%"
@@ -573,6 +528,12 @@ debug:
     snapshot_collect: "收集属性快照 | 实体=%entity% | 属性数=%count%"
     damage_stage: "伤害阶段 | 阶段=%stage% | 值=%values%"
     damage_result: "伤害计算完成 | 最终伤害=%damage% | 类型=%type%"
+    damage_base: "伤害基础值 | 攻击者=%attacker% | 目标=%target% | 投射物=%projectile% | 伤害类型=%damage_type% | 原因=%cause% | 传入伤害=%source_damage% | 基础伤害=%base_damage% | 阶段链=%stage_chain% | 允许暴击=%allow_critical% | 计算目标防御=%calculate_target_defense% | 允许闪避=%allow_target_dodge% | 目标举盾=%target_blocking% | 种子判定=%seeded_roll% | 攻击者签名=%attacker_signature% | 目标签名=%target_signature%"
+    damage_bonus: "伤害加成阶段 | 攻击者=%attacker% | 目标=%target% | 伤害类型=%damage_type% | 阶段=%stage% | 阶段种类=%stage_kind% | 属性来源=%stage_source% | 计算模式=%stage_mode% | 链入基础伤害=%chain_base_damage% | 固定值来源=%flat_sources% | 百分比来源=%percent_sources% | 概率来源=%chance_sources% | 倍率来源=%multiplier_sources% | 表达式=%expression% | 夹取=%clamps% | 目标举盾=%target_blocking% | 固定值判定=%roll_flat% | 百分比判定=%roll_percent% | 概率判定=%roll_chance% | 倍率判定=%roll_multiplier% | 种子判定=%seeded_roll% | 来源签名=%source_signature%"
+    damage_reduction: "伤害减免阶段 | 攻击者=%attacker% | 目标=%target% | 伤害类型=%damage_type% | 阶段=%stage% | 阶段种类=%stage_kind% | 属性来源=%stage_source% | 计算模式=%stage_mode% | 链入基础伤害=%chain_base_damage% | 固定值来源=%flat_sources% | 百分比来源=%percent_sources% | 概率来源=%chance_sources% | 倍率来源=%multiplier_sources% | 表达式=%expression% | 夹取=%clamps% | 目标举盾=%target_blocking% | 固定值判定=%roll_flat% | 百分比判定=%roll_percent% | 概率判定=%roll_chance% | 倍率判定=%roll_multiplier% | 种子判定=%seeded_roll% | 来源签名=%source_signature%"
+    damage_critical: "伤害暴击阶段 | 攻击者=%attacker% | 目标=%target% | 伤害类型=%damage_type% | 阶段=%stage% | 阶段种类=%stage_kind% | 属性来源=%stage_source% | 计算模式=%stage_mode% | 链入基础伤害=%chain_base_damage% | 固定值来源=%flat_sources% | 百分比来源=%percent_sources% | 概率来源=%chance_sources% | 倍率来源=%multiplier_sources% | 表达式=%expression% | 夹取=%clamps% | 目标举盾=%target_blocking% | 固定值判定=%roll_flat% | 百分比判定=%roll_percent% | 概率判定=%roll_chance% | 倍率判定=%roll_multiplier% | 种子判定=%seeded_roll% | 来源签名=%source_signature%"
+    damage_block: "伤害格挡阶段 | 攻击者=%attacker% | 目标=%target% | 伤害类型=%damage_type% | 阶段=%stage% | 阶段种类=%stage_kind% | 属性来源=%stage_source% | 计算模式=%stage_mode% | 链入基础伤害=%chain_base_damage% | 固定值来源=%flat_sources% | 百分比来源=%percent_sources% | 概率来源=%chance_sources% | 倍率来源=%multiplier_sources% | 表达式=%expression% | 夹取=%clamps% | 目标举盾=%target_blocking% | 固定值判定=%roll_flat% | 百分比判定=%roll_percent% | 概率判定=%roll_chance% | 倍率判定=%roll_multiplier% | 种子判定=%seeded_roll% | 来源签名=%source_signature%"
+    damage_final: "伤害最终值 | 攻击者=%attacker% | 目标=%target% | 伤害类型=%damage_type% | 原因=%cause% | 基础伤害=%base_damage% | 各阶段输出=%stage_outputs% | 是否暴击=%critical% | 种子判定=%seeded_roll% | 引擎最终伤害=%engine_final_damage% | 事件后最终伤害=%event_final_damage% | 攻击者签名=%attacker_signature% | 目标签名=%target_signature%"
   resync:
     start: "开始属性重同步 | 玩家=%player%"
     slot_scan: "扫描装备槽 | 槽位=%slot% | 物品=%item% | 来源=%source%"
@@ -598,9 +559,12 @@ debug:
     max_update: "资源上限更新 | 玩家=%player% | 资源=%resource% | 上限=%max%"
     request: "收到资源同步请求 | 玩家=%player% | 来源=%source% | 原因=%reason% | 延迟=%delay_ticks% tick"
     execute: "开始执行资源同步 | 玩家=%player% | 来源=%source% | 原因=%reason% | 延迟=%delay_ticks% tick | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value% | 已存状态存在=%stored_present% | 已存资源=%stored_resource_id% | 已存默认上限=%stored_default_max% | 已存加成上限=%stored_bonus_max% | 已存当前上限=%stored_current_max% | 已存当前值=%stored_current_value% | 已存来源签名=%stored_source_signature% | 已存模式版本=%stored_schema_version%"
+    health_ceiling: "生命上限解析 | 玩家=%player% | 资源=%resource% | 原因=%reason% | EA自算上限=%own_max% | 已写入Bukkit基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value% | 采用上限=%ceiling%"
+    max_health_modifier: "最大生命修饰器 | 玩家=%player% | 原因=%reason% | 序号=%index% | 总数=%total% | 修饰器键=%modifier_key% | 修饰器数值=%modifier_amount% | 修饰器运算=%modifier_operation% | 修饰器槽位组=%modifier_slot_group%"
     calculate: "资源计算 | 玩家=%player% | 资源=%resource% | 原因=%reason% | 传入当前值=%current_value_override% | 默认上限=%default_max% | 固定加成=%flat_bonus% | 百分比加成=%percent_bonus% | 百分比系数=%percent_factor% | 计算上限=%current_max% | 计算当前值=%current_value% | 是否写入状态=%write_state% | 现有状态存在=%existing_present% | 现有资源=%existing_resource_id% | 现有默认上限=%existing_default_max% | 现有加成上限=%existing_bonus_max% | 现有当前上限=%existing_current_max% | 现有当前值=%existing_current_value% | 现有来源签名=%existing_source_signature% | 现有模式版本=%existing_schema_version%"
     state_written: "资源状态已写入 | 玩家=%player% | 资源=%resource% | 原因=%reason% | 状态存在=%state_present% | 状态资源=%state_resource_id% | 状态默认上限=%state_default_max% | 状态加成上限=%state_bonus_max% | 状态当前上限=%state_current_max% | 状态当前值=%state_current_value% | 状态来源签名=%state_source_signature% | 状态模式版本=%state_schema_version%"
     state_unchanged: "资源状态未变化 | 玩家=%player% | 资源=%resource% | 原因=%reason% | 状态存在=%state_present% | 状态资源=%state_resource_id% | 状态默认上限=%state_default_max% | 状态加成上限=%state_bonus_max% | 状态当前上限=%state_current_max% | 状态当前值=%state_current_value% | 状态来源签名=%state_source_signature% | 状态模式版本=%state_schema_version%"
     bukkit_before: "写入 Bukkit 前 | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value%"
     bukkit_after: "写入 Bukkit 后 | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health% | Bukkit最大生命基础=%bukkit_max_health_base% | Bukkit最大生命实际=%bukkit_max_health_value%"
-    regen: "生命自然回复 | 玩家=%player% | 资源=%resource% | 旧当前值=%old_value% | 每秒回复=%regen_per_second% | 间隔秒数=%interval_seconds% | 候选值=%candidate_value% | 同步状态存在=%synced_present% | 同步资源=%synced_resource_id% | 同步默认上限=%synced_default_max% | 同步加成上限=%synced_bonus_max% | 同步当前上限=%synced_current_max% | 同步当前值=%synced_current_value% | 同步来源签名=%synced_source_signature% | 同步模式版本=%synced_schema_version%"
+    bukkit_skipped_dead: "跳过写入 Bukkit（玩家已死亡） | 玩家=%player% | 原因=%reason% | 资源当前值=%resource_value% | 资源上限=%resource_max% | Bukkit生命=%bukkit_health%"
+    regen: "生命自然回复 | 玩家=%player% | 资源=%resource% | 旧当前值=%old_value% | 引擎基线值=%baseline_value% | 每秒回复=%regen_per_second% | 间隔秒数=%interval_seconds% | 候选值=%candidate_value% | 同步状态存在=%synced_present% | 同步资源=%synced_resource_id% | 同步默认上限=%synced_default_max% | 同步加成上限=%synced_bonus_max% | 同步当前上限=%synced_current_max% | 同步当前值=%synced_current_value% | 同步来源签名=%synced_source_signature% | 同步模式版本=%synced_schema_version%"

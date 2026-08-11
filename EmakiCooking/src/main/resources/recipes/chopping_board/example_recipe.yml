@@ -53,10 +53,10 @@ condition:
     - "%player_level% >= 3"
   on_pass:
     actions:
-      - 'sendmessage text="<green>条件满足，切制成功。</green>"'
+      - 'send_message text="<green>条件满足，切制成功。</green>"'
   on_fail:
     actions:
-      - 'sendmessage text="<red>等级不足 3 级，无法切出金胡萝卜。</red>"'
+      - 'send_message text="<red>等级不足 3 级，无法切出金胡萝卜。</red>"'
     block_output: true
 
 # ============================================================
@@ -72,7 +72,7 @@ result:
           - "minecraft-golden_carrot"
         amount: 1
     actions:
-      - 'sendmessage text="<green>砧板处理完成。</green>"'
+      - 'send_message text="<green>砧板处理完成。</green>"'
 
 # ============================================================
 # 工具损坏覆盖

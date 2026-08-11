@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.codex.advancement.model;
 
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 
 

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-strengthen</artifactId>
-    <version>4.6.0</version>
+    <version>4.7.0</version>
     <name>EmakiStrengthen</name>
     <packaging>jar</packaging>
 
@@ -34,19 +34,19 @@
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
-            <artifactId>emaki-skills-protocol</artifactId>
-            <version>${emaki.skills.protocol.version}</version>
+            <artifactId>emaki-skills-api</artifactId>
+            <version>${emaki.skills.api.version}</version>
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-attribute-api</artifactId>
-            <version>${emaki.attribute.version}</version>
+            <version>${emaki.attribute.api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-item-api</artifactId>
-            <version>${emaki.item.version}</version>
+            <version>${emaki.item.api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -93,12 +93,41 @@
                             <artifactSet>
                                 <includes>
                                     <include>emaki.jiuwu.craft:emaki-strengthen-api</include>
-                                    <include>emaki.jiuwu.craft:emaki-skills-protocol</include>
+                                    <include>emaki.jiuwu.craft:emaki-skills-api</include>
                                 </includes>
                             </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/**/module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                                <!--
+                                    Declared locally on purpose: plexus-utils merges child <filters> with the
+                                    parent list by position, so a new parent entry after index 0 would not be
+                                    applied here. See the matching comment in the root POM for why our own
+                                    API jar's manifest is the actual source of the shade warning, and why the
+                                    pattern must stay scoped to *-api rather than all of emaki.jiuwu.craft:*.
+                                -->
+                                <filter>
+                                    <artifact>emaki.jiuwu.craft:*-api</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>META-INF/maven/**</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>emaki.jiuwu.craft:emaki-skills-api</artifact>
+                                    <includes>
+                                        <include>emaki/jiuwu/craft/skills/api/pdc/**</include>
+                                    </includes>
+                                </filter>
+                            </filters>
                             <relocations>
                                 <relocation>
-                                    <pattern>emaki.jiuwu.craft.skills.protocol</pattern>
+                                    <pattern>emaki.jiuwu.craft.skills.api.pdc</pattern>
                                     <shadedPattern>emaki.jiuwu.craft.strengthen.runtime.skillsprotocol</shadedPattern>
                                 </relocation>
                             </relocations>

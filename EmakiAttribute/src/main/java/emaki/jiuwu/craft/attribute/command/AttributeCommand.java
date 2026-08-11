@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.command;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -20,20 +21,22 @@ import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
 import emaki.jiuwu.craft.attribute.model.AttributeContributionTrace;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
-import emaki.jiuwu.craft.attribute.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeSourceTraceReport;
 import emaki.jiuwu.craft.attribute.model.DamageTraceRecord;
 import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
-import emaki.jiuwu.craft.attribute.service.MessageService;
+import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.util.Jsons;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.util.Jsons;
+import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 
 public final class AttributeCommand implements TabExecutor {
 
@@ -104,12 +107,12 @@ public final class AttributeCommand implements TabExecutor {
             return completePoints(sender, args);
         }
         if (args.length == 2 && "resync".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[1]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             result.add("all");
             return result;
         }
         if (args.length == 2 && "dump".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[1]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             return result;
         }
         if (args.length == 3 && "dump".equalsIgnoreCase(args[0])) {
@@ -126,7 +129,7 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         if (args.length == 2 && "source".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[1]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             return result;
         }
         if (args.length == 3 && "source".equalsIgnoreCase(args[0])) {
@@ -142,11 +145,11 @@ public final class AttributeCommand implements TabExecutor {
             return result;
         }
         if (args.length == 3 && "trace".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[2]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
             return result;
         }
         if (args.length == 2 && "preview".equalsIgnoreCase(args[0])) {
-            completePlayerNames(result, args[1]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
             for (String slot : previewSlots()) {
                 if (slot.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(slot);
@@ -283,8 +286,8 @@ public final class AttributeCommand implements TabExecutor {
         }
         AttributeSnapshot snapshot = attributeService.collectCombatSnapshot(target);
         messages().send(sender, "command.dump.player", Map.of("player", target.getName()));
-        messages().sendRaw(sender, buildDumpSignatureMessage(snapshot));
-        messages().sendRaw(sender, buildDumpValuesMessage(snapshot));
+        sendDumpSignature(sender, snapshot);
+        sendDumpValues(sender, snapshot);
         if (args.length >= 3 && "json".equalsIgnoreCase(args[2])) {
             messages().sendRaw(sender, Jsons.stringify(attributeService.attributeTraceService().trace(target, "").toMap()));
         }
@@ -502,7 +505,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         var result = attributeService.parentAttributeService().allocate(target, definition.id(), amount);
-        if (result == emaki.jiuwu.craft.attribute.service.ParentAttributeService.AllocateResult.SUCCESS) {
+        if (result == ParentAttributeService.AllocateResult.SUCCESS) {
             messages().send(sender, "command.points.add_success", Map.of("player", target.getName(), "attribute", definition.displayName(), "amount", Math.max(1, amount)));
         } else {
             messages().send(sender, "command.points.add_failed", Map.of("reason", result.name().toLowerCase(Locale.ROOT)));
@@ -578,7 +581,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         var result = attributeService.parentAttributeService().reset(target, !adminReset);
-        if (result == emaki.jiuwu.craft.attribute.service.ParentAttributeService.ResetResult.SUCCESS) {
+        if (result == ParentAttributeService.ResetResult.SUCCESS) {
             messages().send(sender, "command.points.reset_success", Map.of("player", target.getName()));
         } else {
             messages().send(sender, "command.points.reset_failed", Map.of("reason", result.name().toLowerCase(Locale.ROOT)));
@@ -649,38 +652,88 @@ public final class AttributeCommand implements TabExecutor {
                 + "</white>";
     }
 
-    private String buildDumpSignatureMessage(AttributeSnapshot snapshot) {
-        String hoverText = snapshot == null || snapshot.sourceSignature() == null || snapshot.sourceSignature().isBlank()
-                ? "<gray>没有签名</gray>"
-                : "<yellow>" + MiniMessages.escape(snapshot.sourceSignature()) + "</yellow>";
-        return MiniMessages.withHoverText(messages().message("command.dump.signature"), hoverText);
+    /**
+     * Sends the source signature.
+     *
+     * <p>A player gets the compact hover form; the console gets the value expanded onto its own indented
+     * line, because a console cannot hover and would otherwise only ever see the label.</p>
+     */
+    private void sendDumpSignature(CommandSender sender, AttributeSnapshot snapshot) {
+        boolean blank = snapshot == null || snapshot.sourceSignature() == null
+                || snapshot.sourceSignature().isBlank();
+        if (supportsHover(sender)) {
+            String hoverText = blank
+                    ? messages().message("command.dump.signature_empty")
+                    : "<yellow>" + MiniMessages.escape(snapshot.sourceSignature()) + "</yellow>";
+            messages().sendRaw(sender, MiniMessages.withHoverText(
+                    messages().message("command.dump.signature"), hoverText));
+            return;
+        }
+        messages().sendRaw(sender, messages().message("command.dump.signature_header"));
+        if (blank) {
+            messages().sendRaw(sender, messages().message("command.dump.signature_empty_line"));
+            return;
+        }
+        messages().send(sender, "command.dump.signature_line", Map.of(
+                "signature", MiniMessages.escape(snapshot.sourceSignature())));
     }
 
-    private String buildDumpValuesMessage(AttributeSnapshot snapshot) {
-        return MiniMessages.withHoverText(messages().message("command.dump.values"), buildDumpValuesHoverText(snapshot));
-    }
-
-    private String buildDumpValuesHoverText(AttributeSnapshot snapshot) {
-        List<String> lines = new ArrayList<>();
+    /**
+     * Sends the non-zero attribute values.
+     *
+     * <p>Same split as {@link #sendDumpSignature}: hover for players, one indented line per attribute for
+     * the console. Both paths read the same ordered list, so the two views cannot drift.</p>
+     */
+    private void sendDumpValues(CommandSender sender, AttributeSnapshot snapshot) {
+        List<String> hoverLines = new ArrayList<>();
+        List<Map.Entry<String, Double>> shown = new ArrayList<>();
         for (Map.Entry<String, Double> entry : orderedDumpValues(snapshot)) {
             String attributeId = entry.getKey();
             Double value = entry.getValue();
             if (attributeId == null || value == null || Double.compare(value, 0D) == 0) {
                 continue;
             }
-            var definition = attributeService.attributeRegistry().resolve(attributeId);
-            String displayName = definition == null ? attributeId : definition.displayName();
-            String formattedValue = Numbers.formatNumber(value, "0.##");
-            lines.add("<aqua>" + MiniMessages.escape(displayName) + "</aqua>"
+            shown.add(entry);
+            hoverLines.add("<aqua>" + MiniMessages.escape(displayNameOf(attributeId)) + "</aqua>"
                     + "<dark_gray> (</dark_gray>"
                     + "<white>" + MiniMessages.escape(attributeId) + "</white>"
                     + "<dark_gray>): </dark_gray>"
-                    + "<yellow>" + MiniMessages.escape(formattedValue) + "</yellow>");
+                    + "<yellow>" + MiniMessages.escape(Numbers.formatNumber(value, "0.##")) + "</yellow>");
         }
-        if (lines.isEmpty()) {
-            return "<gray>没有非零属性</gray>";
+        if (supportsHover(sender)) {
+            String hoverText = hoverLines.isEmpty()
+                    ? messages().message("command.dump.values_empty")
+                    : String.join("\n", hoverLines);
+            messages().sendRaw(sender, MiniMessages.withHoverText(
+                    messages().message("command.dump.values"), hoverText));
+            return;
         }
-        return String.join("\n", lines);
+        messages().sendRaw(sender, messages().message("command.dump.values_header"));
+        if (shown.isEmpty()) {
+            messages().sendRaw(sender, messages().message("command.dump.values_empty_line"));
+            return;
+        }
+        for (Map.Entry<String, Double> entry : shown) {
+            messages().send(sender, "command.dump.values_line", Map.of(
+                    "attribute", MiniMessages.escape(displayNameOf(entry.getKey())),
+                    "attribute_id", MiniMessages.escape(entry.getKey()),
+                    "value", MiniMessages.escape(Numbers.formatNumber(entry.getValue(), "0.##"))));
+        }
+    }
+
+    /**
+     * {@return whether this sender can read hover text}
+     *
+     * <p>Only a real player can hover. The console renders a component's plain text, so hover content is
+     * silently dropped there.</p>
+     */
+    private boolean supportsHover(CommandSender sender) {
+        return sender instanceof Player;
+    }
+
+    private String displayNameOf(String attributeId) {
+        var definition = attributeService.attributeRegistry().resolve(attributeId);
+        return definition == null ? attributeId : definition.displayName();
     }
 
     private List<Map.Entry<String, Double>> orderedDumpValues(AttributeSnapshot snapshot) {
@@ -708,7 +761,7 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private Map<String, ResourceState> dumpResources(Player player) {
-        Map<String, ResourceState> resources = new java.util.LinkedHashMap<>();
+        Map<String, ResourceState> resources = new LinkedHashMap<>();
         attributeService.resourceDefinitions().forEach((id, definition) -> {
             ResourceState state = attributeService.readResourceState(player, id);
             if (state != null) {
@@ -823,13 +876,13 @@ public final class AttributeCommand implements TabExecutor {
         String sub = args[1].toLowerCase(Locale.ROOT);
         if (args.length == 3) {
             if (List.of("view", "open", "reset").contains(sub) || admin && List.of("grant", "set", "setreset").contains(sub)) {
-                completePlayerNames(result, args[2]);
+                result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
                 return result;
             }
             if ("add".equals(sub)) {
                 completeParentAttributeIds(result, args[2]);
                 if (admin) {
-                    completePlayerNames(result, args[2]);
+                    result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
                 }
                 return distinctMatching(result, args[2]);
             }
@@ -852,7 +905,7 @@ public final class AttributeCommand implements TabExecutor {
         String[] debugArgs = Arrays.copyOfRange(args, 1, args.length);
         if (debugArgs.length == 1) {
             result.addAll(plugin.debugCommand().tabComplete(debugArgs));
-            completePlayerNames(result, debugArgs[0]);
+            result.addAll(CommandTabHelper.completeOnlinePlayers(debugArgs[0]));
             return distinctMatching(result, debugArgs[0]);
         }
         if (debugArgs.length == 2) {
@@ -879,15 +932,6 @@ public final class AttributeCommand implements TabExecutor {
             }
         }
         return new ArrayList<>(distinct);
-    }
-
-    private void completePlayerNames(List<String> result, String prefix) {
-        String lowerPrefix = prefix.toLowerCase(Locale.ROOT);
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.getName().toLowerCase(Locale.ROOT).startsWith(lowerPrefix)) {
-                result.add(player.getName());
-            }
-        }
     }
 
     private void completeAttributeIds(List<String> result, String prefix) {

@@ -2,11 +2,13 @@ package emaki.jiuwu.craft.attribute.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record AttributeConfig(String language,
         boolean releaseDefaultData,
@@ -29,7 +31,10 @@ public record AttributeConfig(String language,
         boolean syntheticHitKnockback,
         double syntheticHitKnockbackStrength,
         boolean syntheticHitHurtSound,
-        List<DamageCauseRule> allowedDamageCauses) {
+        ShieldConfig shield,
+        DamageIndicatorConfig damageIndicator,
+        List<DamageCauseRule> allowedDamageCauses,
+        List<ScalingCurveConfig> scalingCurves) {
 
     /** Attack speed cooldown is managed by EmakiAttribute for every attack. */
     private static final String ATTACK_SPEED_SCOPE_GLOBAL = "global";
@@ -60,6 +65,9 @@ public record AttributeConfig(String language,
                 true,
                 0.4D,
                 true,
+                ShieldConfig.defaults(),
+                DamageIndicatorConfig.defaults(),
+                List.of(),
                 List.of()
         );
     }
@@ -86,7 +94,7 @@ public record AttributeConfig(String language,
         boolean attackSpeedAttributeOnly = ATTACK_SPEED_SCOPE_ATTRIBUTE_ONLY.equals(
                 ConfigNodes.string(configuration, "attack_speed.scope", ATTACK_SPEED_SCOPE_GLOBAL)
                         .trim()
-                        .toLowerCase(java.util.Locale.ROOT));
+                        .toLowerCase(Locale.ROOT));
         int regenIntervalTicks = Math.max(1, configuration.getInt("regen_interval_ticks", 20));
         int syncDelayTicks = Math.max(0, configuration.getInt("sync_delay_ticks", 1));
         boolean healthDisplayScalingEnabled = Boolean.TRUE.equals(configuration.getBoolean("health_display_scaling.enabled", false));
@@ -107,6 +115,16 @@ public record AttributeConfig(String language,
             DamageCauseRule rule = DamageCauseRule.fromMap(entry, defaultDamageType);
             if (rule != null) {
                 causes.add(rule);
+            }
+        }
+        List<ScalingCurveConfig> curves = new ArrayList<>();
+        YamlSection curvesSection = configuration.getSection("scaling_curves");
+        if (curvesSection != null) {
+            for (String key : curvesSection.getKeys(false)) {
+                ScalingCurveConfig curve = ScalingCurveConfig.fromConfig(curvesSection.getSection(key), key);
+                if (curve != null && !curve.attributeId().isEmpty()) {
+                    curves.add(curve);
+                }
             }
         }
         return new AttributeConfig(
@@ -131,7 +149,10 @@ public record AttributeConfig(String language,
                 syntheticHitKnockback,
                 syntheticHitKnockbackStrength,
                 syntheticHitHurtSound,
-                List.copyOf(causes)
+                ShieldConfig.fromConfig(configuration.getSection("shield")),
+                DamageIndicatorConfig.fromConfig(configuration.getSection("damage_indicator")),
+                List.copyOf(causes),
+                List.copyOf(curves)
         );
     }
 
@@ -156,12 +177,12 @@ public record AttributeConfig(String language,
     }
 
     private static DefaultProfile defaultProfileDefaults() {
-        return DefaultProfile.fromMap(java.util.Map.of(
+        return DefaultProfile.fromMap(Map.of(
                 "id", "default",
                 "priority", 1_000_000,
                 "description", "所有玩家共享的默认基础属性与资源上限。",
-                "resources", java.util.Map.of(
-                        "health", java.util.Map.of(
+                "resources", Map.of(
+                        "health", Map.of(
                                 "display_name", "生命值",
                                 "default_max", 20.0,
                                 "min_max", 1.0,
@@ -169,7 +190,7 @@ public record AttributeConfig(String language,
                                 "sync_to_bukkit", true,
                                 "full_on_init", true
                         ),
-                        "mana", java.util.Map.of(
+                        "mana", Map.of(
                                 "display_name", "法力值",
                                 "default_max", 100.0,
                                 "min_max", 0.0,
@@ -178,24 +199,24 @@ public record AttributeConfig(String language,
                                 "full_on_init", true
                         )
                 ),
-                "attributes", java.util.Map.ofEntries(
-                        java.util.Map.entry("physical_attack", 0.0),
-                        java.util.Map.entry("physical_defense", 0.0),
-                        java.util.Map.entry("physical_damage_bonus", 0.0),
-                        java.util.Map.entry("physical_crit_rate", 0.0),
-                        java.util.Map.entry("physical_crit_damage", 0.0),
-                        java.util.Map.entry("projectile_attack", 0.0),
-                        java.util.Map.entry("projectile_damage_bonus", 0.0),
-                        java.util.Map.entry("projectile_crit_rate", 0.0),
-                        java.util.Map.entry("projectile_crit_damage", 0.0),
-                        java.util.Map.entry("projectile_defense", 0.0),
-                        java.util.Map.entry("spell_attack", 0.0),
-                        java.util.Map.entry("spell_damage_bonus", 0.0),
-                        java.util.Map.entry("spell_crit_rate", 0.0),
-                        java.util.Map.entry("spell_crit_damage", 0.0),
-                        java.util.Map.entry("spell_defense", 0.0),
-                        java.util.Map.entry("health_regen", 0.0),
-                        java.util.Map.entry("mana_regen", 0.0)
+                "attributes", Map.ofEntries(
+                        Map.entry("physical_attack", 0.0),
+                        Map.entry("physical_defense", 0.0),
+                        Map.entry("physical_damage_bonus", 0.0),
+                        Map.entry("physical_crit_rate", 0.0),
+                        Map.entry("physical_crit_damage", 0.0),
+                        Map.entry("projectile_attack", 0.0),
+                        Map.entry("projectile_damage_bonus", 0.0),
+                        Map.entry("projectile_crit_rate", 0.0),
+                        Map.entry("projectile_crit_damage", 0.0),
+                        Map.entry("projectile_defense", 0.0),
+                        Map.entry("spell_attack", 0.0),
+                        Map.entry("spell_damage_bonus", 0.0),
+                        Map.entry("spell_crit_rate", 0.0),
+                        Map.entry("spell_crit_damage", 0.0),
+                        Map.entry("spell_defense", 0.0),
+                        Map.entry("health_regen", 0.0),
+                        Map.entry("mana_regen", 0.0)
                 )
         ));
     }

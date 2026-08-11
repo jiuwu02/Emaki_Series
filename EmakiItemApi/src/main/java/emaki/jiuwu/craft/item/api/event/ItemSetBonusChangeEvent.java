@@ -15,7 +15,7 @@ import org.bukkit.event.HandlerList;
  * count actually changes (pieces equipped or unequipped). The set bonus has
  * already been applied; this event is purely informational and cannot be
  * cancelled. It is suitable for achievements, custom buffs and UI updates. This
- * event is fired on the server thread.
+ * event is fired on the player's entity-owner thread.
  */
 public final class ItemSetBonusChangeEvent extends Event {
 

@@ -96,6 +96,11 @@ slots:
           - "<gray>当前容量: <yellow>%current%</yellow>"
           - "<gray>容量上限: <gold>%max%</gold>"
           - "<gray>状态: %capacity_state%</gray>"
+          - ""
+          # %blueprint_requirements% 每项各占一行，条目文案见 lang 的 gui.blueprint.*
+          # 一张图纸可被多个配方使用，配方未确定时按配方分组列出（最多 3 组）
+          # 数量口径是「已放入 GUI 的量 / 需要的量」，不是背包里的量
+          - "%blueprint_requirements%"
 
   required_materials:
     slots:

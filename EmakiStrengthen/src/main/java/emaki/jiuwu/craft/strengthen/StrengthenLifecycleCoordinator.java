@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.strengthen;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -10,11 +13,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.strengthen.script.ScriptStrengthenModuleApi;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -25,8 +28,8 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
@@ -37,10 +40,11 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
+import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 
 final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiStrengthenPlugin, StrengthenRuntimeComponents> {
 
-    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#FACC15:#F97316>EmakiStrengthen</gradient> ]</gray>";
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml");
@@ -52,8 +56,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
-        registerScriptModule(coreLibPlugin);
-        releaseBundledScripts(coreLibPlugin, plugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -94,7 +96,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 coreLibPlugin.itemSourceService()
         );
         StrengthenSnapshotBuilder snapshotBuilder = new StrengthenSnapshotBuilder();
-        StrengthenActionCoordinator actionCoordinator = new StrengthenActionCoordinator(plugin, coreLibPlugin::actionExecutor);
+        StrengthenActionCoordinator actionCoordinator = new StrengthenActionCoordinator(plugin);
         StrengthenAttemptService attemptService = new StrengthenAttemptService(
                 plugin,
                 recipeResolver,
@@ -105,6 +107,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 coreLibPlugin.itemAssemblyService(),
                 threadOwnership
         );
+        StrengthenTransferService transferService = new StrengthenTransferService(plugin, attemptService);
         StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService, executionDispatcher);
         StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService, threadOwnership);
         return new StrengthenRuntimeComponents(
@@ -125,6 +128,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 snapshotBuilder,
                 actionCoordinator,
                 attemptService,
+                transferService,
                 refreshService,
                 strengthenGuiService
         );
@@ -136,12 +140,26 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return;
         }
         try {
-            plugin.languageLoader().load();
-            plugin.appConfigLoader().load();
+            // Same load/apply split the async path already uses: everything the precheck inspects loads
+            // inside the candidate step, and nothing is applied until the gate commits.
+            ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                    plugin.messageService(),
+                    "strengthen",
+                    plugin.appConfigLoader()::current,
+                    () -> {
+                        plugin.languageLoader().load();
+                        AppConfig candidate = plugin.appConfigLoader().load();
+                        plugin.recipeLoader().load();
+                        plugin.guiTemplateLoader().load();
+                        return candidate;
+                    },
+                    plugin.appConfigLoader()::overrideCurrent);
+            if (gate.rejected()) {
+                // Previous AppConfig is active again; resumeAccepting still runs in the finally block.
+                return;
+            }
             plugin.languageLoader().setLanguage(plugin.appConfig().language());
-            plugin.recipeLoader().load();
             StrengthenRecipeResolver.clearPatternCache();
-            plugin.guiTemplateLoader().load();
                 plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
             plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
             plugin.refreshService().refreshOnlinePlayers();
@@ -172,10 +190,23 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         return closeSessions.thenCompose(_ -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
                 "strengthen", "config-load", "Loading configs...", progressListener,
                 () -> {
-                    plugin.languageLoader().load();
-                    plugin.appConfigLoader().load();
-                    plugin.recipeLoader().load();
-                    plugin.guiTemplateLoader().load();
+                    ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                            plugin.messageService(),
+                            "strengthen",
+                            plugin.appConfigLoader()::current,
+                            () -> {
+                                plugin.languageLoader().load();
+                                AppConfig candidate = plugin.appConfigLoader().load();
+                                plugin.recipeLoader().load();
+                                plugin.guiTemplateLoader().load();
+                                return candidate;
+                            },
+                            plugin.appConfigLoader()::overrideCurrent);
+                    if (gate.rejected()) {
+                        // Aborts the stage so the apply step never runs; AppConfig is already restored.
+                        throw new IllegalStateException("Strengthen config precheck failed: "
+                                + String.join("; ", gate.failures()));
+                    }
                 },
                 null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
         )).thenCompose(_ -> {
@@ -210,11 +241,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     public void shutdown(EmakiStrengthenPlugin plugin) {
         freezeAndDrain(plugin, true, "shutdown");
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        var javaScriptRegistrationTracker = coreLibPlugin.javaScriptRegistrationTracker();
-        if (javaScriptRegistrationTracker != null) {
-            javaScriptRegistrationTracker.unregisterOwner(plugin);
-        }
-        coreLibPlugin.scriptModuleRegistry().unregister("strengthen");
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
@@ -228,21 +254,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         if (plugin.attemptService() != null) {
             plugin.attemptService().freezeAccepting();
         }
-        if (plugin.javaScriptResultHookRegistry() != null) {
-            plugin.javaScriptResultHookRegistry().freeze();
-        }
         boolean attemptsDrained = plugin.attemptService() == null
                 || plugin.attemptService().drain(5L, TimeUnit.SECONDS);
-        boolean hooksDrained = plugin.javaScriptResultHookRegistry() == null
-                || plugin.javaScriptResultHookRegistry().drain(5L, TimeUnit.SECONDS);
         if (closeInventories && plugin.strengthenGuiService() != null) {
             plugin.strengthenGuiService().clearAllSessions();
         }
-        if (!attemptsDrained || !hooksDrained) {
+        if (!attemptsDrained) {
             plugin.getLogger().severe("[Lifecycle] Strengthen drain incomplete | phase=" + phase
-                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
-                    + " | resultHooks=" + (plugin.javaScriptResultHookRegistry() == null
-                            ? 0 : plugin.javaScriptResultHookRegistry().inFlightCount()));
+                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot()));
             return false;
         }
         return true;
@@ -251,9 +270,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private void resumeAccepting(EmakiStrengthenPlugin plugin) {
         if (plugin == null) {
             return;
-        }
-        if (plugin.javaScriptResultHookRegistry() != null) {
-            plugin.javaScriptResultHookRegistry().resume();
         }
         if (plugin.attemptService() != null) {
             plugin.attemptService().resumeAccepting();
@@ -277,7 +293,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     }
 
     private Map<Integer, Double> parseSuccessRates(YamlSection section, Map<Integer, Double> fallback) {
-        Map<Integer, Double> rates = new java.util.LinkedHashMap<>();
+        Map<Integer, Double> rates = new LinkedHashMap<>();
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 Integer star = Numbers.tryParseInt(key, null);
@@ -290,8 +306,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         return rates.isEmpty() ? fallback : Map.copyOf(rates);
     }
 
-    private java.util.List<Integer> parseIntegerList(YamlSection section, Object raw, java.util.Set<Integer> fallback) {
-        java.util.List<Integer> values = new java.util.ArrayList<>();
+    private List<Integer> parseIntegerList(YamlSection section, Object raw, Set<Integer> fallback) {
+        List<Integer> values = new ArrayList<>();
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 Integer value = Numbers.tryParseInt(section.get(key), null);
@@ -308,21 +324,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             }
         }
         if (values.isEmpty()) {
-            return java.util.List.copyOf(fallback);
+            return List.copyOf(fallback);
         }
-        return java.util.List.copyOf(values);
+        return List.copyOf(values);
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {
         coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
     }
 
-    private void registerScriptModule(EmakiCoreLibPlugin coreLibPlugin) {
-        coreLibPlugin.scriptModuleRegistry().register("strengthen", context -> new ScriptStrengthenModuleApi(JavaPlugin.getPlugin(EmakiStrengthenPlugin.class), context));
-    }
-
-    private void releaseBundledScripts(EmakiCoreLibPlugin coreLibPlugin, EmakiStrengthenPlugin plugin) {
-        coreLibPlugin.releaseBundledScripts(plugin, "examples", false, List.of("strengthen_success.js"));
-    }
 
 }

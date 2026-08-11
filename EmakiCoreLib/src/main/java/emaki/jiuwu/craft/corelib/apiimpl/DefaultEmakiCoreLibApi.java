@@ -1,77 +1,115 @@
 package emaki.jiuwu.craft.corelib.apiimpl;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.Action;
-import emaki.jiuwu.craft.corelib.action.ActionRegistry;
-import emaki.jiuwu.craft.corelib.api.CompatibilityReport;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.api.action.CoreAction;
-import emaki.jiuwu.craft.corelib.api.action.CoreActionDescriptor;
-import emaki.jiuwu.craft.corelib.api.action.CoreActionErrorType;
-import emaki.jiuwu.craft.corelib.api.action.CoreActionRegistration;
-import emaki.jiuwu.craft.corelib.api.action.CoreActionResult;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
+import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
+import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
-import emaki.jiuwu.craft.corelib.execution.PlatformCapabilities;
+import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessListener;
+import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
 
+    private static final CoreLibDialogs UNAVAILABLE_DIALOGS = new UnavailableDialogs();
+
     private final EmakiCoreLibPlugin plugin;
-    private final PlatformCapabilities platformCapabilities;
+    private volatile CoreLibDialogs dialogBridge;
+    private volatile EmakiScheduling schedulingBridge;
 
-    public DefaultEmakiCoreLibApi(EmakiCoreLibPlugin plugin, PlatformCapabilities platformCapabilities) {
+    public DefaultEmakiCoreLibApi(EmakiCoreLibPlugin plugin) {
         this.plugin = plugin;
-        this.platformCapabilities = java.util.Objects.requireNonNull(platformCapabilities, "platformCapabilities");
     }
 
     @Override
-    public String apiVersion() {
-        return plugin.getDescription().getVersion();
-    }
-
-    @Override
-    public String pluginName() {
-        return plugin.getName();
-    }
-
-    @Override
-    public boolean isReady() {
-        return plugin.isEnabled() && plugin.messageService() != null;
-    }
-
-    @Override
-    public CompatibilityReport compatibilityReport() {
-        return platformCapabilities.compatibilityReport(apiVersion());
-    }
-
-    @Override
-    public String itemDisplayName(String itemSource) {
-        ItemSource source = ItemSourceUtil.parse(itemSource);
-        String displayName = plugin.itemSourceService().displayName(source);
-        return Texts.isBlank(displayName) ? Texts.toStringSafe(itemSource) : displayName;
-    }
-
-    @Override
-    public String itemDisplayName(ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return "";
+    public ApiStatus status() {
+        if (!plugin.isEnabled()) {
+            return ApiStatus.notInstalled();
         }
-        ItemSource source = plugin.itemSourceService().identifyItem(itemStack);
+        String pluginName = plugin.getName();
+        String version = plugin.getPluginMeta().getVersion();
+        // Data criterion, not "one service exists": messageService is non-null from initializeServices()
+        // onward, so the old check reported ready while a reload was still swapping the stage table.
+        return plugin.contentReady()
+                ? ApiStatus.ready(pluginName, version, version)
+                : ApiStatus.loading(pluginName, version, version);
+    }
+
+    @Override
+    public CoreLibDialogs dialogs() {
+        CoreLibDialogs resolved = dialogBridge;
+        return resolved == null ? UNAVAILABLE_DIALOGS : resolved;
+    }
+
+    @Override
+    public EmakiScheduling scheduling() {
+        EmakiScheduling resolved = schedulingBridge;
+        if (resolved == null) {
+            resolved = new DefaultEmakiScheduling(plugin.executionDispatcher(), plugin.threadOwnership());
+            schedulingBridge = resolved;
+        }
+        return resolved;
+    }
+
+    /**
+     * 安装对话框层。由 {@link EmakiCoreLibPlugin} 在对话框子系统就绪后调用。
+     *
+     * @param dialogs 对话框层实现；{@code null} 表示子系统不可用
+     */
+    public void installDialogs(CoreLibDialogs dialogs) {
+        this.dialogBridge = dialogs;
+    }
+
+    @Override
+    public EmakiResult<String> itemDisplayName(String itemSource) {
+        ItemSourceRef source = ItemSourceUtil.parse(itemSource);
         String displayName = plugin.itemSourceService().displayName(source);
-        return Texts.isBlank(displayName) ? ItemTextBridge.effectiveNameText(itemStack) : displayName;
+        if (!Texts.isBlank(displayName)) {
+            return EmakiResult.success(displayName);
+        }
+        String echoed = Texts.toStringSafe(itemSource);
+        return echoed.isEmpty()
+                ? EmakiResult.invalidInput("corelib.item.source_missing")
+                : EmakiResult.partial(echoed, "corelib.item.display_name_unresolved");
+    }
+
+    @Override
+    public EmakiResult<String> itemDisplayName(ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return EmakiResult.invalidInput("corelib.item.stack_missing");
+        }
+        ItemSourceRef source = plugin.itemSourceService().identifyItem(itemStack);
+        String displayName = plugin.itemSourceService().displayName(source);
+        if (!Texts.isBlank(displayName)) {
+            return EmakiResult.success(displayName);
+        }
+        String effective = ItemTextBridge.effectiveNameText(itemStack);
+        return Texts.isBlank(effective)
+                ? EmakiResult.notFound("corelib.item.display_name_unresolved")
+                : EmakiResult.partial(effective, "corelib.item.display_name_unresolved");
     }
 
     @Override
@@ -99,116 +137,75 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     }
 
     @Override
-    public CoreActionRegistration registerAction(Plugin owner, String source, CoreAction action) {
-        ActionRegistry registry = plugin.actionRegistry();
-        if (registry == null) {
-            return CoreActionRegistration.unavailable(CoreActionResult.failure(CoreActionErrorType.INVALID_STATE, "CoreLib action registry is unavailable."));
-        }
-        if (action == null) {
-            return CoreActionRegistration.unavailable(CoreActionResult.failure(CoreActionErrorType.INVALID_ARGUMENT, "Action cannot be null."));
-        }
-        ActionRegistry.ActionRegistration registration = registry.registerHandle(
-                owner, source, new CoreActionAdapter(action, platformCapabilities));
-        return new CoreActionRegistration(
-                registration.actionId(),
-                registration.ownerKey(),
-                registration.source(),
-                registration.registered(),
-                CoreActionAdapter.toApiResult(registration.result()),
-                registration::unregister
-        );
+    public CoreStageRegistration registerActionStage(Plugin owner, CoreActionStage stage) {
+        StageRegistry registry = plugin.stageRegistry();
+        return registry == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.ACTION, "action.register.registry_unavailable")
+                : registry.registerAction(owner, stage);
     }
 
     @Override
-    public void unregisterAction(String actionId) {
-        ActionRegistry registry = plugin.actionRegistry();
-        if (registry != null) {
-            registry.unregister(actionId);
-        }
+    public CoreStageRegistration registerActionSource(Plugin owner, CoreActionSource source) {
+        StageRegistry registry = plugin.stageRegistry();
+        return registry == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.SOURCE, "action.register.registry_unavailable")
+                : registry.registerSource(owner, source);
     }
 
     @Override
-    public void unregisterActions(Plugin owner) {
-        ActionRegistry registry = plugin.actionRegistry();
-        if (registry != null) {
-            registry.unregisterAll(owner);
-        }
+    public CoreStageRegistration registerActionGate(Plugin owner, CoreActionGate gate) {
+        StageRegistry registry = plugin.stageRegistry();
+        return registry == null
+                ? CoreStageRegistration.unavailable(CoreStageKind.GATE, "action.register.registry_unavailable")
+                : registry.registerGate(owner, gate);
     }
 
     @Override
-    public void unregisterActionsBySource(String source) {
-        ActionRegistry registry = plugin.actionRegistry();
-        if (registry != null) {
-            registry.unregisterAllBySource(source);
-        }
+    public boolean onStageRegistryRebuilt(Plugin owner, Runnable reregister) {
+        return plugin.stageRebuildListeners().register(owner, reregister);
     }
 
     @Override
-    public boolean actionRegistered(String actionId) {
-        ActionRegistry registry = plugin.actionRegistry();
-        return registry != null && registry.get(actionId) != null;
+    public CapabilityRegistration publishCapabilities(Plugin owner, Set<ApiCapability> capabilities) {
+        return plugin.capabilityRegistry().publish(owner, capabilities);
     }
 
     @Override
-    public CoreActionDescriptor action(String actionId) {
-        ActionRegistry registry = plugin.actionRegistry();
-        if (registry == null) {
-            return null;
-        }
-        Action action = registry.get(actionId);
-        return action == null ? null : descriptor(registry, Texts.lower(actionId), action);
+    public int revokeCapabilities(Plugin owner) {
+        return plugin.capabilityRegistry().revokeAll(owner);
     }
 
     @Override
-    public List<CoreActionDescriptor> actions() {
-        ActionRegistry registry = plugin.actionRegistry();
-        if (registry == null) {
-            return List.of();
-        }
-        return registry.all().entrySet().stream()
-                .map(entry -> descriptor(registry, entry.getKey(), entry.getValue()))
-                .sorted(Comparator.comparing(CoreActionDescriptor::id))
-                .toList();
+    public boolean hasCapability(ApiCapability capability) {
+        return plugin.capabilityRegistry().has(capability);
     }
 
     @Override
-    public List<CoreActionDescriptor> actionsByOwner(Plugin owner) {
-        ActionRegistry registry = plugin.actionRegistry();
-        if (registry == null || owner == null) {
-            return List.of();
-        }
-        return registry.byOwner(owner).stream()
-                .map(action -> descriptor(registry, Texts.lower(action.id()), action))
-                .sorted(Comparator.comparing(CoreActionDescriptor::id))
-                .toList();
+    public Set<ApiCapability> capabilities() {
+        return plugin.capabilityRegistry().all();
     }
 
     @Override
-    public List<CoreActionDescriptor> actionsBySource(String source) {
-        ActionRegistry registry = plugin.actionRegistry();
-        if (registry == null || Texts.isBlank(source)) {
-            return List.of();
-        }
-        return registry.bySource(source).stream()
-                .map(action -> descriptor(registry, Texts.lower(action.id()), action))
-                .sorted(Comparator.comparing(CoreActionDescriptor::id))
-                .toList();
+    public Set<ApiCapability> capabilitiesOf(String pluginName) {
+        return plugin.capabilityRegistry().ownedBy(pluginName);
     }
 
-    private CoreActionDescriptor descriptor(ActionRegistry registry, String id, Action action) {
-        String normalizedId = Texts.isBlank(id) ? Texts.lower(action.id()) : Texts.lower(id);
-        return new CoreActionDescriptor(
-                normalizedId,
-                registry.ownerKeyOf(normalizedId),
-                registry.sourceOf(normalizedId),
-                action.category(),
-                action.description(),
-                action.version(),
-                CoreActionAdapter.toApiMode(action.executionMode()),
-                action.timeoutMillis(),
-                action.parameters().stream()
-                        .map(CoreActionAdapter::toApiParameter)
-                        .toList()
-        );
+    @Override
+    public ReadinessRegistration whenReady(Plugin owner, String moduleName, Runnable callback) {
+        return plugin.moduleReadinessRegistry().whenReady(owner, moduleName, callback,
+                failure -> plugin.getLogger().warning("Readiness callback failed for " + failure.owner()
+                        + " waiting on " + failure.moduleName() + ": " + failure.error()));
+    }
+
+    @Override
+    public boolean isModuleReady(String moduleName) {
+        return plugin.moduleReadinessRegistry().isReady(moduleName);
+    }
+
+    @Override
+    public ReadinessRegistration addModuleListener(Plugin owner,
+            String moduleName,
+            ModuleReadinessListener listener) {
+        return plugin.moduleReadinessRegistry().addListener(owner, moduleName, listener);
     }
 }

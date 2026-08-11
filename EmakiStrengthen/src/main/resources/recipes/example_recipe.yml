@@ -36,9 +36,9 @@ economy:
 # 强化限制
 # ============================================================
 # max_star: 最大可强化星级
-# max_temper: 最大锻印等级（失败时累积，提升下次成功率）
-# temper_chance_bonus_per_level: 每级锻印提供的成功率加成（百分比）
-# success_chance_cap: 成功率上限（含锻印加成后不超过此值）
+# max_temper: 最大强化值等级（失败时累积，提升下次成功率）
+# temper_chance_bonus_per_level: 每级强化值提供的成功率加成（百分比）
+# success_chance_cap: 成功率上限（含强化值加成后不超过此值）
 limits:
   max_star: 12
   max_temper: 4
@@ -49,7 +49,7 @@ limits:
 # 各星级基础成功率（百分比）
 # ============================================================
 # 键为目标星级，值为基础成功率。
-# 实际成功率 = 基础成功率 + 锻印加成，但不超过 success_chance_cap。
+# 实际成功率 = 基础成功率 + 强化值加成，但不超过 success_chance_cap。
 success_rates:
   1: 100.0
   2: 100.0
@@ -90,7 +90,7 @@ lore_actions:
   - action: "prepend"
     content:
       - "<gradient:#F2C46D:#C9703D>强化等级 +%star%</gradient>"
-      - "<gray>锻印: %temper_color%%temper%/%max_temper%</gray>"
+      - "<gray>强化值: %temper_color%%temper%/%max_temper%</gray>"
 
 # ============================================================
 # 星级阶段定义
@@ -243,8 +243,8 @@ stars:
         protection: true
     actions:
       success:
-        - 'sendmessage text="<gold>强化达到 +5，解锁额外物理暴击率。</gold>"'
-        - "playsound sound=minecraft:block.anvil.use volume=1 pitch=1.15"
+        - 'send_message text="<gold>强化达到 +5，解锁额外物理暴击率。</gold>"'
+        - "play_sound sound=minecraft:block.anvil.use volume=1 pitch=1.15"
 
   6:
     effects:
@@ -329,8 +329,8 @@ stars:
         protection: true
     actions:
       success:
-        - 'sendtitle title="<gold><bold>+8 物理伤害提升</bold></gold>" subtitle="<yellow>额外增伤已解锁</yellow>"'
-        - "playsound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
+        - 'send_title title="<gold><bold>+8 物理伤害提升</bold></gold>" subtitle="<yellow>额外增伤已解锁</yellow>"'
+        - "play_sound sound=minecraft:entity.player.levelup volume=1.1 pitch=1.2"
 
   9:
     effects:
@@ -394,8 +394,8 @@ stars:
         protection: true
     actions:
       success:
-        - 'sendtitle title="<gold><bold>+10 物理暴伤提升</bold></gold>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
-        - "playsound sound=minecraft:entity.firework_rocket.twinkle_far volume=1 pitch=1"
+        - 'send_title title="<gold><bold>+10 物理暴伤提升</bold></gold>" subtitle="<yellow>额外暴伤已解锁</yellow>"'
+        - "play_sound sound=minecraft:entity.firework_rocket.twinkle_far volume=1 pitch=1"
 
   11:
     effects:
@@ -462,7 +462,7 @@ stars:
         amount: -1
         optional: true
         protection: true
-      # temper_boost: 放入此材料可额外增加锻印等级
+      # temper_boost: 放入此材料可额外增加强化值等级
       - item_sources:
           - "minecraft-potion"
         amount: -1
@@ -470,5 +470,5 @@ stars:
         temper_boost: 1
     actions:
       success:
-        - 'sendtitle title="<gold><bold>+12 物理穿透提升</bold></gold>" subtitle="<yellow>额外穿透已解锁</yellow>"'
-        - "playsound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+        - 'send_title title="<gold><bold>+12 物理穿透提升</bold></gold>" subtitle="<yellow>额外穿透已解锁</yellow>"'
+        - "play_sound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"

@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.corelib.gui;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
 
@@ -21,7 +23,7 @@ final class AsyncGuiRenderer {
 
 
 
-    CompletableFuture<Map<Integer, org.bukkit.inventory.ItemStack>> prepare(GuiSession session) {
+    CompletableFuture<Map<Integer, ItemStack>> prepare(GuiSession session) {
         if (session == null) {
             return CompletableFuture.completedFuture(Map.of());
         }
@@ -36,7 +38,7 @@ final class AsyncGuiRenderer {
         );
     }
 
-    private Map<Integer, org.bukkit.inventory.ItemStack> render(GuiSession session) {
+    private Map<Integer, ItemStack> render(GuiSession session) {
         if (performanceMonitor == null) {
             return session.renderSlots();
         }

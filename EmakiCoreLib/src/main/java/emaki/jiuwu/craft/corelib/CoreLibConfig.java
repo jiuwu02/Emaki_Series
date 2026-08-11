@@ -2,25 +2,34 @@ package emaki.jiuwu.craft.corelib;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-import emaki.jiuwu.craft.corelib.script.ScriptConfig;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record CoreLibConfig(
         String language,
         boolean releaseDefaultData,
         Map<String, List<String>> actionTemplates,
         LoopConfig loopConfig,
-        ScriptConfig scriptConfig,
+        PipelineConfig pipelineConfig,
         GuiConfig guiConfig,
         GameplayEventConfig gameplayEventConfig,
-        DebugConfig debugConfig
+        DebugConfig debugConfig,
+        MiniMessageConfig miniMessageConfig,
+        DialogConfig dialogConfig,
+        DisplayConfig displayConfig,
+        VanillaLanguageConfig vanillaLanguageConfig
 ) {
 
     public static CoreLibConfig defaults() {
-        return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(), ScriptConfig.defaults(),
-                GuiConfig.defaults(), GameplayEventConfig.defaults(), DebugConfig.defaults());
+                return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(),
+                PipelineConfig.defaults(), GuiConfig.defaults(),
+ GameplayEventConfig.defaults(), DebugConfig.defaults(),
+                MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults(),
+                VanillaLanguageConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -41,11 +50,49 @@ public record CoreLibConfig(
                 configuration.getBoolean("release_default_data", defaults().releaseDefaultData()),
                 Map.copyOf(templates),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
-                ScriptConfig.fromConfig(configuration.getSection("script")),
+                PipelineConfig.fromConfig(actionSection == null ? null : actionSection.getSection("pipeline")),
                 GuiConfig.fromConfig(configuration.getSection("gui")),
                 GameplayEventConfig.fromConfig(configuration.getSection("gameplay_events")),
-                DebugConfig.fromConfig(configuration.getSection("debug"))
+                DebugConfig.fromConfig(configuration.getSection("debug")),
+                MiniMessageConfig.fromConfig(configuration.getSection("minimessage")),
+                DialogConfig.fromConfig(configuration.getSection("dialog")),
+                DisplayConfig.fromConfig(configuration.getSection("display")),
+                VanillaLanguageConfig.fromConfig(configuration.getSection("vanilla_language"))
         );
+    }
+
+    /**
+     * Controls the server-side vanilla language table.
+     *
+     * <p>Vanilla item and block names are translated by the client, so a
+     * server-side feature that needs the localized name must download the language
+     * file itself. Disabled by default: it performs outbound network access, which
+     * a server owner has to opt into.
+     *
+     * @param enabled whether the table may be downloaded and used
+     * @param locale the vanilla locale id to fetch, such as {@code zh_cn}
+     */
+    public record VanillaLanguageConfig(boolean enabled, String locale) {
+
+        public VanillaLanguageConfig {
+            locale = locale == null || locale.isBlank()
+                    ? "zh_cn"
+                    : locale.trim().toLowerCase(Locale.ROOT);
+        }
+
+        public static VanillaLanguageConfig defaults() {
+            return new VanillaLanguageConfig(false, "zh_cn");
+        }
+
+        public static VanillaLanguageConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new VanillaLanguageConfig(
+                    section.getBoolean("enabled", defaults().enabled()),
+                    section.getString("locale", defaults().locale())
+            );
+        }
     }
 
 
@@ -60,21 +107,109 @@ public record CoreLibConfig(
 
 
 
-    public record GuiConfig(String backend) {
+    public record GuiConfig(String backend, int clickIntervalMs) {
 
         public GuiConfig {
-            backend = backend == null ? "bukkit" : backend.trim().toLowerCase(java.util.Locale.ROOT);
+            backend = backend == null ? "bukkit" : backend.trim().toLowerCase(Locale.ROOT);
+            clickIntervalMs = Math.max(0, clickIntervalMs);
         }
 
         public static GuiConfig defaults() {
-            return new GuiConfig("bukkit");
+            return new GuiConfig("bukkit", 100);
         }
 
         public static GuiConfig fromConfig(YamlSection section) {
             if (section == null) {
                 return defaults();
             }
-            return new GuiConfig(section.getString("backend", defaults().backend()));
+            return new GuiConfig(
+                    section.getString("backend", defaults().backend()),
+                    section.getInt("click_interval_ms", defaults().clickIntervalMs())
+            );
+        }
+    }
+
+    public record MiniMessageConfig(boolean defaultNoItalic) {
+
+        public static MiniMessageConfig defaults() {
+            return new MiniMessageConfig(true);
+        }
+
+        public static MiniMessageConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new MiniMessageConfig(
+                    section.getBoolean("default_no_italic", defaults().defaultNoItalic())
+            );
+        }
+    }
+
+    /**
+     * 展示实体后端设置。
+     *
+     * <p>{@code backend} 取 {@code inherit} 时跟随 {@link GuiConfig#backend()}，
+     * 由装配处调用 {@link #resolveBackend(String)} 解析。
+     */
+    public record DisplayConfig(String backend, int viewDistanceBlocks, int refreshIntervalTicks) {
+
+        public static final String INHERIT = "inherit";
+
+        public DisplayConfig {
+            backend = backend == null || backend.isBlank()
+                    ? "auto"
+                    : backend.trim().toLowerCase(Locale.ROOT);
+            viewDistanceBlocks = Math.max(1, viewDistanceBlocks);
+            refreshIntervalTicks = Math.max(1, refreshIntervalTicks);
+        }
+
+        public static DisplayConfig defaults() {
+            return new DisplayConfig("auto", 48, 20);
+        }
+
+        public static DisplayConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new DisplayConfig(
+                    section.getString("backend", defaults().backend()),
+                    section.getInt("view_distance_blocks", defaults().viewDistanceBlocks()),
+                    section.getInt("refresh_interval_ticks", defaults().refreshIntervalTicks())
+            );
+        }
+
+        /**
+         * 解析实际生效的后端名。
+         *
+         * @param guiBackend 菜单后端名，供 {@code inherit} 回落
+         * @return 生效的后端名
+         */
+        public String resolveBackend(String guiBackend) {
+            if (!INHERIT.equals(backend)) {
+                return backend;
+            }
+            return guiBackend == null || guiBackend.isBlank() ? "auto" : guiBackend;
+        }
+    }
+
+    public record DialogConfig(boolean enabled, String directory) {
+
+        public DialogConfig {
+            directory = directory == null || directory.isBlank() ? "dialogs" : directory.trim();
+        }
+
+        public static DialogConfig defaults() {
+            return new DialogConfig(true, "dialogs");
+        }
+
+        public static DialogConfig fromConfig(YamlSection section) {
+            if (section == null) {
+                return defaults();
+            }
+            return new DialogConfig(
+                    section.getBoolean("enabled", defaults().enabled()),
+                    section.getString("directory", defaults().directory())
+            );
         }
     }
 
@@ -134,6 +269,38 @@ public record CoreLibConfig(
         }
     }
 
+    /**
+     * Load-time compile limits for pipelines.
+     *
+     * @param maxRepeatTimes cap for {@code every ... times N}; exceeding it rejects the configuration
+     * @param maxSequenceDepth cap for nested {@code run} calls
+     * @param maxBranchDepth cap for nested {@code if} branches
+     */
+    public record PipelineConfig(int maxRepeatTimes, int maxSequenceDepth, int maxBranchDepth) {
+
+        public static PipelineConfig defaults() {
+            return new PipelineConfig(100, 8, 16);
+        }
+
+        public static PipelineConfig fromConfig(YamlSection section) {
+            PipelineConfig defaults = defaults();
+            if (section == null) {
+                return defaults;
+            }
+            return new PipelineConfig(
+                    section.getInt("max_repeat_times", defaults.maxRepeatTimes()),
+                    section.getInt("max_sequence_depth", defaults.maxSequenceDepth()),
+                    section.getInt("max_branch_depth", defaults.maxBranchDepth())
+            );
+        }
+
+        /** {@return these limits as the compiler's own type} */
+        public PipelineLimits toLimits() {
+            return new PipelineLimits(
+                    maxRepeatTimes, maxSequenceDepth, maxBranchDepth);
+        }
+    }
+
     public record LoopConfig(
             boolean enabled,
             long minSyncIntervalTicks,
@@ -169,7 +336,7 @@ public record CoreLibConfig(
         }
 
         private static long parseTicks(String raw, long fallback) {
-            long parsed = emaki.jiuwu.craft.corelib.action.ActionParsers.parseTicks(raw);
+            long parsed = ValueParsers.parseTicks(raw);
             return parsed < 0L ? fallback : parsed;
         }
     }

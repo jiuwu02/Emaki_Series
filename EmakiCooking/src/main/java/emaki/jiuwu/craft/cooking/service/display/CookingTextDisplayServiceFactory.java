@@ -1,40 +1,33 @@
 package emaki.jiuwu.craft.cooking.service.display;
 
-import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class CookingTextDisplayServiceFactory {
+import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
+import emaki.jiuwu.craft.corelib.display.DisplayServiceFactory;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
-    private static final String PACKET_EVENTS_PLUGIN = "PacketEvents";
+/**
+ * 创建工位文本展示服务。
+ *
+ * <p>后端与可见距离仍由本模块的 {@code display_entities.*} 决定，
+ * 底层实现来自 CoreLib，因此本模块不再自带任何实体或封包代码。
+ */
+public final class CookingTextDisplayServiceFactory {
 
     private CookingTextDisplayServiceFactory() {
     }
 
     public static CookingTextDisplayService create(JavaPlugin plugin,
             CookingSettingsService settingsService,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
-        String backend = settingsService.displayEntitiesBackend();
-        if ("bukkit".equals(backend)) {
-            return new BukkitCookingTextDisplayService(plugin, executionDispatcher, threadOwnership);
-        }
-        PluginManager pluginManager = plugin.getServer().getPluginManager();
-        boolean packetEventsEnabled = pluginManager.isPluginEnabled(PACKET_EVENTS_PLUGIN);
-        if (packetEventsEnabled) {
-            try {
-                if (PacketEventsCookingTextDisplayService.isRuntimeSupported()) {
-                    return new PacketEventsCookingTextDisplayService(plugin, settingsService, executionDispatcher, threadOwnership);
-                }
-                plugin.getLogger().warning("PacketEvents text display backend requires Minecraft 1.19.4 or newer; using Bukkit text display backend.");
-            } catch (LinkageError | RuntimeException exception) {
-                plugin.getLogger().warning("PacketEvents text display backend is unavailable: " + exception.getMessage());
-            }
-        } else if ("packet_events".equals(backend)) {
-            plugin.getLogger().warning("PacketEvents text display backend was requested but PacketEvents is not enabled; using Bukkit text display backend.");
-        }
-        return new BukkitCookingTextDisplayService(plugin, executionDispatcher, threadOwnership);
+            ExecutionDispatcher executionDispatcher) {
+        DisplayRuntimeSettings settings = DisplayRuntimeSettings.of(
+                settingsService.displayEntitiesViewDistanceBlocks(),
+                settingsService.displayEntitiesRefreshIntervalTicks());
+        return new CookingTextDisplayService(DisplayServiceFactory.createTextService(
+                plugin,
+                settingsService.displayEntitiesBackend(),
+                settings,
+                executionDispatcher));
     }
 }

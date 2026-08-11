@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
@@ -23,16 +25,16 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplaySpec;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -44,6 +46,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class ChoppingBoardRuntimeService {
 
@@ -104,12 +107,12 @@ public final class ChoppingBoardRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> replace(
+            public CompletionStage<Void> replace(
                     StationCoordinates coordinates,
                     Map<String, Object> committedState) {
                 ChoppingBoardState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
-                    return java.util.concurrent.CompletableFuture.failedFuture(
+                    return CompletableFuture.failedFuture(
                             new IllegalArgumentException("Invalid committed chopping-board state"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
@@ -121,7 +124,7 @@ public final class ChoppingBoardRuntimeService {
             }
 
             @Override
-            public java.util.concurrent.CompletionStage<Void> delete(StationCoordinates coordinates) {
+            public CompletionStage<Void> delete(StationCoordinates coordinates) {
                 ChoppingBoardState state = readState(stateStore.load(coordinates));
                 return stateStore.deleteAsync(coordinates)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -139,12 +142,12 @@ public final class ChoppingBoardRuntimeService {
         stateStore.forEachLoadedState(StationType.CHOPPING_BOARD, this::restoreStoredState);
     }
 
-    public boolean restoreStoredState(StationCoordinates coordinates, emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
         if (coordinates == null) {
             return false;
         }
         ChoppingBoardState state = readState(section);
-        ItemSource stationSource = stateStore.stationSource(section);
+        ItemSourceRef stationSource = stateStore.stationSource(section);
         Block block = coordinates.block();
         if (state == null) {
             clearDisplay(coordinates, null, null);
@@ -202,149 +205,257 @@ public final class ChoppingBoardRuntimeService {
         }
         ChoppingBoardState state = readState(stateStore.load(coordinates));
         long now = System.currentTimeMillis();
+        debugStation("station.chopping_interact", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "interaction", interaction.type() == null ? "none" : interaction.type().configKey(),
+                "state", state == null
+                        ? "null"
+                        : "input=" + state.inputSource() + ",amount=" + state.inputAmount() + ",cuts=" + state.cutCount()
+        ));
 
         if (settingsService.matchesInteraction(
                 StationType.CHOPPING_BOARD,
                 CookingSettingsService.INTERACTION_RETURN_INPUT,
                 interaction)) {
-            if (state == null || !state.hasInputSource()) {
-                return false;
-            }
-            returnStoredInput(player, coordinates, state);
-            interaction.cancel();
-            return true;
+            return handleReturnInput(interaction, player, coordinates, state);
         }
 
         ItemStack hand = player.getInventory().getItemInMainHand();
         if (state != null && state.hasInputSource()) {
-            if (settingsService.matchesInteraction(
-                    StationType.CHOPPING_BOARD,
-                    CookingSettingsService.INTERACTION_PLACE_INPUT,
-                    interaction)
-                    && appendInput(player, block, coordinates, state, hand, now)) {
-                interaction.cancel();
-                return true;
-            }
-            if (!settingsService.matchesInteraction(
-                    StationType.CHOPPING_BOARD,
-                    CookingSettingsService.INTERACTION_PROCESS,
-                    interaction)) {
-                return false;
-            }
-            if (settingsService.choppingSpaceRestriction() && block.getRelative(BlockFace.UP).getType() != Material.AIR) {
-                return false;
-            }
-            if (!player.hasPermission(CookingPermissions.CHOPPING_BOARD_USE)
-                    && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
-                interaction.cancel();
-                return true;
-            }
-            if (settingsService.choppingInteractionDelayMs() > 0L
-                    && now - state.lastInteractionMs() < settingsService.choppingInteractionDelayMs()) {
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.too_fast", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            if (hand == null || hand.getType().isAir()) {
-                return false;
-            }
-            if (!isTool(hand)) {
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.wrong_tool", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            if (!player.hasPermission(CookingPermissions.CHOPPING_BOARD_CUT)
-                    && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
-                interaction.cancel();
-                return true;
-            }
-            RecipeDocument recipe = recipeService.findChoppingBoardRecipe(state.inputSource(), player);
-            if (recipe == null) {
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.cannot_cut", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            int cutsRequired = recipeService.choppingCutsRequired(recipe);
-            if (cutsRequired <= 0) {
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.cannot_cut", Map.of());
-                interaction.cancel();
-                return true;
-            }
-            int inputRequired = recipeService.choppingInputAmount(recipe);
-            if (state.inputAmount() < inputRequired) {
-                CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.not_enough_input", Map.of(
-                        "current", state.inputAmount(),
-                        "required", inputRequired
-                ));
-                refreshText(coordinates, state);
-                interaction.cancel();
-                return true;
-            }
+            return handleOccupiedBoard(interaction, block, player, coordinates, state, hand, now);
+        }
 
-            int nextCutCount = state.cutCount() + 1;
-            applyToolDamage(player, hand, recipeService.choppingToolDamage(recipe));
-            maybeDamagePlayer(player, recipeService.choppingDamageChance(recipe), recipeService.choppingDamageValue(recipe));
-            plugin.effectService().playActions(StationType.CHOPPING_BOARD, "cut", player);
+        return handlePlaceInput(interaction, block, player, coordinates, hand, now);
+    }
 
-            if (nextCutCount >= cutsRequired) {
-                int remainingAmount = Math.max(0, state.inputAmount() - inputRequired);
-                ChoppingBoardState remaining = remainingAmount <= 0 ? null : new ChoppingBoardState(
-                        state.inputSource(),
-                        state.inputItemData(),
-                        remainingAmount,
-                        0,
-                        now,
-                        state.displayEntityId()
-                );
-                boolean accepted = completionCoordinator != null && completionCoordinator.submit(new CookingCompletionRequest(
-                        "cut:" + state.lastInteractionMs() + ":" + nextCutCount,
-                        StationType.CHOPPING_BOARD,
-                        coordinates,
-                        serializeState(coordinates, state),
-                        remaining == null ? CookingCompletionOperation.CommitMode.DELETE : CookingCompletionOperation.CommitMode.SAVE,
-                        remaining == null ? Map.of() : serializeState(coordinates, remaining),
-                        recipe,
-                        player,
-                        block.getLocation().add(0.5D, 1.0D, 0.5D),
-                        settingsService.choppingDropResult(),
-                        List.of(new CookingInputIngredient(state.inputSource(), inputRequired)),
-                        recipeService.outputs(recipe),
-                        recipeService.actions(recipe),
-                        "cooking_chopping_board_complete",
-                        Map.of(
-                                "recipe_id", recipe.id(),
-                                "station_type", StationType.CHOPPING_BOARD.folderName()
-                        ),
-                        List.of()
-                ));
-                if (accepted) {
-                    CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.completed", Map.of("recipe", recipe.displayName()));
-                    plugin.effectService().playActions(StationType.CHOPPING_BOARD, "complete", player);
-                }
-                interaction.cancel();
-                return true;
-            }
-
-            ChoppingBoardState updated = new ChoppingBoardState(
-                    state.inputSource(),
-                    state.inputItemData(),
-                    state.inputAmount(),
-                    nextCutCount,
-                    now,
-                    state.displayEntityId()
-            );
-            saveState(coordinates, updated);
-            refreshText(coordinates, updated);
-            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.progress", Map.of(
-                    "current", nextCutCount,
-                    "required", cutsRequired
+    private boolean handleReturnInput(StationInteraction interaction,
+            Player player,
+            StationCoordinates coordinates,
+            ChoppingBoardState state) {
+        if (state == null || !state.hasInputSource()) {
+            debugStation("station.chopping_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "operation", "return_input",
+                    "reason", state == null ? "no_state" : "no_input_source"
             ));
+            return false;
+        }
+        returnStoredInput(player, coordinates, state);
+        interaction.cancel();
+        return true;
+    }
+
+    private boolean handleOccupiedBoard(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            ChoppingBoardState state,
+            ItemStack hand,
+            long now) {
+        if (settingsService.matchesInteraction(
+                StationType.CHOPPING_BOARD,
+                CookingSettingsService.INTERACTION_PLACE_INPUT,
+                interaction)
+                && appendInput(player, block, coordinates, state, hand, now)) {
+            interaction.cancel();
+            return true;
+        }
+        if (!settingsService.matchesInteraction(
+                StationType.CHOPPING_BOARD,
+                CookingSettingsService.INTERACTION_PROCESS,
+                interaction)) {
+            return false;
+        }
+        if (settingsService.choppingSpaceRestriction() && block.getRelative(BlockFace.UP).getType() != Material.AIR) {
+            return false;
+        }
+        if (!player.hasPermission(CookingPermissions.CHOPPING_BOARD_USE)
+                && !player.hasPermission(CookingPermissions.ADMIN)) {
+            messageService.send(player, "general.no_permission");
+            interaction.cancel();
+            return true;
+        }
+        if (settingsService.choppingInteractionDelayMs() > 0L
+                && now - state.lastInteractionMs() < settingsService.choppingInteractionDelayMs()) {
+            debugStation("station.chopping_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "operation", "process",
+                    "reason", "too_fast elapsed=" + (now - state.lastInteractionMs())
+                            + "ms required=" + settingsService.choppingInteractionDelayMs() + "ms"
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.too_fast", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        if (hand == null || hand.getType().isAir()) {
+            debugStation("station.chopping_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "operation", "process",
+                    "reason", "empty_hand"
+            ));
+            return false;
+        }
+        if (!isTool(hand)) {
+            debugStation("station.chopping_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "operation", "process",
+                    "reason", "wrong_tool hand=" + hand.getType().getKey()
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.wrong_tool", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        if (!player.hasPermission(CookingPermissions.CHOPPING_BOARD_CUT)
+                && !player.hasPermission(CookingPermissions.ADMIN)) {
+            messageService.send(player, "general.no_permission");
+            interaction.cancel();
+            return true;
+        }
+        return handleCut(interaction, block, player, coordinates, state, hand, now);
+    }
+
+    private boolean handleCut(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            ChoppingBoardState state,
+            ItemStack hand,
+            long now) {
+        RecipeDocument recipe = recipeService.findChoppingBoardRecipe(state.inputSource(), player);
+        if (recipe == null) {
+            debugStation("station.chopping_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "operation", "process",
+                    "reason", "no_recipe_for_input input=" + state.inputSource()
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.cannot_cut", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        int cutsRequired = recipeService.choppingCutsRequired(recipe);
+        if (cutsRequired <= 0) {
+            debugStation("station.chopping_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "operation", "process",
+                    "reason", "cuts_required_not_positive recipe=" + recipe.id()
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.cannot_cut", Map.of());
+            interaction.cancel();
+            return true;
+        }
+        int inputRequired = recipeService.choppingInputAmount(recipe);
+        if (state.inputAmount() < inputRequired) {
+            debugStation("station.chopping_rejected", Map.of(
+                    "player", player.getName(),
+                    "station", coordinates.runtimeKey(),
+                    "operation", "process",
+                    "reason", "not_enough_input current=" + state.inputAmount() + " required=" + inputRequired
+            ));
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.not_enough_input", Map.of(
+                    "current", state.inputAmount(),
+                    "required", inputRequired
+            ));
+            refreshText(coordinates, state);
             interaction.cancel();
             return true;
         }
 
+        int nextCutCount = state.cutCount() + 1;
+        debugStation("station.chopping_cut", Map.of(
+                "player", player.getName(),
+                "station", coordinates.runtimeKey(),
+                "recipe", recipe.id(),
+                "cut", nextCutCount,
+                "required", cutsRequired
+        ));
+        applyToolDamage(player, hand, recipeService.choppingToolDamage(recipe));
+        maybeDamagePlayer(player, recipeService.choppingDamageChance(recipe), recipeService.choppingDamageValue(recipe));
+        plugin.effectService().playActions(StationType.CHOPPING_BOARD, "cut", player);
+
+        if (nextCutCount >= cutsRequired) {
+            return completeCut(interaction, block, player, coordinates, state, recipe, nextCutCount, inputRequired, now);
+        }
+
+        ChoppingBoardState updated = new ChoppingBoardState(
+                state.inputSource(),
+                state.inputItemData(),
+                state.inputAmount(),
+                nextCutCount,
+                now,
+                state.displayEntityId()
+        );
+        saveState(coordinates, updated);
+        refreshText(coordinates, updated);
+        CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.progress", Map.of(
+                "current", nextCutCount,
+                "required", cutsRequired
+        ));
+        interaction.cancel();
+        return true;
+    }
+
+    private boolean completeCut(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            ChoppingBoardState state,
+            RecipeDocument recipe,
+            int nextCutCount,
+            int inputRequired,
+            long now) {
+        int remainingAmount = Math.max(0, state.inputAmount() - inputRequired);
+        ChoppingBoardState remaining = remainingAmount <= 0 ? null : new ChoppingBoardState(
+                state.inputSource(),
+                state.inputItemData(),
+                remainingAmount,
+                0,
+                now,
+                state.displayEntityId()
+        );
+        boolean accepted = completionCoordinator != null && completionCoordinator.submit(new CookingCompletionRequest(
+                "cut:" + state.lastInteractionMs() + ":" + nextCutCount,
+                StationType.CHOPPING_BOARD,
+                coordinates,
+                serializeState(coordinates, state),
+                remaining == null ? CookingCompletionOperation.CommitMode.DELETE : CookingCompletionOperation.CommitMode.SAVE,
+                remaining == null ? Map.of() : serializeState(coordinates, remaining),
+                recipe,
+                player,
+                block.getLocation().add(0.5D, 1.0D, 0.5D),
+                settingsService.choppingDropResult(),
+                List.of(new CookingInputIngredient(state.inputSource(), inputRequired)),
+                recipeService.outputs(recipe),
+                recipeService.actions(recipe),
+                "cooking_chopping_board_complete",
+                Map.of(
+                        "recipe_id", recipe.id(),
+                        "station_type", StationType.CHOPPING_BOARD.folderName()
+                ),
+                List.of(),
+                // No player inventory input on this path; the pipeline evaluates the condition itself.
+                null
+        ));
+        if (accepted) {
+            CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "chopping_board.completed", Map.of("recipe", recipe.displayName()));
+            plugin.effectService().playActions(StationType.CHOPPING_BOARD, "complete", player);
+        }
+        interaction.cancel();
+        return true;
+    }
+
+    private boolean handlePlaceInput(StationInteraction interaction,
+            Block block,
+            Player player,
+            StationCoordinates coordinates,
+            ItemStack hand,
+            long now) {
         if (!settingsService.matchesInteraction(
                 StationType.CHOPPING_BOARD,
                 CookingSettingsService.INTERACTION_PLACE_INPUT,
@@ -363,7 +474,7 @@ public final class ChoppingBoardRuntimeService {
         if (hand == null || hand.getType().isAir()) {
             return false;
         }
-        ItemSource source = itemSourceService.identifyItem(hand);
+        ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
         if (shorthand == null || shorthand.isBlank()) {
             return false;
@@ -407,6 +518,12 @@ public final class ChoppingBoardRuntimeService {
         }
         ChoppingBoardState state = readState(stateStore.load(coordinates));
         if (state == null) {
+            debugStation("station.break_without_state", Map.of(
+                    "station", coordinates.runtimeKey(),
+                    "type", StationType.CHOPPING_BOARD.folderName()
+            ));
+            clearDisplay(coordinates, null, null);
+            textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
             return false;
         }
         if (state.hasInputSource()) {
@@ -461,7 +578,7 @@ public final class ChoppingBoardRuntimeService {
     }
 
     private String plainItemName(String source) {
-        return MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(source));
+        return MiniMessages.plainText(EmakiCoreLibApi.itemDisplayName(source).orElse(""));
     }
 
     private boolean appendInput(Player player, Block block, StationCoordinates coordinates, ChoppingBoardState state, ItemStack hand, long now) {
@@ -469,7 +586,7 @@ public final class ChoppingBoardRuntimeService {
                 || hand == null || hand.getType().isAir()) {
             return false;
         }
-        ItemSource source = itemSourceService.identifyItem(hand);
+        ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
         if (shorthand == null || shorthand.isBlank() || !matchesInputSource(shorthand, state.inputSource())) {
             return false;
@@ -509,8 +626,8 @@ public final class ChoppingBoardRuntimeService {
     }
 
     private boolean matchesInputSource(String candidateSource, String storedSource) {
-        ItemSource candidate = ItemSourceUtil.parse(candidateSource);
-        ItemSource stored = ItemSourceUtil.parse(storedSource);
+        ItemSourceRef candidate = ItemSourceUtil.parse(candidateSource);
+        ItemSourceRef stored = ItemSourceUtil.parse(storedSource);
         if (candidate != null && stored != null) {
             return ItemSourceUtil.matches(stored, candidate);
         }
@@ -548,11 +665,11 @@ public final class ChoppingBoardRuntimeService {
         if (itemStack == null || itemStack.getType().isAir()) {
             return false;
         }
-        ItemSource source = itemSourceService.identifyItem(itemStack);
+        ItemSourceRef source = itemSourceService.identifyItem(itemStack);
         if (source == null) {
             return false;
         }
-        for (ItemSource tool : settingsService.choppingToolSources()) {
+        for (ItemSourceRef tool : settingsService.choppingToolSources()) {
             if (ItemSourceUtil.matches(tool, source)) {
                 return true;
             }
@@ -630,7 +747,7 @@ public final class ChoppingBoardRuntimeService {
         return root;
     }
 
-    private ChoppingBoardState readState(emaki.jiuwu.craft.corelib.yaml.YamlSection section) {
+    private ChoppingBoardState readState(YamlSection section) {
         if (section == null || !StationType.CHOPPING_BOARD.folderName().equalsIgnoreCase(section.getString("station_type", ""))) {
             return null;
         }
@@ -652,7 +769,7 @@ public final class ChoppingBoardRuntimeService {
     }
 
     private void refreshDisplay(StationCoordinates coordinates, String inputSource, Map<String, Object> inputItemData) {
-        ItemSource source = ItemSourceUtil.parse(inputSource);
+        ItemSourceRef source = ItemSourceUtil.parse(inputSource);
         ItemStack itemStack = storedItemOrFallback(inputSource, inputItemData, 1);
         if (source == null && itemStack != null && !itemStack.getType().isAir()) {
             source = itemSourceService.identifyItem(itemStack);
@@ -696,7 +813,7 @@ public final class ChoppingBoardRuntimeService {
             storedItem.setAmount(Math.max(1, amount));
             return storedItem;
         }
-        ItemSource source = ItemSourceUtil.parse(sourceText);
+        ItemSourceRef source = ItemSourceUtil.parse(sourceText);
         return source == null ? null : itemSourceService.createItem(source, amount);
     }
 
@@ -748,7 +865,7 @@ public final class ChoppingBoardRuntimeService {
         if (Texts.isNotBlank(storedName)) {
             return storedName;
         }
-        String sourceName = EmakiCoreLibApi.itemDisplayName(state.inputSource());
+        String sourceName = EmakiCoreLibApi.itemDisplayName(state.inputSource()).orElse("");
         return Texts.isBlank(sourceName) ? state.inputSource() : sourceName;
     }
 
@@ -818,6 +935,13 @@ public final class ChoppingBoardRuntimeService {
         builder.append(line);
     }
 
+    private void debugStation(String langKey, Map<String, ?> replacements) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        plugin.debugLogger().log("station", (UUID) null, langKey, replacements);
+    }
+
     private void clearDisplay(StationCoordinates coordinates, UUID knownId, String inputSource) {
         if (coordinates == null) {
             return;
@@ -851,7 +975,7 @@ public final class ChoppingBoardRuntimeService {
         if (coordinates == null || Texts.isBlank(inputSource)) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(inputSource);
+        ItemSourceRef source = ItemSourceUtil.parse(inputSource);
         ItemStack itemStack = itemSourceService.createItem(source, 1);
         if (source == null || itemStack == null || itemStack.getType().isAir()) {
             return null;

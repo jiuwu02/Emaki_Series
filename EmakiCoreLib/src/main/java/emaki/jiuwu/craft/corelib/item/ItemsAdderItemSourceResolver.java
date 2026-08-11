@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.item;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.bukkit.event.EventHandler;
@@ -12,11 +13,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import dev.lone.itemsadder.api.CustomStack;
 import dev.lone.itemsadder.api.ItemsAdder;
 import dev.lone.itemsadder.api.Events.ItemsAdderLoadDataEvent;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class ItemsAdderItemSourceResolver
-        extends AbstractManagedItemSourceResolver<ItemsAdderItemSourceResolver.DirectAccessor> {
+        extends AbstractManagedItemSourceProvider<ItemsAdderItemSourceResolver.DirectAccessor> {
 
     private static final String PLUGIN_NAME = "ItemsAdder";
 
@@ -29,8 +31,13 @@ final class ItemsAdderItemSourceResolver
     }
 
     @Override
-    public String id() {
-        return "corelib_itemsadder";
+    public ItemSourceKind kind() {
+        return ItemSourceKind.ITEMSADDER;
+    }
+
+    @Override
+    public Set<String> shorthandPrefixes() {
+        return Set.of("itemsadder-", "ia-");
     }
 
     @Override
@@ -39,13 +46,8 @@ final class ItemsAdderItemSourceResolver
     }
 
     @Override
-    public String pluginName() {
+    public String providerPluginName() {
         return PLUGIN_NAME;
-    }
-
-    @Override
-    protected ItemSourceType sourceType() {
-        return ItemSourceType.ITEMSADDER;
     }
 
     @Override
@@ -54,17 +56,19 @@ final class ItemsAdderItemSourceResolver
     }
 
     @Override
-    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceResolver> loadedHandler) {
+    public void registerLoadEventListener(JavaPlugin plugin, Consumer<ManagedItemSourceProvider> loadedHandler) {
         if (plugin == null || loadedHandler == null) {
             return;
         }
         plugin.getServer().getPluginManager().registerEvents(new ItemsAdderLoadListener(this, loadedHandler), plugin);
     }
 
-    static final class DirectAccessor implements AbstractManagedItemSourceResolver.Accessor {
+    static final class DirectAccessor implements AbstractManagedItemSourceProvider.Accessor {
 
         private String failureReason = "";
 
+        // ItemsAdder 的 areItemsLoaded() 已弃用，但该 API 没有提供任何替代的加载态判定入口。
+        @SuppressWarnings("deprecation")
         @Override
         public boolean ensureAvailable() {
             try {
@@ -84,6 +88,8 @@ final class ItemsAdderItemSourceResolver
             return failureReason;
         }
 
+        // 同上：areItemsLoaded() 无替代 API。
+        @SuppressWarnings("deprecation")
         @Override
         public boolean detectLoaded() {
             try {
@@ -145,11 +151,11 @@ final class ItemsAdderItemSourceResolver
 
     private static final class ItemsAdderLoadListener implements Listener {
 
-        private final ManagedItemSourceResolver resolver;
-        private final Consumer<ManagedItemSourceResolver> loadedHandler;
+        private final ManagedItemSourceProvider resolver;
+        private final Consumer<ManagedItemSourceProvider> loadedHandler;
 
-        private ItemsAdderLoadListener(ManagedItemSourceResolver resolver,
-                Consumer<ManagedItemSourceResolver> loadedHandler) {
+        private ItemsAdderLoadListener(ManagedItemSourceProvider resolver,
+                Consumer<ManagedItemSourceProvider> loadedHandler) {
             this.resolver = resolver;
             this.loadedHandler = loadedHandler;
         }

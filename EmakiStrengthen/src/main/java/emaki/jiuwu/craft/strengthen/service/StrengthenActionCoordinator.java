@@ -5,33 +5,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.action.ActionBatchResult;
-import emaki.jiuwu.craft.corelib.action.ActionContext;
-import emaki.jiuwu.craft.corelib.action.ActionExecutor;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
-import emaki.jiuwu.craft.corelib.item.ItemTextBridge;
-import emaki.jiuwu.craft.corelib.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
-import emaki.jiuwu.craft.strengthen.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 
 public final class StrengthenActionCoordinator {
 
     private static final long ACTION_TIMEOUT_SECONDS = 30L;
 
     private final EmakiStrengthenPlugin plugin;
-    private final Supplier<ActionExecutor> actionExecutorSupplier;
 
-    public StrengthenActionCoordinator(EmakiStrengthenPlugin plugin, Supplier<ActionExecutor> actionExecutorSupplier) {
+    public StrengthenActionCoordinator(EmakiStrengthenPlugin plugin) {
         this.plugin = plugin;
-        this.actionExecutorSupplier = actionExecutorSupplier;
     }
 
-    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
+    public CompletableFuture<Boolean> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -40,7 +36,7 @@ public final class StrengthenActionCoordinator {
         return triggerSuccessActions(player, recipe, resultSlotId, itemTarget, star, temper, "");
     }
 
-    public CompletableFuture<ActionBatchResult> triggerSuccessActions(Player player,
+    public CompletableFuture<Boolean> triggerSuccessActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -51,7 +47,7 @@ public final class StrengthenActionCoordinator {
                 "strengthen_success", resultSlotId, itemTarget, star, temper, false, false, star, operationId);
     }
 
-    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+    public CompletableFuture<Boolean> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -64,7 +60,7 @@ public final class StrengthenActionCoordinator {
                 dropped, protectionApplied, "");
     }
 
-    public CompletableFuture<ActionBatchResult> triggerFailureActions(Player player,
+    public CompletableFuture<Boolean> triggerFailureActions(Player player,
             StrengthenRecipe recipe,
             String resultSlotId,
             CoreActionItemTarget itemTarget,
@@ -79,7 +75,7 @@ public final class StrengthenActionCoordinator {
                 wasStar, operationId);
     }
 
-    private CompletableFuture<ActionBatchResult> triggerActions(Player player,
+    private CompletableFuture<Boolean> triggerActions(Player player,
             StrengthenRecipe recipe,
             List<String> actions,
             String phase,
@@ -91,9 +87,8 @@ public final class StrengthenActionCoordinator {
             boolean protectionApplied,
             int wasStar,
             String operationId) {
-        ActionExecutor actionExecutor = actionExecutorSupplier == null ? null : actionExecutorSupplier.get();
-        if (actionExecutor == null || recipe == null || player == null || actions == null || actions.isEmpty()) {
-            return CompletableFuture.completedFuture(new ActionBatchResult(true, List.of()));
+        if (recipe == null || player == null || actions == null || actions.isEmpty()) {
+            return CompletableFuture.completedFuture(true);
         }
         ItemStack resultItem = itemTarget == null ? null : itemTarget.itemStack();
         String showItem = buildShowItem(resultItem);
@@ -106,7 +101,6 @@ public final class StrengthenActionCoordinator {
         placeholders.put("strengthen_temper", Integer.toString(temper));
         placeholders.put("strengthen_show_item", showItem);
         placeholders.put("strengthen_result_slot", resultSlotId == null ? "" : resultSlotId);
-        placeholders.put("show_item", showItem);
         placeholders.put("star", Integer.toString(star));
         placeholders.put("temper", Integer.toString(temper));
         placeholders.put("dropped", Boolean.toString(dropped));
@@ -114,33 +108,26 @@ public final class StrengthenActionCoordinator {
         placeholders.put("was_star", Integer.toString(wasStar));
         placeholders.put("strengthen_max_star", Integer.toString(recipe.limits().maxStar()));
         placeholders.put("strengthen_success_rate", resolveSuccessRate(recipe, wasStar, temper));
-        Map<String, Object> attributes = new LinkedHashMap<>();
-        attributes.put("operationId", operationId == null ? "" : operationId);
-        attributes.put("recipe", recipe);
-        attributes.put("recipe_id", recipe.id());
+        var context = plugin.actionLines().context(player, phase, false, placeholders);
         if (resultItem != null) {
-            attributes.put("resultItem", resultItem);
+            context = context.with(CoreActionKeys.ITEM, resultItem);
         }
-        if (itemTarget != null) {
-            attributes.put(CoreActionItemTarget.ATTRIBUTE_KEY, itemTarget);
-        }
-        attributes.put("star", star);
-        attributes.put("temper", temper);
-        attributes.put("result_slot", resultSlotId == null ? "" : resultSlotId);
-        attributes.put("dropped", dropped);
-        attributes.put("protected", protectionApplied);
-        attributes.put("was_star", wasStar);
-        ActionContext context = new ActionContext(plugin, player, phase, false, placeholders, attributes);
-        return actionExecutor.executeAll(context, actions, true)
+        return plugin.actionLines().run(actions, context, true)
                 .orTimeout(ACTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .whenComplete((result, throwable) -> logActionResult(recipe, phase, star, operationId, result, throwable));
+                .whenComplete((success, throwable) -> logActionResult(recipe, phase, star, operationId, success, throwable));
     }
 
+    /**
+     * Reports a failed action phase.
+     *
+     * <p>The pipeline reports one aggregate boolean instead of v1's per-line failure list, so the reason a
+     * line failed is only in the CoreLib pipeline log; this message names the phase and operation for context.</p>
+     */
     private void logActionResult(StrengthenRecipe recipe,
             String phase,
             int star,
             String operationId,
-            ActionBatchResult result,
+            Boolean success,
             Throwable throwable) {
         if (throwable != null) {
             plugin.messageService().warning("console.recipe_action_failed", Map.of(
@@ -152,19 +139,15 @@ public final class StrengthenActionCoordinator {
             ));
             return;
         }
-        if (result == null || result.success()) {
-            return;
+        if (success == null || !success) {
+            plugin.messageService().warning("console.recipe_action_failed", Map.of(
+                    "operation_id", operationId == null ? "" : operationId,
+                    "recipe", recipe == null ? "-" : recipe.id(),
+                    "phase", phase,
+                    "star", star,
+                    "error", "action batch unsuccessful"
+            ));
         }
-        var firstFailure = result.firstFailure();
-        plugin.messageService().warning("console.recipe_action_failed", Map.of(
-                "operation_id", operationId == null ? "" : operationId,
-                "recipe", recipe == null ? "-" : recipe.id(),
-                "phase", phase,
-                "star", star,
-                "error", firstFailure == null || firstFailure.result() == null
-                        ? "unknown"
-                        : String.valueOf(firstFailure.result().errorMessage())
-        ));
     }
 
     public String buildShowItem(ItemStack itemStack) {
@@ -182,7 +165,7 @@ public final class StrengthenActionCoordinator {
         var message = plugin.messageService() == null
                 ? ""
                 : plugin.messageService().message("strengthen.misc.default_item_name");
-        return emaki.jiuwu.craft.corelib.text.Texts.isBlank(message) ? "物品" : message;
+        return Texts.isBlank(message) ? "物品" : message;
     }
 
     private String resolveSuccessRate(StrengthenRecipe recipe, int currentStar, int temper) {

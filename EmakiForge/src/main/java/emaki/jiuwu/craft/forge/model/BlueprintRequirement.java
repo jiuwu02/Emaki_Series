@@ -1,18 +1,18 @@
 package emaki.jiuwu.craft.forge.model;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class BlueprintRequirement {
 
     private final String item;
     private final int amount;
-    private final ItemSource source;
+    private final ItemSourceRef source;
 
-    public BlueprintRequirement(String item, int amount, ItemSource source) {
+    public BlueprintRequirement(String item, int amount, ItemSourceRef source) {
         this.item = item;
         this.amount = amount;
         this.source = source;
@@ -22,7 +22,7 @@ public final class BlueprintRequirement {
         if (raw == null) {
             return null;
         }
-        ItemSource source = ItemSourceUtil.parse(ConfigNodes.get(raw, "item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(ConfigNodes.get(raw, "item_sources"));
         String item = ItemSourceUtil.toShorthand(source);
         if (Texts.isBlank(item)) {
             return null;
@@ -34,7 +34,7 @@ public final class BlueprintRequirement {
         return new BlueprintRequirement(item, amount, source);
     }
 
-    public boolean matches(ItemSource other) {
+    public boolean matches(ItemSourceRef other) {
         return other != null && ItemSourceUtil.matches(source, other);
     }
 
@@ -51,7 +51,7 @@ public final class BlueprintRequirement {
         return amount;
     }
 
-    public ItemSource source() {
+    public ItemSourceRef source() {
         return source;
     }
 }

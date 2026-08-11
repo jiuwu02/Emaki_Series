@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.strengthen.service;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -13,11 +16,11 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
-import emaki.jiuwu.craft.strengthen.model.AttemptMaterial;
-import emaki.jiuwu.craft.strengthen.model.AttemptPreview;
-import emaki.jiuwu.craft.strengthen.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
 
 final class StrengthenGuiInteractionController {
 
@@ -45,7 +48,7 @@ final class StrengthenGuiInteractionController {
         if (itemStack == null) {
             return;
         }
-        if (state.targetItem() == null && emaki.jiuwu.craft.corelib.text.Texts.isNotBlank(attemptService.readState(itemStack).baseSource())) {
+        if (state.targetItem() == null && Texts.isNotBlank(attemptService.readState(itemStack).baseSource())) {
             state.setTargetItem(itemStack);
             click.clearClickedSlot();
             renderer.refreshGui(state);
@@ -62,8 +65,8 @@ final class StrengthenGuiInteractionController {
 
     private void handleSlotSwap(GuiClickContext click,
             StrengthenGuiSession state,
-            java.util.function.Supplier<ItemStack> getter,
-            java.util.function.Consumer<ItemStack> setter) {
+            Supplier<ItemStack> getter,
+            Consumer<ItemStack> setter) {
         ItemStack cursor = StrengthenGuiSession.cloneNonAir(click.cursorItem());
         if (cursor != null) {
             ItemStack previous = StrengthenGuiSession.cloneNonAir(getter.get());
@@ -103,7 +106,7 @@ final class StrengthenGuiInteractionController {
             return;
         }
         if (Texts.isBlank(state.operationId())) {
-            state.setOperationId(java.util.UUID.randomUUID().toString());
+            state.setOperationId(UUID.randomUUID().toString());
         }
         state.setProcessing(true);
 

@@ -19,7 +19,9 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
+import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
 
 /**
  * 共享的聊天输入等待服务：让玩家在 GUI 之外通过聊天框提交一个值。

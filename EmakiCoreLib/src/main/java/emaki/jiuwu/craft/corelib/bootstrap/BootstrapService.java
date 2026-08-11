@@ -10,8 +10,8 @@ import java.util.Map;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
-import emaki.jiuwu.craft.corelib.yaml.VersionedYamlFile;
-import emaki.jiuwu.craft.corelib.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 
 public final class BootstrapService {
 

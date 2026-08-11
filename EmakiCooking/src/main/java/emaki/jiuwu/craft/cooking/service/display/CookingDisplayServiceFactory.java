@@ -1,40 +1,32 @@
 package emaki.jiuwu.craft.cooking.service.display;
 
-import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
-public final class CookingDisplayServiceFactory {
+import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
+import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
+import emaki.jiuwu.craft.corelib.display.DisplayServiceFactory;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
-    private static final String PACKET_EVENTS_PLUGIN = "PacketEvents";
+/**
+ * 创建工位物品展示服务。
+ *
+ * <p>与文本线同理，后端由本模块配置决定，底层实现来自 CoreLib。
+ */
+public final class CookingDisplayServiceFactory {
 
     private CookingDisplayServiceFactory() {
     }
 
     public static CookingDisplayService create(JavaPlugin plugin,
             CookingSettingsService settingsService,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
-        String backend = settingsService.displayEntitiesBackend();
-        if ("bukkit".equals(backend)) {
-            return new BukkitCookingDisplayService(plugin, executionDispatcher, threadOwnership);
-        }
-        PluginManager pluginManager = plugin.getServer().getPluginManager();
-        boolean packetEventsEnabled = pluginManager.isPluginEnabled(PACKET_EVENTS_PLUGIN);
-        if (packetEventsEnabled) {
-            try {
-                if (PacketEventsCookingDisplayService.isRuntimeSupported()) {
-                    return new PacketEventsCookingDisplayService(plugin, settingsService, executionDispatcher, threadOwnership);
-                }
-                plugin.getLogger().warning("PacketEvents display backend requires Minecraft 1.19.4 or newer; using Bukkit display backend.");
-            } catch (LinkageError | RuntimeException exception) {
-                plugin.getLogger().warning("PacketEvents display backend is unavailable: " + exception.getMessage());
-            }
-        } else if ("packet_events".equals(backend)) {
-            plugin.getLogger().warning("PacketEvents display backend was requested but PacketEvents is not enabled; using Bukkit display backend.");
-        }
-        return new BukkitCookingDisplayService(plugin, executionDispatcher, threadOwnership);
+            ExecutionDispatcher executionDispatcher) {
+        DisplayRuntimeSettings settings = DisplayRuntimeSettings.of(
+                settingsService.displayEntitiesViewDistanceBlocks(),
+                settingsService.displayEntitiesRefreshIntervalTicks());
+        return new CookingDisplayService(DisplayServiceFactory.createItemService(
+                plugin,
+                settingsService.displayEntitiesBackend(),
+                settings,
+                executionDispatcher));
     }
 }

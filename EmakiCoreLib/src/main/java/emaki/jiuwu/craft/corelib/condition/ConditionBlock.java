@@ -2,8 +2,8 @@ package emaki.jiuwu.craft.corelib.condition;
 
 import java.util.List;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record ConditionBlock(ConditionGroup group,
         boolean invalidAsFailure,
@@ -75,21 +75,9 @@ public record ConditionBlock(ConditionGroup group,
                 section.getBoolean("invalid_as_failure", defaultInvalidAsFailure),
                 section.getStringList("on_pass.actions"),
                 section.getStringList("on_fail.actions"),
-                firstBoolean(section, defaultBlockOutput, "on_fail.block_output", "on_fail.block"),
+                section.getBoolean("on_fail.block_output", defaultBlockOutput),
                 section.getString("on_fail.message", "")
         );
-    }
-
-    private static boolean firstBoolean(YamlSection section, boolean defaultValue, String... paths) {
-        if (section == null || paths == null) {
-            return defaultValue;
-        }
-        for (String path : paths) {
-            if (Texts.isNotBlank(path) && section.contains(path)) {
-                return section.getBoolean(path, defaultValue);
-            }
-        }
-        return defaultValue;
     }
 
     private static List<String> normalizeActions(List<String> values) {

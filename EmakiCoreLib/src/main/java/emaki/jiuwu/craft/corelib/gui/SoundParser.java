@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.gui;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -8,8 +9,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.Sound;
 
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class SoundParser {
 
@@ -60,7 +61,7 @@ public final class SoundParser {
         if (idPartCount <= 0) {
             return new SoundDefinition(trimmed, 1F, 1F);
         }
-        String key = String.join("-", java.util.Arrays.copyOf(parts, idPartCount));
+        String key = String.join("-", Arrays.copyOf(parts, idPartCount));
         return new SoundDefinition(
                 key,
                 volume == null ? 1F : volume,

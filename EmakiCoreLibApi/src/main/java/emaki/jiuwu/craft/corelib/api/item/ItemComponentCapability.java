@@ -6,18 +6,15 @@ import java.util.Objects;
 public final class ItemComponentCapability {
 
     private final String componentId;
-    private final String minimumMinecraftVersion;
     private final boolean supported;
     private final boolean genericBridgeSupported;
     private final String valueFormat;
 
     public ItemComponentCapability(String componentId,
-            String minimumMinecraftVersion,
             boolean supported,
             boolean genericBridgeSupported,
             String valueFormat) {
         this.componentId = PlainItemData.componentId(componentId);
-        this.minimumMinecraftVersion = minimumMinecraftVersion == null ? "" : minimumMinecraftVersion.trim();
         this.supported = supported;
         this.genericBridgeSupported = genericBridgeSupported;
         this.valueFormat = valueFormat == null ? "" : valueFormat;
@@ -25,10 +22,6 @@ public final class ItemComponentCapability {
 
     public String componentId() {
         return componentId;
-    }
-
-    public String minimumMinecraftVersion() {
-        return minimumMinecraftVersion;
     }
 
     public boolean supported() {
@@ -54,19 +47,17 @@ public final class ItemComponentCapability {
         return supported == capability.supported
                 && genericBridgeSupported == capability.genericBridgeSupported
                 && componentId.equals(capability.componentId)
-                && minimumMinecraftVersion.equals(capability.minimumMinecraftVersion)
                 && valueFormat.equals(capability.valueFormat);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(componentId, minimumMinecraftVersion, supported, genericBridgeSupported, valueFormat);
+        return Objects.hash(componentId, supported, genericBridgeSupported, valueFormat);
     }
 
     @Override
     public String toString() {
         return "ItemComponentCapability[componentId=" + componentId
-                + ", minimumMinecraftVersion=" + minimumMinecraftVersion
                 + ", supported=" + supported
                 + ", genericBridgeSupported=" + genericBridgeSupported
                 + ", valueFormat=" + valueFormat + "]";

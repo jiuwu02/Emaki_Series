@@ -2,7 +2,7 @@ package emaki.jiuwu.craft.corelib.expression;
 
 import java.util.regex.Pattern;
 
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class ExpressionRules {
 
@@ -35,9 +35,6 @@ final class ExpressionRules {
                 .replace("min", "")
                 .replace("max", "")
                 .replace("pow", "");
-        for (String functionId : ExpressionEngine.registeredJavaScriptFunctionIds()) {
-            lowered = lowered.replace(Texts.lower(functionId), "");
-        }
         return !NON_NUMERIC_EXPRESSION_PATTERN.matcher(lowered).find();
     }
 }

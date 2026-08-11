@@ -1,6 +1,6 @@
-version: "1.4.0"
+version: "1.5.0"
 general:
-  prefix: "<gray>[ <gradient:#7DD3FC:#C084FC>EmakiLevel</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
@@ -8,6 +8,8 @@ console:
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -30,7 +32,7 @@ console:
   attribute_bridge_ready: "<gray>EmakiAttribute 属性贡献已接入</gray>"
   attribute_bridge_unavailable: "<gray>EmakiAttribute 属性贡献不可用，已跳过</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
-  bootstrap_start: "<white>开始检查默认文件...</white>"
+  bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
@@ -100,6 +102,7 @@ failure:
   not_enough_money: "金币不足"
   not_enough_material: "材料不足"
   invalid_requirement: "等级需求配置无效"
+  event_cancelled: "操作被其他插件取消"
 debug:
   common:
     placeholder:
@@ -108,30 +111,6 @@ debug:
       variables: "应用变量 | 来源=%source% | 变量=%values%"
       internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
       resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    script:
-      expression: "脚本表达式执行 | 表达式=%expression% | 参数=%args% | 结果=%result% | 耗时=%duration_ms%ms | 错误=%error%"
-      condition: "脚本条件执行 | 条件=%condition% | 参数=%args% | 通过=%passed% | 耗时=%duration_ms%ms | 消息=%message% | 错误=%error%"
-    action:
-      execute_direct: "直接执行动作 | 阶段=%phase% | 动作=%action% | 原始参数=%raw_args%"
-      execute_direct_missing: "直接执行动作失败：动作不存在 | 动作=%action% | 错误=%error%"
-      execute_direct_result: "直接执行动作完成 | 动作=%action% | 成功=%success% | 错误=%error%"
-      execute_batch_start: "开始批量执行动作 | 阶段=%phase% | 行数=%lines% | 失败即停=%stop_on_failure%"
-      execute_batch_result: "批量执行动作完成 | 阶段=%phase% | 成功=%success% | 步骤=%steps% | 错误=%error%"
-      parse_line: "解析动作行 | 阶段=%phase% | 行=%line% | 原文=%raw%"
-      parse_failed: "动作行解析失败 | 阶段=%phase% | 行=%line% | 错误=%error%"
-      parse_skipped: "跳过空动作行 | 阶段=%phase% | 行=%line%"
-      parse_ok: "动作行解析完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 控制参数=%control% | 参数=%args%"
-      step_result: "动作步骤完成 | 阶段=%phase% | 行=%line% | 动作=%action% | 成功=%success% | 错误=%error%"
-      batch_stop: "批量动作因失败停止 | 阶段=%phase% | 行=%line% | 动作=%action%"
-      action_missing: "动作未注册 | 行=%line% | 动作=%action% | 错误=%error%"
-      control_condition: "动作条件检查 | 行=%line% | 动作=%action% | 条件=%condition% | 通过=%passes%"
-      control_chance_invalid: "动作概率无效 | 行=%line% | 动作=%action% | 概率=%chance%"
-      control_chance: "动作概率检查 | 行=%line% | 动作=%action% | 概率=%chance% | 阈值=%threshold% | 随机值=%roll% | 通过=%passes%"
-      control_delay: "动作延迟解析 | 行=%line% | 动作=%action% | 原值=%raw% | tick=%ticks%"
-      dispatch_template: "分派动作模板 | 动作=%action% | 延迟=%delay% | 参数=%args%"
-      dispatch_action: "分派已注册动作 | 动作=%action% | 域=%domain% | 所有者=%owner% | 延迟=%delay% | 超时=%timeout% | 参数=%args%"
-      safe_execute_start: "开始安全执行动作 | 阶段=%phase% | 动作=%action% | 参数=%args%"
-      safe_execute_result: "安全执行动作完成 | 阶段=%phase% | 动作=%action% | 成功=%success% | 错误=%error%"
     item_operation:
       apply_start: "开始应用物品操作 | 操作=%operation_id% | 命名空间=%namespace% | 物品=%item% | 名称动作=%name_actions% | Lore 动作=%lore_actions% | 变量=%variables%"
       apply_empty: "物品操作未产生结果 | 操作=%operation_id%"
@@ -219,8 +198,6 @@ debug:
       packet_receive_click: "收到数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 传入状态=%incoming_state_id% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
       packet_receive_click_state_absent: "收到缺少状态 ID 的数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
       packet_receive_close: "接收数据包 GUI 关闭包 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-  script:
-    trace: "等级脚本规则追踪 | 规则=%rule% | 修改前=%before% | 修改后=%after% | 消息=%message%"
   command:
     status_header: "<gold>========== EmakiLevel Debug 状态 ==========</gold>"
     status_enabled: "<green>Debug 已开启</green>"

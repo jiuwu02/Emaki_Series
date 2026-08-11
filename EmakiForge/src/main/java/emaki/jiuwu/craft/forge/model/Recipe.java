@@ -7,13 +7,13 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
-import emaki.jiuwu.craft.corelib.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.yaml.MapYamlSection;
-import emaki.jiuwu.craft.corelib.item.ItemSource;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.math.Numbers;
-import emaki.jiuwu.craft.corelib.text.Texts;
-import emaki.jiuwu.craft.corelib.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class Recipe {
     public record QualityConfig(boolean enabled,
@@ -27,7 +27,7 @@ public final class Recipe {
         }
     }
 
-    public record ResultConfig(ItemSource outputItem,
+    public record ResultConfig(ItemSourceRef outputItem,
             List<String> action,
             List<Map<String, Object>> nameModifications,
             List<Map<String, Object>> loreActions) {
@@ -52,6 +52,7 @@ public final class Recipe {
 
     private final String id;
     private final String displayName;
+    private final String guiTemplate;
     private final List<BlueprintRequirement> blueprintRequirements;
     private final List<ForgeMaterial> materials;
     private final int forgeCapacity;
@@ -79,7 +80,7 @@ public final class Recipe {
             ResultConfig result,
             ActionPhases action,
             String permission) {
-        this(id, displayName, blueprintRequirements, materials, forgeCapacity, optionalMaterialLimit,
+        this(id, displayName, null, blueprintRequirements, materials, forgeCapacity, optionalMaterialLimit,
                 conditionType, conditionRequiredCount, conditions, quality, result, action, permission, 100D, List.of());
     }
 
@@ -98,8 +99,29 @@ public final class Recipe {
             String permission,
             double successRate,
             List<FailureOutcome> failureOutcomes) {
+        this(id, displayName, null, blueprintRequirements, materials, forgeCapacity, optionalMaterialLimit,
+                conditionType, conditionRequiredCount, conditions, quality, result, action, permission, successRate, failureOutcomes);
+    }
+
+    public Recipe(String id,
+            String displayName,
+            String guiTemplate,
+            List<BlueprintRequirement> blueprintRequirements,
+            List<ForgeMaterial> materials,
+            int forgeCapacity,
+            int optionalMaterialLimit,
+            String conditionType,
+            int conditionRequiredCount,
+            ConditionGroup conditions,
+            QualityConfig quality,
+            ResultConfig result,
+            ActionPhases action,
+            String permission,
+            double successRate,
+            List<FailureOutcome> failureOutcomes) {
         this.id = id;
         this.displayName = displayName;
+        this.guiTemplate = Texts.isBlank(guiTemplate) ? null : guiTemplate;
         this.blueprintRequirements = List.copyOf(blueprintRequirements);
         this.materials = List.copyOf(materials);
         this.forgeCapacity = forgeCapacity;
@@ -140,6 +162,7 @@ public final class Recipe {
         return new Recipe(
                 id,
                 section.getString("display_name", id),
+                section.getString("gui_template"),
                 blueprintRequirements,
                 materials,
                 Math.max(0, Numbers.tryParseInt(section.get("forge_capacity"), 0)),
@@ -200,7 +223,7 @@ public final class Recipe {
             return new ResultConfig(null, List.of(), List.of(), List.of());
         }
         Object outputItem = firstResultOutput(ConfigNodes.get(success, "outputs"));
-        ItemSource parsedOutputItem = ItemSourceUtil.parse(outputItem);
+        ItemSourceRef parsedOutputItem = ItemSourceUtil.parse(outputItem);
         if (outputItem != null && parsedOutputItem == null) {
             return null;
         }
@@ -275,7 +298,7 @@ public final class Recipe {
         return outcomes;
     }
 
-    public ForgeMaterial findMaterialBySource(ItemSource source) {
+    public ForgeMaterial findMaterialBySource(ItemSourceRef source) {
         if (source == null) {
             return null;
         }
@@ -287,7 +310,7 @@ public final class Recipe {
         return null;
     }
 
-    public ForgeMaterial findMaterialBySource(ItemSource source, boolean optional) {
+    public ForgeMaterial findMaterialBySource(ItemSourceRef source, boolean optional) {
         if (source == null) {
             return null;
         }
@@ -344,11 +367,15 @@ public final class Recipe {
         return displayName;
     }
 
+    public String guiTemplate() {
+        return guiTemplate;
+    }
+
     public int forgeCapacity() {
         return forgeCapacity;
     }
 
-    public ItemSource configuredOutputSource() {
+    public ItemSourceRef configuredOutputSource() {
         return result == null ? null : result.outputItem();
     }
 

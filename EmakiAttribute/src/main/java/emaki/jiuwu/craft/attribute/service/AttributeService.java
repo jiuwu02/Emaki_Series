@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.LivingEntity;
@@ -10,6 +11,7 @@ import org.bukkit.entity.Projectile;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
+import emaki.jiuwu.craft.attribute.config.ScalingCurveConfig;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -17,7 +19,7 @@ import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
-import emaki.jiuwu.craft.attribute.model.DamageContext;
+import emaki.jiuwu.craft.attribute.api.model.DamageContext;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -264,13 +266,18 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         if (config.healthDisplayScalingEnabled()) {
             resourceManagementService.resetHealthDisplayScaling();
         }
-        if (parentAttributeService != null) {
-            parentAttributeService.saveAll();
+        if (parentAttributeService != null && parentAttributeService.dataStore() != null) {
+            ParentAttributeDataStore.DrainReport report = parentAttributeService.dataStore().flushAndSeal();
+            if (report.clean()) {
+                plugin.getLogger().info("[Shutdown] Parent attribute data drain: " + report);
+            } else {
+                plugin.getLogger().warning("[Shutdown] Parent attribute data drain incomplete: " + report);
+            }
         }
         temporaryAttributeService.close();
     }
 
-    public void cleanupEntityState(java.util.UUID entityId) {
+    public void cleanupEntityState(UUID entityId) {
         stateRepository.cleanupEntity(entityId);
         attackBatchInvulnerabilityGate.reset(entityId);
     }
@@ -332,7 +339,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     }
 
     List<ScalingCurveConfig> scalingCurves() {
-        return plugin.scalingCurves();
+        return configRef().scalingCurves();
     }
 
     @Override

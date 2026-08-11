@@ -5,23 +5,28 @@ import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.attribute.api.PdcAttributeApi;
-import emaki.jiuwu.craft.corelib.text.Texts;
+import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
+import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
+import emaki.jiuwu.craft.corelib.integration.attribute.AbstractAttributePdcBridge;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 
 /**
  * {@link StrengthenAttributeBridge} implementation backed by the canonical
- * {@link PdcAttributeApi} facade.
+ * {@link EmakiAttributeApi} facade.
  *
  * <p>This is the only class in EmakiStrengthen that references EmakiAttributeApi
  * types; it is class-loaded exclusively by
  * {@code StrengthenAttributeBridgeHolder} once EmakiAttribute is enabled. Calls
  * always go through the static facade, so a reloaded or disabled EmakiAttribute
  * is never reached through a stale bridge.
+ *
+ * <p>Source registration and payload guards come from
+ * {@link AbstractAttributePdcBridge}; this class binds those template operations
+ * to {@link PdcAttributeAccess} and adds the strengthen-specific payload copy
+ * used when carrying levels across items.
  */
-public final class EmakiAttributeStrengthenBridge implements StrengthenAttributeBridge {
-
-    private volatile String registeredSourceId;
+public final class EmakiAttributeStrengthenBridge extends AbstractAttributePdcBridge<PdcAttributeAccess>
+        implements StrengthenAttributeBridge {
 
     /**
      * Creates the bridge. Invoked reflectively by
@@ -37,59 +42,51 @@ public final class EmakiAttributeStrengthenBridge implements StrengthenAttribute
     }
 
     @Override
-    public boolean available() {
-        return PdcAttributeApi.available();
+    public void copyPayloads(ItemStack fromItem, ItemStack toItem, Set<String> excludedSourceIds) {
+        access().copy(fromItem, toItem, excludedSourceIds);
     }
 
     @Override
-    public void syncRegistration(String sourceId) {
-        String next = Texts.normalizeId(sourceId);
-        String previous = Texts.normalizeId(registeredSourceId);
-        if (Texts.isNotBlank(previous) && !previous.equals(next)) {
-            PdcAttributeApi.unregisterSource(previous);
-        }
-        if (Texts.isNotBlank(next)) {
-            PdcAttributeApi.registerSource(next);
-        }
-        registeredSourceId = Texts.isNotBlank(next) ? next : null;
+    protected PdcAttributeAccess access() {
+        return EmakiAttributeApi.extensions().pdc();
     }
 
     @Override
-    public void shutdown() {
-        String sourceId = Texts.normalizeId(registeredSourceId);
-        if (Texts.isNotBlank(sourceId)) {
-            PdcAttributeApi.unregisterSource(sourceId);
-        }
-        registeredSourceId = null;
+    protected boolean usable() {
+        return EmakiAttributeApi.status().usable();
     }
 
     @Override
-    public boolean write(ItemStack itemStack,
+    protected boolean registerSource(PdcAttributeAccess pdc, String sourceId) {
+        return pdc.registerSource(sourceId).isSuccess();
+    }
+
+    @Override
+    protected void unregisterSource(PdcAttributeAccess pdc, String sourceId) {
+        pdc.unregisterSource(sourceId);
+    }
+
+    @Override
+    protected boolean isRegisteredSource(PdcAttributeAccess pdc, String sourceId) {
+        return pdc.isRegisteredSource(sourceId);
+    }
+
+    @Override
+    protected boolean writePayload(PdcAttributeAccess pdc,
+            ItemStack itemStack,
             String sourceId,
             Map<String, Double> attributes,
             Map<String, String> meta) {
-        String normalized = Texts.normalizeId(sourceId);
-        if (itemStack == null || Texts.isBlank(normalized) || attributes == null || attributes.isEmpty()) {
-            return false;
-        }
-        if (!PdcAttributeApi.isRegisteredSource(normalized) && !PdcAttributeApi.registerSource(normalized)) {
-            return false;
-        }
-        return PdcAttributeApi.write(itemStack, normalized, attributes, meta == null ? Map.of() : meta);
+        return pdc.write(itemStack, sourceId, attributes, meta).isSuccess();
     }
 
     @Override
-    public boolean clear(ItemStack itemStack, String sourceId) {
-        String normalized = Texts.normalizeId(sourceId);
-        if (itemStack == null || Texts.isBlank(normalized)) {
-            return false;
-        }
-        return PdcAttributeApi.read(itemStack, normalized) != null
-                && PdcAttributeApi.clear(itemStack, normalized);
+    protected boolean hasPayload(PdcAttributeAccess pdc, ItemStack itemStack, String sourceId) {
+        return pdc.read(itemStack, sourceId).hasValue();
     }
 
     @Override
-    public void copyPayloads(ItemStack fromItem, ItemStack toItem, Set<String> excludedSourceIds) {
-        PdcAttributeApi.copy(fromItem, toItem, excludedSourceIds);
+    protected boolean clearPayload(PdcAttributeAccess pdc, ItemStack itemStack, String sourceId) {
+        return pdc.clear(itemStack, sourceId).isSuccess();
     }
 }

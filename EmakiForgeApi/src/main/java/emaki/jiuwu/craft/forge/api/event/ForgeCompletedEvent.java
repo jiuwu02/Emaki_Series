@@ -6,14 +6,27 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * Fired by EmakiForge after a forge attempt has fully completed, on the server
- * thread.
+ * Fired by EmakiForge after a forge attempt has fully resolved and any result item has been
+ * delivered.
  *
- * <p>The attempt has already been resolved and any result item delivered, so
- * this event is informational and cannot be cancelled. It fires for both
- * successful and failed attempts (use {@link #isSuccess()} to distinguish);
- * unexpected execution errors do not fire this event. It is suitable for
- * statistics, announcements and downstream effects.
+ * <p>Informational only: the outcome is already committed, so this event is not cancellable. Use
+ * {@link #isSuccess()} to distinguish a failed attempt from a successful one.
+ *
+ * <h2>Threading</h2>
+ * The attempt itself resolves on an async chain, but EmakiForge hops back to the thread that owns the
+ * forging player before firing, so listeners may safely touch the player, their inventory, and the
+ * surrounding world.
+ *
+ * <h2>Coverage — this event is not fired for every attempt</h2>
+ * It is skipped when the player's owner thread is unavailable, when the GUI session has gone stale,
+ * when the completion task is rejected during shutdown drain, and when execution ends in an
+ * unexpected exception. Do not use it as an exhaustive audit trail; treat a missing event as
+ * "outcome unknown" rather than "no attempt happened".
+ *
+ * <p>Both the GUI forging path and
+ * {@link emaki.jiuwu.craft.forge.api.ForgeOperations#forgeAsync} fire this event.
+ *
+ * @see ForgeStartEvent
  */
 public final class ForgeCompletedEvent extends Event {
 
