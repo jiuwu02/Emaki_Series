@@ -2,25 +2,27 @@
 
 Emaki Series is a multi-module Maven project for Paper-based Minecraft RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment, combat, progression, skills, crafting, and collection systems.
 
-Current source versions: `EmakiCoreLib 4.6.9`, `EmakiAttribute 4.6.9`, `EmakiForge 4.6.4`, `EmakiStrengthen 4.6.4`, `EmakiCooking 4.1.5`, `EmakiGem 2.6.5`, `EmakiSkills 2.6.4`, `EmakiItem 2.6.7`, `EmakiLevel 1.4.3`, `EmakiCodex 1.0.4`, and `EmakiStorage 1.0.6`.
+Current source versions: `EmakiCoreLib 4.7.0`, `EmakiAttribute 4.7.0`, `EmakiForge 4.7.0`, `EmakiStrengthen 4.7.0`, `EmakiCooking 4.2.0`, `EmakiGem 2.7.0`, `EmakiSkills 2.7.0`, `EmakiItem 2.7.0`, `EmakiLevel 1.5.0`, `EmakiCodex 1.0.0`, `EmakiStorage 1.0.0`, `EmakiStation 1.0.0`, and `EmakiAccessory 1.0.0`.
 
 ## Modules
 
 | Module            | Version | Role                  | Description                                                                                                               |
 | ----------------- | ------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.6.9` | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
-| `EmakiAttribute`  | `4.6.9` | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
-| `EmakiForge`      | `4.6.4` | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
-| `EmakiStrengthen` | `4.6.4` | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
-| `EmakiCooking`    | `4.1.5` | Cooking               | World stations, recipe matching, input restrictions, displays, and persistent station state.                              |
-| `EmakiGem`        | `2.6.5` | Gems                  | Socket opening, inlay, extraction, upgrades, equipment templates, gem definitions, and optional attribute integration.    |
-| `EmakiSkills`     | `2.6.4` | Skills                | Active slots, passive triggers, cast modes, cooldowns, and MythicMobs / Attribute integration.                            |
-| `EmakiItem`       | `2.6.7` | Custom items          | Stable item definitions, vanilla components, repair, automatic refresh, sets, triggers, and safe legacy-config migration. |
-| `EmakiLevel`      | `1.4.3` | Progression           | Multiple level types, experience sources, requirements, PDC, placeholders, and cross-module progression bridges.          |
-| `EmakiCodex`      | `1.0.4` | Collections           | Codex entries, progress tracking, Gameplay Event conditions, rewards, and advancement-toast integration.                  |
-| `EmakiStorage`    | `1.0.6` | Storage               | Paged GUI warehouse, large per-slot quantities, capacity tiers and permissions, paid unlocks, and storage events.         |
+| `EmakiCoreLib`    | `4.7.0`  | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
+| `EmakiAttribute`  | `4.7.0`  | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
+| `EmakiForge`      | `4.7.0`  | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
+| `EmakiStrengthen` | `4.7.0`  | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
+| `EmakiCooking`    | `4.2.0`  | Cooking               | World stations, recipe matching, input restrictions, displays, and persistent station state.                              |
+| `EmakiGem`        | `2.7.0`  | Gems                  | Socket opening, inlay, extraction, upgrades, equipment templates, gem definitions, and optional attribute integration.    |
+| `EmakiSkills`     | `2.7.0`  | Skills                | Active slots, passive triggers, cast modes, cooldowns, and MythicMobs / Attribute integration.                            |
+| `EmakiItem`       | `2.7.0`  | Custom items          | Stable item definitions, vanilla components, repair, automatic refresh, sets, triggers, and safe legacy-config migration. |
+| `EmakiLevel`      | `1.5.0`  | Progression           | Multiple level types, experience sources, requirements, PDC, placeholders, and cross-module progression bridges.          |
+| `EmakiCodex`      | `1.0.0`  | Collections           | Codex entries, progress tracking, Gameplay Event conditions, rewards, and advancement-toast integration.                  |
+| `EmakiStorage`    | `1.0.0`  | Storage               | Paged GUI warehouse, large per-slot quantities, capacity tiers and permissions, paid unlocks, and storage events.         |
+| `EmakiStation`    | `1.0.0`  | Crafting stations     | World crafting stations, crafting queues and costs, recipes and material lists, plus equipment dismantling and recovery.  |
+| `EmakiAccessory`  | `1.0.0`  | Accessories           | Accessory parts expanded into slots, accessory sets, uniqueness and death-drop policies, and attribute integration.       |
 
-The repository also contains the compile-time `Emaki*Api` contract modules and the protocol-only module `EmakiSkillsProtocol` (artifact `emaki-skills-protocol`, version `2.6.0`). These are not server plugins and must not be placed in `plugins/`.
+The repository also contains the compile-time `Emaki*Api` contract modules. The equipment skill PDC contract is not a separate module; it lives in the `emaki.jiuwu.craft.skills.api.pdc` package of `EmakiSkillsApi` and is shaded and relocated by the runtime modules that need it. These Api modules are not server plugins and must not be placed in `plugins/`.
 
 ## Requirements
 
@@ -46,7 +48,10 @@ EmakiCoreLib
 ├── EmakiLevel
 ├── EmakiSkills
 ├── EmakiCooking
-└── EmakiCodex
+├── EmakiCodex
+├── EmakiStorage
+├── EmakiStation
+└── EmakiAccessory
 ```
 
 - `EmakiCoreLib` is the hard dependency shared by the business modules.
@@ -72,12 +77,15 @@ Project/
 ├── EmakiSkills/           # Active/passive skills (private-modules profile)
 ├── EmakiCooking/          # Cooking stations
 ├── EmakiCodex/            # Collections and progress
+├── EmakiStorage/          # Warehouse system (private-modules profile)
+├── EmakiStation/          # Crafting stations and dismantling
+├── EmakiAccessory/        # Accessories (private-modules profile)
 ├── Emaki*Api/             # Compile-time API contracts (never deployed)
-├── EmakiSkillsProtocol/   # Equipment-skill PDC protocol (embedded and relocated)
+│                          #   Equipment-skill PDC protocol lives in EmakiSkillsApi's api.pdc package
 └── pom.xml                # Maven parent project
 ```
 
-The `private-modules` profile activates automatically when a `.key` file exists in the repository root, adding `EmakiSkills`, `EmakiGem`, and `EmakiItem` to the reactor.
+The `private-modules` profile activates automatically when a `.key` file exists in the repository root, adding `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, and `EmakiAccessory` to the reactor. `.key` is ignored by `.gitignore` and untracked, so a fresh clone does not contain it; Maven then builds only 22 modules without failing, which is a supported state. Create an empty `.key` file in the repository root when you need the private modules.
 
 ## Legacy configured-item YAML migration
 
@@ -111,7 +119,7 @@ A common local compilation check is:
 mvn -DskipTests compile
 ```
 
-Build outputs are written to each module's `target/` directory. Install only the plugin runtime jars on the server; the `emaki-*-api` and `emaki-skills-protocol` artifacts are compile-time dependencies for third-party developers.
+Build outputs are written to each module's `target/` directory. Install only the plugin runtime jars on the server; the `emaki-*-api` artifacts are compile-time dependencies for third-party developers.
 
 ## Documentation
 
