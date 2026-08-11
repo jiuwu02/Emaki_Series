@@ -1,4 +1,4 @@
-version: "1.4.10"
+version: "1.5.0"
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
@@ -102,6 +102,7 @@ failure:
   not_enough_money: "金币不足"
   not_enough_material: "材料不足"
   invalid_requirement: "等级需求配置无效"
+  event_cancelled: "操作被其他插件取消"
 debug:
   common:
     placeholder:

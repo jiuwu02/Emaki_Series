@@ -1,4 +1,4 @@
-version: "1.4.10"
+version: "1.5.0"
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
@@ -102,6 +102,7 @@ failure:
   not_enough_money: "Not enough money"
   not_enough_material: "Not enough material"
   invalid_requirement: "Invalid requirement"
+  event_cancelled: "Cancelled by another plugin"
 debug:
   common:
     placeholder:

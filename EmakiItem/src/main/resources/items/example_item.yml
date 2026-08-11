@@ -253,6 +253,6 @@ repair:
 actions:
   give:
     - "play_sound sound=entity.player.levelup volume=1.0 pitch=1.2"
-    - 'send_message text="<green>你获得了 <gold>%item_name%</gold>！</green>"'
+    - 'send_message text="<green>你获得了 <gold>%var.item_name%</gold>！</green>"'
   interact:
     - 'send_action_bar text="<gray>你挥舞了示例之刃</gray>"'

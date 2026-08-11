@@ -1,7 +1,7 @@
 # EmakiAccessory English language file
 #
 # The version here must match the plugin version; new default keys are merged by version.
-version: "1.0.2"
+version: "1.0.0"
 
 console:
   plugin_starting: "<gray>Starting EmakiAccessory...</gray>"

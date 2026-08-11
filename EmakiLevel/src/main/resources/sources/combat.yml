@@ -19,4 +19,4 @@ sources:
         exp_formula: "500"
     actions:
       gain:
-        - 'chance 5% | send_action_bar text="<gray>战斗经验 +%amount%</gray>"'
+        - 'chance 5% | send_action_bar text="<gray>战斗经验 +%var.amount%</gray>"'

@@ -64,25 +64,25 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.6.23</emaki.corelib.version>
-        <emaki.attribute.version>4.6.19</emaki.attribute.version>
-        <emaki.item.version>2.6.14</emaki.item.version>
-        <emaki.skills.version>2.6.17</emaki.skills.version>
-        <emaki.corelib.api.version>4.6.23</emaki.corelib.api.version>
-        <emaki.attribute.api.version>4.6.19</emaki.attribute.api.version>
-        <emaki.item.api.version>2.6.14</emaki.item.api.version>
-        <emaki.skills.api.version>2.6.17</emaki.skills.api.version>
-        <emaki.forge.api.version>4.6.12</emaki.forge.api.version>
-        <emaki.strengthen.api.version>4.6.11</emaki.strengthen.api.version>
-        <emaki.cooking.api.version>4.1.12</emaki.cooking.api.version>
-        <emaki.gem.api.version>2.6.11</emaki.gem.api.version>
-        <emaki.level.api.version>1.4.10</emaki.level.api.version>
-        <emaki.codex.api.version>1.0.11</emaki.codex.api.version>
-        <emaki.storage.api.version>1.0.14</emaki.storage.api.version>
-        <emaki.station.api.version>1.0.3</emaki.station.api.version>
-        <emaki.station.version>1.0.3</emaki.station.version>
-        <emaki.accessory.api.version>1.0.2</emaki.accessory.api.version>
-        <emaki.accessory.version>1.0.2</emaki.accessory.version>
+        <emaki.corelib.version>4.7.0</emaki.corelib.version>
+        <emaki.attribute.version>4.7.0</emaki.attribute.version>
+        <emaki.item.version>2.7.0</emaki.item.version>
+        <emaki.skills.version>2.7.0</emaki.skills.version>
+        <emaki.corelib.api.version>4.7.0</emaki.corelib.api.version>
+        <emaki.attribute.api.version>4.7.0</emaki.attribute.api.version>
+        <emaki.item.api.version>2.7.0</emaki.item.api.version>
+        <emaki.skills.api.version>2.7.0</emaki.skills.api.version>
+        <emaki.forge.api.version>4.7.0</emaki.forge.api.version>
+        <emaki.strengthen.api.version>4.7.0</emaki.strengthen.api.version>
+        <emaki.cooking.api.version>4.2.0</emaki.cooking.api.version>
+        <emaki.gem.api.version>2.7.0</emaki.gem.api.version>
+        <emaki.level.api.version>1.5.0</emaki.level.api.version>
+        <emaki.codex.api.version>1.0.0</emaki.codex.api.version>
+        <emaki.storage.api.version>1.0.0</emaki.storage.api.version>
+        <emaki.station.api.version>1.0.0</emaki.station.api.version>
+        <emaki.station.version>1.0.0</emaki.station.version>
+        <emaki.accessory.api.version>1.0.0</emaki.accessory.api.version>
+        <emaki.accessory.version>1.0.0</emaki.accessory.version>
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>

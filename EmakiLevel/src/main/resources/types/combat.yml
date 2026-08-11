@@ -24,7 +24,7 @@ upgrade:
     items: []
   actions:
     success:
-      - 'send_message text="<red>战斗等级提升: </red> <yellow>%old_level%</yellow> <gray>→</gray> <yellow>%new_level%</yellow>"'
+      - 'send_message text="<red>战斗等级提升: </red> <yellow>%var.old_level%</yellow> <gray>→</gray> <yellow>%var.new_level%</yellow>"'
     failure: []
 pdc:
   enabled: true
