@@ -44,7 +44,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -102,7 +102,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private boolean betterHudBridgeRegistered;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
-    private TaskHandle regenTask;
+    private TaskToken regenTask;
     private AttributeStageRegistrar stageRegistrar;
     private CompletableFuture<Void> reloadFuture;
 

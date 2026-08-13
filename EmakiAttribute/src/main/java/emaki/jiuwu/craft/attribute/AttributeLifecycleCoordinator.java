@@ -229,10 +229,12 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             TaskToken currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        AsyncTaskScheduler scheduler = coreLibPlugin.asyncTaskScheduler();
+        var executionDispatcher = coreLibPlugin.executionDispatcher();
         // Captured before the pipeline mutates it, for the same reason as the synchronous path.
         AttributeConfig previousConfig = plugin.configModel();
-        return runReloadPipelineAsync(scheduler, plugin.scheduling(), plugin, new ReloadPipelineConfig<>(
+        return runReloadPipelineAsync(scheduler, executionDispatcher, plugin, new ReloadPipelineConfig<>(
                 "attribute",
                 "bootstrap",
                 "正在读取语言与配置...",

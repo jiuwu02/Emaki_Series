@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 
 final class ResourceManagementService {
@@ -170,7 +170,7 @@ final class ResourceManagementService {
                 debugEquipmentSync(player, "resync.equipment_dispatcher_unavailable", Map.of("trigger", triggerName));
                 return;
             }
-            TaskHandle task = sched.runEntityLater(
+            TaskToken task = sched.runEntityLater(
                     service.plugin(),
                     player,
                     () -> {
