@@ -24,7 +24,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
@@ -63,7 +63,7 @@ final class ItemSetListenerScopeRefresher {
     private final Supplier<AppConfig> configSupplier;
     private final Supplier<DebugLogger> debugLoggerSupplier;
     private final Logger logger;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final Set<String> warnedMissingSetDefinitions = ConcurrentHashMap.newKeySet();
     private final ItemSetRefreshPlanner refreshPlanner = new ItemSetRefreshPlanner();
 
@@ -75,10 +75,10 @@ final class ItemSetListenerScopeRefresher {
                                   EmakiItemIdentifier identifier,
                                   ItemOperationLedger itemOperationLedger,
                                   ItemSetPresentationCalculator calculator,
-                                  Supplier<AppConfig> configSupplier,
-                                  Supplier<DebugLogger> debugLoggerSupplier,
-                                  Logger logger,
-                                  ThreadOwnership threadOwnership) {
+                                 Supplier<AppConfig> configSupplier,
+                                 Supplier<DebugLogger> debugLoggerSupplier,
+                                 Logger logger,
+                                 EmakiScheduling scheduling) {
         this.itemLoader = itemLoader;
         this.setLoader = setLoader;
         this.identifier = identifier;
@@ -87,7 +87,7 @@ final class ItemSetListenerScopeRefresher {
         this.configSupplier = configSupplier;
         this.debugLoggerSupplier = debugLoggerSupplier;
         this.logger = logger;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
     }
 
     public ItemRefreshBatch createRefreshBatch(Player player) {
@@ -793,7 +793,7 @@ final class ItemSetListenerScopeRefresher {
                                           Map<String, EquippedSetState> states,
                                           Set<String> missingDefinitions,
                                           String trigger) {
-        if (player == null || threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
+        if (player == null || scheduling == null || !scheduling.ownsEntity(player)) {
             return;
         }
         UUID uuid = player.getUniqueId();
@@ -812,7 +812,7 @@ final class ItemSetListenerScopeRefresher {
             }
         }
 
-        boolean entityOwned = threadOwnership != null && threadOwnership.isEntityOwned(player);
+        boolean entityOwned = scheduling != null && scheduling.ownsEntity(player);
         Set<String> setIds = new LinkedHashSet<>(previous.keySet());
         setIds.addAll(current.keySet());
         for (String setId : setIds) {
@@ -913,8 +913,8 @@ final class ItemSetListenerScopeRefresher {
                 Map.entry("threshold_ledger", before.thresholdOperationPresent() + "->" + after.thresholdOperationPresent()),
                 Map.entry("current", before.current() + "->" + after.current()),
                 Map.entry("committed", committed),
-                Map.entry("global_owner", threadOwnership != null && threadOwnership.isGlobalOwned()),
-                Map.entry("owner", threadOwnership != null && threadOwnership.isEntityOwned(player)),
+                Map.entry("global_owner", scheduling != null && scheduling.ownsGlobal()),
+                Map.entry("owner", scheduling != null && scheduling.ownsEntity(player)),
                 Map.entry("thread", Thread.currentThread().getName())
         ));
     }
@@ -935,7 +935,7 @@ final class ItemSetListenerScopeRefresher {
                 "item", Texts.toStringSafe(itemId),
                 "operation", Texts.toStringSafe(operation),
                 "committed", committed,
-                "owner", threadOwnership != null && threadOwnership.isEntityOwned(player),
+                "owner", scheduling != null && scheduling.ownsEntity(player),
                 "thread", Thread.currentThread().getName()
         ));
     }

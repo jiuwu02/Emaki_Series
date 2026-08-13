@@ -21,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -84,7 +84,7 @@ public final class ItemRepairService {
     private final EmakiItemPlugin plugin;
     private final Supplier<EconomyManager> economyManagerSupplier;
     private final ItemSourceService itemSourceService;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
 
     public ItemRepairService(EmakiItemPlugin plugin) {
         this(plugin, null);
@@ -103,11 +103,11 @@ public final class ItemRepairService {
     public ItemRepairService(EmakiItemPlugin plugin,
             Supplier<EconomyManager> economyManagerSupplier,
             ItemSourceService itemSourceService,
-            ThreadOwnership threadOwnership) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.economyManagerSupplier = economyManagerSupplier;
         this.itemSourceService = itemSourceService;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
     }
 
     public boolean isDisabled(@Nullable ItemStack itemStack) {
@@ -389,7 +389,7 @@ public final class ItemRepairService {
             String source,
             int restoreAmount) {
 
-        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
+        if (scheduling == null || !scheduling.ownsEntity(player)) {
             return new ItemRepairEventResult(false, restoreAmount);
         }
         ItemRepairEvent event = new ItemRepairEvent(

@@ -20,8 +20,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -108,8 +108,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private static final Set<String> DEBUG_MODULES = Set.of("common");
 
     private EmakiCoreLibPlugin coreLib;
-    private ExecutionDispatcher executionDispatcher;
-    private ThreadOwnership threadOwnership;
+    private EmakiScheduling scheduling;
     private AppConfig appConfig = AppConfig.defaults();
     private LevelMessageService messages;
     private LanguageLoader debugLanguageLoader;
@@ -160,8 +159,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 STARTUP_ASCII_END_COLOR
         );
         coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        executionDispatcher = coreLib.executionDispatcher();
-        threadOwnership = coreLib.threadOwnership();
+        scheduling = EmakiCoreLibApi.scheduling();
         initializeServices();
         registerConfigPrecheckContributor();
         messages.info("console.plugin_starting");
@@ -363,6 +361,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         requirementLoader = new RequirementLoader(this);
         sourceRuleLoader = new SourceRuleLoader(this);
         guiTemplateLoader = new GuiTemplateLoader(this);
+        var executionDispatcher = coreLib.executionDispatcher();
         guiService = new GuiService(this, executionDispatcher, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
         typeRegistry = new LevelTypeRegistry();
         requirementService = new RequirementService();
@@ -384,14 +383,13 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 coreLib.itemSourceService(),
                 coreLib.economyManager(),
                 actionLines(),
-                executionDispatcher,
-                threadOwnership,
+                scheduling,
                 appConfig,
                 this::resyncAllAttributes,
                 this::resyncAttributes,
                 data -> topService.update(data)
         );
-        playerDataListener = new PlayerDataListener(this, executionDispatcher);
+        playerDataListener = new PlayerDataListener(this, scheduling);
         levelGuiService = new LevelGuiService(this, guiService, guiTemplateLoader);
         levelTopGuiService = new LevelTopGuiService(this, guiService, guiTemplateLoader);
     }
@@ -459,8 +457,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                     this,
                     typeRegistry,
                     dataStore,
-                    executionDispatcher,
-                    threadOwnership,
+                    scheduling,
                     appConfig);
             if (!bridge.register()) {
                 bridge.close();
@@ -572,12 +569,8 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         return coreLib().actionLineRunner(this);
     }
 
-    public ExecutionDispatcher executionDispatcher() {
-        return executionDispatcher;
-    }
-
-    public ThreadOwnership threadOwnership() {
-        return threadOwnership;
+    public EmakiScheduling scheduling() {
+        return scheduling;
     }
 
     public LevelTopService topService() {

@@ -45,11 +45,11 @@ public final class DefaultItemOperations implements ItemOperations {
         EmakiItemFactory factory = plugin.itemFactory();
         if (factory == null
                 || plugin.idResolver() == null
-                || plugin.threadOwnership() == null
+                || plugin.scheduling() == null
                 || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
-        if (!plugin.threadOwnership().isGlobalOwned()) {
+        if (!plugin.scheduling().ownsGlobal()) {
             return EmakiResult.wrongThread();
         }
         if (plugin.idResolver().resolveDefinition(id) == null) {
@@ -203,10 +203,10 @@ public final class DefaultItemOperations implements ItemOperations {
         if (!player.isOnline()) {
             return EmakiResult.targetOffline();
         }
-        if (plugin.threadOwnership() == null) {
+        if (plugin.scheduling() == null) {
             return EmakiResult.unavailable();
         }
-        return plugin.threadOwnership().isEntityOwned(player) ? EmakiResult.ok() : EmakiResult.wrongThread();
+        return plugin.scheduling().ownsEntity(player) ? EmakiResult.ok() : EmakiResult.wrongThread();
     }
 
     private record PreparedRefresh(EmakiItemDefinition definition, boolean aliasMigration) {

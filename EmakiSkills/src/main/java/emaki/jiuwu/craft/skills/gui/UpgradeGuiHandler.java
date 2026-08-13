@@ -106,6 +106,6 @@ public final class UpgradeGuiHandler implements GuiSessionHandler {
 
     private void handleBack(Player player) {
         player.closeInventory();
-        plugin.executionDispatcher().runEntity(plugin, player, onBack, () -> { });
+        plugin.scheduling().runForEntity(plugin, player, onBack, () -> { });
     }
 }

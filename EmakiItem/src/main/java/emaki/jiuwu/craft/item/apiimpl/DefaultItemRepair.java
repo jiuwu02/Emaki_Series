@@ -130,11 +130,11 @@ public final class DefaultItemRepair implements ItemRepair {
         if (!player.isOnline()) {
             return EmakiResult.targetOffline();
         }
-        if (plugin.threadOwnership() == null || plugin.identifier() == null
+        if (plugin.scheduling() == null || plugin.identifier() == null
                 || plugin.idResolver() == null || plugin.repairService() == null) {
             return EmakiResult.unavailable();
         }
-        if (!plugin.threadOwnership().isEntityOwned(player)) {
+        if (!plugin.scheduling().ownsEntity(player)) {
             return EmakiResult.wrongThread();
         }
         String id = plugin.identifier().identify(itemStack);

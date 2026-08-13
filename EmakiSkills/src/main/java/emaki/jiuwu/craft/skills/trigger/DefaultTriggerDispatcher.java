@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.BoundSkillTrigger;
@@ -33,7 +33,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
     private final CastAttemptService castAttemptService;
     private final Supplier<AppConfig> configSupplier;
     private final MessageService messageService;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling scheduling;
 
     public DefaultTriggerDispatcher(Plugin plugin,
             CastModeService castModeService,
@@ -44,7 +44,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
             CastAttemptService castAttemptService,
             Supplier<AppConfig> configSupplier,
             MessageService messageService,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.castModeService = castModeService;
         this.triggerRegistry = triggerRegistry;
@@ -54,7 +54,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
         this.castAttemptService = castAttemptService;
         this.configSupplier = configSupplier;
         this.messageService = messageService;
-        this.executionDispatcher = executionDispatcher;
+        this.scheduling = scheduling;
     }
 
     @Override
@@ -96,7 +96,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
     private CompletableFuture<Void> reportFailureAsync(Player player, CastAttemptResult result) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
-            var scheduled = executionDispatcher.runEntity(plugin, player, () -> {
+            scheduling.runForEntity(plugin, player, () -> {
                 if (result != null && !result.success()
                         && result.failureMessage() != null
                         && !result.failureMessage().isBlank()) {
@@ -105,10 +105,6 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
                 future.complete(null);
             }, () -> future.completeExceptionally(new RejectedExecutionException(
                     "Skills trigger failure reporting retired before execution.")));
-            if (scheduled == null) {
-                future.completeExceptionally(new RejectedExecutionException(
-                        "Skills trigger failure reporting scheduling was rejected."));
-            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }

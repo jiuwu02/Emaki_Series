@@ -65,7 +65,7 @@ public final class PlayerJoinQuitListener implements Listener {
                 return;
             }
             try {
-                plugin.executionDispatcher().runEntity(plugin, player, () -> {
+                plugin.scheduling().runForEntity(plugin, player, () -> {
                     if (isCurrent(player, session)) {
                         applyJoinState(player, profile);
                     }

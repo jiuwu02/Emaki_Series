@@ -127,13 +127,13 @@ public final class DefaultItemCatalog implements ItemCatalog {
         if (!player.isOnline()) {
             return EmakiResult.targetOffline();
         }
-        if (plugin.threadOwnership() == null
+        if (plugin.scheduling() == null
                 || plugin.idResolver() == null
                 || plugin.conditionChecker() == null
                 || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }
-        if (!plugin.threadOwnership().isEntityOwned(player)) {
+        if (!plugin.scheduling().ownsEntity(player)) {
             return EmakiResult.wrongThread();
         }
         EmakiItemDefinition definition = plugin.idResolver().resolveDefinition(itemId);

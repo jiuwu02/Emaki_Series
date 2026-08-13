@@ -106,12 +106,12 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
         }
 
         player.closeInventory();
-        plugin.executionDispatcher().runEntity(plugin, player, onBack, () -> { });
+        plugin.scheduling().runForEntity(plugin, player, onBack, () -> { });
     }
 
     private void handleBack(Player player) {
         player.closeInventory();
-        plugin.executionDispatcher().runEntity(plugin, player, onBack, () -> { });
+        plugin.scheduling().runForEntity(plugin, player, onBack, () -> { });
     }
 
 

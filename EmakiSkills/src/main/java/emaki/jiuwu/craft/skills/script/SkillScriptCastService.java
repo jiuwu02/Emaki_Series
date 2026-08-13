@@ -190,16 +190,12 @@ public final class SkillScriptCastService {
                     future.completeExceptionally(throwable);
                 }
             };
-            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(caster)) {
+            if (plugin.scheduling().ownsEntity(caster)) {
                 operation.run();
             } else {
-                var scheduled = plugin.executionDispatcher().runEntity(plugin, caster, operation,
+                plugin.scheduling().runForEntity(plugin, caster, operation,
                         () -> future.completeExceptionally(new RejectedExecutionException(
                                 "Skill cast entity-domain task retired before execution.")));
-                if (scheduled == null) {
-                    future.completeExceptionally(new RejectedExecutionException(
-                            "Skill cast entity-domain scheduling was rejected."));
-                }
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);

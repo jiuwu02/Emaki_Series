@@ -56,6 +56,11 @@ final class UnavailableScheduling implements EmakiScheduling {
     }
 
     @Override
+    public TaskToken runEntityLater(Plugin owner, Entity entity, Runnable task, Runnable retired, long delayTicks) {
+        return TaskToken.UNAVAILABLE;
+    }
+
+    @Override
     public TaskToken runAtLocation(Plugin owner, Location location, Runnable task) {
         return TaskToken.UNAVAILABLE;
     }

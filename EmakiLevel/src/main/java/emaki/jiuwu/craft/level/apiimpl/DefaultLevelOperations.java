@@ -222,9 +222,7 @@ public final class DefaultLevelOperations implements LevelOperations {
         if (player == null || !player.isOnline()) {
             return EmakiResult.targetOffline();
         }
-        if (plugin == null
-                || plugin.threadOwnership() == null
-                || !plugin.threadOwnership().isEntityOwned(player)) {
+        if (plugin == null || plugin.scheduling() == null || !plugin.scheduling().ownsEntity(player)) {
             return EmakiResult.wrongThread();
         }
         if (!plugin.contentReady()) {

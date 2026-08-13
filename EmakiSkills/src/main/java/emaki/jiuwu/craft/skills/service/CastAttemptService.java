@@ -674,17 +674,13 @@ public final class CastAttemptService {
             }
         };
         try {
-            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+            if (plugin.scheduling().ownsEntity(player)) {
                 operation.run();
                 return future;
             }
-            var scheduled = plugin.executionDispatcher().runEntity(plugin, player, operation,
+            plugin.scheduling().runForEntity(plugin, player, operation,
                     () -> future.completeExceptionally(new RejectedExecutionException(
                             "Cast entity-domain task retired before execution.")));
-            if (scheduled == null) {
-                future.completeExceptionally(new RejectedExecutionException(
-                        "Cast entity-domain task scheduling was rejected."));
-            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }

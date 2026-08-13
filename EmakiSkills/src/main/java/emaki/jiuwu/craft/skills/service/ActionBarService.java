@@ -9,8 +9,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.skills.config.AppConfig;
@@ -29,9 +29,9 @@ public final class ActionBarService {
     private final TriggerRegistry triggerRegistry;
     private final Supplier<Map<String, SkillDefinition>> skillDefsSupplier;
     private final MessageService messageService;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling scheduling;
     private final AtomicLong refreshGeneration = new AtomicLong();
-    private TaskHandle refreshTask;
+    private TaskToken refreshTask;
 
     public ActionBarService(JavaPlugin plugin,
             PlayerSkillDataStore dataStore,
@@ -40,7 +40,7 @@ public final class ActionBarService {
             TriggerRegistry triggerRegistry,
             Supplier<Map<String, SkillDefinition>> skillDefsSupplier,
             MessageService messageService,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.dataStore = dataStore;
         this.castModeService = castModeService;
@@ -48,7 +48,7 @@ public final class ActionBarService {
         this.triggerRegistry = triggerRegistry;
         this.skillDefsSupplier = skillDefsSupplier;
         this.messageService = messageService;
-        this.executionDispatcher = executionDispatcher;
+        this.scheduling = scheduling;
     }
 
     public void startRefreshTask() {
@@ -59,7 +59,7 @@ public final class ActionBarService {
         }
         int interval = config.actionBar().refreshIntervalTicks();
         long generation = refreshGeneration.incrementAndGet();
-        refreshTask = executionDispatcher.runGlobalTimer(plugin, () -> refreshAll(generation), interval, interval);
+        refreshTask = scheduling.runGlobalTimer(plugin, () -> refreshAll(generation), interval, interval);
     }
 
     public void stopRefreshTask() {
@@ -94,7 +94,7 @@ public final class ActionBarService {
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
             try {
-                executionDispatcher.runEntity(plugin, player, () -> {
+                scheduling.runForEntity(plugin, player, () -> {
                     if (refreshGeneration.get() != generation) {
                         return;
                     }

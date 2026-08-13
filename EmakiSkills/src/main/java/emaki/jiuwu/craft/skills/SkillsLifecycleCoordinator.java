@@ -19,8 +19,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -69,8 +68,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
     @Override
     public SkillsRuntimeComponents initialize(EmakiSkillsPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        var executionDispatcher = coreLibPlugin.executionDispatcher();
+        var scheduling = emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.scheduling();
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -171,7 +170,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 triggerRegistry,
                 () -> skillDefinitionLoader.all(),
                 messageService,
-                executionDispatcher
+                scheduling
         );
         SkillsGuiService skillsGuiService = new SkillsGuiService(
                 plugin, guiService, guiTemplateLoader,
@@ -181,8 +180,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillUpgradeService, messageService);
         return new SkillsRuntimeComponents(
                 appConfigLoader,
-                executionDispatcher,
-                threadOwnership,
+                scheduling,
                 languageLoader,
                 skillDefinitionLoader,
                 localResourceDefinitionLoader,
@@ -293,13 +291,19 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 )))
                 .thenCompose(ignored -> {
                     notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
-                    return plugin.executionDispatcher().submitGlobal(plugin, () -> {
-                        plugin.languageLoader().setLanguage(plugin.appConfig().language());
-                        plugin.skillPipelineRuntime().invalidateAll();
-                        loadTriggersIntoRegistry(plugin);
-                        plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
-                        return null;
+                    CompletableFuture<Void> applyFuture = new CompletableFuture<>();
+                    plugin.scheduling().runGlobal(plugin, () -> {
+                        try {
+                            plugin.languageLoader().setLanguage(plugin.appConfig().language());
+                            plugin.skillPipelineRuntime().invalidateAll();
+                            loadTriggersIntoRegistry(plugin);
+                            plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
+                            applyFuture.complete(null);
+                        } catch (Throwable t) {
+                            applyFuture.completeExceptionally(t);
+                        }
                     });
+                    return applyFuture;
                 })
                 .thenCompose(ignored -> forEachOnlinePlayer(
                         plugin, plugin.playerSkillStateService()::validateBindings))
@@ -316,7 +320,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             CompletableFuture<Void> task = new CompletableFuture<>();
             tasks.add(task);
             try {
-                var scheduled = plugin.executionDispatcher().runEntity(plugin, player, () -> {
+                plugin.scheduling().runForEntity(plugin, player, () -> {
                     try {
                         if (player.isOnline()) {
                             action.accept(player);
@@ -327,10 +331,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                     }
                 }, () -> task.completeExceptionally(new RejectedExecutionException(
                         "Skills player reload operation retired before execution.")));
-                if (scheduled == null) {
-                    task.completeExceptionally(new RejectedExecutionException(
-                            "Skills player reload operation scheduling was rejected."));
-                }
             } catch (Throwable throwable) {
                 task.completeExceptionally(throwable);
             }

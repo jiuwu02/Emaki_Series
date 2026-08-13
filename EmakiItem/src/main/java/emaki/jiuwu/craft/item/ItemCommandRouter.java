@@ -17,8 +17,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
@@ -39,15 +38,12 @@ final class ItemCommandRouter implements TabExecutor {
     private static final String PERMISSION_ADMIN = "emakiitem.admin";
 
     private final EmakiItemPlugin plugin;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
 
     ItemCommandRouter(EmakiItemPlugin plugin,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
     }
 
     @Override
@@ -567,29 +563,27 @@ final class ItemCommandRouter implements TabExecutor {
         if (player == null || task == null) {
             return false;
         }
-        boolean owner = threadOwnership.isEntityOwned(player);
+        boolean owner = scheduling.ownsEntity(player);
         debugCommandDomain(player, operation, owner ? "direct" : "scheduled", owner);
         if (owner) {
             task.run();
             return true;
         }
-        boolean accepted = executionDispatcher.runEntity(plugin, player, task) != null;
-        if (!accepted) {
-            debugCommandDomain(player, operation, "rejected", false);
-        }
-        return accepted;
+        scheduling.runForEntity(plugin, player, task, null);
+        debugCommandDomain(player, operation, "accepted", false);
+        return true;
     }
 
     private void runForSender(CommandSender sender, Runnable task) {
         if (sender instanceof Player player) {
-            if (threadOwnership.isEntityOwned(player)) {
+            if (scheduling.ownsEntity(player)) {
                 task.run();
             } else {
-                executionDispatcher.runEntity(plugin, player, task);
+                scheduling.runForEntity(plugin, player, task, null);
             }
             return;
         }
-        executionDispatcher.runGlobal(plugin, task);
+        scheduling.runGlobal(plugin, task);
     }
 
     private void debugCommandDomain(Player player, String operation, String stage, boolean owner) {
@@ -600,7 +594,7 @@ final class ItemCommandRouter implements TabExecutor {
         debugLogger.log("set", player, "set.command", Map.of(
                 "operation", Texts.toStringSafe(operation),
                 "stage", Texts.toStringSafe(stage),
-                "global_owner", threadOwnership.isGlobalOwned(),
+                "global_owner", scheduling.ownsGlobal(),
                 "owner", owner,
                 "thread", Thread.currentThread().getName()
         ));

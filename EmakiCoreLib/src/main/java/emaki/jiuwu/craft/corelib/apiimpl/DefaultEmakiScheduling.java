@@ -74,6 +74,15 @@ public final class DefaultEmakiScheduling implements EmakiScheduling {
     }
 
     @Override
+    public @NotNull TaskToken runEntityLater(@NotNull Plugin owner,
+            @NotNull Entity entity,
+            @NotNull Runnable task,
+            @Nullable Runnable retired,
+            long delayTicks) {
+        return wrap(dispatcher.runEntityLater(owner, entity, task, retired, delayTicks));
+    }
+
+    @Override
     public @NotNull TaskToken runAtLocation(@NotNull Plugin owner, @NotNull Location location, @NotNull Runnable task) {
         return wrap(dispatcher.runAtLocation(owner, location, task));
     }

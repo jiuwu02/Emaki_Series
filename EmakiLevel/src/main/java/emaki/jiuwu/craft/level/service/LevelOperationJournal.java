@@ -26,9 +26,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -50,8 +48,7 @@ final class LevelOperationJournal {
     }
 
     private final Plugin plugin;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final Path activeDirectory;
     private final Path completedDirectory;
     private final Path quarantineDirectory;
@@ -60,12 +57,9 @@ final class LevelOperationJournal {
     private volatile FileScope fileScope;
     private volatile boolean asyncFilesUnavailableLogged;
 
-    LevelOperationJournal(Plugin plugin,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+    LevelOperationJournal(Plugin plugin, EmakiScheduling scheduling) {
         this.plugin = plugin;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         Path root = plugin.getDataFolder().toPath().resolve("data/operation-journal");
         this.activeDirectory = root.resolve("active");
         this.completedDirectory = root.resolve("completed");
@@ -187,14 +181,7 @@ final class LevelOperationJournal {
                 return;
             }
             Runnable apply = () -> applyRecovery(entries, economyManager, itemSourceService);
-            if (executionDispatcher == null) {
-                apply.run();
-                return;
-            }
-            if (executionDispatcher.runGlobal(plugin, apply) == null) {
-                plugin.getLogger().warning("Level operation journal recovery was rejected by the scheduler; "
-                        + entries.size() + " entries stay pending in active");
-            }
+            scheduling.runGlobal(plugin, apply);
         });
     }
 
@@ -228,20 +215,12 @@ final class LevelOperationJournal {
                         result.remainingCurrencies(), result.remainingMaterials(), "refund_failed"));
             }
         };
-        if (threadOwnership.isEntityOwned(player)) {
+        if (scheduling.ownsEntity(player)) {
             recovery.run();
             return;
         }
         try {
-            TaskHandle scheduled = executionDispatcher.runEntity(
-                    plugin,
-                    player,
-                    recovery,
-                    () -> compensationPending(entry.operationId(), "owner_schedule_retired")
-            );
-            if (scheduled == null) {
-                compensationPending(entry.operationId(), "owner_schedule_rejected");
-            }
+            scheduling.runForEntity(plugin, player, recovery, null);
         } catch (Throwable throwable) {
             compensationPending(entry.operationId(), throwable.getMessage());
         }

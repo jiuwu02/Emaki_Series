@@ -29,8 +29,7 @@ import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -113,8 +112,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private DebugCommand debugCommand;
     private ItemStageRegistrar stageRegistrar;
 
-    private ExecutionDispatcher executionDispatcher;
-    private ThreadOwnership threadOwnership;
+    private EmakiScheduling scheduling;
     private YamlConfigLoader<AppConfig> appConfigLoader;
     private LanguageLoader languageLoader;
     private MessageService messageService;
@@ -398,8 +396,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void applyRuntimeComponents(ItemRuntimeComponents components) {
-        executionDispatcher = components.executionDispatcher();
-        threadOwnership = components.threadOwnership();
+        scheduling = components.scheduling();
         appConfigLoader = components.appConfigLoader();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
@@ -427,7 +424,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         repairGuiService = components.repairGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
-        commandRouter = new ItemCommandRouter(this, executionDispatcher, threadOwnership);
+        commandRouter = new ItemCommandRouter(this, scheduling);
         registerServices(components);
     }
 
@@ -450,7 +447,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         getServer().getPluginManager().registerEvents(layerPreviewRegistry, this);
         getServer().getPluginManager().registerEvents(new ItemTriggerListener(this), this);
         getServer().getPluginManager().registerEvents(
-                new ItemUpdateListener(this, executionDispatcher, threadOwnership),
+                new ItemUpdateListener(this, scheduling),
                 this
         );
         getServer().getPluginManager().registerEvents(new ItemDurabilityListener(this, repairService), this);
@@ -476,12 +473,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         messageService.info("console.papi_registered");
     }
 
-    public ExecutionDispatcher executionDispatcher() {
-        return executionDispatcher;
-    }
-
-    public ThreadOwnership threadOwnership() {
-        return threadOwnership;
+    public EmakiScheduling scheduling() {
+        return scheduling;
     }
 
     @Override

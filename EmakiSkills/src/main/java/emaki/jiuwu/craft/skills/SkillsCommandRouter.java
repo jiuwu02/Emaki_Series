@@ -270,17 +270,13 @@ final class SkillsCommandRouter implements TabExecutor {
             }
         };
         try {
-            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+            if (plugin.scheduling().ownsEntity(player)) {
                 operation.run();
                 return future;
             }
-            var scheduled = plugin.executionDispatcher().runEntity(plugin, player, operation,
+            plugin.scheduling().runForEntity(plugin, player, operation,
                     () -> future.completeExceptionally(new RejectedExecutionException(
                             "Skills command player operation retired before execution.")));
-            if (scheduled == null) {
-                future.completeExceptionally(new RejectedExecutionException(
-                        "Skills command player operation scheduling was rejected."));
-            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }
@@ -306,18 +302,18 @@ final class SkillsCommandRouter implements TabExecutor {
     private void runForSender(CommandSender sender, Runnable task) {
         try {
             if (sender instanceof Player player) {
-                if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+                if (plugin.scheduling().ownsEntity(player)) {
                     task.run();
                     return;
                 }
-                plugin.executionDispatcher().runEntity(plugin, player, task, () -> { });
+                plugin.scheduling().runForEntity(plugin, player, task, () -> { });
                 return;
             }
-            if (plugin.threadOwnership() != null && plugin.threadOwnership().isGlobalOwned()) {
+            if (plugin.scheduling().ownsGlobal()) {
                 task.run();
                 return;
             }
-            plugin.executionDispatcher().runGlobal(plugin, task);
+            plugin.scheduling().runGlobal(plugin, task);
         } catch (Throwable throwable) {
             plugin.getLogger().warning("Failed to schedule command response: " + throwable.getMessage());
         }

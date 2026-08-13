@@ -303,7 +303,7 @@ public final class EmakiItemMigrationService {
         int changed = 0;
         int skipped = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (plugin.threadOwnership() == null || !plugin.threadOwnership().isEntityOwned(player)) {
+            if (plugin.scheduling() == null || !plugin.scheduling().ownsEntity(player)) {
                 skipped++;
                 continue;
             }

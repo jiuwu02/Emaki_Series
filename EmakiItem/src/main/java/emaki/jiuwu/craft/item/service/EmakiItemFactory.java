@@ -14,9 +14,9 @@ import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
@@ -50,7 +50,7 @@ public final class EmakiItemFactory {
     private final EmakiItemLoader loader;
     private final EmakiItemIdResolver idResolver;
     private final EmakiItemPdcWriter pdcWriter;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final ItemOperationLedger itemOperationLedger;
     private final ConcurrentHashMap<String, ItemStack> prototypeCache = new ConcurrentHashMap<>();
 
@@ -61,19 +61,19 @@ public final class EmakiItemFactory {
     public EmakiItemFactory(EmakiItemLoader loader,
             EmakiItemIdResolver idResolver,
             EmakiItemPdcWriter pdcWriter,
-            ThreadOwnership threadOwnership) {
-        this(loader, idResolver, pdcWriter, threadOwnership, null);
+            EmakiScheduling scheduling) {
+        this(loader, idResolver, pdcWriter, scheduling, null);
     }
 
     public EmakiItemFactory(EmakiItemLoader loader,
             EmakiItemIdResolver idResolver,
             EmakiItemPdcWriter pdcWriter,
-            ThreadOwnership threadOwnership,
+            EmakiScheduling scheduling,
             DebugLogger debugLogger) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         this.itemOperationLedger = new ItemOperationLedger(debugLogger);
     }
 
@@ -115,7 +115,7 @@ public final class EmakiItemFactory {
     }
 
     private CreateResult fireCreateEvent(String id, int amount, ItemStack itemStack) {
-        if (threadOwnership == null || !threadOwnership.isGlobalOwned()) {
+        if (scheduling == null || !scheduling.ownsGlobal()) {
             return CreateResult.created(itemStack);
         }
         EmakiItemCreateEvent event = new EmakiItemCreateEvent(id, amount, null, itemStack);

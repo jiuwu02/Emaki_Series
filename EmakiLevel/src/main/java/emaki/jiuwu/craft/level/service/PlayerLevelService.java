@@ -17,8 +17,7 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -50,8 +49,7 @@ public final class PlayerLevelService {
     private final ItemSourceService itemSourceService;
     private final EconomyManager economyManager;
     private final ActionLineRunner actionLines;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final LevelOperationJournal operationJournal;
     private final Runnable attributeRefreshAll;
     private final Consumer<Player> attributeRefreshPlayer;
@@ -67,8 +65,7 @@ public final class PlayerLevelService {
             ItemSourceService itemSourceService,
             EconomyManager economyManager,
             ActionLineRunner actionLines,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership,
+            EmakiScheduling scheduling,
             AppConfig config,
             Runnable attributeRefreshAll,
             Consumer<Player> attributeRefreshPlayer,
@@ -82,9 +79,8 @@ public final class PlayerLevelService {
         this.itemSourceService = itemSourceService;
         this.economyManager = economyManager;
         this.actionLines = actionLines;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
-        this.operationJournal = new LevelOperationJournal(plugin, executionDispatcher, threadOwnership);
+        this.scheduling = scheduling;
+        this.operationJournal = new LevelOperationJournal(plugin, scheduling);
         this.config = config;
         this.attributeRefreshAll = attributeRefreshAll == null ? () -> { } : attributeRefreshAll;
         this.attributeRefreshPlayer = attributeRefreshPlayer == null ? player -> { } : attributeRefreshPlayer;
@@ -420,7 +416,7 @@ public final class PlayerLevelService {
     }
 
     private boolean ownsPlayer(Player player) {
-        return player != null && threadOwnership != null && threadOwnership.isEntityOwned(player);
+        return player != null && scheduling.ownsEntity(player);
     }
 
     public void syncAllOnline() {
@@ -438,15 +434,7 @@ public final class PlayerLevelService {
             syncPlayer(player);
             return;
         }
-        if (executionDispatcher == null) {
-            plugin.getLogger().warning("EmakiLevel skipped level sync for " + player.getName()
-                    + ": caller thread does not own the player and no execution dispatcher is available.");
-            return;
-        }
-        if (executionDispatcher.runEntity(plugin, player, () -> syncPlayer(player)) == null) {
-            plugin.getLogger().warning("EmakiLevel failed to reroute level sync for " + player.getName()
-                    + ": entity task scheduling was rejected.");
-        }
+        scheduling.runForEntity(plugin, player, () -> syncPlayer(player), null);
     }
 
     public void syncPlayer(Player player) {

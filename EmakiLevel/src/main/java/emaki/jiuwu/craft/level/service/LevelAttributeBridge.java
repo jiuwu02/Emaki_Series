@@ -16,8 +16,7 @@ import emaki.jiuwu.craft.attribute.api.extension.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.api.extension.ContributionProviderRegistration;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
@@ -30,8 +29,7 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
     private final JavaPlugin plugin;
     private final LevelTypeRegistry typeRegistry;
     private final PlayerLevelDataStore dataStore;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private AppConfig config;
     private ContributionProviderRegistration registration = ContributionProviderRegistration.noop();
     private boolean registered;
@@ -39,14 +37,12 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
     public LevelAttributeBridge(JavaPlugin plugin,
             LevelTypeRegistry typeRegistry,
             PlayerLevelDataStore dataStore,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership,
+            EmakiScheduling scheduling,
             AppConfig config) {
         this.plugin = plugin;
         this.typeRegistry = typeRegistry;
         this.dataStore = dataStore;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         this.config = config;
     }
 
@@ -73,14 +69,11 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
             return;
         }
         Runnable task = () -> EmakiAttributeApi.operations().resyncPlayer(player);
-        if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
+        if (scheduling.ownsEntity(player)) {
             task.run();
             return;
         }
-        if (executionDispatcher != null) {
-            executionDispatcher.runEntity(plugin, player, task, () -> {
-            });
-        }
+        scheduling.runForEntity(plugin, player, task, null);
     }
 
     /** Dispatches every online player's resynchronization to its own owner thread. */

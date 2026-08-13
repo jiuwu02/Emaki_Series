@@ -69,16 +69,13 @@ public final class DefaultSkillOperations implements SkillOperations {
             }
             completeFromStage(result, castService.attemptCast(player, triggerId));
         };
-        if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+        if (plugin.scheduling().ownsEntity(player)) {
             resolveAndCast.run();
             return result;
         }
         try {
-            var scheduled = plugin.executionDispatcher().runEntity(plugin, player, resolveAndCast,
+            plugin.scheduling().runForEntity(plugin, player, resolveAndCast,
                     () -> result.complete(EmakiResult.targetOffline()));
-            if (scheduled == null) {
-                result.complete(EmakiResult.rejected("skills.cast.scheduling_rejected"));
-            }
         } catch (RuntimeException | LinkageError exception) {
             result.complete(EmakiResult.internalError("skills.cast.scheduling_failed"));
         }
@@ -237,7 +234,7 @@ public final class DefaultSkillOperations implements SkillOperations {
         }
         if (player == null) return EmakiResult.invalidInput("skills.player.required");
         if (!player.isOnline()) return EmakiResult.targetOffline();
-        return plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)
+        return plugin.scheduling().ownsEntity(player)
                 ? null : EmakiResult.wrongThread();
     }
 

@@ -35,8 +35,8 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.projectiles.ProjectileSource;
 
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 
 public final class PassiveTriggerSource {
@@ -47,7 +47,7 @@ public final class PassiveTriggerSource {
     private final Map<UUID, ComboState> comboStates = new ConcurrentHashMap<>();
     private PassiveTriggerDispatcher dispatcher_ref;
     private final AtomicLong timerGeneration = new AtomicLong();
-    private TaskHandle timerTask;
+    private TaskToken timerTask;
     private long lastTimerDispatchAt;
     private volatile boolean timerDispatchWarningLogged;
 
@@ -55,7 +55,7 @@ public final class PassiveTriggerSource {
         this.configSupplier = configSupplier;
     }
 
-    public void register(JavaPlugin plugin, PassiveTriggerDispatcher dispatcher, ExecutionDispatcher executionDispatcher) {
+    public void register(JavaPlugin plugin, PassiveTriggerDispatcher dispatcher, EmakiScheduling scheduling) {
         this.dispatcher_ref = dispatcher;
         plugin.getServer().getPluginManager().registerEvents(new Listener() {
 
@@ -206,7 +206,7 @@ public final class PassiveTriggerSource {
 
         stop();
         long generation = timerGeneration.incrementAndGet();
-        timerTask = executionDispatcher.runGlobalTimer(plugin, () -> {
+        timerTask = scheduling.runGlobalTimer(plugin, () -> {
             if (timerGeneration.get() != generation) {
                 return;
             }
@@ -218,7 +218,7 @@ public final class PassiveTriggerSource {
             lastTimerDispatchAt = now;
             for (Player player : plugin.getServer().getOnlinePlayers()) {
                 try {
-                    executionDispatcher.runEntity(plugin, player, () -> {
+                    scheduling.runForEntity(plugin, player, () -> {
                         if (timerGeneration.get() != generation || !player.isOnline()) {
                             return;
                         }

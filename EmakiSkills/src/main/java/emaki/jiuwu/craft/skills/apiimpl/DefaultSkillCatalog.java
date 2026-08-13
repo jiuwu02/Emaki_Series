@@ -153,7 +153,7 @@ public final class DefaultSkillCatalog implements SkillCatalog {
         if (!player.isOnline()) {
             return EmakiResult.targetOffline();
         }
-        return plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)
+        return plugin.scheduling().ownsEntity(player)
                 ? null
                 : EmakiResult.wrongThread();
     }

@@ -77,10 +77,10 @@ public final class DefaultItemMigration implements ItemMigration {
         if (!player.isOnline()) {
             return EmakiResult.targetOffline();
         }
-        if (plugin.migrationService() == null || plugin.threadOwnership() == null) {
+        if (plugin.migrationService() == null || plugin.scheduling() == null) {
             return EmakiResult.unavailable();
         }
-        if (!plugin.threadOwnership().isEntityOwned(player)) {
+        if (!plugin.scheduling().ownsEntity(player)) {
             return EmakiResult.wrongThread();
         }
         try {
@@ -92,7 +92,7 @@ public final class DefaultItemMigration implements ItemMigration {
 
     @Override
     public @NotNull EmakiResult<Integer> migrateAllOnline() {
-        if (plugin.migrationService() == null || plugin.threadOwnership() == null) {
+        if (plugin.migrationService() == null || plugin.scheduling() == null) {
             return EmakiResult.unavailable();
         }
         try {

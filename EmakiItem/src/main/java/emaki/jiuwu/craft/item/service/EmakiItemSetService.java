@@ -15,7 +15,7 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
@@ -81,9 +81,9 @@ public final class EmakiItemSetService {
                                Supplier<AppConfig> configSupplier,
                                Supplier<DebugLogger> debugLoggerSupplier,
                                Logger logger,
-                               ThreadOwnership threadOwnership) {
+                               EmakiScheduling scheduling) {
         this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier,
-                debugLoggerSupplier, logger, null, threadOwnership);
+                debugLoggerSupplier, logger, null, scheduling);
     }
 
     EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -108,7 +108,7 @@ public final class EmakiItemSetService {
                                 Supplier<DebugLogger> debugLoggerSupplier,
                                 Logger logger,
                                 ItemOperationLedger itemOperationLedger,
-                                ThreadOwnership threadOwnership) {
+                                EmakiScheduling scheduling) {
         this.itemFactory = itemFactory;
         Supplier<DebugLogger> effectiveDebugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
         ItemOperationLedger effectiveLedger = itemOperationLedger == null
@@ -124,7 +124,7 @@ public final class EmakiItemSetService {
                 configSupplier,
                 effectiveDebugLoggerSupplier,
                 logger,
-                threadOwnership);
+                scheduling);
     }
 
     public ItemRefreshBatch createRefreshBatch(Player player) {

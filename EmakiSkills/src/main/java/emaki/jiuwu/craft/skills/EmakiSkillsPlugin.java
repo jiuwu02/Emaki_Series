@@ -21,8 +21,7 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -99,8 +98,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private DebugCommand debugCommand;
 
     private YamlConfigLoader<AppConfig> appConfigLoader;
-    private ExecutionDispatcher executionDispatcher;
-    private ThreadOwnership threadOwnership;
+    private EmakiScheduling scheduling;
     private LanguageLoader languageLoader;
     private SkillDefinitionLoader skillDefinitionLoader;
     private LocalResourceDefinitionLoader localResourceDefinitionLoader;
@@ -262,8 +260,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     private void applyRuntimeComponents(SkillsRuntimeComponents components) {
         appConfigLoader = components.appConfigLoader();
-        executionDispatcher = components.executionDispatcher();
-        threadOwnership = components.threadOwnership();
+        scheduling = components.scheduling();
         languageLoader = components.languageLoader();
         skillDefinitionLoader = components.skillDefinitionLoader();
         localResourceDefinitionLoader = components.localResourceDefinitionLoader();
@@ -314,7 +311,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         triggerDispatcher = new DefaultTriggerDispatcher(
                 this, castModeService, triggerRegistry, playerSkillDataStore,
                 playerSkillStateService, equipmentSkillCollector,
-                castAttemptService, this::appConfig, messageService, executionDispatcher);
+                castAttemptService, this::appConfig, messageService, scheduling);
         new InteractTriggerSource().register(this, triggerDispatcher);
         new DropTriggerSource().register(this, triggerDispatcher);
         new HotbarTriggerSource().register(this, triggerDispatcher);
@@ -322,7 +319,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         passiveTriggerDispatcher = new PassiveTriggerDispatcher(
                 triggerRegistry, playerSkillStateService, castAttemptService);
         passiveTriggerSource = new PassiveTriggerSource(this::appConfig);
-        passiveTriggerSource.register(this, passiveTriggerDispatcher, executionDispatcher);
+        passiveTriggerSource.register(this, passiveTriggerDispatcher, scheduling);
 
         getServer().getPluginManager().registerEvents(
                 new CastModeKeyListener(castModeService, actionBarService, messageService),
@@ -403,12 +400,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return coreLib().actionLineRunner(this);
     }
 
-    public ExecutionDispatcher executionDispatcher() {
-        return executionDispatcher;
-    }
-
-    public ThreadOwnership threadOwnership() {
-        return threadOwnership;
+    public EmakiScheduling scheduling() {
+        return scheduling;
     }
 
     public SkillSourceRegistry skillSourceRegistry() {

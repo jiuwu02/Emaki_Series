@@ -10,12 +10,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
@@ -67,7 +69,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
                 "config.yml",
@@ -122,7 +124,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 itemLoader,
                 idResolver,
                 pdcWriter,
-                threadOwnership,
+                scheduling,
                 plugin.debugLogger()
         );
         EmakiItemUpdateService updateService = new EmakiItemUpdateService(
@@ -144,7 +146,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin::appConfig,
                 plugin::debugLogger,
                 plugin.getLogger(),
-                threadOwnership
+                scheduling
         );
         ItemComponentInspector componentInspector = new ItemComponentInspector();
         ItemComponentPlaceholderResolver componentPlaceholderResolver = new ItemComponentPlaceholderResolver(componentInspector);
@@ -155,12 +157,11 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin,
                 coreLibPlugin::economyManager,
                 coreLibPlugin.itemSourceService(),
-                threadOwnership
+                scheduling
         );
         ItemRepairGuiService repairGuiService = new ItemRepairGuiService(plugin, guiService, repairService);
         return new ItemRuntimeComponents(
-                executionDispatcher,
-                threadOwnership,
+                scheduling,
                 appConfigLoader,
                 languageLoader,
                 messageService,
@@ -322,7 +323,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 return CompletableFuture.completedFuture(null);
             }
             notifyProgress(progressListener, "Applying configuration...");
-            return plugin.executionDispatcher().submitGlobal(plugin, () -> {
+            return EmakiCoreLibApi.scheduling().submitGlobal(plugin, () -> {
                 if (!reloadAllowed(allowed)) {
                     return null;
                 }
@@ -360,16 +361,16 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             if (plugin.repairGuiService().getSession(player) == null) {
                 continue;
             }
-            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+            if (plugin.scheduling() != null && plugin.scheduling().ownsEntity(player)) {
                 player.closeInventory();
                 continue;
             }
-            if (plugin.executionDispatcher() == null) {
+            if (plugin.scheduling() == null) {
                 plugin.getLogger().warning("EmakiItem skipped repair GUI closure for " + player.getName()
-                        + ": caller thread does not own the player and no execution dispatcher is available.");
+                        + ": caller thread does not own the player and no scheduling is available.");
                 continue;
             }
-            if (plugin.executionDispatcher().runEntity(plugin, player, player::closeInventory) == null) {
+            if (plugin.scheduling().runForEntity(plugin, player, player::closeInventory, null) == TaskToken.UNAVAILABLE) {
                 plugin.getLogger().warning("EmakiItem failed to reroute repair GUI closure for " + player.getName()
                         + ": entity task scheduling was rejected.");
             }

@@ -25,9 +25,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.listener.InventoryRefreshClassifier.ClickContext;
@@ -40,18 +39,15 @@ import emaki.jiuwu.craft.item.service.ItemRefreshResult;
 public final class ItemUpdateListener implements Listener {
 
     private final EmakiItemPlugin plugin;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final InventoryRefreshClassifier classifier = new InventoryRefreshClassifier();
     private final ConcurrentHashMap<UUID, PendingRefresh> pendingRefresh = new ConcurrentHashMap<>();
     private final AtomicLong batchSequence = new AtomicLong();
 
     public ItemUpdateListener(EmakiItemPlugin plugin,
-                              ExecutionDispatcher executionDispatcher,
-                              ThreadOwnership threadOwnership) {
+                              EmakiScheduling scheduling) {
         this.plugin = plugin;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -191,9 +187,9 @@ public final class ItemUpdateListener implements Listener {
             return;
         }
         plugin.refreshMetrics().recordBatchCreated();
-        TaskHandle task;
+        TaskToken task;
         try {
-            task = executionDispatcher.runEntityLater(
+            task = scheduling.runEntityLater(
                     plugin,
                     player,
                     () -> executePending(player, playerId, pending),
@@ -205,7 +201,7 @@ public final class ItemUpdateListener implements Listener {
                     failure.getClass().getSimpleName() + ": " + Texts.toStringSafe(failure.getMessage()));
             return;
         }
-        if (task == null) {
+        if (task == TaskToken.UNAVAILABLE) {
             rejectPending(player, playerId, pending, "scheduler_rejected");
         }
     }
@@ -281,7 +277,7 @@ public final class ItemUpdateListener implements Listener {
         if (debugLogger == null || !debugLogger.shouldLog("set", player)) {
             return;
         }
-        boolean owner = player != null && threadOwnership.isEntityOwned(player);
+        boolean owner = player != null && scheduling.ownsEntity(player);
         debugLogger.log("set", player, "set.refresh_completed", Map.ofEntries(
                 Map.entry("batch", pending.batchId()),
                 Map.entry("requested", result.requestedScope()),
@@ -302,7 +298,7 @@ public final class ItemUpdateListener implements Listener {
                 Map.entry("ledger_decodes", result.ledgerDecodes()),
                 Map.entry("set_compiles", result.setCompiles()),
                 Map.entry("elapsed_us", result.elapsedNanos() / 1_000L),
-                Map.entry("global_owner", threadOwnership.isGlobalOwned()),
+                Map.entry("global_owner", scheduling.ownsGlobal()),
                 Map.entry("owner", owner),
                 Map.entry("thread", Thread.currentThread().getName())
         ));

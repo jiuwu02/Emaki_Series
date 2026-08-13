@@ -217,7 +217,7 @@ public final class SkillsGuiService {
             CompletableFuture<Void> close = new CompletableFuture<>();
             closes.add(close);
             try {
-                var scheduled = plugin.executionDispatcher().runEntity(plugin, player, () -> {
+                plugin.scheduling().runForEntity(plugin, player, () -> {
                     try {
                         GuiSession session = guiService.getSession(player.getUniqueId());
                         if (session != null && session.owner() == plugin) {
@@ -229,10 +229,6 @@ public final class SkillsGuiService {
                     }
                 }, () -> close.completeExceptionally(new RejectedExecutionException(
                         "Skills GUI close operation retired before execution.")));
-                if (scheduled == null) {
-                    close.completeExceptionally(new RejectedExecutionException(
-                            "Skills GUI close operation scheduling was rejected."));
-                }
             } catch (Throwable throwable) {
                 close.completeExceptionally(throwable);
             }

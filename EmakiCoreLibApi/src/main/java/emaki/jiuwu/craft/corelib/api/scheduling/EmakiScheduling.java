@@ -105,6 +105,24 @@ public interface EmakiScheduling {
                            @Nullable Runnable retired);
 
     /**
+     * Runs a delayed task on the region that owns the given entity.
+     *
+     * @param owner      the plugin that owns the task lifecycle
+     * @param entity     the entity whose region should execute the task
+     * @param task       the work to perform
+     * @param retired    invoked instead of {@code task} when the entity was removed before execution;
+     *                   may be {@code null}
+     * @param delayTicks the delay in ticks before execution
+     * @return a cancellable token, or {@link TaskToken#UNAVAILABLE} when EmakiCoreLib is unusable
+     */
+    @NotNull
+    TaskToken runEntityLater(@NotNull Plugin owner,
+                             @NotNull Entity entity,
+                             @NotNull Runnable task,
+                             @Nullable Runnable retired,
+                             long delayTicks);
+
+    /**
      * Runs a task on the region that owns the given location.
      *
      * @param owner    the plugin that owns the task lifecycle
