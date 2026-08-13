@@ -11,9 +11,8 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -44,8 +43,7 @@ public final class GemExtractService {
     private static final String OPERATION_NAMESPACE = "gem";
 
     private final EmakiGemPlugin plugin;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final GemItemMatcher itemMatcher;
     private final GemItemFactory itemFactory;
     private final GemStateService stateService;
@@ -60,18 +58,16 @@ public final class GemExtractService {
             GemStateService stateService,
             GemEconomyService economyService,
             GemActionCoordinator actionCoordinator,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         this.itemMatcher = itemMatcher;
         this.itemFactory = itemFactory;
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
-        this.operationJournal = GemOperationJournal.forPlugin(plugin, executionDispatcher, threadOwnership);
+        this.operationJournal = GemOperationJournal.forPlugin(plugin, scheduling);
     }
 
     public Result extract(Player actor, Player target, int slotIndex, boolean bypassCost) {
@@ -98,7 +94,7 @@ public final class GemExtractService {
         }
 
         String operationId = UUID.randomUUID().toString();
-        if (threadOwnership.isEntityOwned(target)) {
+        if (scheduling.ownsEntity(target)) {
             GemExtractEvent extractEvent = new GemExtractEvent(operationId, target, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
             Bukkit.getPluginManager().callEvent(extractEvent);
@@ -155,7 +151,7 @@ public final class GemExtractService {
             return;
         }
         Runnable eventCall = () -> Bukkit.getPluginManager().callEvent(event);
-        if (threadOwnership.isEntityOwned(target)) {
+        if (scheduling.ownsEntity(target)) {
             eventCall.run();
             return;
         }
@@ -164,7 +160,7 @@ public final class GemExtractService {
                     + target.getUniqueId());
             return;
         }
-        executionDispatcher.runEntity(plugin, target, eventCall,
+        scheduling.runForEntity(plugin, target, eventCall,
                 () -> plugin.getLogger().warning("Skipped gem extraction completed event because scheduling retired: "
                         + target.getUniqueId()));
     }

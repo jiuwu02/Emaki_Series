@@ -8,9 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiRenderer;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -26,8 +24,7 @@ public final class GemGuiService {
 
     private final EmakiGemPlugin plugin;
     private final GuiService guiService;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final GemGuiStateManager stateManager;
     private final GemGuiRenderer gemRenderer;
     private final GemOpenGuiRenderer openRenderer;
@@ -36,12 +33,10 @@ public final class GemGuiService {
 
     public GemGuiService(EmakiGemPlugin plugin,
             GuiService guiService,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.guiService = guiService;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         this.stateManager = new GemGuiStateManager();
         this.gemRenderer = new GemGuiRenderer(plugin);
         this.openRenderer = new GemOpenGuiRenderer(plugin);
@@ -57,7 +52,7 @@ public final class GemGuiService {
         if (player == null) {
             return false;
         }
-        if (!threadOwnership.isEntityOwned(player)) {
+        if (!scheduling.ownsEntity(player)) {
             plugin.getLogger().warning("Cannot open gem GUI outside player ownership: " + player.getUniqueId());
             return false;
         }
@@ -79,7 +74,7 @@ public final class GemGuiService {
         if (player == null) {
             return false;
         }
-        if (!threadOwnership.isEntityOwned(player)) {
+        if (!scheduling.ownsEntity(player)) {
             plugin.getLogger().warning("Cannot open socket GUI outside player ownership: " + player.getUniqueId());
             return false;
         }
@@ -193,7 +188,7 @@ public final class GemGuiService {
             if (viewer == null) {
                 continue;
             }
-            if (threadOwnership.isEntityOwned(viewer)) {
+            if (scheduling.ownsEntity(viewer)) {
                 close(viewer);
                 continue;
             }
@@ -208,7 +203,7 @@ public final class GemGuiService {
             CompletableFuture<Void> closed = new CompletableFuture<>();
             closes.add(closed);
             try {
-                TaskHandle scheduled = executionDispatcher.runEntity(
+                scheduling.runForEntity(
                         plugin,
                         viewer,
                         () -> {
@@ -222,10 +217,6 @@ public final class GemGuiService {
                         () -> closed.completeExceptionally(new IllegalStateException(
                                 "Viewer owner retired before gem session close: " + viewer.getUniqueId()))
                 );
-                if (scheduled == null) {
-                    closed.completeExceptionally(new IllegalStateException(
-                            "Viewer owner scheduler rejected gem session close: " + viewer.getUniqueId()));
-                }
             } catch (Throwable throwable) {
                 closed.completeExceptionally(throwable);
             }
@@ -242,7 +233,7 @@ public final class GemGuiService {
         if (player == null) {
             return;
         }
-        if (!threadOwnership.isEntityOwned(player) && player.isOnline()) {
+        if (!scheduling.ownsEntity(player) && player.isOnline()) {
             plugin.getLogger().warning("Cannot close gem GUI outside player ownership: " + player.getUniqueId());
             return;
         }

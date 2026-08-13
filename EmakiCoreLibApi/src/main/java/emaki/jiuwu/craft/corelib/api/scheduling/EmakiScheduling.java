@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.api.scheduling;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -154,4 +156,20 @@ public interface EmakiScheduling {
      */
     @NotNull
     TaskToken runAsyncLater(@NotNull Plugin owner, @NotNull Runnable task, long delay, @NotNull TimeUnit unit);
+
+    /**
+     * Submits a task to the global region and returns its future result.
+     *
+     * <p>This schedules a {@link Supplier} on the global region thread and returns a
+     * {@link CompletableFuture} that completes with the supplier's result. Use this when you need to
+     * query or compute something on the global thread and receive the answer asynchronously.
+     *
+     * @param owner the plugin that owns the task lifecycle
+     * @param task  the supplier to execute on the global region
+     * @param <T>   the result type
+     * @return a future that completes with the task result, or a failed future when EmakiCoreLib is
+     *         unusable
+     */
+    @NotNull
+    <T> CompletableFuture<T> submitGlobal(@NotNull Plugin owner, @NotNull Supplier<T> task);
 }

@@ -24,10 +24,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.diagnostics.Anchors;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
@@ -54,8 +52,7 @@ public final class GemOperationJournal {
     private static final String DEBUG_JOURNAL_MODULE = "state";
 
     private final EmakiGemPlugin plugin;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final Path activeDirectory;
     private final Path completedDirectory;
     private final Path quarantineDirectory;
@@ -65,11 +62,9 @@ public final class GemOperationJournal {
     private volatile boolean asyncFilesUnavailableLogged;
 
     private GemOperationJournal(EmakiGemPlugin plugin,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         Path root = plugin.getDataFolder().toPath().resolve("data/operation-journal");
         this.activeDirectory = root.resolve("active");
         this.completedDirectory = root.resolve("completed");
@@ -77,10 +72,9 @@ public final class GemOperationJournal {
     }
 
     public static GemOperationJournal forPlugin(EmakiGemPlugin plugin,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+            EmakiScheduling scheduling) {
         return INSTANCES.computeIfAbsent(plugin,
-                ignored -> new GemOperationJournal(plugin, executionDispatcher, threadOwnership));
+                ignored -> new GemOperationJournal(plugin, scheduling));
     }
 
     public String begin(String kind, UUID playerId) {
@@ -258,14 +252,11 @@ public final class GemOperationJournal {
                 return;
             }
             Runnable apply = () -> applyRecovery(entries, economyService);
-            if (executionDispatcher == null) {
+            if (scheduling == null) {
                 apply.run();
                 return;
             }
-            if (executionDispatcher.runGlobal(plugin, apply) == null) {
-                plugin.getLogger().warning("Gem operation journal recovery was rejected by the scheduler; "
-                        + entries.size() + " entries stay pending in active");
-            }
+            scheduling.runGlobal(plugin, apply);
         });
     }
 
@@ -291,20 +282,17 @@ public final class GemOperationJournal {
         Runnable recovery = () -> completeAfterRefund(entry.operationId(), "refund_failed",
                 economyService.refundPersistedDetailed(player,
                         decodeCurrencies(entry.currencies()), decodeMaterials(entry.materials())));
-        if (threadOwnership.isEntityOwned(player)) {
+        if (scheduling.ownsEntity(player)) {
             recovery.run();
             return;
         }
         try {
-            TaskHandle scheduled = executionDispatcher.runEntity(
+            scheduling.runForEntity(
                     plugin,
                     player,
                     recovery,
                     () -> compensationPending(entry.operationId(), "owner_schedule_retired")
             );
-            if (scheduled == null) {
-                compensationPending(entry.operationId(), "owner_schedule_rejected");
-            }
         } catch (Throwable throwable) {
             compensationPending(entry.operationId(), throwable.getMessage());
         }

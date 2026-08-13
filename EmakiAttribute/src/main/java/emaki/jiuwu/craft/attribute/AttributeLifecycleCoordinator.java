@@ -22,10 +22,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 import emaki.jiuwu.craft.attribute.bridge.ServiceBackedEmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -71,8 +71,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
+        var executionDispatcher = coreLibPlugin.executionDispatcher();
         LanguageLoader languageLoader = new LanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader,
                 "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>", true);
@@ -103,14 +103,13 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 presetRegistry,
                 pdcAttributeService,
                 parentAttributeService,
-                executionDispatcher,
-                threadOwnership
+                scheduling
         );
         ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry =
                 new ContributionProviderRegistrationRegistry(attributeService);
         EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(
                 attributeService,
-                threadOwnership,
+                scheduling,
                 itemContributionGateRegistry,
                 contributionProviderRegistrationRegistry,
                 pdcAttributeService);
@@ -119,7 +118,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 new PlayerLifecycleListener(attributeService),
                 new PluginIntegrationListener(plugin),
                 new InventoryInteractionListener(attributeService),
-                new CombatDamageListener(plugin, attributeService, combatDebugHandler, executionDispatcher),
+                new CombatDamageListener(plugin, attributeService, combatDebugHandler, scheduling),
                 attributeService.perfectTakeoverCoordinator(),
                 new CombatDebugListener(attributeService),
                 new DamageIndicatorListener(
@@ -132,10 +131,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
                 ? new MythicBridge(plugin, attributeService)
                 : null;
-        AttributeCommand command = new AttributeCommand(plugin, attributeService, executionDispatcher);
+        AttributeCommand command = new AttributeCommand(plugin, attributeService, scheduling);
         return new AttributeRuntimeComponents(
-                executionDispatcher,
-                threadOwnership,
+                scheduling,
                 attributeRegistry,
                 attributeBalanceRegistry,
                 damageTypeRegistry,
@@ -183,7 +181,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         // 那里同时覆盖 reload 与 MythicMobs 后启用两条路径。
     }
 
-    public TaskHandle reload(EmakiAttributePlugin plugin, TaskHandle currentTask, boolean resyncPlayers) {
+    public TaskToken reload(EmakiAttributePlugin plugin, TaskToken currentTask, boolean resyncPlayers) {
         // Entry B rather than the single-loader gate: this module loads in stages, and two of its
         // registries (DefaultProfileRegistry, AttributeBalanceRegistry) read plugin.configModel()
         // while loading, so the candidate config has to be in place before the stages can run. The
@@ -227,14 +225,14 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         return rescheduleRegenTask(plugin, currentTask);
     }
 
-    public CompletableFuture<TaskHandle> reloadAsync(EmakiAttributePlugin plugin,
-            TaskHandle currentTask,
+    public CompletableFuture<TaskToken> reloadAsync(EmakiAttributePlugin plugin,
+            TaskToken currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         // Captured before the pipeline mutates it, for the same reason as the synchronous path.
         AttributeConfig previousConfig = plugin.configModel();
-        return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<>(
+        return runReloadPipelineAsync(scheduler, plugin.scheduling(), plugin, new ReloadPipelineConfig<>(
                 "attribute",
                 "bootstrap",
                 "正在读取语言与配置...",
@@ -318,7 +316,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.damageTypeRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        ))).thenCompose(configModel -> plugin.executionDispatcher().submitGlobal(plugin, () -> {
+        ))).thenCompose(configModel -> plugin.scheduling().submitGlobal(plugin, () -> {
             if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
                 restoreConfigModel(plugin, previousConfig);
                 notifyProgress(progressListener, "EmakiAttribute 配置预检未通过，已保留上一份配置。");
@@ -336,19 +334,19 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (plugin.attributeService() != null && resyncPlayers) {
                 plugin.attributeService().resyncAllPlayers();
             }
-            TaskHandle nextTask = rescheduleRegenTask(plugin, currentTask);
+            TaskToken nextTask = rescheduleRegenTask(plugin, currentTask);
             notifyProgress(progressListener, "EmakiAttribute 重载完成。");
             return nextTask;
         }));
     }
 
-    public TaskHandle rescheduleRegenTask(EmakiAttributePlugin plugin, TaskHandle currentTask) {
-        TaskHandle nextTask = cancelRegenTask(currentTask);
+    public TaskToken rescheduleRegenTask(EmakiAttributePlugin plugin, TaskToken currentTask) {
+        TaskToken nextTask = cancelRegenTask(currentTask);
         if (plugin.attributeService() == null) {
             return nextTask;
         }
         int intervalTicks = Math.max(1, plugin.configModel().regenIntervalTicks());
-        return plugin.executionDispatcher().runGlobalTimer(
+        return plugin.scheduling().runGlobalTimer(
                 plugin,
                 plugin.attributeService()::regenerateOnlinePlayers,
                 intervalTicks,
@@ -356,14 +354,14 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         );
     }
 
-    public TaskHandle cancelRegenTask(TaskHandle currentTask) {
+    public TaskToken cancelRegenTask(TaskToken currentTask) {
         if (currentTask != null) {
             currentTask.cancel();
         }
         return null;
     }
 
-    public void shutdown(EmakiAttributePlugin plugin, TaskHandle currentTask) {
+    public void shutdown(EmakiAttributePlugin plugin, TaskToken currentTask) {
         cancelRegenTask(currentTask);
         if (plugin.itemContributionGateRegistry() != null) {
             plugin.itemContributionGateRegistry().close();

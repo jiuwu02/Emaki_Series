@@ -13,14 +13,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -64,8 +64,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     @Override
     public GemRuntimeComponents initialize(EmakiGemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
+        var executionDispatcher = coreLibPlugin.executionDispatcher();
         registerAssemblyLayer(coreLibPlugin);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
@@ -120,7 +120,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 itemFactory,
                 stateService,
                 actionCoordinator,
-                threadOwnership
+                scheduling
         );
         GemInlayService inlayService = new GemInlayService(
                 plugin,
@@ -128,8 +128,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 stateService,
                 economyService,
                 actionCoordinator,
-                executionDispatcher,
-                threadOwnership
+                scheduling
         );
         GemExtractService extractService = new GemExtractService(
                 plugin,
@@ -138,13 +137,11 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 stateService,
                 economyService,
                 actionCoordinator,
-                executionDispatcher,
-                threadOwnership
+                scheduling
         );
-        GemGuiService gemGuiService = new GemGuiService(plugin, guiService, executionDispatcher, threadOwnership);
+        GemGuiService gemGuiService = new GemGuiService(plugin, guiService, scheduling);
         return new GemRuntimeComponents(
-                executionDispatcher,
-                threadOwnership,
+                scheduling,
                 appConfigLoader,
                 languageLoader,
                 gemLoader,
@@ -198,7 +195,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
         plugin.itemMatcher().refresh();
-        GemOperationJournal.forPlugin(plugin, plugin.executionDispatcher(), plugin.threadOwnership()).recover(plugin.economyService());
+        GemOperationJournal.forPlugin(plugin, plugin.scheduling()).recover(plugin.economyService());
         loadResonances(plugin);
         plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
         refreshOnlinePlayerItems(plugin);
@@ -251,7 +248,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 return submitGlobalStage(plugin, () -> {
                     plugin.languageLoader().setLanguage(plugin.appConfig().language());
                     plugin.itemMatcher().refresh();
-                    GemOperationJournal.forPlugin(plugin, plugin.executionDispatcher(), plugin.threadOwnership()).recover(plugin.economyService());
+                    GemOperationJournal.forPlugin(plugin, plugin.scheduling()).recover(plugin.economyService());
                     loadResonances(plugin);
                     plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                     refreshOnlinePlayerItems(plugin);
@@ -267,14 +264,12 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
 
     private CompletableFuture<Void> submitGlobalStage(EmakiGemPlugin plugin, Runnable stage) {
         try {
-            return plugin.executionDispatcher().submitGlobal(plugin, () -> {
+            return plugin.scheduling().submitGlobal(plugin, () -> {
                 stage.run();
                 return null;
-            });
-        } catch (Throwable throwable) {
-            CompletableFuture<Void> failed = new CompletableFuture<>();
-            failed.completeExceptionally(throwable);
-            return failed;
+            }).thenApply(ignored -> null);
+        } catch (Exception exception) {
+            return CompletableFuture.failedFuture(exception);
         }
     }
 
@@ -285,17 +280,18 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
             if (player == null) {
                 continue;
             }
-            if (plugin.threadOwnership() != null && plugin.threadOwnership().isEntityOwned(player)) {
+            if (plugin.scheduling() != null && plugin.scheduling().ownsEntity(player)) {
                 GemItemObtainListener.refreshInventory(plugin, player);
                 continue;
             }
-            if (plugin.executionDispatcher() == null) {
+            if (plugin.scheduling() == null) {
                 plugin.getLogger().warning("EmakiGem skipped gem item refresh for " + player.getName()
-                        + ": caller thread does not own the player and no execution dispatcher is available.");
+                        + ": caller thread does not own the player and no scheduling is available.");
                 continue;
             }
-            if (plugin.executionDispatcher().runEntity(plugin, player,
-                    () -> GemItemObtainListener.refreshInventory(plugin, player)) == null) {
+            var task = plugin.scheduling().runForEntity(plugin, player,
+                    () -> GemItemObtainListener.refreshInventory(plugin, player), null);
+            if (task.cancelled()) {
                 plugin.getLogger().warning("EmakiGem failed to reroute gem item refresh for " + player.getName()
                         + ": entity task scheduling was rejected.");
             }

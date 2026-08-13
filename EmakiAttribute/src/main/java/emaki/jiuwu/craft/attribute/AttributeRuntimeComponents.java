@@ -23,15 +23,13 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 
-record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
-        ThreadOwnership threadOwnership,
+record AttributeRuntimeComponents(EmakiScheduling scheduling,
         AttributeRegistry attributeRegistry,
         AttributeBalanceRegistry attributeBalanceRegistry,
         DamageTypeRegistry damageTypeRegistry,
@@ -58,8 +56,7 @@ record AttributeRuntimeComponents(ExecutionDispatcher executionDispatcher,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
-                RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
-                RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
+                RuntimeComponents.component(EmakiScheduling.class, scheduling),
                 RuntimeComponents.component(AttributeRegistry.class, attributeRegistry),
                 RuntimeComponents.component(AttributeBalanceRegistry.class, attributeBalanceRegistry),
                 RuntimeComponents.component(DamageTypeRegistry.class, damageTypeRegistry),

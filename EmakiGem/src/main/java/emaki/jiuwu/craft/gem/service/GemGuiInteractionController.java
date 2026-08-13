@@ -40,7 +40,7 @@ final class GemGuiInteractionController {
     }
 
     private void scheduleRefresh(GemGuiSession state) {
-        plugin.executionDispatcher().runEntity(plugin, state.player(), () -> renderer.refreshGui(state));
+        plugin.scheduling().runForEntity(plugin, state.player(), () -> renderer.refreshGui(state), null);
     }
 
     private void scheduleSwitchIfNeeded(GemGuiSession state) {
@@ -51,11 +51,11 @@ final class GemGuiInteractionController {
         GuiTemplate template = GemGuiTemplates.resolveGemTemplate(plugin.guiTemplateLoader(), itemDefinition);
         String resolvedId = template == null ? "" : template.id();
         if (!resolvedId.equals(state.currentTemplateId())) {
-            plugin.executionDispatcher().runEntity(plugin, state.player(), () -> {
+            plugin.scheduling().runForEntity(plugin, state.player(), () -> {
                 if (!service.switchTemplate(state)) {
                     renderer.refreshGui(state);
                 }
-            });
+            }, null);
             return;
         }
         renderer.refreshGui(state);

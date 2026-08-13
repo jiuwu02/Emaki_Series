@@ -38,7 +38,7 @@ import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
@@ -560,13 +560,13 @@ final class DamageCalculationService {
         }
         CompletableFuture<SourceImpactSnapshot> future = new CompletableFuture<>();
         try {
-            ExecutionDispatcher dispatcher = dispatcher();
-            if (dispatcher == null) {
+            EmakiScheduling sched = scheduling();
+            if (sched == null) {
                 future.completeExceptionally(new IllegalStateException(
                         "Damage source snapshot dispatcher is unavailable."));
                 return future;
             }
-            var scheduled = dispatcher.runEntity(
+            sched.runForEntity(
                     service.plugin(),
                     source,
                     () -> {
@@ -581,10 +581,6 @@ final class DamageCalculationService {
                     () -> future.completeExceptionally(new IllegalStateException(
                             "Damage source retired before snapshot: " + source.getUniqueId()))
             );
-            if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "Damage source snapshot scheduling was rejected."));
-            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }
@@ -1058,20 +1054,20 @@ final class DamageCalculationService {
         if (entityId == null || operation == null || service.plugin() == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatch is unavailable."));
         }
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatcher is unavailable."));
         }
         CompletableFuture<T> result = new CompletableFuture<>();
         try {
-            var lookupTask = dispatcher.runGlobal(service.plugin(), () -> {
+            sched.runGlobal(service.plugin(), () -> {
                 Entity entity = Bukkit.getEntity(entityId);
                 if (!(entity instanceof LivingEntity livingEntity) || !livingEntity.isValid()) {
                     result.completeExceptionally(new IllegalStateException("Entity is no longer available: " + entityId));
                     return;
                 }
                 try {
-                    var entityTask = dispatcher.runEntity(
+                    sched.runForEntity(
                             service.plugin(),
                             livingEntity,
                             () -> {
@@ -1084,27 +1080,19 @@ final class DamageCalculationService {
                             () -> result.completeExceptionally(new IllegalStateException(
                                     "Entity retired before owner operation: " + entityId))
                     );
-                    if (entityTask == null) {
-                        result.completeExceptionally(new IllegalStateException(
-                                "Entity owner scheduling was rejected: " + entityId));
-                    }
                 } catch (Throwable throwable) {
                     result.completeExceptionally(throwable);
                 }
             });
-            if (lookupTask == null) {
-                result.completeExceptionally(new IllegalStateException(
-                        "Entity lookup scheduling was rejected: " + entityId));
-            }
         } catch (Throwable throwable) {
             result.completeExceptionally(throwable);
         }
         return result;
     }
 
-    private ExecutionDispatcher dispatcher() {
-        ExecutionDispatcher dispatcher = service.executionDispatcher();
-        return dispatcher != null ? dispatcher : service.plugin().executionDispatcher();
+    private EmakiScheduling scheduling() {
+        EmakiScheduling sched = service.scheduling();
+        return sched != null ? sched : service.plugin().scheduling();
     }
 
     private UUID parseUuid(String value) {

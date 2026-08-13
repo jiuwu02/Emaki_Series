@@ -27,23 +27,23 @@ import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 
 public final class CombatDamageListener implements Listener {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
     private final CombatDebugHandler debugHandler;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling scheduling;
 
     public CombatDamageListener(EmakiAttributePlugin plugin,
             AttributeService attributeService,
             CombatDebugHandler debugHandler,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.attributeService = attributeService;
         this.debugHandler = debugHandler;
-        this.executionDispatcher = executionDispatcher;
+        this.scheduling = scheduling;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -483,13 +483,13 @@ public final class CombatDamageListener implements Listener {
         }
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            ExecutionDispatcher dispatcher = executionDispatcher != null ? executionDispatcher : plugin.executionDispatcher();
-            if (dispatcher == null) {
+            EmakiScheduling sched = scheduling != null ? scheduling : plugin.scheduling();
+            if (sched == null) {
                 future.completeExceptionally(new IllegalStateException(
                         "Fallback damage dispatcher is unavailable."));
                 return future;
             }
-            var scheduled = dispatcher.runEntity(
+            var scheduled = sched.runForEntity(
                     plugin,
                     target,
                     () -> {

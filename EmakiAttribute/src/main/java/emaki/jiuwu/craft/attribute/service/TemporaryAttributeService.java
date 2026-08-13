@@ -20,7 +20,7 @@ import org.bukkit.entity.LivingEntity;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class TemporaryAttributeService implements AutoCloseable {
@@ -350,23 +350,23 @@ public final class TemporaryAttributeService implements AutoCloseable {
         if (plugin == null || !plugin.isEnabled()) {
             return;
         }
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
-        dispatcher.runGlobal(plugin, () -> {
+        sched.runGlobal(plugin, () -> {
             for (UUID entityId : entityIds) {
                 Entity entity = Bukkit.getEntity(entityId);
                 if (entity instanceof LivingEntity livingEntity && livingEntity.isValid()) {
-                    dispatcher.runEntity(plugin, livingEntity, () -> invalidateEntity(livingEntity));
+                    sched.runForEntity(plugin, livingEntity, () -> invalidateEntity(livingEntity), null);
                 }
             }
         });
     }
 
-    private ExecutionDispatcher dispatcher() {
-        ExecutionDispatcher dispatcher = attributeService == null ? null : attributeService.executionDispatcher();
-        return dispatcher != null ? dispatcher : plugin.executionDispatcher();
+    private EmakiScheduling scheduling() {
+        EmakiScheduling sched = attributeService == null ? null : attributeService.scheduling();
+        return sched != null ? sched : plugin.scheduling();
     }
 
     private void invalidateEntity(LivingEntity entity) {

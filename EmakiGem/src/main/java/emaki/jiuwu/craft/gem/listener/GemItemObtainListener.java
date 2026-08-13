@@ -17,7 +17,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
@@ -26,12 +26,12 @@ import emaki.jiuwu.craft.gem.model.GemState;
 public final class GemItemObtainListener implements Listener {
 
     private final EmakiGemPlugin plugin;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling scheduling;
     private final Set<UUID> pendingRefreshes = ConcurrentHashMap.newKeySet();
 
-    public GemItemObtainListener(EmakiGemPlugin plugin, ExecutionDispatcher executionDispatcher) {
+    public GemItemObtainListener(EmakiGemPlugin plugin, EmakiScheduling scheduling) {
         this.plugin = plugin;
-        this.executionDispatcher = executionDispatcher;
+        this.scheduling = scheduling;
     }
 
     @EventHandler
@@ -83,13 +83,14 @@ public final class GemItemObtainListener implements Listener {
         if (!pendingRefreshes.add(playerId)) {
             return;
         }
-        if (executionDispatcher.runEntity(plugin, player, () -> {
+        var task = scheduling.runForEntity(plugin, player, () -> {
             try {
                 refreshInventory(plugin, player);
             } finally {
                 pendingRefreshes.remove(playerId);
             }
-        }) == null) {
+        }, () -> pendingRefreshes.remove(playerId));
+        if (task.cancelled()) {
             pendingRefreshes.remove(playerId);
         }
     }

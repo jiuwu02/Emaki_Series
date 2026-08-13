@@ -17,9 +17,8 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -85,8 +84,7 @@ public final class GemInlayService {
     private static final String OPERATION_NAMESPACE = "gem";
 
     private final EmakiGemPlugin plugin;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final GemItemMatcher itemMatcher;
     private final GemStateService stateService;
     private final GemEconomyService economyService;
@@ -99,17 +97,15 @@ public final class GemInlayService {
             GemStateService stateService,
             GemEconomyService economyService,
             GemActionCoordinator actionCoordinator,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         this.itemMatcher = itemMatcher;
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
-        this.operationJournal = GemOperationJournal.forPlugin(plugin, executionDispatcher, threadOwnership);
+        this.operationJournal = GemOperationJournal.forPlugin(plugin, scheduling);
     }
 
     public InlayResult inlayDirect(Player actor,
@@ -174,7 +170,7 @@ public final class GemInlayService {
         GemInlayEvent inlayEvent = new GemInlayEvent(operationId, actor, equipment, gemItem, slotIndex,
                 gemDefinition.id(), instance.level(), successChance);
 
-        if (threadOwnership.isEntityOwned(actor)) {
+        if (scheduling.ownsEntity(actor)) {
             Bukkit.getPluginManager().callEvent(inlayEvent);
             if (inlayEvent.isCancelled()) {
                 return new InlayResult(Result.failure("gem.operation.cancelled", placeholders), equipment, operationId);
@@ -312,7 +308,7 @@ public final class GemInlayService {
         }
 
         String operationId = UUID.randomUUID().toString();
-        if (threadOwnership.isEntityOwned(actor)) {
+        if (scheduling.ownsEntity(actor)) {
             GemExtractEvent extractEvent = new GemExtractEvent(operationId, actor, equipment, slotIndex,
                     gemDefinition.id(), instance.level(), gemDefinition.extractReturn().mode());
             Bukkit.getPluginManager().callEvent(extractEvent);
@@ -426,7 +422,7 @@ public final class GemInlayService {
         if (actor == null || eventCall == null || plugin == null || !plugin.isEnabled()) {
             return;
         }
-        if (threadOwnership.isEntityOwned(actor)) {
+        if (scheduling.ownsEntity(actor)) {
             eventCall.run();
             return;
         }
@@ -435,7 +431,7 @@ public final class GemInlayService {
                     + actor.getUniqueId());
             return;
         }
-        executionDispatcher.runEntity(plugin, actor, eventCall,
+        scheduling.runForEntity(plugin, actor, eventCall,
                 () -> plugin.getLogger().warning("Skipped gem completed event because actor scheduling retired: "
                         + actor.getUniqueId()));
     }

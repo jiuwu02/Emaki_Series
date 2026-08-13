@@ -109,10 +109,10 @@ final class GemCommandRouter implements TabExecutor {
 
     private void runForSender(CommandSender sender, Runnable task) {
         if (sender instanceof Player player) {
-            plugin.executionDispatcher().runEntity(plugin, player, task);
+            plugin.scheduling().runForEntity(plugin, player, task, null);
             return;
         }
-        plugin.executionDispatcher().runGlobal(plugin, task);
+        plugin.scheduling().runGlobal(plugin, task);
     }
 
     private boolean handleGui(CommandSender sender, GemGuiMode mode) {

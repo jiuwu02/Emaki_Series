@@ -30,7 +30,7 @@ import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
@@ -42,7 +42,7 @@ public final class AttributeCommand implements TabExecutor {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling scheduling;
 
     public AttributeCommand(EmakiAttributePlugin plugin, AttributeService attributeService) {
         this(plugin, attributeService, null);
@@ -50,10 +50,10 @@ public final class AttributeCommand implements TabExecutor {
 
     public AttributeCommand(EmakiAttributePlugin plugin,
             AttributeService attributeService,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.attributeService = attributeService;
-        this.executionDispatcher = executionDispatcher;
+        this.scheduling = scheduling;
     }
 
     @Override
@@ -197,9 +197,9 @@ public final class AttributeCommand implements TabExecutor {
         if (task == null) {
             return;
         }
-        ExecutionDispatcher dispatcher = executionDispatcher != null ? executionDispatcher : plugin.executionDispatcher();
-        if (dispatcher != null) {
-            dispatcher.runGlobal(plugin, task);
+        EmakiScheduling sched = scheduling != null ? scheduling : plugin.scheduling();
+        if (sched != null) {
+            sched.runGlobal(plugin, task);
             return;
         }
         task.run();

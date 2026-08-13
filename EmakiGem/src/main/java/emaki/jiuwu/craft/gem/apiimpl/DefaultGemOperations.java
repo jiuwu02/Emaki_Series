@@ -233,7 +233,7 @@ public final class DefaultGemOperations implements GemOperations {
         if (!player.isOnline()) {
             return EmakiResult.targetOffline();
         }
-        if (!plugin.threadOwnership().isEntityOwned(player)) {
+        if (!plugin.scheduling().ownsEntity(player)) {
             return EmakiResult.wrongThread();
         }
         return null;
@@ -243,7 +243,7 @@ public final class DefaultGemOperations implements GemOperations {
         return plugin != null
                 && plugin.isEnabled()
                 && plugin.publicApiReady()
-                && plugin.threadOwnership() != null
+                && plugin.scheduling() != null
                 && plugin.gemLoader() != null
                 && plugin.itemMatcher() != null
                 && plugin.itemFactory() != null

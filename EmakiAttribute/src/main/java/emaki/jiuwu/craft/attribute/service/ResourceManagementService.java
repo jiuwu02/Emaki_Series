@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 
@@ -40,33 +40,33 @@ final class ResourceManagementService {
     }
 
     public void resyncAllPlayers() {
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            dispatcher.runEntity(service.plugin(), player, () -> {
+            sched.runForEntity(service.plugin(), player, () -> {
                 if (isPlayerUsable(player)) {
                     syncPlayer(player, ResourceSyncReason.MANUAL, null, false);
                 }
-            });
+            }, null);
         }
     }
 
     public void regenerateOnlinePlayers() {
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
         int intervalTicks = Math.max(1, service.config().regenIntervalTicks());
         double intervalSeconds = intervalTicks / 20D;
         Map<String, ResourceDefinition> resources = service.resourceDefinitions();
         for (Player player : Bukkit.getOnlinePlayers()) {
-            dispatcher.runEntity(service.plugin(), player, () -> {
+            sched.runForEntity(service.plugin(), player, () -> {
                 if (isPlayerUsable(player)) {
                     regeneratePlayer(player, intervalSeconds, resources);
                 }
-            });
+            }, null);
         }
     }
 
@@ -164,13 +164,13 @@ final class ResourceManagementService {
         debugEquipmentSync(player, "resync.equipment_queued", Map.of("trigger", triggerName));
         Runnable cleanupPending = () -> pendingEquipmentSyncs.remove(playerId);
         try {
-            ExecutionDispatcher dispatcher = dispatcher();
-            if (dispatcher == null) {
+            EmakiScheduling sched = scheduling();
+            if (sched == null) {
                 cleanupPending.run();
                 debugEquipmentSync(player, "resync.equipment_dispatcher_unavailable", Map.of("trigger", triggerName));
                 return;
             }
-            TaskHandle task = dispatcher.runEntityLater(
+            TaskHandle task = sched.runEntityLater(
                     service.plugin(),
                     player,
                     () -> {
@@ -514,15 +514,16 @@ final class ResourceManagementService {
 
     void resetHealthDisplayScaling() {
         healthDisplayScalingWarningLogged = false;
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            dispatcher.runEntity(
+            sched.runForEntity(
                     service.plugin(),
                     player,
-                    () -> resetHealthDisplayScaling(player)
+                    () -> resetHealthDisplayScaling(player),
+                    null
             );
         }
     }
@@ -678,11 +679,11 @@ final class ResourceManagementService {
                 Map.entry("reason", describeReason(reason)),
                 Map.entry("delay_ticks", delayTicks)
         ));
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
-        dispatcher.runEntityLater(
+        sched.runEntityLater(
                 service.plugin(),
                 player,
                 () -> {
@@ -703,6 +704,7 @@ final class ResourceManagementService {
                         action.accept(player);
                     }
                 },
+                null,
                 delayTicks
         );
     }
@@ -711,11 +713,11 @@ final class ResourceManagementService {
         if (entity == null || action == null) {
             return;
         }
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
-        dispatcher.runEntityLater(
+        sched.runEntityLater(
                 service.plugin(),
                 entity,
                 () -> {
@@ -723,12 +725,13 @@ final class ResourceManagementService {
                         action.accept(entity);
                     }
                 },
+                null,
                 Math.max(1, service.config().syncDelayTicks())
         );
     }
 
-    private ExecutionDispatcher dispatcher() {
-        ExecutionDispatcher dispatcher = service.executionDispatcher();
-        return dispatcher != null ? dispatcher : service.plugin().executionDispatcher();
+    private EmakiScheduling scheduling() {
+        EmakiScheduling sched = service.scheduling();
+        return sched != null ? sched : service.plugin().scheduling();
     }
 }

@@ -44,7 +44,7 @@ final class GemOpenGuiInteractionController {
         var template = GemGuiTemplates.resolveOpenTemplate(plugin.guiTemplateLoader(), itemDefinition);
         String resolvedId = template == null ? "" : template.id();
         if (!resolvedId.equals(state.currentTemplateId())) {
-            plugin.executionDispatcher().runEntity(plugin, state.player(), () -> service.switchOpenTemplate(state));
+            plugin.scheduling().runForEntity(plugin, state.player(), () -> service.switchOpenTemplate(state), null);
             return;
         }
         renderer.refreshGui(state);

@@ -10,8 +10,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
@@ -44,7 +44,7 @@ public final class SocketOpenerService {
     }
 
     private final EmakiGemPlugin plugin;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final GemItemMatcher itemMatcher;
     private final GemItemFactory itemFactory;
     private final GemStateService stateService;
@@ -55,9 +55,9 @@ public final class SocketOpenerService {
             GemItemFactory itemFactory,
             GemStateService stateService,
             GemActionCoordinator actionCoordinator,
-            ThreadOwnership threadOwnership) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         this.itemMatcher = itemMatcher;
         this.itemFactory = itemFactory;
         this.stateService = stateService;
@@ -127,7 +127,7 @@ public final class SocketOpenerService {
                     preferredSlotIndex == null ? "command.open.no_available_slot" : "command.open.slot_unavailable", Map.of()), equipment, openerItem);
         }
 
-        if (threadOwnership.isEntityOwned(actor)) {
+        if (scheduling.ownsEntity(actor)) {
             GemSocketOpenEvent openEvent = new GemSocketOpenEvent(UUID.randomUUID().toString(), actor,
                     equipment, openerItem, opener.id(), resolvedSlotIndex, itemDefinition.id());
             Bukkit.getPluginManager().callEvent(openEvent);
@@ -191,7 +191,7 @@ public final class SocketOpenerService {
             );
         }
 
-        if (threadOwnership.isEntityOwned(target)) {
+        if (scheduling.ownsEntity(target)) {
             GemSocketOpenEvent openEvent = new GemSocketOpenEvent(UUID.randomUUID().toString(), target,
                     equipment, openerItem, opener.id(), slotIndex, itemDefinition.id());
             Bukkit.getPluginManager().callEvent(openEvent);

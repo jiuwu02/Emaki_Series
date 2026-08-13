@@ -40,12 +40,11 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -75,8 +74,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     private DebugCommand debugCommand;
 
-    private ExecutionDispatcher executionDispatcher;
-    private ThreadOwnership threadOwnership;
+    private EmakiScheduling scheduling;
     private AttributeConfig configModel = AttributeConfig.defaults();
     private AttributeRegistry attributeRegistry;
     private AttributeBalanceRegistry attributeBalanceRegistry;
@@ -179,7 +177,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         if (!Bukkit.getPluginManager().isPluginEnabled("MMOItems")) {
             return;
         }
-        mmoItemsBridge = new MmoItemsBridge(this, attributeService, executionDispatcher);
+        mmoItemsBridge = new MmoItemsBridge(this, attributeService, scheduling);
         getServer().getPluginManager().registerEvents(mmoItemsBridge, this);
         attributeService.resyncAllPlayers();
     }
@@ -298,8 +296,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     private void applyRuntimeComponents(AttributeRuntimeComponents components) {
-        executionDispatcher = components.executionDispatcher();
-        threadOwnership = components.threadOwnership();
+        scheduling = components.scheduling();
         attributeRegistry = components.attributeRegistry();
         attributeBalanceRegistry = components.attributeBalanceRegistry();
         damageTypeRegistry = components.damageTypeRegistry();
@@ -367,12 +364,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return configModel;
     }
 
-    public ExecutionDispatcher executionDispatcher() {
-        return executionDispatcher;
-    }
-
-    public ThreadOwnership threadOwnership() {
-        return threadOwnership;
+    public EmakiScheduling scheduling() {
+        return scheduling;
     }
 
     public AttributeRegistry attributeRegistry() {

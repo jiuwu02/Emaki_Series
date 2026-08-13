@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.attribute.api.event.PlayerAttributePointAllocateEvent;
 import emaki.jiuwu.craft.attribute.api.event.PlayerAttributePointResetEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
@@ -219,8 +219,8 @@ public final class ParentAttributeService {
             AttributeDefinition definition,
             ParentAttributeData data,
             int requestedAmount) {
-        ThreadOwnership threadOwnership = plugin.threadOwnership();
-        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
+        EmakiScheduling scheduling = plugin.scheduling();
+        if (scheduling == null || !scheduling.ownsEntity(player)) {
             return 0;
         }
         PlayerAttributePointAllocateEvent event = new PlayerAttributePointAllocateEvent(
@@ -243,8 +243,8 @@ public final class ParentAttributeService {
             ParentAttributeData data,
             int refundedPoints,
             boolean consumeResetPoint) {
-        ThreadOwnership threadOwnership = plugin.threadOwnership();
-        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
+        EmakiScheduling scheduling = plugin.scheduling();
+        if (scheduling == null || !scheduling.ownsEntity(player)) {
             return false;
         }
         PlayerAttributePointResetEvent event = new PlayerAttributePointResetEvent(

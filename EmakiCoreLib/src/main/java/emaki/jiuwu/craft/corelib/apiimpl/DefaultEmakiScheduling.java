@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.corelib.apiimpl;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -98,6 +100,11 @@ public final class DefaultEmakiScheduling implements EmakiScheduling {
             long delay,
             @NotNull TimeUnit unit) {
         return wrap(dispatcher.runAsyncLater(owner, task, delay, unit));
+    }
+
+    @Override
+    public @NotNull <T> CompletableFuture<T> submitGlobal(@NotNull Plugin owner, @NotNull Supplier<T> task) {
+        return dispatcher.submitGlobal(owner, task);
     }
 
     private static TaskToken wrap(TaskHandle handle) {

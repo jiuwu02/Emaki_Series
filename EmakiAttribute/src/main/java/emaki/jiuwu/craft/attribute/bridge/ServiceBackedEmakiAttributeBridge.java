@@ -35,7 +35,7 @@ import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /** Runtime mapping from the four-layer public facade to existing Attribute services. */
@@ -45,18 +45,18 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         AttributeExtensions {
 
     private final AttributeServiceFacade attributeService;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final ItemContributionGateRegistry gateRegistry;
     private final ContributionProviderRegistrationRegistry contributionRegistry;
     private final PdcAttributeAccess pdcAccess;
 
     public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService,
-            ThreadOwnership threadOwnership,
+            EmakiScheduling scheduling,
             ItemContributionGateRegistry gateRegistry,
             ContributionProviderRegistrationRegistry contributionRegistry,
             PdcAttributeAccess pdcAccess) {
         this.attributeService = attributeService;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         this.gateRegistry = gateRegistry;
         this.contributionRegistry = contributionRegistry;
         this.pdcAccess = pdcAccess;
@@ -445,7 +445,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
     }
 
     private boolean isEntityOwned(LivingEntity entity) {
-        return threadOwnership != null && entity != null && threadOwnership.isEntityOwned(entity);
+        return scheduling != null && entity != null && scheduling.ownsEntity(entity);
     }
 
     private static ResourceDefinitionView toView(ResourceDefinition definition) {
