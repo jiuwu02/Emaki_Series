@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRebuildListeners;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.TriggerRegistry;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
 import emaki.jiuwu.craft.corelib.dialog.DialogApiBridge;
@@ -139,6 +140,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private PlaceholderRegistry placeholderRegistry;
     private EconomyManager economyManager;
     private StageRegistry stageRegistry;
+
+    // One instance for the plugin's lifetime, but cleared alongside every stage-table rebuild. It has to be
+    // cleared: a reload replays each module's registration callback, and a module that registers a trigger
+    // there would hit its own duplicate id if the previous entry were still sitting in the table.
+    private final TriggerRegistry triggerRegistry = new TriggerRegistry();
     private StageDispatcher stageDispatcher;
     private ActionEngine actionEngine;
     private final PipelineBatchRunner pipelineBatchRunner = new PipelineBatchRunner();
@@ -244,6 +250,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (stageRegistry != null) {
             stageRegistry.clear();
         }
+        triggerRegistry.clear();
         stageRebuildListeners.clear();
         capabilityRegistry.clear();
         markModuleAbsent(getName());
@@ -406,6 +413,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (stageDispatcher != null) {
             stageDispatcher.cancelOwner(this);
         }
+        // Cleared in step with the stage table so the replay below can re-register triggers without hitting
+        // duplicate ids. Handles held by modules go stale rather than dangling: revoke compares generations,
+        // so a late close() on an already-cleared entry is a no-op.
+        triggerRegistry.clear();
         stageRegistry = candidate;
         if (stageDispatcher == null) {
             stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
@@ -769,6 +780,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     /** {@return the live pipeline stage registry, or {@code null} before the first successful reload} */
     public StageRegistry stageRegistry() {
         return stageRegistry;
+    }
+
+    /** {@return the trigger contract registry; never {@code null}} */
+    public TriggerRegistry triggerRegistry() {
+        return triggerRegistry;
     }
 
     /** {@return the per-owner callbacks replayed when the stage table is rebuilt} */

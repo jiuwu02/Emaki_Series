@@ -1,14 +1,14 @@
-package emaki.jiuwu.craft.corelib.action.pipeline.compile;
+package emaki.jiuwu.craft.corelib.api.action.pipeline.compile;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 
 /**
  * Contract declared by one trigger across all of its phases.
@@ -17,10 +17,17 @@ import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
  * multi-step systems can expose different context at different points. This record keeps those phase
  * declarations together and gives runtime callers one stable lookup API.</p>
  *
+ * <h2>Trigger ids are a compatibility promise</h2>
+ * <p>Once a trigger id is published it appears in server-owner configuration. Renaming it silently
+ * breaks every pipeline bound to the old name, and there is no data migration that can recover the
+ * intent, so treat the id as permanent from the first release that exposes it. Namespace it with the
+ * owning plugin, for example {@code emakiforge:forge_success}.</p>
+ *
  * @param triggerId owning trigger id
  * @param phases declared phase contracts keyed by phase id
  * @param fallback contract used when an unknown phase is requested
  */
+@ApiStatus.Experimental
 public record TriggerContract(@NotNull String triggerId,
         @NotNull Map<String, PhaseContract> phases,
         @NotNull PhaseContract fallback) {

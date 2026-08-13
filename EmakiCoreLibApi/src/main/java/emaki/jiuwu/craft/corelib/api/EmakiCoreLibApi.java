@@ -15,11 +15,15 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionTrigger;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
+import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
@@ -287,6 +291,71 @@ public final class EmakiCoreLibApi {
         return resolved == null
                 ? CoreStageRegistration.unavailable(CoreStageKind.GATE, "corelib_unavailable")
                 : resolved.registerActionGate(owner, gate);
+    }
+
+    /**
+     * Registers a trigger contract, declaring a business moment other plugins' pipelines can bind to.
+     *
+     * <p>A trigger is not a fourth stage kind. Registering one only publishes the contract — the
+     * declaration of what context this moment supplies. The owning plugin still decides when the moment
+     * happened and calls {@link #dispatchTriggerAsync(Plugin, String, CoreTriggerDispatch)} itself. That
+     * split is deliberate: if CoreLib owned the invocation it would also own the schedule, and a
+     * per-tick listener for every registered trigger would cost the server owner whether any
+     * configuration uses it or not.</p>
+     *
+     * <p>{@link CoreActionTrigger#id()} must be namespaced, for example
+     * {@code emakiforge:forge_success}. An unprefixed id is rejected rather than allowed to race with
+     * another plugin's bare name, and a duplicate id fails while naming the first owner instead of
+     * silently taking it over.</p>
+     *
+     * <p>Keep the handle and close it in {@code onDisable}. Because a EmakiCoreLib reload rebuilds the
+     * trigger table alongside the stage table, also register a rebuild callback through
+     * {@link #onStageRegistryRebuilt} or the trigger will be gone after the first reload.</p>
+     *
+     * @param owner plugin that owns the trigger lifecycle
+     * @param trigger the trigger declaration
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreTriggerRegistration registerActionTrigger(@Nullable Plugin owner,
+            @Nullable CoreActionTrigger trigger) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreTriggerRegistration.unavailable("corelib_unavailable")
+                : resolved.registerActionTrigger(owner, trigger);
+    }
+
+    /**
+     * Dispatches a registered trigger at the caller's own business moment.
+     *
+     * <p>Resolves {@code triggerId} in the trigger table, resolves the dispatch phase against that
+     * trigger's declared contract, then compiles and runs {@link CoreTriggerDispatch#lines()}. An
+     * unregistered id returns a {@code notFound} failure rather than running permissively, because a
+     * typo in an id would otherwise silently skip the contract check the registration exists to
+     * provide.</p>
+     *
+     * <p><strong>Threading.</strong> The returned future is not guaranteed to complete on the Bukkit
+     * owner thread — pipeline stages declare their own execution domains and the last one to run decides
+     * where completion happens. Do not touch Bukkit state in a plain {@code thenRun}; hop back through
+     * {@link #scheduling()} first.</p>
+     *
+     * <p><strong>Cost.</strong> Dispatch is proportional to what the caller actually invokes: one map
+     * lookup for the trigger, then the normal compile cache and pipeline execution. Nothing scans the
+     * player list or the world on behalf of a trigger. A caller that dispatches every tick pays for
+     * every tick, so rate-limit high-frequency moments on the calling side.</p>
+     *
+     * @param owner plugin dispatching the moment; used for logging and pipeline ownership
+     * @param triggerId the registered, namespaced trigger id
+     * @param dispatch what fired, for whom, with what values
+     * @return a future carrying {@link EmakiResult#ok()} when every executed line succeeded
+     */
+    public static @NotNull java.util.concurrent.CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
+            @Nullable Plugin owner,
+            @Nullable String triggerId,
+            @Nullable CoreTriggerDispatch dispatch) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? java.util.concurrent.CompletableFuture.completedFuture(EmakiResult.unavailable())
+                : resolved.dispatchTriggerAsync(owner, triggerId, dispatch);
     }
 
     /**
@@ -614,6 +683,35 @@ public final class EmakiCoreLibApi {
          */
         @NotNull
         CoreStageRegistration registerActionGate(@Nullable Plugin owner, @Nullable CoreActionGate gate);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#registerActionTrigger(Plugin, CoreActionTrigger)} by delegating to
+         * the runtime trigger registry. Returns an inactive handle carrying a stable {@code reasonKey}
+         * when the registry has not been built yet, instead of throwing.
+         *
+         * @param owner plugin that owns the trigger lifecycle
+         * @param trigger the trigger declaration
+         * @return a revocable handle
+         */
+        @NotNull
+        CoreTriggerRegistration registerActionTrigger(@Nullable Plugin owner,
+                @Nullable CoreActionTrigger trigger);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#dispatchTriggerAsync(Plugin, String, CoreTriggerDispatch)} by
+         * resolving the trigger contract and running the supplied lines through the pipeline. An
+         * unregistered id resolves to a {@code notFound} failure rather than a permissive run.
+         *
+         * @param owner plugin dispatching the moment
+         * @param triggerId the registered, namespaced trigger id
+         * @param dispatch what fired, for whom, with what values
+         * @return a future carrying the run outcome
+         */
+        @NotNull
+        java.util.concurrent.CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
+                @Nullable Plugin owner,
+                @Nullable String triggerId,
+                @Nullable CoreTriggerDispatch dispatch);
 
         /**
          * Backs {@link EmakiCoreLibApi#onStageRegistryRebuilt(Plugin, Runnable)} by storing the callback
