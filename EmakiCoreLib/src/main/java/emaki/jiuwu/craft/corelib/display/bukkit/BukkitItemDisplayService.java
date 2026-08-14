@@ -13,11 +13,11 @@ import org.bukkit.util.Transformation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
 import emaki.jiuwu.craft.corelib.display.ItemDisplayService;
 import emaki.jiuwu.craft.corelib.display.ItemDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 
 /** 用真实 {@link ItemDisplay} 实体实现的物品展示服务。 */
 public final class BukkitItemDisplayService implements ItemDisplayService {
@@ -27,7 +27,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
     private final Map<String, ItemDisplay> displays = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
     private final Set<String> animatingGroups = ConcurrentHashMap.newKeySet();
-    private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
+    private final Map<String, TaskToken> expiryTasks = new ConcurrentHashMap<>();
 
     public BukkitItemDisplayService(Plugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
@@ -121,7 +121,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
 
     @Override
     public void shutdown() {
-        for (TaskHandle handle : Map.copyOf(expiryTasks).values()) {
+        for (TaskToken handle : Map.copyOf(expiryTasks).values()) {
             cancelQuietly(handle);
         }
         expiryTasks.clear();
@@ -311,7 +311,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             return;
         }
         String groupKey = spec.groupKey();
-        TaskHandle handle = executionDispatcher.runGlobalLater(
+        TaskToken handle = executionDispatcher.runGlobalLater(
                 plugin,
                 () -> {
                     expiryTasks.remove(key);
@@ -324,7 +324,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
         }
     }
 
-    private void cancelQuietly(TaskHandle handle) {
+    private void cancelQuietly(TaskToken handle) {
         if (handle == null) {
             return;
         }

@@ -5,8 +5,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 
 /**
  * 驱动展示实体运动的关键帧发生器。
@@ -36,7 +36,7 @@ public final class DisplayMotionRunner {
     private final Plugin plugin;
     private final ExecutionDispatcher executionDispatcher;
     private final Map<String, MotionState> activeMotions = new ConcurrentHashMap<>();
-    private volatile TaskHandle tickTask;
+    private volatile TaskToken tickTask;
 
     public DisplayMotionRunner(Plugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
@@ -101,7 +101,7 @@ public final class DisplayMotionRunner {
     }
 
     private synchronized void stopTicking() {
-        TaskHandle handle = tickTask;
+        TaskToken handle = tickTask;
         tickTask = null;
         if (handle == null) {
             return;

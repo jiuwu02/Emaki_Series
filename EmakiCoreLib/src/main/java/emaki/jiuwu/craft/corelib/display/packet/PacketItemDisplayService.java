@@ -35,12 +35,12 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
 import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
 import emaki.jiuwu.craft.corelib.display.ItemDisplayService;
 import emaki.jiuwu.craft.corelib.display.ItemDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.packet.VirtualEntityIds;
 
 /** 用封包模拟的物品展示实体。 */
@@ -54,8 +54,8 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
     private final Map<String, VirtualDisplay> displays = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
     private final Set<String> animatingGroups = ConcurrentHashMap.newKeySet();
-    private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
-    private final TaskHandle refreshTask;
+    private final Map<String, TaskToken> expiryTasks = new ConcurrentHashMap<>();
+    private final TaskToken refreshTask;
 
     public PacketItemDisplayService(Plugin plugin,
             DisplayRuntimeSettings settings,
@@ -151,7 +151,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
 
     @Override
     public void shutdown() {
-        for (TaskHandle handle : Map.copyOf(expiryTasks).values()) {
+        for (TaskToken handle : Map.copyOf(expiryTasks).values()) {
             cancelQuietly(handle);
         }
         expiryTasks.clear();
@@ -350,7 +350,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
             return;
         }
         String groupKey = spec.groupKey();
-        TaskHandle handle = executionDispatcher.runGlobalLater(
+        TaskToken handle = executionDispatcher.runGlobalLater(
                 plugin,
                 () -> {
                     expiryTasks.remove(key);
@@ -363,7 +363,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         }
     }
 
-    private void cancelQuietly(TaskHandle handle) {
+    private void cancelQuietly(TaskToken handle) {
         if (handle == null) {
             return;
         }

@@ -10,13 +10,13 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
 import emaki.jiuwu.craft.corelib.display.DisplayMotionRunner;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 
 /**
  * 用真实 {@link TextDisplay} 实体实现的文本展示服务。
@@ -30,7 +30,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
     private final DisplayMotionRunner motionRunner;
     private final Map<String, TextDisplay> displays = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
-    private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
+    private final Map<String, TaskToken> expiryTasks = new ConcurrentHashMap<>();
 
     public BukkitTextDisplayService(Plugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
@@ -118,7 +118,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
 
     @Override
     public void shutdown() {
-        for (TaskHandle handle : Map.copyOf(expiryTasks).values()) {
+        for (TaskToken handle : Map.copyOf(expiryTasks).values()) {
             cancelQuietly(handle);
         }
         expiryTasks.clear();
@@ -239,7 +239,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             return;
         }
         String groupKey = spec.groupKey();
-        TaskHandle handle = executionDispatcher.runGlobalLater(
+        TaskToken handle = executionDispatcher.runGlobalLater(
                 plugin,
                 () -> {
                     expiryTasks.remove(key);
@@ -252,7 +252,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
         }
     }
 
-    private void cancelQuietly(TaskHandle handle) {
+    private void cancelQuietly(TaskToken handle) {
         if (handle == null) {
             return;
         }

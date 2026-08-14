@@ -29,6 +29,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDe
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
 import emaki.jiuwu.craft.corelib.display.DisplayMotionRunner;
@@ -36,7 +37,6 @@ import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.packet.VirtualEntityIds;
 
 /**
@@ -55,8 +55,8 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     private final DisplayMotionRunner motionRunner;
     private final Map<String, VirtualText> displays = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
-    private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
-    private final TaskHandle refreshTask;
+    private final Map<String, TaskToken> expiryTasks = new ConcurrentHashMap<>();
+    private final TaskToken refreshTask;
 
     public PacketTextDisplayService(Plugin plugin,
             DisplayRuntimeSettings settings,
@@ -151,7 +151,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
 
     @Override
     public void shutdown() {
-        for (TaskHandle handle : Map.copyOf(expiryTasks).values()) {
+        for (TaskToken handle : Map.copyOf(expiryTasks).values()) {
             cancelQuietly(handle);
         }
         expiryTasks.clear();
@@ -290,7 +290,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             return;
         }
         String groupKey = spec.groupKey();
-        TaskHandle handle = executionDispatcher.runGlobalLater(
+        TaskToken handle = executionDispatcher.runGlobalLater(
                 plugin,
                 () -> {
                     expiryTasks.remove(key);
@@ -303,7 +303,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         }
     }
 
-    private void cancelQuietly(TaskHandle handle) {
+    private void cancelQuietly(TaskToken handle) {
         if (handle == null) {
             return;
         }
