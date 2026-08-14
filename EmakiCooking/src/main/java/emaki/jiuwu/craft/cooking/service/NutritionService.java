@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -79,7 +79,7 @@ public final class NutritionService {
     private volatile List<NutritionFoodSource> foodSources = List.of();
     private volatile List<NutritionSingleThreshold> singleThresholds = List.of();
     private volatile List<NutritionComboThreshold> comboThresholds = List.of();
-    private TaskHandle saveTask;
+    private TaskToken saveTask;
 
     public NutritionService(EmakiCookingPlugin plugin,
             ItemSourceService itemSourceService,

@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
 import emaki.jiuwu.craft.station.definition.StationRegistry;
 
@@ -37,7 +37,7 @@ public final class QueueTicker {
     private final Supplier<StationRegistry> registrySupplier;
     private final Runnable sessionRefresh;
 
-    private TaskHandle handle;
+    private TaskToken handle;
 
     /**
      * Creates the ticker.
@@ -84,7 +84,7 @@ public final class QueueTicker {
 
     /** {@return whether the timer is currently scheduled} */
     public boolean running() {
-        return handle != null && !handle.isCancelled();
+        return handle != null && !handle.cancelled();
     }
 
     private void tick() {

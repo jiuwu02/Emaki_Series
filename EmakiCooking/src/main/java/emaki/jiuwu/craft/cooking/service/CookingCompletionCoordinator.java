@@ -30,7 +30,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
@@ -565,7 +565,7 @@ public final class CookingCompletionCoordinator {
                 result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
                 return result;
             }
-            TaskHandle handle = executionDispatcher.runEntity(plugin, target, () -> {
+            TaskToken handle = executionDispatcher.runEntity(plugin, target, () -> {
                 try {
                     ItemStack current = target.getInventory().getItemInMainHand();
                     if (current == null || current.getType().isAir() || !current.isSimilar(template) || current.getAmount() < amount) {

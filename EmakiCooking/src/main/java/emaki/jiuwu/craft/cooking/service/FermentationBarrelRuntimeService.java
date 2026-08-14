@@ -26,7 +26,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -66,7 +66,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private final Map<StationCoordinates, FermentationBarrelState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> tickingStations = ConcurrentHashMap.newKeySet();
-    private TaskHandle tickerTask;
+    private TaskToken tickerTask;
 
     public FermentationBarrelRuntimeService(EmakiCookingPlugin plugin, MessageService messageService, CookingSettingsService settingsService,
             CookingBlockMatcher blockMatcher, StationStateStore stateStore, CookingRecipeService recipeService,
@@ -442,7 +442,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 activeStations.remove(coordinates);
                 continue;
             }
-            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = executionDispatcher.runAtLocation(plugin, location, () -> {
                 try {
                     processStation(coordinates, now);
                 } finally {
@@ -482,7 +482,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
     }
 
     private void ensureTicker() {
-        if (activeStations.isEmpty() || (tickerTask != null && !tickerTask.isCancelled())) {
+        if (activeStations.isEmpty() || (tickerTask != null && !tickerTask.cancelled())) {
             return;
         }
         tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, 20L, 20L);

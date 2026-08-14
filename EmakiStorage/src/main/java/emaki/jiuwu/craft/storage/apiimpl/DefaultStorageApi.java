@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.EmakiStorageApi;
 import emaki.jiuwu.craft.storage.api.StorageOperations;
@@ -121,7 +121,7 @@ public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
     private <T> CompletableFuture<T> runAsync(Supplier<T> operation, Supplier<T> onReject) {
         CompletableFuture<T> future = new CompletableFuture<>();
         try {
-            TaskHandle scheduled = plugin.executionDispatcher().runAsync(plugin, () -> {
+            TaskToken scheduled = plugin.executionDispatcher().runAsync(plugin, () -> {
                 try {
                     future.complete(operation.get());
                 } catch (Throwable failure) {

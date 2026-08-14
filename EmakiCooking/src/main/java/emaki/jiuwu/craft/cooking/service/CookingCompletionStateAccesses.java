@@ -6,7 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 
@@ -30,7 +30,7 @@ final class CookingCompletionStateAccesses {
                 result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
                 return result;
             }
-            TaskHandle handle = dispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = dispatcher.runAtLocation(plugin, location, () -> {
                 try {
                     action.run();
                     result.complete(null);

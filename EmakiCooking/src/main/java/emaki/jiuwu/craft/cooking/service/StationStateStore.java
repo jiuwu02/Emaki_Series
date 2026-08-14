@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -399,7 +399,7 @@ public final class StationStateStore {
                         return;
                     }
                     try {
-                        TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, task);
+                        TaskToken handle = executionDispatcher.runAtLocation(plugin, location, task);
                         if (handle == null) {
                             future.completeExceptionally(new RejectedExecutionException(
                                     "Location dispatcher rejected station restore"));
@@ -478,7 +478,7 @@ public final class StationStateStore {
             return;
         }
         try {
-            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = executionDispatcher.runAtLocation(plugin, location, () -> {
                 try {
                     task.run();
                 } catch (Throwable throwable) {

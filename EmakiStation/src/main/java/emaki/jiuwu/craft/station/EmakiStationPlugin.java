@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -89,7 +89,7 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private StationCommandRouter commandRouter;
     private StationPlayerListener playerListener;
     private DebugCommand debugCommand;
-    private TaskHandle autoSaveTask;
+    private TaskToken autoSaveTask;
     private boolean runtimeInitialized;
     // "Data is loaded", not "components exist": components is non-null from initialize() onward, so a
     // null-check answered true while reloadContent() was still swapping in layouts, stations, recipes.

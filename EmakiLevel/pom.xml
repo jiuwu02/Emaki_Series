@@ -24,6 +24,11 @@
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-corelib-api</artifactId>
+            <version>${emaki.corelib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib</artifactId>
             <version>${emaki.corelib.version}</version>
         </dependency>

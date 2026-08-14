@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
@@ -256,7 +256,7 @@ public final class CookingRewardService {
         if (!dropResult && player != null && player.isOnline()) {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
             try {
-                TaskHandle handle = executionDispatcher.runEntity(plugin, player, () -> {
+                TaskToken handle = executionDispatcher.runEntity(plugin, player, () -> {
                     try {
                         InventoryItemUtil.giveOrDrop(player, itemStack.clone());
                         future.complete(true);
@@ -278,7 +278,7 @@ public final class CookingRewardService {
         }
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-                TaskHandle handle = executionDispatcher.runAtLocation(plugin, dropLocation, () -> {
+                TaskToken handle = executionDispatcher.runAtLocation(plugin, dropLocation, () -> {
                     try {
                         World world = dropLocation.getWorld();
                         if (world == null) {

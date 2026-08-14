@@ -24,7 +24,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -99,7 +99,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
     private ForgePlaceholderExpansion placeholderExpansion;
-    private TaskHandle autoSaveTask;
+    private TaskToken autoSaveTask;
     private DebugCommand debugCommand;
     private ForgeStageRegistrar stageRegistrar;
     private final EmakiForgeApi.Bridge forgeApiBridge =

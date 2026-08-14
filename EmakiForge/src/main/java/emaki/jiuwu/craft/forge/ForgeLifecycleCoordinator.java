@@ -28,7 +28,7 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
@@ -622,7 +622,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         });
     }
 
-    public TaskHandle rescheduleAutoSave(EmakiForgePlugin plugin, TaskHandle currentTask) {
+    public TaskToken rescheduleAutoSave(EmakiForgePlugin plugin, TaskToken currentTask) {
         cancelAutoSave(currentTask);
         AppConfig config = plugin.appConfig();
         if (!config.historyEnabled() || !config.historyAutoSave()) {
@@ -642,9 +642,9 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
     }
 
-    public TaskHandle cancelAutoSave(TaskHandle currentTask) {
+    public TaskToken cancelAutoSave(TaskToken currentTask) {
         autoSaveGeneration.incrementAndGet();
-        if (currentTask != null && !currentTask.isCancelled()) {
+        if (currentTask != null && !currentTask.cancelled()) {
             currentTask.cancel();
         }
         return null;
@@ -902,7 +902,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 retired.run();
                 return;
             }
-            TaskHandle scheduled = plugin.executionDispatcher().runEntityLater(
+            TaskToken scheduled = plugin.executionDispatcher().runEntityLater(
                     coreLibPlugin,
                     player,
                     settle,
@@ -918,7 +918,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         return;
                     }
                     try {
-                        if (!scheduled.isCancelled()) {
+                        if (!scheduled.cancelled()) {
                             scheduled.cancel();
                         }
                     } catch (Throwable cancellationFailure) {

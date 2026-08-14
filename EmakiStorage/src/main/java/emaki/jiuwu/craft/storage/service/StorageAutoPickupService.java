@@ -10,7 +10,7 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.model.StorageResult;
 import emaki.jiuwu.craft.storage.config.AutoPickupConfig;
@@ -33,7 +33,7 @@ public final class StorageAutoPickupService {
 
     private final EmakiStoragePlugin plugin;
     private final Map<UUID, Long> notifyCooldowns = new ConcurrentHashMap<>();
-    private TaskHandle scanTask;
+    private TaskToken scanTask;
 
     public StorageAutoPickupService(EmakiStoragePlugin plugin) {
         this.plugin = plugin;

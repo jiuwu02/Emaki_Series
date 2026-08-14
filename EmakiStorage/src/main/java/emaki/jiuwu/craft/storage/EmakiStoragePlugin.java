@@ -35,7 +35,7 @@ import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -127,7 +127,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private StoragePlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
     private BStatsRegistration metrics;
-    private TaskHandle autosaveTask;
+    private TaskToken autosaveTask;
     // "Data is loaded", not "components exist": every service below is non-null from initialize()
     // onward, so a null-check answered true for the whole duration of a reload.
     private volatile boolean contentReady;
@@ -504,7 +504,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         CompletableFuture<R> future = new CompletableFuture<>();
         try {
-            TaskHandle scheduled = executionDispatcher.runEntity(this, target, () -> {
+            TaskToken scheduled = executionDispatcher.runEntity(this, target, () -> {
                 try {
                     future.complete(operation.get());
                 } catch (Throwable failure) {

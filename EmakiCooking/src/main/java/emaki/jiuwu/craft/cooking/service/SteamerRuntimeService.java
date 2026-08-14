@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -68,8 +68,8 @@ public final class SteamerRuntimeService implements Listener {
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> dirtyStations = ConcurrentHashMap.newKeySet();
     private final Set<StationCoordinates> tickingStations = ConcurrentHashMap.newKeySet();
-    private TaskHandle tickerTask;
-    private TaskHandle flushTask;
+    private TaskToken tickerTask;
+    private TaskToken flushTask;
 
     public SteamerRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -573,7 +573,7 @@ public final class SteamerRuntimeService implements Listener {
             cancelTicker();
             return;
         }
-        if (tickerTask != null && !tickerTask.isCancelled()) {
+        if (tickerTask != null && !tickerTask.cancelled()) {
             return;
         }
         tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, 20L, 20L);
@@ -584,7 +584,7 @@ public final class SteamerRuntimeService implements Listener {
             cancelFlushTask();
             return;
         }
-        if (flushTask != null && !flushTask.isCancelled()) {
+        if (flushTask != null && !flushTask.cancelled()) {
             return;
         }
         flushTask = executionDispatcher.runGlobalTimer(
@@ -666,7 +666,7 @@ public final class SteamerRuntimeService implements Listener {
                 activeStations.remove(coordinates);
                 continue;
             }
-            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = executionDispatcher.runAtLocation(plugin, location, () -> {
                 try {
                     processStation(coordinates, now);
                 } finally {

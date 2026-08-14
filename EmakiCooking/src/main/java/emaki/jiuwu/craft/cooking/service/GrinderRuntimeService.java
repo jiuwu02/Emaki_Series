@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -55,7 +55,7 @@ public final class GrinderRuntimeService {
     private final Set<String> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<String> tickingStations = ConcurrentHashMap.newKeySet();
     private CookingCompletionCoordinator completionCoordinator;
-    private TaskHandle tickerTask;
+    private TaskToken tickerTask;
 
     public GrinderRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -337,7 +337,7 @@ public final class GrinderRuntimeService {
             return;
         }
         int interval = settingsService.grinderCheckDelayTicks();
-        if (tickerTask != null && !tickerTask.isCancelled()) {
+        if (tickerTask != null && !tickerTask.cancelled()) {
             return;
         }
         tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, interval, interval);
@@ -378,7 +378,7 @@ public final class GrinderRuntimeService {
                 activeStations.remove(stationKey);
                 continue;
             }
-            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = executionDispatcher.runAtLocation(plugin, location, () -> {
                 try {
                     GrinderState state = readState(stateStore.load(coordinates));
                     if (state == null) {

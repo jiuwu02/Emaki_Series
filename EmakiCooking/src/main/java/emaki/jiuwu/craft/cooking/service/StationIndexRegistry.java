@@ -31,7 +31,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -62,7 +62,7 @@ final class StationIndexRegistry {
     private final Set<String> dirtyIndexWorlds = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean indexLoaded = new AtomicBoolean(false);
     private final AtomicBoolean indexFlushScheduled = new AtomicBoolean(false);
-    private volatile TaskHandle indexFlushTask;
+    private volatile TaskToken indexFlushTask;
 
     StationIndexRegistry(JavaPlugin plugin,
             FileScope fileScope,
@@ -263,7 +263,7 @@ final class StationIndexRegistry {
     }
 
     void cancelIndexFlushTask() {
-        TaskHandle task = indexFlushTask;
+        TaskToken task = indexFlushTask;
         indexFlushTask = null;
         indexFlushScheduled.set(false);
         if (task != null) {
@@ -496,7 +496,7 @@ final class StationIndexRegistry {
                 return future;
             }
             Location location = new Location(world, (chunkRef.chunkX() << 4) + 8D, 0D, (chunkRef.chunkZ() << 4) + 8D);
-            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = executionDispatcher.runAtLocation(plugin, location, () -> {
                 try {
                     if (!world.isChunkLoaded(chunkRef.chunkX(), chunkRef.chunkZ())) {
                         future.complete(0);
