@@ -30,7 +30,7 @@ import org.bukkit.block.TileState;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -53,7 +53,7 @@ final class StationIndexRegistry {
 
     private final JavaPlugin plugin;
     private final FileScope fileScope;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final StationStateFileStore fileStore;
     private final StationStateArbiter arbiter;
     private final Consumer<CompletableFuture<?>> operationTracker;
@@ -66,13 +66,13 @@ final class StationIndexRegistry {
 
     StationIndexRegistry(JavaPlugin plugin,
             FileScope fileScope,
-            ExecutionDispatcher executionDispatcher,
+            EmakiScheduling taskScheduler,
             StationStateFileStore fileStore,
             StationStateArbiter arbiter,
             Consumer<CompletableFuture<?>> operationTracker) {
         this.plugin = plugin;
         this.fileScope = fileScope;
-        this.executionDispatcher = executionDispatcher;
+        this.taskScheduler = taskScheduler;
         this.fileStore = fileStore;
         this.arbiter = arbiter;
         this.operationTracker = operationTracker;
@@ -249,7 +249,7 @@ final class StationIndexRegistry {
             return;
         }
         try {
-            indexFlushTask = executionDispatcher.runGlobalLater(plugin, () -> {
+            indexFlushTask = taskScheduler.runGlobalLater(plugin, () -> {
                 indexFlushTask = null;
                 indexFlushScheduled.set(false);
                 operationTracker.accept(flushDirtyIndexesAsync());
@@ -458,7 +458,7 @@ final class StationIndexRegistry {
     }
 
     private CompletableFuture<Integer> scanLoadedPdcStationsAsync() {
-        CompletableFuture<List<LoadedChunkRef>> snapshotFuture = executionDispatcher.submitGlobal(plugin, () -> {
+        CompletableFuture<List<LoadedChunkRef>> snapshotFuture = taskScheduler.submitGlobal(plugin, () -> {
             List<LoadedChunkRef> chunks = new ArrayList<>();
             for (World world : Bukkit.getWorlds()) {
                 for (Chunk chunk : world.getLoadedChunks()) {
@@ -496,7 +496,7 @@ final class StationIndexRegistry {
                 return future;
             }
             Location location = new Location(world, (chunkRef.chunkX() << 4) + 8D, 0D, (chunkRef.chunkZ() << 4) + 8D);
-            TaskToken handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = taskScheduler.runAtLocation(plugin, location, () -> {
                 try {
                     if (!world.isChunkLoaded(chunkRef.chunkX(), chunkRef.chunkZ())) {
                         future.complete(0);

@@ -29,7 +29,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -66,7 +66,7 @@ public final class CookingCompletionCoordinator {
     private final Logger logger;
     private final RetryScheduler retryScheduler;
     private final FrozenRewardExecutor frozenRewardExecutor;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final CookingCompletionRecoveryPlanner recoveryPlanner = new CookingCompletionRecoveryPlanner();
     private final Map<StationType, CookingStationStateAccess> stateAccesses = new EnumMap<>(StationType.class);
     private final ConcurrentMap<String, CookingCompletionOperation> operations = new ConcurrentHashMap<>();
@@ -78,15 +78,15 @@ public final class CookingCompletionCoordinator {
     public CookingCompletionCoordinator(JavaPlugin plugin,
             CookingRewardService rewardService,
             FileScope fileScope,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling taskScheduler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.rewardService = Objects.requireNonNull(rewardService, "rewardService");
         this.journalStore = new CookingCompletionJournalStore(plugin, fileScope);
         this.deliveryLedger = new CookingDeliveryLedgerStore(plugin, fileScope);
         this.logger = plugin.getLogger();
-        ExecutionDispatcher dispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
-        this.executionDispatcher = dispatcher;
-        this.retryScheduler = (task, delayTicks) -> dispatcher.runGlobalLater(this.plugin, task, delayTicks);
+        EmakiScheduling scheduler = Objects.requireNonNull(taskScheduler, "taskScheduler");
+        this.taskScheduler = scheduler;
+        this.retryScheduler = (task, delayTicks) -> scheduler.runGlobalLater(this.plugin, task, delayTicks);
         this.frozenRewardExecutor = this.rewardService::executeFrozen;
     }
 
@@ -101,7 +101,7 @@ public final class CookingCompletionCoordinator {
         this.logger = Objects.requireNonNull(logger, "logger");
         this.retryScheduler = Objects.requireNonNull(retryScheduler, "retryScheduler");
         this.frozenRewardExecutor = Objects.requireNonNull(frozenRewardExecutor, "frozenRewardExecutor");
-        this.executionDispatcher = null;
+        this.taskScheduler = null;
     }
 
     public synchronized void register(CookingStationStateAccess access) {
@@ -283,7 +283,7 @@ public final class CookingCompletionCoordinator {
     }
 
     private boolean dispatchAdvance(String operationId, StationCoordinates coordinates) {
-        if (executionDispatcher == null) {
+        if (taskScheduler == null) {
             advanceOnOwnerThread(operationId);
             return true;
         }
@@ -292,7 +292,7 @@ public final class CookingCompletionCoordinator {
             return false;
         }
         try {
-            return executionDispatcher.runAtLocation(
+            return taskScheduler.runAtLocation(
                     plugin, location, () -> advanceOnOwnerThread(operationId)) != null;
         } catch (Throwable error) {
             logger.warning("Failed to schedule cooking completion advance " + operationId + ": "
@@ -561,11 +561,11 @@ public final class CookingCompletionCoordinator {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         try {
             Player target = player;
-            if (executionDispatcher == null) {
+            if (taskScheduler == null) {
                 result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
                 return result;
             }
-            TaskToken handle = executionDispatcher.runEntity(plugin, target, () -> {
+            TaskToken handle = taskScheduler.runForEntity(plugin, target, () -> {
                 try {
                     ItemStack current = target.getInventory().getItemInMainHand();
                     if (current == null || current.getType().isAir() || !current.isSimilar(template) || current.getAmount() < amount) {

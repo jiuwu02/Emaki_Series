@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
@@ -102,6 +103,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private DebugCommand debugCommand;
     private CookingStageRegistrar stageRegistrar;
 
+    private EmakiScheduling taskScheduler;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
     private YamlConfigLoader<AppConfig> appConfigLoader;
@@ -315,6 +317,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void applyRuntimeComponents(CookingRuntimeComponents components) {
+        taskScheduler = components.taskScheduler();
         executionDispatcher = components.executionDispatcher();
         threadOwnership = components.threadOwnership();
         appConfigLoader = components.appConfigLoader();
@@ -567,6 +570,10 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
      */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
+    }
+
+    public EmakiScheduling taskScheduler() {
+        return taskScheduler;
     }
 
     public ExecutionDispatcher executionDispatcher() {

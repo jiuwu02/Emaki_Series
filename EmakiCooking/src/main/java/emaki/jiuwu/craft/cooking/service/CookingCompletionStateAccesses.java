@@ -5,7 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -23,14 +23,14 @@ final class CookingCompletionStateAccesses {
             return result;
         }
         try {
-            ExecutionDispatcher dispatcher = plugin instanceof EmakiCookingPlugin cookingPlugin
-                    ? cookingPlugin.executionDispatcher()
+            EmakiScheduling scheduler = plugin instanceof EmakiCookingPlugin cookingPlugin
+                    ? cookingPlugin.taskScheduler()
                     : null;
-            if (dispatcher == null) {
+            if (scheduler == null) {
                 result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
                 return result;
             }
-            TaskToken handle = dispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = scheduler.runAtLocation(plugin, location, () -> {
                 try {
                     action.run();
                     result.complete(null);

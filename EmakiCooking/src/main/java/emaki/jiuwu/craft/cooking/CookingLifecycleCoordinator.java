@@ -14,6 +14,8 @@ import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
@@ -78,6 +80,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     @Override
     public CookingRuntimeComponents initialize(EmakiCookingPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiScheduling taskScheduler = EmakiCoreLibApi.scheduling();
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
@@ -121,7 +124,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         CookingBlockMatcher blockMatcher = new CookingBlockMatcher(settingsService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge);
         var cookingFileScope = coreLibPlugin.asyncFileScope(plugin);
         StationStateStore stationStateStore = new StationStateStore(
-                plugin, cookingFileScope, executionDispatcher, threadOwnership);
+                plugin, cookingFileScope, taskScheduler, threadOwnership);
         CookingRecipeService recipeService = new CookingRecipeService(plugin, settingsService);
         CookingRewardService rewardService = new CookingRewardService(
                 plugin,
@@ -129,12 +132,12 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 coreLibPlugin.itemSourceService(),
                 plugin.actionLines(),
                 coreLibPlugin.itemAssemblyService(),
-                executionDispatcher,
+                taskScheduler,
                 threadOwnership
         );
         rewardService.setRecipeService(recipeService);
         CookingCompletionCoordinator completionCoordinator = new CookingCompletionCoordinator(
-                plugin, rewardService, cookingFileScope, executionDispatcher);
+                plugin, rewardService, cookingFileScope, taskScheduler);
         CookingInspectService inspectService = new CookingInspectService(messageService, coreLibPlugin.itemSourceService(), stationStateStore, blockMatcher, settingsService);
         CookingDisplayService displayService = CookingDisplayServiceFactory.create(
                 plugin, settingsService, executionDispatcher);
@@ -174,7 +177,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 rewardService,
                 coreLibPlugin.itemSourceService(),
                 textDisplayService,
-                executionDispatcher
+                taskScheduler
         );
         SteamerRuntimeService steamerRuntimeService = new SteamerRuntimeService(
                 plugin,
@@ -186,7 +189,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 rewardService,
                 coreLibPlugin.itemSourceService(),
                 textDisplayService,
-                executionDispatcher
+                taskScheduler
         );
         OvenRuntimeService ovenRuntimeService = new OvenRuntimeService(
                 plugin,
@@ -198,7 +201,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 rewardService,
                 coreLibPlugin.itemSourceService(),
                 textDisplayService,
-                executionDispatcher
+                taskScheduler
         );
         JuicerRuntimeService juicerRuntimeService = new JuicerRuntimeService(
                 plugin,
@@ -222,7 +225,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 completionCoordinator,
                 coreLibPlugin.itemSourceService(),
                 textDisplayService,
-                executionDispatcher
+                taskScheduler
         );
         choppingBoardRuntimeService.setCompletionCoordinator(completionCoordinator);
         wokRuntimeService.setCompletionCoordinator(completionCoordinator);
@@ -242,10 +245,11 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 settingsService,
                 nutritionTypeRegistry,
                 nutritionDataStore,
-                executionDispatcher,
+                taskScheduler,
                 threadOwnership
         );
         return new CookingRuntimeComponents(
+                taskScheduler,
                 executionDispatcher,
                 threadOwnership,
                 appConfigLoader,

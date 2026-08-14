@@ -5,6 +5,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -41,7 +42,8 @@ import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 
-record CookingRuntimeComponents(ExecutionDispatcher executionDispatcher,
+record CookingRuntimeComponents(EmakiScheduling taskScheduler,
+        ExecutionDispatcher executionDispatcher,
         ThreadOwnership threadOwnership,
         YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
@@ -83,6 +85,7 @@ record CookingRuntimeComponents(ExecutionDispatcher executionDispatcher,
     @Override
     public Map<Class<?>, Object> services() {
         return RuntimeComponents.services(
+                RuntimeComponents.component(EmakiScheduling.class, taskScheduler),
                 RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
                 RuntimeComponents.component(ThreadOwnership.class, threadOwnership),
                 RuntimeComponents.component(YamlConfigLoader.class, appConfigLoader),

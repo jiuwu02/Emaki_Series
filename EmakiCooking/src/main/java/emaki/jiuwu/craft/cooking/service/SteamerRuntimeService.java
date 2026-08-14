@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -62,7 +62,7 @@ public final class SteamerRuntimeService implements Listener {
     private final SteamerTickProcessor tickProcessor;
     private final SteamerGuiController guiController;
     private final CookingTextDisplayService textDisplayService;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private CookingCompletionCoordinator completionCoordinator;
     private final Map<StationCoordinates, SteamerState> runtimeStates = new ConcurrentHashMap<>();
     private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
@@ -80,7 +80,7 @@ public final class SteamerRuntimeService implements Listener {
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             CookingTextDisplayService textDisplayService,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling taskScheduler) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -90,7 +90,7 @@ public final class SteamerRuntimeService implements Listener {
         this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.textDisplayService = textDisplayService;
-        this.executionDispatcher = executionDispatcher;
+        this.taskScheduler = taskScheduler;
         this.codec = new SteamerStateCodec();
         this.tickProcessor = new SteamerTickProcessor(settingsService, blockMatcher, recipeService, rewardService, itemSourceService, codec);
         this.guiController = new SteamerGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
@@ -576,7 +576,7 @@ public final class SteamerRuntimeService implements Listener {
         if (tickerTask != null && !tickerTask.cancelled()) {
             return;
         }
-        tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, 20L, 20L);
+        tickerTask = taskScheduler.runGlobalTimer(plugin, this::tick, 20L, 20L);
     }
 
     private void ensureFlushTask() {
@@ -587,7 +587,7 @@ public final class SteamerRuntimeService implements Listener {
         if (flushTask != null && !flushTask.cancelled()) {
             return;
         }
-        flushTask = executionDispatcher.runGlobalTimer(
+        flushTask = taskScheduler.runGlobalTimer(
                 plugin,
                 this::flushDirtyStates,
                 DIRTY_FLUSH_INTERVAL_TICKS,
@@ -666,7 +666,7 @@ public final class SteamerRuntimeService implements Listener {
                 activeStations.remove(coordinates);
                 continue;
             }
-            TaskToken handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = taskScheduler.runAtLocation(plugin, location, () -> {
                 try {
                     processStation(coordinates, now);
                 } finally {

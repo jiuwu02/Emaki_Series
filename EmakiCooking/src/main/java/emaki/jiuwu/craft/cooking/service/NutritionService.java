@@ -12,7 +12,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -68,7 +68,7 @@ public final class NutritionService {
     private final CookingSettingsService settingsService;
     private final NutritionTypeRegistry typeRegistry;
     private final PlayerNutritionDataStore dataStore;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final ThreadOwnership threadOwnership;
 
 
@@ -86,14 +86,14 @@ public final class NutritionService {
             CookingSettingsService settingsService,
             NutritionTypeRegistry typeRegistry,
             PlayerNutritionDataStore dataStore,
-            ExecutionDispatcher executionDispatcher,
+            EmakiScheduling taskScheduler,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.itemSourceService = itemSourceService;
         this.settingsService = settingsService;
         this.typeRegistry = typeRegistry;
         this.dataStore = dataStore;
-        this.executionDispatcher = executionDispatcher;
+        this.taskScheduler = taskScheduler;
         this.threadOwnership = threadOwnership;
     }
 
@@ -284,12 +284,12 @@ public final class NutritionService {
             evaluateCachedThresholds(player);
             return;
         }
-        if (executionDispatcher == null) {
+        if (taskScheduler == null) {
             plugin.getLogger().warning("EmakiCooking skipped nutrition threshold evaluation for " + player.getName()
                     + ": caller thread does not own the player and no execution dispatcher is available.");
             return;
         }
-        if (executionDispatcher.runEntity(plugin, player, () -> evaluateCachedThresholds(player)) == null) {
+        if (taskScheduler.runForEntity(plugin, player, () -> evaluateCachedThresholds(player), null) == null) {
             plugin.getLogger().warning("EmakiCooking failed to reroute nutrition threshold evaluation for "
                     + player.getName() + ": entity task scheduling was rejected.");
         }
@@ -481,7 +481,7 @@ public final class NutritionService {
             return;
         }
         long periodTicks = (long) seconds * 20L;
-        saveTask = executionDispatcher.runGlobalTimer(plugin, () -> dataStore.saveAllAsync(), periodTicks, periodTicks);
+        saveTask = taskScheduler.runGlobalTimer(plugin, () -> dataStore.saveAllAsync(), periodTicks, periodTicks);
     }
 
     private void cancelSaveTask() {

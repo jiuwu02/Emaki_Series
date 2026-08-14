@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
@@ -43,7 +43,7 @@ public final class CookingRewardService {
     private final ItemSourceService itemSourceService;
     private final ActionLineRunner actionLines;
     private final EmakiItemAssemblyService itemAssemblyService;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final ThreadOwnership threadOwnership;
     private final CookingLayerSnapshotBuilder snapshotBuilder = new CookingLayerSnapshotBuilder();
     private CookingRecipeService recipeService;
@@ -53,14 +53,14 @@ public final class CookingRewardService {
             ItemSourceService itemSourceService,
             ActionLineRunner actionLines,
             EmakiItemAssemblyService itemAssemblyService,
-            ExecutionDispatcher executionDispatcher,
+            EmakiScheduling taskScheduler,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.itemSourceService = itemSourceService;
         this.actionLines = actionLines;
         this.itemAssemblyService = itemAssemblyService;
-        this.executionDispatcher = executionDispatcher;
+        this.taskScheduler = taskScheduler;
         this.threadOwnership = threadOwnership;
     }
 
@@ -256,7 +256,7 @@ public final class CookingRewardService {
         if (!dropResult && player != null && player.isOnline()) {
             CompletableFuture<Boolean> future = new CompletableFuture<>();
             try {
-                TaskToken handle = executionDispatcher.runEntity(plugin, player, () -> {
+                TaskToken handle = taskScheduler.runForEntity(plugin, player, () -> {
                     try {
                         InventoryItemUtil.giveOrDrop(player, itemStack.clone());
                         future.complete(true);
@@ -278,7 +278,7 @@ public final class CookingRewardService {
         }
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-                TaskToken handle = executionDispatcher.runAtLocation(plugin, dropLocation, () -> {
+                TaskToken handle = taskScheduler.runAtLocation(plugin, dropLocation, () -> {
                     try {
                         World world = dropLocation.getWorld();
                         if (world == null) {

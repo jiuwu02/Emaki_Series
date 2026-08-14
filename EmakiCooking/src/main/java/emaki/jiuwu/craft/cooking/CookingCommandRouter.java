@@ -16,7 +16,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 
 final class CookingCommandRouter implements TabExecutor {
 
@@ -133,16 +133,16 @@ final class CookingCommandRouter implements TabExecutor {
     }
 
     private void runForSender(CommandSender sender, Runnable task) {
-        ExecutionDispatcher dispatcher = plugin.executionDispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling scheduler = plugin.taskScheduler();
+        if (scheduler == null) {
             task.run();
             return;
         }
         if (sender instanceof Player player) {
-            dispatcher.runEntity(plugin, player, task, task);
+            scheduler.runForEntity(plugin, player, task, null);
             return;
         }
-        dispatcher.runGlobal(plugin, task);
+        scheduler.runGlobal(plugin, task);
     }
 
     private boolean handleInspect(CommandSender sender, String[] args) {

@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -57,7 +57,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private final CookingRecipeService recipeService;
     private final CookingRewardService rewardService;
     private final CookingCompletionCoordinator completionCoordinator;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final ItemSourceService itemSourceService;
     private final FermentationBarrelStateCodec codec = new FermentationBarrelStateCodec();
     private final FermentationBarrelTickProcessor tickProcessor = new FermentationBarrelTickProcessor();
@@ -72,7 +72,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
             CookingBlockMatcher blockMatcher, StationStateStore stateStore, CookingRecipeService recipeService,
             CookingRewardService rewardService, CookingCompletionCoordinator completionCoordinator,
             ItemSourceService itemSourceService, CookingTextDisplayService textDisplayService,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling taskScheduler) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
@@ -81,7 +81,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         this.recipeService = recipeService;
         this.rewardService = rewardService;
         this.completionCoordinator = completionCoordinator;
-        this.executionDispatcher = executionDispatcher;
+        this.taskScheduler = taskScheduler;
         if (completionCoordinator != null) {
             completionCoordinator.register(completionStateAccess());
         }
@@ -442,7 +442,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 activeStations.remove(coordinates);
                 continue;
             }
-            TaskToken handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = taskScheduler.runAtLocation(plugin, location, () -> {
                 try {
                     processStation(coordinates, now);
                 } finally {
@@ -485,7 +485,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         if (activeStations.isEmpty() || (tickerTask != null && !tickerTask.cancelled())) {
             return;
         }
-        tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, 20L, 20L);
+        tickerTask = taskScheduler.runGlobalTimer(plugin, this::tick, 20L, 20L);
     }
 
     private void cancelTicker() {
