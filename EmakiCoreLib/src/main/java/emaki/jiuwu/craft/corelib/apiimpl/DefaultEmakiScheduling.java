@@ -14,15 +14,13 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 /**
  * {@link EmakiScheduling} 的运行时实现，把窄门面接到内部的 {@link ExecutionDispatcher}
  * 与 {@link ThreadOwnership}。
  *
- * <p>只转发，不新增调度策略；{@link TaskHandle} 被包装成 API 侧的 {@link TaskToken}，
- * 避免第三方直接依赖内部类型。
+ * <p>只转发，不新增调度策略；{@link ExecutionDispatcher} 已直接返回 API 侧的 {@link TaskToken}。
  */
 public final class DefaultEmakiScheduling implements EmakiScheduling {
 
@@ -107,20 +105,7 @@ public final class DefaultEmakiScheduling implements EmakiScheduling {
         return dispatcher.submitGlobal(owner, task);
     }
 
-    private static TaskToken wrap(TaskHandle handle) {
-        return handle == null ? TaskToken.UNAVAILABLE : new HandleToken(handle);
-    }
-
-    private record HandleToken(TaskHandle handle) implements TaskToken {
-
-        @Override
-        public void cancel() {
-            handle.cancel();
-        }
-
-        @Override
-        public boolean cancelled() {
-            return handle.isCancelled();
-        }
+    private static TaskToken wrap(TaskToken token) {
+        return token == null ? TaskToken.UNAVAILABLE : token;
     }
 }

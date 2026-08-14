@@ -18,13 +18,13 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 
 public abstract class AbstractPlayerItemRefreshListener implements Listener {
 
     private final JavaPlugin plugin;
     private final ExecutionDispatcher executionDispatcher;
-    private final Map<UUID, TaskHandle> scheduledRefreshes = new ConcurrentHashMap<>();
+    private final Map<UUID, TaskToken> scheduledRefreshes = new ConcurrentHashMap<>();
 
     protected AbstractPlayerItemRefreshListener(JavaPlugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -74,7 +74,7 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
 
     @EventHandler
     public final void onQuit(PlayerQuitEvent event) {
-        TaskHandle task = scheduledRefreshes.remove(event.getPlayer().getUniqueId());
+        TaskToken task = scheduledRefreshes.remove(event.getPlayer().getUniqueId());
         if (task != null) {
             task.cancel();
         }
@@ -91,7 +91,7 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
         if (scheduledRefreshes.putIfAbsent(playerId, slot) != null) {
             return;
         }
-        TaskHandle task;
+        TaskToken task;
         try {
             task = executionDispatcher.runEntity(plugin, player, () -> {
                 // 按值删除：迟到的回调只会清掉自己这次的占位，不会误删新 session 的 handle。
@@ -116,34 +116,34 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
     }
 
     /**
-     * 一次刷新调度的占位句柄。调度前先入 map 作为身份标识，拿到真实 {@link TaskHandle} 后再
-     * {@link #bind(TaskHandle)}；因此 map 中的 value 一经写入就不再变化，回调可安全按值删除。
+     * 一次刷新调度的占位句柄。调度前先入 map 作为身份标识，拿到真实 {@link TaskToken} 后再
+     * {@link #bind(TaskToken)}；因此 map 中的 value 一经写入就不再变化，回调可安全按值删除。
      */
-    private static final class RefreshSlot implements TaskHandle {
+    private static final class RefreshSlot implements TaskToken {
 
-        private volatile TaskHandle delegate;
+        private volatile TaskToken delegate;
         private volatile boolean cancelled;
 
         @Override
         public void cancel() {
             cancelled = true;
-            TaskHandle current = delegate;
+            TaskToken current = delegate;
             if (current != null) {
                 current.cancel();
             }
         }
 
         @Override
-        public boolean isCancelled() {
-            TaskHandle current = delegate;
-            return current == null ? cancelled : current.isCancelled();
+        public boolean cancelled() {
+            TaskToken current = delegate;
+            return current == null ? cancelled : current.cancelled();
         }
 
         /**
          * 绑定真实句柄。与 {@link #cancel()} 的写读顺序相反，因此并发发生时至少一方能看到对方，
          * 不会出现「已取消但真实任务仍在排队」的漏取消。
          */
-        void bind(TaskHandle handle) {
+        void bind(TaskToken handle) {
             delegate = handle;
             if (cancelled) {
                 handle.cancel();

@@ -13,7 +13,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionBackend;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 
 public final class PaperExecutionBackend implements ExecutionBackend {
 
@@ -24,7 +24,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
     }
 
     @Override
-    public TaskHandle runGlobal(Plugin owner, Runnable task) {
+    public TaskToken runGlobal(Plugin owner, Runnable task) {
         if (!canSchedule(owner, task)) {
             return null;
         }
@@ -36,7 +36,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
     }
 
     @Override
-    public TaskHandle runGlobalLater(Plugin owner, Runnable task, long delayTicks) {
+    public TaskToken runGlobalLater(Plugin owner, Runnable task, long delayTicks) {
         if (!canSchedule(owner, task)) {
             return null;
         }
@@ -48,7 +48,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
     }
 
     @Override
-    public TaskHandle runGlobalTimer(Plugin owner, Runnable task, long delayTicks, long periodTicks) {
+    public TaskToken runGlobalTimer(Plugin owner, Runnable task, long delayTicks, long periodTicks) {
         if (!canSchedule(owner, task)) {
             return null;
         }
@@ -64,12 +64,12 @@ public final class PaperExecutionBackend implements ExecutionBackend {
     }
 
     @Override
-    public TaskHandle runEntity(Plugin owner, Entity entity, Runnable task, Runnable retired) {
+    public TaskToken runEntity(Plugin owner, Entity entity, Runnable task, Runnable retired) {
         return entity == null ? null : runGlobal(owner, task);
     }
 
     @Override
-    public TaskHandle runEntityLater(Plugin owner,
+    public TaskToken runEntityLater(Plugin owner,
             Entity entity,
             Runnable task,
             Runnable retired,
@@ -78,17 +78,17 @@ public final class PaperExecutionBackend implements ExecutionBackend {
     }
 
     @Override
-    public TaskHandle runAtLocation(Plugin owner, Location location, Runnable task) {
+    public TaskToken runAtLocation(Plugin owner, Location location, Runnable task) {
         return location == null || location.getWorld() == null ? null : runGlobal(owner, task);
     }
 
     @Override
-    public TaskHandle runAtLocationLater(Plugin owner, Location location, Runnable task, long delayTicks) {
+    public TaskToken runAtLocationLater(Plugin owner, Location location, Runnable task, long delayTicks) {
         return location == null || location.getWorld() == null ? null : runGlobalLater(owner, task, delayTicks);
     }
 
     @Override
-    public TaskHandle runAsync(Plugin owner, Runnable task) {
+    public TaskToken runAsync(Plugin owner, Runnable task) {
         if (!canSchedule(owner, task)) {
             return null;
         }
@@ -100,7 +100,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
     }
 
     @Override
-    public TaskHandle runAsyncLater(Plugin owner, Runnable task, long delay, TimeUnit unit) {
+    public TaskToken runAsyncLater(Plugin owner, Runnable task, long delay, TimeUnit unit) {
         if (!canSchedule(owner, task)) {
             return null;
         }
@@ -119,7 +119,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
             return CompletableFuture.failedFuture(new NullPointerException("task"));
         }
         CompletableFuture<T> future = new CompletableFuture<>();
-        TaskHandle handle;
+        TaskToken handle;
         try {
             handle = runGlobal(owner, () -> {
                 try {
@@ -161,7 +161,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
         return server != null && owner != null && owner.isEnabled() && task != null;
     }
 
-    private TaskHandle wrap(BukkitTask task) {
+    private TaskToken wrap(BukkitTask task) {
         return task == null ? null : new PaperTaskHandle(task);
     }
 
@@ -174,7 +174,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
         return new IllegalStateException("Failed to invoke Paper scheduler operation: " + operation, throwable);
     }
 
-    private record PaperTaskHandle(BukkitTask task) implements TaskHandle {
+    private record PaperTaskHandle(BukkitTask task) implements TaskToken {
 
         @Override
         public void cancel() {
@@ -182,7 +182,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
         }
 
         @Override
-        public boolean isCancelled() {
+        public boolean cancelled() {
             return task.isCancelled();
         }
     }

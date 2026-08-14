@@ -18,7 +18,7 @@ import org.bukkit.plugin.Plugin;
 import io.papermc.paper.event.player.AsyncChatEvent;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
@@ -170,7 +170,7 @@ public final class ChatInputService implements Listener {
             return false;
         }
         pending.remove(input.request.player().getUniqueId(), input);
-        TaskHandle timeout = input.timeoutHandle;
+        TaskToken timeout = input.timeoutHandle;
         if (timeout != null) {
             timeout.cancel();
         }
@@ -226,7 +226,7 @@ public final class ChatInputService implements Listener {
             debug(player, "common.chat_input.timed_out", ChatInputDebugSupport.requestFields(input.request));
             finish(input, ChatInputResult.timeout(), false);
         };
-        TaskHandle handle;
+        TaskToken handle;
         try {
             handle = executionDispatcher.runEntityLater(
                     input.request.owner(),
@@ -265,7 +265,7 @@ public final class ChatInputService implements Listener {
 
         private final ChatInputRequest request;
         private final AtomicBoolean completed = new AtomicBoolean();
-        private volatile TaskHandle timeoutHandle;
+        private volatile TaskToken timeoutHandle;
 
         private PendingInput(ChatInputRequest request) {
             this.request = request;

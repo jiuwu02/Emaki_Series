@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
@@ -38,7 +38,7 @@ public final class StageDispatcher implements AutoCloseable {
     private final ExecutionDispatcher dispatcher;
     private final CapabilityProbe capabilities;
     private final boolean inline;
-    private final Map<Plugin, Set<TaskHandle>> handlesByOwner = new ConcurrentHashMap<>();
+    private final Map<Plugin, Set<TaskToken>> handlesByOwner = new ConcurrentHashMap<>();
     private final Map<Plugin, Set<CancellationSignal>> signalsByOwner = new ConcurrentHashMap<>();
     private final Consumer<String> dispatchObserver;
 
@@ -137,12 +137,12 @@ public final class StageDispatcher implements AutoCloseable {
         }
 
         CompletableFuture<T> future = new CompletableFuture<>();
-        AtomicReference<TaskHandle> handleReference = new AtomicReference<>();
+        AtomicReference<TaskToken> handleReference = new AtomicReference<>();
         registerSignal(owner, cancellation);
         Runnable invocation = () -> invoke(task, cancellation, future);
         Runnable retired = () -> future.completeExceptionally(new StageRetiredException(safeName(taskName)));
         try {
-            TaskHandle handle = schedule(owner, target, invocation, retired, Math.max(0L, delayTicks));
+            TaskToken handle = schedule(owner, target, invocation, retired, Math.max(0L, delayTicks));
             handleReference.set(handle);
             if (handle == null) {
                 future.completeExceptionally(new IllegalStateException(
@@ -156,9 +156,9 @@ public final class StageDispatcher implements AutoCloseable {
 
         long safeTimeout = Math.max(1L, timeoutMillis);
         future.orTimeout(safeTimeout, TimeUnit.MILLISECONDS).whenComplete((result, throwable) -> {
-            TaskHandle handle = handleReference.get();
+            TaskToken handle = handleReference.get();
             if (handle != null) {
-                Set<TaskHandle> handles = handlesByOwner.get(owner);
+                Set<TaskToken> handles = handlesByOwner.get(owner);
                 if (handles != null) {
                     handles.remove(handle);
                 }
@@ -188,12 +188,12 @@ public final class StageDispatcher implements AutoCloseable {
         if (signals != null) {
             signals.forEach(CancellationSignal::cancel);
         }
-        Set<TaskHandle> handles = handlesByOwner.remove(owner);
+        Set<TaskToken> handles = handlesByOwner.remove(owner);
         if (handles == null) {
             return 0;
         }
         int cancelled = 0;
-        for (TaskHandle handle : List.copyOf(handles)) {
+        for (TaskToken handle : List.copyOf(handles)) {
             try {
                 handle.cancel();
                 cancelled++;
@@ -241,7 +241,7 @@ public final class StageDispatcher implements AutoCloseable {
         }
     }
 
-    private TaskHandle schedule(Plugin owner,
+    private TaskToken schedule(Plugin owner,
             DispatchTarget target,
             Runnable task,
             Runnable retired,

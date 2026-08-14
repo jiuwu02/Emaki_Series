@@ -26,7 +26,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 /**
@@ -273,7 +273,7 @@ public final class PipelineTaskService implements Listener {
     private void schedule(Task task, long delayTicks) {
         Runnable body = () -> tick(task);
         Player player = task.player();
-        TaskHandle handle;
+        TaskToken handle;
         try {
             handle = player == null
                     ? dispatcher.runGlobalLater(owner, body, delayTicks)
@@ -519,7 +519,7 @@ public final class PipelineTaskService implements Listener {
         private final Request request;
         private volatile int index;
         private volatile boolean cancelled;
-        private volatile TaskHandle handle;
+        private volatile TaskToken handle;
 
         private Task(String id, String key, Request request) {
             this.id = id;
@@ -542,7 +542,7 @@ public final class PipelineTaskService implements Listener {
 
         private void cancel() {
             cancelled = true;
-            TaskHandle current = handle;
+            TaskToken current = handle;
             if (current != null) {
                 current.cancel();
             }
