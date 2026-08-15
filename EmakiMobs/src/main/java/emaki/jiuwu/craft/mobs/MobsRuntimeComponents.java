@@ -8,14 +8,17 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
+import emaki.jiuwu.craft.mobs.listener.MobTriggerListener;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinitionLoader;
+import emaki.jiuwu.craft.mobs.service.AttributeBridge;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.spawner.NaturalSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
@@ -43,7 +46,10 @@ record MobsRuntimeComponents(
         AtomicReference<List<SpawnRule>> spawnRegistry,
         SpawnRuleDispatcher spawnRuleDispatcher,
         NaturalSpawnHandler naturalSpawnHandler,
-        StructureSpawnHandler structureSpawnHandler
+        StructureSpawnHandler structureSpawnHandler,
+        AttributeBridge attributeBridge,
+        MobSkillExecutor mobSkillExecutor,
+        MobTriggerListener mobTriggerListener
 ) implements RuntimeComponents {
 
     @Override

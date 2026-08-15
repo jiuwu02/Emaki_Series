@@ -15,13 +15,16 @@ public final class MobFactory {
     private final Supplier<Map<String, MobSpec>> registry;
     private final ComponentMapper componentMapper;
     private final MobIdentifier mobIdentifier;
+    private final AttributeBridge attributeBridge;
 
     public MobFactory(Supplier<Map<String, MobSpec>> registry,
                       ComponentMapper componentMapper,
-                      MobIdentifier mobIdentifier) {
+                      MobIdentifier mobIdentifier,
+                      AttributeBridge attributeBridge) {
         this.registry = registry;
         this.componentMapper = componentMapper;
         this.mobIdentifier = mobIdentifier;
+        this.attributeBridge = attributeBridge;
     }
 
     public Optional<LivingEntity> spawn(Location location, String mobId) {
@@ -40,6 +43,7 @@ public final class MobFactory {
         }
         mobIdentifier.mark(entity, mobId);
         componentMapper.apply(entity, spec.components());
+        attributeBridge.apply(entity, spec.attributes());
         return Optional.of(entity);
     }
 }

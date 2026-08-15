@@ -10,14 +10,17 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.config.AppConfigParser;
 import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
+import emaki.jiuwu.craft.mobs.listener.MobTriggerListener;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinitionLoader;
+import emaki.jiuwu.craft.mobs.service.AttributeBridge;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.spawner.BiomeSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.CustomSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.DayIntervalSpawnHandler;
@@ -73,7 +76,8 @@ final class MobsLifecycleCoordinator
         var mobRegistry = new AtomicReference<>(initialMobs);
         Map<String, LootTableDefinition> initialLoot = Map.of();
         var lootRegistry = new AtomicReference<>(initialLoot);
-        var mobFactory = new MobFactory(mobRegistry::get, componentMapper, mobIdentifier);
+        var attributeBridge = new AttributeBridge(plugin);
+        var mobFactory = new MobFactory(mobRegistry::get, componentMapper, mobIdentifier, attributeBridge);
         var mobDropHandler = new MobDropHandler(mobIdentifier, mobRegistry::get, lootRegistry::get, plugin.getLogger());
         var spawnConditionEvaluator = new SpawnConditionEvaluator(mobIdentifier);
         var naturalSpawnHandler = new NaturalSpawnHandler(spawnConditionEvaluator, mobFactory);
@@ -86,18 +90,22 @@ final class MobsLifecycleCoordinator
                 playerRelativeSpawnHandler, dayIntervalSpawnHandler, customSpawnHandler, biomeSpawnHandler);
         var spawnRuleLoader = new SpawnRuleLoader(plugin);
         var spawnRegistry = new AtomicReference<>(List.<SpawnRule>of());
+        var mobSkillExecutor = new MobSkillExecutor(plugin, mobRegistry::get, plugin.getLogger());
+        var mobTriggerListener = new MobTriggerListener(mobIdentifier, mobSkillExecutor);
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 definitionLoader, componentMapper, mobIdentifier, mobFactory,
                 appConfigLoader, bootstrapService, mobRegistry,
                 lootTableLoader, lootRegistry, mobDropHandler,
                 spawnRuleLoader, spawnRegistry, spawnRuleDispatcher,
-                naturalSpawnHandler, structureSpawnHandler);
+                naturalSpawnHandler, structureSpawnHandler,
+                attributeBridge, mobSkillExecutor, mobTriggerListener);
     }
 
     int reload(EmakiMobsPlugin plugin) {
         var components = plugin.components();
         var loadedMobs = components.mobDefinitionLoader().loadAll();
         components.mobRegistry().set(loadedMobs);
+        components.mobSkillExecutor().invalidate();
         var loadedLoot = components.lootTableLoader().loadAll();
         components.lootRegistry().set(loadedLoot);
         var loadedRules = components.spawnRuleLoader().loadAll();
