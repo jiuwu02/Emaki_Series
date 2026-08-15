@@ -1,0 +1,13 @@
+id: example_zombie
+type: zombie
+display_name: "<red>示例精英僵尸</red>"
+
+components:
+  max_health: 30.0
+  movement_speed: 0.30
+  attack_damage: 5.0
+  custom_name: "<red>示例精英僵尸</red>"
+  custom_name_visible: true
+  persistent: true
+
+experience: 50

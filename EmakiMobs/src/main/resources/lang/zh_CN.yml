@@ -1,0 +1,16 @@
+version: "1.0.0"
+
+console:
+  plugin_starting: "<gray>EmakiMobs 正在启动…</gray>"
+  plugin_started: "<green>EmakiMobs 已启动，加载了 <white>%count%</white> 个生物定义。</green>"
+  plugin_stopped: "<gray>EmakiMobs 已停止。</gray>"
+  bootstrap_start: "<gray>EmakiMobs 正在加载生物定义…</gray>"
+  reload_complete: "<green>EmakiMobs 已重载，共 <white>%count%</white> 个生物定义。</green>"
+
+command:
+  spawn_success: "<green>已在目标位置生成 <white>%mob_id%</white>。</green>"
+  spawn_unknown: "<red>未知生物 ID：<white>%mob_id%</white></red>"
+  spawn_no_target: "<red>无法确定生成位置，请指定在线玩家。</red>"
+  reload_success: "<green>重载完成，共 <white>%count%</white> 个生物定义。</green>"
+  usage: "<gray>用法：/emakimobs spawn <id> [玩家] | reload</gray>"
+  no_permission: "<red>你没有权限执行此命令。</red>"

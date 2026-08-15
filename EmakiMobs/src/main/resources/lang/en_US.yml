@@ -1,0 +1,16 @@
+version: "1.0.0"
+
+console:
+  plugin_starting: "<gray>EmakiMobs is starting…</gray>"
+  plugin_started: "<green>EmakiMobs started with <white>%count%</white> mob definitions.</green>"
+  plugin_stopped: "<gray>EmakiMobs stopped.</gray>"
+  bootstrap_start: "<gray>EmakiMobs is loading mob definitions…</gray>"
+  reload_complete: "<green>EmakiMobs reloaded with <white>%count%</white> mob definitions.</green>"
+
+command:
+  spawn_success: "<green>Spawned <white>%mob_id%</white> at target location.</green>"
+  spawn_unknown: "<red>Unknown mob ID: <white>%mob_id%</white></red>"
+  spawn_no_target: "<red>Could not determine a spawn location. Please specify an online player.</red>"
+  reload_success: "<green>Reloaded successfully with <white>%count%</white> mob definitions.</green>"
+  usage: "<gray>Usage: /emakimobs spawn <id> [player] | reload</gray>"
+  no_permission: "<red>You do not have permission to run this command.</red>"
