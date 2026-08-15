@@ -94,6 +94,14 @@ public final class RuntimeLibraryLoader {
         return List.copyOf(prepared);
     }
 
+    /**
+     * GraalVM JavaScript 25.0.x 版本，锁定与开发 JDK 版本一致的版本线。
+     *
+     * <p>该值必须与 POM 的预期保持一致：25.0.3 是长 CPU 线（维护到 2027-01），
+     * 且是最后支持 jargraal 的版本线。25.1+ 在 GraalVM 25.0.1 上直接崩溃。</p>
+     */
+    private static final String GRAALVM_VERSION = "25.0.3";
+
     private List<RuntimeLibrary> libraries() {
         return List.of(
                 adventure("adventure-api"),
@@ -115,7 +123,14 @@ public final class RuntimeLibraryLoader {
                 RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.11.0")),
                 RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7")),
                 RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
-                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4"))
+                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4")),
+                // GraalVM JavaScript 引擎，6 个 jar 共约 66 MB。polyglot 是聚合器，会拉取其余 5 个传递依赖。
+                RuntimeLibrary.maven("polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("js-language", new LibraryCoordinate("org.graalvm.js", "js-language", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("truffle-runtime", new LibraryCoordinate("org.graalvm.truffle", "truffle-runtime", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("regex", new LibraryCoordinate("org.graalvm.regex", "regex", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", GRAALVM_VERSION))
         );
     }
 

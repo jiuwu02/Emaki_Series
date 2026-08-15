@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.7.0"
+version: "4.7.1"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -248,7 +248,14 @@ action:
       not_entity: "<gray>[管道] 该段需要实体目标</gray>"
       not_living_entity: "<gray>[管道] 该段需要生物目标</gray>"
       not_player: "<gray>[管道] 该段需要玩家目标</gray>"
+      not_location: "<gray>[管道] 该段需要位置目标</gray>"
       no_location: "<gray>[管道] 该段需要有位置的目标</gray>"
+    script:
+      eval:
+        empty_code: "<gray>[脚本] 脚本代码为空，已跳过</gray>"
+        timeout: "<yellow>[脚本] 脚本执行超时</yellow>"
+        interrupted: "<yellow>[脚本] 脚本执行被中断</yellow>"
+        error: "<red>[脚本] 脚本执行失败: %error_message%</red>"
     play_sound:
       unknown_sound: "<red>[管道] 未知音效 %sound%</red>"
     spawn_particle:

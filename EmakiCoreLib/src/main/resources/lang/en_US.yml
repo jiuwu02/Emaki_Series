@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.7.0"
+version: "4.7.1"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -268,7 +268,14 @@ action:
       not_entity: "<gray>[Pipeline] This stage requires an entity target</gray>"
       not_living_entity: "<gray>[Pipeline] This stage requires a living entity target</gray>"
       not_player: "<gray>[Pipeline] This stage requires a player target</gray>"
+      not_location: "<gray>[Pipeline] This stage requires a location target</gray>"
       no_location: "<gray>[Pipeline] This stage requires a target with a position</gray>"
+    script:
+      eval:
+        empty_code: "<gray>[Script] Script code is empty, skipped</gray>"
+        timeout: "<yellow>[Script] Script execution timed out</yellow>"
+        interrupted: "<yellow>[Script] Script execution was interrupted</yellow>"
+        error: "<red>[Script] Script execution failed: %error_message%</red>"
     play_sound:
       unknown_sound: "<red>[Pipeline] Unknown sound %sound%</red>"
     spawn_particle:

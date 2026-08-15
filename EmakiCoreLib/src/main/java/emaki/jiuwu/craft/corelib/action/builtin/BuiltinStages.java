@@ -47,6 +47,9 @@ import emaki.jiuwu.craft.corelib.action.builtin.stage.GiveMoneyStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.GivePotionEffectStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.HealStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.IgniteStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.JsComputeStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.JsEntityStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.JsLocationStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.KillEntityStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.PlaceBlockStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.PlaySoundStage;
@@ -101,7 +104,7 @@ public final class BuiltinStages {
     public static final int GATE_COUNT = 10;
 
     /** Number of action stages this class registers. */
-    public static final int ACTION_COUNT = 44;
+    public static final int ACTION_COUNT = 47;
 
     private BuiltinStages() {
     }
@@ -261,6 +264,10 @@ public final class BuiltinStages {
         stages.add(new StartTaskStage(
                 taskService, sequences));
         stages.add(new StopTaskStage(taskService));
+        // JavaScript scripting stages.
+        stages.add(new JsComputeStage());
+        stages.add(new JsEntityStage());
+        stages.add(new JsLocationStage());
         return List.copyOf(stages);
     }
 
