@@ -7,12 +7,21 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
+import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
+import emaki.jiuwu.craft.mobs.loot.LootTableDefinitionLoader;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
+import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.spawner.NaturalSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
+import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
+import emaki.jiuwu.craft.mobs.spawner.StructureSpawnHandler;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,7 +35,15 @@ record MobsRuntimeComponents(
         MobFactory mobFactory,
         YamlConfigLoader<AppConfig> appConfigLoader,
         BootstrapService bootstrapService,
-        AtomicReference<Map<String, MobSpec>> mobRegistry
+        AtomicReference<Map<String, MobSpec>> mobRegistry,
+        LootTableDefinitionLoader lootTableLoader,
+        AtomicReference<Map<String, LootTableDefinition>> lootRegistry,
+        MobDropHandler mobDropHandler,
+        SpawnRuleLoader spawnRuleLoader,
+        AtomicReference<List<SpawnRule>> spawnRegistry,
+        SpawnRuleDispatcher spawnRuleDispatcher,
+        NaturalSpawnHandler naturalSpawnHandler,
+        StructureSpawnHandler structureSpawnHandler
 ) implements RuntimeComponents {
 
     @Override

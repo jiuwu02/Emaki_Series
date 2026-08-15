@@ -46,6 +46,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         components.bootstrapService().bootstrap();
         reloadContent();
         registerCommandHandler();
+        registerListeners();
         installPublicApi();
         components.messageService().info("console.plugin_started");
     }
@@ -116,6 +117,12 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerCommand(ROOT_COMMAND, "EmakiMobs command",
                 List.of("emobs"),
                 new MobsCommandAdapter(commandRouter, "emakimobs.use"));
+    }
+
+    private void registerListeners() {
+        getServer().getPluginManager().registerEvents(components.mobDropHandler(), this);
+        getServer().getPluginManager().registerEvents(components.naturalSpawnHandler(), this);
+        getServer().getPluginManager().registerEvents(components.structureSpawnHandler(), this);
     }
 
     private void installPublicApi() {

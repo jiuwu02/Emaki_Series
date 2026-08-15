@@ -1,0 +1,13 @@
+rules:
+  - mob_id: example_zombie
+    type: natural
+    biomes:
+      - plains
+      - forest
+    y_range: [-64, 50]
+    light_level_max: 7
+    replacement_chance: 0.05
+    max_nearby: 3
+    count:
+      min: 1
+      max: 1

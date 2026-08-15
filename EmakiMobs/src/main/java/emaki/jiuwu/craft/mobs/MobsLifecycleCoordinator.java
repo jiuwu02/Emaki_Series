@@ -9,11 +9,24 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.config.AppConfigParser;
+import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
+import emaki.jiuwu.craft.mobs.loot.LootTableDefinitionLoader;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
+import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.spawner.BiomeSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.CustomSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.DayIntervalSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.NaturalSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.PlayerRelativeSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.SpawnConditionEvaluator;
+import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
+import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
+import emaki.jiuwu.craft.mobs.spawner.StructureSpawnHandler;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
@@ -27,7 +40,9 @@ final class MobsLifecycleCoordinator
             "<gray>[<gradient:#86EFAC:#34D399>EmakiMobs</gradient>]</gray> ";
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of();
-    private static final List<String> DEFAULT_DATA_FILES = List.of("mobs/example_zombie.yml");
+    private static final List<String> DEFAULT_DATA_FILES =
+            List.of("mobs/example_zombie.yml", "loot_tables/example_zombie.yml",
+                    "spawn_rules/overworld_elites.yml");
     private static final List<String> EXTRA_DIRECTORIES =
             List.of("mobs", "loot_tables", "spawn_rules");
 
@@ -53,18 +68,41 @@ final class MobsLifecycleCoordinator
         var componentMapper = new ComponentMapper();
         var mobIdentifier = new MobIdentifier(plugin);
         var definitionLoader = new MobDefinitionLoader(plugin);
-        Map<String, MobSpec> initial = Map.of();
-        var mobRegistry = new AtomicReference<>(initial);
+        var lootTableLoader = new LootTableDefinitionLoader(plugin);
+        Map<String, MobSpec> initialMobs = Map.of();
+        var mobRegistry = new AtomicReference<>(initialMobs);
+        Map<String, LootTableDefinition> initialLoot = Map.of();
+        var lootRegistry = new AtomicReference<>(initialLoot);
         var mobFactory = new MobFactory(mobRegistry::get, componentMapper, mobIdentifier);
+        var mobDropHandler = new MobDropHandler(mobIdentifier, mobRegistry::get, lootRegistry::get, plugin.getLogger());
+        var spawnConditionEvaluator = new SpawnConditionEvaluator(mobIdentifier);
+        var naturalSpawnHandler = new NaturalSpawnHandler(spawnConditionEvaluator, mobFactory);
+        var structureSpawnHandler = new StructureSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
+        var playerRelativeSpawnHandler = new PlayerRelativeSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
+        var dayIntervalSpawnHandler = new DayIntervalSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
+        var customSpawnHandler = new CustomSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
+        var biomeSpawnHandler = new BiomeSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
+        var spawnRuleDispatcher = new SpawnRuleDispatcher(naturalSpawnHandler, structureSpawnHandler,
+                playerRelativeSpawnHandler, dayIntervalSpawnHandler, customSpawnHandler, biomeSpawnHandler);
+        var spawnRuleLoader = new SpawnRuleLoader(plugin);
+        var spawnRegistry = new AtomicReference<>(List.<SpawnRule>of());
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 definitionLoader, componentMapper, mobIdentifier, mobFactory,
-                appConfigLoader, bootstrapService, mobRegistry);
+                appConfigLoader, bootstrapService, mobRegistry,
+                lootTableLoader, lootRegistry, mobDropHandler,
+                spawnRuleLoader, spawnRegistry, spawnRuleDispatcher,
+                naturalSpawnHandler, structureSpawnHandler);
     }
 
     int reload(EmakiMobsPlugin plugin) {
         var components = plugin.components();
-        var loaded = components.mobDefinitionLoader().loadAll();
-        components.mobRegistry().set(loaded);
-        return loaded.size();
+        var loadedMobs = components.mobDefinitionLoader().loadAll();
+        components.mobRegistry().set(loadedMobs);
+        var loadedLoot = components.lootTableLoader().loadAll();
+        components.lootRegistry().set(loadedLoot);
+        var loadedRules = components.spawnRuleLoader().loadAll();
+        components.spawnRegistry().set(loadedRules);
+        components.spawnRuleDispatcher().reload(loadedRules);
+        return loadedMobs.size();
     }
 }
