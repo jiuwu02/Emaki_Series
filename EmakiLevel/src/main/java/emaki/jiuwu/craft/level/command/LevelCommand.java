@@ -223,8 +223,11 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         plugin.dataStore().saveAll();
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginState();
+        long elapsedMs = System.currentTimeMillis() - startTime;
         plugin.messages().send(sender, "command.reload_success");
+        plugin.messages().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         return true;
     }
 

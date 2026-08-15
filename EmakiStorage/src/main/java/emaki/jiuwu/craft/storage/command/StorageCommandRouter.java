@@ -350,11 +350,14 @@ public final class StorageCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
+        long startTime = System.currentTimeMillis();
         int templates = plugin.reloadPluginState();
+        long elapsedMs = System.currentTimeMillis() - startTime;
         plugin.messageService().send(sender, "general.reload_success");
         plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("general.reload_summary",
                         Map.of("templates", templates)));
+        plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         return true;
     }
 

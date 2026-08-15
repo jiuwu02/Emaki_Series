@@ -552,9 +552,12 @@ final class ItemCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync().thenRun(() -> runForSender(sender, () -> {
+            long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of("items", plugin.itemLoader().all().size())));
+            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         }));
         return true;
     }

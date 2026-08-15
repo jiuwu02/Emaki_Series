@@ -168,13 +168,16 @@ public final class AccessoryCommandRouter {
             message(sender, "general.no_permission");
             return true;
         }
+        long startTime = System.currentTimeMillis();
         int slots = plugin.reloadContent();
+        long elapsedMs = System.currentTimeMillis() - startTime;
         message(sender, "command.reload_done", Map.of(
                 "slots", String.valueOf(slots),
                 "sets", String.valueOf(plugin.setService().definitions().size()),
                 "issues", String.valueOf(plugin.partLoader().issues().size()
                         + plugin.setLoader().issues().size()
                         + plugin.accessoryGuiService().issues().size())));
+        plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         return true;
     }
 

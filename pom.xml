@@ -394,6 +394,10 @@
             <url>https://repo.auxilor.io/repository/maven-public/</url>
         </repository>
         <repository>
+            <id>mockbukkit-releases</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/releases/</url>
+        </repository>
+        <repository>
             <id>codemc-releases</id>
             <url>https://repo.codemc.io/repository/maven-releases/</url>
         </repository>

@@ -109,12 +109,15 @@ final class ForgeCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync(true).whenComplete((result, throwable) -> runForSender(sender, () -> {
+            long elapsedMs = System.currentTimeMillis() - startTime;
             if (throwable != null || result == null || !result.successful()) {
                 plugin.messageService().send(sender, "general.reload_fail");
                 if (result != null && !result.detail().isBlank()) {
                     plugin.messageService().sendRaw(sender, "<red>" + result.detail() + "</red>");
                 }
+                plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
                 return;
             }
             plugin.messageService().send(sender, "general.reload_success");
@@ -122,6 +125,7 @@ final class ForgeCommandRouter implements TabExecutor {
                     "recipes", result.recipes(),
                     "guis", result.guiTemplates()
             )));
+            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         }));
         return true;
     }

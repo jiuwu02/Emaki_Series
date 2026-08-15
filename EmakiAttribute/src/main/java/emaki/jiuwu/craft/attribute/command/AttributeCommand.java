@@ -177,6 +177,7 @@ public final class AttributeCommand implements TabExecutor {
             return true;
         }
         messages().send(sender, "command.reload.started");
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync(true, message -> runGlobal(() -> messages().sendRaw(sender, message)))
                 .thenRun(() -> messages().send(sender, "command.reload.success"))
                 .thenRun(() -> messages().send(sender, "command.reload.summary", Map.of(
@@ -184,6 +185,7 @@ public final class AttributeCommand implements TabExecutor {
                         "damage_types", attributeService.damageTypeRegistry().all().size(),
                         "profiles", attributeService.defaultProfileRegistry().all().size()
                 )))
+                .thenRun(() -> messages().sendRaw(sender, "<gray>重载耗时: <white>" + (System.currentTimeMillis() - startTime) + "ms</white></gray>"))
                 .exceptionally(throwable -> {
                     runGlobal(() -> messages().send(sender, "command.reload.failed", Map.of(
                             "error", CombatSupport.rootCauseMessage(throwable)

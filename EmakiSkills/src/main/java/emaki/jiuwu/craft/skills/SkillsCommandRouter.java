@@ -237,17 +237,20 @@ final class SkillsCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync(true, progress -> {
             if (progress != null && !progress.isBlank()) {
                 runForSender(sender, () -> plugin.messageService().sendRaw(sender, progress));
             }
         }).thenRun(() -> runForSender(sender, () -> {
+            long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "skills", plugin.skillDefinitionLoader().all().size(),
                     "resources", plugin.localResourceDefinitionLoader().all().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
+            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         })).exceptionally(throwable -> {
             runForSender(sender, () -> plugin.messageService().send(sender, "general.reload_failed"));
             plugin.getLogger().warning("[Reload] Async reload failed: " + throwable.getMessage());

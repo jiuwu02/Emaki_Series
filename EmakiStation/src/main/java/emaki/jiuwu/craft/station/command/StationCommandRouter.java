@@ -328,11 +328,14 @@ public final class StationCommandRouter {
             message(sender, "general.no_permission");
             return true;
         }
+        long startTime = System.currentTimeMillis();
         EmakiStationPlugin.ReloadSummary summary = plugin.reloadContent();
+        long elapsedMs = System.currentTimeMillis() - startTime;
         message(sender, "command.reload_done", Map.of(
                 "stations", String.valueOf(summary.stations()),
                 "recipes", String.valueOf(summary.recipes()),
                 "issues", String.valueOf(summary.issues())));
+        plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         return true;
     }
 

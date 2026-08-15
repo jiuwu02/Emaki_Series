@@ -144,13 +144,16 @@ final class StrengthenCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync(true).thenRun(() -> runForSender(sender, () -> {
+            long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "recipes", plugin.recipeLoader().all().size(),
                     "materials", plugin.recipeLoader().materialCatalog().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
+            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         }));
         return true;
     }
