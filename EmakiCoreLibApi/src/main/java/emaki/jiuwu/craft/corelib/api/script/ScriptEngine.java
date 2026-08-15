@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
  * <p>线程安全性由实现保证：多个 Folia 区域线程可能并发调用 {@link #eval}，
  * 实现必须确保每次调用使用独立的执行上下文。</p>
  *
- * @since 4.8.0
+ * @since 4.7.1
  */
 public interface ScriptEngine {
 

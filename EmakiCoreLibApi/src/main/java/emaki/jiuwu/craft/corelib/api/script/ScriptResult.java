@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
  *   <li>{@link #interrupted()} - 脚本被外部中断信号终止</li>
  * </ul>
  *
- * @since 4.8.0
+ * @since 4.7.1
  */
 public final class ScriptResult {
 
